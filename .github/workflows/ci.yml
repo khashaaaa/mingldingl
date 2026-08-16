@@ -1,0 +1,80 @@
+name: CI
+
+# Mirrors scripts/check-all.sh so "passes locally" and "passes in CI" mean
+# the same thing — three independent jobs (one per subproject) so a failure
+# in one doesn't hide the others, and they run in parallel.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    # IntegrationTestBase.cs hardcodes this exact host/db/user/password/port
+    # (see mingldingl_engine/tests/MinglDingl.Engine.Tests/Integration/IntegrationTestBase.cs)
+    # — it's the same local-dev connection string documented in CLAUDE.md,
+    # not something this workflow can point elsewhere without editing that file.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: mingldingl
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: "1234"
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      # dotnet-ef must be pinned to 8.0.x — a default `dotnet tool install`
+      # grabs a 10.x build that fails against this net8.0 project with
+      # "Failed to resolve libhostfxr.so" (see CLAUDE.md).
+      - run: dotnet tool install --global dotnet-ef --version 8.0.11
+      - run: dotnet build
+        working-directory: mingldingl_engine
+      - run: dotnet ef database update --project src/MinglDingl.Engine
+        working-directory: mingldingl_engine
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+      - run: dotnet test
+        working-directory: mingldingl_engine
+
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: mingldingl_app/package-lock.json
+      - run: npm ci
+        working-directory: mingldingl_app
+      - run: npx tsc --noEmit
+        working-directory: mingldingl_app
+      - run: npm test
+        working-directory: mingldingl_app
+
+  control:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: mingldingl_control/package-lock.json
+      - run: npm ci
+        working-directory: mingldingl_control
+      - run: npm run lint
+        working-directory: mingldingl_control
+      - run: npm run build
+        working-directory: mingldingl_control

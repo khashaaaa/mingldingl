@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Runs the same checks CI will run, before the commit lands rather than
+# after a push — there's no CI yet (no GitHub remote configured), so this is
+# the only gate a broken change would otherwise slip past. Enabled via
+# `git config core.hooksPath .githooks` (see scripts/check-all.sh, which
+# this just delegates to).
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+"$ROOT/scripts/check-all.sh"

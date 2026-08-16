@@ -32,13 +32,13 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
         // Regression test: RespondQuiz used to have no duplicate guard, so
         // resubmitting (which the frontend does to poll for the partner's
         // compatibility result) created a new row and re-awarded QuizDone
-        // every time — an unbounded score-farming exploit.
+        // every time — an unbounded score-farming exploit. Both QuizDone and
+        // any "quiz" daily-quest bonus (q_quiz, target 1 — only one of
+        // today's 3 rotated quests, see QuestService.QuestsForDate) are
+        // one-shot per this test's single isFirstResponse pass, so a
+        // *second* submission still shouldn't move total score at all,
+        // which is what this test actually guards against.
         var userId = Guid.NewGuid();
-        // Score-after-first-response is QuizDone (15) + QuestComplete (15) for the
-        // "quiz" daily quest (q_quiz, target 1 — completed by this one submission,
-        // see QuestService.Defs) = 30. Both are one-shot per this test's single
-        // isFirstResponse pass, so a *second* submission still shouldn't move
-        // total score at all, which is what this test actually guards against.
         var user = NewCompleteUser(userId);
         Db.Users.Add(user);
 
@@ -60,11 +60,15 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
         var scoreEvents = Db.ScoreEvents.Where(e => e.UserId == userId && e.EventType == "QuizDone").ToList();
         Assert.Single(scoreEvents);
 
+        // "quiz" is only in today's rotated quests on some days — assert
+        // the resubmit didn't double-award it, not that it was awarded at
+        // all, so this doesn't flake depending on which date the suite runs.
         var questEvents = Db.ScoreEvents.Where(e => e.UserId == userId && e.EventType == "QuestComplete").ToList();
-        Assert.Single(questEvents);
+        Assert.True(questEvents.Count <= 1, "QuestComplete must never be awarded more than once for two identical submissions");
 
         var reloadedUser = await Db.Users.FindAsync(userId);
-        Assert.Equal(30, reloadedUser!.TotalScore); // QuizDone (15) + QuestComplete (15), each awarded once, not twice
+        int expectedScore = 15 + questEvents.Sum(e => e.Delta); // QuizDone, plus the quest bonus only if today's rotation included it
+        Assert.Equal(expectedScore, reloadedUser!.TotalScore);
     }
 
     [Fact]
