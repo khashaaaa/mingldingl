@@ -75,12 +75,43 @@ public class AdminUsersController : ControllerBase
                 (b, u) => new AdminBlockRelationDto(u.Id, u.DisplayName, b.CreatedAt))
             .ToListAsync();
 
+        var recentMatches = await _db.Matches.AsNoTracking()
+            .Include(m => m.Initiator)
+            .Include(m => m.Receiver)
+            .Where(m => m.InitiatorId == id || m.ReceiverId == id)
+            .OrderByDescending(m => m.LastMessageAt ?? m.CreatedAt)
+            .Take(20)
+            .Select(m => new AdminUserMatchDto(
+                m.Id,
+                m.InitiatorId == id ? m.ReceiverId : m.InitiatorId,
+                m.InitiatorId == id ? m.Receiver.DisplayName : m.Initiator.DisplayName,
+                m.Status, m.MessageCount, m.CreatedAt))
+            .ToListAsync();
+
+        var ships = await _db.Ships.AsNoTracking()
+            .Where(s => s.ShipperUserId == id || s.SlotAUserId == id || s.SlotBUserId == id)
+            .OrderByDescending(s => s.CreatedAt)
+            .Select(s => new AdminUserShipDto(
+                s.Id,
+                s.ShipperUserId == id ? "Shipper" : s.SlotAUserId == id ? "SlotA" : "SlotB",
+                s.Status, s.CreatedAt))
+            .ToListAsync();
+
+        var townSquareRsvps = await _db.TownSquareRsvps.AsNoTracking()
+            .Include(r => r.Session)
+            .Where(r => r.UserId == id)
+            .OrderByDescending(r => r.RsvpAt)
+            .Take(20)
+            .Select(r => new AdminUserTownSquareRsvpDto(r.SessionId, r.Session.ScheduledStartAt, r.Session.Status, r.RsvpAt))
+            .ToListAsync();
+
         return Ok(new AdminUserDetailDto(
             user.Id, user.PhoneNumber, user.DisplayName, user.Age, user.Gender, user.City, user.Bio,
             user.PhotoUrls, user.HasKids, user.SmokingHabit, user.DrinkingHabit, user.Religion, user.Lifestyle,
             user.TotalScore, user.GemTier, user.ReputationScore, user.MembershipLevel, user.MembershipExpiresAt,
             user.CurrentStreak, user.LongestStreak, user.IsPaused, user.IsDeleted, user.IsBanned, user.BannedAt, user.BanReason,
-            user.DeletionRequestedAt, user.CreatedAt, recentEvents, blockedByThem, blockedThem));
+            user.DeletionRequestedAt, user.CreatedAt, recentEvents, blockedByThem, blockedThem,
+            recentMatches, ships, townSquareRsvps));
     }
 
     [HttpGet("deletion-requests")]

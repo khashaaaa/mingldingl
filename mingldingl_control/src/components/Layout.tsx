@@ -12,6 +12,8 @@ const NAV_ITEMS = [
   { to: '/deletion-requests', label: 'Deletion Requests' },
   { to: '/content', label: 'Content' },
   { to: '/business', label: 'Business' },
+  { to: '/ships', label: 'Ships' },
+  { to: '/townsquare', label: 'Town Square' },
   { to: '/analytics', label: 'Analytics' },
   { to: '/ops', label: 'Ops' },
   { to: '/audit-log', label: 'Audit Log' },

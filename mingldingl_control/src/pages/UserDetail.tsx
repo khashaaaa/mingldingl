@@ -229,6 +229,81 @@ export function UserDetail() {
               )}
             </CardContent>
           </Card>
+
+          {/* Message content is deliberately not shown here — MessageCount is
+              enough to see whether a conversation is active for support
+              purposes, without this panel doubling as a private-message
+              reader. */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Recent matches</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {user.recentMatches?.length ? (
+                <Table>
+                  <TableBody>
+                    {user.recentMatches.map((m) => (
+                      <TableRow key={m.matchId}>
+                        <TableCell>
+                          <Link to={`/users/${m.otherUserId}`} className="text-primary hover:underline">
+                            {m.otherUserDisplayName}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{m.status}</TableCell>
+                        <TableCell className="text-muted-foreground">{m.messageCount} messages</TableCell>
+                        <TableCell className="text-muted-foreground text-right">
+                          {m.createdAt && new Date(m.createdAt).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-muted-foreground text-sm">No matches yet.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Fated Threads (Ships)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {user.ships?.length ? (
+                  <ul className="space-y-1 text-sm">
+                    {user.ships.map((s) => (
+                      <li key={s.shipId} className="flex justify-between">
+                        <span>{s.role}</span>
+                        <span className="text-muted-foreground">{s.status}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground text-sm">No ships.</p>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Town Square RSVPs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {user.townSquareRsvps?.length ? (
+                  <ul className="space-y-1 text-sm">
+                    {user.townSquareRsvps.map((r) => (
+                      <li key={r.sessionId} className="flex justify-between">
+                        <span>{r.scheduledStartAt && new Date(r.scheduledStartAt).toLocaleDateString()}</span>
+                        <span className="text-muted-foreground">{r.sessionStatus}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground text-sm">No RSVPs.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 

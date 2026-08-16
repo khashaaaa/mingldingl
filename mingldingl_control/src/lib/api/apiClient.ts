@@ -81,4 +81,20 @@ export const apiClient = {
     revert: (key: string) =>
       api.post<Schemas['AdminConfigDto']>(`/admin/config/${key}/revert`).then((r) => r.data),
   },
+
+  ships: {
+    list: (status: string, page: number, pageSize = 20) =>
+      api
+        .get<Schemas['AdminShipListItemDtoPagedResponse']>(`/admin/ships${query({ status, page, pageSize })}`)
+        .then((r) => r.data),
+  },
+
+  townSquare: {
+    sessions: (page: number, pageSize = 20) =>
+      api
+        .get<Schemas['AdminTownSquareSessionDtoPagedResponse']>(`/admin/townsquare/sessions${query({ page, pageSize })}`)
+        .then((r) => r.data),
+    pairings: (sessionId: string) =>
+      api.get<Schemas['AdminTownSquarePairingDto'][]>(`/admin/townsquare/sessions/${sessionId}/pairings`).then((r) => r.data),
+  },
 };

@@ -56,6 +56,40 @@ public class AdminUsersControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task GetUser_ReturnsRecentMatchesShipsAndTownSquareRsvps()
+    {
+        var user = NewCompleteUser();
+        var otherUser = NewCompleteUser();
+        otherUser.DisplayName = "Match Partner";
+        Db.Users.AddRange(user, otherUser);
+        Db.Matches.Add(new Match { InitiatorId = user.Id, ReceiverId = otherUser.Id, Status = "Active", MessageCount = 3 });
+        Db.Ships.Add(new Ship { ShipperUserId = user.Id, Status = "Pending" });
+        var session = new TownSquareSession
+        {
+            RsvpOpensAt = DateTime.UtcNow.AddDays(-1), RsvpClosesAt = DateTime.UtcNow.AddHours(-1),
+            ScheduledStartAt = DateTime.UtcNow, Status = "Open",
+        };
+        Db.TownSquareSessions.Add(session);
+        await Db.SaveChangesAsync();
+        Db.TownSquareRsvps.Add(new TownSquareRsvp { SessionId = session.Id, UserId = user.Id });
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController();
+        var result = Assert.IsType<OkObjectResult>(await controller.GetUser(user.Id));
+        var detail = Assert.IsType<AdminUserDetailDto>(result.Value);
+
+        var match = Assert.Single(detail.RecentMatches);
+        Assert.Equal("Match Partner", match.OtherUserDisplayName);
+        Assert.Equal(3, match.MessageCount);
+
+        var ship = Assert.Single(detail.Ships);
+        Assert.Equal("Shipper", ship.Role);
+
+        var rsvp = Assert.Single(detail.TownSquareRsvps);
+        Assert.Equal(session.Id, rsvp.SessionId);
+    }
+
+    [Fact]
     public async Task GetUser_UnknownId_ReturnsNotFound()
     {
         var controller = BuildController();

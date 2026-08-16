@@ -16,6 +16,8 @@ import { Analytics } from './pages/Analytics';
 import { Ops } from './pages/Ops';
 import { AuditLog } from './pages/AuditLog';
 import { Config } from './pages/Config';
+import { Ships } from './pages/Ships';
+import { TownSquare } from './pages/TownSquare';
 import { Toaster } from './components/ui/toaster';
 
 function App() {
@@ -36,6 +38,8 @@ function App() {
               <Route path="/business" element={<BusinessList />} />
               <Route path="/business/new" element={<BusinessForm />} />
               <Route path="/business/:id/edit" element={<BusinessForm />} />
+              <Route path="/ships" element={<Ships />} />
+              <Route path="/townsquare" element={<TownSquare />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/ops" element={<Ops />} />
               <Route path="/audit-log" element={<AuditLog />} />

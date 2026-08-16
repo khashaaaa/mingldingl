@@ -13,6 +13,16 @@ public record AdminUserListItemDto(
 
 public record AdminBlockRelationDto(Guid UserId, string DisplayName, DateTime CreatedAt);
 
+// Message *content* deliberately isn't surfaced here — MessageCount (already
+// on Match) is enough to see whether a conversation is active for support
+// purposes, without an admin panel doubling as a private-message reader.
+public record AdminUserMatchDto(
+    Guid MatchId, Guid OtherUserId, string OtherUserDisplayName, string Status, int MessageCount, DateTime CreatedAt);
+
+public record AdminUserShipDto(Guid ShipId, string Role, string Status, DateTime CreatedAt);
+
+public record AdminUserTownSquareRsvpDto(Guid SessionId, DateTime ScheduledStartAt, string SessionStatus, DateTime RsvpAt);
+
 public record AdminUserDetailDto(
     Guid Id,
     string? PhoneNumber,
@@ -43,7 +53,10 @@ public record AdminUserDetailDto(
     DateTime CreatedAt,
     IReadOnlyList<ScoreEventDto> RecentScoreEvents,
     IReadOnlyList<AdminBlockRelationDto> UsersBlockedByThem,
-    IReadOnlyList<AdminBlockRelationDto> UsersWhoBlockedThem);
+    IReadOnlyList<AdminBlockRelationDto> UsersWhoBlockedThem,
+    IReadOnlyList<AdminUserMatchDto> RecentMatches,
+    IReadOnlyList<AdminUserShipDto> Ships,
+    IReadOnlyList<AdminUserTownSquareRsvpDto> TownSquareRsvps);
 
 // DaysRemaining is 7 (the grace period DailyMaintenanceBackgroundService
 // enforces) minus days elapsed since DeletionRequestedAt, floored at 0.
