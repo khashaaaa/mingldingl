@@ -1,0 +1,207 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+[ApiController]
+[Route("admin/users")]
+[Authorize(AuthenticationSchemes = "AdminBearer")]
+[Produces("application/json")]
+public class AdminUsersController : ControllerBase
+{
+    private readonly AppDbContext _db;
+    private readonly AdminAuditService _audit;
+    private readonly ScoreService _score;
+
+    public AdminUsersController(AppDbContext db, AdminAuditService audit, ScoreService score)
+    {
+        _db = db;
+        _audit = audit;
+        _score = score;
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResponse<AdminUserListItemDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListUsers([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var (safePage, safePageSize, skip) = PagingDefaults.Normalize(page, pageSize);
+
+        var query = _db.Users.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = $"%{search.Trim()}%";
+            query = query.Where(u =>
+                EF.Functions.ILike(u.DisplayName, term) ||
+                EF.Functions.ILike(u.City, term) ||
+                (u.PhoneNumber != null && EF.Functions.ILike(u.PhoneNumber, term)));
+        }
+
+        var totalCount = await query.CountAsync();
+        var users = await query
+            .OrderByDescending(u => u.CreatedAt)
+            .Skip(skip)
+            .Take(safePageSize)
+            .Select(u => new AdminUserListItemDto(
+                u.Id, u.DisplayName, u.Age, u.City, u.GemTier, u.MembershipLevel,
+                u.TotalScore, u.IsPaused, u.IsDeleted, u.IsBanned, u.CreatedAt))
+            .ToListAsync();
+
+        return Ok(new PagedResponse<AdminUserListItemDto>(users, safePage, safePageSize, totalCount, skip + users.Count < totalCount));
+    }
+
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(AdminUserDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetUser(Guid id)
+    {
+        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null) return this.NotFoundError("User not found");
+
+        var recentEvents = await _db.ScoreEvents.AsNoTracking()
+            .Where(e => e.UserId == id)
+            .OrderByDescending(e => e.CreatedAt)
+            .Take(20)
+            .Select(e => new ScoreEventDto(e.EventType, e.Delta, e.CreatedAt))
+            .ToListAsync();
+
+        var blockedByThem = await _db.BlockedUsers.AsNoTracking()
+            .Where(b => b.BlockerId == id)
+            .Join(_db.Users.AsNoTracking(), b => b.BlockedId, u => u.Id,
+                (b, u) => new AdminBlockRelationDto(u.Id, u.DisplayName, b.CreatedAt))
+            .ToListAsync();
+
+        var blockedThem = await _db.BlockedUsers.AsNoTracking()
+            .Where(b => b.BlockedId == id)
+            .Join(_db.Users.AsNoTracking(), b => b.BlockerId, u => u.Id,
+                (b, u) => new AdminBlockRelationDto(u.Id, u.DisplayName, b.CreatedAt))
+            .ToListAsync();
+
+        return Ok(new AdminUserDetailDto(
+            user.Id, user.PhoneNumber, user.DisplayName, user.Age, user.Gender, user.City, user.Bio,
+            user.PhotoUrls, user.HasKids, user.SmokingHabit, user.DrinkingHabit, user.Religion, user.Lifestyle,
+            user.TotalScore, user.GemTier, user.ReputationScore, user.MembershipLevel, user.MembershipExpiresAt,
+            user.CurrentStreak, user.LongestStreak, user.IsPaused, user.IsDeleted, user.IsBanned, user.BannedAt, user.BanReason,
+            user.DeletionRequestedAt, user.CreatedAt, recentEvents, blockedByThem, blockedThem));
+    }
+
+    [HttpGet("deletion-requests")]
+    [ProducesResponseType(typeof(IReadOnlyList<AdminDeletionRequestDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDeletionRequests()
+    {
+        var pending = await _db.Users.AsNoTracking()
+            .Where(u => u.DeletionRequestedAt != null && !u.IsDeleted)
+            .OrderBy(u => u.DeletionRequestedAt)
+            .Select(u => new { u.Id, u.DisplayName, u.City, DeletionRequestedAt = u.DeletionRequestedAt!.Value })
+            .ToListAsync();
+
+        var graceDays = (int)DailyMaintenanceBackgroundService.GracePeriod.TotalDays;
+        var now = DateTime.UtcNow;
+        var result = pending
+            .Select(u => new AdminDeletionRequestDto(
+                u.Id, u.DisplayName, u.City, u.DeletionRequestedAt,
+                Math.Max(0, graceDays - (now - u.DeletionRequestedAt).Days)))
+            .ToList();
+
+        return Ok(result);
+    }
+
+    // Rejected at auth time (CurrentUserMiddleware), not just hidden from
+    // discovery — distinct from IsPaused (self-serve, reversible) and the
+    // deletion pipeline (user-initiated, auto-anonymizes).
+    [HttpPost("{id}/ban")]
+    [ProducesResponseType(typeof(AdminUserDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> BanUser(Guid id, [FromBody] AdminBanUserRequest req)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null) return this.NotFoundError("User not found");
+
+        user.IsBanned = true;
+        user.BannedAt = DateTime.UtcNow;
+        user.BanReason = req.Reason;
+        await _db.SaveChangesAsync();
+        await _audit.LogAsync(User, "BanUser", "User", id.ToString(), req.Reason);
+
+        return await GetUser(id);
+    }
+
+    [HttpPost("{id}/unban")]
+    [ProducesResponseType(typeof(AdminUserDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UnbanUser(Guid id)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null) return this.NotFoundError("User not found");
+
+        user.IsBanned = false;
+        user.BannedAt = null;
+        user.BanReason = null;
+        await _db.SaveChangesAsync();
+        await _audit.LogAsync(User, "UnbanUser", "User", id.ToString());
+
+        return await GetUser(id);
+    }
+
+    // Mirrors the exact clear UsersController.GetMe does when a user logs
+    // back in themselves within the 7-day grace period (see User.cs) — an
+    // admin doing this on a user's behalf (e.g. "please cancel my deletion,
+    // I can't log in" via support).
+    [HttpPost("{id}/cancel-deletion")]
+    [ProducesResponseType(typeof(AdminUserDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelDeletion(Guid id)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null) return this.NotFoundError("User not found");
+
+        user.DeletionRequestedAt = null;
+        await _db.SaveChangesAsync();
+        await _audit.LogAsync(User, "CancelDeletion", "User", id.ToString());
+
+        return await GetUser(id);
+    }
+
+    // Reuses ScoreService so this goes through the exact same tier
+    // recalculation and ScoreEvents history as every other score change —
+    // the reason isn't stored on ScoreEvent itself (that model has no
+    // free-text field), so it lives in the audit log entry instead.
+    [HttpPost("{id}/adjust-score")]
+    [ProducesResponseType(typeof(AdminUserDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AdjustScore(Guid id, [FromBody] AdminAdjustScoreRequest req)
+    {
+        var exists = await _db.Users.AsNoTracking().AnyAsync(u => u.Id == id);
+        if (!exists) return this.NotFoundError("User not found");
+
+        await _score.AwardWithDeltaAsync(id, "AdminAdjustment", req.Delta);
+        await _audit.LogAsync(User, "AdjustScore", "User", id.ToString(), $"{(req.Delta >= 0 ? "+" : "")}{req.Delta}: {req.Reason}");
+
+        return await GetUser(id);
+    }
+
+    [HttpGet("export")]
+    [Produces("text/csv")]
+    public async Task<IActionResult> Export([FromQuery] string? search)
+    {
+        var query = _db.Users.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = $"%{search.Trim()}%";
+            query = query.Where(u =>
+                EF.Functions.ILike(u.DisplayName, term) ||
+                EF.Functions.ILike(u.City, term) ||
+                (u.PhoneNumber != null && EF.Functions.ILike(u.PhoneNumber, term)));
+        }
+        var rows = await query.OrderByDescending(u => u.CreatedAt).ToListAsync();
+
+        var csv = CsvWriter.Write(
+            ["DisplayName", "Age", "City", "GemTier", "MembershipLevel", "TotalScore", "IsPaused", "IsDeleted", "IsBanned", "CreatedAt"],
+            rows.Select(u => new[]
+            {
+                u.DisplayName, u.Age.ToString(), u.City, u.GemTier, u.MembershipLevel, u.TotalScore.ToString(),
+                u.IsPaused.ToString(), u.IsDeleted.ToString(), u.IsBanned.ToString(), u.CreatedAt.ToString("O"),
+            }));
+
+        await _audit.LogAsync(User, "ExportUsers", "User", null, $"{rows.Count} rows");
+        return File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv", "users.csv");
+    }
+}

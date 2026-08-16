@@ -1,0 +1,101 @@
+import { useEffect, useState } from 'react';
+import { Modal, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { GameButton } from '../ui/GameButton';
+import { i18n } from '../../lib/i18n';
+import { COLORS, FONTS, RADIUS, overlay } from '../../lib/theme';
+
+interface Props {
+  visible: boolean;
+  provinces: string[];
+  ulaanbaatarDistricts: string[];
+  onSelect: (city: string) => void;
+  onDismiss: () => void;
+}
+
+// Fallback for the location-permission-denied path in onboarding — a tap-to-
+// select list over the same fixed Mongolia province/district lists the
+// engine snaps GPS coordinates to (see MongoliaGeo), so a denied-permission
+// user still never has to type a free-text city name. Two-step rather than
+// one flat list: provinces and Ulaanbaatar's 9 districts read as different
+// kinds of place, so mixing them into a single alphabetical-ish scroll made
+// a UB resident hunt past 21 province names for their district (or vice
+// versa). Ulaanbaatar itself is a picker-only grouping, not a selectable
+// value — the engine has no city point for it, only its districts.
+export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSelect, onDismiss }: Props) {
+  const [showingDistricts, setShowingDistricts] = useState(false);
+
+  useEffect(() => {
+    if (visible) setShowingDistricts(false);
+  }, [visible]);
+
+  const ulaanbaatarLabel = i18n.t('ulaanbaatar');
+  const rows = showingDistricts ? ulaanbaatarDistricts : [...provinces, ulaanbaatarLabel];
+
+  function handlePress(item: string) {
+    if (!showingDistricts && item === ulaanbaatarLabel) {
+      setShowingDistricts(true);
+      return;
+    }
+    onSelect(item);
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
+      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onDismiss}>
+        <TouchableOpacity style={styles.sheet} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+          <Text style={styles.title}>
+            {showingDistricts ? i18n.t('select_district') : i18n.t('select_city')}
+          </Text>
+          <FlatList
+            data={rows}
+            keyExtractor={(c) => c}
+            style={styles.list}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.row} onPress={() => handlePress(item)}>
+                <Text style={styles.rowText}>{item}</Text>
+              </TouchableOpacity>
+            )}
+          />
+          <GameButton
+            variant="ghost"
+            style={styles.cancelWrap}
+            onPress={showingDistricts ? () => setShowingDistricts(false) : onDismiss}
+          >
+            {i18n.t('back')}
+          </GameButton>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: overlay(0.6), justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: COLORS.panel,
+    borderTopWidth: 1,
+    borderColor: COLORS.bronze,
+    borderTopLeftRadius: RADIUS.md,
+    borderTopRightRadius: RADIUS.md,
+    maxHeight: '70%',
+    paddingTop: 16,
+  },
+  title: {
+    fontFamily: FONTS.display,
+    fontSize: 13,
+    color: COLORS.textDim,
+    letterSpacing: 2,
+    textAlign: 'center',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  list: { maxHeight: '100%' },
+  cancelWrap: { padding: 16 },
+  row: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.panelRaised,
+  },
+  rowText: { fontFamily: FONTS.body, fontSize: 16, color: COLORS.text },
+});

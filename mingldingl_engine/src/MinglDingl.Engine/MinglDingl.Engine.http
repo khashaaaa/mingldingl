@@ -1,0 +1,6 @@
+@MinglDingl.Engine_HostAddress = http://localhost:5150
+
+GET {{MinglDingl.Engine_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
