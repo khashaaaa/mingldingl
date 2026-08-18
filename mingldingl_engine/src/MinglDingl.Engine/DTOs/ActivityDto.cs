@@ -22,4 +22,15 @@ public record TrophyResponse(
     string? BusinessPhoto,
     DateTime ConfirmedAt,
     int? MyStars,
-    string? MyMomentPhotoUrl);
+    string? MyMomentPhotoUrl,
+    bool Mismatched = false);
+
+public record AttendanceCheckStatusResponse(bool Due, string? ActivityTitle);
+
+public record AttendanceCheckRequestDto(bool Attended);
+
+// Attended is the caller's own recorded attendance value — never the other
+// participant's, and never whether a mismatch/penalty resulted (that's
+// deliberately invisible client-side, see the No-Show Tracking spec's
+// anti-abuse section).
+public record AttendanceCheckResponse(bool Attended);

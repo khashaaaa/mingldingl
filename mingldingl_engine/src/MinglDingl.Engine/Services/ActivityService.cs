@@ -7,14 +7,16 @@ public class ActivityService
     private readonly QuestService _quests;
     private readonly MilestoneService _milestones;
     private readonly SupabaseBroadcastService _broadcast;
+    private readonly ConfigService _config;
 
-    public ActivityService(AppDbContext db, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast)
+    public ActivityService(AppDbContext db, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config)
     {
         _db = db;
         _score = score;
         _quests = quests;
         _milestones = milestones;
         _broadcast = broadcast;
+        _config = config;
     }
 
     public async Task<List<ActivitySuggestion>> GetOrCreateSuggestionsAsync(Guid matchId)
@@ -93,6 +95,7 @@ public class ActivityService
         {
             await _score.AwardManyAsync([(match.InitiatorId, "DateConfirmed"), (match.ReceiverId, "DateConfirmed")]);
             match.VideoCallUnlocked = true;
+            confirmation.CompletedAt = DateTime.UtcNow;
         }
 
         await _db.SaveChangesAsync();
@@ -110,5 +113,91 @@ public class ActivityService
         }
 
         return (confirmation, awarded);
+    }
+
+    // "Most recent completed DateConfirmation for this match" — a match can
+    // in principle have more than one (see PenaltyApplied's comment on
+    // DateConfirmation), so this always resolves to the newest one by
+    // CompletedAt.
+    private async Task<DateConfirmation?> LoadLatestCompletedConfirmationAsync(Guid matchId) =>
+        await _db.DateConfirmations
+            .Where(c => c.MatchId == matchId && c.CompletedAt != null)
+            .OrderByDescending(c => c.CompletedAt)
+            .FirstOrDefaultAsync();
+
+    public async Task<(bool Due, string? ActivityTitle)> GetAttendanceCheckStatusAsync(Guid matchId, Guid userId)
+    {
+        var confirmation = await LoadLatestCompletedConfirmationAsync(matchId);
+        if (confirmation is null) return (false, null);
+        if (DateTime.UtcNow - confirmation.CompletedAt!.Value < TimeSpan.FromHours(48)) return (false, null);
+
+        var match = await _db.Matches.FindAsync(matchId);
+        if (match is null) return (false, null);
+        bool isInitiator = match.InitiatorId == userId;
+        bool alreadyAnswered = isInitiator ? confirmation.InitiatorAttended.HasValue : confirmation.ReceiverAttended.HasValue;
+        if (alreadyAnswered) return (false, null);
+
+        var suggestion = await _db.ActivitySuggestions.FindAsync(confirmation.ActivitySuggestionId);
+        return (true, suggestion?.Title);
+    }
+
+    // Returns the caller's own recorded answer (true/false), or null if
+    // there's no eligible confirmation for this match. Idempotent: once a
+    // user has answered, a second call returns that original answer without
+    // reprocessing — no way to "take it back" after learning nothing about
+    // the other side's answer, since answers are never revealed to each other.
+    public async Task<bool?> SubmitAttendanceAsync(Guid matchId, Guid userId, bool attended)
+    {
+        var confirmation = await LoadLatestCompletedConfirmationAsync(matchId);
+        if (confirmation is null) return null;
+
+        var match = await _db.Matches.FindAsync(matchId);
+        if (match is null || !match.IsParticipant(userId)) return null;
+        bool isInitiator = match.InitiatorId == userId;
+
+        bool alreadyAnswered = isInitiator ? confirmation.InitiatorAttended.HasValue : confirmation.ReceiverAttended.HasValue;
+        if (alreadyAnswered) return isInitiator ? confirmation.InitiatorAttended : confirmation.ReceiverAttended;
+
+        if (isInitiator) confirmation.InitiatorAttended = attended;
+        else confirmation.ReceiverAttended = attended;
+        await _db.SaveChangesAsync();
+
+        if (confirmation.InitiatorAttended.HasValue && confirmation.ReceiverAttended.HasValue
+            && confirmation.InitiatorAttended != confirmation.ReceiverAttended)
+        {
+            // Checked across EVERY DateConfirmation for this match, not just
+            // this row — a match can accumulate more than one completed
+            // DateConfirmation (see PenaltyApplied's comment on the model),
+            // and the "distinct matches only" anti-abuse guarantee requires
+            // this to be a per-MATCH gate, not a per-row one.
+            bool alreadyPenalizedForThisMatch = await _db.DateConfirmations
+                .AnyAsync(c => c.MatchId == matchId && c.PenaltyApplied);
+
+            if (!alreadyPenalizedForThisMatch)
+            {
+                var denyingUserId = confirmation.InitiatorAttended == false ? match.InitiatorId : match.ReceiverId;
+                confirmation.PenaltyApplied = true;
+                await _db.SaveChangesAsync();
+
+                var updated = await _db.Database.SqlQuery<int>(
+                    $"""
+                    UPDATE "Users" SET "NoShowFlagCount" = "NoShowFlagCount" + 1
+                    WHERE "Id" = {denyingUserId}
+                    RETURNING "NoShowFlagCount"
+                    """).ToListAsync();
+
+                if (updated.Count > 0)
+                {
+                    var trackedUser = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == denyingUserId)?.Entity;
+                    if (trackedUser is not null) trackedUser.NoShowFlagCount = updated[0];
+
+                    int threshold = (int)_config.GetNumber("dating.noshow.threshold", 3);
+                    if (updated[0] >= threshold)
+                        await _score.ApplyReputationPenaltyAsync(denyingUserId, "RepeatedNoShowPenalty");
+                }
+            }
+        }
+
+        return attended;
     }
 }

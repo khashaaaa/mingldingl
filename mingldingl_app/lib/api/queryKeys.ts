@@ -20,6 +20,7 @@ export const queryKeys = {
   items: ['items'] as const,
   itemsMine: ['items', 'mine'] as const,
   activitySuggestions: (matchId: string) => ['activitySuggestions', matchId] as const,
+  attendanceCheck: (matchId: string) => ['attendanceCheck', matchId] as const,
   activity: ['activity'] as const,
   myTrophies: ['myTrophies'] as const,
   businessReviews: (businessId: string) => ['businessReviews', businessId] as const,

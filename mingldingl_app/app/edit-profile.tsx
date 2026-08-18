@@ -175,6 +175,8 @@ export default function EditProfileScreen() {
               options={['yes', 'no'] as const}
               optionLabel={(opt) => i18n.t(opt === 'yes' ? 'has_kids_yes' : 'has_kids_no')}
               onChange={(opt) => setHasKids(opt === 'yes')}
+              size="compact"
+              unselectedVariant="brass"
             />
             <ChoiceRow
               label={i18n.t('smoking_habit')}
@@ -182,6 +184,8 @@ export default function EditProfileScreen() {
               options={SMOKING_DRINKING_OPTIONS}
               optionLabel={(opt) => i18n.t(`habit_${opt.toLowerCase()}`)}
               onChange={setSmokingHabit}
+              size="compact"
+              unselectedVariant="brass"
             />
             <ChoiceRow
               label={i18n.t('drinking_habit')}
@@ -189,6 +193,8 @@ export default function EditProfileScreen() {
               options={SMOKING_DRINKING_OPTIONS}
               optionLabel={(opt) => i18n.t(`habit_${opt.toLowerCase()}`)}
               onChange={setDrinkingHabit}
+              size="compact"
+              unselectedVariant="brass"
             />
             <ChoiceRow
               label={i18n.t('religion')}
@@ -196,6 +202,8 @@ export default function EditProfileScreen() {
               options={RELIGION_OPTIONS}
               optionLabel={(opt) => i18n.t(`religion_${opt.toLowerCase()}`)}
               onChange={setReligion}
+              size="compact"
+              unselectedVariant="brass"
             />
             <ChoiceRow
               label={i18n.t('lifestyle')}
@@ -203,6 +211,8 @@ export default function EditProfileScreen() {
               options={LIFESTYLE_OPTIONS}
               optionLabel={(opt) => i18n.t(`lifestyle_${opt.toLowerCase()}`)}
               onChange={setLifestyle}
+              size="compact"
+              unselectedVariant="brass"
             />
           </YStack>
         </AppCard>
@@ -220,7 +230,7 @@ export default function EditProfileScreen() {
             ) : (
               <Text color={COLORS.text} fontSize={15} fontFamily={FONTS.bodyBold as any}>{city || '—'}</Text>
             )}
-            <GameButton variant="ghost" icon="crosshairs-gps" loading={isCapturing} onPress={handleRefreshLocation}>
+            <GameButton variant="brass" size="compact" icon="crosshairs-gps" loading={isCapturing} onPress={handleRefreshLocation}>
               {i18n.t('refresh_location')}
             </GameButton>
             {error && <Text color={COLORS.ember} fontSize={13} fontFamily={FONTS.body as any}>{error}</Text>}
@@ -229,7 +239,7 @@ export default function EditProfileScreen() {
                 <Text color={COLORS.textDim} fontSize={12} fontFamily={FONTS.body as any}>
                   {i18n.t('location_permission_denied')}
                 </Text>
-                <GameButton variant="ghost" onPress={() => setCityPickerVisible(true)}>
+                <GameButton variant="brass" size="compact" onPress={() => setCityPickerVisible(true)}>
                   {i18n.t('choose_your_city')}
                 </GameButton>
               </YStack>
@@ -247,11 +257,11 @@ export default function EditProfileScreen() {
       />
 
       <XStack gap="$3" padding="$6" paddingTop="$3">
-        <GameButton variant="ghost" flex={1} onPress={() => { Keyboard.dismiss(); router.back(); }}>
+        <GameButton variant="brass" size="compact" flex={1} onPress={() => { Keyboard.dismiss(); router.back(); }}>
           {i18n.t('back')}
         </GameButton>
         <GameButton
-          variant="primary" flex={2}
+          variant="primary" size="compact" flex={2}
           disabled={!canSave} loading={saving}
           onPress={() => { Keyboard.dismiss(); handleSave(); }}
         >

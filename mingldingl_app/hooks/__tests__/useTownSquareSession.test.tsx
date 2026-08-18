@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useTownSquareSession } from '../useTownSquareSession';
 import { apiClient } from '../../lib/api/apiClient';
+import { createAppQueryClient } from '../../lib/api/queryClient';
 
 jest.mock('../../lib/api/apiClient', () => ({
   apiClient: {
@@ -21,12 +22,14 @@ const mockApi = apiClient as unknown as {
   };
 };
 
+// useTownSquareSession's rsvp/cancelRsvp mutations refresh via
+// meta.invalidates (see lib/api/queryClient.ts's MutationCache), which only
+// fires on a client built by createAppQueryClient — a bare `new QueryClient()`
+// has no MutationCache wired and would silently no-op the invalidation.
 function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
+  return createAppQueryClient({
+    queries: { retry: false },
+    mutations: { retry: false },
   });
 }
 

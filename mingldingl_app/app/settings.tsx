@@ -145,6 +145,8 @@ export default function SettingsScreen() {
           options={LANGUAGE_OPTIONS}
           optionLabel={(opt) => i18n.t(opt === 'en' ? 'language_english' : 'language_mongolian')}
           onChange={handlePickLanguage}
+          size="compact"
+          unselectedVariant="brass"
         />
         <ChoiceRow
           label={i18n.t('notifications')}
@@ -152,6 +154,8 @@ export default function SettingsScreen() {
           options={NOTIF_OPTIONS}
           optionLabel={(opt) => i18n.t(opt === 'on' ? 'notif_on' : 'notif_off')}
           onChange={handleToggleNotifications}
+          size="compact"
+          unselectedVariant="brass"
         />
 
         <YStack gap="$2">
@@ -178,7 +182,7 @@ export default function SettingsScreen() {
             </YStack>
           </XStack>
           {ageRangeError && <Text style={styles.errorText}>{i18n.t('age_range_invalid')}</Text>}
-          <GameButton variant="ghost" onPress={handleSaveAgeRange}>{i18n.t('save')}</GameButton>
+          <GameButton variant="brass" size="compact" onPress={handleSaveAgeRange}>{i18n.t('save')}</GameButton>
         </YStack>
 
         <YStack gap="$2">
@@ -188,27 +192,29 @@ export default function SettingsScreen() {
             options={PAUSE_OPTIONS}
             optionLabel={(opt) => i18n.t(opt === 'on' ? 'pause_on' : 'pause_off')}
             onChange={handleTogglePause}
+            size="compact"
+            unselectedVariant="brass"
           />
           <Text style={styles.sectionHint}>{i18n.t('pause_profile_hint')}</Text>
         </YStack>
 
-        <GameButton variant="ghost" icon="account-off-outline" onPress={() => router.push('/blocked-users')}>
+        <GameButton variant="brass" size="compact" icon="account-off-outline" onPress={() => router.push('/blocked-users')}>
           {i18n.t('view_blocked_users')}
         </GameButton>
 
-        <GameButton variant="ghost" icon="crown-outline" onPress={() => router.push('/membership')}>
+        <GameButton variant="brass" size="compact" icon="crown-outline" onPress={() => router.push('/membership')}>
           {i18n.t('manage_membership')}
         </GameButton>
 
         <YStack gap="$2">
           <Text style={styles.sectionLabel}>{i18n.t('help_and_legal')}</Text>
-          <GameButton variant="ghost" icon="book-open-variant" onPress={() => router.push('/guides')}>
+          <GameButton variant="brass" size="compact" icon="book-open-variant" onPress={() => router.push('/guides')}>
             {i18n.t('guides')}
           </GameButton>
-          <GameButton variant="ghost" icon="file-document-outline" onPress={() => router.push('/terms')}>
+          <GameButton variant="brass" size="compact" icon="file-document-outline" onPress={() => router.push('/terms')}>
             {i18n.t('terms_of_service')}
           </GameButton>
-          <GameButton variant="ghost" icon="shield-lock-outline" onPress={() => router.push('/privacy')}>
+          <GameButton variant="brass" size="compact" icon="shield-lock-outline" onPress={() => router.push('/privacy')}>
             {i18n.t('privacy_policy')}
           </GameButton>
         </YStack>
@@ -216,18 +222,18 @@ export default function SettingsScreen() {
         <YStack gap="$2">
           <Text style={styles.sectionLabel}>{i18n.t('phone_number')}</Text>
           <Text style={styles.sectionHint}>{profile?.phoneNumber ?? '—'}</Text>
-          <GameButton variant="ghost" icon="phone-outline" onPress={() => setChangingPhone(true)}>
+          <GameButton variant="brass" size="compact" icon="phone-outline" onPress={() => setChangingPhone(true)}>
             {i18n.t('change_phone')}
           </GameButton>
         </YStack>
 
         <View style={styles.dangerWrap}>
-          <GameButton variant="danger" icon="account-remove" onPress={() => setConfirmDelete(true)}>
+          <GameButton variant="danger" size="compact" icon="account-remove" onPress={() => setConfirmDelete(true)}>
             {i18n.t('delete_account')}
           </GameButton>
         </View>
         <View style={styles.signOutWrap}>
-          <GameButton variant="ghost" icon="skull-crossbones" onPress={signOut}>{i18n.t('sign_out')}</GameButton>
+          <GameButton variant="brass" size="compact" icon="skull-crossbones" onPress={signOut}>{i18n.t('sign_out')}</GameButton>
         </View>
       </ScrollView>
 

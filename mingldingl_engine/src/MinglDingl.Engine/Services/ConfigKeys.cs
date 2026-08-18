@@ -12,6 +12,8 @@ public static class ConfigKeys
             "Minimum total score for the Sapphire gem tier"),
         new("ships.daily.cap", "Growth", "Number", "3",
             "Max Fated Threads a single Weaver can create per day"),
+        new("dating.noshow.threshold", "Safety", "Number", "3",
+            "Distinct-match attendance mismatches before ReputationScore is docked"),
     ];
 }
 

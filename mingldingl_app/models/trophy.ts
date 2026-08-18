@@ -8,6 +8,7 @@ export interface Trophy {
   confirmedAt: string;
   myStars?: number;
   myMomentPhotoUrl?: string;
+  mismatched: boolean;
 }
 
 export function parseTrophy(d: components['schemas']['TrophyResponse']): Trophy {
@@ -19,5 +20,6 @@ export function parseTrophy(d: components['schemas']['TrophyResponse']): Trophy 
     confirmedAt: d.confirmedAt ?? '',
     myStars: d.myStars ?? undefined,
     myMomentPhotoUrl: d.myMomentPhotoUrl ?? undefined,
+    mismatched: d.mismatched ?? false,
   };
 }

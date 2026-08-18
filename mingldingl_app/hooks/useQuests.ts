@@ -1,9 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 
 export function useQuests() {
-  const qc = useQueryClient();
   const query = useQuery({
     queryKey: queryKeys.questsToday,
     queryFn: apiClient.quests.today,
@@ -11,11 +10,9 @@ export function useQuests() {
   });
   const claim = useMutation({
     mutationFn: apiClient.quests.claimChest,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.quests });
-      // scoreHistory invalidation happens in useOptimisticScoreBump —
-      // QuestBoard calls bumpScore right after this mutation resolves.
-    },
+    // scoreHistory invalidation happens in useOptimisticScoreBump —
+    // QuestBoard calls bumpScore right after this mutation resolves.
+    meta: { invalidates: [queryKeys.quests] },
   });
   return {
     board: query.data,

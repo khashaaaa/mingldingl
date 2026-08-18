@@ -91,6 +91,6 @@ const styles = StyleSheet.create({
   errorTitle: { color: COLORS.text, fontSize: 18, textAlign: 'center' },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, marginBottom: 16 },
   xpBarWrap: { flex: 1 },
-  leaderboardButtonWrap: { marginHorizontal: 20, marginTop: 8, marginBottom: 4 },
+  leaderboardButtonWrap: { marginHorizontal: 20, marginBottom: 4 },
   historyTitle: { color: COLORS.textDim, fontFamily: FONTS.display, fontSize: 12, letterSpacing: 2, marginHorizontal: 20, marginBottom: 8 },
 });

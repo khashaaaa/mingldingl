@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Image, Modal, Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { Modal, Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Spinner } from 'tamagui';
 import { useAuthStore } from '../store/authStore';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
@@ -25,7 +26,7 @@ const TILE = 90;
 // the camera is inherently one shot at a time and keeps its crop step.
 export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange }: Props) {
   const session = useAuthStore((s) => s.session);
-  const { pickPhoto, takePhoto, uploadPhoto, uploading } = usePhotoUpload(session?.user.id);
+  const { pickPhoto, takePhoto, uploadPhoto, uploading, permissionDenied, clearPermissionDenied } = usePhotoUpload(session?.user.id);
   const [sourceModalVisible, setSourceModalVisible] = useState(false);
   const [failedAlert, setFailedAlert] = useState(false);
   const [pendingLocalUris, setPendingLocalUris] = useState<string[]>([]);
@@ -96,7 +97,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange }: Props) {
     <View style={styles.grid}>
       {photoUrls.map((url, i) => (
         <View key={url} style={styles.tile}>
-          <Image source={{ uri: url }} style={styles.image} resizeMode="cover" />
+          <Image source={{ uri: url }} style={styles.image} contentFit="cover" />
           {pendingLocalUris.includes(url) && (
             <View style={styles.uploadOverlay}>
               <Spinner size="small" color="$gold" />
@@ -182,6 +183,14 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange }: Props) {
         title={i18n.t('photo_upload_failed_title')}
         message={i18n.t('photo_upload_failed_body')}
         onDismiss={() => setFailedAlert(false)}
+      />
+
+      <AlertModal
+        visible={permissionDenied}
+        tone="warning"
+        title={i18n.t('photo_permission_denied_title')}
+        message={i18n.t('photo_permission_denied_body')}
+        onDismiss={clearPermissionDenied}
       />
 
       <AlertModal

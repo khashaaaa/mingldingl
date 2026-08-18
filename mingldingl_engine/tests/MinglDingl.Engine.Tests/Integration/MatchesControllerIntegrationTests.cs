@@ -280,6 +280,81 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task GetCandidates_UnmatchedCandidateWithinBand_RanksAheadOfAlreadyMatchedCandidate()
+    {
+        // Day-0 activation lever: a candidate who has never matched with
+        // anyone gets boosted within the same ~10km band, ahead of an
+        // otherwise-equal candidate who already has a match elsewhere — so a
+        // brand-new user surfaces sooner in other people's decks instead of
+        // sitting unseen behind everyone who's already been discovered.
+        var viewerId = Guid.NewGuid();
+        var viewer = NewCompleteUser(viewerId);
+        viewer.Gender = "Male";
+        viewer.Latitude = 47.9128; viewer.Longitude = 106.9522; // Bayanzürkh
+
+        var unmatchedId = Guid.NewGuid();
+        var unmatched = NewCompleteUser(unmatchedId);
+        unmatched.Latitude = 47.9184; unmatched.Longitude = 106.9153; // a few km away, same band
+
+        var alreadyMatchedId = Guid.NewGuid();
+        var alreadyMatched = NewCompleteUser(alreadyMatchedId);
+        alreadyMatched.Latitude = 47.9130; alreadyMatched.Longitude = 106.9520; // essentially the same spot, same band
+
+        var thirdPartyId = Guid.NewGuid();
+        var thirdParty = NewCompleteUser(thirdPartyId);
+
+        Db.Users.AddRange(viewer, unmatched, alreadyMatched, thirdParty);
+        Db.Matches.Add(new Match { InitiatorId = alreadyMatchedId, ReceiverId = thirdPartyId, Status = "Active" });
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(viewerId);
+        var result = Assert.IsType<OkObjectResult>(await controller.GetCandidates(pageSize: 50));
+        var body = Assert.IsType<PagedResponse<CandidateResponse>>(result.Value);
+
+        var unmatchedIndex = body.Items.FindIndex(c => c.Id == unmatchedId);
+        var alreadyMatchedIndex = body.Items.FindIndex(c => c.Id == alreadyMatchedId);
+        Assert.True(unmatchedIndex >= 0 && alreadyMatchedIndex >= 0, "both candidates should be present");
+        Assert.True(unmatchedIndex < alreadyMatchedIndex, "the never-matched candidate should be boosted ahead of the already-matched one within the same band");
+    }
+
+    [Fact]
+    public async Task GetCandidates_UnmatchedBoost_DoesNotOverrideACloserCandidateInAnotherBand()
+    {
+        // The boost only reorders within a band — it must never surface a
+        // brand-new user over a genuinely closer candidate in a different
+        // (10km+) band, which would defeat the point of distance-based
+        // matching in a city-scale app.
+        var viewerId = Guid.NewGuid();
+        var viewer = NewCompleteUser(viewerId);
+        viewer.Gender = "Male";
+        viewer.Latitude = 47.9128; viewer.Longitude = 106.9522;
+
+        var nearAlreadyMatchedId = Guid.NewGuid();
+        var nearAlreadyMatched = NewCompleteUser(nearAlreadyMatchedId);
+        nearAlreadyMatched.Latitude = 47.9184; nearAlreadyMatched.Longitude = 106.9153; // ~4km away
+
+        var farUnmatchedId = Guid.NewGuid();
+        var farUnmatched = NewCompleteUser(farUnmatchedId);
+        farUnmatched.Latitude = 48.9700; farUnmatched.Longitude = 89.9500; // ~1000km away, different band
+
+        var thirdPartyId = Guid.NewGuid();
+        var thirdParty = NewCompleteUser(thirdPartyId);
+
+        Db.Users.AddRange(viewer, nearAlreadyMatched, farUnmatched, thirdParty);
+        Db.Matches.Add(new Match { InitiatorId = nearAlreadyMatchedId, ReceiverId = thirdPartyId, Status = "Active" });
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(viewerId);
+        var result = Assert.IsType<OkObjectResult>(await controller.GetCandidates(pageSize: 50));
+        var body = Assert.IsType<PagedResponse<CandidateResponse>>(result.Value);
+
+        var nearIndex = body.Items.FindIndex(c => c.Id == nearAlreadyMatchedId);
+        var farIndex = body.Items.FindIndex(c => c.Id == farUnmatchedId);
+        Assert.True(nearIndex >= 0 && farIndex >= 0, "both candidates should be present");
+        Assert.True(nearIndex < farIndex, "raw distance across bands must still win over the same-band-only boost");
+    }
+
+    [Fact]
     public async Task Block_EndsMatchAndPreventsFutureMatchRequest()
     {
         var blockerId = Guid.NewGuid();

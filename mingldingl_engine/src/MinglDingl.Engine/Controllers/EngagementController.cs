@@ -85,6 +85,8 @@ public class EngagementController : ControllerBase
             awarded = ScoreService.GetDelta("IcebreakerDone") + await _quests.IncrementAsync(userId, "icebreaker");
             await _quests.IncrementAsync(otherUserId, "icebreaker");
             drop = await _loot.RollDropAsync(userId, "drop");
+            await _milestones.AchieveAsync(userId, "first_icebreaker");
+            await _milestones.AchieveAsync(otherUserId, "first_icebreaker");
         }
 
         return Ok(new IcebreakerRespondResult(bothDone, awarded, drop));
@@ -218,6 +220,7 @@ public class EngagementController : ControllerBase
             await _score.AwardAsync(userId, "QuizDone");
             awarded = ScoreService.GetDelta("QuizDone") + await _quests.IncrementAsync(userId, "quiz");
             drop = await _loot.RollDropAsync(userId, "drop");
+            await _milestones.AchieveAsync(userId, "first_quiz");
             if (req.MatchId.HasValue)
                 await _broadcast.BroadcastAsync("app-nudges", "quiz", new { userId, matchId = req.MatchId });
         }

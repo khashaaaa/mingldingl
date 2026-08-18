@@ -13,7 +13,7 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
         httpContext.Items["UserId"] = userId;
         var mockConfig = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
         var videoToken = new VideoTokenService(mockConfig.Object);
-        var controller = new TownSquareController(Db, new TownSquareService(Db), videoToken)
+        var controller = new TownSquareController(Db, new TownSquareService(Db, BuildTestBroadcast()), videoToken)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -135,7 +135,7 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
         Db.TownSquareRsvps.Add(new TownSquareRsvp { SessionId = session.Id, UserId = woman.Id });
         await Db.SaveChangesAsync();
 
-        var townSquare = new TownSquareService(Db);
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast());
         await townSquare.LockRosterAsync(session.Id);
         await townSquare.StartSessionAsync(session.Id);
 

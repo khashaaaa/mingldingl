@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
+import { supabase } from '../lib/supabase';
 import { toDroppedItem } from '../lib/tiers';
 import { queryKeys } from '../lib/api/queryKeys';
 
@@ -20,7 +21,7 @@ export function useQuiz(matchId: string) {
   const qc = useQueryClient();
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
-  const { data: quiz, isLoading: quizLoading } = useQuery<QuizData>({
+  const { data: quiz, isLoading: quizLoading, isError: quizLoadError, refetch: refetchQuiz } = useQuery<QuizData>({
     queryKey: queryKeys.quiz,
     queryFn: async () => {
       const res = await apiClient.engagement.quiz();
@@ -46,8 +47,30 @@ export function useQuiz(matchId: string) {
       return { hasResponded: res.hasResponded ?? false, compatibility: res.compatibility ?? null };
     },
     enabled: !!quiz && !!matchId,
-    refetchInterval: (query) => (query.state.data?.compatibility != null ? false : 4000),
+    // The broadcast effect below refetches immediately once the partner
+    // responds; this interval is just the safety net for a missed/best-effort
+    // broadcast (see SupabaseBroadcastService), so it can be much slower than
+    // the old 4s straight poll.
+    refetchInterval: (query) => (query.state.data?.compatibility != null ? false : 15000),
   });
+
+  useEffect(() => {
+    if (!matchId || !quiz) return;
+    // EngagementController.RespondQuiz already broadcasts this on every
+    // per-user first response (which is both directions in the normal
+    // one-response-per-user flow) for useRealtimeNudges' toast — reusing
+    // that same app-nudges event here instead of adding a second broadcast
+    // call server-side.
+    const channel = supabase
+      .channel('app-nudges')
+      .on('broadcast', { event: 'quiz' }, (msg) => {
+        const payload = msg.payload as { matchId: string | null };
+        if (payload.matchId !== matchId) return;
+        qc.invalidateQueries({ queryKey: queryKeys.quizStatus(matchId, quiz.id) });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [matchId, quiz?.id]);
 
   const answeredCount = Object.keys(answers).length;
 
@@ -112,6 +135,11 @@ export function useQuiz(matchId: string) {
   return {
     quiz,
     isLoading: quizLoading || (!!quiz && statusLoading),
+    // Distinct from the generic "no quiz assigned" empty state (`!quiz` with
+    // no error) — a fetch failure shouldn't render the same "nothing here"
+    // screen as a genuine empty response.
+    isLoadError: quizLoadError,
+    refetchQuiz,
     currentQuestion,
     answeredCount,
     submitAnswer,

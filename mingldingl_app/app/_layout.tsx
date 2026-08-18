@@ -25,8 +25,10 @@ import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api/apiClient';
 import { COLORS } from '../lib/theme';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { OfflineBanner } from '../components/OfflineBanner';
 import { installGlobalErrorHandlers } from '../lib/globalErrorHandler';
 import { NudgeToast } from '../components/modals/NudgeToast';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useRealtimeNudges } from '../hooks/useRealtimeNudges';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { usePeriodicLocationRefresh } from '../hooks/usePeriodicLocationRefresh';
@@ -65,6 +67,7 @@ function AppContent() {
   const setPendingNudge = useAuthStore((s) => s.setPendingNudge);
   const { data: userProfile, isLoading: profileLoading, isError: profileError } = useProfile();
   const bumpScore = useOptimisticScoreBump();
+  const isOnline = useNetworkStatus();
   useRealtimeNudges();
   usePushNotifications();
   usePeriodicLocationRefresh(!!userProfile);
@@ -156,6 +159,7 @@ function AppContent() {
       <TamaguiProvider config={tamaguiConfig} defaultTheme="dark">
         <SafeAreaView style={styles.root} edges={['top']}>
           <View style={styles.webFrame}>
+            {!isOnline && <OfflineBanner />}
             <ErrorBoundary>
               {/* Stack, not Slot: Slot swaps the whole matched route out on
                   every navigation, so pushing a standalone screen (e.g.

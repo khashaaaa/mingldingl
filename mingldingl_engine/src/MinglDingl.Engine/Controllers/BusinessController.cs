@@ -96,7 +96,12 @@ public class BusinessController : ControllerBase
             RETURNING "AverageRating", "RatingCount"
             """).ToListAsync();
 
-        var aggregate = updateResult.Single();
+        // SingleOrDefault, not Single: the business row was already confirmed to
+        // exist moments ago (FindAsync above), but a concurrent deletion between
+        // then and this UPDATE isn't impossible — treat that race as a clean 404
+        // instead of letting Single() throw and surface as a generic 500.
+        var aggregate = updateResult.SingleOrDefault();
+        if (aggregate is null) return this.NotFoundError("Business not found");
         return Ok(new RateBusinessResponse(aggregate.AverageRating, aggregate.RatingCount));
     }
 

@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api/apiClient';
+import { queryClient } from '../lib/api/queryClient';
 import { useAuthStore } from '../store/authStore';
 import { i18n } from '../lib/i18n';
 
@@ -136,6 +137,13 @@ export function useAuth() {
     // leave the user stuck mid-sign-out.
     await withTimeout(supabase.auth.signOut(), 'signOut').catch(() => {});
     clearSession();
+    // Every query key in queryKeys.ts is global (not scoped by user id) and
+    // each sign-in is a fresh anonymous Supabase identity (see verifyOtp
+    // above) — without this, the next account signed into on this device
+    // sees the outgoing account's cached score/profile/matches/chat data
+    // until each query's own staleTime lapses, or forever for one that never
+    // re-fires.
+    queryClient.clear();
   }
 
   return { sendOtp, verifyOtp, signOut, loading, error };

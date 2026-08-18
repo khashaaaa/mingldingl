@@ -1,4 +1,5 @@
-import { View, Text, Image, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Spinner } from 'tamagui';
 import { useBlockedUsers } from '../hooks/useBlockedUsers';
 import { GameButton } from '../components/ui/GameButton';

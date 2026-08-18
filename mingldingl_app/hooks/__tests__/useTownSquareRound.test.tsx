@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useTownSquareRound } from '../useTownSquareRound';
 import { apiClient } from '../../lib/api/apiClient';
+import { supabase } from '../../lib/supabase';
 
 jest.mock('../../lib/api/apiClient', () => ({
   apiClient: {
@@ -13,6 +14,13 @@ jest.mock('../../lib/api/apiClient', () => ({
   },
 }));
 
+jest.mock('../../lib/supabase', () => ({
+  supabase: {
+    channel: jest.fn(),
+    removeChannel: jest.fn(),
+  },
+}));
+
 const mockApi = apiClient as unknown as {
   townSquare: {
     currentRound: jest.Mock;
@@ -20,6 +28,27 @@ const mockApi = apiClient as unknown as {
     respond: jest.Mock;
   };
 };
+
+const mockChannelFn = supabase.channel as jest.Mock;
+
+type BroadcastHandler = (msg: { payload: unknown }) => void;
+
+interface FakeChannel {
+  on: jest.Mock;
+  subscribe: jest.Mock;
+}
+
+function makeFakeChannel() {
+  let roundAdvancedHandler: BroadcastHandler = () => {};
+  const channel: FakeChannel = {
+    on: jest.fn((_type: string, opts: { event: string }, handler: BroadcastHandler) => {
+      if (opts.event === 'round-advanced') roundAdvancedHandler = handler;
+      return channel;
+    }),
+    subscribe: jest.fn(() => channel),
+  };
+  return { channel, fireRoundAdvanced: (payload: unknown) => roundAdvancedHandler({ payload }) };
+}
 
 function makeQueryClient() {
   return new QueryClient({
@@ -50,8 +79,12 @@ const round1 = {
 };
 
 describe('useTownSquareRound', () => {
+  let fakeChannel: ReturnType<typeof makeFakeChannel>;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    fakeChannel = makeFakeChannel();
+    mockChannelFn.mockReturnValue(fakeChannel.channel);
   });
 
   afterEach(() => {
@@ -87,7 +120,7 @@ describe('useTownSquareRound', () => {
     expect(mockApi.townSquare.currentRound).not.toHaveBeenCalled();
   });
 
-  it('polls every 5s while mounted', async () => {
+  it('polls every 30s while mounted, as a fallback for a missed broadcast', async () => {
     jest.useFakeTimers();
     mockApi.townSquare.currentRound.mockResolvedValue(round1);
 
@@ -97,8 +130,25 @@ describe('useTownSquareRound', () => {
     await waitFor(() => expect(mockApi.townSquare.currentRound).toHaveBeenCalledTimes(1));
 
     await act(async () => {
-      await jest.advanceTimersByTimeAsync(5000);
+      await jest.advanceTimersByTimeAsync(30000);
     });
+    await waitFor(() => expect(mockApi.townSquare.currentRound).toHaveBeenCalledTimes(2));
+  });
+
+  it('refetches immediately when a "round-advanced" broadcast lands for this session', async () => {
+    mockApi.townSquare.currentRound.mockResolvedValue(round1);
+
+    const queryClient = makeQueryClient();
+    renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+
+    await waitFor(() => expect(mockApi.townSquare.currentRound).toHaveBeenCalledTimes(1));
+
+    const round2 = { ...round1, pairingId: 'p2', roundNumber: 2 };
+    mockApi.townSquare.currentRound.mockResolvedValue(round2);
+    act(() => {
+      fakeChannel.fireRoundAdvanced({ sessionId: 's1', roundNumber: 2, status: 'InProgress' });
+    });
+
     await waitFor(() => expect(mockApi.townSquare.currentRound).toHaveBeenCalledTimes(2));
   });
 

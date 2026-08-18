@@ -37,7 +37,18 @@ builder.Services.Configure<ApiBehaviorOptions>(opt =>
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("DefaultConnection"));
 dataSourceBuilder.EnableDynamicJson();
 var dataSource = dataSourceBuilder.Build();
-builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(dataSource));
+// A transient Postgres blip (brief connection drop, timeout) previously
+// failed every in-flight request outright with no recovery — there was no
+// retry story anywhere in the engine. EnableRetryOnFailure makes EF Core
+// transparently retry a failed operation a few times before giving up.
+// Caveat: this makes EF Core's "retrying execution strategy" the default,
+// which refuses to run inside a manually-opened `Database.BeginTransactionAsync()`
+// unless that whole block is itself wrapped in `CreateExecutionStrategy().ExecuteAsync(...)`
+// — see MessagesController.SendMessage, MatchesController.RequestMatch, and
+// TownSquareService.CreateOrReuseMatchAsync, the three places that open an
+// explicit transaction, for that wrapping.
+builder.Services.AddDbContext<AppDbContext>(opt =>
+    opt.UseNpgsql(dataSource, npgsql => npgsql.EnableRetryOnFailure(maxRetryCount: 3)));
 
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", opt =>

@@ -8,6 +8,11 @@ interface Props<T extends string> {
   options: readonly T[];
   optionLabel: (opt: T) => string;
   onChange: (opt: T) => void;
+  size?: 'default' | 'compact';
+  // Unselected-chip look. Defaults to the original flat 'ghost' chrome so
+  // existing call sites (membership, edit-profile) are unaffected; settings
+  // opts into the polished 'brass' look for its more compact rows.
+  unselectedVariant?: 'ghost' | 'brass';
 }
 
 // Reusable label + wrapping row of tap-to-select chips — the same pattern
@@ -16,7 +21,9 @@ interface Props<T extends string> {
 // options. Wraps rather than forcing equal flex per button, so it looks
 // right at both ends of that range instead of cramming 5 options into one
 // squeezed row.
-export function ChoiceRow<T extends string>({ label, value, options, optionLabel, onChange }: Props<T>) {
+export function ChoiceRow<T extends string>({
+  label, value, options, optionLabel, onChange, size = 'default', unselectedVariant = 'ghost',
+}: Props<T>) {
   return (
     <YStack gap="$2">
       <Text color={COLORS.textDim} fontSize={13} fontFamily={FONTS.body as any}>{label}</Text>
@@ -24,7 +31,8 @@ export function ChoiceRow<T extends string>({ label, value, options, optionLabel
         {options.map((opt) => (
           <GameButton
             key={opt}
-            variant={value === opt ? 'primary' : 'ghost'}
+            variant={value === opt ? 'primary' : unselectedVariant}
+            size={size}
             onPress={() => onChange(opt)}
           >
             {optionLabel(opt)}

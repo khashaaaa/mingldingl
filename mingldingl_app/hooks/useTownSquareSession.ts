@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 
@@ -12,8 +12,6 @@ export interface TownSquareNextSession {
 }
 
 export function useTownSquareSession() {
-  const qc = useQueryClient();
-
   const { data: session, isLoading } = useQuery<TownSquareNextSession>({
     queryKey: queryKeys.townSquareNextSession,
     queryFn: async () => {
@@ -34,12 +32,12 @@ export function useTownSquareSession() {
 
   const rsvpMutation = useMutation({
     mutationFn: (sessionId: string) => apiClient.townSquare.rsvp(sessionId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.townSquareNextSession }),
+    meta: { invalidates: [queryKeys.townSquareNextSession] },
   });
 
   const cancelRsvpMutation = useMutation({
     mutationFn: (sessionId: string) => apiClient.townSquare.cancelRsvp(sessionId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.townSquareNextSession }),
+    meta: { invalidates: [queryKeys.townSquareNextSession] },
   });
 
   return {

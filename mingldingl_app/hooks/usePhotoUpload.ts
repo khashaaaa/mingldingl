@@ -9,6 +9,13 @@ export function usePhotoUpload(userId: string | undefined) {
   // one's own finally block must not flip `uploading` false while a sibling
   // upload is still in flight.
   const [uploadCount, setUploadCount] = useState(0);
+  // Both pickPhoto and takePhoto used to fail dead silent on a denied
+  // permission — requestMediaLibraryPermissionsAsync/requestCameraPermissionsAsync
+  // resolve normally either way, so nothing threw and nothing logged; the
+  // picker sheet just closed with no photo and no explanation. Surfacing
+  // this lets callers show the same permission-denied messaging
+  // useLocationCapture already uses for GPS.
+  const [permissionDenied, setPermissionDenied] = useState(false);
 
   // expo-image-picker silently ignores allowsEditing (the native crop-to-
   // square UI) under allowsMultipleSelection, so library picking trades crop
@@ -27,7 +34,8 @@ export function usePhotoUpload(userId: string | undefined) {
   // Android, which doesn't hand back HEIC in the first place.
   async function pickPhoto(selectionLimit: number): Promise<string[]> {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return [];
+    if (!permission.granted) { setPermissionDenied(true); return []; }
+    setPermissionDenied(false);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'], quality: 0.8, allowsMultipleSelection: true, selectionLimit,
@@ -42,7 +50,8 @@ export function usePhotoUpload(userId: string | undefined) {
 
   async function takePhoto(): Promise<string | null> {
     const { granted } = await ImagePicker.requestCameraPermissionsAsync();
-    if (!granted) return null;
+    if (!granted) { setPermissionDenied(true); return null; }
+    setPermissionDenied(false);
     const result = await ImagePicker.launchCameraAsync({
       quality: 0.8, allowsEditing: true, aspect: [1, 1],
     });
@@ -88,5 +97,12 @@ export function usePhotoUpload(userId: string | undefined) {
     }
   }
 
-  return { pickPhoto, takePhoto, uploadPhoto, uploading: uploadCount > 0 };
+  return {
+    pickPhoto,
+    takePhoto,
+    uploadPhoto,
+    uploading: uploadCount > 0,
+    permissionDenied,
+    clearPermissionDenied: () => setPermissionDenied(false),
+  };
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GemTierBadge } from '../progression/GemTierBadge';
 import { GameButton } from '../ui/GameButton';
@@ -40,7 +41,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting }: Prop
         <Image
           source={{ uri: photo }}
           style={styles.photo}
-          resizeMode="cover"
+          contentFit="cover"
           onError={() => setFailedUrl(photo)}
         />
       ) : (

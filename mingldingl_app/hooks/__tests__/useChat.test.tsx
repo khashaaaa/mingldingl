@@ -4,6 +4,7 @@ import { useChat } from '../useChat';
 import { apiClient } from '../../lib/api/apiClient';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
+import { createAppQueryClient } from '../../lib/api/queryClient';
 import { queryKeys } from '../../lib/api/queryKeys';
 
 jest.mock('../../lib/api/apiClient', () => ({
@@ -64,7 +65,11 @@ describe('useChat', () => {
     mockChannelFn.mockReturnValue(fakeChannel.channel);
   });
 
-  async function setup(queryClient = new QueryClient()) {
+  // sendMessage's mutation refreshes score/quests/milestones via
+  // meta.invalidates/awardedSelector (see lib/api/queryClient.ts's
+  // MutationCache) — only a client built by createAppQueryClient has that
+  // wired; a bare `new QueryClient()` would silently no-op it.
+  async function setup(queryClient = createAppQueryClient()) {
     const view = renderHook(() => useChat(MATCH_ID), { wrapper: makeWrapper(queryClient) });
     await waitFor(() => expect(view.result.current.loading).toBe(false));
     await waitFor(() => expect(view.result.current.myId).toBe('me1'));
@@ -210,7 +215,7 @@ describe('useChat', () => {
         message: { id: 'server-1', matchId: MATCH_ID, senderId: 'me1', content: 'hey', createdAt: 'now' },
         awarded: 10,
       });
-      const queryClient = new QueryClient();
+      const queryClient = createAppQueryClient();
       queryClient.setQueryData(queryKeys.scoreDetail, baseScoreDetail);
       const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
       const { result } = await setup(queryClient);
@@ -230,7 +235,7 @@ describe('useChat', () => {
         message: { id: 'server-2', matchId: MATCH_ID, senderId: 'me1', content: 'still me', createdAt: 'now' },
         awarded: 0,
       });
-      const queryClient = new QueryClient();
+      const queryClient = createAppQueryClient();
       queryClient.setQueryData(queryKeys.scoreDetail, baseScoreDetail);
       const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
       const { result } = await setup(queryClient);

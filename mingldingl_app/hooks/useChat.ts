@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api/apiClient';
 import { useAuthStore } from '../store/authStore';
-import { useOptimisticScoreBump } from './useOptimisticScoreBump';
 import type { components } from '../lib/api/api.generated';
 import { queryKeys } from '../lib/api/queryKeys';
 
@@ -40,9 +39,8 @@ export function useChat(matchId: string) {
   // app's single source of truth and is synchronous, so there's no reason to
   // ask the SDK again for something this cheap.
   const myId = useAuthStore((s) => s.session?.user.id);
-  const bumpScore = useOptimisticScoreBump();
 
-  const { data: messages = [], isLoading: loading } = useQuery<Message[]>({
+  const { data: messages = [], isLoading: loading, isError, refetch } = useQuery<Message[]>({
     queryKey: queryKeys.messages(matchId),
     queryFn: async () => {
       const data = await apiClient.messages.list(matchId);
@@ -73,23 +71,28 @@ export function useChat(matchId: string) {
     return () => { supabase.removeChannel(channel); };
   }, [matchId]);
 
+  const sendMutation = useMutation({
+    mutationFn: (content: string) => apiClient.messages.send(matchId, content),
+    // A send can silently award FirstMessage/MatchReply score and/or advance
+    // the "Exchange 5 Words" daily quest and the 10-messages milestone
+    // server-side — meta.invalidates/awardedSelector (see queryClient.ts)
+    // reflects all of that instantly instead of waiting out each cache's own
+    // staleTime.
+    meta: {
+      invalidates: [queryKeys.quests, queryKeys.milestones],
+      awardedSelector: (data) => (data as { awarded?: number }).awarded,
+    },
+  });
+
   async function attemptSend(tempId: string, content: string): Promise<void> {
     try {
-      const res = await apiClient.messages.send(matchId, content);
+      const res = await sendMutation.mutateAsync(content);
       const sent = parseMessage(res.message ?? {});
       qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) => {
         const withoutOptimistic = (old ?? []).filter((m) => m.id !== tempId);
         if (withoutOptimistic.some((m) => m.id === sent.id)) return withoutOptimistic;
         return [...withoutOptimistic, sent];
       });
-      // A send can silently award FirstMessage/MatchReply score and/or
-      // advance the "Exchange 5 Words" daily quest and the 10-messages
-      // milestone server-side — none of that was previously reflected here,
-      // so the score/quest-board/trophy-case numbers only caught up once
-      // their own staleTime lapsed (up to a minute) instead of instantly.
-      if ((res.awarded ?? 0) > 0) bumpScore(res.awarded ?? 0);
-      qc.invalidateQueries({ queryKey: queryKeys.quests });
-      qc.invalidateQueries({ queryKey: queryKeys.milestones });
     } catch {
       // Mark the optimistic message as failed instead of leaving it looking
       // identical to a delivered one — MessageBubble renders 'failed'
@@ -122,5 +125,5 @@ export function useChat(matchId: string) {
     void attemptSend(tempId, target.content);
   }
 
-  return { messages, loading, sendMessage, retryMessage, myId };
+  return { messages, loading, isError, refetch, sendMessage, retryMessage, myId };
 }

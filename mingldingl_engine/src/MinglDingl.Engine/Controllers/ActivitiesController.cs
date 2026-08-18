@@ -76,6 +76,8 @@ public class ActivitiesController : ControllerBase
             {
                 suggestions.TryGetValue(c.ActivitySuggestionId, out var s);
                 var myRating = myRatings.FirstOrDefault(r => r.MatchId == c.MatchId);
+                bool mismatched = c.InitiatorAttended.HasValue && c.ReceiverAttended.HasValue
+                    && c.InitiatorAttended != c.ReceiverAttended;
                 return new TrophyResponse(
                     c.MatchId,
                     s?.Title ?? "",
@@ -83,7 +85,8 @@ public class ActivitiesController : ControllerBase
                     s?.BusinessPartner?.PhotoUrls.FirstOrDefault(),
                     c.CreatedAt,
                     myRating?.Stars,
-                    myRating?.PhotoUrl);
+                    myRating?.PhotoUrl,
+                    mismatched);
             })
             .OrderByDescending(t => t.ConfirmedAt)
             .ToList();
@@ -107,6 +110,40 @@ public class ActivitiesController : ControllerBase
         if (confirmation is null) return this.NotFoundError("Activity suggestion not found for this match");
 
         return Ok(new ConfirmDateResponse(confirmation.InitiatorConfirmed, confirmation.ReceiverConfirmed, confirmation.IsComplete, awarded));
+    }
+
+    [HttpGet("{matchId}/attendance-check")]
+    [ProducesResponseType(typeof(AttendanceCheckStatusResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAttendanceCheck(Guid matchId)
+    {
+        var userId = this.CurrentUserId();
+        var match = await _db.Matches.FindAsync(matchId);
+        if (match is null) return this.NotFoundError("Match not found");
+        if (!match.IsParticipant(userId))
+            return this.ForbiddenError("You are not a participant in this match");
+
+        var (due, activityTitle) = await _activities.GetAttendanceCheckStatusAsync(matchId, userId);
+        return Ok(new AttendanceCheckStatusResponse(due, activityTitle));
+    }
+
+    [HttpPost("{matchId}/attendance-check")]
+    [ProducesResponseType(typeof(AttendanceCheckResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> PostAttendanceCheck(Guid matchId, [FromBody] AttendanceCheckRequestDto req)
+    {
+        var userId = this.CurrentUserId();
+        var match = await _db.Matches.FindAsync(matchId);
+        if (match is null) return this.NotFoundError("Match not found");
+        if (!match.IsParticipant(userId))
+            return this.ForbiddenError("You are not a participant in this match");
+
+        var answered = await _activities.SubmitAttendanceAsync(matchId, userId, req.Attended);
+        if (answered is null) return this.NotFoundError("No confirmed date eligible for an attendance check on this match");
+
+        return Ok(new AttendanceCheckResponse(answered.Value));
     }
 
     private static ActivitySuggestionResponse ToResponse(ActivitySuggestion s, List<DateConfirmation> confirmations, bool isInitiator, bool myRated)

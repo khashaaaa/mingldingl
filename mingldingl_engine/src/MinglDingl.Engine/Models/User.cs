@@ -29,6 +29,13 @@ public class User
     public int TotalScore { get; set; }
     public string GemTier { get; set; } = "Garnet"; // Garnet|Opal|Amethyst|Sapphire|Ruby|Emerald
     public decimal ReputationScore { get; set; } = 1.0m;
+
+    // Times this user was the non-confirming/denying side of an attendance
+    // mismatch, across *distinct* matches (DateConfirmation.PenaltyApplied
+    // enforces the distinctness) — see ActivityService.SubmitAttendanceAsync.
+    // Only crossing NoShowThreshold (ConfigKeys "dating.noshow.threshold")
+    // actually docks ReputationScore; this raw count is tracked unconditionally.
+    public int NoShowFlagCount { get; set; }
     public string MembershipLevel { get; set; } = "Free"; // Free|Silver|Gold|Platinum
     public DateTime? MembershipExpiresAt { get; set; } // null = no active paid period
     public int DailyMatchesUsed { get; set; }

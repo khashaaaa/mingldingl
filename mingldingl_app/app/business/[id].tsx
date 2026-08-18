@@ -1,4 +1,5 @@
-import { View, Text, Image, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { Spinner } from 'tamagui';
 import { useBusinessReviews } from '../../hooks/useBusinessReviews';
@@ -32,7 +33,7 @@ export default function BusinessDetailScreen() {
       <ScreenHeader title={params.name ?? ''} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         {params.photo ? (
-          <Image source={{ uri: params.photo }} style={styles.hero} resizeMode="cover" />
+          <Image source={{ uri: params.photo }} style={styles.hero} contentFit="cover" />
         ) : (
           <View style={[styles.hero, styles.heroPlaceholder]} />
         )}
@@ -59,7 +60,7 @@ export default function BusinessDetailScreen() {
             {reviews.map((r, i) => (
               <AppCard key={i} style={styles.reviewCard}>
                 {r.photoUrl && (
-                  <Image source={{ uri: r.photoUrl }} style={styles.reviewPhoto} resizeMode="cover" />
+                  <Image source={{ uri: r.photoUrl }} style={styles.reviewPhoto} contentFit="cover" />
                 )}
                 <Text style={styles.reviewStars}>{'⭐'.repeat(r.stars)}</Text>
                 {r.review ? <Text style={styles.reviewText}>{r.review}</Text> : null}

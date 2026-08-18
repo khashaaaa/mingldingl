@@ -9,10 +9,12 @@ public class MilestoneService
 
     public static readonly IReadOnlyList<MilestoneDef> Defs =
     [
-        new("first_match",             "milestone_first_match",  25),
-        new("ten_messages_one_match",  "milestone_ten_messages", 30),
-        new("first_pledged_encounter", "milestone_first_pledge", 50),
-        new("first_video_call",        "milestone_first_video",  40),
+        new("first_match",             "milestone_first_match",     25),
+        new("first_icebreaker",        "milestone_first_icebreaker", 20),
+        new("first_quiz",              "milestone_first_quiz",      20),
+        new("ten_messages_one_match",  "milestone_ten_messages",    30),
+        new("first_pledged_encounter", "milestone_first_pledge",    50),
+        new("first_video_call",        "milestone_first_video",     40),
     ];
 
     // Best-effort: never fail the triggering action.

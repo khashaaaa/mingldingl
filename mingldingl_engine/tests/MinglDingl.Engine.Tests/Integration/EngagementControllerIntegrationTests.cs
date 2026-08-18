@@ -337,6 +337,60 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task RespondIcebreaker_BothRespond_AwardsFirstIcebreakerMilestoneToBothParticipants()
+    {
+        // Day-0 activation checklist (GettingStartedCard) reads this milestone
+        // alongside first_match/first_quiz — it only lights up once both sides
+        // have actually completed an icebreaker, same bothDone gate the
+        // score/quest/loot awards just above it already use, so it can't fire
+        // on the first responder alone.
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        var match = new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active" };
+        Db.Matches.Add(match);
+
+        var icebreaker = new Icebreaker { QuestionText = "Q?", Type = "text", IsActive = true };
+        Db.Icebreakers.Add(icebreaker);
+        await Db.SaveChangesAsync();
+
+        var initiatorController = BuildController(initiator.Id);
+        await initiatorController.RespondIcebreaker(match.Id, new IcebreakerRespondDto(icebreaker.Id, "Mine"));
+
+        Db.ChangeTracker.Clear();
+        Assert.Empty(Db.UserMilestones.Where(m => m.MilestoneId == "first_icebreaker"));
+
+        var receiverController = BuildController(receiver.Id);
+        await receiverController.RespondIcebreaker(match.Id, new IcebreakerRespondDto(icebreaker.Id, "Theirs"));
+
+        Db.ChangeTracker.Clear();
+        Assert.Single(Db.UserMilestones.Where(m => m.UserId == initiator.Id && m.MilestoneId == "first_icebreaker"));
+        Assert.Single(Db.UserMilestones.Where(m => m.UserId == receiver.Id && m.MilestoneId == "first_icebreaker"));
+    }
+
+    [Fact]
+    public async Task RespondQuiz_FirstResponse_AwardsFirstQuizMilestoneOnlyOnce()
+    {
+        var userId = Guid.NewGuid();
+        var user = NewCompleteUser(userId);
+        Db.Users.Add(user);
+
+        var quizId = Guid.NewGuid();
+        Db.Quizzes.Add(new Quiz { Id = quizId, Title = "Test Quiz" });
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(userId);
+        var answers = new Dictionary<Guid, string> { [Guid.NewGuid()] = "A" };
+        var req = new QuizRespondDto(answers, null);
+
+        await controller.RespondQuiz(quizId, req);
+        await controller.RespondQuiz(quizId, req); // resubmit — must not duplicate the milestone row
+
+        Db.ChangeTracker.Clear();
+        Assert.Single(Db.UserMilestones.Where(m => m.UserId == userId && m.MilestoneId == "first_quiz"));
+    }
+
+    [Fact]
     public async Task GetIcebreakerStatus_CallerNotAMatchParticipant_ReturnsForbidden()
     {
         var initiator = NewCompleteUser();

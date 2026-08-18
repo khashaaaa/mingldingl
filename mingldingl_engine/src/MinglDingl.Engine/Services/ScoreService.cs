@@ -128,51 +128,135 @@ public class ScoreService
 
     public async Task AwardAsync(Guid userId, string eventType)
     {
-        ApplyAward(await _db.Users.FindAsync(userId), eventType);
+        int delta = GetDelta(eventType);
+        if (delta == 0) return;
+
+        int? newScore = await ApplyScoreDeltaAsync(userId, delta, isGhostPenalty: eventType == "GhostPenalty");
+        if (newScore is null) return; // user not found
+
+        _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta });
         await _db.SaveChangesAsync();
     }
 
     // Award with a caller-computed delta (streak multipliers, chest XP). Bypasses GetDelta.
     public async Task AwardWithDeltaAsync(Guid userId, string eventType, int delta)
     {
-        var user = await _db.Users.FindAsync(userId);
-        if (user is null || delta == 0) return;
-        _db.ScoreEvents.Add(new ScoreEvent { UserId = user.Id, EventType = eventType, Delta = delta });
-        user.TotalScore = Math.Max(0, user.TotalScore + delta);
-        user.GemTier = CalculateTier(user.TotalScore);
+        if (delta == 0) return;
+
+        int? newScore = await ApplyScoreDeltaAsync(userId, delta, isGhostPenalty: false);
+        if (newScore is null) return; // user not found
+
+        _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta });
         await _db.SaveChangesAsync();
     }
 
-    // Awards multiple (userId, eventType) pairs in a single round trip: one query
-    // to load all affected users, one SaveChangesAsync to persist every delta.
+    // Awards multiple (userId, eventType) pairs — each user's delta is applied
+    // atomically (see ApplyScoreDeltaAsync), then every ScoreEvent row is
+    // persisted together in one final round trip.
     public async Task AwardManyAsync(IEnumerable<(Guid UserId, string EventType)> awards)
     {
         var list = awards as IReadOnlyCollection<(Guid UserId, string EventType)> ?? awards.ToList();
         if (list.Count == 0) return;
 
-        var userIds = list.Select(a => a.UserId).Distinct().ToList();
-        var users = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id);
-
         foreach (var (userId, eventType) in list)
-            ApplyAward(users.GetValueOrDefault(userId), eventType);
+        {
+            int delta = GetDelta(eventType);
+            if (delta == 0) continue;
+
+            int? newScore = await ApplyScoreDeltaAsync(userId, delta, isGhostPenalty: eventType == "GhostPenalty");
+            if (newScore is null) continue; // user not found
+
+            _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta });
+        }
 
         await _db.SaveChangesAsync();
     }
 
-    private void ApplyAward(User? user, string eventType)
+    // Reputation-only penalty — GhostPenalty's isGhostPenalty branch docks
+    // both TotalScore and ReputationScore together, and AwardAsync/GetDelta
+    // early-return on a zero TotalScore delta before ever reaching the DB, so
+    // neither path can express "touch ReputationScore only." Same atomic
+    // UPDATE ... RETURNING shape as that branch, to close the identical
+    // lost-update race under concurrent penalties to the same user.
+    public async Task<decimal?> ApplyReputationPenaltyAsync(Guid userId, string eventType)
     {
-        if (user is null) return;
+        var repResult = await _db.Database.SqlQuery<decimal>(
+            $"""
+            UPDATE "Users" SET "ReputationScore" = GREATEST(0, "ReputationScore" - 0.1)
+            WHERE "Id" = {userId}
+            RETURNING "ReputationScore"
+            """).ToListAsync();
+        if (repResult.Count == 0) return null; // user not found
 
-        int delta = GetDelta(eventType);
-        if (delta == 0) return;
+        decimal newReputation = repResult[0];
+        var tracked = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == userId)?.Entity;
+        if (tracked is not null) tracked.ReputationScore = newReputation;
 
-        _db.ScoreEvents.Add(new ScoreEvent { UserId = user.Id, EventType = eventType, Delta = delta });
-        user.TotalScore = Math.Max(0, user.TotalScore + delta);
-        user.GemTier = CalculateTier(user.TotalScore);
+        _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = 0 });
+        await _db.SaveChangesAsync();
 
-        if (eventType == "GhostPenalty")
+        return newReputation;
+    }
+
+    // Atomic increment — loading TotalScore, adjusting it in memory, and saving
+    // separately is a lost-update race under concurrent awards to the same user
+    // (the same class of bug MessagesController.SendMessage's MessageCount fix
+    // closed: two awards racing on one user can silently drop one delta).
+    // UPDATE ... RETURNING does the adjustment and reads the resulting score
+    // back in the same round trip, with no window between the update and a
+    // separate read of "the new value". GemTier is then derived from that
+    // authoritative score and written in a second statement — a small window
+    // remains where two overlapping awards could each write a GemTier computed
+    // from a since-superseded score, but that self-corrects at the very next
+    // score event, unlike a lost TotalScore delta, which is gone for good.
+    // Returns null (no-op) if the user doesn't exist.
+    private async Task<int?> ApplyScoreDeltaAsync(Guid userId, int delta, bool isGhostPenalty)
+    {
+        var scoreResult = await _db.Database.SqlQuery<int>(
+            $"""
+            UPDATE "Users" SET "TotalScore" = GREATEST(0, "TotalScore" + {delta})
+            WHERE "Id" = {userId}
+            RETURNING "TotalScore"
+            """).ToListAsync();
+        if (scoreResult.Count == 0) return null;
+
+        int newScore = scoreResult[0];
+        string newTier = CalculateTier(newScore);
+        decimal? newReputation = null;
+
+        if (isGhostPenalty)
         {
-            user.ReputationScore = Math.Max(0, user.ReputationScore - 0.1m);
+            var repResult = await _db.Database.SqlQuery<decimal>(
+                $"""
+                UPDATE "Users" SET "GemTier" = {newTier}, "ReputationScore" = GREATEST(0, "ReputationScore" - 0.1)
+                WHERE "Id" = {userId}
+                RETURNING "ReputationScore"
+                """).ToListAsync();
+            newReputation = repResult.Count > 0 ? repResult[0] : null;
         }
+        else
+        {
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"""UPDATE "Users" SET "GemTier" = {newTier} WHERE "Id" = {userId}""");
+        }
+
+        SyncTrackedUser(userId, newScore, newTier, newReputation);
+        return newScore;
+    }
+
+    // The raw SQL above bypasses EF's change tracker on purpose, for
+    // correctness under concurrency (see this method's caller). But a caller
+    // that already holds this same user as a tracked entity from earlier in
+    // the same request — e.g. UsersController.Upsert building its response
+    // from the very User it just awarded score to — needs that in-memory
+    // copy kept in sync, or it would serialize the stale pre-award score
+    // back to the client despite the DB row being correct.
+    private void SyncTrackedUser(Guid userId, int newScore, string newTier, decimal? newReputation)
+    {
+        var tracked = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == userId)?.Entity;
+        if (tracked is null) return;
+        tracked.TotalScore = newScore;
+        tracked.GemTier = newTier;
+        if (newReputation.HasValue) tracked.ReputationScore = newReputation.Value;
     }
 }

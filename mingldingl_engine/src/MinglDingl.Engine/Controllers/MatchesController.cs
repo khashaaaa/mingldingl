@@ -88,9 +88,22 @@ public class MatchesController : ControllerBase
         // what makes deep-profile compatibility a real, paid-for ranking
         // factor rather than a mostly-theoretical one everyone gets for free.
         const double PriorityCompatibilityBandKm = 15;
+        // Day-0 activation: within the same ~10km band, a candidate with zero
+        // matches anywhere (not just with the viewer) is boosted ahead of one
+        // who's already matched — so a brand-new user surfaces sooner in
+        // other people's decks instead of sitting unseen behind everyone
+        // who's already been discovered. Self-expiring: the moment they get
+        // one match, this stops applying to them. Deliberately its own
+        // (narrower) band rather than reusing PriorityCompatibilityBandKm —
+        // that one is a paid perk; this applies to every membership level.
+        const double NewUserBoostBandKm = 10;
         bool priorityMatching = me.MembershipLevel is "Gold" or "Platinum";
         bool myLocationKnown = me.Latitude.HasValue && me.Longitude.HasValue;
         var totalCount = unmatched.Count;
+
+        var matchedUserIds = new HashSet<Guid>(
+            await _db.Matches.Select(m => m.InitiatorId).Union(_db.Matches.Select(m => m.ReceiverId)).ToListAsync());
+
         var projected = unmatched
             .Select(u => new
             {
@@ -100,6 +113,7 @@ public class MatchesController : ControllerBase
                     : (double?)null,
                 ScoreDiff = Math.Abs(u.TotalScore - me.TotalScore),
                 Compatibility = CompatibilityScorer.Score(me, u),
+                IsUnmatchedElsewhere = !matchedUserIds.Contains(u.Id),
             });
 
         var ordered = priorityMatching
@@ -108,10 +122,14 @@ public class MatchesController : ControllerBase
                 .ThenBy(x => x.DistanceKm.HasValue ? Math.Floor(x.DistanceKm.Value / PriorityCompatibilityBandKm) : 0)
                 .ThenBy(x => x.Compatibility.HasValue ? 0 : 1)
                 .ThenByDescending(x => x.Compatibility ?? 0)
+                .ThenBy(x => x.DistanceKm.HasValue ? Math.Floor(x.DistanceKm.Value / NewUserBoostBandKm) : 0)
+                .ThenByDescending(x => x.IsUnmatchedElsewhere)
                 .ThenBy(x => x.DistanceKm ?? double.MaxValue)
                 .ThenBy(x => x.ScoreDiff)
             : projected
                 .OrderBy(x => x.DistanceKm.HasValue ? 0 : 1)
+                .ThenBy(x => x.DistanceKm.HasValue ? Math.Floor(x.DistanceKm.Value / NewUserBoostBandKm) : 0)
+                .ThenByDescending(x => x.IsUnmatchedElsewhere)
                 .ThenBy(x => x.DistanceKm ?? double.MaxValue)
                 .ThenBy(x => x.ScoreDiff)
                 .ThenBy(x => x.Compatibility.HasValue ? 0 : 1)
@@ -139,7 +157,7 @@ public class MatchesController : ControllerBase
     public async Task<IActionResult> RequestMatch([FromBody] RequestMatchDto req)
     {
         var userId = this.CurrentUserId();
-        var me = await _db.Users.FindAsync(userId);
+        var me = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
         if (me is null) return this.NotFoundError("User not found");
 
         if (me.DailyMatchesUsed >= ScoreService.DailyMatchBudget(me))
@@ -151,36 +169,52 @@ public class MatchesController : ControllerBase
         // 20 concurrent requests produced 18 duplicate Match rows). An advisory xact
         // lock keyed on the sorted pair serializes concurrent requests for the same
         // two users without requiring a schema change.
-        await using var tx = await _db.Database.BeginTransactionAsync();
-        await _db.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock({PairLockKey(userId, req.TargetUserId)})");
-
-        var existing = await _db.Matches.FirstOrDefaultAsync(m =>
-            (m.InitiatorId == userId && m.ReceiverId == req.TargetUserId) ||
-            (m.InitiatorId == req.TargetUserId && m.ReceiverId == userId));
-
-        if (existing is not null) return this.ConflictError("Match already exists");
-
-        // Defense in depth: GetCandidates already excludes blocked pairs from
-        // the list a client would request from, but a direct call here (or a
-        // block that landed after the candidate list was fetched) should
-        // still be rejected server-side.
-        bool blocked = await _db.BlockedUsers.AnyAsync(bl =>
-            (bl.BlockerId == userId && bl.BlockedId == req.TargetUserId) ||
-            (bl.BlockerId == req.TargetUserId && bl.BlockedId == userId));
-        if (blocked) return this.ForbiddenError("Cannot match with this user");
-
-        var match = new Match
+        //
+        // Wrapped in the execution strategy so EnableRetryOnFailure (Program.cs)
+        // can retry this on a transient DB failure — EF Core forbids a
+        // manually-opened BeginTransactionAsync outside of one. DailyMatchesUsed
+        // is incremented via a raw atomic UPDATE (not `me.DailyMatchesUsed++` on
+        // a tracked entity captured from outside) specifically so a retry is
+        // safe: the increment only ever takes effect if this transaction
+        // actually commits, so re-running it on a rolled-back retry can't
+        // double-count the way mutating an outer in-memory counter would.
+        var (outcome, matchId) = await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
-            InitiatorId = userId,
-            ReceiverId = req.TargetUserId,
-            Status = "Active",
-            RevealLevel = 1
-        };
-        _db.Matches.Add(match);
-        me.DailyMatchesUsed++;
-        await _db.SaveChangesAsync();
-        await tx.CommitAsync();
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock({PairLockKey(userId, req.TargetUserId)})");
+
+            var existing = await _db.Matches.FirstOrDefaultAsync(m =>
+                (m.InitiatorId == userId && m.ReceiverId == req.TargetUserId) ||
+                (m.InitiatorId == req.TargetUserId && m.ReceiverId == userId));
+            if (existing is not null) return ("conflict", (Guid?)null);
+
+            // Defense in depth: GetCandidates already excludes blocked pairs from
+            // the list a client would request from, but a direct call here (or a
+            // block that landed after the candidate list was fetched) should
+            // still be rejected server-side.
+            bool blocked = await _db.BlockedUsers.AnyAsync(bl =>
+                (bl.BlockerId == userId && bl.BlockedId == req.TargetUserId) ||
+                (bl.BlockerId == req.TargetUserId && bl.BlockedId == userId));
+            if (blocked) return ("blocked", (Guid?)null);
+
+            var match = new Match
+            {
+                InitiatorId = userId,
+                ReceiverId = req.TargetUserId,
+                Status = "Active",
+                RevealLevel = 1
+            };
+            _db.Matches.Add(match);
+            await _db.SaveChangesAsync();
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"""UPDATE "Users" SET "DailyMatchesUsed" = "DailyMatchesUsed" + 1 WHERE "Id" = {userId}""");
+            await tx.CommitAsync();
+            return ("created", (Guid?)match.Id);
+        });
+
+        if (outcome == "conflict") return this.ConflictError("Match already exists");
+        if (outcome == "blocked") return this.ForbiddenError("Cannot match with this user");
 
         int awarded = await _quests.IncrementAsync(userId, "summons");
         await _milestones.AchieveAsync(userId, "first_match");
@@ -190,9 +224,9 @@ public class MatchesController : ControllerBase
             req.TargetUserId,
             "New Match!",
             $"{me.DisplayName} sent you a summons.",
-            new Dictionary<string, object> { ["matchId"] = match.Id.ToString(), ["type"] = "match" });
+            new Dictionary<string, object> { ["matchId"] = matchId!.Value.ToString(), ["type"] = "match" });
 
-        return Ok(new CreateMatchResponse(match.Id, awarded));
+        return Ok(new CreateMatchResponse(matchId!.Value, awarded));
     }
 
     [HttpGet]

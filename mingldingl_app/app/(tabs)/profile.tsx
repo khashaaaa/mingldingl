@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Text,
   View,
   ScrollView,
   StyleSheet,
-  Image,
   TouchableOpacity,
   ActivityIndicator,
   Modal,
   Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Spinner } from 'tamagui';
@@ -52,7 +52,8 @@ export default function ProfileScreen() {
   const [photoError, setPhotoError] = useState(false);
   const [uploadFailedAlert, setUploadFailedAlert] = useState(false);
   const [sourceModalVisible, setSourceModalVisible] = useState(false);
-  const { pickPhoto, takePhoto, uploadPhoto, uploading } = usePhotoUpload(session?.user.id);
+  const pendingSourceActionRef = useRef<(() => void) | null>(null);
+  const { pickPhoto, takePhoto, uploadPhoto, uploading, permissionDenied, clearPermissionDenied } = usePhotoUpload(session?.user.id);
   const { items } = useInventory();
 
   if (!profile || !scoreDetail) {
@@ -71,8 +72,22 @@ export default function ProfileScreen() {
   const tierColor = colorForTier(gemTier);
   const frameColor = (profile.equippedFrameId && FRAME_COLORS[profile.equippedFrameId]) ?? tierColor;
 
+  // Closing our own action-sheet Modal and immediately presenting the native
+  // OS image/camera picker in the same tick races the Modal's dismiss
+  // animation — see PhotoGrid.tsx's identical closeSourceModalThen, which
+  // this mirrors. Without it, the OS picker was silently dropped and
+  // pickPhoto/takePhoto never got a chance to resolve or reject.
+  function closeSourceModalThen(action: () => void) {
+    if (Platform.OS === 'ios') {
+      pendingSourceActionRef.current = action;
+      setSourceModalVisible(false);
+    } else {
+      setSourceModalVisible(false);
+      action();
+    }
+  }
+
   async function handleAddFrom(picker: () => Promise<string | null>) {
-    setSourceModalVisible(false);
     const localUri = await picker();
     if (!localUri || !profile) return;
     setPhotoError(false);
@@ -119,7 +134,7 @@ export default function ProfileScreen() {
                   <Image
                     source={{ uri: firstPhoto }}
                     style={styles.avatarImage}
-                    resizeMode="cover"
+                    contentFit="cover"
                     onError={() => setPhotoError(true)}
                   />
                 ) : (
@@ -146,22 +161,33 @@ export default function ProfileScreen() {
         transparent
         animationType="fade"
         onRequestClose={() => setSourceModalVisible(false)}
+        onDismiss={() => {
+          const action = pendingSourceActionRef.current;
+          pendingSourceActionRef.current = null;
+          action?.();
+        }}
       >
         <View style={styles.sourceOverlay}>
           <View style={styles.sourceSheet}>
             <GameButton
-              variant="ghost"
+              variant="brass"
+              size="compact"
               icon="image-multiple"
-              onPress={() => handleAddFrom(async () => (await pickPhoto(1))[0] ?? null)}
+              onPress={() => closeSourceModalThen(async () => handleAddFrom(async () => (await pickPhoto(1))[0] ?? null))}
             >
               {i18n.t('pick_from_library')}
             </GameButton>
             {Platform.OS !== 'web' && (
-              <GameButton variant="ghost" icon="camera-plus" onPress={() => handleAddFrom(takePhoto)}>
+              <GameButton
+                variant="brass"
+                size="compact"
+                icon="camera-plus"
+                onPress={() => closeSourceModalThen(async () => handleAddFrom(takePhoto))}
+              >
                 {i18n.t('take_photo')}
               </GameButton>
             )}
-            <GameButton variant="ghost" onPress={() => setSourceModalVisible(false)}>
+            <GameButton variant="brass" size="compact" onPress={() => setSourceModalVisible(false)}>
               {i18n.t('back')}
             </GameButton>
           </View>
@@ -217,13 +243,13 @@ export default function ProfileScreen() {
       <TrophyCase />
 
       <View style={styles.editButtonWrapper}>
-        <GameButton variant="ghost" icon="book-heart" onPress={() => router.push('/date-log')}>
+        <GameButton variant="brass" size="compact" icon="book-heart" onPress={() => router.push('/date-log')}>
           {i18n.t('view_date_log')}
         </GameButton>
       </View>
 
       <View style={styles.editButtonWrapper}>
-        <GameButton variant="ghost" onPress={() => router.push('/edit-profile')}>
+        <GameButton variant="brass" size="compact" onPress={() => router.push('/edit-profile')}>
           {i18n.t('edit_profile')}
         </GameButton>
       </View>
@@ -239,7 +265,7 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.signOutWrapper}>
-        <GameButton variant="ghost" icon="cog-outline" onPress={() => router.push('/settings')}>
+        <GameButton variant="brass" size="compact" icon="cog-outline" onPress={() => router.push('/settings')}>
           {i18n.t('settings_title')}
         </GameButton>
       </View>
@@ -250,6 +276,13 @@ export default function ProfileScreen() {
         title={i18n.t('photo_upload_failed_title')}
         message={i18n.t('photo_upload_failed_body')}
         onDismiss={() => setUploadFailedAlert(false)}
+      />
+      <AlertModal
+        visible={permissionDenied}
+        tone="warning"
+        title={i18n.t('photo_permission_denied_title')}
+        message={i18n.t('photo_permission_denied_body')}
+        onDismiss={clearPermissionDenied}
       />
     </View>
   );

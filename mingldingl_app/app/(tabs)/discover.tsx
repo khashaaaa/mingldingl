@@ -1,11 +1,16 @@
 import { View, Text as RNText, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { Spinner } from 'tamagui';
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { isAxiosError } from 'axios';
 import { useDiscover, useRequestMatch } from '../../hooks/useDiscover';
+import { useProfile } from '../../hooks/useProfile';
+import { useMilestones } from '../../hooks/useMilestones';
 import { CandidateCard } from '../../components/cards/CandidateCard';
+import { GettingStartedCard } from '../../components/progression/GettingStartedCard';
 import { LootToast } from '../../components/modals/LootToast';
 import { AlertModal } from '../../components/modals/AlertModal';
+import { GameButton } from '../../components/ui/GameButton';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { PanelReveal } from '../../components/modals/PanelReveal';
 import { EmberField } from '../../components/vfx/EmberField';
@@ -16,11 +21,14 @@ import { COLORS, FONTS, RADIUS } from '../../lib/theme';
 
 export default function DiscoverScreen() {
   useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  const router = useRouter();
   const [toast, setToast] = useState(false);
   const [toastPoints, setToastPoints] = useState(0);
   const [failAlert, setFailAlert] = useState<'generic' | 'dailyBudget' | null>(null);
-  const { candidates, isLoading, markSeen } = useDiscover();
+  const { candidates, isLoading, isError, refetch, markSeen } = useDiscover();
   const { mutate: requestMatch, isPending: isRequesting } = useRequestMatch();
+  const { data: profile } = useProfile();
+  const { milestones } = useMilestones();
   const [deckSize, setDeckSize] = useState({ w: 0, h: 0 });
   const [emptySize, setEmptySize] = useState({ w: 0, h: 0 });
 
@@ -40,6 +48,20 @@ export default function DiscoverScreen() {
     </View>
   );
 
+  // Checked before the generic "empty deck" branch below — without this, a
+  // failed fetch (dead network, backend down) rendered the exact same "the
+  // tavern is empty" copy as a genuinely-empty candidate list, with no
+  // indication anything had gone wrong and no way to retry.
+  if (isError) return (
+    <View style={styles.center}>
+      <View style={styles.emptyCard}>
+        <RNText style={{ fontSize: 48 }}>📡</RNText>
+        <RNText style={styles.emptyTitle}>{i18n.t('discover_load_error')}</RNText>
+        <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
+      </View>
+    </View>
+  );
+
   const candidate = candidates?.[0];
 
   if (!candidate) return (
@@ -53,9 +75,16 @@ export default function DiscoverScreen() {
     </View>
   );
 
+  const achievedMilestoneIds = milestones.filter((m) => m.achievedAt).map((m) => m.id ?? '');
+
   return (
     <View style={styles.screen}>
       <GameHeader title={i18n.t('seek_title')} icon="sword-cross" showScore />
+      <GettingStartedCard
+        isProfileComplete={profile?.isProfileComplete ?? false}
+        achievedMilestoneIds={achievedMilestoneIds}
+        onCompleteProfile={() => router.push('/edit-profile')}
+      />
       <View style={styles.cardArea} onLayout={onDeckLayout}>
         <PanelReveal style={{ flex: 1 }}>
           <CandidateCard

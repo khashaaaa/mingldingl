@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useQuiz } from '../useQuiz';
 import { apiClient } from '../../lib/api/apiClient';
+import { supabase } from '../../lib/supabase';
 import { createAppQueryClient } from '../../lib/api/queryClient';
 import { queryKeys } from '../../lib/api/queryKeys';
 
@@ -15,6 +16,13 @@ jest.mock('../../lib/api/apiClient', () => ({
   },
 }));
 
+jest.mock('../../lib/supabase', () => ({
+  supabase: {
+    channel: jest.fn(),
+    removeChannel: jest.fn(),
+  },
+}));
+
 const mockApi = apiClient as unknown as {
   engagement: {
     quiz: jest.Mock;
@@ -22,6 +30,27 @@ const mockApi = apiClient as unknown as {
     quizRespond: jest.Mock;
   };
 };
+
+const mockChannelFn = supabase.channel as jest.Mock;
+
+type BroadcastHandler = (msg: { payload: unknown }) => void;
+
+interface FakeChannel {
+  on: jest.Mock;
+  subscribe: jest.Mock;
+}
+
+function makeFakeChannel() {
+  let quizHandler: BroadcastHandler = () => {};
+  const channel: FakeChannel = {
+    on: jest.fn((_type: string, opts: { event: string }, handler: BroadcastHandler) => {
+      if (opts.event === 'quiz') quizHandler = handler;
+      return channel;
+    }),
+    subscribe: jest.fn(() => channel),
+  };
+  return { channel, fireQuiz: (payload: unknown) => quizHandler({ payload }) };
+}
 
 function makeQueryClient() {
   return createAppQueryClient({
@@ -47,10 +76,14 @@ const quiz = {
 };
 
 describe('useQuiz answer state machine', () => {
+  let fakeChannel: ReturnType<typeof makeFakeChannel>;
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockApi.engagement.quiz.mockResolvedValue(quiz);
     mockApi.engagement.quizStatus.mockResolvedValue({ hasResponded: false, compatibility: null });
+    fakeChannel = makeFakeChannel();
+    mockChannelFn.mockReturnValue(fakeChannel.channel);
   });
 
   it('accumulates answers locally without submitting until the last question is answered', async () => {
@@ -238,5 +271,37 @@ describe('useQuiz answer state machine', () => {
 
     await waitFor(() => expect(result.current.isWaitingForPartner).toBe(false));
     expect(result.current.compatibility).toBe(0.42);
+  });
+
+  describe('broadcast-driven status refetch', () => {
+    it('refetches quizStatus immediately when an app-nudges "quiz" broadcast lands for this match', async () => {
+      mockApi.engagement.quizStatus.mockResolvedValue({ hasResponded: true, compatibility: null });
+      const queryClient = makeQueryClient();
+      renderHook(() => useQuiz('m1'), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(mockApi.engagement.quizStatus).toHaveBeenCalledTimes(1));
+
+      mockApi.engagement.quizStatus.mockResolvedValue({ hasResponded: true, compatibility: 0.42 });
+      act(() => {
+        fakeChannel.fireQuiz({ userId: 'them', matchId: 'm1' });
+      });
+
+      await waitFor(() => expect(mockApi.engagement.quizStatus).toHaveBeenCalledTimes(2));
+    });
+
+    it('ignores a broadcast for a different match', async () => {
+      mockApi.engagement.quizStatus.mockResolvedValue({ hasResponded: true, compatibility: null });
+      const queryClient = makeQueryClient();
+      renderHook(() => useQuiz('m1'), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(mockApi.engagement.quizStatus).toHaveBeenCalledTimes(1));
+
+      act(() => {
+        fakeChannel.fireQuiz({ userId: 'them', matchId: 'other-match' });
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(mockApi.engagement.quizStatus).toHaveBeenCalledTimes(1);
+    });
   });
 });

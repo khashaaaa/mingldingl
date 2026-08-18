@@ -22,7 +22,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<LocalFileStorageService>();
         services.AddSingleton<ConfigService>();
         services.AddHttpClient<PushNotificationService>();
-        services.AddHttpClient<SupabaseBroadcastService>();
+        // Sits inline in the request path (message send, engagement actions) and
+        // is best-effort (see SupabaseBroadcastService's own try/catch) — but the
+        // default HttpClient timeout is 100s, so a slow/unreachable Supabase could
+        // still tie up a request thread for that long before the exception is
+        // swallowed. A broadcast that hasn't landed in a few seconds isn't going
+        // to land in time to matter anyway — the client's own next fetch is the
+        // real fallback.
+        services.AddHttpClient<SupabaseBroadcastService>(client => client.Timeout = TimeSpan.FromSeconds(5));
         // Registered as its own singleton (not just via AddHostedService, which
         // only makes it resolvable as IHostedService) so DevController can
         // inject the same running instance and trigger a sweep on demand —

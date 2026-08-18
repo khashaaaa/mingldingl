@@ -15,6 +15,12 @@ export const COLORS = {
   gold: '#D97F1F',
   goldBright: '#F5A83C',
   bronze: '#4A5A6B',
+  // Actual polished-brass metal tone (warm yellow-bronze), distinct from the
+  // amber/gold accent above — used only by GameButton's "brass" variant for
+  // compact secondary/nav-style buttons (settings, profile) that want a
+  // forged-metal look without competing with primary gold CTAs.
+  brass: '#B8923F',
+  brassDark: '#5C4720',
   ember: '#C1461E',
   text: '#EDE4D3',
   textDim: '#8F97A3',

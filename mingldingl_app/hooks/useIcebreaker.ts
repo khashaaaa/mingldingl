@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { apiClient } from '../lib/api/apiClient';
+import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { toDroppedItem } from '../lib/tiers';
 import { queryKeys } from '../lib/api/queryKeys';
@@ -52,8 +54,29 @@ export function useIcebreaker(matchId: string) {
       }
     },
     enabled: !!question && !!matchId,
-    refetchInterval: (query) => (query.state.data || query.state.status === 'error' ? false : 3000),
+    // The broadcast effect below refetches immediately once the partner
+    // responds; this interval is just the safety net for a missed/best-effort
+    // broadcast (see SupabaseBroadcastService), so it can be much slower than
+    // the old 3s straight poll.
+    refetchInterval: (query) => (query.state.data || query.state.status === 'error' ? false : 15000),
   });
+
+  useEffect(() => {
+    if (!matchId || !question) return;
+    // EngagementController.RespondIcebreaker already broadcasts this on
+    // every respond (both directions, not just the first responder) for
+    // useRealtimeNudges' toast — reusing that same app-nudges event here
+    // instead of adding a second broadcast call server-side.
+    const channel = supabase
+      .channel('app-nudges')
+      .on('broadcast', { event: 'icebreaker' }, (msg) => {
+        const payload = msg.payload as { matchId: string };
+        if (payload.matchId !== matchId) return;
+        qc.invalidateQueries({ queryKey: queryKeys.icebreakerReveal(matchId, question.id) });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [matchId, question?.id]);
 
   // Server-derived "did I already answer this icebreaker for this match" —
   // runs unconditionally once the question loads (not gated on local

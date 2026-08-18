@@ -19,7 +19,7 @@ export default function QuizScreen() {
   useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const {
-    quiz, isLoading, currentQuestion, answeredCount,
+    quiz, isLoading, isLoadError, refetchQuiz, currentQuestion, answeredCount,
     submitAnswer, allAnswered, isWaitingForPartner, compatibility, droppedItem, awarded,
     submitError, clearSubmitError,
   } = useQuiz(matchId);
@@ -44,6 +44,19 @@ export default function QuizScreen() {
     <View style={styles.centered}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <Spinner color="$gold" />
+    </View>
+  );
+
+  // Checked before the generic "no quiz assigned today" branch below — a
+  // fetch failure previously rendered the exact same "🤷 no quiz" copy as a
+  // genuine empty response, with no way to tell the two apart or retry.
+  if (isLoadError) return (
+    <View style={styles.centered}>
+      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
+      <Text style={styles.emoji}>📡</Text>
+      <Text style={styles.completionTitle}>{i18n.t('quiz_load_error')}</Text>
+      <GameButton variant="primary" onPress={() => refetchQuiz()}>{i18n.t('retry')}</GameButton>
+      <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
     </View>
   );
 

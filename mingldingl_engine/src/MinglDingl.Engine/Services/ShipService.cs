@@ -156,35 +156,59 @@ public class ShipService
     // all of those uniformly; see the spec's privacy constraint.
     public async Task<bool> RespondAsync(Guid userId, Guid shipId, bool accept)
     {
-        var ship = await _db.Ships.FindAsync(shipId);
-        if (ship is null || ship.Status != "Pending") return false;
+        var lookup = await _db.Ships.AsNoTracking().FirstOrDefaultAsync(s => s.Id == shipId);
+        if (lookup is null || lookup.Status != "Pending") return false;
 
-        bool isSlotA = ship.SlotAUserId == userId;
-        bool isSlotB = ship.SlotBUserId == userId;
+        bool isSlotA = lookup.SlotAUserId == userId;
+        bool isSlotB = lookup.SlotBUserId == userId;
         if (!isSlotA && !isSlotB) return false;
 
-        if (isSlotA) ship.SlotAOptIn = accept ? "Accepted" : "Declined";
-        else ship.SlotBOptIn = accept ? "Accepted" : "Declined";
+        string newOptIn = accept ? "Accepted" : "Declined";
 
-        if (ship.SlotAOptIn == "Declined" || ship.SlotBOptIn == "Declined")
+        // Atomic conditional UPDATE ... RETURNING: sets this caller's slot and
+        // reads back the row's just-committed state (including the OTHER
+        // slot's value) in the same statement, re-checking Status = 'Pending'
+        // in the WHERE clause. Two concurrent responses to the same ship (one
+        // per slot) used to each check the other slot against their own stale
+        // in-memory snapshot, so neither ever observed "both Accepted" even
+        // though both values landed in the row — Postgres's row lock now
+        // serializes the two UPDATEs, so whichever commits second is
+        // guaranteed to read the first's already-committed value back.
+        var updated = isSlotA
+            ? await _db.Database.SqlQuery<ShipOptInRow>(
+                $"""
+                UPDATE "Ships" SET "SlotAOptIn" = {newOptIn}
+                WHERE "Id" = {shipId} AND "Status" = 'Pending'
+                RETURNING "SlotAOptIn", "SlotBOptIn", "SlotAUserId", "SlotBUserId"
+                """).ToListAsync()
+            : await _db.Database.SqlQuery<ShipOptInRow>(
+                $"""
+                UPDATE "Ships" SET "SlotBOptIn" = {newOptIn}
+                WHERE "Id" = {shipId} AND "Status" = 'Pending'
+                RETURNING "SlotAOptIn", "SlotBOptIn", "SlotAUserId", "SlotBUserId"
+                """).ToListAsync();
+        if (updated.Count == 0) return false; // ship resolved concurrently since the read above
+        var row = updated[0];
+
+        if (row.SlotAOptIn == "Declined" || row.SlotBOptIn == "Declined")
         {
-            ship.Status = "Declined";
-            await _db.SaveChangesAsync();
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"""UPDATE "Ships" SET "Status" = 'Declined' WHERE "Id" = {shipId}""");
             return false;
         }
 
-        if (ship.SlotAOptIn != "Accepted" || ship.SlotBOptIn != "Accepted")
-        {
-            await _db.SaveChangesAsync();
+        if (row.SlotAOptIn != "Accepted" || row.SlotBOptIn != "Accepted")
             return false;
-        }
+
+        var ship = await _db.Ships.FindAsync(shipId);
+        if (ship is null) return false;
 
         // Both accepted. Re-check pair existence now, not just at creation:
         // creation time couldn't check it if either slot was still
         // AwaitingUser, and that slot may have since resolved via onboarding.
         bool alreadyMatched = await _db.Matches.AnyAsync(m =>
-            (m.InitiatorId == ship.SlotAUserId && m.ReceiverId == ship.SlotBUserId) ||
-            (m.InitiatorId == ship.SlotBUserId && m.ReceiverId == ship.SlotAUserId));
+            (m.InitiatorId == row.SlotAUserId && m.ReceiverId == row.SlotBUserId) ||
+            (m.InitiatorId == row.SlotBUserId && m.ReceiverId == row.SlotAUserId));
         if (alreadyMatched)
         {
             ship.Status = "Expired";
@@ -194,8 +218,8 @@ public class ShipService
 
         var match = new Match
         {
-            InitiatorId = ship.SlotAUserId!.Value,
-            ReceiverId = ship.SlotBUserId!.Value,
+            InitiatorId = row.SlotAUserId!.Value,
+            ReceiverId = row.SlotBUserId!.Value,
             Status = "Active",
             RevealLevel = 1,
             ShipId = ship.Id,
@@ -216,21 +240,29 @@ public class ShipService
         // + push notification — a sparked thread is a normal Match from here
         // on, so both newly-matched users get the same "you have a match"
         // signals a regular match creates, not silence.
-        await _milestones.AchieveAsync(ship.SlotAUserId.Value, "first_match");
-        await _milestones.AchieveAsync(ship.SlotBUserId.Value, "first_match");
+        await _milestones.AchieveAsync(row.SlotAUserId.Value, "first_match");
+        await _milestones.AchieveAsync(row.SlotBUserId.Value, "first_match");
 
         await _push.NotifyUserAsync(
-            ship.SlotAUserId.Value,
+            row.SlotAUserId.Value,
             "Thread Sparked!",
             "A thread you accepted just became a match.",
             new Dictionary<string, object> { ["matchId"] = match.Id.ToString(), ["type"] = "match" });
         await _push.NotifyUserAsync(
-            ship.SlotBUserId.Value,
+            row.SlotBUserId.Value,
             "Thread Sparked!",
             "A thread you accepted just became a match.",
             new Dictionary<string, object> { ["matchId"] = match.Id.ToString(), ["type"] = "match" });
 
         return true;
+    }
+
+    private sealed class ShipOptInRow
+    {
+        public string SlotAOptIn { get; set; } = "";
+        public string SlotBOptIn { get; set; } = "";
+        public Guid? SlotAUserId { get; set; }
+        public Guid? SlotBUserId { get; set; }
     }
 
     private async Task GrantMilestoneTitleIfEarnedAsync(Guid shipperId)

@@ -2,13 +2,14 @@ import { useRef } from 'react';
 import { Pressable, Text, Animated, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { COLORS, FONTS, RADIUS, overlay } from '../../lib/theme';
+import { COLORS, FONTS, RADIUS, overlay, metalGradient } from '../../lib/theme';
 import { Icon } from './Icon';
 
 interface Props {
   children: string;
   onPress: () => void;
-  variant?: 'primary' | 'ghost' | 'danger';
+  variant?: 'primary' | 'ghost' | 'danger' | 'brass';
+  size?: 'default' | 'compact';
   icon?: React.ComponentProps<typeof Icon>['name'];
   disabled?: boolean;
   loading?: boolean;
@@ -20,24 +21,39 @@ const GRADIENTS: Record<string, [string, string, string]> = {
   primary: ['#F2A03D', COLORS.gold, '#8A4310'],
   ghost: ['#2A241C', COLORS.panelRaised, '#14100C'],
   danger: ['#C4663A', COLORS.ember, '#7E3D1F'],
+  brass: metalGradient(COLORS.brass),
 };
 const BORDERS: Record<string, string> = {
   primary: '#8A4310',
   ghost: COLORS.bronze,
   danger: '#7E3D1F',
+  brass: COLORS.brassDark,
 };
 const LABELS: Record<string, string> = {
   primary: '#1A1406',
   ghost: COLORS.text,
   danger: COLORS.text,
+  brass: '#241704',
 };
 // Metal variants get the forged bevel treatment; ghost is meant to read as
 // plain bordered UI chrome, not a struck metal slab.
-const METAL_VARIANTS = new Set(['primary', 'danger']);
+const METAL_VARIANTS = new Set(['primary', 'danger', 'brass']);
 
-export function GameButton({ children, onPress, variant = 'primary', icon, disabled, loading, style, flex }: Props) {
+const SIZES = {
+  default: { minHeight: 52, paddingVertical: 8, paddingHorizontal: 14, fontSize: 14, letterSpacing: 1, iconSize: 15 },
+  // Used for dense nav/list-style rows (settings, profile) where a full-size
+  // slab reads oversized next to plain text rows around it. 44pt floor, not
+  // smaller — below iOS's 44pt / Android's 48dp minimum touch target,
+  // several of these packed close together (ChoiceRow chip rows) made it
+  // easy for a swipe-to-scroll gesture to land on a button instead of the
+  // gap between them.
+  compact: { minHeight: 44, paddingVertical: 7, paddingHorizontal: 12, fontSize: 12, letterSpacing: 0.5, iconSize: 14 },
+} as const;
+
+export function GameButton({ children, onPress, variant = 'primary', size = 'default', icon, disabled, loading, style, flex }: Props) {
   const pressY = useRef(new Animated.Value(0)).current;
   const isMetal = METAL_VARIANTS.has(variant);
+  const sz = SIZES[size];
 
   function pressIn() {
     Animated.timing(pressY, { toValue: 2, duration: 60, useNativeDriver: true }).start();
@@ -61,7 +77,11 @@ export function GameButton({ children, onPress, variant = 'primary', icon, disab
         onPressIn={pressIn}
         onPressOut={pressOut}
         disabled={disabled || loading}
-        style={[styles.slab, { borderColor: BORDERS[variant] }]}
+        style={[
+          styles.slab,
+          { borderColor: BORDERS[variant] },
+          { minHeight: sz.minHeight, paddingVertical: sz.paddingVertical, paddingHorizontal: sz.paddingHorizontal },
+        ]}
       >
         <LinearGradient colors={GRADIENTS[variant]} style={StyleSheet.absoluteFill} />
         <View style={styles.topHighlight} />
@@ -70,9 +90,9 @@ export function GameButton({ children, onPress, variant = 'primary', icon, disab
           <ActivityIndicator color={LABELS[variant]} />
         ) : (
           <View style={styles.labelRow}>
-            {icon && <Icon name={icon} size={15} color={LABELS[variant]} />}
+            {icon && <Icon name={icon} size={sz.iconSize} color={LABELS[variant]} />}
             <Text
-              style={[styles.label, { color: LABELS[variant] }]}
+              style={[styles.label, { color: LABELS[variant] }, { fontSize: sz.fontSize, letterSpacing: sz.letterSpacing }]}
               // numberOfLines={2} used to let a single long, unbroken word
               // (e.g. Mongolian "Алгасах" for "Skip") wrap mid-character
               // once adjustsFontSizeToFit hit its floor — 1 line means it

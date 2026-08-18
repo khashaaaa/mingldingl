@@ -11,10 +11,12 @@ public class TownSquareService
     public const int RoundDurationSeconds = 240;
 
     private readonly AppDbContext _db;
+    private readonly SupabaseBroadcastService _broadcast;
 
-    public TownSquareService(AppDbContext db)
+    public TownSquareService(AppDbContext db, SupabaseBroadcastService broadcast)
     {
         _db = db;
+        _broadcast = broadcast;
     }
 
     public async Task RsvpAsync(Guid sessionId, Guid userId)
@@ -127,6 +129,13 @@ public class TownSquareService
             session.CurrentRoundNumber++;
 
         await _db.SaveChangesAsync();
+
+        // Lets every paired client currently polling GetCurrentRound react
+        // immediately instead of waiting out its poll interval — the round
+        // transition is driven by this background sweep, not by either
+        // participant's own action, so there's no request handler to hang the
+        // broadcast off of the way EngagementController does for icebreaker/quiz.
+        await _broadcast.BroadcastAsync($"townsquare:{sessionId}", "round-advanced", new { sessionId, roundNumber = session.CurrentRoundNumber, status = session.Status });
     }
 
     public async Task MarkJoinedAsync(Guid pairingId, Guid userId)
@@ -151,20 +160,52 @@ public class TownSquareService
         if (response != "Yes" && response != "No")
             throw new ArgumentException("Response must be Yes or No", nameof(response));
 
-        var pairing = await _db.TownSquarePairings.FindAsync(pairingId);
-        if (pairing is null || !pairing.IsParticipant(userId))
+        var lookup = await _db.TownSquarePairings.AsNoTracking().FirstOrDefaultAsync(p => p.Id == pairingId);
+        if (lookup is null || !lookup.IsParticipant(userId))
             throw new InvalidOperationException("Not a participant in this pairing");
 
-        if (pairing.UserAId == userId)
-            pairing.UserAResponse = response;
-        else
-            pairing.UserBResponse = response;
+        bool isUserA = lookup.UserAId == userId;
 
-        if (pairing.UserAResponse == "Yes" && pairing.UserBResponse == "Yes" && pairing.ResultingMatchId is null)
-            pairing.ResultingMatchId = await CreateOrReuseMatchAsync(pairing.UserAId, pairing.UserBId);
+        // Atomic conditional UPDATE ... RETURNING: sets this caller's response
+        // and reads back the row's just-committed state (including the OTHER
+        // side's response) in the same statement. Two concurrent responses to
+        // the same pairing (both partners answering "Yes" within the same
+        // ~4 min round) used to each check the other side against their own
+        // stale in-memory snapshot, so neither ever observed "both Yes" even
+        // though both values landed in the row — Postgres's row lock now
+        // serializes the two UPDATEs, so whichever commits second is
+        // guaranteed to read the first's already-committed value back.
+        var updated = isUserA
+            ? await _db.Database.SqlQuery<PairingResponseRow>(
+                $"""
+                UPDATE "TownSquarePairings" SET "UserAResponse" = {response}
+                WHERE "Id" = {pairingId}
+                RETURNING "UserAResponse", "UserBResponse", "UserAId", "UserBId", "ResultingMatchId"
+                """).ToListAsync()
+            : await _db.Database.SqlQuery<PairingResponseRow>(
+                $"""
+                UPDATE "TownSquarePairings" SET "UserBResponse" = {response}
+                WHERE "Id" = {pairingId}
+                RETURNING "UserAResponse", "UserBResponse", "UserAId", "UserBId", "ResultingMatchId"
+                """).ToListAsync();
+        var row = updated[0];
 
-        await _db.SaveChangesAsync();
-        return pairing.ResultingMatchId;
+        if (row.UserAResponse != "Yes" || row.UserBResponse != "Yes" || row.ResultingMatchId is not null)
+            return row.ResultingMatchId;
+
+        var matchId = await CreateOrReuseMatchAsync(row.UserAId, row.UserBId);
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"""UPDATE "TownSquarePairings" SET "ResultingMatchId" = {matchId} WHERE "Id" = {pairingId} AND "ResultingMatchId" IS NULL""");
+        return matchId;
+    }
+
+    private sealed class PairingResponseRow
+    {
+        public string? UserAResponse { get; set; }
+        public string? UserBResponse { get; set; }
+        public Guid UserAId { get; set; }
+        public Guid UserBId { get; set; }
+        public Guid? ResultingMatchId { get; set; }
     }
 
     private async Task<Guid> CreateOrReuseMatchAsync(Guid userAId, Guid userBId)
@@ -184,30 +225,39 @@ public class TownSquareService
         // nothing rules out both requests landing at once. Re-check after taking
         // the lock in case a concurrent insert won the race between the
         // unlocked check above and here.
-        await using var tx = await _db.Database.BeginTransactionAsync();
-        await _db.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock({PairLockKey(userAId, userBId)})");
-
-        existing = await _db.Matches.FirstOrDefaultAsync(m =>
-            (m.InitiatorId == userAId && m.ReceiverId == userBId) ||
-            (m.InitiatorId == userBId && m.ReceiverId == userAId));
-        if (existing is not null)
+        //
+        // Wrapped in the execution strategy so EnableRetryOnFailure
+        // (Program.cs) can retry this on a transient DB failure — EF Core
+        // forbids a manually-opened BeginTransactionAsync outside of one. The
+        // Match entity is built fresh inside the delegate so a retry can't
+        // re-Add() an instance left over from a prior, rolled-back attempt.
+        return await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock({PairLockKey(userAId, userBId)})");
+
+            var lockedExisting = await _db.Matches.FirstOrDefaultAsync(m =>
+                (m.InitiatorId == userAId && m.ReceiverId == userBId) ||
+                (m.InitiatorId == userBId && m.ReceiverId == userAId));
+            if (lockedExisting is not null)
+            {
+                await tx.CommitAsync();
+                return lockedExisting.Id;
+            }
+
+            var match = new Match
+            {
+                InitiatorId = userAId,
+                ReceiverId = userBId,
+                Status = "Active",
+                RevealLevel = 1,
+            };
+            _db.Matches.Add(match);
+            await _db.SaveChangesAsync();
             await tx.CommitAsync();
-            return existing.Id;
-        }
-
-        var match = new Match
-        {
-            InitiatorId = userAId,
-            ReceiverId = userBId,
-            Status = "Active",
-            RevealLevel = 1,
-        };
-        _db.Matches.Add(match);
-        await _db.SaveChangesAsync();
-        await tx.CommitAsync();
-        return match.Id;
+            return match.Id;
+        });
     }
 
     private static long PairLockKey(Guid a, Guid b)

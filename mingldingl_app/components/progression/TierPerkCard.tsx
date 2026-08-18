@@ -34,7 +34,7 @@ export function TierPerkCard({ gemTier, tierBonus, nextTier }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 16 },
+  card: { padding: 16, marginHorizontal: 20, marginBottom: 16 },
   label: { fontSize: 10, fontFamily: FONTS.display, color: COLORS.textDim, letterSpacing: 2, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bonus: { fontSize: 18, fontFamily: FONTS.displayBlack },

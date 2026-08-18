@@ -14,7 +14,7 @@ export function useDiscover() {
   const qc = useQueryClient();
 
   const {
-    data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage,
+    data, isLoading, isError, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage,
   } = useInfiniteQuery({
     queryKey: queryKeys.discover,
     queryFn: async ({ pageParam }) => {
@@ -54,7 +54,10 @@ export function useDiscover() {
     qc.setQueryData<string[]>(queryKeys.discoverSeen, [...current, id]);
   }
 
-  return { candidates, isLoading, markSeen, fetchNextPage, hasNextPage, isFetchingNextPage };
+  return {
+    candidates, isLoading, isError, error: error as Error | null, refetch,
+    markSeen, fetchNextPage, hasNextPage, isFetchingNextPage,
+  };
 }
 
 export function useRequestMatch() {

@@ -29,7 +29,7 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
     {
         var provider = new ServiceCollection()
             .AddSingleton(Db)
-            .AddSingleton(new TownSquareService(Db))
+            .AddSingleton(new TownSquareService(Db, BuildTestBroadcast()))
             .BuildServiceProvider();
         return new TownSquareSchedulerBackgroundService(
             new SingleProviderScopeFactory(provider),
@@ -102,7 +102,7 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
         var session = await SeedOpenSessionWithRsvps(
             rsvpClosesAt: DateTime.UtcNow.AddMinutes(-10),
             scheduledStartAt: DateTime.UtcNow.AddMinutes(-1));
-        var townSquare = new TownSquareService(Db);
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast());
         await townSquare.LockRosterAsync(session.Id);
 
         await BuildService().RunSweepAsync(CancellationToken.None);
@@ -120,7 +120,7 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
             rsvpClosesAt: DateTime.UtcNow.AddMinutes(-10),
             scheduledStartAt: DateTime.UtcNow.AddMinutes(-10),
             pairs: 2);
-        var townSquare = new TownSquareService(Db);
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast());
         await townSquare.LockRosterAsync(session.Id);
         await townSquare.StartSessionAsync(session.Id);
 

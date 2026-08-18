@@ -155,6 +155,10 @@ export const apiClient = {
     confirm: (matchId: string, body: Schemas['ConfirmDateDto']) =>
       api.post<Schemas['ConfirmDateResponse']>(`/activities/${matchId}/confirm`, body).then((r) => r.data),
     mine: () => api.get<Schemas['TrophyResponse'][]>('/activities/mine').then((r) => r.data),
+    attendanceCheckStatus: (matchId: string) =>
+      api.get<Schemas['AttendanceCheckStatusResponse']>(`/activities/${matchId}/attendance-check`).then((r) => r.data),
+    attendanceCheckSubmit: (matchId: string, body: Schemas['AttendanceCheckRequestDto']) =>
+      api.post<Schemas['AttendanceCheckResponse']>(`/activities/${matchId}/attendance-check`, body).then((r) => r.data),
   },
 
   video: {

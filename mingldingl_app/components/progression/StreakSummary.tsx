@@ -26,7 +26,7 @@ export function StreakSummary({ currentStreak, longestStreak }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 16 },
+  card: { padding: 16, marginHorizontal: 20, marginBottom: 16 },
   row: { flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center' },
   label: { fontSize: 10, fontFamily: FONTS.display, color: COLORS.textDim, letterSpacing: 1.5, marginBottom: 6 },

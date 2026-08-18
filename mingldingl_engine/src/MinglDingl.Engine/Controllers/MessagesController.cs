@@ -84,38 +84,55 @@ public class MessagesController : ControllerBase
             .OrderByDescending(m => m.CreatedAt)
             .FirstOrDefaultAsync();
 
-        var message = new Message
+        // The whole transactional block below is wrapped in the execution
+        // strategy so EnableRetryOnFailure (Program.cs) can retry it on a
+        // transient DB failure — EF Core forbids a manually-opened
+        // BeginTransactionAsync outside of one. The Message entity is built
+        // fresh *inside* the delegate (not captured from outer scope) so a
+        // retry can't re-Add() an already-tracked instance from a prior,
+        // rolled-back attempt.
+        var (message, newMessageCount) = await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
-            MatchId = matchId,
-            SenderId = userId,
-            Content = req.Content,
-        };
+            var msg = new Message
+            {
+                MatchId = matchId,
+                SenderId = userId,
+                Content = req.Content,
+            };
 
-        await using var tx = await _db.Database.BeginTransactionAsync();
-        _db.Messages.Add(message);
-        await _db.SaveChangesAsync();
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            _db.Messages.Add(msg);
+            await _db.SaveChangesAsync();
 
-        // Atomic increment — loading MessageCount, incrementing it in memory, and
-        // saving is a lost-update race under concurrent sends to the same match
-        // (confirmed via stress test: 40 concurrent messages only advanced the
-        // counter by 2 instead of 40). UPDATE ... RETURNING does the increment
-        // and reads the resulting count back in one round trip, with no window
-        // between an update and a separate read of "the new value".
-        // SqlQuery<T> tries to compose a wrapping SELECT for LINQ operators like
-        // SingleAsync(), which isn't valid over UPDATE ... RETURNING — materialize
-        // to a list first (as EF's own error for this suggests), then take the
-        // one row client-side.
-        var updateResult = await _db.Database.SqlQuery<int>(
-            $"""
-            UPDATE "Matches" SET
-                "MessageCount" = "MessageCount" + 1,
-                "LastMessageAt" = {message.CreatedAt},
-                "LastMessageSenderId" = {userId}
-            WHERE "Id" = {matchId}
-            RETURNING "MessageCount"
-            """).ToListAsync();
-        int newMessageCount = updateResult.Single();
-        await tx.CommitAsync();
+            // Atomic increment — loading MessageCount, incrementing it in memory, and
+            // saving is a lost-update race under concurrent sends to the same match
+            // (confirmed via stress test: 40 concurrent messages only advanced the
+            // counter by 2 instead of 40). UPDATE ... RETURNING does the increment
+            // and reads the resulting count back in one round trip, with no window
+            // between an update and a separate read of "the new value".
+            // SqlQuery<T> tries to compose a wrapping SELECT for LINQ operators like
+            // SingleAsync(), which isn't valid over UPDATE ... RETURNING — materialize
+            // to a list first (as EF's own error for this suggests), then take the
+            // one row client-side.
+            var updateResult = await _db.Database.SqlQuery<int>(
+                $"""
+                UPDATE "Matches" SET
+                    "MessageCount" = "MessageCount" + 1,
+                    "LastMessageAt" = {msg.CreatedAt},
+                    "LastMessageSenderId" = {userId}
+                WHERE "Id" = {matchId}
+                RETURNING "MessageCount"
+                """).ToListAsync();
+            // Single(), not SingleOrDefault(): unlike BusinessController.Rate's
+            // equivalent aggregate update, this can't return zero rows short of
+            // a schema change — Messages.MatchId is FK-constrained to Matches.Id,
+            // so _db.SaveChangesAsync() just above would already have thrown on
+            // the FK violation if this match didn't exist, before ever reaching
+            // this UPDATE.
+            int count = updateResult.Single();
+            await tx.CommitAsync();
+            return (msg, count);
+        });
 
         int baseAward = 0;
         if (lastMessage is null)

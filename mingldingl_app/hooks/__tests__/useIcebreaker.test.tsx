@@ -3,6 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { AxiosError } from 'axios';
 import { useIcebreaker } from '../useIcebreaker';
 import { apiClient } from '../../lib/api/apiClient';
+import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { createAppQueryClient } from '../../lib/api/queryClient';
 import { queryKeys } from '../../lib/api/queryKeys';
@@ -26,6 +27,13 @@ jest.mock('../../lib/api/apiClient', () => ({
   },
 }));
 
+jest.mock('../../lib/supabase', () => ({
+  supabase: {
+    channel: jest.fn(),
+    removeChannel: jest.fn(),
+  },
+}));
+
 const mockApi = apiClient as unknown as {
   engagement: {
     icebreaker: jest.Mock;
@@ -34,6 +42,27 @@ const mockApi = apiClient as unknown as {
     icebreakerStatus: jest.Mock;
   };
 };
+
+const mockChannelFn = supabase.channel as jest.Mock;
+
+type BroadcastHandler = (msg: { payload: unknown }) => void;
+
+interface FakeChannel {
+  on: jest.Mock;
+  subscribe: jest.Mock;
+}
+
+function makeFakeChannel() {
+  let icebreakerHandler: BroadcastHandler = () => {};
+  const channel: FakeChannel = {
+    on: jest.fn((_type: string, opts: { event: string }, handler: BroadcastHandler) => {
+      if (opts.event === 'icebreaker') icebreakerHandler = handler;
+      return channel;
+    }),
+    subscribe: jest.fn(() => channel),
+  };
+  return { channel, fireIcebreaker: (payload: unknown) => icebreakerHandler({ payload }) };
+}
 
 function makeQueryClient() {
   return createAppQueryClient({
@@ -51,6 +80,8 @@ function makeWrapper(queryClient: QueryClient) {
 const question = { id: 'q1', questionText: 'Fave food?', type: 'text', options: [] };
 
 describe('useIcebreaker', () => {
+  let fakeChannel: ReturnType<typeof makeFakeChannel>;
+
   beforeEach(() => {
     jest.clearAllMocks();
     useAuthStore.setState({ session: { user: { id: 'me' } } as any });
@@ -58,6 +89,8 @@ describe('useIcebreaker', () => {
     // writes { hasResponded: true } straight into this query's cache, so
     // most tests never need to override this mock's resolved value.
     mockApi.engagement.icebreakerStatus.mockResolvedValue({ hasResponded: false });
+    fakeChannel = makeFakeChannel();
+    mockChannelFn.mockReturnValue(fakeChannel.channel);
   });
 
   afterEach(() => {
@@ -65,7 +98,7 @@ describe('useIcebreaker', () => {
   });
 
   describe('reveal polling (refetchInterval gated on data presence)', () => {
-    it('keeps polling every 3s while the reveal fetch keeps 400ing ("not complete yet")', async () => {
+    it('keeps polling every 15s while the reveal fetch keeps 400ing ("not complete yet")', async () => {
       jest.useFakeTimers();
       mockApi.engagement.icebreaker.mockResolvedValue(question);
       mockApi.engagement.icebreakerReveal.mockRejectedValue(notCompleteYetError());
@@ -76,12 +109,12 @@ describe('useIcebreaker', () => {
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1));
 
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(3000);
+        await jest.advanceTimersByTimeAsync(15000);
       });
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(2));
 
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(3000);
+        await jest.advanceTimersByTimeAsync(15000);
       });
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(3));
     });
@@ -99,10 +132,10 @@ describe('useIcebreaker', () => {
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1));
 
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(3000);
+        await jest.advanceTimersByTimeAsync(15000);
       });
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(3000);
+        await jest.advanceTimersByTimeAsync(15000);
       });
 
       // A permanent failure must not retry forever the way "not complete
@@ -121,13 +154,52 @@ describe('useIcebreaker', () => {
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1));
 
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(3000);
+        await jest.advanceTimersByTimeAsync(15000);
       });
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(3000);
+        await jest.advanceTimersByTimeAsync(15000);
       });
 
       // No further calls: refetchInterval saw a truthy `data` ([]) and returned false.
+      expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('broadcast-driven reveal refetch', () => {
+    it('refetches the reveal immediately when an app-nudges "icebreaker" broadcast lands for this match', async () => {
+      mockApi.engagement.icebreaker.mockResolvedValue(question);
+      mockApi.engagement.icebreakerReveal.mockResolvedValue(null);
+
+      const queryClient = makeQueryClient();
+      renderHook(() => useIcebreaker('m1'), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1));
+
+      mockApi.engagement.icebreakerReveal.mockResolvedValue([
+        { userId: 'me', answer: 'pizza' },
+        { userId: 'them', answer: 'sushi' },
+      ]);
+      act(() => {
+        fakeChannel.fireIcebreaker({ userId: 'them', matchId: 'm1' });
+      });
+
+      await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(2));
+    });
+
+    it('ignores a broadcast for a different match', async () => {
+      mockApi.engagement.icebreaker.mockResolvedValue(question);
+      mockApi.engagement.icebreakerReveal.mockResolvedValue(null);
+
+      const queryClient = makeQueryClient();
+      renderHook(() => useIcebreaker('m1'), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1));
+
+      act(() => {
+        fakeChannel.fireIcebreaker({ userId: 'them', matchId: 'other-match' });
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
       expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1);
     });
   });

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Share, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Spinner } from 'tamagui';
 import { useActivitySuggestions } from '../../hooks/useActivitySuggestions';
@@ -41,6 +42,22 @@ export default function ActivitiesScreen() {
     if (rateError) setRateFailedAlert(true);
   }, [rateError]);
 
+  function handleShareSafetyInfo() {
+    if (!completed?.business) return;
+    // completed.title is already "{Category} at {BusinessName}" (see
+    // ActivityService.GetOrCreateSuggestionsAsync) — using business.name
+    // here too would repeat the venue name twice in the same sentence.
+    //
+    // Explicitly typed, matching InviteAllyCard's identical fix — i18n.t()'s
+    // generic return type widens to `string | undefined` when fed straight
+    // into Share's contextual ShareContent union otherwise.
+    const message: string = i18n.t('safety_check_share_message', {
+      activity: completed.title,
+      district: completed.business.district,
+    });
+    Share.share({ message });
+  }
+
   async function handleAddMomentPhoto() {
     const [uri] = await pickPhoto(1);
     if (!uri) return;
@@ -77,6 +94,11 @@ export default function ActivitiesScreen() {
           <Text style={styles.title}>{i18n.t('both_in')}</Text>
           <Text style={styles.subtitle}>{completed.title}</Text>
         </AppCard>
+        {completed.business && (
+          <GameButton variant="ghost" icon="shield-alert-outline" onPress={handleShareSafetyInfo}>
+            {i18n.t('share_safety_info')}
+          </GameButton>
+        )}
         {rated ? (
           <Text style={styles.thanks}>{i18n.t('thanks_for_rating')}</Text>
         ) : (

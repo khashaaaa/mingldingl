@@ -164,6 +164,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/activities/{matchId}/attendance-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    matchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AttendanceCheckStatusResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    matchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AttendanceCheckRequestDto"];
+                    "text/json": components["schemas"]["AttendanceCheckRequestDto"];
+                    "application/*+json": components["schemas"]["AttendanceCheckRequestDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AttendanceCheckResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/analytics/overview": {
         parameters: {
             query?: never;
@@ -840,6 +940,129 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["MembershipTierResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/ships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    status?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminShipListItemDtoPagedResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/townsquare/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminTownSquareSessionDtoPagedResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/townsquare/sessions/{sessionId}/pairings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminTownSquarePairingDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -2757,6 +2980,148 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["PublicStatsResponse"];
+                        "application/json": components["schemas"]["PublicStatsResponse"];
+                        "text/json": components["schemas"]["PublicStatsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/ship-invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    code?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["PublicShipInviteResponse"];
+                        "application/json": components["schemas"]["PublicShipInviteResponse"];
+                        "text/json": components["schemas"]["PublicShipInviteResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/ship": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/push/register": {
         parameters: {
             query?: never;
@@ -4173,6 +4538,83 @@ export interface components {
             /** Format: date-time */
             expiresAt?: string;
         };
+        AdminShipListItemDto: {
+            /** Format: uuid */
+            id?: string;
+            status?: string | null;
+            /** Format: uuid */
+            shipperUserId?: string;
+            shipperDisplayName?: string | null;
+            /** Format: uuid */
+            slotAUserId?: string | null;
+            slotADisplayName?: string | null;
+            slotAOptIn?: string | null;
+            /** Format: uuid */
+            slotBUserId?: string | null;
+            slotBDisplayName?: string | null;
+            slotBOptIn?: string | null;
+            /** Format: uuid */
+            resultMatchId?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AdminShipListItemDtoPagedResponse: {
+            items?: components["schemas"]["AdminShipListItemDto"][] | null;
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            pageSize?: number;
+            /** Format: int32 */
+            totalCount?: number;
+            hasMore?: boolean;
+        };
+        AdminTownSquarePairingDto: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            roundNumber?: number;
+            /** Format: uuid */
+            userAId?: string;
+            userADisplayName?: string | null;
+            userAResponse?: string | null;
+            /** Format: date-time */
+            userAJoinedAt?: string | null;
+            /** Format: uuid */
+            userBId?: string;
+            userBDisplayName?: string | null;
+            userBResponse?: string | null;
+            /** Format: date-time */
+            userBJoinedAt?: string | null;
+            /** Format: uuid */
+            resultingMatchId?: string | null;
+        };
+        AdminTownSquareSessionDto: {
+            /** Format: uuid */
+            id?: string;
+            status?: string | null;
+            /** Format: date-time */
+            rsvpOpensAt?: string;
+            /** Format: date-time */
+            rsvpClosesAt?: string;
+            /** Format: date-time */
+            scheduledStartAt?: string;
+            /** Format: int32 */
+            currentRoundNumber?: number;
+            /** Format: int32 */
+            rsvpCount?: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AdminTownSquareSessionDtoPagedResponse: {
+            items?: components["schemas"]["AdminTownSquareSessionDto"][] | null;
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            pageSize?: number;
+            /** Format: int32 */
+            totalCount?: number;
+            hasMore?: boolean;
+        };
         AdminUpdateBusinessRequest: {
             name?: string | null;
             category?: string | null;
@@ -4231,6 +4673,9 @@ export interface components {
             recentScoreEvents?: components["schemas"]["ScoreEventDto"][] | null;
             usersBlockedByThem?: components["schemas"]["AdminBlockRelationDto"][] | null;
             usersWhoBlockedThem?: components["schemas"]["AdminBlockRelationDto"][] | null;
+            recentMatches?: components["schemas"]["AdminUserMatchDto"][] | null;
+            ships?: components["schemas"]["AdminUserShipDto"][] | null;
+            townSquareRsvps?: components["schemas"]["AdminUserTownSquareRsvpDto"][] | null;
         };
         AdminUserListItemDto: {
             /** Format: uuid */
@@ -4258,6 +4703,45 @@ export interface components {
             /** Format: int32 */
             totalCount?: number;
             hasMore?: boolean;
+        };
+        AdminUserMatchDto: {
+            /** Format: uuid */
+            matchId?: string;
+            /** Format: uuid */
+            otherUserId?: string;
+            otherUserDisplayName?: string | null;
+            status?: string | null;
+            /** Format: int32 */
+            messageCount?: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AdminUserShipDto: {
+            /** Format: uuid */
+            shipId?: string;
+            role?: string | null;
+            status?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AdminUserTownSquareRsvpDto: {
+            /** Format: uuid */
+            sessionId?: string;
+            /** Format: date-time */
+            scheduledStartAt?: string;
+            sessionStatus?: string | null;
+            /** Format: date-time */
+            rsvpAt?: string;
+        };
+        AttendanceCheckRequestDto: {
+            attended?: boolean;
+        };
+        AttendanceCheckResponse: {
+            attended?: boolean;
+        };
+        AttendanceCheckStatusResponse: {
+            due?: boolean;
+            activityTitle?: string | null;
         };
         BlockedUserResponse: {
             /** Format: uuid */
@@ -4622,6 +5106,19 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        PublicShipInviteResponse: {
+            valid?: boolean;
+        };
+        PublicStatsResponse: {
+            /** Format: int32 */
+            activeDatersThisWeek?: number;
+            /** Format: int32 */
+            newBondsThisWeek?: number;
+            /** Format: int32 */
+            datesConfirmedThisWeek?: number;
+            /** Format: date-time */
+            asOf?: string;
+        };
         QuestBoardResponse: {
             quests?: components["schemas"]["QuestEntryResponse"][] | null;
             allComplete?: boolean;
@@ -4784,6 +5281,7 @@ export interface components {
             /** Format: int32 */
             myStars?: number | null;
             myMomentPhotoUrl?: string | null;
+            mismatched?: boolean;
         };
         UnmatchResponse: {
             unmatched?: boolean;

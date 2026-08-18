@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Modal, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Spinner } from 'tamagui';
 import { useChat } from '../../hooks/useChat';
+import { useAttendanceCheck } from '../../hooks/useAttendanceCheck';
 import { AlertModal } from '../../components/modals/AlertModal';
+import { AttendanceCheckModal } from '../../components/modals/AttendanceCheckModal';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { MessageBubble } from '../../components/chat/MessageBubble';
@@ -24,7 +27,9 @@ const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 export default function ChatScreen() {
   useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
   const { matchId, name, wovenBy } = useLocalSearchParams<{ matchId: string; name?: string; wovenBy?: string }>();
-  const { messages, loading, sendMessage, retryMessage, myId } = useChat(matchId);
+  const { messages, loading, isError, refetch, sendMessage, retryMessage, myId } = useChat(matchId);
+  const { due: attendanceDue, activityTitle, submit: submitAttendance, isSubmitting: submittingAttendance } = useAttendanceCheck(matchId);
+  const [attendanceModalVisible, setAttendanceModalVisible] = useState(false);
   const [ghosted, setGhosted] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [confirmUnmatch, setConfirmUnmatch] = useState(false);
@@ -32,6 +37,16 @@ export default function ChatScreen() {
   const [confirmBlock, setConfirmBlock] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [actionFailedAlert, setActionFailedAlert] = useState(false);
+  // KeyboardAvoidingView's iOS 'padding' behavior measures its own on-screen
+  // position to work out how much of it the keyboard covers — everything
+  // rendered above it (ScreenHeader, and the conditional wovenBy banner)
+  // isn't part of its own layout, so without this offset it under-shoots by
+  // roughly that height and the input row stays partly behind the keyboard.
+  // Measured on-device: raw header height alone overshoots by exactly
+  // insets.bottom (the view's own frame already extends into that safe-area
+  // strip, so it's double-counted) — subtract it back out.
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const qc = useQueryClient();
   const flatListRef = useRef<FlatList>(null);
@@ -80,22 +95,24 @@ export default function ChatScreen() {
   return (
     <View style={styles.container}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} opacity={0.08} />
-      <ScreenHeader
-        title={name || i18n.t('chat_title')}
-        right={
-          <>
-            <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.unmatchBtn} accessibilityLabel={i18n.t('chat_options_title')}>
-              <Icon name="dots-vertical" size={20} color={COLORS.textDim} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push(`/video/${matchId}`)} style={styles.videoBtn} accessibilityLabel={i18n.t('start_video_call')}>
-              <Text style={styles.videoIcon}>📹</Text>
-            </TouchableOpacity>
-          </>
-        }
-      />
-      {!!wovenBy && (
-        <Text style={styles.wovenByBanner}>{i18n.t('woven_by', { name: wovenBy })}</Text>
-      )}
+      <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+        <ScreenHeader
+          title={name || i18n.t('chat_title')}
+          right={
+            <>
+              <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.unmatchBtn} accessibilityLabel={i18n.t('chat_options_title')}>
+                <Icon name="dots-vertical" size={20} color={COLORS.textDim} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push(`/video/${matchId}`)} style={styles.videoBtn} accessibilityLabel={i18n.t('start_video_call')}>
+                <Text style={styles.videoIcon}>📹</Text>
+              </TouchableOpacity>
+            </>
+          }
+        />
+        {!!wovenBy && (
+          <Text style={styles.wovenByBanner}>{i18n.t('woven_by', { name: wovenBy })}</Text>
+        )}
+      </View>
 
       <KeyboardAvoidingView
         style={styles.keyboardAvoider}
@@ -105,6 +122,7 @@ export default function ChatScreen() {
         // keyboard's height instead, which is the standard Android
         // counterpart to iOS's 'padding'.
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Math.max(0, headerHeight - insets.bottom)}
       >
         <QuestBanner icon="🎯" title={i18n.t('break_ice')}
           onPress={() => router.push(`/icebreaker/${matchId}`)} />
@@ -112,10 +130,22 @@ export default function ChatScreen() {
           onPress={() => router.push(`/quiz/${matchId}`)} />
         <QuestBanner icon="📍" title={i18n.t('plan_encounter')}
           onPress={() => router.push(`/activities/${matchId}`)} />
+        {attendanceDue && (
+          <QuestBanner icon="📍" title={i18n.t('attendance_check_title')}
+            onPress={() => setAttendanceModalVisible(true)} />
+        )}
 
         {loading ? (
           <View style={styles.spinnerWrap}>
             <Spinner color="$gold" />
+          </View>
+        ) : isError ? (
+          // Without this, a failed initial load rendered an empty message
+          // list — indistinguishable from "no messages yet" — with no
+          // indication anything had gone wrong and no way to retry.
+          <View style={styles.spinnerWrap}>
+            <Text style={styles.loadErrorText}>{i18n.t('chat_load_error')}</Text>
+            <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
           </View>
         ) : (
           <FlatList
@@ -166,6 +196,14 @@ export default function ChatScreen() {
         message={i18n.t('action_failed_body')}
         onDismiss={() => setActionFailedAlert(false)}
       />
+      <AttendanceCheckModal
+        visible={attendanceModalVisible}
+        activityTitle={activityTitle}
+        isSubmitting={submittingAttendance}
+        onYes={() => { submitAttendance(true); setAttendanceModalVisible(false); }}
+        onNo={() => { submitAttendance(false); setAttendanceModalVisible(false); }}
+        onDismiss={() => setAttendanceModalVisible(false)}
+      />
       <Modal visible={optionsVisible} transparent animationType="fade" onRequestClose={() => setOptionsVisible(false)}>
         <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={() => setOptionsVisible(false)}>
           <View style={styles.optionsSheet}>
@@ -211,6 +249,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 12,
+  },
+  loadErrorText: {
+    fontFamily: FONTS.body,
+    fontSize: 15,
+    color: COLORS.textDim,
+    textAlign: 'center',
+    paddingHorizontal: 32,
   },
   messageList: {
     paddingHorizontal: 20,

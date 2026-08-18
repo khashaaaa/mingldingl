@@ -29,3 +29,38 @@ api.interceptors.request.use((config) => {
   if (session) config.headers.Authorization = `Bearer ${session.access_token}`;
   return config;
 });
+
+// Previously there was no response interceptor at all — a 401 (expired/
+// invalid Supabase JWT) just made whichever request happened to fire it fail
+// generically, with no recovery path. Clearing the session here is enough to
+// recover: _layout.tsx's routing effect already redirects to (auth)/phone
+// the instant `session` becomes null, the same way a real sign-out does — no
+// separate navigation call needed. verifyOtp's own sign-in requests can't
+// 401 (there's no session yet to be invalid), so this can't fight the login
+// flow the way mingldingl_control's equivalent interceptor has to guard
+// against for its login endpoint.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      useAuthStore.getState().clearSession();
+    }
+    return Promise.reject(error);
+  },
+);
+
+// Every non-2xx response from the engine is { error: "message" } (see
+// ApiErrorExtensions.cs) — this is the one place that knows that shape, so
+// callers get a real server-reported message instead of each hand-rolling
+// the same `err.response?.data?.error` reach-in (or missing it and falling
+// back to a generic "something went wrong" that hides what the server
+// actually said).
+export function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const data = (err as { response?: { data?: unknown } }).response?.data;
+    if (data && typeof data === 'object' && 'error' in data && typeof (data as { error?: unknown }).error === 'string') {
+      return (data as { error: string }).error;
+    }
+  }
+  return fallback;
+}

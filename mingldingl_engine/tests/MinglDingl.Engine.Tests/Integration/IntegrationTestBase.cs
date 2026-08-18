@@ -56,6 +56,47 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         await _dataSource.DisposeAsync();
     }
 
+    // Same mocked-config, real-HttpClient shape as
+    // EngagementControllerIntegrationTests.BuildController — the POST to
+    // test.supabase.co fails (unresolvable host) but BroadcastAsync's
+    // best-effort try/catch swallows it, so tests just eat that latency
+    // rather than needing a fake IHttpClientFactory.
+    protected static SupabaseBroadcastService BuildTestBroadcast()
+    {
+        var httpClient = new HttpClient();
+        var mockConfig = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+        mockConfig.Setup(c => c["Supabase:ProjectUrl"]).Returns("https://test.supabase.co");
+        mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
+        return new SupabaseBroadcastService(httpClient, mockConfig.Object);
+    }
+
+    // A capturing HttpMessageHandler in place of the real network call, so a
+    // test can assert exactly what topic/event/payload a code path pushed to
+    // Supabase Broadcast without depending on test.supabase.co actually
+    // resolving (BuildTestBroadcast's failure is silent by design — fine for
+    // "did the surrounding action still succeed", useless for "did it
+    // actually try to broadcast the right thing").
+    protected sealed class RecordingHandler : System.Net.Http.HttpMessageHandler
+    {
+        public string? LastRequestBody { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            LastRequestBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+        }
+    }
+
+    protected static (SupabaseBroadcastService Broadcast, RecordingHandler Handler) BuildCapturingBroadcast()
+    {
+        var handler = new RecordingHandler();
+        var httpClient = new HttpClient(handler);
+        var mockConfig = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+        mockConfig.Setup(c => c["Supabase:ProjectUrl"]).Returns("https://test.supabase.co");
+        mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
+        return (new SupabaseBroadcastService(httpClient, mockConfig.Object), handler);
+    }
+
     protected static User NewCompleteUser(Guid? id = null) => new()
     {
         Id = id ?? Guid.NewGuid(),

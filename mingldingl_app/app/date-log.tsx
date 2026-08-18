@@ -1,4 +1,5 @@
-import { View, Text, Image, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Spinner } from 'tamagui';
 import { useMyTrophies } from '../hooks/useMyTrophies';
 import { GameHeader } from '../components/ui/GameHeader';
@@ -18,7 +19,7 @@ function TrophyRow({ trophy }: { trophy: Trophy }) {
     <AppCard style={styles.card}>
       <View style={styles.row}>
         {photo ? (
-          <Image source={{ uri: photo }} style={styles.photo} resizeMode="cover" />
+          <Image source={{ uri: photo }} style={styles.photo} contentFit="cover" />
         ) : (
           <View style={[styles.photo, styles.photoPlaceholder]} />
         )}
@@ -28,7 +29,9 @@ function TrophyRow({ trophy }: { trophy: Trophy }) {
             <Text style={styles.subtitle} numberOfLines={1}>{trophy.activityTitle}</Text>
           )}
           <Text style={styles.date}>{formatDate(trophy.confirmedAt)}</Text>
-          {trophy.myStars ? (
+          {trophy.mismatched ? (
+            <Text style={styles.unrated}>{i18n.t('date_log_unconfirmed')}</Text>
+          ) : trophy.myStars ? (
             <Text style={styles.stars}>{'⭐'.repeat(trophy.myStars)}</Text>
           ) : (
             <Text style={styles.unrated}>{i18n.t('date_log_unrated')}</Text>
