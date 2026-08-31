@@ -31,27 +31,6 @@ const mockApi = apiClient as unknown as {
   };
 };
 
-const mockChannelFn = supabase.channel as jest.Mock;
-
-type BroadcastHandler = (msg: { payload: unknown }) => void;
-
-interface FakeChannel {
-  on: jest.Mock;
-  subscribe: jest.Mock;
-}
-
-function makeFakeChannel() {
-  let quizHandler: BroadcastHandler = () => {};
-  const channel: FakeChannel = {
-    on: jest.fn((_type: string, opts: { event: string }, handler: BroadcastHandler) => {
-      if (opts.event === 'quiz') quizHandler = handler;
-      return channel;
-    }),
-    subscribe: jest.fn(() => channel),
-  };
-  return { channel, fireQuiz: (payload: unknown) => quizHandler({ payload }) };
-}
-
 function makeQueryClient() {
   return createAppQueryClient({
     queries: { retry: false },
@@ -76,14 +55,10 @@ const quiz = {
 };
 
 describe('useQuiz answer state machine', () => {
-  let fakeChannel: ReturnType<typeof makeFakeChannel>;
-
   beforeEach(() => {
     jest.clearAllMocks();
     mockApi.engagement.quiz.mockResolvedValue(quiz);
     mockApi.engagement.quizStatus.mockResolvedValue({ hasResponded: false, compatibility: null });
-    fakeChannel = makeFakeChannel();
-    mockChannelFn.mockReturnValue(fakeChannel.channel);
   });
 
   it('accumulates answers locally without submitting until the last question is answered', async () => {
@@ -118,8 +93,6 @@ describe('useQuiz answer state machine', () => {
     });
     expect(result.current.answeredCount).toBe(1);
 
-    // Re-answering q1 (already answered) must be a no-op: count stays at 1
-    // and we don't advance/regress currentQuestion.
     act(() => {
       result.current.submitAnswer('q1', 'b');
     });
@@ -138,9 +111,6 @@ describe('useQuiz answer state machine', () => {
     act(() => { result.current.submitAnswer('q2', 'a'); });
     act(() => { result.current.submitAnswer('q3', 'a'); });
 
-    // useMutation's execute() invokes the mutationFn asynchronously (it's
-    // not called synchronously from mutate()), so a plain synchronous
-    // assertion right after act() can observe zero calls. Poll for it.
     await waitFor(() => expect(mockApi.engagement.quizRespond).toHaveBeenCalledTimes(1));
     expect(mockApi.engagement.quizRespond).toHaveBeenCalledWith('quiz1', {
       matchId: 'm1',
@@ -164,21 +134,16 @@ describe('useQuiz answer state machine', () => {
     act(() => { result.current.submitAnswer('q2', 'b'); });
     await act(async () => {
       result.current.submitAnswer('q3', 'a');
-      // let the rejected mutationFn's promise settle and the onError
-      // rollback run.
+
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
     await waitFor(() => expect(result.current.submitError).toBe(true));
 
-    // Rollback dropped q3 only — q1/q2 survive, and the screen has a
-    // question to show again instead of rendering nothing.
     expect(result.current.answeredCount).toBe(2);
     expect(result.current.currentQuestion?.id).toBe('q3');
     expect(result.current.allAnswered).toBe(false);
 
-    // Retry: re-answering q3 should submit again (this time succeeding),
-    // proving the rollback didn't leave q3 stuck in the "already answered" guard.
     mockApi.engagement.quizRespond.mockResolvedValueOnce({ compatibility: 0.5 });
     await act(async () => {
       result.current.submitAnswer('q3', 'a');
@@ -235,8 +200,6 @@ describe('useQuiz answer state machine', () => {
     });
 
     it('does NOT bump the score on a repeat submission (server reports awarded: 0)', async () => {
-      // Models resubmitting an already-answered quiz — RespondQuiz only
-      // awards on isFirstResponse, so a resubmit must not move the score.
       mockApi.engagement.quizRespond.mockResolvedValue({ compatibility: 0.75, awarded: 0, droppedItem: null });
       const queryClient = makeQueryClient();
       queryClient.setQueryData(queryKeys.scoreDetail, baseScoreDetail);
@@ -261,7 +224,6 @@ describe('useQuiz answer state machine', () => {
     expect(result.current.isWaitingForPartner).toBe(true);
     expect(result.current.compatibility).toBeNull();
 
-    // Partner responds: server-side poll now returns compatibility.
     act(() => {
       queryClient.setQueryData(queryKeys.quizStatus('m1', 'quiz1'), {
         hasResponded: true,
@@ -273,35 +235,25 @@ describe('useQuiz answer state machine', () => {
     expect(result.current.compatibility).toBe(0.42);
   });
 
-  describe('broadcast-driven status refetch', () => {
-    it('refetches quizStatus immediately when an app-nudges "quiz" broadcast lands for this match', async () => {
-      mockApi.engagement.quizStatus.mockResolvedValue({ hasResponded: true, compatibility: null });
-      const queryClient = makeQueryClient();
-      renderHook(() => useQuiz('m1'), { wrapper: makeWrapper(queryClient) });
+  it('does not open any realtime channel of its own', async () => {
+    const queryClient = makeQueryClient();
+    renderHook(() => useQuiz('m1'), { wrapper: makeWrapper(queryClient) });
+    await waitFor(() => expect(mockApi.engagement.quizStatus).toHaveBeenCalledTimes(1));
+    expect(supabase.channel).not.toHaveBeenCalled();
+  });
 
-      await waitFor(() => expect(mockApi.engagement.quizStatus).toHaveBeenCalledTimes(1));
+  it('refetches quizStatus when the quizStatusByMatch prefix is invalidated (what useRealtimeNudges does on the quiz broadcast)', async () => {
+    mockApi.engagement.quizStatus.mockResolvedValue({ hasResponded: true, compatibility: null });
+    const queryClient = makeQueryClient();
+    renderHook(() => useQuiz('m1'), { wrapper: makeWrapper(queryClient) });
 
-      mockApi.engagement.quizStatus.mockResolvedValue({ hasResponded: true, compatibility: 0.42 });
-      act(() => {
-        fakeChannel.fireQuiz({ userId: 'them', matchId: 'm1' });
-      });
+    await waitFor(() => expect(mockApi.engagement.quizStatus).toHaveBeenCalledTimes(1));
 
-      await waitFor(() => expect(mockApi.engagement.quizStatus).toHaveBeenCalledTimes(2));
+    mockApi.engagement.quizStatus.mockResolvedValue({ hasResponded: true, compatibility: 0.42 });
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.quizStatusByMatch('m1') });
     });
 
-    it('ignores a broadcast for a different match', async () => {
-      mockApi.engagement.quizStatus.mockResolvedValue({ hasResponded: true, compatibility: null });
-      const queryClient = makeQueryClient();
-      renderHook(() => useQuiz('m1'), { wrapper: makeWrapper(queryClient) });
-
-      await waitFor(() => expect(mockApi.engagement.quizStatus).toHaveBeenCalledTimes(1));
-
-      act(() => {
-        fakeChannel.fireQuiz({ userId: 'them', matchId: 'other-match' });
-      });
-      await new Promise((resolve) => setTimeout(resolve, 0));
-
-      expect(mockApi.engagement.quizStatus).toHaveBeenCalledTimes(1);
-    });
+    await waitFor(() => expect(mockApi.engagement.quizStatus).toHaveBeenCalledTimes(2));
   });
 });

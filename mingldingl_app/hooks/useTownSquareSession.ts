@@ -1,5 +1,8 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
+import { supabase } from '../lib/supabase';
+import { subscribeWithRetry } from '../lib/realtime/subscribeWithRetry';
 import { queryKeys } from '../lib/api/queryKeys';
 
 export interface TownSquareNextSession {
@@ -12,7 +15,8 @@ export interface TownSquareNextSession {
 }
 
 export function useTownSquareSession() {
-  const { data: session, isLoading } = useQuery<TownSquareNextSession>({
+  const qc = useQueryClient();
+  const { data: session, isLoading, isError, refetch } = useQuery<TownSquareNextSession>({
     queryKey: queryKeys.townSquareNextSession,
     queryFn: async () => {
       const res = await apiClient.townSquare.nextSession();
@@ -25,10 +29,36 @@ export function useTownSquareSession() {
         isRsvpd: res.isRsvpd ?? false,
       };
     },
-    // Once the session goes live there's nothing left to RSVP-poll for — the
-    // live round screen takes over with its own (much faster) round polling.
-    refetchInterval: (query) => (query.state.data?.status === 'InProgress' ? false : 15000),
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data || data.sessionId == null) return 60000;
+      if (data.status === 'InProgress') return false;
+      return 15000;
+    },
   });
+
+  const sessionId = session?.sessionId ?? null;
+
+  const shouldSubscribe = !!sessionId
+    && session?.status !== 'InProgress'
+    && session?.status !== 'Completed'
+    && session?.status !== 'Cancelled';
+
+  useEffect(() => {
+    if (!sessionId || !shouldSubscribe) return;
+
+    return subscribeWithRetry(
+      () => supabase
+        .channel(`townsquare:${sessionId}`)
+        .on('broadcast', { event: 'session-started' }, () => {
+          qc.invalidateQueries({ queryKey: queryKeys.townSquareNextSession });
+        })
+        .on('broadcast', { event: 'session-cancelled' }, () => {
+          qc.invalidateQueries({ queryKey: queryKeys.townSquareNextSession });
+        }),
+      () => { qc.invalidateQueries({ queryKey: queryKeys.townSquareNextSession }); },
+    );
+  }, [sessionId, shouldSubscribe]);
 
   const rsvpMutation = useMutation({
     mutationFn: (sessionId: string) => apiClient.townSquare.rsvp(sessionId),
@@ -43,6 +73,8 @@ export function useTownSquareSession() {
   return {
     session,
     isLoading,
+    isError,
+    refetch,
     rsvp: (sessionId: string) => rsvpMutation.mutate(sessionId),
     cancelRsvp: (sessionId: string) => cancelRsvpMutation.mutate(sessionId),
     isRsvping: rsvpMutation.isPending,

@@ -3,10 +3,10 @@ namespace MinglDingl.Engine.Tests;
 public class LootServiceTests
 {
     [Fact]
-    public void Catalog_HasFifteenUniqueItems()
+    public void Catalog_HasSixteenUniqueItems()
     {
-        Assert.Equal(15, LootService.Catalog.Count);
-        Assert.Equal(15, LootService.Catalog.Select(c => c.Id).Distinct().Count());
+        Assert.Equal(16, LootService.Catalog.Count);
+        Assert.Equal(16, LootService.Catalog.Select(c => c.Id).Distinct().Count());
     }
 
     [Fact]

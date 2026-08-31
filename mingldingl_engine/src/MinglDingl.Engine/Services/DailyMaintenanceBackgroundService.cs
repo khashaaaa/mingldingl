@@ -1,19 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 
-// Runs the sweeps that were previously only lazy/client-triggered:
-// ghosting matches with a stale last message, resetting each user's daily
-// match budget, and (added 2026-07-28) anonymizing accounts whose 7-day
-// deletion grace period has passed. None of these depend on a specific
-// client ever calling in.
 public class DailyMaintenanceBackgroundService : BackgroundService
 {
     private static readonly TimeSpan SweepInterval = TimeSpan.FromHours(1);
     private static readonly TimeSpan DeletionGracePeriod = TimeSpan.FromDays(7);
     private static readonly TimeSpan ShipExpiryPeriod = TimeSpan.FromDays(14);
 
-    // Exposed for AdminUsersController's deletion-requests view (days
-    // remaining until this sweep auto-anonymizes) instead of a second
-    // hardcoded "7" living in two places.
     public static TimeSpan GracePeriod => DeletionGracePeriod;
 
     private readonly IServiceScopeFactory _scopeFactory;
@@ -49,16 +41,17 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var score = scope.ServiceProvider.GetRequiredService<ScoreService>();
+        var oaths = scope.ServiceProvider.GetRequiredService<OathService>();
+        var ghosting = scope.ServiceProvider.GetRequiredService<GhostingService>();
 
-        // Batch the whole sweep: one query for candidates, one penalty award
-        // covering every ghosted match, one save for status + reset changes —
-        // instead of a per-match CheckAsync round trip (query+2 awards+save each).
         var staleMatches = await db.Matches
             .Where(m => m.Status == "Active" && m.LastMessageAt != null)
             .ToListAsync(ct);
-        var ghostedMatches = staleMatches.Where(GhostingService.IsStale).ToList();
-        foreach (var match in ghostedMatches)
-            match.Status = "Ghosted";
+
+        var ghostedMatches = new List<Match>();
+        foreach (var match in staleMatches.Where(GhostingService.IsStale))
+            if (await ghosting.TryGhostAsync(match))
+                ghostedMatches.Add(match);
         if (ghostedMatches.Count > 0)
         {
             await score.AwardManyAsync(ghostedMatches
@@ -66,6 +59,13 @@ public class DailyMaintenanceBackgroundService : BackgroundService
                 .Where(id => id.HasValue)
                 .Select(id => (id!.Value, "GhostPenalty")));
         }
+
+        var ghostOathRefreshIds = ghostedMatches
+            .Select(GhostingService.GetGhostAtFaultUserId)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
 
         var today = DateTime.UtcNow.Date;
         var usersNeedingReset = await db.Users
@@ -77,11 +77,6 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             user.DailyMatchesResetAt = today;
         }
 
-        // Anonymize (never hard-delete — the row stays so existing
-        // matches/messages don't break, see PartialUserProfile.IsDeleted)
-        // anyone whose 7-day grace period has passed. DeletionRequestedAt is
-        // left set as a permanent marker; UsersController.GetMe's auto-cancel
-        // only fires while IsDeleted is still false.
         var deletionCutoff = DateTime.UtcNow - DeletionGracePeriod;
         var usersToAnonymize = await db.Users
             .Where(u => u.DeletionRequestedAt != null && u.DeletionRequestedAt < deletionCutoff && !u.IsDeleted)
@@ -103,14 +98,12 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             user.EquippedTitleId = null;
             user.PhoneNumber = null;
             user.ReferralCode = null;
+            user.Oath = null;
+            user.OathSwornAt = null;
+            user.OathProven = false;
             user.IsDeleted = true;
         }
 
-        // Auto-downgrade lapsed paid memberships (2026-07-28). A soft, static
-        // predicate check over an already-materialized list, same shape as
-        // the ghosting pass above — cheaper than translating it into SQL for
-        // a table this size, and keeps the predicate itself unit-testable in
-        // isolation (MembershipExpiryTests).
         var now = DateTime.UtcNow;
         var candidateMemberships = await db.Users
             .Where(u => u.MembershipLevel != "Free" && u.MembershipExpiresAt != null)
@@ -131,5 +124,20 @@ public class DailyMaintenanceBackgroundService : BackgroundService
 
         if (ghostedMatches.Count > 0 || usersNeedingReset.Count > 0 || usersToAnonymize.Count > 0 || expiredMemberships.Count > 0 || expiredShips.Count > 0)
             await db.SaveChangesAsync(ct);
+
+        foreach (var match in ghostedMatches)
+            await ghosting.BroadcastGhostedAsync(match.Id, GhostingService.GetGhostAtFaultUserId(match));
+
+        foreach (var userId in ghostOathRefreshIds)
+        {
+            try
+            {
+                await oaths.RefreshAsync(userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to refresh oath state for user {UserId} after ghost sweep", userId);
+            }
+        }
     }
 }

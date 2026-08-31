@@ -6,11 +6,6 @@ import { useRouter } from 'expo-router';
 import { apiClient } from '../../lib/api/apiClient';
 import { useAuthStore } from '../../store/authStore';
 
-// Factory form, not the bare automock — the automock still has to load the
-// real module once to introspect its shape, which for expo-notifications
-// and expo-router pulls in enough of the app's module graph to risk
-// reaching lib/supabase.ts's real createClient() call at module scope
-// (throws on the missing EXPO_PUBLIC_SUPABASE_URL env var in tests).
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
   getPermissionsAsync: jest.fn(),
@@ -18,12 +13,7 @@ jest.mock('expo-notifications', () => ({
   getExpoPushTokenAsync: jest.fn(),
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
-// A plain `{ isDevice: true }` mock object would get its properties copied
-// by *value* into usePushNotifications.ts's `import * as Device` namespace
-// at module-load time (see @babel/runtime's interopRequireWildcard) — later
-// reassigning that value would not be seen by the already-loaded hook
-// module. A getter descriptor is copied *live* instead, so toggling
-// `mockIsDevice` actually changes what the hook observes.
+
 let mockIsDevice = true;
 jest.mock('expo-device', () => ({
   get isDevice() { return mockIsDevice; },
@@ -42,10 +32,6 @@ const mockUseRouter = useRouter as jest.Mock;
 const mockPush = jest.fn();
 
 describe('usePushNotifications — foreground notification handler (module-scope)', () => {
-  // This runs once, at import time of ../usePushNotifications, and is the
-  // logic that decides whether a foreground push shows a banner. It's
-  // captured directly off the mock rather than exercised through the hook,
-  // since it's set up outside any React lifecycle.
   const handler = (Notifications.setNotificationHandler as jest.Mock).mock.calls[0][0].handleNotification;
 
   beforeEach(() => {
@@ -178,7 +164,6 @@ describe('usePushNotifications platform gating and registration flow', () => {
     renderHook(() => usePushNotifications());
 
     await waitFor(() => expect(mockRegister).toHaveBeenCalled());
-    // Reaching here without an unhandled rejection failing the test is the assertion.
   });
 
   it('navigates to the tapped notification\'s chat via router.push', async () => {

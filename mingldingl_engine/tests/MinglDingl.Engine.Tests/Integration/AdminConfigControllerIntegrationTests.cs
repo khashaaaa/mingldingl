@@ -7,8 +7,6 @@ public class AdminConfigControllerIntegrationTests : IntegrationTestBase
 {
     private async Task<(AdminConfigController Controller, ConfigService Config)> BuildControllerAsync()
     {
-        // Mirrors the seed step Program.cs runs at startup, so each test
-        // sees the registry's default row regardless of DB state.
         foreach (var def in ConfigKeys.All)
         {
             if (!await Db.AdminConfigs.AnyAsync(c => c.Key == def.Key))
@@ -29,7 +27,17 @@ public class AdminConfigControllerIntegrationTests : IntegrationTestBase
 
         var config = new ConfigService();
         await config.LoadCacheAsync(Db);
-        return (new AdminConfigController(Db, config, new AdminAuditService(Db)), config);
+        return (new AdminConfigController(Db, config, new AdminAuditService(Db), new ScoreService(Db, config)), config);
+    }
+
+    [Fact]
+    public void AllConfigKeys_HaveAValueTypeAndDefaultValueTheAdminValidatorAccepts()
+    {
+        foreach (var def in ConfigKeys.All)
+        {
+            var error = ConfigValueValidator.Validate(def.ValueType, def.DefaultValue);
+            Assert.True(error is null, $"{def.Key}: {error}");
+        }
     }
 
     [Fact]
@@ -109,11 +117,6 @@ public class AdminConfigControllerIntegrationTests : IntegrationTestBase
     {
         var (controller, _) = await BuildControllerAsync();
 
-        // Guard against pre-existing committed AdminAuditLog rows for this key
-        // (e.g. left behind by manual smoke testing against the shared dev DB,
-        // which the per-test rolled-back transaction never touches). Deleting
-        // them here happens inside this test's own transaction, so it rolls
-        // back on teardown and never touches real data outside the test.
         await Db.AdminAuditLogs
             .Where(l => l.EntityType == "AdminConfig" && l.EntityId == "tier.sapphire.threshold")
             .ExecuteDeleteAsync();
@@ -139,5 +142,57 @@ public class AdminConfigControllerIntegrationTests : IntegrationTestBase
         var secondDto = Assert.IsType<AdminConfigDto>(secondOk.Value);
         Assert.Equal("600", secondDto.Value);
         Assert.Equal(600, config.GetNumber("tier.sapphire.threshold", 0));
+    }
+
+    [Fact]
+    public async Task Update_TierThreshold_BackfillsStoredGemTiers()
+    {
+        var (controller, _) = await BuildControllerAsync();
+
+        var user = NewCompleteUser();
+        user.TotalScore = 450;
+        user.GemTier = "Amethyst";
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        var result = await controller.Update("tier.sapphire.threshold", new UpdateConfigRequest("400"));
+        Assert.IsType<OkObjectResult>(result);
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.Equal("Sapphire", reloaded.GemTier);
+    }
+
+    [Fact]
+    public async Task Revert_TierThreshold_BackfillsStoredGemTiersBack()
+    {
+        var (controller, _) = await BuildControllerAsync();
+
+        var user = NewCompleteUser();
+        user.TotalScore = 450;
+        user.GemTier = "Amethyst";
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        await controller.Update("tier.sapphire.threshold", new UpdateConfigRequest("400"));
+        var revert = await controller.Revert("tier.sapphire.threshold");
+        Assert.IsType<OkObjectResult>(revert);
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.Equal("Amethyst", reloaded.GemTier);
+    }
+
+    [Fact]
+    public async Task Update_ConfigChangeAndAuditRow_CommitTogether()
+    {
+        var (controller, _) = await BuildControllerAsync();
+        await controller.Update("tier.sapphire.threshold", new UpdateConfigRequest("700"));
+
+        Db.ChangeTracker.Clear();
+        var row = await Db.AdminConfigs.AsNoTracking().SingleAsync(c => c.Key == "tier.sapphire.threshold");
+        Assert.Equal("700", row.Value);
+        Assert.True(await Db.AdminAuditLogs.AsNoTracking().AnyAsync(l =>
+            l.EntityType == "AdminConfig" && l.EntityId == "tier.sapphire.threshold" && l.Action == "UpdateConfig"));
     }
 }

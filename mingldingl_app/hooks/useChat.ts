@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { subscribeWithRetry } from '../lib/realtime/subscribeWithRetry';
 import { apiClient } from '../lib/api/apiClient';
 import { useAuthStore } from '../store/authStore';
 import type { components } from '../lib/api/api.generated';
@@ -12,11 +13,25 @@ export interface Message {
   senderId: string;
   content: string;
   createdAt: string;
-  // Only ever set on an optimistic (locally-originated) message. Anything
-  // that came back from the server or a realtime broadcast is implicitly
-  // 'sent' — there's no ambiguity about whether it was delivered.
+
   status?: 'sending' | 'sent' | 'failed';
 }
+
+export function mergeMessages(serverOrBase: Message[], extras: Message[]): Message[] {
+  const seen = new Set(serverOrBase.map((m) => m.id));
+  const merged = [...serverOrBase];
+  for (const m of extras) {
+    if (!seen.has(m.id)) {
+      seen.add(m.id);
+      merged.push(m);
+    }
+  }
+  return merged;
+}
+
+export const MESSAGE_PAGE_SIZE = 50;
+
+let tempIdCounter = 0;
 
 function parseMessage(m: components['schemas']['MessageResponse']): Message {
   return {
@@ -29,58 +44,83 @@ function parseMessage(m: components['schemas']['MessageResponse']): Message {
   };
 }
 
+export function oldestServerMessage(messages: Message[]): Message | undefined {
+  let oldest: Message | undefined;
+  for (const m of messages) {
+    if (m.status !== 'sent') continue;
+    if (!oldest || m.createdAt < oldest.createdAt) oldest = m;
+  }
+  return oldest;
+}
+
 export function useChat(matchId: string) {
   const qc = useQueryClient();
-  // Reads straight from the app's own auth store instead of
-  // supabase.auth.getUser() — that call goes through supabase-js's internal
-  // call coordination, which has been observed to hang indefinitely and
-  // unpredictably on React Native (see hooks/useAuth.ts's
-  // AUTH_CALL_TIMEOUT_MS comment). useAuthStore's session is already the
-  // app's single source of truth and is synchronous, so there's no reason to
-  // ask the SDK again for something this cheap.
+
   const myId = useAuthStore((s) => s.session?.user.id);
+  const [earlierExhausted, setEarlierExhausted] = useState(false);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+
+  useEffect(() => {
+    setEarlierExhausted(false);
+  }, [matchId]);
 
   const { data: messages = [], isLoading: loading, isError, refetch } = useQuery<Message[]>({
     queryKey: queryKeys.messages(matchId),
     queryFn: async () => {
-      const data = await apiClient.messages.list(matchId);
-      return data.map(parseMessage);
+      const data = await apiClient.messages.list(matchId, { limit: MESSAGE_PAGE_SIZE });
+      if (data.length < MESSAGE_PAGE_SIZE) setEarlierExhausted(true);
+
+      const cached = qc.getQueryData<Message[]>(queryKeys.messages(matchId)) ?? [];
+      return mergeMessages(
+        data.map(parseMessage),
+        cached.filter((m) => m.status === 'sending' || m.status === 'failed'),
+      );
     },
     enabled: !!matchId,
-    staleTime: Infinity,
+    staleTime: 15 * 1000,
     gcTime: Infinity,
   });
 
   useEffect(() => {
     if (!matchId) return;
-    // Broadcast, not postgres_changes — the engine's messages table lives in
-    // local Postgres now, which Supabase Realtime's postgres_changes can't see
-    // (it only observes Supabase's own hosted Postgres via WAL). The engine
-    // explicitly pushes a broadcast to this same topic after every send.
-    const channel = supabase
-      .channel(`chat:${matchId}`)
-      .on('broadcast', { event: 'INSERT' }, (msg) => {
-        const incoming = parseMessage(msg.payload as components['schemas']['MessageResponse']);
-        qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) => {
-          const existing = old ?? [];
-          if (existing.some((m) => m.id === incoming.id)) return existing;
-          return [...existing, incoming];
-        });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    return subscribeWithRetry(
+      () => supabase
+        .channel(`chat:${matchId}`)
+        .on('broadcast', { event: 'INSERT' }, (msg) => {
+          const incoming = parseMessage(msg.payload as components['schemas']['MessageResponse']);
+          qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) =>
+            mergeMessages(old ?? [], [incoming]));
+        }),
+      () => { qc.invalidateQueries({ queryKey: queryKeys.messages(matchId) }); },
+    );
   }, [matchId]);
+
+  const sentCount = messages.reduce((n, m) => (m.status === 'sent' ? n + 1 : n), 0);
+  const hasMore = !earlierExhausted && sentCount >= MESSAGE_PAGE_SIZE;
+
+  async function loadEarlier(): Promise<void> {
+    if (loadingEarlier || !hasMore) return;
+    const oldest = oldestServerMessage(qc.getQueryData<Message[]>(queryKeys.messages(matchId)) ?? []);
+    if (!oldest) return;
+    setLoadingEarlier(true);
+    try {
+      const page = await apiClient.messages.list(matchId, { before: oldest.createdAt, limit: MESSAGE_PAGE_SIZE });
+      if (page.length < MESSAGE_PAGE_SIZE) setEarlierExhausted(true);
+      qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) =>
+        mergeMessages(page.map(parseMessage), old ?? []));
+    } catch {
+    } finally {
+      setLoadingEarlier(false);
+    }
+  }
 
   const sendMutation = useMutation({
     mutationFn: (content: string) => apiClient.messages.send(matchId, content),
-    // A send can silently award FirstMessage/MatchReply score and/or advance
-    // the "Exchange 5 Words" daily quest and the 10-messages milestone
-    // server-side — meta.invalidates/awardedSelector (see queryClient.ts)
-    // reflects all of that instantly instead of waiting out each cache's own
-    // staleTime.
     meta: {
-      invalidates: [queryKeys.quests, queryKeys.milestones],
+      invalidates: [queryKeys.quests, queryKeys.milestones, queryKeys.matches],
       awardedSelector: (data) => (data as { awarded?: number }).awarded,
+      silentError: true,
     },
   });
 
@@ -88,22 +128,16 @@ export function useChat(matchId: string) {
     try {
       const res = await sendMutation.mutateAsync(content);
       const sent = parseMessage(res.message ?? {});
-      qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) => {
-        const withoutOptimistic = (old ?? []).filter((m) => m.id !== tempId);
-        if (withoutOptimistic.some((m) => m.id === sent.id)) return withoutOptimistic;
-        return [...withoutOptimistic, sent];
-      });
+      qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) =>
+        mergeMessages((old ?? []).filter((m) => m.id !== tempId), [sent]));
     } catch {
-      // Mark the optimistic message as failed instead of leaving it looking
-      // identical to a delivered one — MessageBubble renders 'failed'
-      // distinctly and offers tap-to-retry via retryMessage below.
       qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) =>
         (old ?? []).map((m) => (m.id === tempId ? { ...m, status: 'failed' } : m)));
     }
   }
 
   async function sendMessage(content: string): Promise<void> {
-    const tempId = `local-${Date.now()}`;
+    const tempId = `local-${Date.now()}-${++tempIdCounter}`;
     const optimistic: Message = {
       id: tempId,
       matchId,
@@ -125,5 +159,5 @@ export function useChat(matchId: string) {
     void attemptSend(tempId, target.content);
   }
 
-  return { messages, loading, isError, refetch, sendMessage, retryMessage, myId };
+  return { messages, loading, isError, refetch, sendMessage, retryMessage, myId, loadEarlier, hasMore, loadingEarlier };
 }

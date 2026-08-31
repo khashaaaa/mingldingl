@@ -1,9 +1,3 @@
-// Declares every admin-editable config key up front. The admin UI only
-// edits values for keys registered here — it can never invent a new key —
-// so the config store can't become an untyped free-for-all. Add an entry
-// here whenever a new value moves from a hardcoded constant to admin-
-// editable config (a migration to seed the row is not required beyond
-// what Program.cs's startup seed-if-missing loop already does).
 public static class ConfigKeys
 {
     public static readonly IReadOnlyList<ConfigKeyDefinition> All =
@@ -14,6 +8,12 @@ public static class ConfigKeys
             "Max Fated Threads a single Weaver can create per day"),
         new("dating.noshow.threshold", "Safety", "Number", "3",
             "Distinct-match attendance mismatches before ReputationScore is docked"),
+        new("oath.proven.encounters", "Scoring", "Number", "2",
+            "Confirmed encounters required, since swearing, before an Oath shows as Proven"),
+        new("dating.flamerite.duration_minutes", "Safety", "Number", "5",
+            "Length of the Flame Rite video call, and the TTL of the token minted for it"),
+        new("dating.flamerite.required", "Safety", "Bool", "true",
+            "When true, a match cannot pledge an encounter until the Flame Rite is complete"),
     ];
 }
 

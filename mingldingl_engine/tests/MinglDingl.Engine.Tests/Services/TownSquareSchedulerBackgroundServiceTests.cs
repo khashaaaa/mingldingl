@@ -7,10 +7,6 @@ namespace MinglDingl.Engine.Tests.Services;
 
 public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
 {
-    // Same shape as DailyMaintenanceBackgroundServiceTests' SingleProviderScopeFactory:
-    // the service resolves scoped deps from a scope factory in production (one scope
-    // per sweep); tests need the sweep to run against this test's own already-open
-    // transaction instead, so this factory always hands back the test's provider.
     private class SingleProviderScopeFactory : IServiceScopeFactory
     {
         private readonly IServiceProvider _provider;
@@ -29,7 +25,7 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
     {
         var provider = new ServiceCollection()
             .AddSingleton(Db)
-            .AddSingleton(new TownSquareService(Db, BuildTestBroadcast()))
+            .AddSingleton(new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush()))
             .BuildServiceProvider();
         return new TownSquareSchedulerBackgroundService(
             new SingleProviderScopeFactory(provider),
@@ -102,7 +98,7 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
         var session = await SeedOpenSessionWithRsvps(
             rsvpClosesAt: DateTime.UtcNow.AddMinutes(-10),
             scheduledStartAt: DateTime.UtcNow.AddMinutes(-1));
-        var townSquare = new TownSquareService(Db, BuildTestBroadcast());
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await townSquare.LockRosterAsync(session.Id);
 
         await BuildService().RunSweepAsync(CancellationToken.None);
@@ -120,11 +116,10 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
             rsvpClosesAt: DateTime.UtcNow.AddMinutes(-10),
             scheduledStartAt: DateTime.UtcNow.AddMinutes(-10),
             pairs: 2);
-        var townSquare = new TownSquareService(Db, BuildTestBroadcast());
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await townSquare.LockRosterAsync(session.Id);
         await townSquare.StartSessionAsync(session.Id);
 
-        // Force round 1's window to have already elapsed.
         Db.ChangeTracker.Clear();
         var round1 = await Db.TownSquareRounds.FirstAsync(r => r.SessionId == session.Id && r.RoundNumber == 1);
         round1.StartsAt = DateTime.UtcNow.AddMinutes(-10);
@@ -141,14 +136,9 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
     [Fact]
     public async Task RunSweepAsync_FullLifecycle_DrivesOpenThroughCompletedWithoutManualIntervention()
     {
-        // Two rounds' worth of roster (2 men, 2 women), everything already due:
-        // a single sweep should walk Open -> Locked -> InProgress in one pass
-        // (lock and start are both "already due" the moment RSVPs close in the
-        // past), then a second sweep (after round 1's window elapses) should
-        // advance to round 2, and a third should complete the session.
         var session = await SeedOpenSessionWithRsvps(
             rsvpClosesAt: DateTime.UtcNow.AddMinutes(-10),
-            scheduledStartAt: DateTime.UtcNow.AddSeconds(-30), // just started, round 1's own window hasn't elapsed yet
+            scheduledStartAt: DateTime.UtcNow.AddSeconds(-30),
             pairs: 2);
         var scheduler = BuildService();
 

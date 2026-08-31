@@ -8,16 +8,13 @@ import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { apiClient } from '../../lib/api/apiClient';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { i18n } from '../../lib/i18n';
+import { shipInviteMessage } from '../../lib/shipInvite';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS } from '../../lib/theme';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 const PHONE_REGEX = /^\d{8}$/;
 
-// Maps the engine's raw validation strings (ShipService.CreateAsync) to
-// i18n keys so they render in the user's language instead of always in
-// English — getApiErrorMessage's fallback-to-raw-string behavior is fine
-// for developer-facing errors, but these are shown directly to end users.
 const SHIP_ERROR_I18N_KEYS: Record<string, string> = {
   'Phone numbers must be 8 digits': 'ship_error_invalid_phone',
   'Cannot weave a thread to yourself': 'ship_error_self',
@@ -26,7 +23,7 @@ const SHIP_ERROR_I18N_KEYS: Record<string, string> = {
 };
 
 export default function NewShipScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const router = useRouter();
   const [slotA, setSlotA] = useState('');
   const [slotB, setSlotB] = useState('');
@@ -45,12 +42,6 @@ export default function NewShipScreen() {
     setLoading(true);
     setError(null);
     try {
-      // The engine returns 200 only on success (always Success: true in that
-      // case) and 400 + { error } otherwise — axios throws on the 400, so a
-      // resolved promise here always means the thread was woven. A code
-      // comes back for both slots regardless of whether either phone number
-      // resolved to an existing account (privacy constraint — see
-      // ShipService.CreateAsync) — this screen never learns which.
       const response = await apiClient.ships.create(slotA, slotB);
       setCodes({ slotACode: response.slotACode ?? null, slotBCode: response.slotBCode ?? null });
       setSent(true);
@@ -64,7 +55,7 @@ export default function NewShipScreen() {
   }
 
   function shareInvite(code: string | null) {
-    Share.share({ message: String(i18n.t('ship_invite_message', { code: code ?? '' })) });
+    Share.share({ message: shipInviteMessage(code ?? '') });
   }
 
   if (sent) {
@@ -134,7 +125,7 @@ const styles = StyleSheet.create({
   form: { padding: 20, gap: 12 },
   hint: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textDim },
   label: { fontFamily: FONTS.display, fontSize: 12, color: COLORS.gold, letterSpacing: 1, marginTop: 8 },
-  error: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.ember },
+  error: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.emberLight },
   confirmWrap: { padding: 20, gap: 16, alignItems: 'center' },
   confirmText: { fontFamily: FONTS.body, fontSize: 15, color: COLORS.text, textAlign: 'center' },
 });

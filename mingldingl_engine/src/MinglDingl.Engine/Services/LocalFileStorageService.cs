@@ -1,7 +1,3 @@
-// Writes uploads to disk under {ContentRootPath}/uploads/{bucket}/{path} and
-// returns a URL servable by the static-file mapping registered in Program.cs
-// at /uploads. Replaces SupabaseStorageService now that the engine's primary
-// datastore is local Postgres — Supabase is only a periodic backup target.
 public class LocalFileStorageService
 {
     private readonly string _root;

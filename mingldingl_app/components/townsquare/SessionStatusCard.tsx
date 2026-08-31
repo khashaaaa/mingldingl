@@ -5,6 +5,7 @@ import { formatCountdown } from '../../lib/townSquareTime';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, RADIUS, SPACE } from '../../lib/theme';
 import type { TownSquareNextSession } from '../../hooks/useTownSquareSession';
+import { Icon } from '../ui/Icon';
 
 interface Props {
   session: TownSquareNextSession | undefined;
@@ -20,7 +21,7 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, isRsvpin
     return (
       <View style={styles.emptyWrap}>
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyIcon}>🏛️</Text>
+          <Icon name="bank" size={28} color={COLORS.bronze} />
           <Text style={styles.emptyTitle}>{i18n.t('town_square_empty_title')}</Text>
           <Text style={styles.emptySub}>{i18n.t('town_square_empty_sub')}</Text>
         </View>

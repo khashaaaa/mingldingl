@@ -4,26 +4,25 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GemTierBadge } from '../progression/GemTierBadge';
 import { GameButton } from '../ui/GameButton';
+import { Icon } from '../ui/Icon';
+import OathSigil from '../OathSigil';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
 import { ITEM_NAME_KEYS } from '../../lib/tiers';
-import type { UserProfile } from '../../models/user';
+import type { Candidate } from '../../models/user';
 
 interface Props {
-  candidate: UserProfile;
+  candidate: Candidate;
   onRequest: () => void;
   onSkip: () => void;
   requesting?: boolean;
+  requestDisabled?: boolean;
 }
 
-export function CandidateCard({ candidate, onRequest, onSkip, requesting }: Props) {
+export function CandidateCard({ candidate, onRequest, onSkip, requesting, requestDisabled }: Props) {
   const photos = candidate.photoUrls ?? [];
   const hasMultiplePhotos = photos.length > 1;
 
-  // CandidateCard is a single persistent instance reused across candidates
-  // (no key/remount per swipe) — the index has to reset explicitly whenever
-  // the candidate changes, same reason `failedUrl` below tracks a URL
-  // rather than a plain boolean.
   const [photoIndex, setPhotoIndex] = useState(0);
   useEffect(() => setPhotoIndex(0), [candidate.id]);
 
@@ -46,7 +45,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting }: Prop
         />
       ) : (
         <View style={styles.photoPlaceholder}>
-          <Text style={styles.photoEmoji}>👤</Text>
+          <Icon name="account" size={72} color={COLORS.bronze} />
         </View>
       )}
 
@@ -57,8 +56,18 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting }: Prop
               <View key={i} style={[styles.photoDot, i === photoIndex && styles.photoDotActive]} />
             ))}
           </View>
-          <Pressable style={styles.photoTapLeft} onPress={() => advancePhoto(-1)} />
-          <Pressable style={styles.photoTapRight} onPress={() => advancePhoto(1)} />
+          <Pressable
+            style={styles.photoTapLeft}
+            onPress={() => advancePhoto(-1)}
+            accessibilityRole="button"
+            accessibilityLabel={i18n.t('previous_photo')}
+          />
+          <Pressable
+            style={styles.photoTapRight}
+            onPress={() => advancePhoto(1)}
+            accessibilityRole="button"
+            accessibilityLabel={i18n.t('next_photo')}
+          />
         </>
       )}
 
@@ -78,20 +87,20 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting }: Prop
         {candidate.equippedTitleId && (
           <Text style={styles.equippedTitle}>{i18n.t(ITEM_NAME_KEYS[candidate.equippedTitleId] ?? '')}</Text>
         )}
+        <OathSigil oath={candidate.oath} proven={candidate.oathProven} size="sm" />
         {candidate.city && (
-          <Text style={styles.location}>📍 {candidate.city}</Text>
+          <View style={styles.locationRow}>
+            <Icon name="map-marker" size={13} color={COLORS.textDim} />
+            <Text style={styles.location}>{candidate.city}</Text>
+          </View>
         )}
         {candidate.bio ? (
           <Text style={styles.bio} numberOfLines={2}>{candidate.bio}</Text>
         ) : null}
 
         <View style={styles.actions}>
-          {/* 1:2 used to starve Skip of width — fine for "Skip" but the
-              Mongolian "Алгасах" (7 letters, no spaces) had nowhere to wrap
-              except mid-word. 1:1.5 still keeps Send Summons the visually
-              dominant action while giving Skip enough room to fit. */}
           <GameButton variant="ghost" flex={1} disabled={requesting} onPress={onSkip}>{i18n.t('skip')}</GameButton>
-          <GameButton variant="primary" flex={1.5} loading={requesting} onPress={onRequest}>{i18n.t('send_summons')}</GameButton>
+          <GameButton variant="primary" flex={1.5} loading={requesting} disabled={requestDisabled} onPress={onRequest}>{i18n.t('send_summons')}</GameButton>
         </View>
       </View>
     </View>
@@ -107,14 +116,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.bronze,
   },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   photo: { ...StyleSheet.absoluteFillObject },
   photoPlaceholder: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: COLORS.panelRaised,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingBottom: '32%',
   },
-  photoEmoji: { fontSize: 80 },
   photoDots: {
     position: 'absolute',
     top: 12,
@@ -125,10 +135,6 @@ const styles = StyleSheet.create({
   },
   photoDot: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(237,228,211,0.3)' },
   photoDotActive: { backgroundColor: COLORS.gold },
-  // Two invisible tap zones over the photo — left third rewinds, right
-  // two-thirds advances (mirrors the reading direction more people tap
-  // first). Sits behind `info` in paint order so the Skip/Send Summons
-  // buttons there still win the touch in their own area.
   photoTapLeft: { position: 'absolute', top: 0, bottom: 0, left: 0, width: '35%' },
   photoTapRight: { position: 'absolute', top: 0, bottom: 0, right: 0, width: '65%' },
   info: {

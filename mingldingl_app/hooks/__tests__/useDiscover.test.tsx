@@ -78,11 +78,6 @@ describe('useDiscover', () => {
 
     act(() => { result.current.markSeen('c1'); });
 
-    // markSeen's qc.setQueryData() applies synchronously, but the observer
-    // notification that flows it into `result.current` goes through
-    // TanStack Query's notifyManager, which schedules via a real
-    // setTimeout(0) rather than notifying synchronously — so the re-render
-    // lands one real tick after act() returns. waitFor polls across that.
     await waitFor(() => expect(queryClient.getQueryData(queryKeys.discoverSeen)).toEqual(['c1']));
     await waitFor(() => expect(result.current.candidates?.map((c) => c.id)).toEqual(['c2']));
   });
@@ -103,9 +98,6 @@ describe('useDiscover', () => {
     await act(async () => { await result.current.fetchNextPage(); });
     await waitFor(() => expect(result.current.isFetchingNextPage).toBe(false));
 
-    // c2 and c3 stay excluded across both pages; c1 and c4 (unseen, from
-    // different pages) are both present, proving the seen-filter runs on the
-    // flattened cross-page list rather than being reset per page.
     await waitFor(() => expect(result.current.candidates?.map((c) => c.id)).toEqual(['c1', 'c4']));
   });
 });
@@ -117,10 +109,6 @@ describe('useRequestMatch', () => {
   });
 
   it('on success: marks the candidate seen, inserts an optimistic match, and bumps the score by the server-reported award', async () => {
-    // awarded: 15 here models the day's rotated quest being "Send a
-    // Summons" and this being the first one — sending a summons has no
-    // guaranteed base score of its own, so the bump must come from what the
-    // server actually reports, not a hardcoded constant.
     mockRequest.mockResolvedValue({ matchId: 'new-match-1', awarded: 15 });
     const queryClient = createAppQueryClient();
     queryClient.setQueryData(queryKeys.discoverSeen, []);
@@ -145,13 +133,10 @@ describe('useRequestMatch', () => {
     });
 
     const scoreDetail = queryClient.getQueryData(queryKeys.scoreDetail) as typeof baseScoreDetail;
-    expect(scoreDetail.totalScore).toBe(65); // +15 from the server-reported award
+    expect(scoreDetail.totalScore).toBe(65);
   });
 
   it('on success with no award (no quest completed): does not bump the score', async () => {
-    // Sending a summons on a day when "Send a Summons" isn't in today's
-    // rotated quests (or it's already complete) awards nothing — the client
-    // must not assume a fixed +15 regardless of what the server reports.
     mockRequest.mockResolvedValue({ matchId: 'new-match-3', awarded: 0 });
     const queryClient = createAppQueryClient();
     queryClient.setQueryData(queryKeys.discoverSeen, []);
@@ -187,6 +172,21 @@ describe('useRequestMatch', () => {
     expect(matches?.[1].matchId).toBe('new-match-2');
   });
 
+  it('invalidates the matches cache so the server truth replaces the optimistic (partly fabricated) match', async () => {
+    mockRequest.mockResolvedValue({ matchId: 'new-match-4', awarded: 0 });
+    const queryClient = createAppQueryClient();
+    queryClient.setQueryData(queryKeys.discoverSeen, []);
+    queryClient.setQueryData(queryKeys.matches, [] as Match[]);
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    const { result } = renderHook(() => useRequestMatch(), { wrapper: makeWrapper(queryClient) });
+
+    await act(async () => {
+      await result.current.mutateAsync(candidate('cV') as any);
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: queryKeys.matches }));
+  });
+
   it('does not touch the seen/matches/score caches when the request fails', async () => {
     mockRequest.mockRejectedValue(new Error('network down'));
     const queryClient = createAppQueryClient();
@@ -203,5 +203,33 @@ describe('useRequestMatch', () => {
     expect(queryClient.getQueryData(queryKeys.matches)).toEqual([]);
     const scoreDetail = queryClient.getQueryData(queryKeys.scoreDetail) as typeof baseScoreDetail;
     expect(scoreDetail.totalScore).toBe(50);
+  });
+
+  describe('daily match budget refresh', () => {
+    it('invalidates the /scores/me budget after a successful request', async () => {
+      mockRequest.mockResolvedValue({ matchId: 'new-match-5', awarded: 0 });
+      const queryClient = createAppQueryClient();
+      queryClient.setQueryData(queryKeys.discoverSeen, []);
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { result } = renderHook(() => useRequestMatch(), { wrapper: makeWrapper(queryClient) });
+
+      await act(async () => { await result.current.mutateAsync(candidate('cB') as any); });
+
+      expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: queryKeys.score }));
+    });
+
+    it('invalidates the /scores/me budget when the request is rejected (e.g. budget exhausted 400)', async () => {
+      mockRequest.mockRejectedValue(new Error('budget'));
+      const queryClient = createAppQueryClient();
+      queryClient.setQueryData(queryKeys.discoverSeen, []);
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { result } = renderHook(() => useRequestMatch(), { wrapper: makeWrapper(queryClient) });
+
+      await act(async () => {
+        await expect(result.current.mutateAsync(candidate('cC') as any)).rejects.toThrow('budget');
+      });
+
+      expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: queryKeys.score }));
+    });
   });
 });

@@ -15,10 +15,6 @@ interface Props {
   currentStreak: number;
 }
 
-// Renders the shareable card off-screen (still mounted/laid out, just outside
-// the visible viewport — react-native-view-shot needs real layout to capture,
-// display:none/opacity:0 views often capture blank) and pushes the result
-// through the OS share sheet on tap.
 export function ShareCharacterButton({ displayName, photoUrl, gemTier, totalScore, currentStreak }: Props) {
   const shotRef = useRef<ViewShot>(null);
   const [sharing, setSharing] = useState(false);
@@ -32,8 +28,6 @@ export function ShareCharacterButton({ displayName, photoUrl, gemTier, totalScor
         await Sharing.shareAsync(uri);
       }
     } catch {
-      // Capture/share failed or the user cancelled the share sheet — nothing
-      // to recover, just stop spinning.
     } finally {
       setSharing(false);
     }

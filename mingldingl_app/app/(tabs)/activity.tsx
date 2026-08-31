@@ -16,30 +16,24 @@ import { QuestBoard } from '../../components/quest/QuestBoard';
 import { FatedThreadsSection } from '../../components/quest/FatedThreadsSection';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
+import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
 
-// Same parchment grain AppCard uses internally at 6% opacity — here it's the
-// board itself, so it reads as a map/ledger rather than the dungeon-wall
-// stone used on Quest Log.
 const PARCHMENT_ASSET = require('../../assets/textures/parchment.png');
 
-const CATEGORY_ICONS: Record<string, string> = {
-  Coffee: '☕',
-  Cafe: '☕',
-  Restaurant: '🍽️',
-  Bar: '🍸',
-  Club: '🎶',
-  Hotel: '🏨',
-  Park: '🌳',
-  Museum: '🏛️',
-  Cinema: '🎬',
-  Gym: '💪',
-  Spa: '🧖',
+type CategoryGlyph = React.ComponentProps<typeof Icon>['name'];
+
+const CATEGORY_ICONS: Record<string, CategoryGlyph> = {
+  Cafe: 'coffee',
+  Cinema: 'movie-open',
+  Hiking: 'hiking',
+  BoardGameCafe: 'dice-multiple',
+  Other: 'map-marker-star',
 };
 
-function missionIcon(category: string): string {
-  return CATEGORY_ICONS[category] ?? '🎯';
+function missionIcon(category: string): CategoryGlyph {
+  return CATEGORY_ICONS[category] ?? 'map-marker-star';
 }
 
 function missionPoints(b: Business): number {
@@ -50,8 +44,8 @@ function missionPoints(b: Business): number {
 }
 
 export default function ActivityScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
-  const { data: businesses, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useActivity();
+  useLocaleStore((s) => s.locale);
+  const { data: businesses, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useActivity();
   const router = useRouter();
 
   return (
@@ -81,6 +75,14 @@ export default function ActivityScreen() {
           <View style={styles.center}>
             <ActivityIndicator size="large" color={COLORS.gold} />
           </View>
+        ) : isError ? (
+          <View style={styles.center}>
+            <Icon name="alert-circle-outline" size={32} color={COLORS.bronze} />
+            <Text style={styles.emptyText}>{i18n.t('screen_load_error')}</Text>
+            <GameButton size="compact" onPress={() => refetch()} style={styles.retryButton}>
+              {i18n.t('retry')}
+            </GameButton>
+          </View>
         ) : !businesses || businesses.length === 0 ? (
           <View style={styles.center}>
             <Text style={styles.emptyText}>{i18n.t('no_missions')}</Text>
@@ -107,7 +109,7 @@ export default function ActivityScreen() {
               <AppCard style={styles.missionCard}>
                 <View style={styles.row}>
                   <View style={styles.iconWrap}>
-                    <Text style={styles.missionIcon}>{missionIcon(b.category)}</Text>
+                    <Icon name={missionIcon(b.category)} size={24} color={COLORS.gold} style={styles.missionIcon} />
                   </View>
                   <View style={styles.info}>
                     <Text style={styles.missionTitle} numberOfLines={1}>{b.name}</Text>
@@ -135,7 +137,8 @@ export default function ActivityScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 8 },
+  retryButton: { marginTop: 8 },
   emptyText: { color: COLORS.textDim, fontSize: 16, fontFamily: FONTS.body },
   list: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40, flexGrow: 1 },
   weaveButton: { marginBottom: 16 },
@@ -149,7 +152,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  missionIcon: { fontSize: 24 },
+  missionIcon: { width: 26, textAlign: 'center' },
   info: { flex: 1 },
   missionTitle: { fontSize: 15, fontFamily: FONTS.bodyBold, color: COLORS.text, marginBottom: 3 },
   missionDesc: { fontSize: 12, color: COLORS.textDim, lineHeight: 17, marginBottom: 4, fontFamily: FONTS.body },

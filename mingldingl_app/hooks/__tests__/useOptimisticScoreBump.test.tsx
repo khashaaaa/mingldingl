@@ -3,6 +3,11 @@ import { renderHook, act } from '@testing-library/react-native';
 import { useOptimisticScoreBump } from '../useOptimisticScoreBump';
 import { queryKeys } from '../../lib/api/queryKeys';
 import { useAuthStore } from '../../store/authStore';
+import { TIER_ORDER, hydrateTierThresholds } from '../../lib/tiers';
+
+function hydrateWithDefaults() {
+  hydrateTierThresholds(TIER_ORDER.map((tier, i) => ({ tier, minScore: [0, 100, 300, 600, 1000, 2000][i] })));
+}
 
 function makeWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: React.ReactNode }) {
@@ -29,7 +34,21 @@ describe('useOptimisticScoreBump', () => {
     useAuthStore.setState({ pendingTierUp: null });
   });
 
+  it('bumps only totalScore — no tier write, no pendingTierUp — before thresholds hydrate', () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(queryKeys.scoreDetail, { ...baseScoreDetail, totalScore: 90, gemTier: 'Garnet' });
+    const { result } = renderHook(() => useOptimisticScoreBump(), { wrapper: makeWrapper(queryClient) });
+
+    act(() => { result.current(15); });
+
+    const updated = queryClient.getQueryData(queryKeys.scoreDetail) as typeof baseScoreDetail;
+    expect(updated.totalScore).toBe(105);
+    expect(updated.gemTier).toBe('Garnet');
+    expect(useAuthStore.getState().pendingTierUp).toBeNull();
+  });
+
   it('bumps totalScore without crossing a tier boundary and does not set pendingTierUp', () => {
+    hydrateWithDefaults();
     const queryClient = new QueryClient();
     queryClient.setQueryData(queryKeys.scoreDetail, { ...baseScoreDetail, totalScore: 50 });
     const { result } = renderHook(() => useOptimisticScoreBump(), { wrapper: makeWrapper(queryClient) });
@@ -43,11 +62,12 @@ describe('useOptimisticScoreBump', () => {
   });
 
   it('bumps totalScore across a tier boundary and sets pendingTierUp to the new tier', () => {
+    hydrateWithDefaults();
     const queryClient = new QueryClient();
     queryClient.setQueryData(queryKeys.scoreDetail, { ...baseScoreDetail, totalScore: 90, gemTier: 'Garnet' });
     const { result } = renderHook(() => useOptimisticScoreBump(), { wrapper: makeWrapper(queryClient) });
 
-    act(() => { result.current(15); }); // 90 + 15 = 105, crosses the Garnet->Opal boundary at 100
+    act(() => { result.current(15); });
 
     const updated = queryClient.getQueryData(queryKeys.scoreDetail) as typeof baseScoreDetail;
     expect(updated.totalScore).toBe(105);
@@ -66,8 +86,6 @@ describe('useOptimisticScoreBump', () => {
   });
 
   it('invalidates scoreHistory so the Progression screen\'s itemized list picks up the new entry', () => {
-    // Every caller here just awarded a real server-side ScoreEvent — without
-    // this, the history list lags behind its own 60s staleTime or a remount.
     const queryClient = new QueryClient();
     queryClient.setQueryData(queryKeys.scoreDetail, { ...baseScoreDetail, totalScore: 50 });
     queryClient.setQueryData(queryKeys.scoreHistory, { pages: [], pageParams: [] });

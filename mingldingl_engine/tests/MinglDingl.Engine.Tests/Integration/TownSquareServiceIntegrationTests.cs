@@ -25,7 +25,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         Db.TownSquareSessions.Add(session);
         await Db.SaveChangesAsync();
 
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.RsvpAsync(session.Id, user.Id);
 
         Db.ChangeTracker.Clear();
@@ -41,7 +41,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         Db.TownSquareSessions.Add(session);
         await Db.SaveChangesAsync();
 
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.RsvpAsync(session.Id, user.Id);
         await service.RsvpAsync(session.Id, user.Id);
 
@@ -59,7 +59,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         Db.TownSquareSessions.Add(session);
         await Db.SaveChangesAsync();
 
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.RsvpAsync(session.Id, user.Id));
     }
 
@@ -73,7 +73,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         Db.TownSquareRsvps.Add(new TownSquareRsvp { SessionId = session.Id, UserId = user.Id });
         await Db.SaveChangesAsync();
 
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.CancelRsvpAsync(session.Id, user.Id);
 
         Db.ChangeTracker.Clear();
@@ -89,8 +89,8 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         Db.TownSquareSessions.Add(session);
         await Db.SaveChangesAsync();
 
-        var service = new TownSquareService(Db, BuildTestBroadcast());
-        await service.CancelRsvpAsync(session.Id, user.Id); // should not throw
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
+        await service.CancelRsvpAsync(session.Id, user.Id);
     }
 
     private static User NewGenderedUser(string gender)
@@ -128,7 +128,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     {
         var session = await SeedOpenSessionWithRsvps(menCount: 5, womenCount: 5);
 
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.LockRosterAsync(session.Id);
 
         Db.ChangeTracker.Clear();
@@ -149,7 +149,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     {
         var session = await SeedOpenSessionWithRsvps(menCount: 3, womenCount: 5);
 
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.LockRosterAsync(session.Id);
 
         Db.ChangeTracker.Clear();
@@ -162,7 +162,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     {
         var session = await SeedOpenSessionWithRsvps(menCount: 7, womenCount: 7);
 
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.LockRosterAsync(session.Id);
 
         Db.ChangeTracker.Clear();
@@ -175,7 +175,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     {
         var session = await SeedOpenSessionWithRsvps(menCount: 0, womenCount: 3);
 
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.LockRosterAsync(session.Id);
 
         Db.ChangeTracker.Clear();
@@ -188,7 +188,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     public async Task StartSessionAsync_LockedSession_MovesToInProgressAtRoundOne()
     {
         var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2);
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.LockRosterAsync(session.Id);
 
         await service.StartSessionAsync(session.Id);
@@ -202,8 +202,8 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task AdvanceRoundAsync_BeforeLastRound_IncrementsRoundNumber()
     {
-        var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2); // 2 rounds
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2);
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.LockRosterAsync(session.Id);
         await service.StartSessionAsync(session.Id);
 
@@ -218,13 +218,13 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task AdvanceRoundAsync_AtLastRound_CompletesSession()
     {
-        var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2); // 2 rounds
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2);
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.LockRosterAsync(session.Id);
         await service.StartSessionAsync(session.Id);
-        await service.AdvanceRoundAsync(session.Id); // now at round 2 (last)
+        await service.AdvanceRoundAsync(session.Id);
 
-        await service.AdvanceRoundAsync(session.Id); // advance past last round
+        await service.AdvanceRoundAsync(session.Id);
 
         Db.ChangeTracker.Clear();
         var completed = await Db.TownSquareSessions.FindAsync(session.Id);
@@ -234,14 +234,9 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task AdvanceRoundAsync_BeforeLastRound_BroadcastsRoundAdvancedToSessionTopic()
     {
-        // Clients poll GetCurrentRound instead of blocking forever, so this
-        // broadcast is a latency optimization, not the only signal — but it
-        // needs to actually carry the new round number/status, or the
-        // listening hook has nothing useful to react to and falls back to
-        // its (much slower) poll interval on every single transition.
-        var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2); // 2 rounds
+        var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2);
         var (broadcast, handler) = BuildCapturingBroadcast();
-        var service = new TownSquareService(Db, broadcast);
+        var service = new TownSquareService(Db, broadcast, BuildTestPush());
         await service.LockRosterAsync(session.Id);
         await service.StartSessionAsync(session.Id);
 
@@ -254,10 +249,45 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         Assert.Contains("\"status\":\"InProgress\"", handler.LastRequestBody);
     }
 
+    [Fact]
+    public async Task StartSessionAsync_BroadcastsSessionStartedToSessionTopic()
+    {
+        var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2);
+        var (broadcast, handler) = BuildCapturingBroadcast();
+        var service = new TownSquareService(Db, broadcast, BuildTestPush());
+        await service.LockRosterAsync(session.Id);
+
+        await service.StartSessionAsync(session.Id);
+
+        Assert.NotNull(handler.LastRequestBody);
+        Assert.Contains($"\"townsquare:{session.Id}\"", handler.LastRequestBody);
+        Assert.Contains("\"session-started\"", handler.LastRequestBody);
+        Assert.Contains("\"roundNumber\":1", handler.LastRequestBody);
+        Assert.Contains("\"status\":\"InProgress\"", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task LockRosterAsync_OneSideEmpty_CancelsAndBroadcastsSessionCancelled()
+    {
+        var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 0);
+        var (broadcast, handler) = BuildCapturingBroadcast();
+        var service = new TownSquareService(Db, broadcast, BuildTestPush());
+
+        await service.LockRosterAsync(session.Id);
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.TownSquareSessions.FindAsync(session.Id);
+        Assert.Equal("Cancelled", reloaded!.Status);
+        Assert.NotNull(handler.LastRequestBody);
+        Assert.Contains($"\"townsquare:{session.Id}\"", handler.LastRequestBody);
+        Assert.Contains("\"session-cancelled\"", handler.LastRequestBody);
+        Assert.Contains("\"status\":\"Cancelled\"", handler.LastRequestBody);
+    }
+
     private async Task<TownSquarePairing> SeedSinglePairing()
     {
         var session = await SeedOpenSessionWithRsvps(menCount: 1, womenCount: 1);
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.LockRosterAsync(session.Id);
 
         Db.ChangeTracker.Clear();
@@ -268,7 +298,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     public async Task MarkJoinedAsync_ParticipantA_SetsUserAJoinedAt()
     {
         var pairing = await SeedSinglePairing();
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
 
         await service.MarkJoinedAsync(pairing.Id, pairing.UserAId);
 
@@ -282,7 +312,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     public async Task RespondToPairingAsync_OneYesOneNo_DoesNotCreateMatch()
     {
         var pairing = await SeedSinglePairing();
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
 
         await service.RespondToPairingAsync(pairing.Id, pairing.UserAId, "Yes");
         var resultId = await service.RespondToPairingAsync(pairing.Id, pairing.UserBId, "No");
@@ -294,16 +324,6 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
             (m.InitiatorId == pairing.UserBId && m.ReceiverId == pairing.UserAId)));
     }
 
-    // No automated coverage here for the "no existing Match, must create one"
-    // branch of RespondToPairingAsync: that branch opens its own transaction
-    // for the advisory lock (CreateOrReuseMatchAsync), and IntegrationTestBase
-    // already wraps every test in one outer transaction for rollback-based
-    // isolation — a nested BeginTransactionAsync on the same connection throws
-    // "already in a transaction". MatchesControllerIntegrationTests.cs hits the
-    // identical limitation with RequestMatch (see its Block test, line ~300) and
-    // documents it the same way rather than working around it. Verify this path
-    // manually/E2E instead (see the verify skill).
-
     [Fact]
     public async Task RespondToPairingAsync_MutualYesWhenMatchAlreadyExists_ReusesExistingMatch()
     {
@@ -312,7 +332,7 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         Db.Matches.Add(existingMatch);
         await Db.SaveChangesAsync();
 
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await service.RespondToPairingAsync(pairing.Id, pairing.UserAId, "Yes");
         var resultId = await service.RespondToPairingAsync(pairing.Id, pairing.UserBId, "Yes");
 
@@ -328,11 +348,61 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     public async Task RespondToPairingAsync_NonParticipant_Throws()
     {
         var pairing = await SeedSinglePairing();
-        var service = new TownSquareService(Db, BuildTestBroadcast());
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         var stranger = NewGenderedUser("Male");
         Db.Users.Add(stranger);
         await Db.SaveChangesAsync();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.RespondToPairingAsync(pairing.Id, stranger.Id, "Yes"));
+    }
+    [Fact]
+    public async Task RespondToPairingAsync_MutualYesButPairIsBlocked_DoesNotCreateMatch()
+    {
+        var pairing = await SeedSinglePairing();
+        Db.BlockedUsers.Add(new BlockedUser { BlockerId = pairing.UserAId, BlockedId = pairing.UserBId });
+        await Db.SaveChangesAsync();
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
+
+        await service.RespondToPairingAsync(pairing.Id, pairing.UserAId, "Yes");
+        var resultId = await service.RespondToPairingAsync(pairing.Id, pairing.UserBId, "Yes");
+
+        Assert.Null(resultId);
+        Db.ChangeTracker.Clear();
+        Assert.False(await Db.Matches.AnyAsync(m =>
+            (m.InitiatorId == pairing.UserAId && m.ReceiverId == pairing.UserBId) ||
+            (m.InitiatorId == pairing.UserBId && m.ReceiverId == pairing.UserAId)));
+    }
+
+    [Fact]
+    public async Task RespondToPairingAsync_MutualYesButBlockedInReverseDirection_DoesNotCreateMatch()
+    {
+        var pairing = await SeedSinglePairing();
+        Db.BlockedUsers.Add(new BlockedUser { BlockerId = pairing.UserBId, BlockedId = pairing.UserAId });
+        await Db.SaveChangesAsync();
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
+
+        await service.RespondToPairingAsync(pairing.Id, pairing.UserAId, "Yes");
+        var resultId = await service.RespondToPairingAsync(pairing.Id, pairing.UserBId, "Yes");
+
+        Assert.Null(resultId);
+        Db.ChangeTracker.Clear();
+        Assert.False(await Db.Matches.AnyAsync(m =>
+            (m.InitiatorId == pairing.UserAId && m.ReceiverId == pairing.UserBId) ||
+            (m.InitiatorId == pairing.UserBId && m.ReceiverId == pairing.UserAId)));
+    }
+
+    [Fact]
+    public async Task RespondToPairingAsync_MutualYesWhenMatchAlreadyExists_DoesNotBroadcastMatchCreated()
+    {
+        var pairing = await SeedSinglePairing();
+        Db.Matches.Add(new Match { InitiatorId = pairing.UserAId, ReceiverId = pairing.UserBId, Status = "Active", RevealLevel = 1 });
+        await Db.SaveChangesAsync();
+        var (broadcast, handler) = BuildCapturingBroadcast();
+        var service = new TownSquareService(Db, broadcast, BuildTestPush());
+
+        await service.RespondToPairingAsync(pairing.Id, pairing.UserAId, "Yes");
+        await service.RespondToPairingAsync(pairing.Id, pairing.UserBId, "Yes");
+
+        Assert.Null(handler.LastRequestBody);
     }
 }

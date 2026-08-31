@@ -13,12 +13,6 @@ export function InviteAllyCard({ referralCode }: Props) {
   if (!referralCode) return null;
 
   function handleShare() {
-    // Assigned to an explicitly-typed local rather than inlined: Share's
-    // ShareContent is a discriminated union ({message: string, url?} |
-    // {message?: string, url: string}), and feeding i18n.t()'s generic
-    // return type (`string | T`, T defaulting to string) straight into that
-    // union's contextual type makes TS infer T as undefined, widening the
-    // result to `string | undefined`. Pinning the type here first avoids that.
     const message: string = i18n.t('referral_share_message', { code: referralCode });
     Share.share({ message });
   }

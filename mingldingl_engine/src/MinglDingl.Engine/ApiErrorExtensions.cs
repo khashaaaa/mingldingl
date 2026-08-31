@@ -1,8 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 
-// One consistent error envelope ({ "error": "message" }) for every non-2xx
-// response the API returns, instead of a mix of custom objects, bare empty
-// bodies, and the framework's default ProblemDetails shape.
 public static class ApiErrorExtensions
 {
     public static IActionResult NotFoundError(this ControllerBase c, string message) =>

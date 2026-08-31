@@ -26,11 +26,9 @@ public record UpdateUserRequest(
     int? AgeMin = null,
     int? AgeMax = null,
     bool? IsPaused = null,
-    // Manual fallback for the "location permission denied" picker (edit-profile,
-    // mirrors AboutStep's onboarding fallback) — a city name with no GPS fix
-    // behind it, hence clearing Latitude/Longitude alongside it. Distinct from
-    // POST /users/me/location, which always carries real coordinates.
     string? City = null);
+
+public record SwearOathRequest(string Oath);
 
 public record UserResponse(
     Guid Id,
@@ -40,9 +38,6 @@ public record UserResponse(
     string City,
     string Bio,
     List<string> PhotoUrls,
-    int TotalScore,
-    string GemTier,
-    decimal ReputationScore,
     string MembershipLevel,
     bool IsProfileComplete,
     string? EquippedFrameId = null,
@@ -58,7 +53,11 @@ public record UserResponse(
     bool IsPaused = false,
     string? PhoneNumber = null,
     string? ReferralCode = null,
-    DroppedItem? ReferralRewardItem = null);
+    DroppedItem? ReferralRewardItem = null,
+    string? Oath = null,
+    bool OathProven = false,
+    int? OathEncountersHeld = null,
+    int? OathEncountersNeeded = null);
 
 public record OwnedItemResponse(string ItemId, string NameKey, string Rarity, string ItemType, DateTime AcquiredAt, bool Equipped);
 

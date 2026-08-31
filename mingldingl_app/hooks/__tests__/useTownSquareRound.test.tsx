@@ -3,6 +3,8 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useTownSquareRound } from '../useTownSquareRound';
 import { apiClient } from '../../lib/api/apiClient';
 import { supabase } from '../../lib/supabase';
+import { createAppQueryClient } from '../../lib/api/queryClient';
+import { queryKeys } from '../../lib/api/queryKeys';
 
 jest.mock('../../lib/api/apiClient', () => ({
   apiClient: {
@@ -51,11 +53,9 @@ function makeFakeChannel() {
 }
 
 function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
+  return createAppQueryClient({
+    queries: { retry: false },
+    mutations: { retry: false },
   });
 }
 
@@ -208,6 +208,40 @@ describe('useTownSquareRound', () => {
 
     await waitFor(() => expect(result.current.round?.pairingId).toBe('p2'));
     expect(result.current.hasResponded).toBe(false);
+  });
+
+  it('invalidates the matches cache after responding (a mutual Yes creates a match)', async () => {
+    mockApi.townSquare.currentRound.mockResolvedValue(round1);
+    mockApi.townSquare.respond.mockResolvedValue({ matchId: 'm1' });
+
+    const queryClient = makeQueryClient();
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    const { result } = renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+
+    await waitFor(() => expect(result.current.round?.pairingId).toBe('p1'));
+
+    await act(async () => {
+      result.current.submitResponse('p1', 'Yes');
+    });
+
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: queryKeys.matches })));
+  });
+
+  it('invalidates the matches cache after markJoined (joining can complete a pairing the partner already answered)', async () => {
+    mockApi.townSquare.currentRound.mockResolvedValue(round1);
+    mockApi.townSquare.joined.mockResolvedValue({});
+
+    const queryClient = makeQueryClient();
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    const { result } = renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+
+    await waitFor(() => expect(result.current.round?.pairingId).toBe('p1'));
+
+    await act(async () => {
+      result.current.markJoined('p1');
+    });
+
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: queryKeys.matches })));
   });
 
   it('exposes matchId once the response result includes one', async () => {

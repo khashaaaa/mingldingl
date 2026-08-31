@@ -12,12 +12,14 @@ public class AdminConfigController : ControllerBase
     private readonly AppDbContext _db;
     private readonly ConfigService _config;
     private readonly AdminAuditService _audit;
+    private readonly ScoreService _score;
 
-    public AdminConfigController(AppDbContext db, ConfigService config, AdminAuditService audit)
+    public AdminConfigController(AppDbContext db, ConfigService config, AdminAuditService audit, ScoreService score)
     {
         _db = db;
         _config = config;
         _audit = audit;
+        _score = score;
     }
 
     [HttpGet]
@@ -37,7 +39,7 @@ public class AdminConfigController : ControllerBase
         var entry = await _db.AdminConfigs.FirstOrDefaultAsync(c => c.Key == key);
         if (entry is null) return this.NotFoundError($"Config key '{key}' not found");
 
-        var validationError = ValidateValue(entry.ValueType, request.Value);
+        var validationError = ConfigValueValidator.Validate(entry.ValueType, request.Value);
         if (validationError is not null) return this.BadRequestError(validationError);
 
         await ApplyUpdateAsync(entry, request.Value, isRevert: false);
@@ -62,7 +64,7 @@ public class AdminConfigController : ControllerBase
 
         var change = JsonSerializer.Deserialize<ConfigChangeDetails>(lastChange.Details)!;
 
-        var validationError = ValidateValue(entry.ValueType, change.OldValue);
+        var validationError = ConfigValueValidator.Validate(entry.ValueType, change.OldValue);
         if (validationError is not null) return this.BadRequestError(validationError);
 
         await ApplyUpdateAsync(entry, change.OldValue, isRevert: true);
@@ -75,21 +77,19 @@ public class AdminConfigController : ControllerBase
         entry.Value = newValue;
         entry.UpdatedAt = DateTime.UtcNow;
         entry.UpdatedBy = User?.Identity?.Name ?? "unknown";
+
+        var details = JsonSerializer.Serialize(new ConfigChangeDetails(oldValue, newValue));
+        _audit.Stage(User, isRevert ? "RevertConfig" : "UpdateConfig", "AdminConfig", entry.Key, details);
         await _db.SaveChangesAsync();
 
         _config.Set(entry.Key, newValue);
 
-        var details = JsonSerializer.Serialize(new ConfigChangeDetails(oldValue, newValue));
-        await _audit.LogAsync(User, isRevert ? "RevertConfig" : "UpdateConfig", "AdminConfig", entry.Key, details);
+        if (IsTierThresholdKey(entry.Key))
+            await _score.RecomputeAllGemTiersAsync();
     }
 
-    private static string? ValidateValue(string valueType, string value) => valueType switch
-    {
-        "Bool" => bool.TryParse(value, out _) ? null : $"'{value}' is not a valid boolean",
-        "Number" => double.TryParse(value, out _) ? null : $"'{value}' is not a valid number",
-        "String" => null,
-        _ => $"Unsupported ValueType '{valueType}' for validation",
-    };
+    internal static bool IsTierThresholdKey(string key) =>
+        key.StartsWith("tier.", StringComparison.Ordinal) && key.EndsWith(".threshold", StringComparison.Ordinal);
 
     private static AdminConfigDto ToDto(AdminConfig c) =>
         new(c.Key, c.Category, c.ValueType, c.Value, c.Description, c.UpdatedAt, c.UpdatedBy);

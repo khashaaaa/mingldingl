@@ -31,9 +31,6 @@ public class MembershipExpiryTests
     [Fact]
     public void HasExpired_FreeTier_ReturnsFalse_EvenWithAPastExpiryDate()
     {
-        // Shouldn't happen in practice (Free always clears ExpiresAt), but
-        // the predicate itself must not treat a Free user as "expired" —
-        // there's nothing to revert them from.
         var user = User("Free", DateTime.UtcNow.AddDays(-1));
 
         Assert.False(MembershipExpiry.HasExpired(user, DateTime.UtcNow));

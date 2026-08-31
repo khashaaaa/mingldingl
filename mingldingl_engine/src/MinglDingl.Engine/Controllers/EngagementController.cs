@@ -28,7 +28,7 @@ public class EngagementController : ControllerBase
     {
         var icebreaker = await _db.Icebreakers
             .Where(i => i.IsActive)
-            .OrderBy(_ => Guid.NewGuid())   // random selection
+            .OrderBy(_ => Guid.NewGuid())
             .FirstOrDefaultAsync();
         if (icebreaker is null) return this.NotFoundError("No active icebreaker available");
         return Ok(new IcebreakerQuestionResponse(icebreaker.Id, icebreaker.QuestionText, icebreaker.Type, icebreaker.Options));
@@ -42,10 +42,9 @@ public class EngagementController : ControllerBase
     public async Task<IActionResult> RespondIcebreaker(Guid matchId, [FromBody] IcebreakerRespondDto req)
     {
         var userId = this.CurrentUserId();
-        var match = await _db.Matches.FindAsync(matchId);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
+
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId, requireActive: true);
+        if (accessError is not null) return accessError;
 
         var existing = await _db.IcebreakerResponses.FirstOrDefaultAsync(r =>
             r.MatchId == matchId && r.IcebreakerId == req.IcebreakerId && r.UserId == userId);
@@ -64,15 +63,10 @@ public class EngagementController : ControllerBase
         }
         catch (DbUpdateException ex) when (UniqueViolationGuard.IsViolation(ex, "IX_IcebreakerResponses_MatchId_IcebreakerId_UserId"))
         {
-            // Lost the race — someone else's request for the same response
-            // landed first (the check above is TOCTOU-racy; this index is the
-            // real guard). Same outcome as the check catching it up front.
             _db.ChangeTracker.Clear();
             return this.ConflictError("Already responded");
         }
 
-        // Nudge the other participant to answer too — see SupabaseBroadcastService
-        // for why this is Broadcast and not postgres_changes.
         await _broadcast.BroadcastAsync("app-nudges", "icebreaker", new { userId, matchId });
 
         bool bothDone = await _engagement.BothRespondedAsync(matchId, req.IcebreakerId);
@@ -100,25 +94,13 @@ public class EngagementController : ControllerBase
     public async Task<IActionResult> RevealIcebreaker(Guid matchId, [FromQuery] Guid icebreakerId)
     {
         var userId = this.CurrentUserId();
-        var match = await _db.Matches.FindAsync(matchId);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
+        if (accessError is not null) return accessError;
 
         var responses = await _db.IcebreakerResponses
             .Where(r => r.MatchId == matchId && r.IcebreakerId == icebreakerId)
             .ToListAsync();
 
-        // Match.IcebreakerComplete is a one-shot "has this match EVER
-        // completed *an* icebreaker" flag (EngagementService.CompleteIcebreakerAsync
-        // never resets it) -- it doesn't mean "responses exist for *this*
-        // icebreakerId". GetIcebreaker picks a new random icebreaker on every
-        // call, so re-opening the icebreaker screen after already completing
-        // one used to pass a brand-new, unanswered icebreakerId here and get
-        // 200 + [] back instead of the expected 400, which the client read as
-        // "revealed" with undefined answers. Checking the actual response
-        // count for this specific icebreakerId (same threshold RespondIcebreaker
-        // uses via BothRespondedAsync) is the real completeness signal.
         if (responses.Count < 2) return this.BadRequestError("Icebreaker not complete yet");
 
         return Ok(responses.Select(r => new IcebreakerRevealEntry(r.UserId, r.Answer)).ToList());
@@ -131,10 +113,8 @@ public class EngagementController : ControllerBase
     public async Task<IActionResult> GetIcebreakerStatus(Guid matchId, [FromQuery] Guid icebreakerId)
     {
         var userId = this.CurrentUserId();
-        var match = await _db.Matches.FindAsync(matchId);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
+        if (accessError is not null) return accessError;
 
         var responded = await _db.IcebreakerResponses.AnyAsync(r =>
             r.MatchId == matchId && r.IcebreakerId == icebreakerId && r.UserId == userId);
@@ -170,10 +150,8 @@ public class EngagementController : ControllerBase
 
         if (req.MatchId.HasValue)
         {
-            var match = await _db.Matches.FindAsync(req.MatchId.Value);
-            if (match is null) return this.NotFoundError("Match not found");
-            if (!match.IsParticipant(userId))
-                return this.ForbiddenError("You are not a participant in this match");
+            var (match, accessError) = await this.LoadParticipantMatchAsync(_db, req.MatchId.Value, requireActive: true);
+            if (accessError is not null) return accessError;
         }
 
         var existing = await _db.QuizResponses.FirstOrDefaultAsync(r =>
@@ -202,17 +180,10 @@ public class EngagementController : ControllerBase
         }
         catch (DbUpdateException ex) when (UniqueViolationGuard.IsViolation(ex, "IX_QuizResponses_QuizId_UserId_MatchId"))
         {
-            // Lost the race for the first response to this quiz (check-then-insert
-            // above is TOCTOU-racy; this index is the real guard) — someone else's
-            // insert for the same (QuizId, UserId, MatchId) landed first. Treat as
-            // "not first" so QuizDone/loot below aren't double-awarded.
             _db.ChangeTracker.Clear();
             isFirstResponse = false;
         }
 
-        // Quest/score/loot last: all best-effort and share this scoped DbContext,
-        // so they must run after the action's own SaveChangesAsync resolves —
-        // and only for the request that actually won the race above.
         DroppedItem? drop = null;
         int awarded = 0;
         if (isFirstResponse)
@@ -232,10 +203,6 @@ public class EngagementController : ControllerBase
         return Ok(new QuizCompatibilityResponse(compatibility, awarded, drop));
     }
 
-    // Read-only counterpart to RespondQuiz — safe to call on every mount
-    // (e.g. after navigating back to an already-answered quiz) since it
-    // never writes a response, unlike RespondQuiz which requires the
-    // client to hold the answers in memory to resubmit them.
     [HttpGet("quiz/{quizId}/status")]
     [ProducesResponseType(typeof(QuizStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -243,10 +210,8 @@ public class EngagementController : ControllerBase
     public async Task<IActionResult> GetQuizStatus(Guid quizId, [FromQuery] Guid matchId)
     {
         var userId = this.CurrentUserId();
-        var match = await _db.Matches.FindAsync(matchId);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
+        if (accessError is not null) return accessError;
 
         var myResponse = await _db.QuizResponses.FirstOrDefaultAsync(r =>
             r.QuizId == quizId && r.UserId == userId && r.MatchId == matchId);
@@ -307,10 +272,6 @@ public class EngagementController : ControllerBase
             e.UserId == userId && e.EventType == "QuestChest" && e.CreatedAt >= today);
         if (chestClaimed) return Ok(new ClaimChestResponse(0, true));
 
-        // The check above is TOCTOU-racy; ix_score_events_once_per_day (partial unique
-        // index on ScoreEvents) is the real guard. The loser of a concurrent claim hits
-        // a unique violation here instead of double-awarding — return the idempotent
-        // already-claimed response instead of a 500.
         try
         {
             await _score.AwardWithDeltaAsync(userId, "QuestChest", 30);
@@ -349,10 +310,6 @@ public class EngagementController : ControllerBase
         var exists = await _db.UserMilestones.AnyAsync(m => m.UserId == userId && m.MilestoneId == id);
         if (!exists) return this.BadRequestError("Milestone not achieved yet");
 
-        // Atomic conditional claim: only the caller that flips OpenedAt from null
-        // wins the row (ExecuteUpdateAsync issues a single UPDATE ... WHERE, so two
-        // concurrent requests can't both observe OpenedAt == null and both award).
-        // Losers get the idempotent "already opened" response instead of a second award.
         int rowsAffected = await _db.UserMilestones
             .Where(m => m.UserId == userId && m.MilestoneId == id && m.OpenedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.OpenedAt, DateTime.UtcNow));

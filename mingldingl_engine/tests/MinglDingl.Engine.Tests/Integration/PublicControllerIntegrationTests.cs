@@ -6,23 +6,12 @@ public class PublicControllerIntegrationTests : IntegrationTestBase
 {
     private PublicController BuildController() => new(Db);
 
-    // GetStats counts across the whole Users/Matches/ScoreEvents tables
-    // (unauthenticated aggregate stats, not scoped to a caller) against the
-    // shared dev Postgres this suite runs on — which already has real
-    // pre-existing activity inside any 7-day window, unlike every other
-    // integration test here that scopes its own assertions to specific
-    // seeded ids. These assert the count moved by exactly the expected
-    // delta after seeding, not an absolute value.
     private async Task<PublicStatsResponse> GetStatsBody() =>
         Assert.IsType<PublicStatsResponse>(Assert.IsType<OkObjectResult>(await BuildController().GetStats()).Value);
 
     [Fact]
     public async Task GetStats_ActiveDaters_CountsDistinctUsersNotRawEventCount()
     {
-        // A user who logs in on multiple days this week awards multiple
-        // DailyLogin ScoreEvents (see ScoreService) — the stat is "how many
-        // people were active," not "how many login events fired," so two
-        // events from the same user must still count as one dater.
         var before = await GetStatsBody();
 
         var user = NewCompleteUser();
@@ -75,9 +64,6 @@ public class PublicControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task GetStats_DatesConfirmed_HalvesRawEventCountSinceBothParticipantsAreAwarded()
     {
-        // ActivityService.AwardManyAsync awards DateConfirmed to both the
-        // initiator and receiver for the same real-world confirmed date, so
-        // two ScoreEvent rows here represent exactly one confirmed date.
         var before = await GetStatsBody();
 
         var initiator = NewCompleteUser();
@@ -131,10 +117,6 @@ public class PublicControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task GetShipInvite_AlreadySparkedShip_ReturnsInvalid()
     {
-        // Same code namespace, but ShipService.RespondAsync clears the
-        // spent slot's InviteCode to null and flips Status once both slots
-        // accept — a Sparked/Declined/Expired ship's code must never read
-        // as still-valid on this preview page.
         var shipper = NewCompleteUser();
         Db.Users.Add(shipper);
         Db.Ships.Add(new Ship { ShipperUserId = shipper.Id, Status = "Sparked", SlotAInviteCode = "ABC123" });

@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useTownSquareSession } from '../useTownSquareSession';
 import { apiClient } from '../../lib/api/apiClient';
+import { supabase } from '../../lib/supabase';
 import { createAppQueryClient } from '../../lib/api/queryClient';
 
 jest.mock('../../lib/api/apiClient', () => ({
@@ -14,6 +15,35 @@ jest.mock('../../lib/api/apiClient', () => ({
   },
 }));
 
+jest.mock('../../lib/supabase', () => ({
+  supabase: {
+    channel: jest.fn(),
+    removeChannel: jest.fn(),
+  },
+}));
+
+const mockChannelFn = supabase.channel as jest.Mock;
+const mockRemoveChannel = supabase.removeChannel as jest.Mock;
+
+type BroadcastHandler = (msg: { payload: unknown }) => void;
+
+interface FakeChannel {
+  on: jest.Mock;
+  subscribe: jest.Mock;
+}
+
+function makeFakeChannel() {
+  const handlers: Record<string, BroadcastHandler> = {};
+  const channel: FakeChannel = {
+    on: jest.fn((_type: string, opts: { event: string }, handler: BroadcastHandler) => {
+      handlers[opts.event] = handler;
+      return channel;
+    }),
+    subscribe: jest.fn(() => channel),
+  };
+  return { channel, handlers };
+}
+
 const mockApi = apiClient as unknown as {
   townSquare: {
     nextSession: jest.Mock;
@@ -22,10 +52,6 @@ const mockApi = apiClient as unknown as {
   };
 };
 
-// useTownSquareSession's rsvp/cancelRsvp mutations refresh via
-// meta.invalidates (see lib/api/queryClient.ts's MutationCache), which only
-// fires on a client built by createAppQueryClient — a bare `new QueryClient()`
-// has no MutationCache wired and would silently no-op the invalidation.
 function makeQueryClient() {
   return createAppQueryClient({
     queries: { retry: false },
@@ -40,8 +66,12 @@ function makeWrapper(queryClient: QueryClient) {
 }
 
 describe('useTownSquareSession', () => {
+  let fakeChannel: ReturnType<typeof makeFakeChannel>;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    fakeChannel = makeFakeChannel();
+    mockChannelFn.mockImplementation(() => fakeChannel.channel);
   });
 
   afterEach(() => {
@@ -137,5 +167,118 @@ describe('useTownSquareSession', () => {
     });
 
     expect(mockApi.townSquare.nextSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('polls fast (15s) while a session is upcoming', async () => {
+    jest.useFakeTimers();
+    mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: 's1', status: 'Open', isRsvpd: false });
+
+    const queryClient = makeQueryClient();
+    renderHook(() => useTownSquareSession(), { wrapper: makeWrapper(queryClient) });
+
+    await waitFor(() => expect(mockApi.townSquare.nextSession).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(15000);
+    });
+    expect(mockApi.townSquare.nextSession).toHaveBeenCalledTimes(2);
+  });
+
+  it('backs off to a slow poll (60s) when no session is scheduled at all', async () => {
+    jest.useFakeTimers();
+    mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: null, isRsvpd: false });
+
+    const queryClient = makeQueryClient();
+    renderHook(() => useTownSquareSession(), { wrapper: makeWrapper(queryClient) });
+
+    await waitFor(() => expect(mockApi.townSquare.nextSession).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(15000);
+    });
+    expect(mockApi.townSquare.nextSession).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(45000);
+    });
+    expect(mockApi.townSquare.nextSession).toHaveBeenCalledTimes(2);
+  });
+
+  describe('session-scoped broadcast subscription', () => {
+    it('subscribes to townsquare:{sessionId} while the session is upcoming', async () => {
+      mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: 's1', status: 'Open', isRsvpd: false });
+
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useTownSquareSession(), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(result.current.session?.sessionId).toBe('s1'));
+      await waitFor(() => expect(mockChannelFn).toHaveBeenCalledWith('townsquare:s1'));
+      expect(fakeChannel.channel.subscribe).toHaveBeenCalled();
+    });
+
+    it('refetches the session immediately when session-started lands (no 15s poll gap at the start moment)', async () => {
+      mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: 's1', status: 'Locked', isRsvpd: true });
+
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useTownSquareSession(), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(result.current.session?.status).toBe('Locked'));
+      await waitFor(() => expect(fakeChannel.handlers['session-started']).toBeDefined());
+
+      mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: 's1', status: 'InProgress', isRsvpd: true });
+      act(() => {
+        fakeChannel.handlers['session-started']({ payload: { sessionId: 's1' } });
+      });
+
+      await waitFor(() => expect(result.current.session?.status).toBe('InProgress'));
+    });
+
+    it('refetches the session when session-cancelled lands', async () => {
+      mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: 's1', status: 'Open', isRsvpd: true });
+
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useTownSquareSession(), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(fakeChannel.handlers['session-cancelled']).toBeDefined());
+
+      mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: 's1', status: 'Cancelled', isRsvpd: true });
+      act(() => {
+        fakeChannel.handlers['session-cancelled']({ payload: { sessionId: 's1' } });
+      });
+
+      await waitFor(() => expect(result.current.session?.status).toBe('Cancelled'));
+    });
+
+    it('does not hold the townsquare:{sessionId} topic once the session is InProgress (the round screen owns it then)', async () => {
+      mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: 's1', status: 'InProgress', isRsvpd: true });
+
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useTownSquareSession(), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(result.current.session?.status).toBe('InProgress'));
+      expect(mockChannelFn).not.toHaveBeenCalled();
+    });
+
+    it('does not subscribe at all when there is no session', async () => {
+      mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: null, isRsvpd: false });
+
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useTownSquareSession(), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(mockChannelFn).not.toHaveBeenCalled();
+    });
+
+    it('removes the channel on unmount', async () => {
+      mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: 's1', status: 'Open', isRsvpd: false });
+
+      const queryClient = makeQueryClient();
+      const { result, unmount } = renderHook(() => useTownSquareSession(), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(result.current.session?.sessionId).toBe('s1'));
+      await waitFor(() => expect(mockChannelFn).toHaveBeenCalled());
+      unmount();
+      expect(mockRemoveChannel).toHaveBeenCalledWith(fakeChannel.channel);
+    });
   });
 });

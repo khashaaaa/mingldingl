@@ -2,11 +2,8 @@ import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { usePendingShips } from '../../hooks/usePendingShips';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { Icon } from '../ui/Icon';
 
-// Each pending ship names only the Weaver (the friend who nominated this
-// user) — the engine's PendingShipResponse deliberately never surfaces
-// anything about the other slot, so the prompt can't be used to identify
-// who the mystery match might be before the user opts in.
 export function FatedThreadsSection() {
   const { pendingShips, respond } = usePendingShips();
 
@@ -17,7 +14,7 @@ export function FatedThreadsSection() {
       <Text style={styles.heading}>{i18n.t('fated_threads_title')}</Text>
       {pendingShips.map((ship) => (
         <View key={ship.shipId} style={styles.card}>
-          <Text style={styles.medallion}>🏹</Text>
+          <Icon name="bow-arrow" size={18} color={COLORS.gold} />
           <Text style={styles.message}>
             {i18n.t('ship_prompt_message', { weaver: ship.weaverDisplayName })}
           </Text>
@@ -42,9 +39,6 @@ export function FatedThreadsSection() {
 }
 
 const styles = StyleSheet.create({
-  // No paddingHorizontal here — activity.tsx's ScrollView container already
-  // applies 20px, and this section renders inline in that same scroll list
-  // alongside QuestBoard, which doesn't add its own inset either.
   section: { gap: 10, marginBottom: 16 },
   heading: { fontFamily: FONTS.display, fontSize: 12, color: COLORS.gold, letterSpacing: 2 },
   card: {

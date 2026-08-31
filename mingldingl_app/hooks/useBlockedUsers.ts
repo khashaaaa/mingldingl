@@ -19,6 +19,8 @@ export function useBlockedUsers() {
   return {
     blockedUsers: query.data ?? [],
     isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: query.refetch,
     unblock: unblock.mutate,
     unblockingUserId: unblock.isPending ? (unblock.variables ?? null) : null,
   };

@@ -64,7 +64,6 @@ export function Config() {
                   key={`${entry.key}-${entry.updatedAt}`}
                   entry={entry}
                   isSaving={update.isPending || revert.isPending}
-                  canRevert={true}
                   onSave={(value) => update.mutate({ key: entry.key ?? '', value })}
                   onRevert={() => revert.mutate(entry.key ?? '')}
                 />

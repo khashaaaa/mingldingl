@@ -24,23 +24,14 @@ import type { MembershipPriceOption } from '../models/membership';
 
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
-// Purely decorative — which gem rarity rank each membership card borrows for
-// its shimmer-eligibility (GemTierBadge shimmers from Sapphire/index 3 up).
-// Distinct from a user's own score-based gem tier; membership level and
-// score tier are two independent axes that happen to share a visual vocabulary.
 const BADGE_TIER: Record<string, GemTier> = {
-  Free: 'Garnet', Silver: 'Opal', Gold: 'Ruby', Platinum: 'Emerald',
+  Free: 'Garnet', Silver: 'Opal', Gold: 'Emerald',
 };
 
-// The actual rendered color/shade for each badge — chosen to match what
-// "Silver"/"Gold"/"Platinum" mean as words, not the borrowed gem's real hue
-// (Ruby, e.g., is pink, not gold). Gold reuses the app's own established
-// gold identity; Free stays a neutral, unadorned steel-grey.
 const BADGE_COLOR: Record<string, { color: string; shade: string }> = {
   Free: { color: COLORS.bronze, shade: '#26303B' },
   Silver: { color: '#C7D0DA', shade: '#5B6672' },
   Gold: { color: COLORS.goldBright, shade: COLORS.gold },
-  Platinum: { color: '#EAF0F5', shade: '#8DA0B0' },
 };
 
 const DURATIONS = ['1', '3', '6'] as const;
@@ -49,7 +40,7 @@ const DURATION_LABEL_KEY: Record<(typeof DURATIONS)[number], string> = {
 };
 
 export default function MembershipScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const { currentLevel, expiresAt, isLoading: membershipLoading, tiers, tiersLoading, upgrade, isUpgrading, upgradeError } = useMembership();
   const [selectedTier, setSelectedTier] = useState<string>(currentLevel ?? 'Free');
   const [selectedDuration, setSelectedDuration] = useState<(typeof DURATIONS)[number]>('1');

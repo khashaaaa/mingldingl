@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Text,
   View,
@@ -19,7 +19,9 @@ import { useProfile } from '../../hooks/useProfile';
 import { useScoreDetail } from '../../hooks/useScoreDetail';
 import { usePhotoUpload } from '../../hooks/usePhotoUpload';
 import { useAuthStore } from '../../store/authStore';
+import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
+import { parseUserProfile } from '../../models/user';
 import { colorForTier, ITEM_NAME_KEYS, FRAME_COLORS } from '../../lib/tiers';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { AppCard } from '../../components/ui/AppCard';
@@ -37,13 +39,15 @@ import { TrophyCase } from '../../components/progression/TrophyCase';
 import { useInventory } from '../../hooks/useInventory';
 import { TorchGlow } from '../../components/vfx/TorchGlow';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
+import OathSigil, { OATH_VALUES, OATH_GLYPHS, OATH_NAME_KEYS, OATH_DESC_KEYS } from '../../components/OathSigil';
+import { useSwearOath } from '../../hooks/useOath';
 import { COLORS, FONTS, RADIUS, overlay } from '../../lib/theme';
-import type { GemTier } from '../../models/user';
+import type { GemTier, Oath } from '../../models/user';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function ProfileScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const router = useRouter();
   const { data: profile } = useProfile();
   const { data: scoreDetail } = useScoreDetail();
@@ -52,9 +56,27 @@ export default function ProfileScreen() {
   const [photoError, setPhotoError] = useState(false);
   const [uploadFailedAlert, setUploadFailedAlert] = useState(false);
   const [sourceModalVisible, setSourceModalVisible] = useState(false);
+  const [oathModalVisible, setOathModalVisible] = useState(false);
   const pendingSourceActionRef = useRef<(() => void) | null>(null);
   const { pickPhoto, takePhoto, uploadPhoto, uploading, permissionDenied, clearPermissionDenied } = usePhotoUpload(session?.user.id);
   const { items } = useInventory();
+  const { swear, isSwearing, swearError } = useSwearOath();
+  const [showOathError, setShowOathError] = useState(false);
+
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    if (swearError) setShowOathError(true);
+  }, [swearError]);
+
+  function handleSwear(oath: Oath) {
+    setOathModalVisible(false);
+    swear(oath);
+  }
 
   if (!profile || !scoreDetail) {
     return (
@@ -72,11 +94,6 @@ export default function ProfileScreen() {
   const tierColor = colorForTier(gemTier);
   const frameColor = (profile.equippedFrameId && FRAME_COLORS[profile.equippedFrameId]) ?? tierColor;
 
-  // Closing our own action-sheet Modal and immediately presenting the native
-  // OS image/camera picker in the same tick races the Modal's dismiss
-  // animation — see PhotoGrid.tsx's identical closeSourceModalThen, which
-  // this mirrors. Without it, the OS picker was silently dropped and
-  // pickPhoto/takePhoto never got a chance to resolve or reject.
   function closeSourceModalThen(action: () => void) {
     if (Platform.OS === 'ios') {
       pendingSourceActionRef.current = action;
@@ -90,26 +107,28 @@ export default function ProfileScreen() {
   async function handleAddFrom(picker: () => Promise<string | null>) {
     const localUri = await picker();
     if (!localUri || !profile) return;
-    setPhotoError(false);
+    if (mountedRef.current) setPhotoError(false);
     type Profile = NonNullable<typeof profile>;
-    // Functional updates throughout (see PhotoGrid.tsx's identical comment):
-    // uploadPhoto awaits across a render gap, so the `profile` captured at
-    // call time can go stale if the user edits elsewhere while this upload
-    // is in flight. Basing every update on the *current* cached profile at
-    // fire time, not this closure's snapshot, means a concurrent edit is
-    // never silently undone when the upload settles.
+
     queryClient.setQueryData<Profile>(queryKeys.userProfile, (prev) =>
       prev ? { ...prev, photoUrls: [localUri, ...(prev.photoUrls ?? []).slice(1)] } : prev);
     const publicUrl = await uploadPhoto(localUri);
     if (publicUrl) {
-      queryClient.setQueryData<Profile>(queryKeys.userProfile, (prev) =>
-        prev ? { ...prev, photoUrls: (prev.photoUrls ?? []).map((u) => (u === localUri ? publicUrl : u)) } : prev);
+      try {
+        const cached = queryClient.getQueryData<Profile>(queryKeys.userProfile);
+        const nextPhotoUrls = (cached?.photoUrls ?? []).map((u) => (u === localUri ? publicUrl : u));
+        if (!nextPhotoUrls.includes(publicUrl)) nextPhotoUrls.unshift(publicUrl);
+        const updated = await apiClient.users.update({ photoUrls: nextPhotoUrls });
+        queryClient.setQueryData(queryKeys.userProfile, parseUserProfile(updated));
+      } catch {
+        queryClient.setQueryData<Profile>(queryKeys.userProfile, (prev) =>
+          prev ? { ...prev, photoUrls: (prev.photoUrls ?? []).filter((u) => u !== localUri) } : prev);
+        if (mountedRef.current) setUploadFailedAlert(true);
+      }
     } else {
-      // Upload failed — drop the dead local URI wherever it currently sits,
-      // without touching any other edits made while the upload was pending.
       queryClient.setQueryData<Profile>(queryKeys.userProfile, (prev) =>
         prev ? { ...prev, photoUrls: (prev.photoUrls ?? []).filter((u) => u !== localUri) } : prev);
-      setUploadFailedAlert(true);
+      if (mountedRef.current) setUploadFailedAlert(true);
     }
   }
 
@@ -231,6 +250,28 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </AppCard>
 
+      <TouchableOpacity activeOpacity={0.85} onPress={() => setOathModalVisible(true)}>
+        <AppCard tier={gemTier} textured style={[styles.card, styles.cardPadding]}>
+          <Text style={styles.cardLabel}>{i18n.t('oath_title').toUpperCase()}</Text>
+          {profile.oath ? (
+            <View style={styles.oathRow}>
+              <OathSigil
+                oath={profile.oath}
+                proven={profile.oathProven}
+                size="md"
+                progress={
+                  profile.oathEncountersHeld != null && profile.oathEncountersNeeded != null
+                    ? { held: profile.oathEncountersHeld, needed: profile.oathEncountersNeeded }
+                    : null
+                }
+              />
+            </View>
+          ) : (
+            <Text style={styles.oathPrompt}>{i18n.t('oath_prompt_banner')}</Text>
+          )}
+        </AppCard>
+      </TouchableOpacity>
+
       <AppCard style={[styles.card, styles.cardPadding]}>
         <Text style={styles.cardLabel}>{i18n.t('bio')}</Text>
         <Text style={styles.bioText}>{profile.bio}</Text>
@@ -284,6 +325,50 @@ export default function ProfileScreen() {
         message={i18n.t('photo_permission_denied_body')}
         onDismiss={clearPermissionDenied}
       />
+      <AlertModal
+        visible={showOathError}
+        tone="warning"
+        title={i18n.t('action_failed_title')}
+        message={i18n.t('action_failed_body')}
+        onDismiss={() => setShowOathError(false)}
+      />
+      <Modal
+        visible={oathModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOathModalVisible(false)}
+      >
+        <View style={styles.sourceOverlay}>
+          <View style={styles.oathSheet}>
+            <Text style={styles.oathSheetTitle}>{i18n.t('oath_step_heading')}</Text>
+            {OATH_VALUES.map((oath) => {
+              const isCurrent = profile.oath === oath;
+              return (
+                <TouchableOpacity
+                  key={oath}
+                  activeOpacity={0.85}
+                  disabled={isSwearing}
+
+                  onPress={() => (isCurrent ? setOathModalVisible(false) : handleSwear(oath))}
+                  style={[styles.oathOption, isCurrent && styles.oathOptionCurrent]}
+                >
+                  <Text style={[styles.oathOptionGlyph, isCurrent && styles.oathOptionGlyphCurrent]}>
+                    {OATH_GLYPHS[oath]}
+                  </Text>
+                  <View style={styles.oathOptionText}>
+                    <Text style={styles.oathOptionName}>{i18n.t(OATH_NAME_KEYS[oath])}</Text>
+                    <Text style={styles.oathOptionDesc}>{i18n.t(OATH_DESC_KEYS[oath])}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+            <Text style={styles.oathSheetHelp}>{i18n.t('oath_step_help')}</Text>
+            <GameButton variant="brass" size="compact" onPress={() => setOathModalVisible(false)}>
+              {i18n.t('back')}
+            </GameButton>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -336,10 +421,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // 0.88, not the 0.6 other overlay() call sites in this file use — this is
-  // a centered card (justifyContent: 'center', bordered panel), the same
-  // visual language as AlertModal, not a bottom sheet like CityPickerModal
-  // — it needs AlertModal's stronger dim, not the bottom-sheet convention.
   sourceOverlay: { flex: 1, backgroundColor: overlay(0.88), alignItems: 'center', justifyContent: 'center', padding: 24 },
   sourceSheet: {
     width: '100%',
@@ -393,6 +474,36 @@ const styles = StyleSheet.create({
   membershipValue: { fontSize: 16, fontFamily: FONTS.bodyBold, color: COLORS.text },
   membershipArrow: { fontSize: 14, color: COLORS.gold, fontFamily: FONTS.body },
   bioText: { fontSize: 14, color: COLORS.textDim, lineHeight: 22, fontFamily: FONTS.body },
+  oathRow: { marginTop: 2 },
+  oathPrompt: { fontSize: 14, color: COLORS.gold, fontFamily: FONTS.body, lineHeight: 20 },
+  oathSheet: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: COLORS.panel,
+    borderWidth: 1,
+    borderColor: COLORS.bronze,
+    borderRadius: RADIUS.md,
+    padding: 16,
+    gap: 10,
+  },
+  oathSheetTitle: { fontSize: 18, fontFamily: FONTS.display, color: COLORS.text, marginBottom: 2 },
+  oathSheetHelp: { fontSize: 12, color: COLORS.textDim, fontFamily: FONTS.body, lineHeight: 17 },
+  oathOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.bronze,
+    backgroundColor: COLORS.panelRaised,
+  },
+  oathOptionCurrent: { borderColor: COLORS.gold, borderWidth: 2 },
+  oathOptionGlyph: { fontSize: 24, fontFamily: FONTS.display, color: COLORS.bronze },
+  oathOptionGlyphCurrent: { color: COLORS.goldBright },
+  oathOptionText: { flex: 1, gap: 2 },
+  oathOptionName: { fontSize: 15, fontFamily: FONTS.bodyBold, color: COLORS.text },
+  oathOptionDesc: { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textDim, lineHeight: 17 },
   editButtonWrapper: { marginHorizontal: 20, marginTop: 8 },
   signOutWrapper: { marginHorizontal: 20, marginTop: 12 },
 });

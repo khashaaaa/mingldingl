@@ -4,17 +4,8 @@ export interface KeyValueStore {
   removeItem: (key: string) => Promise<void>;
 }
 
-// SecureStore's per-item limit is 2048 bytes — Supabase's session (JWT +
-// refresh token + user metadata) regularly exceeds that. Margin under the
-// limit rather than exactly at it, since chunk length is measured in JS
-// string length, not the UTF-8 byte length SecureStore actually enforces.
 const CHUNK_SIZE = 1800;
 
-// Wraps any single-value async key/value store (SecureStore in production,
-// an in-memory Map in tests) to transparently split oversized values across
-// `${key}__0`, `${key}__1`, ... plus a `${key}__count` manifest, and
-// reassemble them on read. Values at or under the limit are stored under
-// the plain key unchanged, so this is a no-op wrapper for the common case.
 export function createChunkedStore(store: KeyValueStore): KeyValueStore {
   async function removeItem(key: string): Promise<void> {
     const countRaw = await store.getItem(`${key}__count`);
@@ -37,14 +28,12 @@ export function createChunkedStore(store: KeyValueStore): KeyValueStore {
       const parts: string[] = [];
       for (let i = 0; i < count; i++) {
         const part = await store.getItem(`${key}__${i}`);
-        if (part === null) return null; // partial/corrupted write — treat as missing, not crash
+        if (part === null) return null;
         parts.push(part);
       }
       return parts.join('');
     },
-
     async setItem(key, value) {
-      // Clear whichever shape (plain or chunked) a previous write left behind.
       await removeItem(key);
       if (value.length <= CHUNK_SIZE) {
         await store.setItem(key, value);
@@ -56,7 +45,6 @@ export function createChunkedStore(store: KeyValueStore): KeyValueStore {
       }
       await store.setItem(`${key}__count`, String(count));
     },
-
     removeItem,
   };
 }

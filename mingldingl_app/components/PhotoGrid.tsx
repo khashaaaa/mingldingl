@@ -18,12 +18,6 @@ interface Props {
 
 const TILE = 90;
 
-// Shared by onboarding (PhotosStep) and edit-profile — the only two places
-// that manage a user's own photo set. Photo #0 is always "primary" (first
-// photo shown on cards, first to reveal in progressive reveal); tapping any
-// other photo's star promotes it to that slot instead. Library picking is a
-// multi-select batch (uncropped — see usePhotoUpload's pickPhoto comment);
-// the camera is inherently one shot at a time and keeps its crop step.
 export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange }: Props) {
   const session = useAuthStore((s) => s.session);
   const { pickPhoto, takePhoto, uploadPhoto, uploading, permissionDenied, clearPermissionDenied } = usePhotoUpload(session?.user.id);
@@ -33,18 +27,6 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange }: Props) {
   const [pendingDeleteUrl, setPendingDeleteUrl] = useState<string | null>(null);
   const pendingSourceActionRef = useRef<(() => void) | null>(null);
 
-  // Closing our own action-sheet Modal and immediately presenting the native
-  // OS image/camera picker in the same tick races the Modal's dismiss
-  // animation — iOS silently drops a new presentation attempted while the
-  // previous RCTModalHostViewController hasn't actually finished dismissing
-  // yet ("...whose view is not in the window hierarchy"), so the OS picker
-  // never appears and launchImageLibraryAsync/launchCameraAsync then wait
-  // forever for an interaction with a screen nobody ever saw. A fixed delay
-  // here can't be trusted — the real dismiss can take longer than usual (e.g.
-  // when it's racing the JS thread doing upload/re-render work from a photo
-  // just added), so this waits for the Modal's own `onDismiss` — RN's actual
-  // signal that the previous presentation is gone — before launching the
-  // next one, instead of guessing a duration.
   function closeSourceModalThen(action: () => void) {
     if (Platform.OS === 'ios') {
       pendingSourceActionRef.current = action;
@@ -58,16 +40,9 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange }: Props) {
   async function addPhotos(localUris: string[]) {
     if (localUris.length === 0) return;
     setPendingLocalUris((prev) => [...prev, ...localUris]);
-    // Functional updates throughout: `uploadPhoto` awaits across a render
-    // gap, so the `photoUrls` prop captured at call time can go stale if the
-    // user deletes or reorders photos while this upload is in flight. Basing
-    // every onChange call on the *current* list at fire time (not a snapshot
-    // from when the upload started) means a concurrent edit is never
-    // silently undone when the upload settles.
+
     onChange((prev) => [...prev, ...localUris]);
-    // Each upload succeeds/fails independently — a batch of 5 where 1 fails
-    // still keeps the other 4, rather than an all-or-nothing Promise.all
-    // rejecting the whole selection over one bad file.
+
     const results = await Promise.all(
       localUris.map(async (localUri) => ({ localUri, publicUrl: await uploadPhoto(localUri) })),
     );
@@ -78,8 +53,6 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange }: Props) {
       onChange((prev) => prev.map((u) => succeeded.get(u) ?? u));
     }
     if (failedUris.size > 0) {
-      // Upload failed — drop the dead local URI wherever it currently sits,
-      // without touching any other edits made while the upload was pending.
       onChange((prev) => prev.filter((u) => !failedUris.has(u)));
       setFailedAlert(true);
     }
@@ -240,10 +213,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10,11,16,0.75)',
     alignItems: 'center', justifyContent: 'center',
   },
-  // 0.88, matching AlertModal — this is a centered card (justifyContent:
-  // 'center', bordered panel), not a bottom sheet, so it needs the same
-  // dim strength as AlertModal rather than the bottom-sheet convention
-  // (CityPickerModal, chat's options sheet both intentionally use 0.6).
   overlay: { flex: 1, backgroundColor: overlay(0.88), alignItems: 'center', justifyContent: 'center', padding: 24 },
   sheet: {
     width: '100%', maxWidth: 360,

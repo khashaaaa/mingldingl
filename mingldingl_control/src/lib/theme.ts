@@ -1,4 +1,4 @@
-const THEME_KEY = 'mingldingl_control_theme';
+export const THEME_KEY = 'mingldingl_control_theme';
 export type Theme = 'light' | 'dark';
 
 export function getStoredTheme(): Theme {

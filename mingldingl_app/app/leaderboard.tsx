@@ -13,13 +13,10 @@ import type { GemTier } from '../models/user';
 
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
-// >50 means the caller's own row was appended past the top-50 slice (see
-// ScoresController.GetLeaderboard) — render a gap before it instead of a
-// false "#51" implying an unbroken sequence.
 const TOP_SLICE_SIZE = 50;
 
 export default function LeaderboardScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const router = useRouter();
   const { data, isLoading, error, refetch } = useLeaderboard();
 
@@ -47,7 +44,7 @@ export default function LeaderboardScreen() {
   return (
     <View style={styles.screen}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <GameHeader title={i18n.t('leaderboard_title', { city: data.city ?? '' })} icon="podium-gold" showBack toastBottomOffset={0} />
+      <GameHeader title={i18n.t('leaderboard_title', { city: data.city ?? '' })} icon="podium-gold" showBack />
       <FlatList
         contentContainerStyle={entries.length === 0 ? styles.listEmpty : styles.list}
         data={entries}

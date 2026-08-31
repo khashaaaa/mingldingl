@@ -9,8 +9,6 @@ export interface BusinessReview {
   createdAt: string;
 }
 
-// Anonymous by design, matching the engine response — no reviewer identity,
-// just what a date at this business was actually like.
 export function useBusinessReviews(businessId: string) {
   const { data: reviews, isLoading } = useQuery<BusinessReview[]>({
     queryKey: queryKeys.businessReviews(businessId),

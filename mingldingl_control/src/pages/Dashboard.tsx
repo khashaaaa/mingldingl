@@ -10,28 +10,50 @@ const QUICK_LINKS = [
   { to: '/deletion-requests', label: 'Deletion Requests', description: 'Pending auto-anonymization' },
   { to: '/content', label: 'Content', description: 'Terms, Privacy, Guides' },
   { to: '/business', label: 'Business Partners', description: 'Cafes, hikes, and date spots' },
+  { to: '/ships', label: 'Fated Threads', description: 'Ships, slots, and sparked matches' },
+  { to: '/townsquare', label: 'Town Square', description: 'Sessions, RSVPs, and pairings' },
+  { to: '/config', label: 'Config', description: 'Live-tunable thresholds and economy values' },
   { to: '/analytics', label: 'Analytics', description: 'Signups, engagement, revenue estimate' },
   { to: '/ops', label: 'Operations', description: 'Maintenance sweep, pricing' },
   { to: '/audit-log', label: 'Audit Log', description: 'Every admin action, who and when' },
 ];
 
 export function Dashboard() {
-  const { data: overview } = useQuery({
+  const overviewQuery = useQuery({
     queryKey: queryKeys.analyticsOverview,
     queryFn: () => apiClient.analytics.overview(),
   });
-  const { data: deletionRequests } = useQuery({
+  const deletionRequestsQuery = useQuery({
     queryKey: queryKeys.deletionRequests,
     queryFn: () => apiClient.users.deletionRequests(),
   });
-  const { data: auditLog } = useQuery({
-    queryKey: queryKeys.auditLog(1),
+  const auditLogQuery = useQuery({
+    queryKey: queryKeys.auditLog(1, 5),
     queryFn: () => apiClient.auditLog.list(1, 5),
   });
+
+  const overview = overviewQuery.data;
+  const deletionRequests = deletionRequestsQuery.data;
+  const auditLog = auditLogQuery.data;
+  const statsError = overviewQuery.isError || deletionRequestsQuery.isError;
+
+  function retryStats() {
+    if (overviewQuery.isError) overviewQuery.refetch();
+    if (deletionRequestsQuery.isError) deletionRequestsQuery.refetch();
+  }
 
   return (
     <div className="space-y-6">
       <h1 className="text-lg font-semibold">Dashboard</h1>
+
+      {statsError && (
+        <p className="text-destructive text-sm">
+          Couldn't load dashboard stats.{' '}
+          <button type="button" className="underline" onClick={retryStats}>
+            Try again
+          </button>
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatTile label="Total users" value={overview?.totalUsers ?? '—'} />
@@ -66,7 +88,14 @@ export function Dashboard() {
           <CardTitle className="text-sm">Recent admin activity</CardTitle>
         </CardHeader>
         <CardContent>
-          {auditLog?.items?.length ? (
+          {auditLogQuery.isError ? (
+            <p className="text-destructive text-sm">
+              Couldn't load admin activity.{' '}
+              <button type="button" className="underline" onClick={() => auditLogQuery.refetch()}>
+                Try again
+              </button>
+            </p>
+          ) : auditLog?.items?.length ? (
             <ul className="space-y-2 text-sm">
               {auditLog.items.map((l) => (
                 <li key={l.id} className="flex items-center justify-between">

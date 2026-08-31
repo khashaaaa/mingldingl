@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { NameAgeStep } from '../../components/onboarding/NameAgeStep';
 import { AboutStep } from '../../components/onboarding/AboutStep';
 import { PhotosStep } from '../../components/onboarding/PhotosStep';
+import { OathStep } from '../../components/onboarding/OathStep';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { COLORS, FONTS } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
@@ -11,10 +12,10 @@ import { useLocaleStore } from '../../store/localeStore';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
-const STEP_COUNT = 3;
+const STEP_COUNT = 4;
 
 export default function OnboardingScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const { state, update, updatePhotos, nextStep, prevStep, submit } = useOnboarding();
   const { signOut } = useAuth();
 
@@ -46,9 +47,6 @@ export default function OnboardingScreen() {
               />
             ))}
           </View>
-          {/* Onboarding is auth-gated (app/_layout.tsx routes any signed-in,
-              profile-less session straight here), so a signup abandoned
-              partway through has no other way back to the phone screen. */}
           <TouchableOpacity onPress={signOut} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Text style={styles.signOutLink}>{i18n.t('sign_out')}</Text>
           </TouchableOpacity>
@@ -79,12 +77,19 @@ export default function OnboardingScreen() {
       {state.currentStep === 2 && (
         <PhotosStep
           photoUrls={state.photoUrls}
-          loading={state.loading}
-          error={state.error}
           onPhotosChange={updatePhotos}
           referralCode={state.referralCode}
           onReferralCodeChange={(code) => update({ referralCode: code })}
-          onSubmit={submit}
+          onNext={nextStep}
+          onBack={prevStep}
+        />
+      )}
+      {state.currentStep === 3 && (
+        <OathStep
+          initialOath={state.oath}
+          loading={state.loading}
+          error={state.error}
+          onSubmit={(oath) => { update({ oath }); submit(oath); }}
           onBack={prevStep}
         />
       )}

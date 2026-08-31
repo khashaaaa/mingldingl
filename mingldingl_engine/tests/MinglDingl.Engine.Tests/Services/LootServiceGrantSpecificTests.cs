@@ -1,8 +1,10 @@
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace MinglDingl.Engine.Tests.Services;
 
 public class LootServiceGrantSpecificTests : Integration.IntegrationTestBase
 {
-    private LootService BuildService() => new(Db, new ScoreService(Db, new ConfigService()));
+    private LootService BuildService() => new(Db, new ScoreService(Db, new ConfigService()), NullLogger<LootService>.Instance);
 
     [Fact]
     public async Task GrantSpecificAsync_KnownItem_GrantsItAndReturnsIt()

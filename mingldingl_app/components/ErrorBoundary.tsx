@@ -12,9 +12,6 @@ interface State {
   hasError: boolean;
 }
 
-// Last-resort safety net: catches any uncaught render/lifecycle error in the
-// screen tree it wraps and shows a recoverable fallback instead of taking the
-// whole app down to a white screen / force-close.
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false };
 

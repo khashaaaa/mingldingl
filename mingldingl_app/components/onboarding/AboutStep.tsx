@@ -32,13 +32,10 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
   const bioRef = useRef<TextInput>(null);
 
   useEffect(() => {
-    // Already resolved (e.g. the user went back to NameAgeStep and returned
-    // here) — don't re-fire GPS capture and possibly overwrite a manual
-    // fallback pick with a fresh detection.
     if (city) return;
     (async () => {
       const coords = await capture();
-      if (!coords) return; // permissionDenied flips true; fallback picker button shows instead
+      if (!coords) return;
       setLatitude(coords.latitude);
       setLongitude(coords.longitude);
       try {
@@ -95,6 +92,8 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
           fontFamily={FONTS.body as any}
           placeholderTextColor={COLORS.textDim as any}
           returnKeyType="done" onSubmitEditing={Keyboard.dismiss} blurOnSubmit
+
+          style={{ resize: 'none' } as never}
         />
         <XStack gap="$3" marginTop="auto">
           <GameButton variant="ghost" flex={1} onPress={() => { Keyboard.dismiss(); onBack(); }}>

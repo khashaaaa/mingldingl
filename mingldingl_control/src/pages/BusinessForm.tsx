@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../lib/api/apiClient';
@@ -13,11 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const CATEGORIES = ['Cafe', 'Cinema', 'Hiking', 'BoardGameCafe', 'Other'];
 
+type BusinessDetail = Awaited<ReturnType<typeof apiClient.business.detail>>;
+
 export function BusinessForm() {
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id;
-  const navigate = useNavigate();
-  const qc = useQueryClient();
 
   const { data: existing, isLoading } = useQuery({
     queryKey: queryKeys.businessDetail(id ?? ''),
@@ -25,30 +25,26 @@ export function BusinessForm() {
     enabled: isEditing,
   });
 
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
-  const [city, setCity] = useState('');
-  const [district, setDistrict] = useState('');
-  const [description, setDescription] = useState('');
-  const [photoUrlsText, setPhotoUrlsText] = useState('');
-  const [operatingHours, setOperatingHours] = useState('');
-  const [isVerified, setIsVerified] = useState(false);
-  const [isFeatured, setIsFeatured] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  if (isEditing && isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
 
-  useEffect(() => {
-    if (existing) {
-      setName(existing.name ?? '');
-      setCategory(existing.category ?? CATEGORIES[0]);
-      setCity(existing.city ?? '');
-      setDistrict(existing.district ?? '');
-      setDescription(existing.description ?? '');
-      setPhotoUrlsText((existing.photoUrls ?? []).join('\n'));
-      setOperatingHours(existing.operatingHours ?? '');
-      setIsVerified(existing.isVerified ?? false);
-      setIsFeatured(existing.isFeatured ?? false);
-    }
-  }, [existing]);
+  return <BusinessFormFields key={id ?? 'new'} id={id} existing={existing} />;
+}
+
+function BusinessFormFields({ id, existing }: { id?: string; existing?: BusinessDetail }) {
+  const isEditing = !!id;
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  const [name, setName] = useState(existing?.name ?? '');
+  const [category, setCategory] = useState(existing?.category ?? CATEGORIES[0]);
+  const [city, setCity] = useState(existing?.city ?? '');
+  const [district, setDistrict] = useState(existing?.district ?? '');
+  const [description, setDescription] = useState(existing?.description ?? '');
+  const [photoUrlsText, setPhotoUrlsText] = useState((existing?.photoUrls ?? []).join('\n'));
+  const [operatingHours, setOperatingHours] = useState(existing?.operatingHours ?? '');
+  const [isVerified, setIsVerified] = useState(existing?.isVerified ?? false);
+  const [isFeatured, setIsFeatured] = useState(existing?.isFeatured ?? false);
+  const [error, setError] = useState<string | null>(null);
 
   function currentPayload() {
     return {
@@ -69,12 +65,11 @@ export function BusinessForm() {
       isEditing ? apiClient.business.update(id!, currentPayload()) : apiClient.business.create(currentPayload()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['business'] });
+      if (isEditing) qc.invalidateQueries({ queryKey: queryKeys.businessDetail(id!) });
       navigate('/business');
     },
     onError: () => setError('Save failed — check the fields and try again.'),
   });
-
-  if (isEditing && isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
 
   return (
     <div>

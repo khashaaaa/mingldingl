@@ -10,11 +10,12 @@ interface Props {
   gemTier: GemTier;
   tierBonus: number;
   nextTier: GemTier | null;
+  dailyMatchBudget?: number | null;
 }
 
-export function TierPerkCard({ gemTier, tierBonus, nextTier }: Props) {
+export function TierPerkCard({ gemTier, tierBonus, nextTier, dailyMatchBudget }: Props) {
   const color = colorForTier(gemTier);
-  // Tier index doubles as the flat match-budget bonus (see ScoreService.TierIndex in the engine) — keep in sync if that changes.
+
   const nextBonus = nextTier ? TIER_ORDER.indexOf(nextTier) : null;
 
   return (
@@ -24,6 +25,9 @@ export function TierPerkCard({ gemTier, tierBonus, nextTier }: Props) {
         <GemTierBadge tier={gemTier} size={20} />
         <Text style={[styles.bonus, { color }]}>+{tierBonus} {i18n.t('daily_matches')}</Text>
       </View>
+      {dailyMatchBudget != null && (
+        <Text style={styles.budget}>{i18n.t('daily_summons_budget', { count: dailyMatchBudget })}</Text>
+      )}
       {nextBonus !== null && (
         <Text style={styles.preview}>
           {i18n.t('tier_perk_next_preview', { bonus: nextBonus })}
@@ -38,5 +42,6 @@ const styles = StyleSheet.create({
   label: { fontSize: 10, fontFamily: FONTS.display, color: COLORS.textDim, letterSpacing: 2, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bonus: { fontSize: 18, fontFamily: FONTS.displayBlack },
+  budget: { fontSize: 13, color: COLORS.text, fontFamily: FONTS.bodyMedium, marginTop: 8 },
   preview: { fontSize: 12, color: COLORS.textDim, fontFamily: FONTS.body, marginTop: 8 },
 });

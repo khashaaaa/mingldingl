@@ -12,9 +12,10 @@ interface Props {
   totalScore: number;
   pct: number;
   nextTier: GemTier | null;
+  nextTierThreshold?: number | null;
 }
 
-export function XPBar({ gemTier, totalScore, pct, nextTier }: Props) {
+export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }: Props) {
   const anim = useRef(new Animated.Value(0)).current;
   const shimmer = useRef(new Animated.Value(-60)).current;
   const flash = useRef(new Animated.Value(0)).current;
@@ -25,7 +26,7 @@ export function XPBar({ gemTier, totalScore, pct, nextTier }: Props) {
     Animated.timing(anim, { toValue: pct, duration: 900, useNativeDriver: false }).start();
     shimmer.setValue(-60);
     Animated.timing(shimmer, { toValue: 320, duration: 700, delay: 300, useNativeDriver: true }).start();
-    // pct dropping means the user crossed into a new tier: flash bright gold
+
     if (pct < prevPct.current) {
       flash.setValue(0.8);
       Animated.timing(flash, { toValue: 0, duration: 900, useNativeDriver: true }).start();
@@ -34,6 +35,7 @@ export function XPBar({ gemTier, totalScore, pct, nextTier }: Props) {
   }, [pct]);
 
   const fillWidth = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+  const pointsToNext = nextTier && nextTierThreshold != null ? Math.max(0, nextTierThreshold - totalScore) : null;
 
   return (
     <View style={styles.container}>
@@ -58,7 +60,14 @@ export function XPBar({ gemTier, totalScore, pct, nextTier }: Props) {
         ))}
         <Animated.View style={[StyleSheet.absoluteFill, styles.flash, { opacity: flash }]} />
       </View>
-      <Text style={styles.scoreText}>{totalScore.toLocaleString()} {i18n.t('pts')}</Text>
+      <View style={styles.footer}>
+        {pointsToNext !== null && (
+          <Text style={styles.nextThreshold}>
+            {i18n.t('next_tier_threshold', { points: pointsToNext.toLocaleString(), tier: nextTier })}
+          </Text>
+        )}
+        <Text style={styles.scoreText}>{totalScore.toLocaleString()} {i18n.t('pts')}</Text>
+      </View>
     </View>
   );
 }
@@ -89,5 +98,7 @@ const styles = StyleSheet.create({
   },
   tick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(74,90,107,0.6)' },
   flash: { backgroundColor: COLORS.goldBright },
-  scoreText: { fontFamily: FONTS.display, fontSize: 11, color: COLORS.textDim, textAlign: 'right', letterSpacing: 1 },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  nextThreshold: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.textDim, flexShrink: 1 },
+  scoreText: { fontFamily: FONTS.display, fontSize: 11, color: COLORS.textDim, textAlign: 'right', letterSpacing: 1, marginLeft: 'auto' },
 });

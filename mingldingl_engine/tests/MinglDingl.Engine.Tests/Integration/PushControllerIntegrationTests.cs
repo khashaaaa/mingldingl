@@ -50,11 +50,6 @@ public class PushControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task Register_ExistingTokenReRegisteredByDifferentUser_MovesOwnershipToNewCaller()
     {
-        // PushController.Register upserts strictly by token, not by (userId, token):
-        // the same physical device token re-registering under a different account
-        // (e.g. sign-out/sign-in as someone else on the same phone) must move
-        // ownership to the new caller rather than leaving the old owner's row in
-        // place or creating a duplicate row.
         var originalOwnerId = Guid.NewGuid();
         var newOwnerId = Guid.NewGuid();
         Db.Users.AddRange(NewCompleteUser(originalOwnerId), NewCompleteUser(newOwnerId));

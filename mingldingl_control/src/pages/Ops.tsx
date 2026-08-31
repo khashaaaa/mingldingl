@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export function Ops() {
   const { toast } = useToast();
+  const qc = useQueryClient();
 
   const { data: pricing, isLoading, isError } = useQuery({
     queryKey: queryKeys.pricing,
@@ -16,7 +17,13 @@ export function Ops() {
 
   const runSweep = useMutation({
     mutationFn: () => apiClient.ops.runMaintenanceSweep(),
-    onSuccess: () => toast({ variant: 'success', description: `Sweep ran at ${new Date().toLocaleTimeString()}` }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.deletionRequests });
+      qc.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: ['user'] });
+      qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
+      toast({ variant: 'success', description: `Sweep ran at ${new Date().toLocaleTimeString()}` });
+    },
     onError: () => toast({ variant: 'destructive', description: 'Sweep failed — try again.' }),
   });
 

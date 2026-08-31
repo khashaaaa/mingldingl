@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
@@ -12,13 +13,13 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         var score = new ScoreService(Db, new ConfigService());
-        var quests = new QuestService(Db, score);
-        var milestones = new MilestoneService(Db);
-        var push = new PushNotificationService(new HttpClient(), Db);
+        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
+        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
         var mockConfig = new Moq.Mock<IConfiguration>();
         mockConfig.Setup(c => c["Supabase:ProjectUrl"]).Returns("https://test.supabase.co");
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
-        var broadcast = new SupabaseBroadcastService(new HttpClient(), mockConfig.Object);
+        var broadcast = new SupabaseBroadcastService(new HttpClient(), mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
         var controller = new MessagesController(Db, score, quests, milestones, push, broadcast)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
@@ -44,8 +45,6 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
                 MatchId = match.Id,
                 SenderId = initiatorId,
                 Content = $"message {i}",
-                // Strictly increasing timestamps so ordering assertions are
-                // unambiguous — real inserts get this for free from DateTime.UtcNow.
                 CreatedAt = baseTime.AddSeconds(i),
             });
         }
@@ -56,11 +55,6 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task GetMessages_MoreThanDefaultLimit_ReturnsOnlyMostRecentBounded()
     {
-        // Regression test: GetMessages used to load a match's entire message
-        // history with no bound at all. It's now capped to the most recent
-        // 50 by default — this seeds more than that and asserts the response
-        // is bounded, contains only the newest messages, and is still
-        // ordered oldest-first (the shape hooks/useChat.ts expects).
         var match = await SeedMatchWithMessages(60);
 
         var controller = BuildController(match.InitiatorId);
@@ -68,8 +62,7 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
         var items = Assert.IsType<List<MessageResponse>>(result.Value);
 
         Assert.Equal(50, items.Count);
-        // Oldest-first: the first 10 messages (indices 0-9) should have been
-        // dropped, so the earliest item returned is "message 10".
+
         Assert.Equal("message 10", items[0].Content);
         Assert.Equal("message 59", items[^1].Content);
         Assert.True(items.SequenceEqual(items.OrderBy(m => m.CreatedAt)), "response should stay oldest-first");
@@ -97,13 +90,13 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
             .Where(m => m.MatchId == match.Id)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync();
-        var cursor = all[6].CreatedAt; // "message 6"
+        var cursor = all[6].CreatedAt;
 
         var controller = BuildController(match.InitiatorId);
         var result = Assert.IsType<OkObjectResult>(await controller.GetMessages(match.Id, before: cursor, limit: 50));
         var items = Assert.IsType<List<MessageResponse>>(result.Value);
 
-        Assert.Equal(6, items.Count); // messages 0-5
+        Assert.Equal(6, items.Count);
         Assert.DoesNotContain(items, m => m.Content == "message 6");
         Assert.Equal("message 0", items[0].Content);
         Assert.Equal("message 5", items[^1].Content);
@@ -118,7 +111,7 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
         var result = Assert.IsType<OkObjectResult>(await controller.GetMessages(match.Id, limit: 10_000));
         var items = Assert.IsType<List<MessageResponse>>(result.Value);
 
-        Assert.Equal(5, items.Count); // all 5 present; clamp just shouldn't blow up or misbehave
+        Assert.Equal(5, items.Count);
     }
 
     [Fact]
@@ -136,19 +129,6 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
         Assert.Equal(StatusCodes.Status403Forbidden, ((ObjectResult)result).StatusCode);
     }
 
-    // No happy-path test for SendMessage's success case: like RequestMatch
-    // (see MatchesControllerIntegrationTests.cs's Block_EndsMatchAnd... test
-    // comment), SendMessage opens its own internal transaction (to atomically
-    // pair the message insert with the UPDATE...RETURNING count increment —
-    // see MessagesController.cs's comment on that). Calling it directly here
-    // would nest a second BeginTransactionAsync inside IntegrationTestBase's
-    // own wrapping transaction on the same connection, which Postgres/Npgsql
-    // rejects outright ("connection is already in a transaction") — this
-    // isn't a bug in SendMessage, just a limitation of this rollback-based
-    // test harness for any action shaped this way. The forbidden-path test
-    // below still covers the auth guard, which runs before the transaction
-    // opens.
-
     [Fact]
     public async Task SendMessage_CallerNotAParticipant_ReturnsForbiddenAndDoesNotPersist()
     {
@@ -162,5 +142,34 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
 
         Assert.Equal(403, Assert.IsType<ObjectResult>(result).StatusCode);
         Assert.False(await Db.Messages.AsNoTracking().AnyAsync(m => m.MatchId == match.Id));
+    }
+
+    [Theory]
+    [InlineData("Unmatched")]
+    [InlineData("Ghosted")]
+    public async Task SendMessage_MatchNotActive_ReturnsForbiddenAndDoesNotPersist(string status)
+    {
+        var match = await SeedMatchWithMessages(0);
+        match.Status = status;
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(match.ReceiverId);
+        var result = await controller.SendMessage(match.Id, new SendMessageRequest("Hello?"));
+
+        Assert.Equal(403, Assert.IsType<ObjectResult>(result).StatusCode);
+        Assert.False(await Db.Messages.AsNoTracking().AnyAsync(m => m.MatchId == match.Id));
+    }
+
+    [Fact]
+    public async Task GetMessages_MatchNotActive_StillReturnsHistory()
+    {
+        var match = await SeedMatchWithMessages(3);
+        match.Status = "Ghosted";
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(match.InitiatorId);
+        var result = Assert.IsType<OkObjectResult>(await controller.GetMessages(match.Id));
+        var items = Assert.IsType<List<MessageResponse>>(result.Value);
+        Assert.Equal(3, items.Count);
     }
 }

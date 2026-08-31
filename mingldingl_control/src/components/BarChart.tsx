@@ -1,8 +1,3 @@
-// Single-series categorical bar chart. Mark spec: bars capped at 24px thick
-// (never fill the slot), 4px rounded data-end / square baseline, 2px gap
-// between bars, direct value label at the tip, hairline baseline. One hue
-// (dataviz skill's categorical slot 1 / default sequential blue) — a single
-// series needs no legend.
 const ACCENT = '#2a78d6';
 const CHART_HEIGHT = 160;
 

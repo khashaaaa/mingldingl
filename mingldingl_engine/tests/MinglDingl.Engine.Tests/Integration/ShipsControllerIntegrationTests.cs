@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
@@ -11,9 +12,9 @@ public class ShipsControllerIntegrationTests : IntegrationTestBase
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         var scoreService = new ScoreService(Db, new ConfigService());
-        var milestones = new MilestoneService(Db);
-        var push = new PushNotificationService(new HttpClient(), Db);
-        var shipService = new ShipService(Db, new LootService(Db, scoreService), scoreService, new ConfigService(), milestones, push);
+        var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
+        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var shipService = new ShipService(Db, new LootService(Db, scoreService, NullLogger<LootService>.Instance), scoreService, new ConfigService(), milestones, push, BuildTestBroadcast(), NullLogger<ShipService>.Instance);
         var controller = new ShipsController(shipService, Db)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
@@ -70,9 +71,6 @@ public class ShipsControllerIntegrationTests : IntegrationTestBase
         var response = Assert.IsType<List<PendingShipResponse>>(Assert.IsType<OkObjectResult>(result).Value);
         Assert.Single(response);
         Assert.Equal(weaver.DisplayName, response[0].WeaverDisplayName);
-        // PendingShipResponse only ever has ShipId + WeaverDisplayName —
-        // the type itself is the guarantee here; nothing about slot B
-        // could leak even if this test forgot to check for it explicitly.
     }
 
     [Fact]

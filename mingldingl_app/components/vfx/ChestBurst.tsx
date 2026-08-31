@@ -5,25 +5,19 @@ import { useSharedValue, withTiming, useDerivedValue, Easing, SharedValue } from
 import { COLORS } from '../../lib/theme';
 import { useVfxLevel } from '../../lib/vfx';
 
-interface Props { size: number; trigger: number; }   // bump `trigger` to fire
+interface Props { size: number; trigger: number; }
 
 interface P { angle: number; speed: number; r: number; color: string; coin: boolean; }
 
 export function ChestBurst({ size, trigger }: Props) {
   const level = useVfxLevel();
-  // The level check must gate whether Reanimated/Skia hooks are ever called
-  // at all, not just whether their JSX renders — a hook executing on a
-  // platform where full-tier VFX isn't supported (web) throws, regardless of
-  // what's returned afterwards. Isolating them in this sub-component means
-  // React never invokes it, and therefore never calls the hooks, off web.
+
   if (level !== 'full' || trigger === 0) return null;
   return <SkiaChestBurst size={size} trigger={trigger} />;
 }
 
 function SkiaChestBurst({ size, trigger }: Required<Props>) {
   const particles = useMemo<P[]>(
-    // A minority render as coins (filled disc + rim stroke) rather than plain
-    // sparks — a chest bursting open should throw a little loot, not just light.
     () => Array.from({ length: 24 }).map(() => {
       const coin = Math.random() < 0.25;
       return {

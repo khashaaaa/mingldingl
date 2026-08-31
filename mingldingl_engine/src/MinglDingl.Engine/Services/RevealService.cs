@@ -3,19 +3,15 @@ public class RevealService
     public static int GetRevealLevel(Match match)
     {
         if (match.Status == "Ghosted") return match.RevealLevel;
-        return match.MessageCount switch
-        {
-            0 => 0,
-            < 5 => 1,
-            < 15 => 2,
-            < 30 => 3,
-            _ => 4
-        };
+        return LevelForMessageCount(match.MessageCount);
     }
 
-    public static bool ShouldLevelUp(Match match)
+    public static int LevelForMessageCount(int messageCount) => messageCount switch
     {
-        int newLevel = GetRevealLevel(match);
-        return newLevel > match.RevealLevel;
-    }
+        0 => 0,
+        < 5 => 1,
+        < 15 => 2,
+        < 30 => 3,
+        _ => 4
+    };
 }

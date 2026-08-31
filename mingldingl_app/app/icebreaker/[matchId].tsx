@@ -12,11 +12,12 @@ import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { Icon } from '../../components/ui/Icon';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function IcebreakerScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const {
     question, isLoading, submitAnswer,
@@ -47,7 +48,7 @@ export default function IcebreakerScreen() {
   if (!question) return (
     <View style={styles.centered}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <Text style={styles.emoji}>🤷</Text>
+      <Icon name="help-circle-outline" size={32} color={COLORS.bronze} />
       <Text style={styles.completionTitle}>{i18n.t('no_icebreaker')}</Text>
       <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
     </View>
@@ -58,7 +59,7 @@ export default function IcebreakerScreen() {
     return (
       <View style={styles.centered}>
         <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-        <Text style={styles.emoji}>{isMatch ? '🎉' : '💬'}</Text>
+        <Icon name={isMatch ? 'party-popper' : 'message-text'} size={32} color={COLORS.gold} />
         <AppCard style={styles.completionCard}>
           <Text style={styles.completionTitle}>{i18n.t('icebreaker_revealed')}</Text>
           <Text style={styles.questionText}>{question.questionText}</Text>
@@ -106,7 +107,7 @@ export default function IcebreakerScreen() {
   return (
     <View style={styles.screen}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <ScreenHeader title={`⚔️ ${i18n.t('break_ice')}`} />
+      <ScreenHeader title={i18n.t('break_ice')} />
 
       <View style={styles.body}>
         <AppCard style={styles.questionCard}>
@@ -124,7 +125,8 @@ export default function IcebreakerScreen() {
               backgroundColor={COLORS.panel} borderColor={COLORS.bronze} color={COLORS.text}
               fontFamily={FONTS.body as any}
               placeholderTextColor={COLORS.textDim as any}
-            />
+              style={{ resize: 'none' } as never}
+/>
             <GameButton
               variant="primary"
               disabled={selected !== null || textAnswer.trim().length === 0}
@@ -154,10 +156,6 @@ export default function IcebreakerScreen() {
         )}
       </View>
 
-      {/* points=0: this fires the instant the answer is tapped, before the
-          server round-trip resolves, so the real award (only known once
-          both participants have answered) can't be shown here yet — same
-          pattern already used by the quiz screen's equivalent toast. */}
       <LootToast
         title={i18n.t('answer_submitted')}
         points={0}

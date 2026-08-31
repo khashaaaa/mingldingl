@@ -1,8 +1,5 @@
 import { activeFestival } from '../festivals';
 
-// Constructed via the local Date(year, monthIndex, day, ...) form (not ISO
-// strings) so these assertions hold regardless of the test runner's TZ —
-// activeFestival reads local calendar date, on purpose (see festivals.ts).
 describe('activeFestival', () => {
   it('returns Naadam inside its window, inclusive of both edges', () => {
     expect(activeFestival(new Date(2026, 6, 11, 0, 0))?.key).toBe('naadam-2026');

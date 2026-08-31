@@ -2,8 +2,6 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 
-// Faithful port of Agora's official AccessToken2 (token version "007") algorithm,
-// matching the reference implementation in the "agora-token" npm/pip/nuget packages.
 public class VideoTokenService
 {
     private const string Version = "007";
@@ -13,21 +11,25 @@ public class VideoTokenService
     private const ushort PrivilegePublishVideoStream = 3;
     private const ushort PrivilegePublishDataStream = 4;
     private const uint TokenExpireSeconds = 24 * 3600;
-    private const uint PrivilegeExpireSeconds = 24 * 3600;
 
     public string AppId { get; }
     private readonly string _appCertificate;
 
-    public VideoTokenService(IConfiguration config)
+    public VideoTokenService(IConfiguration config, IHostEnvironment env)
     {
-        AppId = config["Agora:AppId"] ?? "dev_app_id";
-        _appCertificate = config["Agora:AppCertificate"] ?? "dev_cert";
+        var appId = config["Agora:AppId"];
+        var appCertificate = config["Agora:AppCertificate"];
+
+        if ((string.IsNullOrEmpty(appId) || string.IsNullOrEmpty(appCertificate)) && !env.IsDevelopment())
+            throw new InvalidOperationException(
+                "Agora:AppId and Agora:AppCertificate must be configured outside the Development environment — refusing to fall back to dev placeholder credentials.");
+        AppId = appId ?? "dev_app_id";
+        _appCertificate = appCertificate ?? "dev_cert";
     }
 
-    // uid "" (wildcard, Agora's uid=0 convention) — any client uid may join with
-    // this token. Avoids binding the token to a server-derived uid the RN client
-    // has no way to reproduce.
-    public string GenerateToken(Guid matchId)
+    public string GenerateToken(Guid matchId) => GenerateToken(matchId, TokenExpireSeconds);
+
+    public string GenerateToken(Guid matchId, uint ttlSeconds)
     {
         string channelName = matchId.ToString("N");
         string uid = "";
@@ -36,10 +38,10 @@ public class VideoTokenService
 
         var privileges = new SortedDictionary<ushort, uint>
         {
-            [PrivilegeJoinChannel] = PrivilegeExpireSeconds,
-            [PrivilegePublishAudioStream] = PrivilegeExpireSeconds,
-            [PrivilegePublishVideoStream] = PrivilegeExpireSeconds,
-            [PrivilegePublishDataStream] = PrivilegeExpireSeconds,
+            [PrivilegeJoinChannel] = ttlSeconds,
+            [PrivilegePublishAudioStream] = ttlSeconds,
+            [PrivilegePublishVideoStream] = ttlSeconds,
+            [PrivilegePublishDataStream] = ttlSeconds,
         };
 
         byte[] servicePacked = PackRtcService(channelName, uid, privileges);
@@ -47,9 +49,9 @@ public class VideoTokenService
         using var signingInfo = new MemoryStream();
         WriteString(signingInfo, AppId);
         WriteUInt32(signingInfo, issueTs);
-        WriteUInt32(signingInfo, TokenExpireSeconds);
+        WriteUInt32(signingInfo, ttlSeconds);
         WriteUInt32(signingInfo, salt);
-        WriteUInt16(signingInfo, 1); // service count
+        WriteUInt16(signingInfo, 1);
         signingInfo.Write(servicePacked, 0, servicePacked.Length);
         byte[] signingInfoBytes = signingInfo.ToArray();
 
@@ -81,8 +83,6 @@ public class VideoTokenService
         return ms.ToArray();
     }
 
-    // ── Packing helpers (little-endian, uint16-length-prefixed byte strings) ──
-
     private static void WriteString(Stream s, string v) => WriteBytes(s, Encoding.UTF8.GetBytes(v));
 
     private static void WriteBytes(Stream s, byte[] b)
@@ -109,16 +109,12 @@ public class VideoTokenService
         (byte)(v & 0xFF), (byte)((v >> 8) & 0xFF), (byte)((v >> 16) & 0xFF), (byte)((v >> 24) & 0xFF)
     ];
 
-    // ── Crypto / compression ───────────────────────────────────────────────────
-
     private static byte[] ComputeHmacSha256(byte[] key, byte[] data)
     {
         using var hmac = new HMACSHA256(key);
         return hmac.ComputeHash(data);
     }
 
-    // Node's zlib.deflateSync produces a zlib-wrapped stream (RFC1950), not raw
-    // DEFLATE (RFC1951) — must use ZLibStream, not DeflateStream, to match it.
     private static byte[] ZlibCompress(byte[] data)
     {
         using var output = new MemoryStream();

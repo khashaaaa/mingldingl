@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import type { VideoToken } from '../../hooks/useVideoCall';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS } from '../../lib/theme';
+import { Icon } from '../ui/Icon';
 
 interface Props {
   token: VideoToken;
@@ -29,7 +30,6 @@ async function requestAndroidPermissions(): Promise<boolean> {
 }
 
 function AgoraVideoCallImpl({ token, muted, cameraOff, onJoined, onError }: Props) {
-  // Lazy-required so this native module is never touched under Expo Go / web.
   const {
     createAgoraRtcEngine,
     ChannelProfileType,
@@ -40,6 +40,11 @@ function AgoraVideoCallImpl({ token, muted, cameraOff, onJoined, onError }: Prop
   const engineRef = useRef<ReturnType<typeof createAgoraRtcEngine> | null>(null);
   const [remoteUid, setRemoteUid] = useState<number | null>(null);
   const [localReady, setLocalReady] = useState(false);
+
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
+  const cameraOffRef = useRef(cameraOff);
+  cameraOffRef.current = cameraOff;
 
   useEffect(() => {
     let cancelled = false;
@@ -75,6 +80,9 @@ function AgoraVideoCallImpl({ token, muted, cameraOff, onJoined, onError }: Prop
         autoSubscribeAudio: true,
         autoSubscribeVideo: true,
       });
+
+      engine.muteLocalAudioStream(mutedRef.current);
+      engine.muteLocalVideoStream(cameraOffRef.current);
       if (result !== 0) onError(`Failed to join channel (code ${result})`);
     })();
 
@@ -121,7 +129,7 @@ export function AgoraVideoCall(props: Props) {
   if (!IS_DEV_BUILD) {
     return (
       <YStack flex={1} backgroundColor={COLORS.bg} alignItems="center" justifyContent="center" gap="$3">
-        <Text fontSize={36}>📹</Text>
+        <Icon name="video" size={36} color={COLORS.textDim} />
         <Text color={COLORS.text} fontFamily={FONTS.body as any} textAlign="center" paddingHorizontal="$6">
           {i18n.t('video_dev_build_required')}
         </Text>

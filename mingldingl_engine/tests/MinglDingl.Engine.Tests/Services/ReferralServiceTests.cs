@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MinglDingl.Engine.Tests.Services;
 
 public class ReferralServiceTests : Integration.IntegrationTestBase
 {
-    private ReferralService BuildService() => new(Db, new LootService(Db, new ScoreService(Db, new ConfigService())));
+    private ReferralService BuildService() => new(Db, new LootService(Db, new ScoreService(Db, new ConfigService()), NullLogger<LootService>.Instance), NullLogger<ReferralService>.Instance);
 
     [Fact]
     public async Task GetOrCreateCodeAsync_FirstCall_GeneratesAndPersistsASixCharCode()
@@ -132,9 +133,6 @@ public class ReferralServiceTests : Integration.IntegrationTestBase
         var service = BuildService();
         var code = await service.GetOrCreateCodeAsync(inviterId);
 
-        // Simulates DailyMaintenanceBackgroundService anonymizing the
-        // inviter (grace period elapsed) while their referral code is still
-        // sitting in someone's clipboard/deep link.
         var inviter = await Db.Users.FindAsync(inviterId);
         inviter!.IsDeleted = true;
         await Db.SaveChangesAsync();
@@ -171,7 +169,6 @@ public class ReferralServiceTests : Integration.IntegrationTestBase
         Db.Users.Add(Integration.IntegrationTestBase.NewCompleteUser(shipperId));
         await Db.SaveChangesAsync();
 
-        // Seed a Ship with known invite codes in the database
         Db.Ships.Add(new Ship
         {
             ShipperUserId = shipperId,
@@ -185,11 +182,9 @@ public class ReferralServiceTests : Integration.IntegrationTestBase
         var service = BuildService();
         var code = await service.GetOrCreateCodeAsync(userId);
 
-        // The generated referral code should not collide with existing ship invite codes
         Assert.NotEqual("SHIPAA", code);
         Assert.NotEqual("SHIPBB", code);
 
-        // Verify no collision in database (the fix ensures the Ships table is checked)
         Db.ChangeTracker.Clear();
         var user = await Db.Users.FindAsync(userId);
         Assert.NotNull(user!.ReferralCode);

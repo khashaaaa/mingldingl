@@ -44,13 +44,8 @@ public class BusinessController : ControllerBase
 
         var userId = this.CurrentUserId();
 
-        // IDOR guard: rating is only valid in the context of a match the caller
-        // actually participated in — without this, anyone could rate any business
-        // under any matchId they made up.
-        var match = await _db.Matches.FindAsync(matchId);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
+        if (accessError is not null) return accessError;
 
         var business = await _db.BusinessPartners.FindAsync(id);
         if (business is null) return this.NotFoundError("Business not found");
@@ -72,21 +67,10 @@ public class BusinessController : ControllerBase
         catch (DbUpdateException ex) when (UniqueViolationGuard.IsViolation(
             ex, "IX_BusinessRatings_BusinessPartnerId_UserId_MatchId"))
         {
-            // Lost the race, or a flat-out repeat call — same (business, user, match)
-            // has already been rated. The check-then-insert above is TOCTOU-racy;
-            // this index is the real guard.
             _db.ChangeTracker.Clear();
             return this.ConflictError("You already rated this business for this match");
         }
 
-        // Atomic recompute straight from BusinessRatings — the previous code did a
-        // C# read-modify-write (business.RatingCount++; AverageRating = (...) /
-        // RatingCount) against in-memory values, which is a lost-update race under
-        // concurrent ratings for the same business (the same bug class fixed for
-        // Match.MessageCount in MessagesController.SendMessage). Recomputing COUNT/AVG
-        // directly from the source-of-truth rows in a single UPDATE removes the
-        // read-then-write window entirely — the subqueries and the write happen as
-        // one statement, so there's no gap for a concurrent rating to land in between.
         var updateResult = await _db.Database.SqlQuery<BusinessRatingAggregate>(
             $"""
             UPDATE "BusinessPartners" SET
@@ -96,18 +80,11 @@ public class BusinessController : ControllerBase
             RETURNING "AverageRating", "RatingCount"
             """).ToListAsync();
 
-        // SingleOrDefault, not Single: the business row was already confirmed to
-        // exist moments ago (FindAsync above), but a concurrent deletion between
-        // then and this UPDATE isn't impossible — treat that race as a clean 404
-        // instead of letting Single() throw and surface as a generic 500.
         var aggregate = updateResult.SingleOrDefault();
         if (aggregate is null) return this.NotFoundError("Business not found");
         return Ok(new RateBusinessResponse(aggregate.AverageRating, aggregate.RatingCount));
     }
 
-    // No UserId in the response — deliberately anonymous. This is "what
-    // happened here" for someone browsing the business, not a record of
-    // who went on a date with whom.
     [HttpGet("{id}/reviews")]
     [ProducesResponseType(typeof(List<BusinessReviewResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetReviews(Guid id)

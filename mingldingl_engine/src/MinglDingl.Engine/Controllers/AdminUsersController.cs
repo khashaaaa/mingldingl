@@ -85,7 +85,8 @@ public class AdminUsersController : ControllerBase
                 m.Id,
                 m.InitiatorId == id ? m.ReceiverId : m.InitiatorId,
                 m.InitiatorId == id ? m.Receiver.DisplayName : m.Initiator.DisplayName,
-                m.Status, m.MessageCount, m.CreatedAt))
+                m.Status, m.MessageCount, m.CreatedAt,
+                m.FlameRiteProposedById, m.FlameRiteProposedAt, m.FlameRiteAcceptedAt, m.FlameRiteCompletedAt))
             .ToListAsync();
 
         var ships = await _db.Ships.AsNoTracking()
@@ -109,7 +110,9 @@ public class AdminUsersController : ControllerBase
             user.Id, user.PhoneNumber, user.DisplayName, user.Age, user.Gender, user.City, user.Bio,
             user.PhotoUrls, user.HasKids, user.SmokingHabit, user.DrinkingHabit, user.Religion, user.Lifestyle,
             user.TotalScore, user.GemTier, user.ReputationScore, user.MembershipLevel, user.MembershipExpiresAt,
-            user.CurrentStreak, user.LongestStreak, user.IsPaused, user.IsDeleted, user.IsBanned, user.BannedAt, user.BanReason,
+            ScoreService.DisplayStreak(user.CurrentStreak, user.LastLoginDate, DateTime.UtcNow.Date),
+            user.LongestStreak, user.Oath, user.OathSwornAt, user.OathProven, user.NoShowFlagCount,
+            user.IsPaused, user.IsDeleted, user.IsBanned, user.BannedAt, user.BanReason,
             user.DeletionRequestedAt, user.CreatedAt, recentEvents, blockedByThem, blockedThem,
             recentMatches, ships, townSquareRsvps));
     }
@@ -135,9 +138,6 @@ public class AdminUsersController : ControllerBase
         return Ok(result);
     }
 
-    // Rejected at auth time (CurrentUserMiddleware), not just hidden from
-    // discovery — distinct from IsPaused (self-serve, reversible) and the
-    // deletion pipeline (user-initiated, auto-anonymizes).
     [HttpPost("{id}/ban")]
     [ProducesResponseType(typeof(AdminUserDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -172,10 +172,6 @@ public class AdminUsersController : ControllerBase
         return await GetUser(id);
     }
 
-    // Mirrors the exact clear UsersController.GetMe does when a user logs
-    // back in themselves within the 7-day grace period (see User.cs) — an
-    // admin doing this on a user's behalf (e.g. "please cancel my deletion,
-    // I can't log in" via support).
     [HttpPost("{id}/cancel-deletion")]
     [ProducesResponseType(typeof(AdminUserDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -191,10 +187,22 @@ public class AdminUsersController : ControllerBase
         return await GetUser(id);
     }
 
-    // Reuses ScoreService so this goes through the exact same tier
-    // recalculation and ScoreEvents history as every other score change —
-    // the reason isn't stored on ScoreEvent itself (that model has no
-    // free-text field), so it lives in the audit log entry instead.
+    [HttpPost("{id}/reset-noshow")]
+    [ProducesResponseType(typeof(AdminUserDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ResetNoShow(Guid id)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null) return this.NotFoundError("User not found");
+
+        var previous = user.NoShowFlagCount;
+        user.NoShowFlagCount = 0;
+        await _db.SaveChangesAsync();
+        await _audit.LogAsync(User, "ResetNoShow", "User", id.ToString(), $"was {previous}");
+
+        return await GetUser(id);
+    }
+
     [HttpPost("{id}/adjust-score")]
     [ProducesResponseType(typeof(AdminUserDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]

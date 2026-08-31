@@ -1,8 +1,3 @@
-// Compatibility ranking over the deep profile fields (HasKids, SmokingHabit,
-// DrinkingHabit, Religion, Lifestyle) collected during onboarding but, until
-// now, only ever displayed — never used to help two people actually find
-// each other. A soft signal like MongoliaGeo's distance sort: it only
-// re-orders Discover candidates, it never filters anyone out.
 public static class CompatibilityScorer
 {
     private static readonly IReadOnlyDictionary<string, int> HabitLevels =
@@ -11,11 +6,6 @@ public static class CompatibilityScorer
     private static readonly IReadOnlyDictionary<string, int> LifestyleLevels =
         new Dictionary<string, int> { ["Relaxed"] = 0, ["Balanced"] = 1, ["Active"] = 2 };
 
-    // 1.0 = every comparable field matches, 0.0 = every comparable field is
-    // maximally different, null = neither side has any deep field the other
-    // can be compared against. A field only one person filled in is excluded
-    // from the average rather than scored as a mismatch — an unanswered
-    // question isn't a disagreement.
     public static double? Score(User a, User b)
     {
         double total = 0;

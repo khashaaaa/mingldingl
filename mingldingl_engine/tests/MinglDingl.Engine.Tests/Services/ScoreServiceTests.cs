@@ -25,6 +25,7 @@ public class ScoreServiceTests
     [InlineData("DateConfirmed", 50)]
     [InlineData("VideoCallDone", 30)]
     [InlineData("ShipSparked", 40)]
+    [InlineData("OathProven", 40)]
     [InlineData("GhostPenalty", -15)]
     [InlineData("ReportPenalty", -30)]
     public void GetDelta_KnownEventType_ReturnsExpectedDelta(string eventType, int expected)
@@ -34,9 +35,10 @@ public class ScoreServiceTests
 
     [Theory]
     [InlineData(0, "Free", 5)]
-    [InlineData(100, "Free", 7)]     // 100 pts above tier min → +2 slots
-    [InlineData(500, "Silver", 12)]  // Silver base=10, extra from score
-    [InlineData(999, "Gold", 15)]    // Gold base=15, capped at Gold base here
+    [InlineData(100, "Free", 7)]
+    [InlineData(500, "Silver", 22)]
+    [InlineData(0, "Gold", 20)]
+    [InlineData(999, "Gold", 39)]
     public void DailyMatchBudget_ReturnsCorrectSlots(int score, string membership, int expected)
     {
         var user = new User { TotalScore = score, MembershipLevel = membership };
@@ -100,6 +102,30 @@ public class ScoreServiceTests
     public void ComputeStreak_MissedExactlyOneDay_FloorsAndNeverGoesBelow1() =>
         Assert.Equal(1, ScoreService.ComputeStreak(1, new DateTime(2026, 7, 2), new DateTime(2026, 7, 4)));
 
+    [Fact]
+    public void DisplayStreak_NeverLoggedIn_ReturnsStoredValue() =>
+        Assert.Equal(0, ScoreService.DisplayStreak(0, null, new DateTime(2026, 7, 4)));
+
+    [Fact]
+    public void DisplayStreak_LoggedInToday_ReturnsStoredValue() =>
+        Assert.Equal(3, ScoreService.DisplayStreak(3, new DateTime(2026, 7, 4), new DateTime(2026, 7, 4)));
+
+    [Fact]
+    public void DisplayStreak_LoggedInYesterday_StreakStillAlive_NoIncrement() =>
+        Assert.Equal(3, ScoreService.DisplayStreak(3, new DateTime(2026, 7, 3), new DateTime(2026, 7, 4)));
+
+    [Fact]
+    public void DisplayStreak_MissedExactlyOneDay_Halves() =>
+        Assert.Equal(5, ScoreService.DisplayStreak(10, new DateTime(2026, 7, 2), new DateTime(2026, 7, 4)));
+
+    [Fact]
+    public void DisplayStreak_MissedTwoOrMoreDays_DecaysToFloor() =>
+        Assert.Equal(1, ScoreService.DisplayStreak(30, new DateTime(2026, 7, 1), new DateTime(2026, 7, 4)));
+
+    [Fact]
+    public void DisplayStreak_LapsedWithNoStreak_StaysZero() =>
+        Assert.Equal(0, ScoreService.DisplayStreak(0, new DateTime(2026, 7, 1), new DateTime(2026, 7, 4)));
+
     [Theory]
     [InlineData("Garnet", 0)]
     [InlineData("Opal", 1)]
@@ -136,8 +162,6 @@ public class ScoreServiceTests
     [Fact]
     public void DailyMatchBudget_AppliesFlatTierBonus_ToBaseAndCap()
     {
-        // Free/0-score baseline (base=5, cap=20, score-bonus=0) plus Emerald's
-        // +5 tier bonus on both sides: min(5+0+5, 20+5) = 10.
         var user = new User { TotalScore = 0, MembershipLevel = "Free", GemTier = "Emerald" };
         Assert.Equal(10, ScoreService.DailyMatchBudget(user));
     }
@@ -145,10 +169,26 @@ public class ScoreServiceTests
     [Fact]
     public void DailyMatchBudget_TierBonusRaisesCap_WhenScoreBonusWouldOtherwiseBeCapped()
     {
-        // Same inputs as the existing Gold/999 case (base=15, cap=15, score-bonus=19,
-        // previously capped at 15) but with GemTier="Ruby" (+4): cap becomes 19,
-        // so the result shifts from 15 to 19 instead of staying capped at 15.
-        var user = new User { TotalScore = 999, MembershipLevel = "Gold", GemTier = "Ruby" };
-        Assert.Equal(19, ScoreService.DailyMatchBudget(user));
+        var user = new User { TotalScore = 2000, MembershipLevel = "Gold", GemTier = "Ruby" };
+        Assert.Equal(44, ScoreService.DailyMatchBudget(user));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(300)]
+    [InlineData(400)]
+    [InlineData(600)]
+    [InlineData(750)]
+    [InlineData(2000)]
+    public void DailyMatchBudget_PaidTiersNeverFallBelowFree(int score)
+    {
+        int Budget(string level) =>
+            ScoreService.DailyMatchBudget(new User { TotalScore = score, MembershipLevel = level });
+
+        int free = Budget("Free");
+        Assert.True(Budget("Silver") > free,
+            $"Silver ({Budget("Silver")}) must beat Free ({free}) at score {score}");
+        Assert.True(Budget("Gold") > Budget("Silver"),
+            $"Gold ({Budget("Gold")}) must beat Silver ({Budget("Silver")}) at score {score}");
     }
 }

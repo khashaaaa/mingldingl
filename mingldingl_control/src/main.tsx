@@ -4,8 +4,6 @@ import './index.css'
 import App from './App.tsx'
 import { applyTheme, getStoredTheme } from './lib/theme'
 
-// Applied before the first paint, not inside a component effect, so there's
-// no flash of the wrong theme on load.
 applyTheme(getStoredTheme())
 
 createRoot(document.getElementById('root')!).render(

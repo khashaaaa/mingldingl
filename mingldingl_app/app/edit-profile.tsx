@@ -28,7 +28,7 @@ const LIFESTYLE_OPTIONS = ['Active', 'Balanced', 'Relaxed'] as const;
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
 export default function EditProfileScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const router = useRouter();
   const { data: profile } = useProfile();
   const queryClient = useQueryClient();
@@ -48,11 +48,6 @@ export default function EditProfileScreen() {
   const { capture, isCapturing, permissionDenied } = useLocationCapture();
   const { data: cities } = useGeoCities();
 
-  // `useState(profile?.x ?? default)` above only reads `profile` at mount —
-  // if this screen is reached before useProfile()'s query resolves (fast
-  // deep-link, cold cache), fields would silently stay at their fallback
-  // forever. Re-sync once, the first time real profile data arrives, without
-  // touching fields again afterward so in-progress edits are never clobbered.
   const hydratedRef = useRef(false);
   useEffect(() => {
     if (!profile || hydratedRef.current) return;
@@ -72,7 +67,7 @@ export default function EditProfileScreen() {
 
   async function handleRefreshLocation() {
     const coords = await capture();
-    if (!coords) return; // permission denied — fallback picker button shows instead
+    if (!coords) return;
     try {
       const result = await apiClient.users.updateLocation(coords.latitude, coords.longitude);
       setCity(result.city ?? '');
@@ -136,12 +131,6 @@ export default function EditProfileScreen() {
         </AppCard>
 
         <AppCard textured style={{ padding: 16 }}>
-          {/* AppCard layers a LinearGradient + texture + hairline/rivet
-              decoration as absolutely-positioned siblings before {children}.
-              On web those can still paint over real <input>/<textarea> DOM
-              nodes despite coming first in JSX, so this wrapper needs an
-              explicit zIndex to guarantee it stays on top (plain Text
-              children elsewhere don't hit this, only real form controls do). */}
           <YStack gap="$4" zIndex={1}>
             <Input
               value={displayName} onChangeText={setDisplayName}
@@ -157,7 +146,8 @@ export default function EditProfileScreen() {
               fontFamily={FONTS.body as any}
               placeholderTextColor={COLORS.textDim as any}
               returnKeyType="done" onSubmitEditing={Keyboard.dismiss} blurOnSubmit
-            />
+              style={{ resize: 'none' } as never}
+/>
             {error && <Text color={COLORS.ember} fontSize={13} fontFamily={FONTS.body as any}>{error}</Text>}
           </YStack>
         </AppCard>

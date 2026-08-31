@@ -101,7 +101,7 @@ public class AdminUsersControllerIntegrationTests : IntegrationTestBase
     public async Task GetDeletionRequests_ComputesDaysRemainingAndExcludesAlreadyDeleted()
     {
         var pending = NewCompleteUser();
-        pending.DeletionRequestedAt = DateTime.UtcNow.AddDays(-2); // 5 days left of the 7-day grace period
+        pending.DeletionRequestedAt = DateTime.UtcNow.AddDays(-2);
         var alreadyDeleted = NewCompleteUser();
         alreadyDeleted.DeletionRequestedAt = DateTime.UtcNow.AddDays(-10);
         alreadyDeleted.IsDeleted = true;
@@ -116,5 +116,39 @@ public class AdminUsersControllerIntegrationTests : IntegrationTestBase
         var entry = Assert.Single(list);
         Assert.Equal(pending.Id, entry.Id);
         Assert.Equal(5, entry.DaysRemaining);
+    }
+
+    [Fact]
+    public async Task GetUser_IncludesOathNoShowAndFlameRiteFields()
+    {
+        var user = NewCompleteUser();
+        user.Oath = "I will show up on time.";
+        user.OathSwornAt = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc);
+        user.OathProven = true;
+        user.NoShowFlagCount = 2;
+        var other = NewCompleteUser();
+        Db.Users.AddRange(user, other);
+        var proposedAt = new DateTime(2026, 8, 10, 0, 0, 0, DateTimeKind.Utc);
+        Db.Matches.Add(new Match
+        {
+            InitiatorId = user.Id, ReceiverId = other.Id, Status = "Active",
+            FlameRiteProposedById = other.Id, FlameRiteProposedAt = proposedAt,
+            FlameRiteAcceptedAt = proposedAt.AddHours(1), FlameRiteCompletedAt = proposedAt.AddDays(1),
+        });
+        await Db.SaveChangesAsync();
+
+        var result = Assert.IsType<OkObjectResult>(await BuildController().GetUser(user.Id));
+        var detail = Assert.IsType<AdminUserDetailDto>(result.Value);
+
+        Assert.Equal("I will show up on time.", detail.Oath);
+        Assert.Equal(user.OathSwornAt, detail.OathSwornAt);
+        Assert.True(detail.OathProven);
+        Assert.Equal(2, detail.NoShowFlagCount);
+
+        var match = Assert.Single(detail.RecentMatches);
+        Assert.Equal(other.Id, match.FlameRiteProposedById);
+        Assert.Equal(proposedAt, match.FlameRiteProposedAt);
+        Assert.Equal(proposedAt.AddHours(1), match.FlameRiteAcceptedAt);
+        Assert.Equal(proposedAt.AddDays(1), match.FlameRiteCompletedAt);
     }
 }

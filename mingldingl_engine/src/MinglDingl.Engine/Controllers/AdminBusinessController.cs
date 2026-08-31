@@ -2,9 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-// Full CRUD over business partners — the public BusinessController only
-// exposes verified listings read-only (plus ratings). This is how a partner
-// actually gets created/edited/verified/featured in the first place.
 [ApiController]
 [Route("admin/business")]
 [Authorize(AuthenticationSchemes = "AdminBearer")]
@@ -112,9 +109,6 @@ public class AdminBusinessController : ControllerBase
         var business = await _db.BusinessPartners.FirstOrDefaultAsync(b => b.Id == id);
         if (business is null) return this.NotFoundError("Business not found");
 
-        // Real user-submitted review history — refuse rather than either
-        // silently cascade-deleting it or surfacing a raw FK-violation 500,
-        // whichever the DB's cascade config would otherwise do.
         var hasRatings = await _db.BusinessRatings.AnyAsync(r => r.BusinessPartnerId == id);
         if (hasRatings) return this.ConflictError("Cannot delete a business with existing reviews.");
 
@@ -125,8 +119,6 @@ public class AdminBusinessController : ControllerBase
         return NoContent();
     }
 
-    // Applies verified/featured to many businesses in one round trip — used
-    // by the dashboard's bulk-select toolbar.
     [HttpPost("bulk-update")]
     [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
     public async Task<IActionResult> BulkUpdate([FromBody] AdminBulkUpdateBusinessRequest req)
@@ -144,8 +136,6 @@ public class AdminBusinessController : ControllerBase
         return Ok(new { updated = businesses.Count });
     }
 
-    // Exports every business matching the current search (not just the
-    // current page) — the point of an export is the full filtered set.
     [HttpGet("export")]
     [Produces("text/csv")]
     public async Task<IActionResult> Export([FromQuery] string? search)

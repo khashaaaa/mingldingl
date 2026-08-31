@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../lib/api/apiClient';
 import { setToken } from '../lib/auth';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+const DEFAULT_NEXT = '/users';
+
+function resolveNext(raw: string | null): string {
+  if (!raw || !/^\/(?![/\\])/.test(raw) || raw.startsWith('/login')) return DEFAULT_NEXT;
+  return raw;
+}
+
 export function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,10 +27,10 @@ export function Login() {
     setError(null);
     setSubmitting(true);
     try {
-      const { token } = await apiClient.auth.login(username, password);
+      const { token, expiresAt } = await apiClient.auth.login(username, password);
       if (!token) throw new Error('No token returned');
-      setToken(token);
-      navigate('/users');
+      setToken(token, expiresAt);
+      navigate(resolveNext(searchParams.get('next')), { replace: true });
     } catch {
       setError('Invalid username or password.');
     } finally {

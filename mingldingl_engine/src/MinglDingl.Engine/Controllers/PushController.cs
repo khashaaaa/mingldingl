@@ -11,11 +11,6 @@ public class PushController : ControllerBase
     private readonly AppDbContext _db;
     public PushController(AppDbContext db) => _db = db;
 
-    // Called on app start (native only — web has no OS-level push) once the
-    // user has granted notification permission and Expo has handed back a
-    // token. Upserts on the token itself: the same physical device re-
-    // registering (app reinstall, different account) just moves ownership
-    // rather than accumulating duplicate rows.
     [HttpPost("register")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]

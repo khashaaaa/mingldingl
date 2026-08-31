@@ -1,9 +1,6 @@
-// Thin typed wrapper around `api` (axios), typed from the engine's OpenAPI
-// spec (see lib/api/api.generated.d.ts). Deliberately built on top of the same
-// `api` instance rather than replacing it, so the auth interceptor keeps
-// working unchanged.
 import { api, UPLOAD_TIMEOUT_MS } from './api';
 import type { components } from './api.generated';
+import type { Oath } from '../../models/user';
 
 type Schemas = components['schemas'];
 
@@ -20,21 +17,16 @@ export const apiClient = {
   health: {
     get: () => api.get<Schemas['HealthResponse']>('/health').then((r) => r.data),
   },
-
   content: {
     get: (slug: string) => api.get<Schemas['ContentPageResponse']>(`/content/${slug}`).then((r) => r.data),
   },
-
   push: {
     register: (token: string, platform: string) =>
       api.post('/push/register', { token, platform }).then((r) => r.data),
     unregister: (token: string) =>
       api.post('/push/unregister', { token }).then((r) => r.data),
   },
-
   photos: {
-    // Web only — a real Blob, since that's the only shape browser FormData
-    // accepts. See uploadUri below for native.
     upload: (blob: Blob, filename: string) => {
       const form = new FormData();
       form.append('file', blob, filename);
@@ -45,11 +37,6 @@ export const apiClient = {
         })
         .then((r) => r.data);
     },
-    // Native only — RN's FormData understands this { uri, name, type }
-    // shorthand and streams the file straight off disk via native code. See
-    // usePhotoUpload's uploadPhoto for why native can't use upload() above:
-    // fetch(uri).blob() was silently producing a zero-byte Blob for
-    // expo-image-picker's file:// output.
     uploadUri: (uri: string, filename: string) => {
       const form = new FormData();
       form.append('file', { uri, name: filename, type: 'image/jpeg' } as unknown as Blob);
@@ -61,7 +48,6 @@ export const apiClient = {
         .then((r) => r.data);
     },
   },
-
   users: {
     upsert: (body: Schemas['CreateUserRequest']) =>
       api.post<Schemas['UserResponse']>('/users', body).then((r) => r.data),
@@ -76,14 +62,14 @@ export const apiClient = {
       api.post<Schemas['BlockedUserResponse'][]>(`/users/me/blocked/${targetUserId}/unblock`).then((r) => r.data),
     changePhone: (phoneNumber: string) =>
       api.put<Schemas['UserResponse']>('/users/me/phone', { phoneNumber }).then((r) => r.data),
+    swearOath: (oath: Oath) =>
+      api.post<Schemas['UserResponse']>('/users/me/oath', { oath } satisfies Schemas['SwearOathRequest']).then((r) => r.data),
   },
-
   geo: {
     nearestCity: (latitude: number, longitude: number) =>
       api.get<Schemas['NearestCityResponse']>(`/geo/nearest-city${query({ latitude, longitude })}`).then((r) => r.data),
     cities: () => api.get<Schemas['CitiesResponse']>('/geo/cities').then((r) => r.data),
   },
-
   scores: {
     me: () => api.get<Schemas['ScoreResponse']>('/scores/me').then((r) => r.data),
     dailyLogin: () => api.post<Schemas['DailyLoginResponse']>('/scores/daily-login').then((r) => r.data),
@@ -92,15 +78,15 @@ export const apiClient = {
       api.get<Schemas['ScoreHistoryResponse']>(`/scores/me/history${query({ cursor, cursorId, pageSize })}`).then((r) => r.data),
     leaderboard: () => api.get<Schemas['LeaderboardResponse']>('/scores/leaderboard').then((r) => r.data),
     tiers: () => api.get<Schemas['TierThresholdsResponse']>('/scores/tiers').then((r) => r.data),
+    ackNotification: (kind: 'referral' | 'ship') =>
+      api.post('/scores/me/notifications/ack', { kind }).then((r) => r.data),
   },
-
   membership: {
     tiers: () => api.get<Schemas['MembershipTierResponse'][]>('/membership/tiers').then((r) => r.data),
     me: () => api.get<Schemas['MembershipMeResponse']>('/membership/me').then((r) => r.data),
     upgrade: (level: string, durationMonths: number) =>
       api.post<Schemas['MembershipMeResponse']>('/membership/upgrade', { level, durationMonths }).then((r) => r.data),
   },
-
   matches: {
     candidates: (page = 1, pageSize?: number) =>
       api.get<Schemas['CandidateResponsePagedResponse']>(`/matches/candidates${query({ page, pageSize })}`).then((r) => r.data),
@@ -115,7 +101,6 @@ export const apiClient = {
     block: (id: string) =>
       api.post<Schemas['UnmatchResponse']>(`/matches/${id}/block`).then((r) => r.data),
   },
-
   ships: {
     create: (slotAPhoneNumber: string, slotBPhoneNumber: string) =>
       api.post<Schemas['CreateShipResponse']>('/ships', { slotAPhoneNumber, slotBPhoneNumber }).then((r) => r.data),
@@ -123,7 +108,6 @@ export const apiClient = {
     respond: (shipId: string, accept: boolean) =>
       api.post<Schemas['RespondToShipResponse']>(`/ships/${shipId}/respond`, { accept }).then((r) => r.data),
   },
-
   business: {
     list: (params?: { city?: string; category?: string; page?: number; pageSize?: number }) =>
       api.get<Schemas['BusinessResponsePagedResponse']>(`/business${query({ ...params })}`).then((r) => r.data),
@@ -132,7 +116,6 @@ export const apiClient = {
     reviews: (id: string) =>
       api.get<Schemas['BusinessReviewResponse'][]>(`/business/${id}/reviews`).then((r) => r.data),
   },
-
   engagement: {
     icebreaker: (matchId: string) =>
       api.get<Schemas['IcebreakerQuestionResponse']>(`/engagement/icebreaker/${matchId}`).then((r) => r.data),
@@ -148,7 +131,6 @@ export const apiClient = {
     quizStatus: (quizId: string, matchId: string) =>
       api.get<Schemas['QuizStatusResponse']>(`/engagement/quiz/${quizId}/status${query({ matchId })}`).then((r) => r.data),
   },
-
   activities: {
     suggestions: (matchId: string) =>
       api.get<Schemas['ActivitySuggestionResponse'][]>(`/activities/${matchId}/suggestions`).then((r) => r.data),
@@ -160,26 +142,28 @@ export const apiClient = {
     attendanceCheckSubmit: (matchId: string, body: Schemas['AttendanceCheckRequestDto']) =>
       api.post<Schemas['AttendanceCheckResponse']>(`/activities/${matchId}/attendance-check`, body).then((r) => r.data),
   },
-
   video: {
     token: (matchId: string) =>
       api.post<Schemas['VideoTokenResponse']>('/video/token', { matchId }).then((r) => r.data),
     complete: (matchId: string) =>
       api.post<Schemas['VideoCompleteResponse']>('/video/complete', { matchId }).then((r) => r.data),
+    ritePropose: (matchId: string) =>
+      api.post<Schemas['FlameRiteStateResponse']>('/video/rite/propose', { matchId }).then((r) => r.data),
+    riteAccept: (matchId: string) =>
+      api.post<Schemas['FlameRiteStateResponse']>('/video/rite/accept', { matchId }).then((r) => r.data),
+    riteDecline: (matchId: string) =>
+      api.post<Schemas['FlameRiteStateResponse']>('/video/rite/decline', { matchId }).then((r) => r.data),
   },
-
   messages: {
-    list: (matchId: string) =>
-      api.get<Schemas['MessageResponse'][]>(`/matches/${matchId}/messages`).then((r) => r.data),
+    list: (matchId: string, opts: { before?: string; limit?: number } = {}) =>
+      api.get<Schemas['MessageResponse'][]>(`/matches/${matchId}/messages${query(opts)}`).then((r) => r.data),
     send: (matchId: string, content: string) =>
       api.post<Schemas['SendMessageResponse']>(`/matches/${matchId}/messages`, { content }).then((r) => r.data),
   },
-
   quests: {
     today: () => api.get<Schemas['QuestBoardResponse']>('/engagement/quests/today').then((r) => r.data),
     claimChest: () => api.post<Schemas['ClaimChestResponse']>('/engagement/quests/claim-chest').then((r) => r.data),
   },
-
   items: {
     mine: () => api.get<Schemas['OwnedItemResponse'][]>('/users/me/items').then((r) => r.data),
     equip: (itemId: string) =>
@@ -190,7 +174,6 @@ export const apiClient = {
     open: (id: string) =>
       api.post<Schemas['OpenMilestoneResponse']>(`/engagement/milestones/${id}/open`).then((r) => r.data),
   },
-
   townSquare: {
     nextSession: () => api.get<Schemas['NextSessionResponse']>('/townsquare/next-session').then((r) => r.data),
     rsvp: (sessionId: string) =>

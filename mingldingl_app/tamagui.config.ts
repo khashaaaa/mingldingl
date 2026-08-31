@@ -20,8 +20,6 @@ const tamaguiConfig = createTamagui({
     ...defaultConfig.themes,
     dark: {
       ...defaultConfig.themes.dark,
-      // Kept in sync with lib/theme.ts COLORS by hand — Tamagui needs its own
-      // theme registration separate from the plain RN StyleSheet tokens.
       background: '#0A0B10',
       backgroundStrong: '#12141C',
       backgroundFocus: '#1A1E2A',

@@ -32,6 +32,8 @@ public class EngagementService
         var match = await _db.Matches.FindAsync(matchId);
         if (match is null || match.IcebreakerComplete) return;
         match.IcebreakerComplete = true;
+
+        match.VideoCallUnlocked = true;
         await _score.AwardManyAsync([(userId1, "IcebreakerDone"), (userId2, "IcebreakerDone")]);
         await _db.SaveChangesAsync();
     }

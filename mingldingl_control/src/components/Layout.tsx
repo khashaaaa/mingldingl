@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Moon, Sun } from 'lucide-react';
 import { clearToken } from '../lib/auth';
+import { ErrorBoundary } from './ErrorBoundary';
 import { applyTheme, getStoredTheme } from '../lib/theme';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
 
 export function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [theme, setTheme] = useState(getStoredTheme());
 
   function handleLogout() {
@@ -66,7 +68,9 @@ export function Layout() {
         </div>
       </nav>
       <main className="mx-auto max-w-6xl px-6 py-8">
-        <Outlet />
+        <ErrorBoundary key={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   );

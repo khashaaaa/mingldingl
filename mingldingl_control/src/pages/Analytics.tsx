@@ -44,6 +44,18 @@ export function Analytics() {
           value={`${(data.estimatedMonthlyRevenueMnt ?? 0).toLocaleString()} MNT`}
           caption="Current tier mix × listed prices, not recorded payments"
         />
+        <StatTile label="Ships sparked" value={data.shipsSparked ?? 0} />
+        <StatTile label="Town Square sessions" value={data.townSquareSessions ?? 0} />
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-sm font-semibold">Accountability &amp; rituals</h2>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <StatTile label="Oath sworn" value={data.oathSwornUsers ?? 0} />
+          <StatTile label="Oath proven" value={data.oathProvenUsers ?? 0} />
+          <StatTile label="No-show flagged" value={data.noShowFlaggedUsers ?? 0} />
+          <StatTile label="Flame Rites completed" value={data.flameRitesCompleted ?? 0} />
+        </div>
       </div>
 
       <Card>

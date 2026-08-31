@@ -9,9 +9,6 @@ export function useInventory() {
   const equip = useMutation({
     mutationFn: apiClient.items.equip,
     meta: { invalidates: [queryKeys.items] },
-    // Direct write, not covered by meta.invalidates: the response is the
-    // full updated user, so reflecting the new frame/title is one parse away
-    // instead of waiting on a refetch.
     onSuccess: (user) => qc.setQueryData(queryKeys.userProfile, parseUserProfile(user)),
   });
   return { items: query.data ?? [], isLoading: query.isLoading, equip: equip.mutateAsync, isEquipping: equip.isPending };

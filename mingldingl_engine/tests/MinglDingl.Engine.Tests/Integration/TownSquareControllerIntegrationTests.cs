@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using MinglDingl.Engine.Tests;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
@@ -12,8 +13,8 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         var mockConfig = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
-        var videoToken = new VideoTokenService(mockConfig.Object);
-        var controller = new TownSquareController(Db, new TownSquareService(Db, BuildTestBroadcast()), videoToken)
+        var videoToken = new VideoTokenService(mockConfig.Object, TestHostEnvironment.Development);
+        var controller = new TownSquareController(Db, new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush()), videoToken)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -135,7 +136,7 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
         Db.TownSquareRsvps.Add(new TownSquareRsvp { SessionId = session.Id, UserId = woman.Id });
         await Db.SaveChangesAsync();
 
-        var townSquare = new TownSquareService(Db, BuildTestBroadcast());
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
         await townSquare.LockRosterAsync(session.Id);
         await townSquare.StartSessionAsync(session.Id);
 
@@ -165,7 +166,7 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
     public async Task GetCurrentRound_SessionNotInProgress_ReturnsBadRequest()
     {
         var user = NewCompleteUser();
-        var session = NewSession(); // still Open
+        var session = NewSession();
         Db.Users.Add(user);
         Db.TownSquareSessions.Add(session);
         await Db.SaveChangesAsync();

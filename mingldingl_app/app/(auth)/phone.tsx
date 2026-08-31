@@ -20,7 +20,7 @@ import { EmberField } from '../../components/vfx/EmberField';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
 
 export default function PhoneScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const [phone, setPhone] = useState('');
   const { sendOtp, loading, error } = useAuth();
   const router = useRouter();
@@ -97,9 +97,6 @@ const styles = StyleSheet.create({
     fontSize: 40,
     color: COLORS.gold,
     textAlign: 'center',
-    // Blackletter's interwoven strokes are drawn to sit close together —
-    // Yeseva One's +2 tracking (tuned for a clean serif) reads as broken
-    // joins here, so this face gets none.
     letterSpacing: 0,
     fontFamily: FONTS.wordmark,
   },
@@ -154,7 +151,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
   },
   error: {
-    color: COLORS.ember,
+    color: COLORS.emberLight,
     fontSize: 14,
     marginBottom: 4,
     fontFamily: FONTS.body,

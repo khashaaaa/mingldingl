@@ -6,8 +6,17 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=${DATABASE_URL}
-      - Supabase__JwtSecret=${SUPABASE_JWT_SECRET}
       - Supabase__ProjectUrl=${SUPABASE_PROJECT_URL}
+      - Supabase__SecretKey=${SUPABASE_SECRET_KEY}
       - Agora__AppId=${AGORA_APP_ID}
       - Agora__AppCertificate=${AGORA_APP_CERTIFICATE}
+      - Storage__PublicBaseUrl=${STORAGE_PUBLIC_BASE_URL}
+      - Admin__Username=${ADMIN_USERNAME}
+      - Admin__PasswordHash=${ADMIN_PASSWORD_HASH}
+      - Admin__JwtSigningKey=${ADMIN_JWT_SIGNING_KEY}
+    volumes:
+      - uploads:/app/uploads
     restart: unless-stopped
+
+volumes:
+  uploads:

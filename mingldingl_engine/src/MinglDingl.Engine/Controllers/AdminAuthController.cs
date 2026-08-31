@@ -4,12 +4,6 @@ using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 
-// Single-admin login for mingldingl_control — checks the one configured
-// username/password (see Admin: section in appsettings) and issues a
-// self-signed JWT on the "AdminBearer" scheme (see Program.cs), entirely
-// separate from the Supabase-issued tokens regular app users get. No
-// refresh-token flow: a single local admin just logs in again after the
-// token's 12h expiry.
 [ApiController]
 [Route("admin/auth")]
 [Produces("application/json")]

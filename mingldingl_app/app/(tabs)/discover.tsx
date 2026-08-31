@@ -6,6 +6,8 @@ import { isAxiosError } from 'axios';
 import { useDiscover, useRequestMatch } from '../../hooks/useDiscover';
 import { useProfile } from '../../hooks/useProfile';
 import { useMilestones } from '../../hooks/useMilestones';
+import { useDailyMatchBudget } from '../../hooks/useScore';
+import { DailyBudgetMeter } from '../../components/progression/DailyBudgetMeter';
 import { CandidateCard } from '../../components/cards/CandidateCard';
 import { GettingStartedCard } from '../../components/progression/GettingStartedCard';
 import { LootToast } from '../../components/modals/LootToast';
@@ -18,9 +20,10 @@ import { FogDrift } from '../../components/vfx/FogDrift';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { Icon } from '../../components/ui/Icon';
 
 export default function DiscoverScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const router = useRouter();
   const [toast, setToast] = useState(false);
   const [toastPoints, setToastPoints] = useState(0);
@@ -29,6 +32,8 @@ export default function DiscoverScreen() {
   const { mutate: requestMatch, isPending: isRequesting } = useRequestMatch();
   const { data: profile } = useProfile();
   const { milestones } = useMilestones();
+  const dailyBudget = useDailyMatchBudget();
+  const budgetSpent = dailyBudget !== null && dailyBudget.remaining <= 0;
   const [deckSize, setDeckSize] = useState({ w: 0, h: 0 });
   const [emptySize, setEmptySize] = useState({ w: 0, h: 0 });
 
@@ -48,14 +53,10 @@ export default function DiscoverScreen() {
     </View>
   );
 
-  // Checked before the generic "empty deck" branch below — without this, a
-  // failed fetch (dead network, backend down) rendered the exact same "the
-  // tavern is empty" copy as a genuinely-empty candidate list, with no
-  // indication anything had gone wrong and no way to retry.
   if (isError) return (
     <View style={styles.center}>
       <View style={styles.emptyCard}>
-        <RNText style={{ fontSize: 48 }}>📡</RNText>
+        <Icon name="wifi-off" size={44} color={COLORS.bronze} />
         <RNText style={styles.emptyTitle}>{i18n.t('discover_load_error')}</RNText>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
       </View>
@@ -68,7 +69,7 @@ export default function DiscoverScreen() {
     <View style={styles.center}>
       <View style={styles.emptyCard} onLayout={onEmptyLayout}>
         {emptySize.w > 0 && <FogDrift width={emptySize.w} height={emptySize.h} />}
-        <RNText style={{ fontSize: 48 }}>🌙</RNText>
+        <Icon name="weather-night" size={44} color={COLORS.bronze} />
         <RNText style={styles.emptyTitle}>{i18n.t('empty_seek_title')}</RNText>
         <RNText style={styles.emptySub}>{i18n.t('empty_seek_sub')}</RNText>
       </View>
@@ -85,11 +86,13 @@ export default function DiscoverScreen() {
         achievedMilestoneIds={achievedMilestoneIds}
         onCompleteProfile={() => router.push('/edit-profile')}
       />
+      {dailyBudget && <DailyBudgetMeter budget={dailyBudget} />}
       <View style={styles.cardArea} onLayout={onDeckLayout}>
         <PanelReveal style={{ flex: 1 }}>
           <CandidateCard
             candidate={candidate}
             requesting={isRequesting}
+            requestDisabled={budgetSpent}
             onRequest={() => requestMatch(candidate, {
               onSuccess: ({ awarded }) => {
                 setToastPoints(awarded);
@@ -98,10 +101,6 @@ export default function DiscoverScreen() {
               onError: (err) => {
                 const status = isAxiosError(err) ? err.response?.status : undefined;
                 if (status === 409 || status === 403) {
-                  // Already matched or blocked — this candidate can never
-                  // succeed on retry, so resolve it the same way a
-                  // successful request would (drop from the deck) instead
-                  // of showing a "try again" alert that can never help.
                   markSeen(candidate.id);
                 } else if (status === 400) {
                   setFailAlert('dailyBudget');

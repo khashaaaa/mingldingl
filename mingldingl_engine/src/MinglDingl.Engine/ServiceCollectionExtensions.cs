@@ -1,7 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 
-// Single place to register the app's scoped services, so new services are
-// added here instead of growing the list of AddScoped calls in Program.cs.
 public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
@@ -17,23 +15,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MilestoneService>();
         services.AddScoped<AdminAuditService>();
         services.AddScoped<TownSquareService>();
+        services.AddScoped<OathService>();
         services.AddSingleton<VideoTokenService>();
         services.AddSingleton<PhotoCompressionService>();
         services.AddSingleton<LocalFileStorageService>();
         services.AddSingleton<ConfigService>();
-        services.AddHttpClient<PushNotificationService>();
-        // Sits inline in the request path (message send, engagement actions) and
-        // is best-effort (see SupabaseBroadcastService's own try/catch) — but the
-        // default HttpClient timeout is 100s, so a slow/unreachable Supabase could
-        // still tie up a request thread for that long before the exception is
-        // swallowed. A broadcast that hasn't landed in a few seconds isn't going
-        // to land in time to matter anyway — the client's own next fetch is the
-        // real fallback.
+
+        services.AddHttpClient<PushNotificationService>(client => client.Timeout = TimeSpan.FromSeconds(5));
+
         services.AddHttpClient<SupabaseBroadcastService>(client => client.Timeout = TimeSpan.FromSeconds(5));
-        // Registered as its own singleton (not just via AddHostedService, which
-        // only makes it resolvable as IHostedService) so DevController can
-        // inject the same running instance and trigger a sweep on demand —
-        // otherwise the hourly sweep is untestable outside a test harness.
+
         services.AddSingleton<DailyMaintenanceBackgroundService>();
         services.AddHostedService<DailyMaintenanceBackgroundService>(sp => sp.GetRequiredService<DailyMaintenanceBackgroundService>());
         services.AddSingleton<TownSquareSchedulerBackgroundService>();

@@ -128,4 +128,32 @@ public class AdminUsersModerationIntegrationTests : IntegrationTestBase
 
         Assert.True(page.Items.Single().IsBanned);
     }
+
+    [Fact]
+    public async Task ResetNoShow_ZeroesFlagCount_AndLogsAudit()
+    {
+        var user = NewCompleteUser();
+        user.NoShowFlagCount = 4;
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        var controller = BuildControllerWithUser();
+        var result = Assert.IsType<OkObjectResult>(await controller.ResetNoShow(user.Id));
+        var detail = Assert.IsType<AdminUserDetailDto>(result.Value);
+
+        Assert.Equal(0, detail.NoShowFlagCount);
+        Db.ChangeTracker.Clear();
+        Assert.Equal(0, (await Db.Users.FindAsync(user.Id))!.NoShowFlagCount);
+
+        var logged = Db.AdminAuditLogs.Single(l => l.Action == "ResetNoShow" && l.EntityId == user.Id.ToString());
+        Assert.Equal("test-admin", logged.AdminUsername);
+        Assert.Equal("was 4", logged.Details);
+    }
+
+    [Fact]
+    public async Task ResetNoShow_UnknownId_ReturnsNotFound()
+    {
+        var controller = BuildControllerWithUser();
+        Assert.IsType<NotFoundObjectResult>(await controller.ResetNoShow(Guid.NewGuid()));
+    }
 }

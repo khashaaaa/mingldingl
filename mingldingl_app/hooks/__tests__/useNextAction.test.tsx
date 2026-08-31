@@ -7,11 +7,6 @@ import { useScoreDetail } from '../useScoreDetail';
 import type { UserProfile } from '../../models/user';
 import type { Match } from '../../models/match';
 
-// Factory form, not the bare `jest.mock('../useProfile')` automock — the
-// automock still has to load the real module once to introspect its shape,
-// which cascades into lib/supabase.ts's real createClient() call at module
-// scope and throws on the missing EXPO_PUBLIC_SUPABASE_URL env var in the
-// test environment. A factory skips loading the real module entirely.
 jest.mock('../useProfile', () => ({ useProfile: jest.fn() }));
 jest.mock('../useMatches', () => ({ useMatches: jest.fn() }));
 jest.mock('../useQuests', () => ({ useQuests: jest.fn() }));
@@ -36,13 +31,12 @@ function match(overrides: Partial<Match> = {}): Match {
     icebreakerComplete: true,
     videoCallUnlocked: false,
     otherUser: { displayName: 'Alex' },
+    flameRiteDurationMinutes: 5,
+    flameRiteRequired: true,
     ...overrides,
   };
 }
 
-// Baseline: every data source present but with nothing actionable, so each
-// test only needs to override the one thing it's exercising and the
-// priority chain falls through to null instead of throwing on undefined data.
 function setAllSources(overrides: {
   profile?: ReturnType<typeof profile>;
   matches?: Match[];
@@ -159,9 +153,9 @@ describe('useNextAction priority order', () => {
         allComplete: false,
         chestClaimed: false,
         quests: [
-          { questId: 'a', progress: 1, target: 4, completed: false }, // 25%
-          { questId: 'b', progress: 3, target: 4, completed: false }, // 75%
-          { questId: 'c', progress: 1, target: 10, completed: false }, // 10%
+          { questId: 'a', progress: 1, target: 4, completed: false },
+          { questId: 'b', progress: 3, target: 4, completed: false },
+          { questId: 'c', progress: 1, target: 10, completed: false },
         ],
       },
     });

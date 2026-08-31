@@ -9,8 +9,6 @@ import { createAppQueryClient } from '../../lib/api/queryClient';
 import { queryKeys } from '../../lib/api/queryKeys';
 
 function notCompleteYetError() {
-  // RevealIcebreaker returns 400 while both users haven't responded yet —
-  // the one error shape the poll should keep retrying through.
   const err = new AxiosError('Request failed with status code 400');
   err.response = { status: 400, data: { error: 'Icebreaker not complete yet' } } as AxiosError['response'];
   return err;
@@ -43,27 +41,6 @@ const mockApi = apiClient as unknown as {
   };
 };
 
-const mockChannelFn = supabase.channel as jest.Mock;
-
-type BroadcastHandler = (msg: { payload: unknown }) => void;
-
-interface FakeChannel {
-  on: jest.Mock;
-  subscribe: jest.Mock;
-}
-
-function makeFakeChannel() {
-  let icebreakerHandler: BroadcastHandler = () => {};
-  const channel: FakeChannel = {
-    on: jest.fn((_type: string, opts: { event: string }, handler: BroadcastHandler) => {
-      if (opts.event === 'icebreaker') icebreakerHandler = handler;
-      return channel;
-    }),
-    subscribe: jest.fn(() => channel),
-  };
-  return { channel, fireIcebreaker: (payload: unknown) => icebreakerHandler({ payload }) };
-}
-
 function makeQueryClient() {
   return createAppQueryClient({
     queries: { retry: false },
@@ -80,17 +57,11 @@ function makeWrapper(queryClient: QueryClient) {
 const question = { id: 'q1', questionText: 'Fave food?', type: 'text', options: [] };
 
 describe('useIcebreaker', () => {
-  let fakeChannel: ReturnType<typeof makeFakeChannel>;
-
   beforeEach(() => {
     jest.clearAllMocks();
     useAuthStore.setState({ session: { user: { id: 'me' } } as any });
-    // Default: server says I haven't responded yet. respond's onSuccess
-    // writes { hasResponded: true } straight into this query's cache, so
-    // most tests never need to override this mock's resolved value.
+
     mockApi.engagement.icebreakerStatus.mockResolvedValue({ hasResponded: false });
-    fakeChannel = makeFakeChannel();
-    mockChannelFn.mockReturnValue(fakeChannel.channel);
   });
 
   afterEach(() => {
@@ -98,7 +69,7 @@ describe('useIcebreaker', () => {
   });
 
   describe('reveal polling (refetchInterval gated on data presence)', () => {
-    it('keeps polling every 15s while the reveal fetch keeps 400ing ("not complete yet")', async () => {
+    it('keeps polling every 60s while the reveal fetch keeps 400ing ("not complete yet")', async () => {
       jest.useFakeTimers();
       mockApi.engagement.icebreaker.mockResolvedValue(question);
       mockApi.engagement.icebreakerReveal.mockRejectedValue(notCompleteYetError());
@@ -109,12 +80,12 @@ describe('useIcebreaker', () => {
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1));
 
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(15000);
+        await jest.advanceTimersByTimeAsync(60000);
       });
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(2));
 
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(15000);
+        await jest.advanceTimersByTimeAsync(60000);
       });
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(3));
     });
@@ -132,14 +103,12 @@ describe('useIcebreaker', () => {
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1));
 
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(15000);
+        await jest.advanceTimersByTimeAsync(60000);
       });
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(15000);
+        await jest.advanceTimersByTimeAsync(60000);
       });
 
-      // A permanent failure must not retry forever the way "not complete
-      // yet" (400) legitimately does.
       expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1);
     });
 
@@ -154,24 +123,34 @@ describe('useIcebreaker', () => {
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1));
 
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(15000);
+        await jest.advanceTimersByTimeAsync(60000);
       });
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(15000);
+        await jest.advanceTimersByTimeAsync(60000);
       });
 
-      // No further calls: refetchInterval saw a truthy `data` ([]) and returned false.
       expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('broadcast-driven reveal refetch', () => {
-    it('refetches the reveal immediately when an app-nudges "icebreaker" broadcast lands for this match', async () => {
+  describe('no realtime channel of its own', () => {
+    it('never touches supabase.channel', async () => {
       mockApi.engagement.icebreaker.mockResolvedValue(question);
       mockApi.engagement.icebreakerReveal.mockResolvedValue(null);
 
       const queryClient = makeQueryClient();
       renderHook(() => useIcebreaker('m1'), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1));
+      expect(supabase.channel).not.toHaveBeenCalled();
+    });
+
+    it('refetches the reveal when the icebreakerRevealByMatch prefix is invalidated (what useRealtimeNudges does on the icebreaker broadcast)', async () => {
+      mockApi.engagement.icebreaker.mockResolvedValue(question);
+      mockApi.engagement.icebreakerReveal.mockResolvedValue(null);
+
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useIcebreaker('m1'), { wrapper: makeWrapper(queryClient) });
 
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1));
 
@@ -179,28 +158,12 @@ describe('useIcebreaker', () => {
         { userId: 'me', answer: 'pizza' },
         { userId: 'them', answer: 'sushi' },
       ]);
-      act(() => {
-        fakeChannel.fireIcebreaker({ userId: 'them', matchId: 'm1' });
+      await act(async () => {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.icebreakerRevealByMatch('m1') });
       });
 
-      await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(2));
-    });
-
-    it('ignores a broadcast for a different match', async () => {
-      mockApi.engagement.icebreaker.mockResolvedValue(question);
-      mockApi.engagement.icebreakerReveal.mockResolvedValue(null);
-
-      const queryClient = makeQueryClient();
-      renderHook(() => useIcebreaker('m1'), { wrapper: makeWrapper(queryClient) });
-
-      await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1));
-
-      act(() => {
-        fakeChannel.fireIcebreaker({ userId: 'them', matchId: 'other-match' });
-      });
-      await new Promise((resolve) => setTimeout(resolve, 0));
-
-      expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(result.current.isComplete).toBe(true));
+      expect(result.current.partnerAnswer).toBe('sushi');
     });
   });
 
@@ -220,12 +183,10 @@ describe('useIcebreaker', () => {
 
       await act(async () => {
         result.current.submitAnswer('pizza');
-        // react-query batches its state notifications via a macrotask
-        // (notifyManager), so give it a real tick to flip isPending to true
-        // before we try the second submit.
+
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
-      // Still pending: the respond promise above hasn't been resolved yet.
+
       act(() => {
         result.current.submitAnswer('sushi');
       });
@@ -238,7 +199,6 @@ describe('useIcebreaker', () => {
       });
       await waitFor(() => expect(result.current.hasResponded).toBe(true));
 
-      // Guard also blocks resubmission after success, not just while pending.
       act(() => {
         result.current.submitAnswer('sushi');
       });
@@ -288,8 +248,6 @@ describe('useIcebreaker', () => {
       });
       await waitFor(() => expect(result.current.submitError).toBe(false));
 
-      // Guard is keyed off isPending/isSuccess, not isError — a cleared error
-      // allows retrying the submit.
       mockApi.engagement.icebreakerRespond.mockResolvedValue({ bothResponded: false });
       await act(async () => {
         result.current.submitAnswer('pizza');
@@ -301,8 +259,6 @@ describe('useIcebreaker', () => {
 
   describe('server-derived hasResponded (survives remount)', () => {
     it('reports hasResponded true on a fresh mount when the server already has my response', async () => {
-      // Simulates leaving the waiting screen and coming back: local mutation
-      // state is gone (fresh hook instance), but the server still knows.
       mockApi.engagement.icebreaker.mockResolvedValue(question);
       mockApi.engagement.icebreakerReveal.mockResolvedValue(null);
       mockApi.engagement.icebreakerStatus.mockResolvedValue({ hasResponded: true });
@@ -312,8 +268,7 @@ describe('useIcebreaker', () => {
 
       await waitFor(() => expect(result.current.hasResponded).toBe(true));
       expect(result.current.isWaitingForPartner).toBe(true);
-      // Never having called submitAnswer this mount, a resubmit attempt must
-      // still be blocked — otherwise reopening the screen risks a 409.
+
       result.current.submitAnswer('sushi');
       expect(mockApi.engagement.icebreakerRespond).not.toHaveBeenCalled();
     });

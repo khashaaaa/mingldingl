@@ -2,9 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
-// One-off CLI mode for generating an Admin:PasswordHash value for
-// appsettings — exits before the web host boots, no DB connection needed.
-// Usage: dotnet run -- hash-password <password>
 if (args.Length > 0 && args[0] == "hash-password")
 {
     if (args.Length < 2)
@@ -21,8 +18,6 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Match the { error: "..." } shape used everywhere else, instead of the
-// framework's default ProblemDetails, for automatic model-validation 400s too.
 builder.Services.Configure<ApiBehaviorOptions>(opt =>
 {
     opt.InvalidModelStateResponseFactory = context =>
@@ -37,16 +32,7 @@ builder.Services.Configure<ApiBehaviorOptions>(opt =>
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("DefaultConnection"));
 dataSourceBuilder.EnableDynamicJson();
 var dataSource = dataSourceBuilder.Build();
-// A transient Postgres blip (brief connection drop, timeout) previously
-// failed every in-flight request outright with no recovery — there was no
-// retry story anywhere in the engine. EnableRetryOnFailure makes EF Core
-// transparently retry a failed operation a few times before giving up.
-// Caveat: this makes EF Core's "retrying execution strategy" the default,
-// which refuses to run inside a manually-opened `Database.BeginTransactionAsync()`
-// unless that whole block is itself wrapped in `CreateExecutionStrategy().ExecuteAsync(...)`
-// — see MessagesController.SendMessage, MatchesController.RequestMatch, and
-// TownSquareService.CreateOrReuseMatchAsync, the three places that open an
-// explicit transaction, for that wrapping.
+
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseNpgsql(dataSource, npgsql => npgsql.EnableRetryOnFailure(maxRetryCount: 3)));
 
@@ -63,12 +49,7 @@ builder.Services.AddAuthentication("Bearer")
             ClockSkew = TimeSpan.FromSeconds(30)
         };
     })
-    // Separate scheme for mingldingl_control — self-issued/self-validated
-    // (symmetric key, no JWKS authority) so an admin token can never be
-    // confused with a Supabase-issued user token or vice versa. Admin
-    // controllers opt in explicitly via [Authorize(AuthenticationSchemes = "AdminBearer")];
-    // this scheme is never the default, so regular [Authorize] on app
-    // endpoints is unaffected.
+
     .AddJwtBearer("AdminBearer", opt =>
     {
         var signingKey = builder.Configuration["Admin:JwtSigningKey"];
@@ -89,29 +70,27 @@ builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
     p.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
 var app = builder.Build();
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    foreach (var def in ConfigKeys.All)
-    {
-        if (!await db.AdminConfigs.AnyAsync(c => c.Key == def.Key))
-        {
-            db.AdminConfigs.Add(new AdminConfig
-            {
-                Key = def.Key,
-                Category = def.Category,
-                ValueType = def.ValueType,
-                Value = def.DefaultValue,
-                Description = def.Description,
-                UpdatedAt = DateTime.UtcNow,
-                UpdatedBy = "system",
-            });
-        }
-    }
-    await db.SaveChangesAsync();
 
-    var config = scope.ServiceProvider.GetRequiredService<ConfigService>();
-    await config.LoadCacheAsync(db);
+const int seedAttempts = 5;
+for (int attempt = 1; attempt <= seedAttempts; attempt++)
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        await AdminConfigSeeder.SeedAsync(db, app.Services.GetRequiredService<ILogger<Program>>());
+
+        var config = scope.ServiceProvider.GetRequiredService<ConfigService>();
+        await config.LoadCacheAsync(db);
+        break;
+    }
+    catch (Exception ex) when (attempt < seedAttempts)
+    {
+        app.Services.GetRequiredService<ILogger<Program>>()
+            .LogWarning(ex, "Startup config seeding failed (attempt {Attempt}/{Total}); retrying in 3s", attempt, seedAttempts);
+        await Task.Delay(TimeSpan.FromSeconds(3));
+    }
 }
 if (app.Environment.IsDevelopment())
 {

@@ -7,12 +7,6 @@ interface Props {
   opacity?: number;
 }
 
-// resizeMode="repeat" only tiles on native — react-native-web renders the
-// <img> at its native size instead of stretching/repeating it. Tiling a
-// measured grid of the same square image works identically on every
-// platform, so there's no per-platform branch to keep in sync. One shared
-// layer behind a whole screen, not per list item, so it costs nothing as
-// the screen's content grows.
 export function TiledBackdrop({ source, tileSize = 256, opacity = 0.14 }: Props) {
   const [size, setSize] = useState({ w: 0, h: 0 });
 
@@ -29,7 +23,15 @@ export function TiledBackdrop({ source, tileSize = 256, opacity = 0.14 }: Props)
       {size.w > 0 && Array.from({ length: rows }).map((_, r) => (
         <View key={r} style={styles.row}>
           {Array.from({ length: cols }).map((_, c) => (
-            <Image key={c} source={source} style={{ width: tileSize, height: tileSize }} />
+            <Image
+              key={c}
+              source={source}
+              style={{
+                width: tileSize,
+                height: tileSize,
+                transform: [{ scaleX: c % 2 ? -1 : 1 }, { scaleY: r % 2 ? -1 : 1 }],
+              }}
+            />
           ))}
         </View>
       ))}

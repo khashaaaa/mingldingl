@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-// Stateless — doesn't touch _db at all, so it works during onboarding before
-// the caller's User row exists yet. UsersController.UpdateLocation is the
-// counterpart that actually persists a snapped city for an existing user.
 [ApiController]
 [Route("geo")]
 [Authorize]
@@ -21,13 +18,6 @@ public class GeoController : ControllerBase
         return Ok(new NearestCityResponse(MongoliaGeo.NearestCity(latitude, longitude)));
     }
 
-    // Names only, not coordinates — this backs the manual fallback picker
-    // shown when location permission is denied, not a map. Split into
-    // provinces vs. Ulaanbaatar's districts (rather than one flat list) so
-    // the client can show Ulaanbaatar as a single top-level entry and only
-    // reveal its districts once that's picked. Keeping the full
-    // MongoliaGeo.Cities list server-side (rather than duplicating it in the
-    // app) means it only ever needs updating in one place.
     [HttpGet("cities")]
     [ProducesResponseType(typeof(CitiesResponse), StatusCodes.Status200OK)]
     public IActionResult GetCities() =>

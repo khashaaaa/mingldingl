@@ -45,6 +45,8 @@ function matchFixture(overrides: Partial<Match> = {}): Match {
     icebreakerComplete: false,
     videoCallUnlocked: false,
     otherUser: { displayName: 'Riley' },
+    flameRiteDurationMinutes: 5,
+    flameRiteRequired: true,
     ...overrides,
   };
 }
@@ -69,10 +71,10 @@ describe('useRealtimeNudges', () => {
     expect(mockChannelFn).not.toHaveBeenCalled();
   });
 
-  it('subscribes to the app-nudges channel with all four broadcast handlers when signed in', () => {
+  it('subscribes to the app-nudges channel with all ten broadcast handlers when signed in', () => {
     const { channel } = mount();
     expect(mockChannelFn).toHaveBeenCalledWith('app-nudges');
-    expect(channel.on).toHaveBeenCalledTimes(4);
+    expect(channel.on).toHaveBeenCalledTimes(10);
     expect(channel.subscribe).toHaveBeenCalled();
   });
 
@@ -111,6 +113,24 @@ describe('useRealtimeNudges', () => {
 
       expect(useAuthStore.getState().pendingNudge?.title).toBe('Your match answered the icebreaker');
     });
+
+    it("invalidates the match's icebreaker reveal (prefix, since the questionId is unknown here)", () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.icebreaker({ payload: { userId: 'other-user', matchId: 'm1' } });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.icebreakerRevealByMatch('m1') });
+    });
+
+    it('does not invalidate anything for my own icebreaker answer', () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.icebreaker({ payload: { userId: 'me1', matchId: 'm1' } });
+
+      expect(invalidateSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('quiz event', () => {
@@ -138,20 +158,100 @@ describe('useRealtimeNudges', () => {
       handlers.quiz({ payload: { userId: 'other-user', matchId: null } });
       expect(useAuthStore.getState().pendingNudge).toBeNull();
     });
+
+    it("invalidates the match's quiz status (prefix, since the quizId is unknown here)", () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.quiz({ payload: { userId: 'other-user', matchId: 'm1' } });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.quizStatusByMatch('m1') });
+    });
   });
 
   describe('date_confirmed event', () => {
-    it('sets a pending nudge unconditionally (no self-filter, unlike the others)', () => {
+    it("sets a pending nudge and refreshes activity suggestions + matches on the partner's confirmation", () => {
       queryClient.setQueryData(queryKeys.matches, [matchFixture({ matchId: 'm1', otherUser: { displayName: 'Riley' } })]);
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
       const { handlers } = mount();
 
-      handlers.date_confirmed({ payload: { matchId: 'm1' } });
+      handlers.date_confirmed({ payload: { matchId: 'm1', userId: 'other-user', isComplete: false } });
 
       expect(useAuthStore.getState().pendingNudge).toEqual({
         icon: '📍',
         title: 'Riley confirmed your date',
         matchId: 'm1',
       });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.activitySuggestions('m1') });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+    });
+
+    it("records that the partner has pledged (my turn) when their confirmation doesn't complete the pair", () => {
+      const { handlers } = mount();
+
+      handlers.date_confirmed({ payload: { matchId: 'm1', userId: 'other-user', isComplete: false } });
+
+      expect(queryClient.getQueryData(queryKeys.partnerPledged('m1'))).toBe(true);
+    });
+
+    it('clears the partner-pledged flag once their confirmation completes the pair', () => {
+      queryClient.setQueryData(queryKeys.partnerPledged('m1'), true);
+      const { handlers } = mount();
+
+      handlers.date_confirmed({ payload: { matchId: 'm1', userId: 'other-user', isComplete: true } });
+
+      expect(queryClient.getQueryData(queryKeys.partnerPledged('m1'))).toBe(false);
+    });
+
+    it('ignores my own confirmation (no toast, no invalidation — my own mutation already handled it)', () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.date_confirmed({ payload: { matchId: 'm1', userId: 'me1', isComplete: true } });
+
+      expect(useAuthStore.getState().pendingNudge).toBeNull();
+      expect(invalidateSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('flame_rite events', () => {
+    it.each([
+      ['flame_rite_proposed'],
+      ['flame_rite_accepted'],
+      ['flame_rite_declined'],
+      ['flame_rite_completed'],
+    ])('invalidates the matches cache on %s without setting a pending nudge', (event) => {
+      queryClient.setQueryData(queryKeys.matches, [matchFixture()]);
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers[event]({ payload: { userId: 'other-user', matchId: 'm1' } });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+      expect(useAuthStore.getState().pendingNudge).toBeNull();
+    });
+  });
+
+  describe('match_status_changed event', () => {
+    it('invalidates matches (but not the thread) on a status change that keeps the match alive', () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.match_status_changed({ payload: { matchId: 'm1', status: 'Active', userId: 'other-user' } });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+      expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: queryKeys.messages('m1') });
+      expect(useAuthStore.getState().pendingNudge).toBeNull();
+    });
+
+    it.each([['Ghosted'], ['Completed']])('also invalidates the message thread when the status (%s) ends the match', (status) => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.match_status_changed({ payload: { matchId: 'm1', status, userId: 'other-user' } });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.messages('m1') });
     });
   });
 
@@ -184,6 +284,25 @@ describe('useRealtimeNudges', () => {
       expect(useAuthStore.getState().pendingNudge).toBeNull();
     });
 
+    it('invalidates matches for a received message (revealLevel/messageCount consumers), even when the toast is suppressed', () => {
+      useAuthStore.setState({ activeChatMatchId: 'm1' });
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.message({ payload: { senderId: 'other-user', matchId: 'm1' } });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+    });
+
+    it('does not invalidate matches for my own message broadcast (my send mutation already does)', () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.message({ payload: { senderId: 'me1', matchId: 'm1' } });
+
+      expect(invalidateSpy).not.toHaveBeenCalled();
+    });
+
     it('still nudges for a different match while another chat is open', () => {
       useAuthStore.setState({ activeChatMatchId: 'm1' });
       queryClient.setQueryData(queryKeys.matches, [matchFixture({ matchId: 'm2', otherUser: { displayName: 'Casey' } })]);
@@ -196,6 +315,74 @@ describe('useRealtimeNudges', () => {
         title: 'Casey sent a message',
         matchId: 'm2',
       });
+    });
+  });
+
+  describe('match_created event', () => {
+    it('ignores a match between two other people', () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.match_created({ payload: { matchId: 'm9', userIds: ['a', 'b'], source: 'like' } });
+
+      expect(invalidateSpy).not.toHaveBeenCalled();
+      expect(useAuthStore.getState().pendingNudge).toBeNull();
+    });
+
+    it('ignores a malformed payload without userIds', () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.match_created({ payload: { matchId: 'm9' } });
+
+      expect(invalidateSpy).not.toHaveBeenCalled();
+    });
+
+    it('refreshes matches + discover + score and nudges me for a like-sourced match I am part of', () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.match_created({ payload: { matchId: 'm9', userIds: ['other-user', 'me1'], source: 'like' } });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.discover });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.score });
+      expect(useAuthStore.getState().pendingNudge).toEqual({
+        icon: '✨',
+        title: 'Fate has woven you a new match',
+        matchId: 'm9',
+      });
+    });
+
+    it('refreshes pending ships for a ship-sourced match', () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.match_created({ payload: { matchId: 'm9', userIds: ['me1', 'other-user'], source: 'ship' } });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.pendingShips });
+      expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: queryKeys.discover });
+    });
+
+    it('refreshes the Town Square session for a townsquare-sourced match', () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.match_created({ payload: { matchId: 'm9', userIds: ['me1', 'other-user'], source: 'townsquare' } });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.townSquareNextSession });
+    });
+
+    it('still refreshes but does not nudge when the match is already in my cache (my own request added it)', () => {
+      queryClient.setQueryData(queryKeys.matches, [matchFixture({ matchId: 'm9' })]);
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.match_created({ payload: { matchId: 'm9', userIds: ['me1', 'other-user'], source: 'like' } });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+      expect(useAuthStore.getState().pendingNudge).toBeNull();
     });
   });
 });

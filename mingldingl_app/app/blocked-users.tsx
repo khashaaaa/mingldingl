@@ -13,8 +13,8 @@ import type { BlockedUser } from '../models/blockedUser';
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
 export default function BlockedUsersScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
-  const { blockedUsers, isLoading, unblock, unblockingUserId } = useBlockedUsers();
+  useLocaleStore((s) => s.locale);
+  const { blockedUsers, isLoading, isError, refetch, unblock, unblockingUserId } = useBlockedUsers();
 
   return (
     <View style={styles.screen}>
@@ -23,6 +23,11 @@ export default function BlockedUsersScreen() {
       {isLoading ? (
         <View style={styles.centered}>
           <Spinner color="$gold" />
+        </View>
+      ) : isError ? (
+        <View style={styles.errorWrap}>
+          <Text style={styles.errorText}>{i18n.t('screen_load_error')}</Text>
+          <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
         </View>
       ) : (
         <FlatList
@@ -58,6 +63,8 @@ export default function BlockedUsersScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
+  errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: 16, textAlign: 'center' },
   list: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20 },
   empty: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 14, textAlign: 'center' },

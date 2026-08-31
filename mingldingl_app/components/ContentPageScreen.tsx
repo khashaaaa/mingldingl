@@ -17,11 +17,8 @@ interface Props {
   slug: string;
 }
 
-// Shared by terms.tsx, privacy.tsx, and guides.tsx — all three are the same
-// shape (fetch one admin-editable page by slug, render title + body), so
-// this is the one place that shape lives rather than duplicated three times.
 export function ContentPageScreen({ slug }: Props) {
-  const locale = useLocaleStore((s) => s.locale); // re-render on language switch — see store/localeStore.ts
+  const locale = useLocaleStore((s) => s.locale);
   const router = useRouter();
   const { data: page, isLoading, isError, refetch } = useContentPage(slug);
   const localized = page ? selectContentPageLocale(page, locale) : null;

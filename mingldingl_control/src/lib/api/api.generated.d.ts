@@ -164,6 +164,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/activities/{matchId}/attendance-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    matchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AttendanceCheckStatusResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    matchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AttendanceCheckRequestDto"];
+                    "text/json": components["schemas"]["AttendanceCheckRequestDto"];
+                    "application/*+json": components["schemas"]["AttendanceCheckRequestDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AttendanceCheckResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/analytics/overview": {
         parameters: {
             query?: never;
@@ -922,7 +1022,96 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateTownSquareSessionRequest"];
+                    "text/json": components["schemas"]["CreateTownSquareSessionRequest"];
+                    "application/*+json": components["schemas"]["CreateTownSquareSessionRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminTownSquareSessionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/townsquare/sessions/{sessionId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminTownSquareSessionDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1194,6 +1383,52 @@ export interface paths {
         trace?: never;
     };
     "/admin/users/{id}/cancel-deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminUserDetailDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{id}/reset-noshow": {
         parameters: {
             query?: never;
             header?: never;
@@ -2249,6 +2484,15 @@ export interface paths {
                         "application/json": components["schemas"]["HealthResponse"];
                     };
                 };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HealthResponse"];
+                    };
+                };
             };
         };
         put?: never;
@@ -2880,6 +3124,148 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["PublicStatsResponse"];
+                        "application/json": components["schemas"]["PublicStatsResponse"];
+                        "text/json": components["schemas"]["PublicStatsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/ship-invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    code?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["PublicShipInviteResponse"];
+                        "application/json": components["schemas"]["PublicShipInviteResponse"];
+                        "text/json": components["schemas"]["PublicShipInviteResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/ship": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/push/register": {
         parameters: {
             query?: never;
@@ -3049,6 +3435,56 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scores/me/notifications/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AckNotificationDto"];
+                    "text/json": components["schemas"]["AckNotificationDto"];
+                    "application/*+json": components["schemas"]["AckNotificationDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AckNotificationResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -4059,6 +4495,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/me/oath": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SwearOathRequest"];
+                    "text/json": components["schemas"]["SwearOathRequest"];
+                    "application/*+json": components["schemas"]["SwearOathRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/video/token": {
         parameters: {
             query?: never;
@@ -4177,10 +4672,202 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/video/rite/propose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FlameRiteRequestDto"];
+                    "text/json": components["schemas"]["FlameRiteRequestDto"];
+                    "application/*+json": components["schemas"]["FlameRiteRequestDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FlameRiteStateResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/video/rite/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FlameRiteRequestDto"];
+                    "text/json": components["schemas"]["FlameRiteRequestDto"];
+                    "application/*+json": components["schemas"]["FlameRiteRequestDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FlameRiteStateResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/video/rite/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FlameRiteRequestDto"];
+                    "text/json": components["schemas"]["FlameRiteRequestDto"];
+                    "application/*+json": components["schemas"]["FlameRiteRequestDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FlameRiteStateResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AckNotificationDto: {
+            kind?: string | null;
+        };
+        AckNotificationResponse: {
+            acknowledged?: boolean;
+        };
         ActivitySuggestionResponse: {
             /** Format: uuid */
             id?: string;
@@ -4219,6 +4906,18 @@ export interface components {
             scoreEventsLast30Days?: components["schemas"]["EventTypeCountDto"][] | null;
             /** Format: int32 */
             estimatedMonthlyRevenueMnt?: number;
+            /** Format: int32 */
+            oathSwornUsers?: number;
+            /** Format: int32 */
+            oathProvenUsers?: number;
+            /** Format: int32 */
+            noShowFlaggedUsers?: number;
+            /** Format: int32 */
+            flameRitesCompleted?: number;
+            /** Format: int32 */
+            shipsSparked?: number;
+            /** Format: int32 */
+            townSquareSessions?: number;
         };
         AdminAuditLogDto: {
             /** Format: uuid */
@@ -4418,6 +5117,12 @@ export interface components {
             currentStreak?: number;
             /** Format: int32 */
             longestStreak?: number;
+            oath?: string | null;
+            /** Format: date-time */
+            oathSwornAt?: string | null;
+            oathProven?: boolean;
+            /** Format: int32 */
+            noShowFlagCount?: number;
             isPaused?: boolean;
             isDeleted?: boolean;
             isBanned?: boolean;
@@ -4473,6 +5178,14 @@ export interface components {
             messageCount?: number;
             /** Format: date-time */
             createdAt?: string;
+            /** Format: uuid */
+            flameRiteProposedById?: string | null;
+            /** Format: date-time */
+            flameRiteProposedAt?: string | null;
+            /** Format: date-time */
+            flameRiteAcceptedAt?: string | null;
+            /** Format: date-time */
+            flameRiteCompletedAt?: string | null;
         };
         AdminUserShipDto: {
             /** Format: uuid */
@@ -4490,6 +5203,16 @@ export interface components {
             sessionStatus?: string | null;
             /** Format: date-time */
             rsvpAt?: string;
+        };
+        AttendanceCheckRequestDto: {
+            attended?: boolean;
+        };
+        AttendanceCheckResponse: {
+            attended?: boolean;
+        };
+        AttendanceCheckStatusResponse: {
+            due?: boolean;
+            activityTitle?: string | null;
         };
         BlockedUserResponse: {
             /** Format: uuid */
@@ -4557,6 +5280,8 @@ export interface components {
             bio?: string | null;
             equippedFrameId?: string | null;
             equippedTitleId?: string | null;
+            oath?: string | null;
+            oathProven?: boolean;
         };
         CandidateResponsePagedResponse: {
             items?: components["schemas"]["CandidateResponse"][] | null;
@@ -4616,6 +5341,14 @@ export interface components {
             error?: string | null;
             slotACode?: string | null;
             slotBCode?: string | null;
+        };
+        CreateTownSquareSessionRequest: {
+            /** Format: date-time */
+            rsvpOpensAt?: string;
+            /** Format: date-time */
+            rsvpClosesAt?: string;
+            /** Format: date-time */
+            scheduledStartAt?: string;
         };
         CreateUserRequest: {
             displayName?: string | null;
@@ -4677,6 +5410,24 @@ export interface components {
             /** Format: int32 */
             count?: number;
         };
+        FlameRiteRequestDto: {
+            /** Format: uuid */
+            matchId?: string;
+        };
+        FlameRiteStateResponse: {
+            /** Format: uuid */
+            matchId?: string;
+            /** Format: uuid */
+            proposedByUserId?: string | null;
+            /** Format: date-time */
+            proposedAt?: string | null;
+            /** Format: date-time */
+            acceptedAt?: string | null;
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** Format: int32 */
+            durationMinutes?: number;
+        };
         GhostCheckResponse: {
             status?: string | null;
         };
@@ -4735,6 +5486,17 @@ export interface components {
             videoCallUnlocked?: boolean;
             otherUser?: components["schemas"]["PartialUserProfile"];
             weaverDisplayName?: string | null;
+            /** Format: uuid */
+            flameRiteProposedById?: string | null;
+            /** Format: date-time */
+            flameRiteProposedAt?: string | null;
+            /** Format: date-time */
+            flameRiteAcceptedAt?: string | null;
+            /** Format: date-time */
+            flameRiteCompletedAt?: string | null;
+            /** Format: int32 */
+            flameRiteDurationMinutes?: number;
+            flameRiteRequired?: boolean;
         };
         MatchResponsePagedResponse: {
             items?: components["schemas"]["MatchResponse"][] | null;
@@ -4835,6 +5597,8 @@ export interface components {
             equippedFrameId?: string | null;
             equippedTitleId?: string | null;
             isDeleted?: boolean;
+            oath?: string | null;
+            oathProven?: boolean;
         };
         PendingShipResponse: {
             /** Format: uuid */
@@ -4853,6 +5617,19 @@ export interface components {
             instance?: string | null;
         } & {
             [key: string]: unknown;
+        };
+        PublicShipInviteResponse: {
+            valid?: boolean;
+        };
+        PublicStatsResponse: {
+            /** Format: int32 */
+            activeDatersThisWeek?: number;
+            /** Format: int32 */
+            newBondsThisWeek?: number;
+            /** Format: int32 */
+            datesConfirmedThisWeek?: number;
+            /** Format: date-time */
+            asOf?: string;
         };
         QuestBoardResponse: {
             quests?: components["schemas"]["QuestEntryResponse"][] | null;
@@ -4986,6 +5763,9 @@ export interface components {
             /** Format: int32 */
             awarded?: number;
         };
+        SwearOathRequest: {
+            oath?: string | null;
+        };
         TierThresholdDto: {
             tier?: string | null;
             /** Format: int32 */
@@ -5016,6 +5796,7 @@ export interface components {
             /** Format: int32 */
             myStars?: number | null;
             myMomentPhotoUrl?: string | null;
+            mismatched?: boolean;
         };
         UnmatchResponse: {
             unmatched?: boolean;
@@ -5071,11 +5852,6 @@ export interface components {
             city?: string | null;
             bio?: string | null;
             photoUrls?: string[] | null;
-            /** Format: int32 */
-            totalScore?: number;
-            gemTier?: string | null;
-            /** Format: double */
-            reputationScore?: number;
             membershipLevel?: string | null;
             isProfileComplete?: boolean;
             equippedFrameId?: string | null;
@@ -5094,6 +5870,12 @@ export interface components {
             phoneNumber?: string | null;
             referralCode?: string | null;
             referralRewardItem?: components["schemas"]["DroppedItem"];
+            oath?: string | null;
+            oathProven?: boolean;
+            /** Format: int32 */
+            oathEncountersHeld?: number | null;
+            /** Format: int32 */
+            oathEncountersNeeded?: number | null;
         };
         VideoCompleteDto: {
             /** Format: uuid */

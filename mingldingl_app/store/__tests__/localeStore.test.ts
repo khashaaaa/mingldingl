@@ -2,11 +2,6 @@ import { useLocaleStore } from '../localeStore';
 import { i18n } from '../../lib/i18n';
 import * as localePreference from '../../lib/localePreference';
 
-// setLocale() is the only path Settings uses to switch language now that
-// the switch is instant (no more restart prompt) — it must update i18n.ts
-// synchronously (so a re-render picks it up immediately), persist through
-// localePreference.ts, and update the store (so subscribers, i.e.
-// app/_layout.tsx's AppContent, actually re-render).
 describe('localeStore', () => {
   afterEach(() => {
     jest.restoreAllMocks();

@@ -25,9 +25,14 @@ public class DevControllerIntegrationTests : IntegrationTestBase
 
     private DevController BuildController(bool isDevelopment)
     {
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
         var provider = new ServiceCollection()
             .AddSingleton(Db)
-            .AddSingleton(new ScoreService(Db, new ConfigService()))
+            .AddSingleton(score)
+            .AddSingleton(oaths)
+            .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast()))
             .BuildServiceProvider();
         var sweep = new DailyMaintenanceBackgroundService(
             new SingleProviderScopeFactory(provider),
@@ -48,7 +53,7 @@ public class DevControllerIntegrationTests : IntegrationTestBase
         var userId = Guid.NewGuid();
         var user = NewCompleteUser(userId);
         user.MembershipLevel = "Gold";
-        user.MembershipExpiresAt = DateTime.UtcNow.AddDays(-1); // lapsed
+        user.MembershipExpiresAt = DateTime.UtcNow.AddDays(-1);
         Db.Users.Add(user);
         await Db.SaveChangesAsync();
 
@@ -77,6 +82,6 @@ public class DevControllerIntegrationTests : IntegrationTestBase
         Assert.IsType<NotFoundResult>(result);
         Db.ChangeTracker.Clear();
         var reloaded = await Db.Users.FindAsync(userId);
-        Assert.Equal("Gold", reloaded!.MembershipLevel); // untouched — sweep never ran
+        Assert.Equal("Gold", reloaded!.MembershipLevel);
     }
 }

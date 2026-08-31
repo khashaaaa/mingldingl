@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 [Produces("application/json")]
 public class PhotosController : ControllerBase
 {
-    private const long MaxUploadBytes = 15 * 1024 * 1024; // 15MB — well above any real phone photo
+    private const long MaxUploadBytes = 15 * 1024 * 1024;
     private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif",

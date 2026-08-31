@@ -1,8 +1,3 @@
-// Duration-based pricing for paid membership tiers. Pure function of a
-// tier's existing MonthlyPriceMnt — no separate pricing data to keep in
-// sync as tiers are added/repriced. 1 year was considered too long a
-// commitment for this app's typical time-to-match (2026-07-28 product
-// call), so only 1/3/6 months are offered.
 public static class MembershipPricing
 {
     public static readonly int[] AvailableDurations = [1, 3, 6];

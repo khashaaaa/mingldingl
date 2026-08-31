@@ -2,6 +2,7 @@ import { Modal, Text, View, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { Icon } from '../ui/Icon';
 
 interface Props {
   visible: boolean;
@@ -12,18 +13,12 @@ interface Props {
   onDismiss: () => void;
 }
 
-// A neutral Yes/No prompt, deliberately not built on AlertModal — that
-// component's confirm/cancel pair is styled as "danger action vs cancel"
-// (see AlertModal's own comments), which misrepresents "No, we didn't meet"
-// as a destructive choice rather than a plain, equally-valid answer. No
-// free-text field anywhere — nothing for either side to write about the
-// other, per the No-Show Tracking spec's anti-abuse design.
 export function AttendanceCheckModal({ visible, activityTitle, onYes, onNo, isSubmitting, onDismiss }: Props) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.overlay}>
         <View style={styles.card}>
-          <Text style={styles.sigil}>📍</Text>
+          <Icon name="calendar-check" size={26} color={COLORS.gold} />
           <Text style={styles.title}>{i18n.t('attendance_check_title')}</Text>
           <Text style={styles.question}>
             {i18n.t('attendance_check_question', { activity: activityTitle ?? '' })}

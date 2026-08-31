@@ -35,8 +35,7 @@ export function ChestModal({ visible, xp, item, onDismiss }: Props) {
       Animated.timing(shake, { toValue: 0, duration: 40, useNativeDriver: true }),
       Animated.spring(pop, { toValue: 1, useNativeDriver: true, damping: 9, stiffness: 200 }),
     ]);
-    // `finished` guard: RN passes { finished: false } to stopped animations,
-    // so a run stopped by close/unmount can never fire a stale reveal.
+
     anim.current.start(({ finished }) => { if (finished) { setRevealed(true); setBurst((b) => b + 1); } });
     return () => { anim.current?.stop(); anim.current = null; };
   }, [visible]);

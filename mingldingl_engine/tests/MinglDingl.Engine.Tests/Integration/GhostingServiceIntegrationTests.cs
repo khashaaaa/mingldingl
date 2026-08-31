@@ -1,17 +1,17 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace MinglDingl.Engine.Tests.Integration;
 
-// Verifies the fairness fix end-to-end against real Postgres: only whoever
-// didn't send the last message (the one who owes a reply) takes the
-// GhostPenalty score/reputation hit, not both participants.
 public class GhostingServiceIntegrationTests : IntegrationTestBase
 {
     [Fact]
     public async Task CheckAsync_StaleMatch_PenalizesOnlyWhoeverDidNotSendLastMessage()
     {
-        var replier = NewCompleteUser();   // sent the last message — waiting on a reply
-        var silent = NewCompleteUser();    // never replied — at fault
+        var replier = NewCompleteUser();
+        var silent = NewCompleteUser();
         replier.TotalScore = 50;
-        silent.TotalScore = 50;            // non-zero baseline so the penalty is visible past the Math.Max(0, ...) floor
+        silent.TotalScore = 50;
         Db.Users.AddRange(replier, silent);
 
         var match = new Match
@@ -25,7 +25,10 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         Db.Matches.Add(match);
         await Db.SaveChangesAsync();
 
-        var ghosting = new GhostingService(Db, new ScoreService(Db, new ConfigService()));
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast());
         var result = await ghosting.CheckAsync(match);
 
         Assert.True(result);
@@ -59,7 +62,10 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         Db.Matches.Add(match);
         await Db.SaveChangesAsync();
 
-        var ghosting = new GhostingService(Db, new ScoreService(Db, new ConfigService()));
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast());
         var result = await ghosting.CheckAsync(match);
 
         Assert.True(result);
@@ -70,5 +76,117 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
 
         Assert.Equal(0, userA.TotalScore);
         Assert.Equal(0, userB.TotalScore);
+    }
+
+    [Fact]
+    public async Task CheckAsync_AtFaultUserWasProvenInsideTheWindow_DemotesThemImmediately()
+    {
+        var replier = NewCompleteUser();
+        var silent = NewCompleteUser();
+        silent.Oath = "Bond";
+        silent.OathSwornAt = DateTime.UtcNow.AddDays(-10);
+        silent.OathProven = true;
+        Db.Users.AddRange(replier, silent);
+
+        var match = new Match
+        {
+            InitiatorId = replier.Id,
+            ReceiverId = silent.Id,
+            Status = "Active",
+            LastMessageAt = DateTime.UtcNow.AddHours(-49),
+            LastMessageSenderId = replier.Id,
+        };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast());
+        await ghosting.CheckAsync(match);
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Users.AsNoTracking().SingleAsync(u => u.Id == silent.Id);
+        Assert.False(reloaded.OathProven);
+    }
+
+    [Fact]
+    public async Task CheckAsync_SecondCheckOnSameStaleMatch_DoesNotPenalizeTwice()
+    {
+        var replier = NewCompleteUser();
+        var silent = NewCompleteUser();
+        silent.TotalScore = 50;
+        Db.Users.AddRange(replier, silent);
+
+        var match = new Match
+        {
+            InitiatorId = replier.Id,
+            ReceiverId = silent.Id,
+            Status = "Active",
+            MessageCount = 20,
+            LastMessageAt = DateTime.UtcNow.AddHours(-49),
+            LastMessageSenderId = replier.Id,
+        };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast());
+
+        Assert.True(await ghosting.CheckAsync(match));
+
+        var staleCopy = new Match
+        {
+            Id = match.Id,
+            InitiatorId = match.InitiatorId,
+            ReceiverId = match.ReceiverId,
+            Status = "Active",
+            MessageCount = match.MessageCount,
+            LastMessageAt = match.LastMessageAt,
+            LastMessageSenderId = match.LastMessageSenderId,
+        };
+        Assert.False(await ghosting.CheckAsync(staleCopy));
+
+        await Db.Entry(silent).ReloadAsync();
+        Assert.Equal(35, silent.TotalScore);
+        Assert.Equal(0.9m, silent.ReputationScore);
+        Assert.Equal(1, await Db.ScoreEvents.AsNoTracking()
+            .CountAsync(e => e.UserId == silent.Id && e.EventType == "GhostPenalty"));
+    }
+
+    [Fact]
+    public async Task CheckAsync_GhostingMatch_FreezesEarnedRevealLevel()
+    {
+        var replier = NewCompleteUser();
+        var silent = NewCompleteUser();
+        Db.Users.AddRange(replier, silent);
+
+        var match = new Match
+        {
+            InitiatorId = replier.Id,
+            ReceiverId = silent.Id,
+            Status = "Active",
+            RevealLevel = 1,
+            MessageCount = 20,
+            LastMessageAt = DateTime.UtcNow.AddHours(-49),
+            LastMessageSenderId = replier.Id,
+        };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast());
+
+        Assert.True(await ghosting.CheckAsync(match));
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Matches.AsNoTracking().SingleAsync(m => m.Id == match.Id);
+        Assert.Equal("Ghosted", reloaded.Status);
+        Assert.Equal(3, reloaded.RevealLevel);
+        Assert.Equal(3, RevealService.GetRevealLevel(reloaded));
     }
 }

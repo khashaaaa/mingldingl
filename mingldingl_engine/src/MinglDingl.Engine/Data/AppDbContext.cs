@@ -44,29 +44,22 @@ public class AppDbContext : DbContext
             m.Property(x => x.SenderId).HasColumnName("sender_id");
             m.Property(x => x.Content).HasColumnName("content");
             m.Property(x => x.CreatedAt).HasColumnName("created_at");
-            // Message has no navigation property to Match, so EF's FK-convention
-            // auto-indexing never covered MatchId — every GetMessages call and
-            // every SendMessage's lastMessage lookup was doing an unindexed scan
-            // over the entire table (not just this match's rows), on the single
-            // highest-frequency action in the app. CreatedAt trails in the same
-            // index since both hot queries filter on MatchId then order by it.
+
             m.HasIndex(x => new { x.MatchId, x.CreatedAt });
         });
         b.Entity<User>().Property(u => u.PhotoUrls).HasColumnType("jsonb");
         b.Entity<User>().Property(u => u.ReputationScore).HasPrecision(4, 2);
         b.Entity<User>().HasIndex(u => u.PhoneNumber).IsUnique();
         b.Entity<User>().HasIndex(u => u.ReferralCode).IsUnique();
-        // Covers MatchesController.GetCandidates' hot filter combo (opposite-sex
-        // discovery: exclude paused/deleted, then narrow by gender) in one index
-        // rather than one single-column index per field — Age is deliberately
-        // left out since it's a range predicate (>=/<=), which can't use a later
-        // composite column as an equality seek anyway once an inequality on an
-        // earlier column is hit.
+
         b.Entity<User>().HasIndex(u => new { u.Gender, u.IsPaused, u.DeletionRequestedAt });
-        // ScoresController.GetLeaderboard filters WHERE City = ... ORDER BY
-        // TotalScore DESC — a composite in that order serves both the equality
-        // filter and the sort in one index.
+
         b.Entity<User>().HasIndex(u => new { u.City, u.TotalScore });
+
+        b.Entity<User>().HasIndex(u => u.CreatedAt);
+
+        b.Entity<ScoreEvent>().HasIndex(e => new { e.CreatedAt, e.EventType });
+        b.Entity<AdminAuditLog>().HasIndex(l => l.CreatedAt);
         b.Entity<Match>().HasOne(m => m.Initiator).WithMany(u => u.InitiatedMatches).HasForeignKey(m => m.InitiatorId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<Match>().HasOne(m => m.Receiver).WithMany(u => u.ReceivedMatches).HasForeignKey(m => m.ReceiverId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<BusinessPartner>().Property(p => p.PhotoUrls).HasColumnType("jsonb");
@@ -79,17 +72,11 @@ public class AppDbContext : DbContext
         b.Entity<Referral>().HasIndex(r => r.InviteeUserId).IsUnique();
         b.Entity<UserMilestone>().HasIndex(m => new { m.UserId, m.MilestoneId }).IsUnique();
         b.Entity<PushToken>().HasIndex(t => t.Token).IsUnique();
-        // Both controllers do a check-then-insert (existing-response? then Add) with no
-        // DB-level guard — the same TOCTOU shape as the RequestMatch/SendMessage races
-        // found via stress test. These indexes are the real guard; call sites catch the
-        // violation instead of relying on the check alone.
+
         b.Entity<IcebreakerResponse>().HasIndex(r => new { r.MatchId, r.IcebreakerId, r.UserId }).IsUnique();
         b.Entity<QuizResponse>().HasIndex(r => new { r.QuizId, r.UserId, r.MatchId }).IsUnique();
         b.Entity<BlockedUser>().HasIndex(r => new { r.BlockerId, r.BlockedId }).IsUnique();
-        // Same check-then-insert TOCTOU shape as IcebreakerResponse/QuizResponse above:
-        // BusinessController.Rate had no DB guard, so the same user could spam ratings
-        // for the same business/match. This index is the real guard; Rate catches the
-        // violation and returns 409 instead of a 500.
+
         b.Entity<BusinessRating>().HasIndex(r => new { r.BusinessPartnerId, r.UserId, r.MatchId }).IsUnique();
         b.Entity<ContentPage>().HasIndex(c => c.Slug).IsUnique();
         b.Entity<AdminConfig>().HasKey(c => c.Key);

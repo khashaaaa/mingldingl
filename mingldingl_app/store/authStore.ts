@@ -15,16 +15,15 @@ interface AuthState {
   setPendingTierUp: (tier: string | null) => void;
   pendingNudge: { icon: string; title: string; matchId: string } | null;
   setPendingNudge: (nudge: { icon: string; title: string; matchId: string } | null) => void;
+
   activeChatMatchId: string | null;
-  setActiveChatMatchId: (matchId: string | null) => void;
+
+  activeChatStack: string[];
+  pushActiveChat: (matchId: string) => void;
+  popActiveChat: (matchId: string) => void;
   clearSession: () => void;
 }
 
-// The persisted session (Supabase's full JWT + refresh token + user
-// metadata) regularly exceeds SecureStore's 2048-byte per-item limit —
-// same reasoning as lib/supabase.ts, which this mirrors so a write here
-// can't silently fail (setItemAsync rejects above the limit, and zustand's
-// persist middleware never surfaces that rejection).
 const secureStorage = createJSONStorage(() => createChunkedStore({
   getItem:    (key: string) => SecureStore.getItemAsync(key),
   setItem:    (key: string, value: string) => SecureStore.setItemAsync(key, value),
@@ -45,23 +44,22 @@ export const useAuthStore = create<AuthState>()(
       pendingNudge: null,
       setPendingNudge: (nudge) => set({ pendingNudge: nudge }),
       activeChatMatchId: null,
-      setActiveChatMatchId: (matchId) => set({ activeChatMatchId: matchId }),
-      clearSession: () => set({ session: null, streakBonusPending: false, pendingDrop: null, pendingTierUp: null, pendingNudge: null, activeChatMatchId: null }),
+      activeChatStack: [],
+      pushActiveChat: (matchId) => set((s) => {
+        const stack = [...s.activeChatStack, matchId];
+        return { activeChatStack: stack, activeChatMatchId: stack[stack.length - 1] ?? null };
+      }),
+      popActiveChat: (matchId) => set((s) => {
+        const stack = [...s.activeChatStack];
+        const idx = stack.lastIndexOf(matchId);
+        if (idx !== -1) stack.splice(idx, 1);
+        return { activeChatStack: stack, activeChatMatchId: stack[stack.length - 1] ?? null };
+      }),
+      clearSession: () => set({ session: null, streakBonusPending: false, pendingDrop: null, pendingTierUp: null, pendingNudge: null, activeChatMatchId: null, activeChatStack: [] }),
     }),
     {
       name: 'auth-store',
       storage: secureStorage,
-      // Only session/auth state is meant to survive a restart. The rest
-      // (streakBonusPending, pendingDrop/pendingTierUp/pendingNudge,
-      // activeChatMatchId) are one-shot, ephemeral UI signals — set on some
-      // event and cleared moments later by whichever screen consumes them.
-      // Without partialize, persist() writes ALL of them to SecureStore on
-      // every set() and rehydrates them on next launch. Concretely: if the
-      // OS kills the app while a chat is open, app/chat/[matchId].tsx's
-      // unmount cleanup (which clears activeChatMatchId) never runs, so the
-      // stale matchId persists into the next session — and
-      // usePushNotifications.ts then treats that match as "currently being
-      // viewed" and suppresses its push notifications indefinitely.
       partialize: (state) => ({ session: state.session }),
     },
   ),

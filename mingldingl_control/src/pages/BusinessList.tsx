@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { Pagination } from '@/components/Pagination';
 
 const PAGE_SIZE = 20;
@@ -30,14 +31,16 @@ export function BusinessList() {
   const [exporting, setExporting] = useState(false);
   const qc = useQueryClient();
   const { toast } = useToast();
+  const debouncedSearch = useDebouncedValue(search);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: queryKeys.business(search, page),
-    queryFn: () => apiClient.business.list(search, page, PAGE_SIZE),
+    queryKey: queryKeys.business(debouncedSearch, page),
+    queryFn: () => apiClient.business.list(debouncedSearch, page, PAGE_SIZE),
   });
 
   function invalidateList() {
-    qc.invalidateQueries({ queryKey: queryKeys.business(search, page) });
+    qc.invalidateQueries({ queryKey: ['business'] });
+    qc.invalidateQueries({ queryKey: ['businessDetail'] });
   }
 
   const remove = useMutation({
@@ -82,6 +85,8 @@ export function BusinessList() {
     try {
       const blob = await apiClient.business.export(search);
       downloadBlob(blob, 'business-partners.csv');
+    } catch {
+      toast({ variant: 'destructive', description: 'Export failed — try again.' });
     } finally {
       setExporting(false);
     }
@@ -110,6 +115,7 @@ export function BusinessList() {
         onChange={(e) => {
           setSearch(e.target.value);
           setPage(1);
+          setSelected(new Set());
         }}
       />
 
@@ -191,7 +197,15 @@ export function BusinessList() {
             </Table>
           </div>
 
-          <Pagination page={data.page ?? 1} totalCount={data.totalCount ?? 0} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          <Pagination
+            page={data.page ?? 1}
+            totalCount={data.totalCount ?? 0}
+            pageSize={PAGE_SIZE}
+            onPageChange={(p) => {
+              setPage(p);
+              setSelected(new Set());
+            }}
+          />
         </>
       )}
 

@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { Spinner } from 'tamagui';
 import { useMyTrophies } from '../hooks/useMyTrophies';
 import { GameHeader } from '../components/ui/GameHeader';
+import { GameButton } from '../components/ui/GameButton';
 import { AppCard } from '../components/ui/AppCard';
 import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { i18n } from '../lib/i18n';
@@ -10,6 +11,7 @@ import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
 import { COLORS, FONTS, RADIUS } from '../lib/theme';
 import type { Trophy } from '../models/trophy';
+import { Icon } from '../components/ui/Icon';
 
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
@@ -32,7 +34,11 @@ function TrophyRow({ trophy }: { trophy: Trophy }) {
           {trophy.mismatched ? (
             <Text style={styles.unrated}>{i18n.t('date_log_unconfirmed')}</Text>
           ) : trophy.myStars ? (
-            <Text style={styles.stars}>{'⭐'.repeat(trophy.myStars)}</Text>
+            <View style={styles.starsRow}>
+              {Array.from({ length: trophy.myStars }).map((_, i) => (
+                <Icon key={i} name="star" size={13} color={COLORS.gold} />
+              ))}
+            </View>
           ) : (
             <Text style={styles.unrated}>{i18n.t('date_log_unrated')}</Text>
           )}
@@ -43,16 +49,22 @@ function TrophyRow({ trophy }: { trophy: Trophy }) {
 }
 
 export default function DateLogScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
-  const { data: trophies, isLoading } = useMyTrophies();
+  useLocaleStore((s) => s.locale);
+  const { data: trophies, isLoading, isError, refetch } = useMyTrophies();
 
   return (
     <View style={styles.screen}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <GameHeader title={i18n.t('date_log_title')} icon="book-heart" showBack toastBottomOffset={0} />
+      <GameHeader title={i18n.t('date_log_title')} icon="book-heart" showBack />
       {isLoading ? (
         <View style={styles.centered}>
           <Spinner color="$gold" />
+        </View>
+      ) : isError ? (
+        <View style={styles.errorWrap}>
+          <Icon name="alert-circle-outline" size={32} color={COLORS.bronze} />
+          <Text style={styles.errorText}>{i18n.t('screen_load_error')}</Text>
+          <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
         </View>
       ) : (
         <FlatList
@@ -70,6 +82,8 @@ export default function DateLogScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
+  errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: 16, textAlign: 'center' },
   list: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20 },
   empty: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 14, textAlign: 'center' },
@@ -81,6 +95,7 @@ const styles = StyleSheet.create({
   title: { color: COLORS.text, fontFamily: FONTS.bodyBold, fontSize: 15 },
   subtitle: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 12 },
   date: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 11 },
+  starsRow: { flexDirection: 'row', gap: 2 },
   stars: { fontSize: 13, marginTop: 2 },
   unrated: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 11, fontStyle: 'italic', marginTop: 2 },
 });

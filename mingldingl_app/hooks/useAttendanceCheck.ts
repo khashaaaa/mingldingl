@@ -18,9 +18,6 @@ export function useAttendanceCheck(matchId: string) {
   const submitMutation = useMutation({
     mutationFn: (attended: boolean) => apiClient.activities.attendanceCheckSubmit(matchId, { attended }),
     onSuccess: () => {
-      // Regardless of the answer, this match's attendance check is now
-      // resolved for this user — clear the "due" state locally instead of
-      // waiting out staleTime, so the banner/modal disappear immediately.
       qc.setQueryData(queryKeys.attendanceCheck(matchId), { due: false, activityTitle: null });
     },
   });

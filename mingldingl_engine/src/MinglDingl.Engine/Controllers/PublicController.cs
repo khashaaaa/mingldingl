@@ -1,13 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-// Deliberately outside [Authorize] — no fallback authorization policy is
-// configured (Program.cs's AddAuthorization() call takes no options), so an
-// action with no [Authorize] attribute is public by default, same as
-// HealthController. This is the only public-facing (non-admin, non-app-user)
-// surface in the engine: a momentum/social-proof page for prospective users
-// who aren't signed in yet, so it can't live behind the app's own routing
-// (app/_layout.tsx hard-redirects any unauthenticated visitor to phone auth).
 [ApiController]
 [Route("public")]
 public class PublicController : ControllerBase
@@ -29,10 +22,6 @@ public class PublicController : ControllerBase
 
         int newBonds = await _db.Matches.CountAsync(m => m.CreatedAt >= since);
 
-        // DateConfirmed is awarded to both participants (ActivityService.AwardManyAsync),
-        // so the raw event count is exactly double the number of actual
-        // confirmed dates — halved here rather than trying to derive a
-        // distinct-match count from ScoreEvents, which has no MatchId column.
         int dateConfirmedEvents = await _db.ScoreEvents
             .CountAsync(e => e.EventType == "DateConfirmed" && e.CreatedAt >= since);
 
@@ -49,10 +38,6 @@ public class PublicController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(code)) return Ok(new PublicShipInviteResponse(false));
 
-        // Same validity condition ShipService.TryResolveInviteCodeAsync uses
-        // at actual redemption time — this is a read-only preview, so it
-        // deliberately mirrors that check instead of duplicating separate
-        // expiry logic that could drift out of sync with it.
         var normalized = code.ToUpperInvariant();
         bool valid = await _db.Ships.AnyAsync(s =>
             s.Status == "Pending" && (s.SlotAInviteCode == normalized || s.SlotBInviteCode == normalized));
@@ -179,7 +164,7 @@ public class PublicController : ControllerBase
               '<h1>A Thread Has Been Woven</h1>' +
               '<p class="sub">A friend on MingldIngl thinks you two would hit it off. Open the app and enter this code to find out who.</p>' +
               '<div class="code-card"><div class="code-label">YOUR CODE</div><div class="code">' + code + '</div></div>' +
-              '<a class="cta" href="mingldingl://">Open in MingldIngl</a>' +
+              '<a class="cta" href="mingldingl:
               '<p class="fallback">Don\'t have the app yet? Ask the friend who sent this, or check back soon.</p>';
           }
 

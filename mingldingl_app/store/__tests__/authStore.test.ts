@@ -1,20 +1,11 @@
 import { useAuthStore } from '../authStore';
 
-// Ephemeral UI-only fields must NOT survive a restart via SecureStore
-// persistence. Concrete regression this guards against: app/chat/[matchId]
-// sets activeChatMatchId on mount and clears it on unmount, but if the OS
-// kills the app while a chat is open, that cleanup never runs. If
-// activeChatMatchId were persisted, the stale matchId would rehydrate on
-// next launch and usePushNotifications.ts would suppress that match's push
-// notifications indefinitely, believing the user is still viewing it.
 describe('authStore persist config', () => {
   const fakeSession = { access_token: 'tok', user: { id: 'u1' } } as any;
 
   function partialize(state: ReturnType<typeof useAuthStore.getState>) {
     const fn = useAuthStore.persist.getOptions().partialize;
-    // Falls back to identity if no partialize is configured, mirroring
-    // zustand's own default — this makes the assertions below fail loudly
-    // (rather than silently no-op) if partialize is ever removed.
+
     return fn ? fn(state) : state;
   }
 
@@ -43,5 +34,70 @@ describe('authStore persist config', () => {
     expect(persisted).not.toHaveProperty('pendingTierUp');
     expect(persisted).not.toHaveProperty('pendingNudge');
     expect(persisted).not.toHaveProperty('activeChatMatchId');
+    expect(persisted).not.toHaveProperty('activeChatStack');
+  });
+});
+
+describe('authStore active chat stack', () => {
+  beforeEach(() => {
+    useAuthStore.setState({ activeChatMatchId: null, activeChatStack: [] });
+  });
+
+  it('reflects the top of the stack as chats push and pop in LIFO order', () => {
+    const s = () => useAuthStore.getState();
+
+    s().pushActiveChat('A');
+    expect(s().activeChatMatchId).toBe('A');
+
+    s().pushActiveChat('B');
+    expect(s().activeChatMatchId).toBe('B');
+
+    s().popActiveChat('B');
+    expect(s().activeChatMatchId).toBe('A');
+
+    s().popActiveChat('A');
+    expect(s().activeChatMatchId).toBeNull();
+  });
+
+  it('keeps the top intact when a lower entry pops out of order', () => {
+    const s = () => useAuthStore.getState();
+    s().pushActiveChat('A');
+    s().pushActiveChat('B');
+
+    s().popActiveChat('A');
+    expect(s().activeChatMatchId).toBe('B');
+
+    s().popActiveChat('B');
+    expect(s().activeChatMatchId).toBeNull();
+  });
+
+  it('removes only one occurrence when the same chat appears twice', () => {
+    const s = () => useAuthStore.getState();
+    s().pushActiveChat('A');
+    s().pushActiveChat('A');
+
+    s().popActiveChat('A');
+    expect(s().activeChatMatchId).toBe('A');
+
+    s().popActiveChat('A');
+    expect(s().activeChatMatchId).toBeNull();
+  });
+
+  it('tolerates popping a matchId that is not on the stack', () => {
+    const s = () => useAuthStore.getState();
+    s().pushActiveChat('A');
+
+    s().popActiveChat('ghost');
+    expect(s().activeChatMatchId).toBe('A');
+  });
+
+  it('clearSession resets the stack and the derived field', () => {
+    const s = () => useAuthStore.getState();
+    s().pushActiveChat('A');
+    s().pushActiveChat('B');
+
+    s().clearSession();
+    expect(s().activeChatMatchId).toBeNull();
+    expect(s().activeChatStack).toEqual([]);
   });
 });

@@ -4,10 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
-// Fake-OTP login mints a new Supabase auth id every time (no real SMS
-// verification), so returning users must be recognized by the phone number
-// carried in the JWT's user_metadata claim, not by auth id. These exercise
-// CurrentUserMiddleware's DB-backed alias path against real Postgres.
 public class CurrentUserMiddlewarePhoneAliasTests : IntegrationTestBase
 {
     private HttpContext BuildContext(Guid authId, string? phone)
@@ -32,7 +28,7 @@ public class CurrentUserMiddlewarePhoneAliasTests : IntegrationTestBase
         await Db.SaveChangesAsync();
         Db.ChangeTracker.Clear();
 
-        var newAuthId = Guid.NewGuid(); // a fresh anonymous sign-in for the same phone
+        var newAuthId = Guid.NewGuid();
         var context = BuildContext(newAuthId, "88112233");
         var middleware = new CurrentUserMiddleware(_ => Task.CompletedTask);
 

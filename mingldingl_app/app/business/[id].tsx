@@ -9,11 +9,12 @@ import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { Icon } from '../../components/ui/Icon';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function BusinessDetailScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const params = useLocalSearchParams<{
     id: string;
     name?: string;
@@ -40,7 +41,8 @@ export default function BusinessDetailScreen() {
 
         <View style={styles.metaRow}>
           <Text style={styles.meta}>{params.category} · {params.district}</Text>
-          <Text style={styles.rating}>⭐ {Number(params.averageRating ?? 0).toFixed(1)} ({params.ratingCount ?? 0})</Text>
+          <Icon name="star" size={14} color={COLORS.gold} />
+          <Text style={styles.rating}>{Number(params.averageRating ?? 0).toFixed(1)} ({params.ratingCount ?? 0})</Text>
         </View>
 
         {params.description ? <Text style={styles.description}>{params.description}</Text> : null}
@@ -62,7 +64,11 @@ export default function BusinessDetailScreen() {
                 {r.photoUrl && (
                   <Image source={{ uri: r.photoUrl }} style={styles.reviewPhoto} contentFit="cover" />
                 )}
-                <Text style={styles.reviewStars}>{'⭐'.repeat(r.stars)}</Text>
+                <View style={styles.reviewStarsRow}>
+                  {Array.from({ length: r.stars }).map((_, i) => (
+                    <Icon key={i} name="star" size={12} color={COLORS.gold} />
+                  ))}
+                </View>
                 {r.review ? <Text style={styles.reviewText}>{r.review}</Text> : null}
               </AppCard>
             ))}
@@ -95,6 +101,7 @@ const styles = StyleSheet.create({
   reviewList: { paddingHorizontal: 20, gap: 12 },
   reviewCard: { padding: 12, gap: 8 },
   reviewPhoto: { width: '100%', height: 160, borderRadius: RADIUS.sm },
+  reviewStarsRow: { flexDirection: 'row', gap: 2 },
   reviewStars: { fontSize: 14 },
   reviewText: { color: COLORS.text, fontSize: 14, fontFamily: FONTS.body, lineHeight: 19 },
 });

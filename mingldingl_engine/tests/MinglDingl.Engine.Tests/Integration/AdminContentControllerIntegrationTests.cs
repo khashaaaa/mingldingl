@@ -6,10 +6,6 @@ public class AdminContentControllerIntegrationTests : IntegrationTestBase
 {
     private AdminContentController BuildController() => new(Db, new AdminAuditService(Db));
 
-    // Slugs are fixed/seeded via migration (see ContentPage.cs) — the shared
-    // dev Postgres these integration tests run against already has real
-    // terms/privacy/guides rows, so tests use a test-only slug rather than
-    // colliding with (or depending on the exact content of) the real ones.
     private const string TestSlug = "integration-test-page";
 
     [Fact]

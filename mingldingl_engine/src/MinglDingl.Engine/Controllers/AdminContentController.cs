@@ -2,10 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-// The write side of ContentController — see that controller's own comment
-// ("No write endpoint yet... until an admin dashboard exists to edit them").
-// Slugs (terms/privacy/guides) are fixed and seeded via migration — no
-// create/delete here, only editing the title/body of the existing three.
 [ApiController]
 [Route("admin/content")]
 [Authorize(AuthenticationSchemes = "AdminBearer")]

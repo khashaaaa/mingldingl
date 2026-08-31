@@ -2,6 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { i18n } from '../../lib/i18n';
 import { AppCard } from '../ui/AppCard';
 import { COLORS, FONTS } from '../../lib/theme';
+import { Icon } from '../ui/Icon';
 
 interface Props {
   currentStreak: number;
@@ -14,7 +15,7 @@ export function StreakSummary({ currentStreak, longestStreak }: Props) {
       <View style={styles.row}>
         <View style={styles.stat}>
           <Text style={styles.label}>{i18n.t('streak_current')}</Text>
-          <Text style={styles.value}>{currentStreak >= 2 ? `🔥${currentStreak}` : currentStreak}</Text>
+          <Text style={styles.value}>{currentStreak}</Text>
         </View>
         <View style={styles.stat}>
           <Text style={styles.label}>{i18n.t('streak_longest')}</Text>

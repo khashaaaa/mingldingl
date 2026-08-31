@@ -10,10 +10,6 @@ export type NextAction =
   | { kind: 'quest_progress'; progress: number; target: number }
   | { kind: 'streak'; days: number };
 
-// Reduces the score/tier/reputation/membership/quest stack down to a single
-// "what do I do right now" prompt, picked in priority order from data the
-// app already fetches elsewhere (no new network calls). Returns null once
-// there's genuinely nothing actionable to surface.
 export function useNextAction(): NextAction | null {
   const { data: profile } = useProfile();
   const { data: matches } = useMatches();

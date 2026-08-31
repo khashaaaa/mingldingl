@@ -9,8 +9,7 @@ interface Props { width: number; height: number; }
 
 export function FogDrift({ width, height }: Props) {
   const level = useVfxLevel();
-  // Gate before any Reanimated/Skia hook runs, not just before the JSX
-  // renders — see the identical fix in ChestBurst.tsx for why.
+
   if (level !== 'full' || width === 0) return null;
   return <SkiaFogDrift width={width} height={height} />;
 }

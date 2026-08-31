@@ -40,4 +40,9 @@ describe('ScreenHeader', () => {
     fireEvent.press(getByText('←'));
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
+
+  it('labels the back arrow for screen readers via i18n', () => {
+    const { getByLabelText } = render(<ScreenHeader title="Guild Rank" />);
+    expect(getByLabelText('Back')).toBeTruthy();
+  });
 });

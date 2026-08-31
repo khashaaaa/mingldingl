@@ -9,16 +9,12 @@ export interface VideoToken {
   appId: string;
 }
 
-// Maps the engine's raw error strings (VideoController) to i18n keys, same
-// pattern as ship/new.tsx's SHIP_ERROR_I18N_KEYS — getApiErrorMessage's
-// fallback-to-raw-string behavior is fine for developer-facing errors, but
-// this one is rendered directly to the user and was always showing in
-// English regardless of app locale.
 const VIDEO_ERROR_I18N_KEYS: Record<string, string> = {
   'Match not found': 'video_error_match_not_found',
   'Video call not unlocked for this match': 'video_error_not_unlocked',
   'You are not a participant in this match': 'video_error_not_participant',
   'Video call reward already claimed for this match': 'video_error_reward_claimed',
+  'The Flame Rite has not been accepted for this match': 'video_error_rite_not_accepted',
 };
 
 export function useVideoCall(matchId: string) {

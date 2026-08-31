@@ -5,8 +5,6 @@ public class UserPersistenceIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task AddingUser_WithPhotoUrls_RoundTripsThroughJsonbColumn()
     {
-        // Regression test: Npgsql needs EnableDynamicJson() for List<string> <-> jsonb.
-        // Without it, this throws NotSupportedException at SaveChangesAsync.
         var user = NewCompleteUser();
         Db.Users.Add(user);
 
@@ -21,9 +19,6 @@ public class UserPersistenceIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task SavingScoreEvent_ForNewlyAddedUser_DoesNotViolateForeignKey()
     {
-        // Regression test: a ScoreEvent referencing a User that was only
-        // Update()'d (not Add()'d) violates the FK because the user row was
-        // never actually inserted. This exercises the real FK constraint.
         var user = NewCompleteUser();
         Db.Users.Add(user);
         Db.ScoreEvents.Add(new ScoreEvent { UserId = user.Id, EventType = "ProfileComplete", Delta = 100 });

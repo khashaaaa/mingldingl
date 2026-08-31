@@ -61,9 +61,6 @@ public class BusinessControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task Rate_CallerNotParticipantInMatch_ReturnsForbidden()
     {
-        // Bug 2, problem 1 (IDOR): Rate never checked that the caller was a
-        // participant of the supplied matchId — anyone could rate any business
-        // under any matchId they made up.
         var initiatorId = Guid.NewGuid();
         var receiverId = Guid.NewGuid();
         var match = await SeedMatchAsync(initiatorId, receiverId);
@@ -85,10 +82,6 @@ public class BusinessControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task Rate_SameUserSameMatchTwice_SecondCallReturnsConflict()
     {
-        // Bug 2, problem 2 (no uniqueness constraint): the same user could call
-        // Rate repeatedly for the same business/match and spam ratings. The new
-        // unique index on (BusinessPartnerId, UserId, MatchId) is the real guard;
-        // the controller turns the violation into a 409 instead of a 500.
         var initiatorId = Guid.NewGuid();
         var receiverId = Guid.NewGuid();
         var match = await SeedMatchAsync(initiatorId, receiverId);
@@ -112,16 +105,6 @@ public class BusinessControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task Rate_RecomputesAverageAndCountAtomicallyFromSourceOfTruth()
     {
-        // Bug 2, problem 3 (lost-update race): the old code computed
-        // business.RatingCount++ / AverageRating from the in-memory business
-        // entity, trusting the denormalized counters rather than the actual
-        // BusinessRatings rows. To make the drift this causes under concurrency
-        // deterministic and testable without real parallel requests, seed the
-        // BusinessPartner's counters as already-stale (as they would be after a
-        // lost update) relative to two BusinessRatings rows that already exist
-        // in the DB, then rate a third time. The fix must recompute RatingCount
-        // and AverageRating straight from BusinessRatings (COUNT/AVG), not trust
-        // or increment the stale denormalized fields.
         var userAId = Guid.NewGuid();
         var userBId = Guid.NewGuid();
         var userCId = Guid.NewGuid();
@@ -130,8 +113,7 @@ public class BusinessControllerIntegrationTests : IntegrationTestBase
         var matchC = await SeedMatchAsync(userCId, Guid.NewGuid());
 
         var business = await SeedBusinessAsync();
-        // Stale denormalized counters — as if a previous lost update dropped one
-        // of the two existing ratings from the running count/average.
+
         business.RatingCount = 0;
         business.AverageRating = 0;
 
@@ -147,9 +129,6 @@ public class BusinessControllerIntegrationTests : IntegrationTestBase
         var ok = Assert.IsType<OkObjectResult>(result);
         var body = Assert.IsType<RateBusinessResponse>(ok.Value);
 
-        // Source of truth: 3 rows (5, 3, 4) -> count 3, average 4.0. A naive
-        // increment from the stale counters (0 -> 1, avg (0*0+4)/1) would give
-        // count 1 / average 4 instead.
         Assert.Equal(3, body.RatingCount);
         Assert.Equal(4.0m, body.AverageRating);
 

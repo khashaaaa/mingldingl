@@ -1,12 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 
-// Single in-memory source of truth for admin-tunable values that used to be
-// hardcoded C# constants (tier thresholds, pricing, quest definitions, ...).
-// Registered as a Singleton so the cache is shared across requests instead
-// of reloading from the DB every request — AdminConfigController writes
-// directly into this cache after each DB update, so there's no polling or
-// propagation delay on this single-instance deployment.
 public class ConfigService
 {
     private readonly ConcurrentDictionary<string, string> _cache = new();

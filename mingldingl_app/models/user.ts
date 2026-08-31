@@ -1,7 +1,9 @@
 import type { components } from '../lib/api/api.generated';
 
 export type GemTier = 'Garnet' | 'Opal' | 'Amethyst' | 'Sapphire' | 'Ruby' | 'Emerald';
-export type MembershipLevel = 'Free' | 'Silver' | 'Gold' | 'Platinum';
+export type MembershipLevel = 'Free' | 'Silver' | 'Gold';
+
+export type Oath = 'Bond' | 'Fate' | 'Kinship';
 
 export interface UserProfile {
   id: string;
@@ -11,9 +13,7 @@ export interface UserProfile {
   city: string;
   bio: string;
   photoUrls: string[];
-  totalScore: number;
-  gemTier: GemTier;
-  reputationScore: number;
+
   membershipLevel: MembershipLevel;
   isProfileComplete: boolean;
   equippedFrameId?: string | null;
@@ -29,7 +29,14 @@ export interface UserProfile {
   isPaused: boolean;
   phoneNumber?: string | null;
   referralCode?: string | null;
+  oath: Oath | null;
+  oathProven: boolean;
+
+  oathEncountersHeld: number | null;
+  oathEncountersNeeded: number | null;
 }
+
+export type Candidate = UserProfile & { gemTier: GemTier };
 
 export function parseUserProfile(d: components['schemas']['UserResponse']): UserProfile {
   return {
@@ -40,9 +47,6 @@ export function parseUserProfile(d: components['schemas']['UserResponse']): User
     city:             d.city               ?? '',
     bio:              d.bio                ?? '',
     photoUrls:        d.photoUrls          ?? [],
-    totalScore:       d.totalScore         ?? 0,
-    gemTier:          (d.gemTier as GemTier) ?? 'Garnet',
-    reputationScore:  d.reputationScore    ?? 0,
     membershipLevel:  (d.membershipLevel as MembershipLevel) ?? 'Free',
     isProfileComplete: d.isProfileComplete ?? false,
     equippedFrameId:  d.equippedFrameId    ?? null,
@@ -58,5 +62,9 @@ export function parseUserProfile(d: components['schemas']['UserResponse']): User
     isPaused:         d.isPaused           ?? false,
     phoneNumber:      d.phoneNumber        ?? null,
     referralCode:     d.referralCode       ?? null,
+    oath:             (d.oath as Oath | undefined) ?? null,
+    oathProven:       d.oathProven         ?? false,
+    oathEncountersHeld:   d.oathEncountersHeld   ?? null,
+    oathEncountersNeeded: d.oathEncountersNeeded ?? null,
   };
 }

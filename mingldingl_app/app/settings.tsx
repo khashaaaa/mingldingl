@@ -29,12 +29,6 @@ export default function SettingsScreen() {
   const { data: profile } = useProfile();
   const queryClient = useQueryClient();
 
-  // React Navigation wraps each screen's rendered content in its own
-  // React.memo (StaticContainer, in @react-navigation/core) specifically to
-  // stop ancestor re-renders from reaching mounted screens — so this screen
-  // must subscribe to `locale` itself to relabel the instant the toggle
-  // below is pressed; a root-level subscription (app/_layout.tsx) alone
-  // never reaches in here.
   const locale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
 
@@ -46,11 +40,6 @@ export default function SettingsScreen() {
   const [ageMaxInput, setAgeMaxInput] = useState(String(profile?.ageMax ?? 99));
   const [ageRangeError, setAgeRangeError] = useState(false);
 
-  // Mirrors edit-profile.tsx: ageMin/ageMaxInput are seeded from `profile` at
-  // mount only, so if this screen is reached before useProfile()'s query
-  // resolves the inputs would silently stay at their fallback (18/99)
-  // forever. Re-sync once, the first time real profile data arrives, so an
-  // in-progress edit is never clobbered by a later refetch.
   const hydratedRef = useRef(false);
   useEffect(() => {
     if (!profile || hydratedRef.current) return;
@@ -289,7 +278,7 @@ const styles = StyleSheet.create({
   sectionLabel: { color: COLORS.gold, fontFamily: FONTS.bodyBold, fontSize: 14 },
   sectionHint: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 12, lineHeight: 17 },
   fieldLabel: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 12 },
-  errorText: { color: COLORS.ember, fontFamily: FONTS.body, fontSize: 12 },
+  errorText: { color: COLORS.emberLight, fontFamily: FONTS.body, fontSize: 12 },
   dangerWrap: { marginTop: 16 },
   signOutWrap: { marginTop: 4 },
 });

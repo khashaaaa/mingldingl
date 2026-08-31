@@ -6,8 +6,6 @@ namespace MinglDingl.Engine.Tests.Integration;
 
 public class AdminOpsControllerIntegrationTests : IntegrationTestBase
 {
-    // Same "hand the sweep this test's own already-open transaction" shape as
-    // DailyMaintenanceBackgroundServiceTests.SingleProviderScopeFactory.
     private class SingleProviderScopeFactory : IServiceScopeFactory
     {
         private readonly IServiceProvider _provider;
@@ -24,9 +22,14 @@ public class AdminOpsControllerIntegrationTests : IntegrationTestBase
 
     private AdminOpsController BuildController()
     {
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
         var provider = new ServiceCollection()
             .AddSingleton(Db)
-            .AddSingleton(new ScoreService(Db, new ConfigService()))
+            .AddSingleton(score)
+            .AddSingleton(oaths)
+            .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast()))
             .BuildServiceProvider();
         var sweep = new DailyMaintenanceBackgroundService(
             new SingleProviderScopeFactory(provider),
@@ -47,6 +50,6 @@ public class AdminOpsControllerIntegrationTests : IntegrationTestBase
         var result = Assert.IsType<OkObjectResult>(BuildController().GetPricing());
         var tiers = Assert.IsAssignableFrom<IReadOnlyList<MembershipTierResponse>>(result.Value);
 
-        Assert.Contains(tiers, t => t.Level == "Silver" && t.MonthlyPriceMnt == 5900);
+        Assert.Contains(tiers, t => t.Level == "Silver" && t.MonthlyPriceMnt == 10900);
     }
 }

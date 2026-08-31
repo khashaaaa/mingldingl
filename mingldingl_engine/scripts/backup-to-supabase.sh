@@ -7,10 +7,11 @@
 # by re-running this script (it doesn't delete remote copies).
 set -euo pipefail
 
-APPSETTINGS="/home/khashaa/Desktop/mingldingl/mingldingl_engine/src/MinglDingl.Engine/appsettings.Development.json"
-BACKUP_DIR="/home/khashaa/Desktop/mingldingl/mingldingl_engine/backups"
-LOG_FILE="/home/khashaa/Desktop/mingldingl/mingldingl_engine/backups/backup.log"
-PGPASSWORD_VALUE="1234"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENGINE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+APPSETTINGS="$ENGINE_ROOT/src/MinglDingl.Engine/appsettings.Development.json"
+BACKUP_DIR="$ENGINE_ROOT/backups"
+LOG_FILE="$BACKUP_DIR/backup.log"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 DUMP_FILE="$BACKUP_DIR/mingldingl-$TIMESTAMP.sql.gz"
 
@@ -21,7 +22,15 @@ echo "=== $(date -Iseconds) starting backup ==="
 PROJECT_URL="$(jq -r '.Supabase.ProjectUrl' "$APPSETTINGS")"
 SECRET_KEY="$(jq -r '.Supabase.SecretKey' "$APPSETTINGS")"
 
-PGPASSWORD="$PGPASSWORD_VALUE" pg_dump -U postgres -h 127.0.0.1 -p 5432 -d mingldingl | gzip > "$DUMP_FILE"
+CONN_STR="$(jq -r '.ConnectionStrings.DefaultConnection' "$APPSETTINGS")"
+PG_PASSWORD="$(printf '%s' "$CONN_STR" | tr ';' '\n' | sed -n 's/^Password=//p')"
+PG_PASSWORD="${PG_PASSWORD:-${PGPASSWORD:-}}"
+if [[ -z "$PG_PASSWORD" ]]; then
+  echo "no Postgres password found in $APPSETTINGS or \$PGPASSWORD; aborting"
+  exit 1
+fi
+
+PGPASSWORD="$PG_PASSWORD" pg_dump -U postgres -h 127.0.0.1 -p 5432 -d mingldingl | gzip > "$DUMP_FILE"
 echo "dumped $(du -h "$DUMP_FILE" | cut -f1) to $DUMP_FILE"
 
 http_code=$(curl -sS -o /tmp/backup-upload-response.json -w "%{http_code}" --max-time 60 \

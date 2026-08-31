@@ -7,14 +7,6 @@ interface Props extends TextProps {
   color?: string;
 }
 
-// Torch-lit pulse for static, high-impact text (wordmarks, not paragraph
-// copy) — a textShadow, not TorchGlow's Skia/box-shadow treatment, since a
-// shadow hugs each glyph's outline instead of glowing behind a bounding
-// box, which reads right for a word rather than an icon-sized square.
-// Unlike TorchGlow, 'full' and 'reduced' get the same Animated treatment —
-// a text-shadow pulse is cheap enough on any platform that the Skia-vs-
-// shadow split there (built for a device-taxing radial gradient) doesn't
-// apply here. 'off' still renders the text, just without the glow.
 export function GlowText({ style, color = COLORS.gold, children, ...rest }: Props) {
   const level = useVfxLevel();
   const pulse = useRef(new Animated.Value(6)).current;

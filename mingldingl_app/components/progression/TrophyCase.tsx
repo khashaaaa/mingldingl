@@ -22,10 +22,7 @@ export function TrophyCase() {
   const bumpScore = useOptimisticScoreBump();
   const setPendingTierUp = useAuthStore((s) => s.setPendingTierUp);
   const [chest, setChest] = useState<{ xp: number; item?: ChestItem | null; deferredTierUp?: string | null } | null>(null);
-  // See QuestBoard's identical state/comment: ChestModal wraps RN's own
-  // <Modal animationType="fade">, which needs to stay mounted with visible
-  // toggling false→true to play its own dismiss transition rather than
-  // being torn down mid-animation by an unmount.
+
   const [chestVisible, setChestVisible] = useState(false);
   const [failAlert, setFailAlert] = useState(false);
 
@@ -34,9 +31,7 @@ export function TrophyCase() {
       const res = await open(id);
       if (!res.alreadyOpened) {
         bumpScore(res.awarded ?? 0);
-        // See QuestBoard's identical comment: defer the tier-up toast until
-        // this chest modal closes so its auto-dismiss timer can't burn out
-        // while hidden behind the modal.
+
         const deferredTierUp = useAuthStore.getState().pendingTierUp;
         if (deferredTierUp) setPendingTierUp(null);
         setChest({ xp: res.awarded ?? 0, item: res.item as ChestItem | null, deferredTierUp });

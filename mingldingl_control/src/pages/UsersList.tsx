@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination } from '@/components/Pagination';
+import { useToast } from '@/hooks/use-toast';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 const PAGE_SIZE = 20;
 
@@ -16,10 +18,12 @@ export function UsersList() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
+  const { toast } = useToast();
+  const debouncedSearch = useDebouncedValue(search);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: queryKeys.users(search, page),
-    queryFn: () => apiClient.users.list(search, page, PAGE_SIZE),
+    queryKey: queryKeys.users(debouncedSearch, page),
+    queryFn: () => apiClient.users.list(debouncedSearch, page, PAGE_SIZE),
   });
 
   function handleSearchChange(value: string) {
@@ -32,6 +36,8 @@ export function UsersList() {
     try {
       const blob = await apiClient.users.export(search);
       downloadBlob(blob, 'users.csv');
+    } catch {
+      toast({ variant: 'destructive', description: 'Export failed — try again.' });
     } finally {
       setExporting(false);
     }

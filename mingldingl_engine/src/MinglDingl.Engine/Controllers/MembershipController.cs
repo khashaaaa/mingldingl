@@ -8,31 +8,12 @@ using Microsoft.EntityFrameworkCore;
 [Produces("application/json")]
 public class MembershipController : ControllerBase
 {
-    // 2026-07-28 audit: this list used to describe perks (profile boost, fun
-    // tag pack, priority matching, compatibility %) that were never actually
-    // implemented anywhere, while the app's membership screen displayed a
-    // *third*, entirely separate hardcoded perk/pricing list that matched
-    // neither this nor the real code. Rebuilt from what's actually gated:
-    // DailyMatches (ScoreService.DailyMatchBudget's base values) and
-    // DeepProfileView (MatchesController.BuildMatchResponse's membership
-    // check) are the only two real differentiators today. Gold and Platinum
-    // are consequently identical to Silver except for match budget — that's
-    // an accurate reflection of current capability, not a placeholder to
-    // paper over with invented perks.
-    // "basic_profile" only appears on Free: it's the baseline every tier
-    // already has, so repeating it on the paid cards read as a bullet that
-    // didn't distinguish Silver/Gold/Platinum from each other or from Free —
-    // the membership screen renders one row per key, so a key present on
-    // every tier shows as an identical, non-upgrading line on every card.
     private static readonly List<MembershipTierResponse> Tiers = [
-        new("Free",     5,  false, null,   ["icebreakers_quizzes", "basic_profile"], []),
-        new("Silver",   10, true,  5900,   ["icebreakers_quizzes", "deep_profile_view"], MembershipPricing.PriceOptions(5900).ToArray()),
-        new("Gold",     15, true,  12900,  ["icebreakers_quizzes", "deep_profile_view"], MembershipPricing.PriceOptions(12900).ToArray()),
-        new("Platinum", 20, true,  24900,  ["icebreakers_quizzes", "deep_profile_view"], MembershipPricing.PriceOptions(24900).ToArray()),
+        new("Free",   5,  false, null,  ["icebreakers_quizzes", "basic_profile"], []),
+        new("Silver", 12, true,  10900, ["icebreakers_quizzes", "deep_profile_view"], MembershipPricing.PriceOptions(10900).ToArray()),
+        new("Gold",   20, true,  21900, ["icebreakers_quizzes", "deep_profile_view", "priority_matching"], MembershipPricing.PriceOptions(21900).ToArray()),
     ];
 
-    // Exposed for AdminAnalyticsController (revenue estimate) and
-    // AdminOpsController (pricing view) instead of a second hardcoded copy.
     public static IReadOnlyList<MembershipTierResponse> AllTiers => Tiers;
 
     private readonly AppDbContext _db;
@@ -54,13 +35,8 @@ public class MembershipController : ControllerBase
     }
 
     private static readonly HashSet<string> ValidLevels =
-        new(StringComparer.OrdinalIgnoreCase) { "Free", "Silver", "Gold", "Platinum" };
+        new(StringComparer.OrdinalIgnoreCase) { "Free", "Silver", "Gold" };
 
-    // Mock charge — always succeeds, no real payment provider involved yet.
-    // Exists so the membership flow (and anything gated on tier, like the
-    // deep-profile reveal fields) is fully exercisable with seed data before
-    // a real gateway gets wired in. Swapping in real payments later means
-    // replacing the body of this action, not the contract around it.
     [HttpPost("upgrade")]
     [ProducesResponseType(typeof(MembershipMeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]

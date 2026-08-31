@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
@@ -7,15 +8,58 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
 {
     private ActivityService BuildService()
     {
-        var score = new ScoreService(Db, new ConfigService());
-        var quests = new QuestService(Db, score);
-        var milestones = new MilestoneService(Db);
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var httpClient = new HttpClient();
         var mockConfig = new Moq.Mock<IConfiguration>();
         mockConfig.Setup(c => c["Supabase:ProjectUrl"]).Returns("https://test.supabase.co");
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
-        var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object);
-        return new ActivityService(Db, score, quests, milestones, broadcast, new ConfigService());
+        var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
+        var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
+        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths);
+    }
+
+    private ActivityService BuildService(SupabaseBroadcastService broadcast)
+    {
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
+        var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
+        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_FirstOneSidedConfirm_BroadcastsDateConfirmedWithIsCompleteFalse()
+    {
+        var (match, suggestionId) = await SeedMatchWithSuggestionAsync();
+        var (broadcast, handler) = BuildCapturingBroadcast();
+        var service = BuildService(broadcast);
+
+        await service.ConfirmAsync(match, match.InitiatorId, suggestionId);
+
+        Assert.NotNull(handler.LastRequestBody);
+        Assert.Contains("\"app-nudges\"", handler.LastRequestBody);
+        Assert.Contains("\"date_confirmed\"", handler.LastRequestBody);
+        Assert.Contains("\"isComplete\":false", handler.LastRequestBody);
+        Assert.Contains($"\"userId\":\"{match.InitiatorId}\"", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_CompletingConfirm_BroadcastsDateConfirmedWithIsCompleteTrue()
+    {
+        var (match, suggestionId) = await SeedMatchWithSuggestionAsync();
+        var (broadcast, handler) = BuildCapturingBroadcast();
+        var service = BuildService(broadcast);
+
+        await service.ConfirmAsync(match, match.InitiatorId, suggestionId);
+        await service.ConfirmAsync(match, match.ReceiverId, suggestionId);
+
+        Assert.NotNull(handler.LastRequestBody);
+        Assert.Contains("\"date_confirmed\"", handler.LastRequestBody);
+        Assert.Contains("\"isComplete\":true", handler.LastRequestBody);
     }
 
     private async Task<(Match match, Guid suggestionId)> SeedMatchWithSuggestionAsync()
@@ -24,7 +68,7 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         var receiver = NewCompleteUser();
         Db.Users.AddRange(initiator, receiver);
 
-        var match = new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, MessageCount = 20 };
+        var match = new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, MessageCount = 20, FlameRiteCompletedAt = DateTime.UtcNow };
         Db.Matches.Add(match);
 
         var suggestion = new ActivitySuggestion { MatchId = match.Id, ActivityType = "Coffee", Title = "Coffee Date" };
@@ -37,19 +81,12 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task ConfirmAsync_RepeatedConfirmAfterCompletion_DoesNotReAwardDateConfirmedXp()
     {
-        // Regression test for D2: ConfirmAsync used to re-enter the
-        // `confirmation.IsComplete` branch (and re-fire AwardManyAsync, +50 XP to
-        // both users) on every subsequent confirm call after the pair had already
-        // completed — an unbounded XP pump via a simple repeat POST. The fix adds
-        // a was-complete transition guard so the award only fires once, on the
-        // confirmation that flips IsComplete false -> true.
         var (match, suggestionId) = await SeedMatchWithSuggestionAsync();
         var service = BuildService();
 
         await service.ConfirmAsync(match, match.InitiatorId, suggestionId);
-        await service.ConfirmAsync(match, match.ReceiverId, suggestionId); // completes here, awards once
+        await service.ConfirmAsync(match, match.ReceiverId, suggestionId);
 
-        // Repeat confirms from either participant after completion must be no-ops for score.
         await service.ConfirmAsync(match, match.InitiatorId, suggestionId);
         await service.ConfirmAsync(match, match.ReceiverId, suggestionId);
         await service.ConfirmAsync(match, match.InitiatorId, suggestionId);
@@ -57,13 +94,7 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         Db.ChangeTracker.Clear();
         var initiatorEvents = Db.ScoreEvents.Where(e => e.UserId == match.InitiatorId && e.EventType == "DateConfirmed").ToList();
         var receiverEvents = Db.ScoreEvents.Where(e => e.UserId == match.ReceiverId && e.EventType == "DateConfirmed").ToList();
-        // Exactly one DateConfirmed award per user, worth exactly 50 XP each — the
-        // five ConfirmAsync calls above (three of them repeats after completion)
-        // must never produce a second DateConfirmed ScoreEvent. Deliberately not
-        // asserting on the users' absolute TotalScore: "pledge" is one of the
-        // rotating daily quests, so IncrementAsync may independently award
-        // QuestComplete XP for the same action on whichever day the suite runs —
-        // that's unrelated to D2 and would make this assertion flaky.
+
         Assert.Single(initiatorEvents);
         Assert.Single(receiverEvents);
         Assert.Equal(50, initiatorEvents[0].Delta);
@@ -76,14 +107,13 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         var (match, suggestionId) = await SeedMatchWithSuggestionAsync();
         var service = BuildService();
 
-        var (afterFirst, firstAwarded) = await service.ConfirmAsync(match, match.InitiatorId, suggestionId);
-        Assert.False(afterFirst!.IsComplete);
-        Assert.Equal(0, firstAwarded); // not complete yet — nothing awarded
+        var (firstResult, firstAwarded) = await service.ConfirmAsync(match, match.InitiatorId, suggestionId);
+        Assert.False(firstResult.Confirmation!.IsComplete);
+        Assert.Equal(0, firstAwarded);
 
-        var (afterSecond, secondAwarded) = await service.ConfirmAsync(match, match.ReceiverId, suggestionId);
-        Assert.True(afterSecond!.IsComplete);
-        // 50 (DateConfirmed) plus whatever "pledge" independently awards via
-        // the daily quest rotation on whichever date this runs.
+        var (secondResult, secondAwarded) = await service.ConfirmAsync(match, match.ReceiverId, suggestionId);
+        Assert.True(secondResult.Confirmation!.IsComplete);
+
         int questBonus = Db.ScoreEvents
             .Where(e => e.UserId == match.ReceiverId && e.EventType == "QuestComplete")
             .Sum(e => e.Delta);
@@ -99,6 +129,81 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task ConfirmAsync_CompletesQualifyingEncounter_RefreshesOathForBothParticipants()
+    {
+        var swornInitiator = NewCompleteUser();
+        swornInitiator.Oath = "Bond";
+        swornInitiator.OathSwornAt = DateTime.UtcNow.AddDays(-5);
+        Db.Users.Add(swornInitiator);
+
+        var swornReceiver = NewCompleteUser();
+        swornReceiver.Oath = "Fate";
+        swornReceiver.OathSwornAt = DateTime.UtcNow.AddDays(-5);
+        Db.Users.Add(swornReceiver);
+        await Db.SaveChangesAsync();
+
+        var initiatorPriorPartner = NewCompleteUser();
+        Db.Users.Add(initiatorPriorPartner);
+        var initiatorPriorMatch = new Match { InitiatorId = swornInitiator.Id, ReceiverId = initiatorPriorPartner.Id, Status = "Active" };
+        Db.Matches.Add(initiatorPriorMatch);
+        var initiatorPriorBusiness = new BusinessPartner { Name = "Prior Cafe (initiator)", Category = "Cafe", City = "Ulaanbaatar" };
+        Db.BusinessPartners.Add(initiatorPriorBusiness);
+        await Db.SaveChangesAsync();
+        var initiatorPriorSuggestion = new ActivitySuggestion
+        {
+            MatchId = initiatorPriorMatch.Id, BusinessPartnerId = initiatorPriorBusiness.Id,
+            ActivityType = "Cafe", Title = "Coffee",
+        };
+        Db.ActivitySuggestions.Add(initiatorPriorSuggestion);
+        await Db.SaveChangesAsync();
+        Db.DateConfirmations.Add(new DateConfirmation
+        {
+            MatchId = initiatorPriorMatch.Id, ActivitySuggestionId = initiatorPriorSuggestion.Id,
+            InitiatorConfirmed = true, ReceiverConfirmed = true,
+            CompletedAt = DateTime.UtcNow.AddDays(-2),
+        });
+        await Db.SaveChangesAsync();
+
+        var receiverPriorPartner = NewCompleteUser();
+        Db.Users.Add(receiverPriorPartner);
+        var receiverPriorMatch = new Match { InitiatorId = swornReceiver.Id, ReceiverId = receiverPriorPartner.Id, Status = "Active" };
+        Db.Matches.Add(receiverPriorMatch);
+        var receiverPriorBusiness = new BusinessPartner { Name = "Prior Cafe (receiver)", Category = "Cafe", City = "Ulaanbaatar" };
+        Db.BusinessPartners.Add(receiverPriorBusiness);
+        await Db.SaveChangesAsync();
+        var receiverPriorSuggestion = new ActivitySuggestion
+        {
+            MatchId = receiverPriorMatch.Id, BusinessPartnerId = receiverPriorBusiness.Id,
+            ActivityType = "Cafe", Title = "Coffee",
+        };
+        Db.ActivitySuggestions.Add(receiverPriorSuggestion);
+        await Db.SaveChangesAsync();
+        Db.DateConfirmations.Add(new DateConfirmation
+        {
+            MatchId = receiverPriorMatch.Id, ActivitySuggestionId = receiverPriorSuggestion.Id,
+            InitiatorConfirmed = true, ReceiverConfirmed = true,
+            CompletedAt = DateTime.UtcNow.AddDays(-2),
+        });
+        await Db.SaveChangesAsync();
+
+        var match = new Match { InitiatorId = swornInitiator.Id, ReceiverId = swornReceiver.Id, MessageCount = 20, FlameRiteCompletedAt = DateTime.UtcNow };
+        Db.Matches.Add(match);
+        var suggestion = new ActivitySuggestion { MatchId = match.Id, ActivityType = "Coffee", Title = "Coffee Date" };
+        Db.ActivitySuggestions.Add(suggestion);
+        await Db.SaveChangesAsync();
+
+        var service = BuildService();
+        await service.ConfirmAsync(match, match.InitiatorId, suggestion.Id);
+        await service.ConfirmAsync(match, match.ReceiverId, suggestion.Id);
+
+        Db.ChangeTracker.Clear();
+        var reloadedInitiator = await Db.Users.AsNoTracking().SingleAsync(u => u.Id == swornInitiator.Id);
+        var reloadedReceiver = await Db.Users.AsNoTracking().SingleAsync(u => u.Id == swornReceiver.Id);
+        Assert.True(reloadedInitiator.OathProven);
+        Assert.True(reloadedReceiver.OathProven);
+    }
+
+    [Fact]
     public async Task ConfirmAsync_BothConfirm_SetsCompletedAtOnceOnTheCompletingCall()
     {
         var (match, suggestionId) = await SeedMatchWithSuggestionAsync();
@@ -110,14 +215,13 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         var afterFirst = await Db.DateConfirmations.FirstAsync(c => c.MatchId == match.Id);
         Assert.Null(afterFirst.CompletedAt);
 
-        await service.ConfirmAsync(match, match.ReceiverId, suggestionId); // completes here
+        await service.ConfirmAsync(match, match.ReceiverId, suggestionId);
 
         Db.ChangeTracker.Clear();
         var afterSecond = await Db.DateConfirmations.FirstAsync(c => c.MatchId == match.Id);
         Assert.NotNull(afterSecond.CompletedAt);
         var completedAt = afterSecond.CompletedAt!.Value;
 
-        // A repeat confirm after completion must not move CompletedAt forward.
         await Task.Delay(50);
         await service.ConfirmAsync(match, match.InitiatorId, suggestionId);
 
@@ -126,10 +230,6 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         Assert.Equal(completedAt, afterRepeat.CompletedAt);
     }
 
-    // Seeds a match with a suggestion whose DateConfirmation is already
-    // IsComplete, with CompletedAt backdated by `hoursAgo` — lets tests put
-    // the attendance check inside or outside its 48h eligibility window
-    // without waiting real time.
     private async Task<(Match match, DateConfirmation confirmation)> SeedCompletedDateAsync(double hoursAgo)
     {
         var (match, suggestionId) = await SeedMatchWithSuggestionAsync();
@@ -166,7 +266,7 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         var (due, title) = await service.GetAttendanceCheckStatusAsync(match.Id, match.InitiatorId);
 
         Assert.True(due);
-        Assert.Equal("Coffee Date", title); // SeedMatchWithSuggestionAsync's suggestion Title
+        Assert.Equal("Coffee Date", title);
     }
 
     [Fact]
@@ -253,10 +353,10 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         var service = BuildService();
 
         var first = await service.SubmitAttendanceAsync(match.Id, match.InitiatorId, attended: true);
-        var second = await service.SubmitAttendanceAsync(match.Id, match.InitiatorId, attended: false); // attempted flip
+        var second = await service.SubmitAttendanceAsync(match.Id, match.InitiatorId, attended: false);
 
         Assert.Equal(true, first);
-        Assert.Equal(true, second); // still the original answer — the flip was ignored
+        Assert.Equal(true, second);
 
         Db.ChangeTracker.Clear();
         var confirmation = await Db.DateConfirmations.FirstAsync(c => c.MatchId == match.Id);
@@ -274,7 +374,7 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
 
         Db.ChangeTracker.Clear();
         var receiver = await Db.Users.FindAsync(match.ReceiverId);
-        Assert.Equal(1.0m, receiver!.ReputationScore); // default NewCompleteUser reputation, untouched below threshold 3
+        Assert.Equal(1.0m, receiver!.ReputationScore);
     }
 
     [Fact]
@@ -311,7 +411,7 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         Db.ChangeTracker.Clear();
         var reloaded = await Db.Users.FindAsync(denyingUser.Id);
         Assert.Equal(3, reloaded!.NoShowFlagCount);
-        Assert.Equal(0.9m, reloaded.ReputationScore); // docked exactly once, at the 3rd (threshold) mismatch
+        Assert.Equal(0.9m, reloaded.ReputationScore);
 
         var penaltyEvents = Db.ScoreEvents.Where(e => e.UserId == denyingUser.Id && e.EventType == "RepeatedNoShowPenalty").ToList();
         Assert.Single(penaltyEvents);
@@ -320,16 +420,6 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task SubmitAttendanceAsync_TwoMismatchesFromTheSameMatch_OnlyCountsOnceTowardThreshold()
     {
-        // A single match can accumulate two completed DateConfirmations (two
-        // different confirmed suggestions, confirmed at different times) —
-        // PenaltyApplied must prevent a second mismatch on the same match
-        // from incrementing NoShowFlagCount a second time, per the "distinct
-        // matches only" anti-abuse guarantee. LoadLatestCompletedConfirmationAsync
-        // always resolves to the newest completed row, so this drives BOTH
-        // mismatches through the real SubmitAttendanceAsync path in the same
-        // order a real user would hit them: confirmationA (older) is fully
-        // answered first, then confirmationB (newer) becomes the one the
-        // matchId-scoped endpoint resolves to.
         var initiator = NewCompleteUser();
         var receiver = NewCompleteUser();
         Db.Users.AddRange(initiator, receiver);
@@ -344,15 +434,12 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
 
         var service = BuildService();
         await service.SubmitAttendanceAsync(match.Id, initiator.Id, attended: true);
-        await service.SubmitAttendanceAsync(match.Id, receiver.Id, attended: false); // mismatch #1 — increments once
+        await service.SubmitAttendanceAsync(match.Id, receiver.Id, attended: false);
 
         Db.ChangeTracker.Clear();
         var afterFirst = await Db.Users.FindAsync(receiver.Id);
         Assert.Equal(1, afterFirst!.NoShowFlagCount);
 
-        // A second confirmed suggestion for the same match, completed more
-        // recently — LoadLatestCompletedConfirmationAsync now resolves to
-        // this one instead of confirmationA.
         var suggestionB = new ActivitySuggestion { MatchId = match.Id, ActivityType = "Cinema", Title = "Cinema Date" };
         Db.ActivitySuggestions.Add(suggestionB);
         var confirmationB = new DateConfirmation { MatchId = match.Id, ActivitySuggestionId = suggestionB.Id, InitiatorConfirmed = true, ReceiverConfirmed = true, CompletedAt = DateTime.UtcNow.AddHours(-49) };
@@ -360,13 +447,13 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         await Db.SaveChangesAsync();
 
         await service.SubmitAttendanceAsync(match.Id, initiator.Id, attended: true);
-        await service.SubmitAttendanceAsync(match.Id, receiver.Id, attended: false); // mismatch #2 on the SAME match — must not increment again
+        await service.SubmitAttendanceAsync(match.Id, receiver.Id, attended: false);
 
         Db.ChangeTracker.Clear();
         var afterSecond = await Db.Users.FindAsync(receiver.Id);
-        Assert.Equal(1, afterSecond!.NoShowFlagCount); // still 1, not 2
+        Assert.Equal(1, afterSecond!.NoShowFlagCount);
 
         var confirmationBReloaded = await Db.DateConfirmations.FirstAsync(c => c.Id == confirmationB.Id);
-        Assert.False(confirmationBReloaded.PenaltyApplied); // its own mismatch was recorded but never separately penalized
+        Assert.False(confirmationBReloaded.PenaltyApplied);
     }
 }

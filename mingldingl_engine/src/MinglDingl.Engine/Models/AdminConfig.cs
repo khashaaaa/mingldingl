@@ -1,7 +1,3 @@
-// One row per admin-editable config value — the persisted counterpart to a
-// ConfigKeys.All registry entry (see Services/ConfigKeys.cs). ValueType is
-// "Bool" | "Number" | "String" | "Json"; SchemaJson is only populated for
-// "Json"-typed entries, validated against on every admin write.
 public class AdminConfig
 {
     public string Key { get; set; } = "";

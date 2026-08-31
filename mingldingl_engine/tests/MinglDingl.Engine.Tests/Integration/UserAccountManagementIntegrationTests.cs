@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
@@ -11,8 +12,9 @@ public class UserAccountManagementIntegrationTests : IntegrationTestBase
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         var scoreService = new ScoreService(Db, new ConfigService());
-        var lootService = new LootService(Db, scoreService);
-        var controller = new UsersController(Db, scoreService, new ReferralService(Db, lootService), new ShipService(Db, lootService, scoreService, new ConfigService(), new MilestoneService(Db), new PushNotificationService(new HttpClient(), Db)))
+        var lootService = new LootService(Db, scoreService, NullLogger<LootService>.Instance);
+        var oathService = new OathService(Db, new ConfigService(), scoreService, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), lootService);
+        var controller = new UsersController(Db, scoreService, new ReferralService(Db, lootService, NullLogger<ReferralService>.Instance), new ShipService(Db, lootService, scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance), BuildTestBroadcast(), NullLogger<ShipService>.Instance), oathService)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };

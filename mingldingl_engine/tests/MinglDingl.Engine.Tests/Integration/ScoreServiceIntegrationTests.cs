@@ -19,11 +19,11 @@ public class ScoreServiceIntegrationTests : IntegrationTestBase
         Db.ChangeTracker.Clear();
         var reloaded = await Db.Users.FindAsync(user.Id);
         Assert.Equal(0.9m, reloaded!.ReputationScore);
-        Assert.Equal(100, reloaded.TotalScore); // unchanged — this is the whole point of the new method
+        Assert.Equal(100, reloaded.TotalScore);
 
         var events = Db.ScoreEvents.Where(e => e.UserId == user.Id && e.EventType == "RepeatedNoShowPenalty").ToList();
         Assert.Single(events);
-        Assert.Equal(0, events[0].Delta); // no TotalScore delta — the audit row still exists for the stats/history views
+        Assert.Equal(0, events[0].Delta);
     }
 
     [Fact]

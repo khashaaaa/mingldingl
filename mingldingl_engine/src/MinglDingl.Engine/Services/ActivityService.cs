@@ -1,5 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 
+public enum ConfirmRejection
+{
+    SuggestionNotInMatch,
+    FlameRiteIncomplete,
+}
+
+public record ConfirmResult(DateConfirmation? Confirmation, ConfirmRejection? Rejection);
+
 public class ActivityService
 {
     private readonly AppDbContext _db;
@@ -8,8 +16,9 @@ public class ActivityService
     private readonly MilestoneService _milestones;
     private readonly SupabaseBroadcastService _broadcast;
     private readonly ConfigService _config;
+    private readonly OathService _oaths;
 
-    public ActivityService(AppDbContext db, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config)
+    public ActivityService(AppDbContext db, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config, OathService oaths)
     {
         _db = db;
         _score = score;
@@ -17,16 +26,11 @@ public class ActivityService
         _milestones = milestones;
         _broadcast = broadcast;
         _config = config;
+        _oaths = oaths;
     }
 
     public async Task<List<ActivitySuggestion>> GetOrCreateSuggestionsAsync(Guid matchId)
     {
-        // Ordered explicitly — without it, Postgres doesn't guarantee row
-        // order is stable across calls, so the two participants could see
-        // these 3 cards in a different order on each fetch. Since the UI
-        // has no other way to identify "the same" suggestion between two
-        // people, that silently let each side pledge to a different
-        // business and never actually complete the shared confirmation.
         var existing = await _db.ActivitySuggestions
             .Include(a => a.BusinessPartner)
             .Where(a => a.MatchId == matchId)
@@ -36,10 +40,6 @@ public class ActivityService
 
         var match = await _db.Matches.Include(m => m.Initiator).FirstAsync(m => m.Id == matchId);
 
-        // Pull a quality-biased pool, then pick 3 at random from it — every
-        // match always getting the exact same top-3 featured venues wasted
-        // the point of having more than 3 businesses per city; this way
-        // different matches actually see different suggestions.
         var pool = await _db.BusinessPartners
             .Where(b => b.IsVerified && b.City == match.Initiator.City)
             .OrderByDescending(b => b.IsFeatured)
@@ -66,16 +66,23 @@ public class ActivityService
         return suggestions;
     }
 
-    // Confirmation is null when activitySuggestionId doesn't belong to this
-    // match. Awarded is the calling user's own real total for this call (0
-    // unless this confirmation is the one that completes the pair —
-    // DateConfirmed plus any "pledge" daily-quest bonus), so the client can
-    // reflect the actual score change instead of assuming a fixed amount.
-    public async Task<(DateConfirmation? Confirmation, int Awarded)> ConfirmAsync(Match match, Guid userId, Guid activitySuggestionId)
+    public async Task<(ConfirmResult Result, int Awarded)> ConfirmAsync(Match match, Guid userId, Guid activitySuggestionId)
     {
         var suggestionBelongsToMatch = await _db.ActivitySuggestions
             .AnyAsync(s => s.Id == activitySuggestionId && s.MatchId == match.Id);
-        if (!suggestionBelongsToMatch) return (null, 0);
+        if (!suggestionBelongsToMatch) return (new ConfirmResult(null, ConfirmRejection.SuggestionNotInMatch), 0);
+
+        bool riteRequired = _config.GetBool("dating.flamerite.required", true);
+        if (riteRequired)
+        {
+            bool riteCompleted = await _db.Matches
+                .AsNoTracking()
+                .Where(m => m.Id == match.Id)
+                .Select(m => m.FlameRiteCompletedAt)
+                .FirstAsync() is not null;
+            if (!riteCompleted)
+                return (new ConfirmResult(null, ConfirmRejection.FlameRiteIncomplete), 0);
+        }
 
         var confirmation = await _db.DateConfirmations
             .FirstOrDefaultAsync(c => c.MatchId == match.Id && c.ActivitySuggestionId == activitySuggestionId)
@@ -94,7 +101,6 @@ public class ActivityService
         if (justCompleted)
         {
             await _score.AwardManyAsync([(match.InitiatorId, "DateConfirmed"), (match.ReceiverId, "DateConfirmed")]);
-            match.VideoCallUnlocked = true;
             confirmation.CompletedAt = DateTime.UtcNow;
         }
 
@@ -109,16 +115,17 @@ public class ActivityService
             awarded = ScoreService.GetDelta("DateConfirmed") + myQuestBonus;
             await _milestones.AchieveAsync(match.InitiatorId, "first_pledged_encounter");
             await _milestones.AchieveAsync(match.ReceiverId, "first_pledged_encounter");
-            await _broadcast.BroadcastAsync("app-nudges", "date_confirmed", new { matchId = match.Id });
+
+            await _oaths.RefreshAsync(match.InitiatorId);
+            await _oaths.RefreshAsync(match.ReceiverId);
         }
 
-        return (confirmation, awarded);
+        await _broadcast.BroadcastAsync("app-nudges", "date_confirmed",
+            new { userId, matchId = match.Id, isComplete = confirmation.IsComplete });
+
+        return (new ConfirmResult(confirmation, null), awarded);
     }
 
-    // "Most recent completed DateConfirmation for this match" — a match can
-    // in principle have more than one (see PenaltyApplied's comment on
-    // DateConfirmation), so this always resolves to the newest one by
-    // CompletedAt.
     private async Task<DateConfirmation?> LoadLatestCompletedConfirmationAsync(Guid matchId) =>
         await _db.DateConfirmations
             .Where(c => c.MatchId == matchId && c.CompletedAt != null)
@@ -141,11 +148,6 @@ public class ActivityService
         return (true, suggestion?.Title);
     }
 
-    // Returns the caller's own recorded answer (true/false), or null if
-    // there's no eligible confirmation for this match. Idempotent: once a
-    // user has answered, a second call returns that original answer without
-    // reprocessing — no way to "take it back" after learning nothing about
-    // the other side's answer, since answers are never revealed to each other.
     public async Task<bool?> SubmitAttendanceAsync(Guid matchId, Guid userId, bool attended)
     {
         var confirmation = await LoadLatestCompletedConfirmationAsync(matchId);
@@ -165,11 +167,6 @@ public class ActivityService
         if (confirmation.InitiatorAttended.HasValue && confirmation.ReceiverAttended.HasValue
             && confirmation.InitiatorAttended != confirmation.ReceiverAttended)
         {
-            // Checked across EVERY DateConfirmation for this match, not just
-            // this row — a match can accumulate more than one completed
-            // DateConfirmation (see PenaltyApplied's comment on the model),
-            // and the "distinct matches only" anti-abuse guarantee requires
-            // this to be a per-MATCH gate, not a per-row one.
             bool alreadyPenalizedForThisMatch = await _db.DateConfirmations
                 .AnyAsync(c => c.MatchId == matchId && c.PenaltyApplied);
 

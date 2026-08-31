@@ -1,7 +1,5 @@
 import { Button } from '@/components/ui/button';
 
-// Numbered pagination: 1 … 4 5 [6] 7 8 … 20 — always shows first/last plus a
-// window around the current page, collapsing the rest into an ellipsis.
 function getPageNumbers(page: number, totalPages: number): (number | 'ellipsis')[] {
   if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
 

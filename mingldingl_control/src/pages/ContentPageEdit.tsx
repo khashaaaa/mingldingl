@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { apiClient } from '../lib/api/apiClient';
@@ -10,44 +10,40 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 
+type ContentPage = NonNullable<Awaited<ReturnType<typeof apiClient.content.list>>>[number];
+
 export function ContentPageEdit() {
   const { slug } = useParams<{ slug: string }>();
-  const qc = useQueryClient();
-  const { toast } = useToast();
 
-  // No GET-by-slug endpoint — the list is tiny (3 fixed pages), so find the
-  // one we want client-side rather than adding a backend endpoint for it.
   const { data: pages, isLoading } = useQuery({
     queryKey: queryKeys.content,
     queryFn: () => apiClient.content.list(),
   });
   const page = pages?.find((p) => p.slug === slug);
 
-  const [titleEn, setTitleEn] = useState('');
-  const [titleMn, setTitleMn] = useState('');
-  const [bodyEn, setBodyEn] = useState('');
-  const [bodyMn, setBodyMn] = useState('');
+  if (isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
+  if (!page) return <p className="text-destructive text-sm">Page not found.</p>;
 
-  useEffect(() => {
-    if (page) {
-      setTitleEn(page.titleEn ?? '');
-      setTitleMn(page.titleMn ?? '');
-      setBodyEn(page.bodyEn ?? '');
-      setBodyMn(page.bodyMn ?? '');
-    }
-  }, [page]);
+  return <ContentPageEditForm key={slug} slug={slug ?? ''} page={page} />;
+}
+
+function ContentPageEditForm({ slug, page }: { slug: string; page: ContentPage }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  const [titleEn, setTitleEn] = useState(page.titleEn ?? '');
+  const [titleMn, setTitleMn] = useState(page.titleMn ?? '');
+  const [bodyEn, setBodyEn] = useState(page.bodyEn ?? '');
+  const [bodyMn, setBodyMn] = useState(page.bodyMn ?? '');
 
   const save = useMutation({
-    mutationFn: () => apiClient.content.update(slug ?? '', { titleEn, titleMn, bodyEn, bodyMn }),
+    mutationFn: () => apiClient.content.update(slug, { titleEn, titleMn, bodyEn, bodyMn }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.content });
       toast({ description: 'Saved.' });
     },
     onError: () => toast({ variant: 'destructive', description: 'Save failed — try again.' }),
   });
-
-  if (isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
-  if (!page) return <p className="text-destructive text-sm">Page not found.</p>;
 
   return (
     <div>

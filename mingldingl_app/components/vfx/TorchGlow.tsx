@@ -33,7 +33,6 @@ function SkiaGlow({ size, color, children }: Required<Props>) {
   );
 }
 
-// Reduced: the proven Animated shadow-pulse (same look profile.tsx used pre-VFX).
 function ShadowGlow({ color, children }: { color: string; children: ReactNode }) {
   const torch = useRef(new Animated.Value(0.45)).current;
   useEffect(() => {

@@ -6,12 +6,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Spinner } from 'tamagui';
 import { useChat } from '../../hooks/useChat';
 import { useAttendanceCheck } from '../../hooks/useAttendanceCheck';
+import { useMatches } from '../../hooks/useMatches';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { AttendanceCheckModal } from '../../components/modals/AttendanceCheckModal';
+import FlameRiteCard, { type FlameRiteState } from '../../components/FlameRiteCard';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { MessageBubble } from '../../components/chat/MessageBubble';
 import { MessageInput } from '../../components/chat/MessageInput';
+import { RevealStrip } from '../../components/chat/RevealStrip';
 import { QuestBanner } from '../../components/quest/QuestBanner';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
@@ -22,13 +25,25 @@ import { queryKeys } from '../../lib/api/queryKeys';
 import { COLORS, FONTS, RADIUS, overlay } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
 
+const DEFAULT_RITE_DURATION_MINUTES = 5;
+
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function ChatScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const { matchId, name, wovenBy } = useLocalSearchParams<{ matchId: string; name?: string; wovenBy?: string }>();
-  const { messages, loading, isError, refetch, sendMessage, retryMessage, myId } = useChat(matchId);
+  const { messages, loading, isError, refetch, sendMessage, retryMessage, myId, loadEarlier, hasMore, loadingEarlier } = useChat(matchId);
   const { due: attendanceDue, activityTitle, submit: submitAttendance, isSubmitting: submittingAttendance } = useAttendanceCheck(matchId);
+  const { data: matches } = useMatches();
+  const match = matches?.find((m) => m.matchId === matchId);
+  const riteState: FlameRiteState = {
+    matchId,
+    proposedByUserId: match?.flameRiteProposedById ?? null,
+    proposedAt: match?.flameRiteProposedAt ?? null,
+    acceptedAt: match?.flameRiteAcceptedAt ?? null,
+    completedAt: match?.flameRiteCompletedAt ?? null,
+    durationMinutes: match?.flameRiteDurationMinutes ?? DEFAULT_RITE_DURATION_MINUTES,
+  };
   const [attendanceModalVisible, setAttendanceModalVisible] = useState(false);
   const [ghosted, setGhosted] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
@@ -37,14 +52,7 @@ export default function ChatScreen() {
   const [confirmBlock, setConfirmBlock] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [actionFailedAlert, setActionFailedAlert] = useState(false);
-  // KeyboardAvoidingView's iOS 'padding' behavior measures its own on-screen
-  // position to work out how much of it the keyboard covers — everything
-  // rendered above it (ScreenHeader, and the conditional wovenBy banner)
-  // isn't part of its own layout, so without this offset it under-shoots by
-  // roughly that height and the input row stays partly behind the keyboard.
-  // Measured on-device: raw header height alone overshoots by exactly
-  // insets.bottom (the view's own frame already extends into that safe-area
-  // strip, so it's double-counted) — subtract it back out.
+
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -78,13 +86,11 @@ export default function ChatScreen() {
   }
 
   useEffect(() => {
-    useAuthStore.getState().setActiveChatMatchId(matchId);
-    return () => useAuthStore.getState().setActiveChatMatchId(null);
+    useAuthStore.getState().pushActiveChat(matchId);
+    return () => useAuthStore.getState().popActiveChat(matchId);
   }, [matchId]);
 
   useEffect(() => {
-    // On-demand ghost check: catches a stale match the moment it's opened,
-    // rather than waiting for the hourly background sweep.
     apiClient.matches.ghostCheck(matchId)
       .then((res) => {
         if (res.status === 'Ghosted') setGhosted(true);
@@ -104,7 +110,7 @@ export default function ChatScreen() {
                 <Icon name="dots-vertical" size={20} color={COLORS.textDim} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push(`/video/${matchId}`)} style={styles.videoBtn} accessibilityLabel={i18n.t('start_video_call')}>
-                <Text style={styles.videoIcon}>📹</Text>
+                <Icon name="video" size={20} color={COLORS.gold} />
               </TouchableOpacity>
             </>
           }
@@ -112,26 +118,26 @@ export default function ChatScreen() {
         {!!wovenBy && (
           <Text style={styles.wovenByBanner}>{i18n.t('woven_by', { name: wovenBy })}</Text>
         )}
+        {match && <RevealStrip otherUser={match.otherUser} messageCount={match.messageCount} />}
       </View>
 
       <KeyboardAvoidingView
         style={styles.keyboardAvoider}
-        // 'undefined' on Android meant this view did nothing when the
-        // keyboard opened — the message input/send button stayed put and
-        // the keyboard just covered them. 'height' shrinks the view by the
-        // keyboard's height instead, which is the standard Android
-        // counterpart to iOS's 'padding'.
+
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Math.max(0, headerHeight - insets.bottom)}
       >
-        <QuestBanner icon="🎯" title={i18n.t('break_ice')}
+        <QuestBanner icon="target" title={i18n.t('break_ice')}
           onPress={() => router.push(`/icebreaker/${matchId}`)} />
-        <QuestBanner icon="🧠" title={i18n.t('trial_compat')}
+        {match?.icebreakerComplete && (
+          <FlameRiteCard matchId={matchId} state={riteState} currentUserId={myId ?? ''} />
+        )}
+        <QuestBanner icon="brain" title={i18n.t('trial_compat')}
           onPress={() => router.push(`/quiz/${matchId}`)} />
-        <QuestBanner icon="📍" title={i18n.t('plan_encounter')}
+        <QuestBanner icon="map-marker" title={i18n.t('plan_encounter')}
           onPress={() => router.push(`/activities/${matchId}`)} />
         {attendanceDue && (
-          <QuestBanner icon="📍" title={i18n.t('attendance_check_title')}
+          <QuestBanner icon="calendar-check" title={i18n.t('attendance_check_title')}
             onPress={() => setAttendanceModalVisible(true)} />
         )}
 
@@ -140,9 +146,6 @@ export default function ChatScreen() {
             <Spinner color="$gold" />
           </View>
         ) : isError ? (
-          // Without this, a failed initial load rendered an empty message
-          // list — indistinguishable from "no messages yet" — with no
-          // indication anything had gone wrong and no way to retry.
           <View style={styles.spinnerWrap}>
             <Text style={styles.loadErrorText}>{i18n.t('chat_load_error')}</Text>
             <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
@@ -153,8 +156,18 @@ export default function ChatScreen() {
             data={messages}
             keyExtractor={(m) => m.id}
             contentContainerStyle={styles.messageList}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            onContentSizeChange={() => { if (!loadingEarlier) flatListRef.current?.scrollToEnd({ animated: false }); }}
             onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            ListHeaderComponent={hasMore ? (
+              <TouchableOpacity style={styles.loadEarlierBtn} onPress={() => loadEarlier()} disabled={loadingEarlier} accessibilityRole="button">
+                {loadingEarlier ? <Spinner color="$gold" size="small" /> : (
+                  <>
+                    <Icon name="chevron-double-up" size={14} color={COLORS.gold} />
+                    <Text style={styles.loadEarlierText}>{i18n.t('load_earlier')}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : null}
             renderItem={({ item }) => (
               <MessageBubble message={item} myId={myId ?? ''} onRetry={retryMessage} />
             )}
@@ -262,6 +275,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     flexGrow: 1,
+  },
+  loadEarlierBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.brass,
+    backgroundColor: COLORS.panel,
+  },
+  loadEarlierText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 12,
+    color: COLORS.gold,
+    letterSpacing: 0.5,
   },
   optionsOverlay: {
     flex: 1,

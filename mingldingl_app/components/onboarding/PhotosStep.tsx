@@ -6,16 +6,14 @@ import { GameButton } from '../ui/GameButton';
 
 interface Props {
   photoUrls: string[];
-  loading: boolean;
-  error?: string | null;
   onPhotosChange: (update: string[] | ((current: string[]) => string[])) => void;
   referralCode: string;
   onReferralCodeChange: (code: string) => void;
-  onSubmit: () => void;
+  onNext: () => void;
   onBack: () => void;
 }
 
-export function PhotosStep({ photoUrls, loading, error, onPhotosChange, referralCode, onReferralCodeChange, onSubmit, onBack }: Props) {
+export function PhotosStep({ photoUrls, onPhotosChange, referralCode, onReferralCodeChange, onNext, onBack }: Props) {
   return (
     <YStack flex={1} padding="$6" gap="$4">
       <Text color={COLORS.text} fontSize={22} fontFamily={FONTS.display as any}>{i18n.t('your_photos')}</Text>
@@ -37,18 +35,16 @@ export function PhotosStep({ photoUrls, loading, error, onPhotosChange, referral
         borderColor={COLORS.bronze}
         color={COLORS.text}
       />
-      {error && <Text color={COLORS.ember} fontSize={13} fontFamily={FONTS.body as any}>{error}</Text>}
       <XStack gap="$3" marginTop="auto">
         <GameButton variant="ghost" flex={1} onPress={onBack}>
           {i18n.t('back')}
         </GameButton>
         <GameButton
           variant="primary" flex={2}
-          disabled={photoUrls.length < 3 || loading}
-          loading={loading}
-          onPress={onSubmit}
+          disabled={photoUrls.length < 3}
+          onPress={onNext}
         >
-          {i18n.t('complete_profile')}
+          {i18n.t('next')}
         </GameButton>
       </XStack>
     </YStack>

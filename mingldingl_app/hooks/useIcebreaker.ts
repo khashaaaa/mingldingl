@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { apiClient } from '../lib/api/apiClient';
-import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { toDroppedItem } from '../lib/tiers';
 import { queryKeys } from '../lib/api/queryKeys';
@@ -45,45 +43,14 @@ export function useIcebreaker(matchId: string) {
         const res = await apiClient.engagement.icebreakerReveal(matchId, question!.id);
         return res.map((r) => ({ userId: r.userId ?? '', answer: r.answer ?? '' }));
       } catch (err) {
-        // 400 = "both users haven't responded yet" (RevealIcebreaker) —
-        // that's the expected steady state to poll through. Anything else
-        // (404 match gone, 403 not a participant) is permanent and must
-        // rethrow, or this poll would otherwise retry every 3s forever.
         if (isAxiosError(err) && err.response?.status === 400) return null;
         throw err;
       }
     },
     enabled: !!question && !!matchId,
-    // The broadcast effect below refetches immediately once the partner
-    // responds; this interval is just the safety net for a missed/best-effort
-    // broadcast (see SupabaseBroadcastService), so it can be much slower than
-    // the old 3s straight poll.
-    refetchInterval: (query) => (query.state.data || query.state.status === 'error' ? false : 15000),
+    refetchInterval: (query) => (query.state.data || query.state.status === 'error' ? false : 60000),
   });
 
-  useEffect(() => {
-    if (!matchId || !question) return;
-    // EngagementController.RespondIcebreaker already broadcasts this on
-    // every respond (both directions, not just the first responder) for
-    // useRealtimeNudges' toast — reusing that same app-nudges event here
-    // instead of adding a second broadcast call server-side.
-    const channel = supabase
-      .channel('app-nudges')
-      .on('broadcast', { event: 'icebreaker' }, (msg) => {
-        const payload = msg.payload as { matchId: string };
-        if (payload.matchId !== matchId) return;
-        qc.invalidateQueries({ queryKey: queryKeys.icebreakerReveal(matchId, question.id) });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [matchId, question?.id]);
-
-  // Server-derived "did I already answer this icebreaker for this match" —
-  // runs unconditionally once the question loads (not gated on local
-  // mutation state, which resets on every remount), so leaving the waiting
-  // screen and coming back shows the waiting/reveal state instead of
-  // re-prompting the question and risking a 409 "Already responded" on
-  // resubmit. Mirrors useQuiz.ts's identical `status` query.
   const { data: status, isLoading: statusLoading } = useQuery({
     queryKey: queryKeys.icebreakerStatus(matchId, question?.id),
     queryFn: async () => {
@@ -98,16 +65,8 @@ export function useIcebreaker(matchId: string) {
       if (!question) throw new Error('No icebreaker question loaded');
       return apiClient.engagement.icebreakerRespond(matchId, { icebreakerId: question.id, answer });
     },
-    // The score only lands once BOTH participants have answered — bumping
-    // by a hardcoded amount on every submit (including the first responder,
-    // who hasn't earned anything yet) shows a score that then reverts once
-    // the next natural refetch reconciles it. awardedSelector reflects the
-    // server's actual total, which is 0 until bothResponded. Quests is
-    // invalidated unconditionally here (harmless on the non-completing
-    // submit — the board just refetches unchanged data) rather than
-    // duplicating the bothResponded gate a second time.
     meta: {
-      invalidates: [queryKeys.quests],
+      invalidates: [queryKeys.quests, queryKeys.matches],
       awardedSelector: (data) => (data as { awarded?: number }).awarded,
     },
     onSuccess: (data) => {

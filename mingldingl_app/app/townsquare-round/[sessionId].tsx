@@ -9,7 +9,7 @@ import { COLORS } from '../../lib/theme';
 import { useLocaleStore } from '../../store/localeStore';
 
 export default function TownSquareRoundScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const router = useRouter();
   const { round, error, markJoined, submitResponse, hasResponded, matchId } = useTownSquareRound(sessionId);
@@ -22,9 +22,6 @@ export default function TownSquareRoundScreen() {
     return () => clearInterval(id);
   }, []);
 
-  // A 400/404 here means the session is no longer in-progress for this user
-  // (completed, cancelled, or their round has no pairing) — the poll can't
-  // recover from that on its own, so leave rather than keep retrying.
   useEffect(() => {
     if (error) router.replace('/(tabs)/townsquare' as any);
   }, [error, router]);

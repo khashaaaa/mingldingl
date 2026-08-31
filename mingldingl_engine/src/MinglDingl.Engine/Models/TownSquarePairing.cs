@@ -7,9 +7,8 @@ public class TownSquarePairing
     public User UserA { get; set; } = null!;
     public Guid UserBId { get; set; }
     public User UserB { get; set; } = null!;
-    // No stored channel name: like VideoController/VideoTokenService, the Agora
-    // channel is derived on demand as Id.ToString("N") rather than persisted.
-    public string UserAResponse { get; set; } = "Pending"; // Pending|Yes|No
+
+    public string UserAResponse { get; set; } = "Pending";
     public string UserBResponse { get; set; } = "Pending";
     public DateTime? UserAJoinedAt { get; set; }
     public DateTime? UserBJoinedAt { get; set; }

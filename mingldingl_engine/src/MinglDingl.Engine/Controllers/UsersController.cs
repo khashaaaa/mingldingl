@@ -12,13 +12,15 @@ public class UsersController : ControllerBase
     private readonly ScoreService _score;
     private readonly ReferralService _referral;
     private readonly ShipService _ships;
+    private readonly OathService _oaths;
 
-    public UsersController(AppDbContext db, ScoreService score, ReferralService referral, ShipService ships)
+    public UsersController(AppDbContext db, ScoreService score, ReferralService referral, ShipService ships, OathService oaths)
     {
         _db = db;
         _score = score;
         _referral = referral;
         _ships = ships;
+        _oaths = oaths;
     }
 
     [HttpPost]
@@ -66,10 +68,6 @@ public class UsersController : ControllerBase
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user is null) return this.NotFoundError("User not found");
 
-        // Auto-cancel: successfully loading your own profile during the
-        // 7-day grace period is treated as "I'm back" (see the 2026-07-28
-        // brainstorm — no separate cancel endpoint). Once IsDeleted is true
-        // the anonymization already ran; there's nothing left to cancel.
         if (user.DeletionRequestedAt.HasValue && !user.IsDeleted)
         {
             user.DeletionRequestedAt = null;
@@ -77,13 +75,10 @@ public class UsersController : ControllerBase
         }
 
         await _referral.GetOrCreateCodeAsync(userId);
-        return Ok(ToResponse(user));
+        var (held, needed) = await _oaths.GetProgressAsync(userId);
+        return Ok(ToResponse(user) with { OathEncountersHeld = held, OathEncountersNeeded = needed });
     }
 
-    // Starts the 7-day grace period (DailyMaintenanceBackgroundService
-    // anonymizes anyone past it). Immediately hidden from Discover via
-    // GetCandidates' DeletionRequestedAt exclusion. Logging back in before
-    // the window closes auto-cancels this — see GetMe above.
     [HttpPost("me/delete")]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -135,10 +130,6 @@ public class UsersController : ControllerBase
         return Ok(ToResponse(user));
     }
 
-    // Periodic foreground refresh (app open/resume) so Discover's distance
-    // sort stays current as the user moves. Snaps to the same MongoliaGeo
-    // city list onboarding uses, so City stays consistent between the two
-    // paths rather than drifting into two different labeling schemes.
     [HttpPost("me/location")]
     [ProducesResponseType(typeof(UpdateLocationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
@@ -195,7 +186,7 @@ public class UsersController : ControllerBase
 
         switch (def.ItemType)
         {
-            case "Frame": user.EquippedFrameId = user.EquippedFrameId == itemId ? null : itemId; break; // tap again = unequip
+            case "Frame": user.EquippedFrameId = user.EquippedFrameId == itemId ? null : itemId; break;
             case "Title": user.EquippedTitleId = user.EquippedTitleId == itemId ? null : itemId; break;
             default: return this.BadRequestError("Emblems are collection-only");
         }
@@ -203,9 +194,6 @@ public class UsersController : ControllerBase
         return Ok(ToResponse(user));
     }
 
-    // Names/photos of the blocking user never leave this endpoint (only who
-    // *they* blocked and that person's own public-ish info) — no privacy
-    // concern beyond what GetCandidates already exposes to any viewer.
     [HttpGet("me/blocked")]
     [ProducesResponseType(typeof(List<BlockedUserResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBlockedUsers()
@@ -251,11 +239,6 @@ public class UsersController : ControllerBase
         return await GetBlockedUsers();
     }
 
-    // No OTP re-verification — this app's OTP was already fake (any 6-digit
-    // code accepted, see useAuth.ts), so a text field is no less secure than
-    // the "verified" number it replaces. Rejects a number already claimed by
-    // a different account (the PhoneNumber unique index is the ultimate
-    // guard; this check just gives a clean 400 instead of a 500).
     [HttpPut("me/phone")]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
@@ -277,12 +260,30 @@ public class UsersController : ControllerBase
         return Ok(ToResponse(user));
     }
 
+    [HttpPost("me/oath")]
+    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SwearOath([FromBody] SwearOathRequest req)
+    {
+        if (!OathService.ValidOaths.Contains(req.Oath))
+            return this.BadRequestError("Oath must be one of Bond, Fate, Kinship");
+
+        var user = await _oaths.SwearAsync(this.CurrentUserId(), req.Oath);
+        if (user is null) return this.NotFoundError("User not found");
+
+        var (held, needed) = await _oaths.GetProgressAsync(user.Id);
+        return Ok(ToResponse(user) with { OathEncountersHeld = held, OathEncountersNeeded = needed });
+    }
+
     private static UserResponse ToResponse(User u) => new(
         u.Id, u.DisplayName, u.Age, u.Gender, u.City, u.Bio,
-        u.PhotoUrls, u.TotalScore, u.GemTier, u.ReputationScore,
+        u.PhotoUrls,
         u.MembershipLevel, u.IsProfileComplete,
         u.EquippedFrameId, u.EquippedTitleId,
         u.HasKids, u.SmokingHabit, u.DrinkingHabit, u.Religion, u.Lifestyle,
         u.PushEnabled, u.AgeMin, u.AgeMax, u.IsPaused, u.PhoneNumber,
-        u.ReferralCode);
+        u.ReferralCode,
+        Oath: u.Oath,
+        OathProven: u.OathProven);
 }

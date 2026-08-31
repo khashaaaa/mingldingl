@@ -1,5 +1,6 @@
 import { FlatList, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { i18n } from '../../lib/i18n';
+import { Icon } from '../ui/Icon';
 import { formatDate } from '../../lib/formatDate';
 import { COLORS, FONTS } from '../../lib/theme';
 
@@ -15,12 +16,15 @@ interface Props {
   isFetchingNextPage: boolean;
 }
 
-const EVENT_ICONS: Record<string, string> = {
-  ProfileComplete: '📝', DailyLogin: '☀️', FirstMessage: '💬', IcebreakerDone: '🧊',
-  QuizDone: '📜', MatchReply: '↩️', DateConfirmed: '📍',
-  VideoCallDone: '🎥', GhostPenalty: '👻', ReportPenalty: '⚠️',
-  ShipSparked: '🏹', QuestComplete: '🎯',
-  QuestChest: '🎁', MilestoneChest: '🏅', DuplicateLoot: '♻️', AdminAdjustment: '⚖️',
+type EventGlyph = React.ComponentProps<typeof Icon>['name'];
+
+const EVENT_ICONS: Record<string, EventGlyph> = {
+  ProfileComplete: 'account-edit', DailyLogin: 'weather-sunny', FirstMessage: 'message-text',
+  IcebreakerDone: 'snowflake', QuizDone: 'script-text', MatchReply: 'keyboard-return',
+  DateConfirmed: 'map-marker', VideoCallDone: 'video', GhostPenalty: 'ghost',
+  ReportPenalty: 'alert', ShipSparked: 'bow-arrow', QuestComplete: 'target',
+  QuestChest: 'gift', MilestoneChest: 'medal', DuplicateLoot: 'recycle',
+  AdminAdjustment: 'scale-balance',
 };
 
 const EVENT_TYPE_KEYS: Record<string, string> = {
@@ -59,13 +63,13 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
       onEndReachedThreshold={0.5}
       ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color={COLORS.gold} style={styles.footer} /> : null}
       renderItem={({ item }) => {
-        const icon = EVENT_ICONS[item.eventType] ?? '✦';
+        const icon: EventGlyph = EVENT_ICONS[item.eventType] ?? 'star-four-points';
         const sign = item.delta >= 0 ? '+' : '';
         const color = item.delta >= 0 ? COLORS.gold : COLORS.ember;
         const date = formatDate(item.createdAt);
         return (
           <View style={styles.row}>
-            <Text style={styles.icon}>{icon}</Text>
+            <Icon name={icon} size={16} color={COLORS.textDim} style={styles.icon} />
             <Text style={styles.type}>{i18n.t(EVENT_TYPE_KEYS[item.eventType] ?? item.eventType)}</Text>
             <Text style={[styles.delta, { color }]}>{sign}{item.delta}</Text>
             <Text style={styles.date}>{date}</Text>
@@ -82,7 +86,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10, paddingHorizontal: 20,
     borderBottomWidth: 1, borderBottomColor: COLORS.panelRaised,
   },
-  icon: { fontSize: 16 },
+  icon: { width: 18, textAlign: 'center' },
   type: { flex: 1, fontSize: 13, fontFamily: FONTS.body, color: COLORS.text },
   delta: { fontSize: 14, fontFamily: FONTS.bodyBold },
   date: { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textDim },

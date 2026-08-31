@@ -4,12 +4,6 @@ import { usePhotoUpload } from '../usePhotoUpload';
 import * as ImagePicker from 'expo-image-picker';
 import { apiClient } from '../../lib/api/apiClient';
 
-// Factory form, not the bare `jest.mock('../../lib/api/apiClient')` automock —
-// the automock still has to load the real module once to introspect its
-// shape, which cascades through lib/api.ts into lib/supabase.ts's real
-// createClient() call at module scope and throws on the missing
-// EXPO_PUBLIC_SUPABASE_URL env var in the test environment. A factory skips
-// loading the real module entirely.
 jest.mock('../../lib/api/apiClient', () => ({
   apiClient: { photos: { upload: jest.fn(), uploadUri: jest.fn() } },
 }));

@@ -22,7 +22,6 @@ public class GhostingServiceTests
     [Fact]
     public void GetGhostAtFaultUserId_NoSenderRecorded_ReturnsNull()
     {
-        // Legacy match predating LastMessageSenderId, not yet backfilled — skip rather than guess.
         var match = new Match { InitiatorId = InitiatorId, ReceiverId = ReceiverId, LastMessageSenderId = null };
         Assert.Null(GhostingService.GetGhostAtFaultUserId(match));
     }

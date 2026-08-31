@@ -34,8 +34,6 @@ describe('useVideoCall', () => {
       expect(result.current.token).toBeNull();
       expect(result.current.error).toBeNull();
 
-      // resolve within act so the pending state update doesn't leak into
-      // (and warn in) the next test
       await act(async () => {
         resolveToken({ token: 't', channelName: 'c', appId: 'a' });
         await Promise.resolve();

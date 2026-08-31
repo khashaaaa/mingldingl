@@ -1,32 +1,41 @@
-# React + TypeScript + Vite
+# mingldingl_control
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Internal admin panel for [MingldIngl](../README.md) — users and moderation,
+business partners, live config tuning, content pages, Ships, Town Square, and
+analytics.
 
-Currently, two official plugins are available:
+React 19 + Vite, React Router, TanStack Query, Tailwind 4, Radix UI, oxlint.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Running it
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev        # vite dev server, http://localhost:5173
+npm run build      # tsc -b && vite build
+npm run lint       # oxlint
+npm run preview
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+`VITE_API_URL` (in `.env`, defaults to `http://localhost:5150`) points at the
+engine. Copy `.env.example` to `.env` first — nothing is checked in.
+
+## API types are generated
+
+```bash
+npm run generate:api   # engine must be running on :5150
+```
+
+This regenerates `src/lib/api/api.generated.d.ts` from the engine's live Swagger
+doc via `openapi-typescript`. Never hand-edit that file; regenerate it whenever
+an engine DTO changes.
+
+## Auth
+
+The panel uses its own `AdminBearer` JWT scheme, entirely separate from the
+Supabase JWTs app users get — a single hardcoded admin logs in via
+`POST /admin/auth/login` and receives a self-signed 12h token with no refresh
+flow. Admin endpoints on the engine opt into that scheme explicitly, so it can
+never leak onto app-user endpoints. See `Controllers/AdminAuthController.cs` in
+the engine.
+
+There is no test script for this subproject.

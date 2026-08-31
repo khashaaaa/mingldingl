@@ -6,7 +6,8 @@ public class QuestService
 {
     private readonly AppDbContext _db;
     private readonly ScoreService _score;
-    public QuestService(AppDbContext db, ScoreService score) { _db = db; _score = score; }
+    private readonly ILogger<QuestService> _logger;
+    public QuestService(AppDbContext db, ScoreService score, ILogger<QuestService> logger) { _db = db; _score = score; _logger = logger; }
 
     public static readonly IReadOnlyList<QuestDef> AllQuests =
     [
@@ -25,11 +26,6 @@ public class QuestService
         return [AllQuests[start], AllQuests[(start + 1) % AllQuests.Count], AllQuests[(start + 2) % AllQuests.Count]];
     }
 
-    // Best-effort: called from action handlers; a quest-tracking failure must never fail the action.
-    // Returns the quest XP actually awarded by this call (0 if the day has no
-    // matching quest, it's already complete, or this increment didn't finish
-    // it) — callers report this back to the client so the response's total
-    // reflects the real award instead of a guessed constant.
     public async Task<int> IncrementAsync(Guid userId, string action)
     {
         try
@@ -59,10 +55,10 @@ public class QuestService
             await _db.SaveChangesAsync();
             return 0;
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort by design — but never leave poisoned (Added/Modified)
-            // entities tracked on the shared scoped DbContext for later saves.
+            _logger.LogWarning(ex, "Quest tracking swallowed a failure for user {UserId} (action {Action}); no quest progress recorded", userId, action);
+
             _db.ChangeTracker.Clear();
             return 0;
         }

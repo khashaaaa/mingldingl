@@ -8,11 +8,6 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
-// PhotosController writes to local disk via LocalFileStorageService, so these
-// tests point it at a throwaway temp directory (per test instance, cleaned up
-// in Dispose) rather than the real {ContentRootPath}/uploads used in
-// production. PhotoCompressionService is exercised for real (not mocked) so
-// the accept-path tests also prove actual ImageSharp re-encoding works.
 public class PhotosControllerIntegrationTests : IntegrationTestBase, IDisposable
 {
     private readonly string _tempRoot =
@@ -69,9 +64,7 @@ public class PhotosControllerIntegrationTests : IntegrationTestBase, IDisposable
     public async Task Upload_FileOverSizeLimit_ReturnsBadRequest()
     {
         var controller = BuildController(Guid.NewGuid());
-        // The controller only inspects file.Length, so a tiny backing stream
-        // with an inflated reported Length exercises the size-limit branch
-        // without allocating an actual 15MB+ buffer.
+
         var file = MakeFormFile(new byte[] { 1, 2, 3 }, "photo.jpg", "image/jpeg", lengthOverride: 15 * 1024 * 1024 + 1);
 
         var result = await controller.Upload(file);

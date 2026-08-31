@@ -11,7 +11,7 @@ export function AuditLog() {
   const [page, setPage] = useState(1);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: queryKeys.auditLog(page),
+    queryKey: queryKeys.auditLog(page, PAGE_SIZE),
     queryFn: () => apiClient.auditLog.list(page, PAGE_SIZE),
   });
 

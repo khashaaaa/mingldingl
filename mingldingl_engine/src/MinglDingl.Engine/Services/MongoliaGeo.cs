@@ -1,54 +1,32 @@
-// Static reference data + geometry for location-based matching (Discover
-// distance sort, GPS-detected city on onboarding). Snapping to a known list
-// of Mongolia's 21 aimag (province) capitals + Ulaanbaatar's ~9 districts is
-// far more reliable here than raw reverse-geocoding: no external service
-// dependency, no quota/cost, and it degrades gracefully in rural areas with
-// no formal street-level address data.
-//
-// Coordinates are approximate town/district centers, not survey-precise —
-// fine for "which of ~30 known places is nearest", not intended for anything
-// requiring sub-km accuracy. The actual Discover distance sort uses each
-// user's raw GPS coordinates, not these snapped points, so an imprecise
-// label here never affects match ranking, only the display city name.
 public static class MongoliaGeo
 {
     public record CityPoint(string Name, double Latitude, double Longitude);
 
-    // Split so the fallback picker (GeoController.GetCities) can show
-    // Ulaanbaatar as one top-level entry and only reveal its districts once
-    // that's picked, instead of one flat list mixing 21 province capitals
-    // with 9 district names a non-UB user has no reason to scroll past.
-    // NearestCity (GPS auto-detect) still searches the combined Cities list
-    // below — that's matching real physical proximity, not a manual
-    // selection, so provinces and districts belong in the same pool there.
     public static readonly IReadOnlyList<CityPoint> Provinces =
     [
-        // 21 aimag capitals
-        new("Tsetserleg",     47.4767, 101.4571), // Arkhangai
-        new("Ölgii",          48.9700,  89.9500), // Bayan-Ölgii
-        new("Bayankhongor",   46.1928, 100.7181), // Bayankhongor
-        new("Bulgan",         48.8125, 103.5347), // Bulgan
-        new("Darkhan",        49.4867, 105.9228), // Darkhan-Uul
-        new("Choibalsan",     48.0783, 114.5344), // Dornod
-        new("Sainshand",      44.8917, 110.1333), // Dornogovi
-        new("Mandalgovi",     45.7667, 106.2708), // Dundgovi
-        new("Altai",          46.3722,  96.2583), // Govi-Altai
-        new("Choir",          46.3611, 108.3547), // Govisümber
-        new("Chinggis",       47.3250, 110.6556), // Khentii (formerly Öndörkhaan)
-        new("Khovd",          48.0056,  91.6419), // Khovd
-        new("Mörön",          49.6342, 100.1625), // Khövsgöl
-        new("Dalanzadgad",    43.5708, 104.4258), // Ömnögovi
-        new("Erdenet",        49.0333, 104.0833), // Orkhon
-        new("Arvaikheer",     46.2647, 102.7778), // Övörkhangai
-        new("Sükhbaatar",     50.2333, 106.2000), // Selenge (town, distinct from UB's Sükhbaatar district)
-        new("Baruun-Urt",     46.6806, 113.2792), // Sükhbaatar aimag
-        new("Zuunmod",        47.7083, 106.9556), // Töv
-        new("Ulaangom",       49.9764,  92.0667), // Uvs
-        new("Uliastai",       47.7417,  96.8425), // Zavkhan
+        new("Tsetserleg",     47.4767, 101.4571),
+        new("Ölgii",          48.9700,  89.9500),
+        new("Bayankhongor",   46.1928, 100.7181),
+        new("Bulgan",         48.8125, 103.5347),
+        new("Darkhan",        49.4867, 105.9228),
+        new("Choibalsan",     48.0783, 114.5344),
+        new("Sainshand",      44.8917, 110.1333),
+        new("Mandalgovi",     45.7667, 106.2708),
+        new("Altai",          46.3722,  96.2583),
+        new("Choir",          46.3611, 108.3547),
+        new("Chinggis",       47.3250, 110.6556),
+        new("Khovd",          48.0056,  91.6419),
+        new("Mörön",          49.6342, 100.1625),
+        new("Dalanzadgad",    43.5708, 104.4258),
+        new("Erdenet",        49.0333, 104.0833),
+        new("Arvaikheer",     46.2647, 102.7778),
+        new("Sükhbaatar",     50.2333, 106.2000),
+        new("Baruun-Urt",     46.6806, 113.2792),
+        new("Zuunmod",        47.7083, 106.9556),
+        new("Ulaangom",       49.9764,  92.0667),
+        new("Uliastai",       47.7417,  96.8425),
     ];
 
-    // Ulaanbaatar districts — most users will likely fall here, so these
-    // get their own points rather than one city-wide marker.
     public static readonly IReadOnlyList<CityPoint> UlaanbaatarDistricts =
     [
         new("Bayangol",          47.8975, 106.8794),
@@ -70,10 +48,6 @@ public static class MongoliaGeo
             .First()
             .Name;
 
-    // Haversine great-circle distance in kilometers. Deliberately plain C#
-    // math (sin/cos/atan2), not translatable to SQL by EF Core — callers that
-    // need this over a queryable set must materialize candidates first (see
-    // MatchesController.GetCandidates), which is fine at this app's scale.
     public static double DistanceKm(double lat1, double lon1, double lat2, double lon2)
     {
         const double earthRadiusKm = 6371.0;
@@ -88,10 +62,6 @@ public static class MongoliaGeo
 
     private static double ToRadians(double degrees) => degrees * Math.PI / 180.0;
 
-    // Shared by GeoController.GetNearestCity and UsersController.UpdateLocation,
-    // which both validated this identically by hand before being consolidated
-    // here — standard WGS84 bounds, nothing Mongolia-specific about the check
-    // itself, it just lives alongside the rest of this app's geo code.
     public static bool IsValidCoordinate(double latitude, double longitude) =>
         latitude is >= -90 and <= 90 && longitude is >= -180 and <= 180;
 }

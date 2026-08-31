@@ -83,7 +83,7 @@ describe('useActivitySuggestions', () => {
       const s1 = result.current.suggestions?.find((s) => s.id === 's1');
       const s2 = result.current.suggestions?.find((s) => s.id === 's2');
       expect(s1?.isComplete).toBe(true);
-      // The other suggestion in the list must be untouched by the merge.
+
       expect(s2?.myConfirmed).toBe(false);
       expect(s2?.isComplete).toBe(false);
     });
@@ -254,6 +254,52 @@ describe('useActivitySuggestions', () => {
       );
     });
 
+    it('marks myRated only on the suggestion actually rated, not every complete one', async () => {
+      mockApi.activities.suggestions.mockResolvedValue([
+        suggestion({ id: 's1', isComplete: true, business: { id: 'biz1', name: 'Cafe', averageRating: 4, district: 'D', photo: null } }),
+        suggestion({ id: 's2', isComplete: true, business: { id: 'biz2', name: 'Bar', averageRating: 3, district: 'D', photo: null } }),
+      ]);
+      mockApi.business.rate.mockResolvedValue({});
+
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useActivitySuggestions('m1'), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(result.current.suggestions).toHaveLength(2));
+
+      act(() => {
+        result.current.rateBusiness(5);
+      });
+
+      await waitFor(() => expect(result.current.rated).toBe(true));
+      await waitFor(() => {
+        const s1 = result.current.suggestions?.find((s) => s.id === 's1');
+        expect(s1?.myRated).toBe(true);
+      });
+      const s2 = result.current.suggestions?.find((s) => s.id === 's2');
+      expect(s2?.myRated).toBe(false);
+    });
+
+    it('refreshes myTrophies and the activity list on a successful rating', async () => {
+      mockApi.activities.suggestions.mockResolvedValue([
+        suggestion({ id: 's1', isComplete: true, business: { id: 'biz1', name: 'Cafe', averageRating: 4, district: 'D', photo: null } }),
+      ]);
+      mockApi.business.rate.mockResolvedValue({});
+
+      const queryClient = makeQueryClient();
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { result } = renderHook(() => useActivitySuggestions('m1'), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(result.current.completed).not.toBeNull());
+
+      act(() => {
+        result.current.rateBusiness(4);
+      });
+
+      await waitFor(() => expect(result.current.rated).toBe(true));
+      expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: queryKeys.myTrophies }));
+      expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: queryKeys.activity }));
+    });
+
     it('sets rateError and leaves rated false when business.rate rejects', async () => {
       mockApi.activities.suggestions.mockResolvedValue([
         suggestion({ id: 's1', isComplete: true, business: { id: 'biz1', name: 'Cafe', averageRating: 4, district: 'D', photo: null } }),
@@ -271,6 +317,47 @@ describe('useActivitySuggestions', () => {
 
       await waitFor(() => expect(result.current.rateError).toBe(true));
       expect(result.current.rated).toBe(false);
+    });
+  });
+
+  describe('partner confirmation state', () => {
+    it('derives partnerConfirmed from both initiator/receiver flags on my confirm response', async () => {
+      mockApi.activities.suggestions.mockResolvedValue([suggestion({ id: 's1' })]);
+      mockApi.activities.confirm.mockResolvedValue({ initiatorConfirmed: true, receiverConfirmed: false, isComplete: false });
+
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useActivitySuggestions('m1'), { wrapper: makeWrapper(queryClient) });
+      await waitFor(() => expect(result.current.suggestions).toHaveLength(1));
+      expect(result.current.suggestions?.[0].partnerConfirmed).toBeNull();
+
+      await act(async () => { result.current.confirmDate('s1'); });
+
+      await waitFor(() => expect(result.current.suggestions?.[0].myConfirmed).toBe(true));
+      expect(result.current.suggestions?.[0].partnerConfirmed).toBe(false);
+    });
+
+    it('marks partnerConfirmed and clears the partner-pledged flag when my confirm completes the pair', async () => {
+      mockApi.activities.suggestions.mockResolvedValue([suggestion({ id: 's1' })]);
+      mockApi.activities.confirm.mockResolvedValue({ initiatorConfirmed: true, receiverConfirmed: true, isComplete: true });
+
+      const queryClient = makeQueryClient();
+      queryClient.setQueryData(queryKeys.partnerPledged('m1'), true);
+      const { result } = renderHook(() => useActivitySuggestions('m1'), { wrapper: makeWrapper(queryClient) });
+      await waitFor(() => expect(result.current.suggestions).toHaveLength(1));
+      expect(result.current.partnerPledged).toBe(true);
+
+      await act(async () => { result.current.confirmDate('s1'); });
+
+      await waitFor(() => expect(result.current.suggestions?.[0].partnerConfirmed).toBe(true));
+      await waitFor(() => expect(result.current.partnerPledged).toBe(false));
+    });
+
+    it('exposes partnerPledged=false when nothing has been broadcast for the match', async () => {
+      mockApi.activities.suggestions.mockResolvedValue([suggestion({ id: 's1' })]);
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useActivitySuggestions('m1'), { wrapper: makeWrapper(queryClient) });
+      await waitFor(() => expect(result.current.suggestions).toHaveLength(1));
+      expect(result.current.partnerPledged).toBe(false);
     });
   });
 });

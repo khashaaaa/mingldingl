@@ -1,10 +1,5 @@
 using System.Security.Cryptography;
 
-// Dependency-free PBKDF2 (HMACSHA256) password hashing for the single admin
-// account — deliberately not pulling in the full Microsoft.AspNetCore.Identity
-// package for one hash/verify pair. Stored format is
-// "{iterations}.{saltBase64}.{hashBase64}" so the iteration count and salt
-// travel with the hash and can change later without a migration.
 public static class AdminPasswordHasher
 {
     private const int Iterations = 210_000;

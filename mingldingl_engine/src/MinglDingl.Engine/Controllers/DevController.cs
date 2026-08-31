@@ -1,12 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-// Development-only operational tooling. The hourly maintenance sweep
-// (ghosting, daily-reset, deletion-anonymization, membership-expiry) was
-// otherwise only reachable by waiting up to an hour or reaching into the
-// internal method from a test — this gives local testing/ops a way to
-// trigger it on demand. Returns 404 outside Development so it can never be
-// hit in a real deployment.
 [ApiController]
 [Route("dev")]
 [Authorize]

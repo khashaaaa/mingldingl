@@ -2,21 +2,24 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
 public class MatchesControllerIntegrationTests : IntegrationTestBase
 {
-    private MatchesController BuildController(Guid userId)
+    private MatchesController BuildController(Guid userId, ConfigService? config = null)
     {
+        config ??= new ConfigService();
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
-        var score = new ScoreService(Db, new ConfigService());
-        var ghosting = new GhostingService(Db, score);
-        var quests = new QuestService(Db, score);
-        var milestones = new MilestoneService(Db);
-        var push = new PushNotificationService(new HttpClient(), Db);
-        var controller = new MatchesController(Db, score, ghosting, quests, milestones, push)
+        var score = new ScoreService(Db, config);
+        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
+        var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast());
+        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var controller = new MatchesController(Db, score, ghosting, quests, milestones, push, config, BuildTestBroadcast())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -26,10 +29,6 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task GetMyMatches_SilverMembership_SeesDeepProfileFields()
     {
-        // Regression test: MembershipController advertises "Deep profile view"
-        // as a Silver perk, but BuildMatchResponse's gate used to only check
-        // for Gold/Platinum, so Silver subscribers never actually received
-        // the feature they were sold.
         var viewerId = Guid.NewGuid();
         var viewer = NewCompleteUser(viewerId);
         viewer.MembershipLevel = "Silver";
@@ -46,7 +45,7 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
             InitiatorId = viewerId,
             ReceiverId = otherId,
             Status = "Active",
-            MessageCount = 30, // reveal level 4 — deep fields become eligible
+            MessageCount = 30,
         });
         await Db.SaveChangesAsync();
 
@@ -64,7 +63,7 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
     public async Task GetMyMatches_FreeMembership_DoesNotSeeDeepProfileFields()
     {
         var viewerId = Guid.NewGuid();
-        var viewer = NewCompleteUser(viewerId); // MembershipLevel defaults to "Free"
+        var viewer = NewCompleteUser(viewerId);
 
         var otherId = Guid.NewGuid();
         var other = NewCompleteUser(otherId);
@@ -90,34 +89,158 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task GetCandidates_OrdersByDistanceAscending()
+    public async Task GetMyMatches_ExposesFlameRiteFieldsWithDistinctValues()
     {
-        // Regression test for the 2026-07-27 location-based matching change:
-        // distance is the primary Discover ranking signal now, not score
-        // proximity. Viewer is in Bayanzürkh (UB); "near" is elsewhere in UB,
-        // "far" is Ölgii (the opposite end of the country) — both candidates
-        // have identical scores, so only distance can explain the ordering.
         var viewerId = Guid.NewGuid();
         var viewer = NewCompleteUser(viewerId);
-        viewer.Latitude = 47.9128; viewer.Longitude = 106.9522; // Bayanzürkh
+
+        var otherId = Guid.NewGuid();
+        var other = NewCompleteUser(otherId);
+
+        var proposedAt = new DateTime(2026, 8, 19, 9, 0, 0, DateTimeKind.Utc);
+        var acceptedAt = new DateTime(2026, 8, 19, 9, 5, 0, DateTimeKind.Utc);
+        var completedAt = new DateTime(2026, 8, 19, 9, 10, 0, DateTimeKind.Utc);
+
+        Db.Users.AddRange(viewer, other);
+        Db.Matches.Add(new Match
+        {
+            Id = Guid.NewGuid(),
+            InitiatorId = viewerId,
+            ReceiverId = otherId,
+            Status = "Active",
+            FlameRiteProposedById = otherId,
+            FlameRiteProposedAt = proposedAt,
+            FlameRiteAcceptedAt = acceptedAt,
+            FlameRiteCompletedAt = completedAt,
+        });
+        await Db.SaveChangesAsync();
+
+        var config = new ConfigService();
+        config.Set("dating.flamerite.duration_minutes", "7");
+        config.Set("dating.flamerite.required", "false");
+
+        var controller = BuildController(viewerId, config);
+        var result = Assert.IsType<OkObjectResult>(await controller.GetMyMatches());
+        var body = Assert.IsType<PagedResponse<MatchResponse>>(result.Value);
+
+        var response = Assert.Single(body.Items);
+        Assert.Equal(otherId, response.FlameRiteProposedById);
+        Assert.Equal(proposedAt, response.FlameRiteProposedAt);
+        Assert.Equal(acceptedAt, response.FlameRiteAcceptedAt);
+        Assert.Equal(completedAt, response.FlameRiteCompletedAt);
+        Assert.Equal(7, response.FlameRiteDurationMinutes);
+        Assert.False(response.FlameRiteRequired);
+    }
+
+    [Fact]
+    public async Task GetCandidates_ExposesOathAndOathProvenOnTheCard()
+    {
+        var viewerId = Guid.NewGuid();
+        var viewer = NewCompleteUser(viewerId);
+        viewer.Gender = "Male";
+
+        var otherId = Guid.NewGuid();
+        var other = NewCompleteUser(otherId);
+        other.Gender = "Female";
+        other.Oath = "Bond";
+        other.OathProven = true;
+
+        Db.Users.AddRange(viewer, other);
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(viewerId);
+        var result = Assert.IsType<OkObjectResult>(await controller.GetCandidates(pageSize: 50));
+        var body = Assert.IsType<PagedResponse<CandidateResponse>>(result.Value);
+
+        var candidate = body.Items.Single(c => c.Id == otherId);
+        Assert.Equal("Bond", candidate.Oath);
+        Assert.True(candidate.OathProven);
+    }
+
+    [Fact]
+    public async Task GetMyMatches_BelowRevealLevel1_OathIsNull()
+    {
+        var viewerId = Guid.NewGuid();
+        var viewer = NewCompleteUser(viewerId);
+
+        var otherId = Guid.NewGuid();
+        var other = NewCompleteUser(otherId);
+        other.Oath = "Bond";
+        other.OathProven = true;
+
+        Db.Users.AddRange(viewer, other);
+        Db.Matches.Add(new Match
+        {
+            Id = Guid.NewGuid(),
+            InitiatorId = viewerId,
+            ReceiverId = otherId,
+            Status = "Active",
+            MessageCount = 0,
+        });
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(viewerId);
+        var result = Assert.IsType<OkObjectResult>(await controller.GetMyMatches());
+        var body = Assert.IsType<PagedResponse<MatchResponse>>(result.Value);
+
+        var response = Assert.Single(body.Items);
+        Assert.Null(response.OtherUser.Oath);
+        Assert.False(response.OtherUser.OathProven);
+    }
+
+    [Fact]
+    public async Task GetMyMatches_AtRevealLevel1_OathIsPopulated()
+    {
+        var viewerId = Guid.NewGuid();
+        var viewer = NewCompleteUser(viewerId);
+
+        var otherId = Guid.NewGuid();
+        var other = NewCompleteUser(otherId);
+        other.Oath = "Bond";
+        other.OathProven = true;
+
+        Db.Users.AddRange(viewer, other);
+        Db.Matches.Add(new Match
+        {
+            Id = Guid.NewGuid(),
+            InitiatorId = viewerId,
+            ReceiverId = otherId,
+            Status = "Active",
+            MessageCount = 1,
+        });
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(viewerId);
+        var result = Assert.IsType<OkObjectResult>(await controller.GetMyMatches());
+        var body = Assert.IsType<PagedResponse<MatchResponse>>(result.Value);
+
+        var response = Assert.Single(body.Items);
+        Assert.Equal("Bond", response.OtherUser.Oath);
+        Assert.True(response.OtherUser.OathProven);
+    }
+
+    [Fact]
+    public async Task GetCandidates_OrdersByDistanceAscending()
+    {
+        var viewerId = Guid.NewGuid();
+        var viewer = NewCompleteUser(viewerId);
+        viewer.Latitude = 47.9128; viewer.Longitude = 106.9522;
 
         var nearId = Guid.NewGuid();
         var near = NewCompleteUser(nearId);
-        near.Gender = "Male"; // opposite-sex-only filter — see 2026-07-28 brainstorm
-        near.Latitude = 47.9184; near.Longitude = 106.9153; // Sükhbaatar (UB), a few km away
+        near.Gender = "Male";
+        near.Latitude = 47.9184; near.Longitude = 106.9153;
 
         var farId = Guid.NewGuid();
         var far = NewCompleteUser(farId);
         far.Gender = "Male";
-        far.Latitude = 48.9700; far.Longitude = 89.9500; // Ölgii, ~1000km away
+        far.Latitude = 48.9700; far.Longitude = 89.9500;
 
         Db.Users.AddRange(viewer, near, far);
         await Db.SaveChangesAsync();
 
         var controller = BuildController(viewerId);
-        // Max page size: the shared dev DB has pre-existing seed users too, so
-        // this asserts relative ordering of the candidates this test created,
-        // not an exact count/position in the full response.
+
         var result = Assert.IsType<OkObjectResult>(await controller.GetCandidates(pageSize: 50));
         var body = Assert.IsType<PagedResponse<CandidateResponse>>(result.Value);
 
@@ -136,11 +259,11 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
 
         var locatedId = Guid.NewGuid();
         var located = NewCompleteUser(locatedId);
-        located.Gender = "Male"; // opposite-sex-only filter — see 2026-07-28 brainstorm
-        located.Latitude = 48.9700; located.Longitude = 89.9500; // far, but a known distance
+        located.Gender = "Male";
+        located.Latitude = 48.9700; located.Longitude = 89.9500;
 
         var unlocatedId = Guid.NewGuid();
-        var unlocated = NewCompleteUser(unlocatedId); // Latitude/Longitude left null
+        var unlocated = NewCompleteUser(unlocatedId);
         unlocated.Gender = "Male";
 
         Db.Users.AddRange(viewer, located, unlocated);
@@ -150,8 +273,6 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var result = Assert.IsType<OkObjectResult>(await controller.GetCandidates(pageSize: 50));
         var body = Assert.IsType<PagedResponse<CandidateResponse>>(result.Value);
 
-        // Soft signal, not a hard filter: the unlocated candidate is never
-        // excluded, just ranked after anyone with a resolvable distance.
         var locatedIndex = body.Items.FindIndex(c => c.Id == locatedId);
         var unlocatedIndex = body.Items.FindIndex(c => c.Id == unlocatedId);
         Assert.True(locatedIndex >= 0 && unlocatedIndex >= 0, "both candidates should be present");
@@ -161,11 +282,6 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task GetCandidates_TiedOnDistanceAndScore_RanksMoreCompatibleFirst()
     {
-        // Deep-field compatibility is a soft signal like distance: it only
-        // breaks ties, it never excludes anyone. Both candidates here are
-        // unlocated (tied on distance) and have the same TotalScore (tied on
-        // score proximity), so only compatibility with the viewer's deep
-        // fields can explain the ordering.
         var viewerId = Guid.NewGuid();
         var viewer = NewCompleteUser(viewerId);
         viewer.Gender = "Male";
@@ -191,9 +307,6 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         compatible.Religion = "None";
         compatible.Lifestyle = "Balanced";
 
-        // Inserted in "wrong" order deliberately — with no compatibility
-        // signal, a stable sort tied on distance/score would preserve this
-        // order and put the incompatible candidate first.
         Db.Users.AddRange(viewer, incompatible, compatible);
         await Db.SaveChangesAsync();
 
@@ -210,25 +323,21 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task GetCandidates_GoldMembership_PrioritizesCompatibilityWithinDistanceBand()
     {
-        // Priority matching (Gold/Platinum perk): within the same ~15km band,
-        // a farther-but-more-compatible candidate should outrank a
-        // nearer-but-incompatible one — compatibility becomes a real primary
-        // ranking factor for paid tiers, not just an exact-tie breaker.
         var viewerId = Guid.NewGuid();
         var viewer = NewCompleteUser(viewerId);
         viewer.Gender = "Male";
         viewer.MembershipLevel = "Gold";
-        viewer.Latitude = 47.9128; viewer.Longitude = 106.9522; // Bayanzürkh
+        viewer.Latitude = 47.9128; viewer.Longitude = 106.9522;
         viewer.SmokingHabit = "Never";
 
         var nearIncompatibleId = Guid.NewGuid();
         var nearIncompatible = NewCompleteUser(nearIncompatibleId);
-        nearIncompatible.Latitude = 47.9328; nearIncompatible.Longitude = 106.9522; // ~2.2km away
+        nearIncompatible.Latitude = 47.9328; nearIncompatible.Longitude = 106.9522;
         nearIncompatible.SmokingHabit = "Regularly";
 
         var farCompatibleId = Guid.NewGuid();
         var farCompatible = NewCompleteUser(farCompatibleId);
-        farCompatible.Latitude = 47.9828; farCompatible.Longitude = 106.9522; // ~7.8km away, same band
+        farCompatible.Latitude = 47.9828; farCompatible.Longitude = 106.9522;
         farCompatible.SmokingHabit = "Never";
 
         Db.Users.AddRange(viewer, nearIncompatible, farCompatible);
@@ -247,23 +356,20 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task GetCandidates_FreeMembership_IgnoresDistanceBanding_NearestFirstRegardlessOfCompatibility()
     {
-        // Same scenario as the Gold test above, but for a Free member — the
-        // perk must actually be gated: without it, plain nearest-first still
-        // applies, so the incompatible-but-nearer candidate wins.
         var viewerId = Guid.NewGuid();
         var viewer = NewCompleteUser(viewerId);
-        viewer.Gender = "Male"; // MembershipLevel defaults to "Free"
+        viewer.Gender = "Male";
         viewer.Latitude = 47.9128; viewer.Longitude = 106.9522;
         viewer.SmokingHabit = "Never";
 
         var nearIncompatibleId = Guid.NewGuid();
         var nearIncompatible = NewCompleteUser(nearIncompatibleId);
-        nearIncompatible.Latitude = 47.9328; nearIncompatible.Longitude = 106.9522; // ~2.2km away
+        nearIncompatible.Latitude = 47.9328; nearIncompatible.Longitude = 106.9522;
         nearIncompatible.SmokingHabit = "Regularly";
 
         var farCompatibleId = Guid.NewGuid();
         var farCompatible = NewCompleteUser(farCompatibleId);
-        farCompatible.Latitude = 47.9828; farCompatible.Longitude = 106.9522; // ~7.8km away
+        farCompatible.Latitude = 47.9828; farCompatible.Longitude = 106.9522;
         farCompatible.SmokingHabit = "Never";
 
         Db.Users.AddRange(viewer, nearIncompatible, farCompatible);
@@ -282,23 +388,18 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task GetCandidates_UnmatchedCandidateWithinBand_RanksAheadOfAlreadyMatchedCandidate()
     {
-        // Day-0 activation lever: a candidate who has never matched with
-        // anyone gets boosted within the same ~10km band, ahead of an
-        // otherwise-equal candidate who already has a match elsewhere — so a
-        // brand-new user surfaces sooner in other people's decks instead of
-        // sitting unseen behind everyone who's already been discovered.
         var viewerId = Guid.NewGuid();
         var viewer = NewCompleteUser(viewerId);
         viewer.Gender = "Male";
-        viewer.Latitude = 47.9128; viewer.Longitude = 106.9522; // Bayanzürkh
+        viewer.Latitude = 47.9128; viewer.Longitude = 106.9522;
 
         var unmatchedId = Guid.NewGuid();
         var unmatched = NewCompleteUser(unmatchedId);
-        unmatched.Latitude = 47.9184; unmatched.Longitude = 106.9153; // a few km away, same band
+        unmatched.Latitude = 47.9184; unmatched.Longitude = 106.9153;
 
         var alreadyMatchedId = Guid.NewGuid();
         var alreadyMatched = NewCompleteUser(alreadyMatchedId);
-        alreadyMatched.Latitude = 47.9130; alreadyMatched.Longitude = 106.9520; // essentially the same spot, same band
+        alreadyMatched.Latitude = 47.9130; alreadyMatched.Longitude = 106.9520;
 
         var thirdPartyId = Guid.NewGuid();
         var thirdParty = NewCompleteUser(thirdPartyId);
@@ -320,10 +421,6 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task GetCandidates_UnmatchedBoost_DoesNotOverrideACloserCandidateInAnotherBand()
     {
-        // The boost only reorders within a band — it must never surface a
-        // brand-new user over a genuinely closer candidate in a different
-        // (10km+) band, which would defeat the point of distance-based
-        // matching in a city-scale app.
         var viewerId = Guid.NewGuid();
         var viewer = NewCompleteUser(viewerId);
         viewer.Gender = "Male";
@@ -331,11 +428,11 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
 
         var nearAlreadyMatchedId = Guid.NewGuid();
         var nearAlreadyMatched = NewCompleteUser(nearAlreadyMatchedId);
-        nearAlreadyMatched.Latitude = 47.9184; nearAlreadyMatched.Longitude = 106.9153; // ~4km away
+        nearAlreadyMatched.Latitude = 47.9184; nearAlreadyMatched.Longitude = 106.9153;
 
         var farUnmatchedId = Guid.NewGuid();
         var farUnmatched = NewCompleteUser(farUnmatchedId);
-        farUnmatched.Latitude = 48.9700; farUnmatched.Longitude = 89.9500; // ~1000km away, different band
+        farUnmatched.Latitude = 48.9700; farUnmatched.Longitude = 89.9500;
 
         var thirdPartyId = Guid.NewGuid();
         var thirdParty = NewCompleteUser(thirdPartyId);
@@ -372,15 +469,44 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         Assert.Equal("Unmatched", reloadedMatch!.Status);
         Assert.True(await Db.BlockedUsers.AnyAsync(b => b.BlockerId == blockerId && b.BlockedId == blockedId));
 
-        // RequestMatch's guard checks this exact symmetric predicate before
-        // creating a match — asserted directly rather than by calling
-        // RequestMatch itself, which opens its own transaction internally
-        // (for the advisory lock) and can't nest inside IntegrationTestBase's
-        // wrapping transaction.
         bool blockedEitherDirection = await Db.BlockedUsers.AnyAsync(bl =>
             (bl.BlockerId == blockedId && bl.BlockedId == blockerId) ||
             (bl.BlockerId == blockerId && bl.BlockedId == blockedId));
         Assert.True(blockedEitherDirection, "RequestMatch's guard should see this pair as blocked regardless of who initiates");
+    }
+
+    [Fact]
+    public async Task Unmatch_BroadcastsMatchStatusChanged()
+    {
+        var userId = Guid.NewGuid();
+        var otherId = Guid.NewGuid();
+        Db.Users.AddRange(NewCompleteUser(userId), NewCompleteUser(otherId));
+        var match = new Match { Id = Guid.NewGuid(), InitiatorId = userId, ReceiverId = otherId, Status = "Active" };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        var (broadcast, handler) = BuildCapturingBroadcast();
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
+        var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
+        var httpContext = new DefaultHttpContext();
+        httpContext.Items["UserId"] = userId;
+        var controller = new MatchesController(Db, score, new GhostingService(Db, score, oaths, broadcast), quests, milestones,
+            new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance), config, broadcast)
+        {
+            ControllerContext = new ControllerContext { HttpContext = httpContext },
+        };
+
+        Assert.IsType<OkObjectResult>(await controller.Unmatch(match.Id));
+
+        Assert.NotNull(handler.LastRequestBody);
+        Assert.Contains("\"app-nudges\"", handler.LastRequestBody);
+        Assert.Contains("\"match_status_changed\"", handler.LastRequestBody);
+        Assert.Contains("\"status\":\"Unmatched\"", handler.LastRequestBody);
+        Assert.Contains($"\"matchId\":\"{match.Id}\"", handler.LastRequestBody);
+        Assert.Contains($"\"userId\":\"{userId}\"", handler.LastRequestBody);
     }
 
     [Fact]
@@ -389,7 +515,7 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var viewerId = Guid.NewGuid();
         var blockedId = Guid.NewGuid();
         var blockedUser = NewCompleteUser(blockedId);
-        blockedUser.Gender = "Male"; // opposite gender so the block itself is what excludes them, not the gender filter
+        blockedUser.Gender = "Male";
         Db.Users.AddRange(NewCompleteUser(viewerId), blockedUser);
         Db.BlockedUsers.Add(new BlockedUser { BlockerId = viewerId, BlockedId = blockedId });
         await Db.SaveChangesAsync();
@@ -515,4 +641,5 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var response = Assert.IsType<PagedResponse<MatchResponse>>(Assert.IsType<OkObjectResult>(result).Value);
         Assert.Null(response.Items[0].WeaverDisplayName);
     }
+
 }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
@@ -12,10 +13,11 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         httpContext.Items["UserId"] = userId;
         httpContext.Items["PhoneNumber"] = phone;
         var scoreService = new ScoreService(Db, new ConfigService());
-        var lootService = new LootService(Db, scoreService);
-        var referralService = new ReferralService(Db, lootService);
-        var shipService = new ShipService(Db, lootService, scoreService, new ConfigService(), new MilestoneService(Db), new PushNotificationService(new HttpClient(), Db));
-        var controller = new UsersController(Db, scoreService, referralService, shipService)
+        var lootService = new LootService(Db, scoreService, NullLogger<LootService>.Instance);
+        var referralService = new ReferralService(Db, lootService, NullLogger<ReferralService>.Instance);
+        var shipService = new ShipService(Db, lootService, scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
+        var oathService = new OathService(Db, new ConfigService(), scoreService, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), lootService);
+        var controller = new UsersController(Db, scoreService, referralService, shipService, oathService)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -25,9 +27,6 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task Upsert_BrandNewUser_InsertsAndAwardsProfileCompleteBonus()
     {
-        // Regression test for the Add-vs-Update bug: a brand-new user (never
-        // previously saved) must be inserted, not updated, or the paired
-        // ScoreEvent insert fails on its foreign key.
         var userId = Guid.NewGuid();
         var controller = BuildController(userId);
 
@@ -37,11 +36,14 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<UserResponse>(ok.Value);
-        Assert.Equal(100, response.TotalScore);
-        Assert.Equal("Opal", response.GemTier);
         Assert.True(response.IsProfileComplete);
 
         Db.ChangeTracker.Clear();
+
+        var saved = await Db.Users.FindAsync(userId);
+        Assert.Equal(100, saved!.TotalScore);
+        Assert.Equal("Opal", saved.GemTier);
+
         var scoreEvents = Db.ScoreEvents.Where(e => e.UserId == userId).ToList();
         Assert.Single(scoreEvents);
         Assert.Equal("ProfileComplete", scoreEvents[0].EventType);
@@ -60,7 +62,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
             ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"]);
 
         await controller.Upsert(req);
-        await controller.Upsert(req); // submitting again should not re-award
+        await controller.Upsert(req);
 
         Db.ChangeTracker.Clear();
         var scoreEvents = Db.ScoreEvents.Where(e => e.UserId == userId && e.EventType == "ProfileComplete").ToList();
@@ -90,8 +92,6 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         await Db.SaveChangesAsync();
         Db.ChangeTracker.Clear();
 
-        // A different phone claim on this request (shouldn't happen in practice,
-        // but the once-claimed PhoneNumber must never be silently reassigned).
         var controller = BuildController(userId, phone: "99009900");
         await controller.Upsert(new CreateUserRequest(
             "Updated", 21, "Male", "Ulaanbaatar", "Edit",
@@ -130,6 +130,35 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var second = Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(await controller.GetMe()).Value);
 
         Assert.Equal(first.ReferralCode, second.ReferralCode);
+    }
+
+    [Fact]
+    public async Task GetMe_UnswornUser_OathProgressIsNull()
+    {
+        var userId = Guid.NewGuid();
+        Db.Users.Add(NewCompleteUser(userId));
+        await Db.SaveChangesAsync();
+
+        var response = Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(await BuildController(userId).GetMe()).Value);
+
+        Assert.Null(response.OathEncountersHeld);
+        Assert.Null(response.OathEncountersNeeded);
+    }
+
+    [Fact]
+    public async Task GetMe_SwornUser_OathProgressIsPopulated()
+    {
+        var userId = Guid.NewGuid();
+        var user = NewCompleteUser(userId);
+        user.Oath = "Kinship";
+        user.OathSwornAt = DateTime.UtcNow.AddDays(-3);
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        var response = Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(await BuildController(userId).GetMe()).Value);
+
+        Assert.Equal(0, response.OathEncountersHeld);
+        Assert.Equal(2, response.OathEncountersNeeded);
     }
 
     [Fact]
@@ -179,8 +208,8 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         Db.Users.Add(NewCompleteUser(weaverId));
         await Db.SaveChangesAsync();
         var scoreService = new ScoreService(Db, new ConfigService());
-        var shipService = new ShipService(Db, new LootService(Db, scoreService), scoreService, new ConfigService(), new MilestoneService(Db), new PushNotificationService(new HttpClient(), Db));
-        await shipService.CreateAsync(weaverId, "88130001", "88130002"); // both AwaitingUser
+        var shipService = new ShipService(Db, new LootService(Db, scoreService, NullLogger<LootService>.Instance), scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
+        await shipService.CreateAsync(weaverId, "88130001", "88130002");
         Db.ChangeTracker.Clear();
         var ship = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaverId);
         var code = ship.SlotAInviteCode!;
@@ -215,7 +244,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
             ReferralCode: inviterCode);
 
         await controller.Upsert(req);
-        await controller.Upsert(req); // e.g. a retried request after a flaky response
+        await controller.Upsert(req);
 
         Db.ChangeTracker.Clear();
         Assert.Single(Db.Referrals.Where(r => r.InviteeUserId == inviteeId));

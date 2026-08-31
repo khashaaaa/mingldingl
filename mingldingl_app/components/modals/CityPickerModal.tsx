@@ -12,15 +12,6 @@ interface Props {
   onDismiss: () => void;
 }
 
-// Fallback for the location-permission-denied path in onboarding — a tap-to-
-// select list over the same fixed Mongolia province/district lists the
-// engine snaps GPS coordinates to (see MongoliaGeo), so a denied-permission
-// user still never has to type a free-text city name. Two-step rather than
-// one flat list: provinces and Ulaanbaatar's 9 districts read as different
-// kinds of place, so mixing them into a single alphabetical-ish scroll made
-// a UB resident hunt past 21 province names for their district (or vice
-// versa). Ulaanbaatar itself is a picker-only grouping, not a selectable
-// value — the engine has no city point for it, only its districts.
 export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSelect, onDismiss }: Props) {
   const [showingDistricts, setShowingDistricts] = useState(false);
 

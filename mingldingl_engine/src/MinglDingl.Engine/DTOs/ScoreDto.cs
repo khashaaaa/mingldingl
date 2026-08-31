@@ -28,13 +28,14 @@ public record ScoreDetailResponse(
     DroppedItem? PendingReferralReward = null,
     DroppedItem? PendingShipReward = null);
 
+public record AckNotificationDto(string Kind);
+
+public record AckNotificationResponse(bool Acknowledged);
+
 public record ScoreEventDto(string EventType, int Delta, DateTime CreatedAt);
 
 public record ScoreHistoryResponse(IReadOnlyList<ScoreEventDto> Items, DateTime? NextCursor, Guid? NextCursorId);
 
-// Anonymized by design — no DisplayName/PhotoUrl here. The client already
-// knows its own profile, so IsCurrentUser is all it needs to label "you"
-// without the endpoint ever returning another user's identity.
 public record LeaderboardEntryDto(int Rank, string GemTier, bool IsCurrentUser);
 
 public record LeaderboardResponse(string City, IReadOnlyList<LeaderboardEntryDto> Entries, int MyRank);

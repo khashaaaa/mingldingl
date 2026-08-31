@@ -1,9 +1,13 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import { getToken } from '../lib/auth';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { clearToken, getToken, isTokenExpired } from '../lib/auth';
 
-// Presence of a stored token is enough to render — an actually-expired or
-// invalid token still gets caught by the axios 401 interceptor on the first
-// real request, which clears it and redirects to /login (see lib/api/api.ts).
 export function ProtectedRoute() {
-  return getToken() ? <Outlet /> : <Navigate to="/login" replace />;
+  const location = useLocation();
+  if (!getToken() || isTokenExpired()) {
+    clearToken();
+    const current = location.pathname + location.search;
+    const next = current === '/' ? '' : `?next=${encodeURIComponent(current)}`;
+    return <Navigate to={`/login${next}`} replace />;
+  }
+  return <Outlet />;
 }

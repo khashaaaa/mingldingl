@@ -4,10 +4,6 @@ import { COLORS, metalGradient } from '../../lib/theme';
 
 interface Props { tint?: string; }
 
-// A metal rod, not a flat rule: each half fades from the tint's bright
-// bevel-stop at the center diamond down to its dark stop at the outer edge,
-// so the line reads as struck metal catching light from the middle out —
-// same three-stop language as GameButton/ScoreHUD's forged bevel.
 export function SectionDivider({ tint = COLORS.bronze }: Props) {
   const [bright, , dark] = metalGradient(tint);
   return (

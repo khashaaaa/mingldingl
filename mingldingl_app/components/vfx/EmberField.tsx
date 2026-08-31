@@ -22,7 +22,7 @@ export function EmberField({ width, height, density = 8 }: Props) {
     })),
     [width, height, density],
   );
-  if (level !== 'full' || width === 0 || height === 0) return null; // reduced/off: no embers
+  if (level !== 'full' || width === 0 || height === 0) return null;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
       <Canvas style={{ width, height }}>

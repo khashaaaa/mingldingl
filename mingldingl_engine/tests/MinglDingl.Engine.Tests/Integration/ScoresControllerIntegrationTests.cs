@@ -20,10 +20,6 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task DailyLogin_CalledTwiceSameDay_OnlyFirstCallAwardsXp()
     {
-        // Coverage for the DailyLogin award site after wrapping AwardWithDeltaAsync
-        // in try/catch for ix_score_events_once_per_day (final review B.2): the
-        // existing check-then-award idempotency path must still return the
-        // "already logged in" response, not a 500, once the catch is in place.
         var userId = Guid.NewGuid();
         var user = NewCompleteUser(userId);
         Db.Users.Add(user);
@@ -74,7 +70,7 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
 
         Db.ChangeTracker.Clear();
         var reloaded = await Db.Users.AsNoTracking().FirstAsync(u => u.Id == userId);
-        Assert.Equal(6, reloaded.CurrentStreak); // confirms this is a pure read, no mutation
+        Assert.Equal(6, reloaded.CurrentStreak);
     }
 
     [Fact]
@@ -93,7 +89,7 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
                 UserId = userId,
                 EventType = "DailyLogin",
                 Delta = 5,
-                CreatedAt = baseTime.AddDays(i), // day 0 (oldest) .. day 4 (newest)
+                CreatedAt = baseTime.AddDays(i),
             });
         }
         await Db.SaveChangesAsync();
@@ -103,7 +99,7 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
         var firstPage = Assert.IsType<OkObjectResult>(await controller.GetMyScoreHistory(null, null, 3));
         var firstBody = Assert.IsType<ScoreHistoryResponse>(firstPage.Value);
         Assert.Equal(3, firstBody.Items.Count);
-        Assert.Equal(baseTime.AddDays(4), firstBody.Items[0].CreatedAt); // newest first
+        Assert.Equal(baseTime.AddDays(4), firstBody.Items[0].CreatedAt);
         Assert.Equal(baseTime.AddDays(2), firstBody.Items[2].CreatedAt);
         Assert.Equal(baseTime.AddDays(2), firstBody.NextCursor);
 
@@ -124,11 +120,7 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
 
         var tiedTime = new DateTime(2026, 7, 5, 9, 0, 0, DateTimeKind.Utc);
         var ids = new[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() }.OrderByDescending(g => g).ToArray();
-        // Three events sharing one exact timestamp - only Id breaks the tie.
-        // EventType "MatchReply" deliberately avoids DailyLogin/QuestChest: those
-        // two are the only types ix_score_events_once_per_day restricts to one
-        // per user per UTC day (see that migration), which three same-day rows
-        // of the same type would otherwise violate.
+
         foreach (var id in ids)
         {
             Db.ScoreEvents.Add(new ScoreEvent
@@ -153,13 +145,12 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
         var secondPage = Assert.IsType<OkObjectResult>(await controller.GetMyScoreHistory(firstBody.NextCursor, firstBody.NextCursorId, 2));
         var secondBody = Assert.IsType<ScoreHistoryResponse>(secondPage.Value);
 
-        // Exactly the third (remaining) event — not zero (skipped) and not a repeat of page 1.
         Assert.Single(secondBody.Items);
         Assert.Null(secondBody.NextCursor);
     }
 
     [Fact]
-    public async Task GetMyScoreDetail_PendingReferralReward_SurfacesOnceThenClears()
+    public async Task GetMyScoreDetail_PendingReferralReward_PersistsAcrossFetches_UntilAcked()
     {
         var inviterId = Guid.NewGuid();
         var inviteeId = Guid.NewGuid();
@@ -181,7 +172,14 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
         Assert.Equal(LootService.Catalog[0].Id, first.PendingReferralReward!.Id);
 
         var second = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
-        Assert.Null(second.PendingReferralReward);
+        Assert.NotNull(second.PendingReferralReward);
+
+        var ack = Assert.IsType<AckNotificationResponse>(Assert.IsType<OkObjectResult>(
+            await controller.AckRewardNotification(new AckNotificationDto("referral"))).Value);
+        Assert.True(ack.Acknowledged);
+
+        var third = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
+        Assert.Null(third.PendingReferralReward);
     }
 
     [Fact]
@@ -198,7 +196,7 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task GetMyScoreDetail_PendingShipReward_SurfacesOnceThenClears()
+    public async Task GetMyScoreDetail_PendingShipReward_PersistsAcrossFetches_UntilAcked()
     {
         var weaverId = Guid.NewGuid();
         Db.Users.Add(NewCompleteUser(weaverId));
@@ -219,6 +217,60 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
         Assert.Equal(LootService.Catalog[0].Id, first.PendingShipReward!.Id);
 
         var second = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
-        Assert.Null(second.PendingShipReward);
+        Assert.NotNull(second.PendingShipReward);
+
+        var ack = Assert.IsType<AckNotificationResponse>(Assert.IsType<OkObjectResult>(
+            await controller.AckRewardNotification(new AckNotificationDto("ship"))).Value);
+        Assert.True(ack.Acknowledged);
+
+        var third = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
+        Assert.Null(third.PendingShipReward);
+    }
+
+    [Fact]
+    public async Task AckRewardNotification_NothingPending_IsIdempotentNoOp()
+    {
+        var userId = Guid.NewGuid();
+        Db.Users.Add(NewCompleteUser(userId));
+        await Db.SaveChangesAsync();
+        var controller = BuildController(userId);
+
+        var ack = Assert.IsType<AckNotificationResponse>(Assert.IsType<OkObjectResult>(
+            await controller.AckRewardNotification(new AckNotificationDto("referral"))).Value);
+        Assert.False(ack.Acknowledged);
+    }
+
+    [Fact]
+    public async Task AckRewardNotification_UnknownKind_ReturnsBadRequest()
+    {
+        var userId = Guid.NewGuid();
+        Db.Users.Add(NewCompleteUser(userId));
+        await Db.SaveChangesAsync();
+        var controller = BuildController(userId);
+
+        var result = await controller.AckRewardNotification(new AckNotificationDto("nonsense"));
+        Assert.Equal(400, Assert.IsType<BadRequestObjectResult>(result).StatusCode);
+    }
+
+    [Fact]
+    public async Task GetMyScoreDetail_LapsedStreak_IsDecayedForDisplay_WithoutWriting()
+    {
+        var userId = Guid.NewGuid();
+        var user = NewCompleteUser(userId);
+        user.CurrentStreak = 30;
+        user.LongestStreak = 30;
+        user.LastLoginDate = DateTime.UtcNow.Date.AddDays(-7);
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(userId);
+        var body = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
+
+        Assert.Equal(1, body.CurrentStreak);
+        Assert.Equal(30, body.LongestStreak);
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Users.AsNoTracking().FirstAsync(u => u.Id == userId);
+        Assert.Equal(30, reloaded.CurrentStreak);
     }
 }

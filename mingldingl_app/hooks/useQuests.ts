@@ -10,9 +10,7 @@ export function useQuests() {
   });
   const claim = useMutation({
     mutationFn: apiClient.quests.claimChest,
-    // scoreHistory invalidation happens in useOptimisticScoreBump —
-    // QuestBoard calls bumpScore right after this mutation resolves.
-    meta: { invalidates: [queryKeys.quests] },
+    meta: { invalidates: [queryKeys.quests, queryKeys.items], silentError: true },
   });
   return {
     board: query.data,

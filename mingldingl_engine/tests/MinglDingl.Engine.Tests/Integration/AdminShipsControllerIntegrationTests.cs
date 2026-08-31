@@ -31,7 +31,7 @@ public class AdminShipsControllerIntegrationTests : IntegrationTestBase
         var item = Assert.Single(page.Items);
         Assert.Equal("Shipper Bat", item.ShipperDisplayName);
         Assert.Equal("Slot A Sarnai", item.SlotADisplayName);
-        Assert.Null(item.SlotBDisplayName); // SlotBUserId never set — no invite claimed yet
+        Assert.Null(item.SlotBDisplayName);
     }
 
     [Fact]

@@ -65,10 +65,6 @@ describe('useChat', () => {
     mockChannelFn.mockReturnValue(fakeChannel.channel);
   });
 
-  // sendMessage's mutation refreshes score/quests/milestones via
-  // meta.invalidates/awardedSelector (see lib/api/queryClient.ts's
-  // MutationCache) — only a client built by createAppQueryClient has that
-  // wired; a bare `new QueryClient()` would silently no-op it.
   async function setup(queryClient = createAppQueryClient()) {
     const view = renderHook(() => useChat(MATCH_ID), { wrapper: makeWrapper(queryClient) });
     await waitFor(() => expect(view.result.current.loading).toBe(false));
@@ -96,16 +92,10 @@ describe('useChat', () => {
       void result.current.sendMessage('hello there');
     });
 
-    // qc.setQueryData() runs synchronously, but TanStack Query's
-    // notifyManager batches observer notifications via a real setTimeout(0)
-    // (see notifyManager.ts's defaultScheduler), so the re-render that
-    // surfaces the new data in `result.current` lands one real tick later —
-    // a synchronous act() doesn't flush it. waitFor polls across that tick.
     await waitFor(() => expect(result.current.messages).toHaveLength(1));
     expect(result.current.messages[0]).toMatchObject({ content: 'hello there', senderId: 'me1', status: 'sending' });
     expect(result.current.messages[0].id).toMatch(/^local-/);
 
-    // clean up the pending promise so it doesn't leak into the next test
     await act(async () => { resolveSend({ message: { id: 'server-1', matchId: MATCH_ID, senderId: 'me1', content: 'hello there', createdAt: 'now' } }); });
   });
 
@@ -164,7 +154,7 @@ describe('useChat', () => {
 
     act(() => { result.current.retryMessage(sentId); });
 
-    expect(mockSend).toHaveBeenCalledTimes(1); // no second send triggered
+    expect(mockSend).toHaveBeenCalledTimes(1);
     expect(result.current.messages[0].status).toBe('sent');
   });
 
@@ -195,8 +185,6 @@ describe('useChat', () => {
     expect(result.current.messages).toHaveLength(1);
 
     act(() => {
-      // Same id rebroadcast (e.g. echoed back to the sender's own channel) —
-      // must not produce a second entry.
       fakeChannel.fireInsert({ id: 'r1', matchId: MATCH_ID, senderId: 'them', content: 'incoming', createdAt: '2024-01-04T00:00:00Z' });
     });
 
@@ -228,9 +216,6 @@ describe('useChat', () => {
     });
 
     it('does not bump the score on an unawarded send, but still refreshes quests (progress can still advance)', async () => {
-      // A third message in a row before the other person replies awards
-      // neither FirstMessage nor MatchReply, but the "Exchange 5 Words"
-      // daily quest's progress counter still advances server-side.
       mockSend.mockResolvedValue({
         message: { id: 'server-2', matchId: MATCH_ID, senderId: 'me1', content: 'still me', createdAt: 'now' },
         awarded: 0,
@@ -247,6 +232,60 @@ describe('useChat', () => {
     });
   });
 
+  it('gives two sends in the same millisecond distinct temp ids (neither bubble is dropped)', async () => {
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(1755000000000);
+    try {
+      mockSend.mockImplementation(() => new Promise(() => {}));
+      const { result } = await setup();
+
+      act(() => {
+        void result.current.sendMessage('first');
+        void result.current.sendMessage('second');
+      });
+
+      await waitFor(() => expect(result.current.messages).toHaveLength(2));
+      const [a, b] = result.current.messages;
+      expect(a.id).not.toBe(b.id);
+      expect(result.current.messages.map((m) => m.content)).toEqual(['first', 'second']);
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
+
+  it('a refetch merges with the cache instead of replacing it: failed bubbles survive, server messages dedupe by id', async () => {
+    mockSend.mockRejectedValue(new Error('offline'));
+    mockList.mockResolvedValue([
+      { id: 's1', matchId: MATCH_ID, senderId: 'them', content: 'hey', createdAt: '2024-01-01T00:00:00Z' },
+    ]);
+    const { result } = await setup();
+    await act(async () => { await result.current.sendMessage('will fail'); });
+    await waitFor(() => expect(result.current.messages.some((m) => m.status === 'failed')).toBe(true));
+
+    mockList.mockResolvedValue([
+      { id: 's1', matchId: MATCH_ID, senderId: 'them', content: 'hey', createdAt: '2024-01-01T00:00:00Z' },
+      { id: 's2', matchId: MATCH_ID, senderId: 'them', content: 'missed you', createdAt: '2024-01-01T00:01:00Z' },
+    ]);
+    await act(async () => { await result.current.refetch(); });
+
+    await waitFor(() => expect(result.current.messages).toHaveLength(3));
+    const ids = result.current.messages.map((m) => m.id);
+    expect(ids.filter((id) => id === 's1')).toHaveLength(1);
+    expect(ids).toContain('s2');
+    const failed = result.current.messages.find((m) => m.status === 'failed');
+    expect(failed?.content).toBe('will fail');
+  });
+
+  it('send refreshes the matches cache (revealLevel/messageCount consumers) via meta.invalidates', async () => {
+    mockSend.mockResolvedValue({ message: { id: 'server-1', matchId: MATCH_ID, senderId: 'me1', content: 'hey', createdAt: 'now' } });
+    const queryClient = createAppQueryClient();
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    const { result } = await setup(queryClient);
+
+    await act(async () => { await result.current.sendMessage('hey'); });
+
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: queryKeys.matches }));
+  });
+
   it('realtime broadcast that echoes back my own just-sent message does not duplicate it', async () => {
     mockSend.mockResolvedValue({ message: { id: 'server-1', matchId: MATCH_ID, senderId: 'me1', content: 'hi', createdAt: '2024-01-05T00:00:00Z' } });
     const { result } = await setup();
@@ -258,5 +297,77 @@ describe('useChat', () => {
     });
 
     expect(result.current.messages).toHaveLength(1);
+  });
+
+  describe('loadEarlier / hasMore', () => {
+    const PAGE = 50;
+    function serverPage(start: number, count: number) {
+      return Array.from({ length: count }, (_, i) => {
+        const n = start + i;
+        return { id: `s${n}`, matchId: MATCH_ID, senderId: 'them', content: `msg ${n}`, createdAt: `2024-01-01T00:${String(n).padStart(2, '0')}:00Z` };
+      });
+    }
+
+    it('reports hasMore=false when the first page is short of a full page', async () => {
+      mockList.mockResolvedValue(serverPage(1, 3));
+      const { result } = await setup();
+
+      expect(mockList).toHaveBeenCalledWith(MATCH_ID, { limit: PAGE });
+      expect(result.current.hasMore).toBe(false);
+      await act(async () => { await result.current.loadEarlier(); });
+      expect(mockList).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports hasMore=true when the first page is full, and loadEarlier requests the page before the oldest message', async () => {
+      mockList.mockResolvedValueOnce(serverPage(50, PAGE));
+      const { result } = await setup();
+      expect(result.current.hasMore).toBe(true);
+
+      mockList.mockResolvedValueOnce(serverPage(45, 5));
+      await act(async () => { await result.current.loadEarlier(); });
+
+      expect(mockList).toHaveBeenLastCalledWith(MATCH_ID, { before: '2024-01-01T00:50:00Z', limit: PAGE });
+      await waitFor(() => expect(result.current.messages).toHaveLength(55));
+      expect(result.current.messages[0].id).toBe('s45');
+      expect(result.current.messages[5].id).toBe('s50');
+      expect(result.current.hasMore).toBe(false);
+    });
+
+    it('keeps hasMore=true after a full earlier page and dedupes overlapping ids', async () => {
+      mockList.mockResolvedValueOnce(serverPage(50, PAGE));
+      const { result } = await setup();
+
+      mockList.mockResolvedValueOnce([...serverPage(1, PAGE - 1), serverPage(50, 1)[0]]);
+      await act(async () => { await result.current.loadEarlier(); });
+
+      await waitFor(() => expect(result.current.messages).toHaveLength(99));
+      expect(new Set(result.current.messages.map((m) => m.id)).size).toBe(99);
+      expect(result.current.hasMore).toBe(true);
+    });
+
+    it('ignores optimistic (unsent) bubbles when picking the oldest anchor', async () => {
+      mockSend.mockImplementation(() => new Promise(() => {}));
+      mockList.mockResolvedValueOnce(serverPage(50, PAGE));
+      const { result } = await setup();
+      act(() => { void result.current.sendMessage('pending'); });
+      await waitFor(() => expect(result.current.messages.some((m) => m.status === 'sending')).toBe(true));
+
+      mockList.mockResolvedValueOnce([]);
+      await act(async () => { await result.current.loadEarlier(); });
+
+      expect(mockList).toHaveBeenLastCalledWith(MATCH_ID, { before: '2024-01-01T00:50:00Z', limit: PAGE });
+    });
+
+    it('leaves the cache and hasMore untouched when the earlier fetch fails', async () => {
+      mockList.mockResolvedValueOnce(serverPage(50, PAGE));
+      const { result } = await setup();
+
+      mockList.mockRejectedValueOnce(new Error('offline'));
+      await act(async () => { await result.current.loadEarlier(); });
+
+      expect(result.current.messages).toHaveLength(PAGE);
+      expect(result.current.hasMore).toBe(true);
+      expect(result.current.loadingEarlier).toBe(false);
+    });
   });
 });

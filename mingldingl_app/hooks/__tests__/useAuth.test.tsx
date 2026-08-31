@@ -3,18 +3,6 @@ import { useAuth, isPhoneValid } from '../useAuth';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 
-// Factory form, not the bare `jest.mock('../../lib/supabase')` automock — the
-// automock still has to load the real module once to introspect its shape,
-// which cascades into the real createClient() call at module scope and
-// throws on the missing EXPO_PUBLIC_SUPABASE_URL env var in the test
-// environment. A factory skips loading the real module entirely.
-//
-// verifyOtp itself no longer goes through supabase.auth's
-// signInAnonymously/updateUser/refreshSession (see useAuth.ts for why —
-// those hung unpredictably on React Native) — it talks to Supabase's REST
-// auth API directly via fetch, mocked below. setSession is still called
-// (fire-and-forget, to hydrate the SDK's own client state) so it needs a
-// mock too, and signOut is untouched.
 jest.mock('../../lib/supabase', () => ({
   supabase: {
     auth: {
@@ -31,10 +19,6 @@ function fakeSession(accessToken: string) {
   return { access_token: accessToken, refresh_token: `${accessToken}-refresh`, user: { id: 'u1' } } as any;
 }
 
-// Routes a mocked fetch() by which Supabase auth endpoint the URL contains,
-// so each test can control the signup / user-update / token-refresh calls
-// independently without caring about the exact base URL (which is
-// `undefined` in this test env, same reason lib/supabase.ts is mocked above).
 function mockFetchRoutes(routes: Record<string, { status: number; body: unknown } | 'reject'>) {
   global.fetch = jest.fn((url: unknown) => {
     const path = Object.keys(routes).find((p) => String(url).includes(p));

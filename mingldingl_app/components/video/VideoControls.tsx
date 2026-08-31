@@ -1,4 +1,6 @@
-import { XStack, Button, Text } from 'tamagui';
+import { XStack, Button } from 'tamagui';
+import { Icon } from '../ui/Icon';
+import { i18n } from '../../lib/i18n';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../lib/theme';
 
@@ -19,23 +21,26 @@ export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, 
         borderColor={muted ? COLORS.ember : COLORS.bronze}
         backgroundColor={muted ? COLORS.ember : COLORS.panelRaised}
         onPress={onToggleMute}
+        accessibilityLabel={i18n.t(muted ? 'unmute' : 'mute')}
       >
-        <Text fontSize={22}>{muted ? '🔇' : '🎙️'}</Text>
+        <Icon name={muted ? 'microphone-off' : 'microphone'} size={24} color={COLORS.text} />
       </Button>
       <Button
         width={60} height={60} borderRadius={30} borderWidth={1}
         borderColor={COLORS.ember} backgroundColor={COLORS.ember}
         onPress={onEnd}
+        accessibilityLabel={i18n.t('end_call')}
       >
-        <Text fontSize={22}>📵</Text>
+        <Icon name="phone-hangup" size={24} color={COLORS.text} />
       </Button>
       <Button
         width={60} height={60} borderRadius={30} borderWidth={1}
         borderColor={cameraOff ? COLORS.ember : COLORS.bronze}
         backgroundColor={cameraOff ? COLORS.ember : COLORS.panelRaised}
         onPress={onToggleCamera}
+        accessibilityLabel={i18n.t(cameraOff ? 'camera_on' : 'camera_off')}
       >
-        <Text fontSize={22}>{cameraOff ? '🚫' : '📷'}</Text>
+        <Icon name={cameraOff ? 'video-off' : 'video'} size={24} color={COLORS.text} />
       </Button>
     </XStack>
   );

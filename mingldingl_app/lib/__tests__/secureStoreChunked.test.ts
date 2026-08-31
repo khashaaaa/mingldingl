@@ -45,7 +45,7 @@ describe('createChunkedStore', () => {
 
   it('round-trips a large value through getItem, reassembled exactly', async () => {
     const store = createChunkedStore(fakeStore());
-    const big = 'abcdefghij'.repeat(600); // 6000 chars
+    const big = 'abcdefghij'.repeat(600);
 
     await store.setItem('session', big);
 

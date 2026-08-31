@@ -7,10 +7,6 @@ describe('i18n key parity', () => {
     expect(mnKeys).toEqual(enKeys);
   });
 
-  // A translation missing a %{var} the English source has (or vice versa)
-  // means i18n-js either drops the interpolated value or leaves a literal
-  // "%{var}" in the rendered string — 2026-07-28 audit found this class of
-  // bug was otherwise invisible to the key-parity check above.
   it('interpolation variables match between en and mn for every key', () => {
     const varsIn = (s: string) => [...s.matchAll(/%\{(\w+)\}/g)].map((m) => m[1]).sort();
     const mismatches: string[] = [];

@@ -2,16 +2,16 @@ using Microsoft.EntityFrameworkCore;
 
 public class ShipService
 {
-    private const string CodeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-
     private readonly AppDbContext _db;
     private readonly LootService _loot;
     private readonly ScoreService _score;
     private readonly ConfigService _config;
     private readonly MilestoneService _milestones;
     private readonly PushNotificationService _push;
+    private readonly SupabaseBroadcastService _broadcast;
+    private readonly ILogger<ShipService> _logger;
 
-    public ShipService(AppDbContext db, LootService loot, ScoreService score, ConfigService config, MilestoneService milestones, PushNotificationService push)
+    public ShipService(AppDbContext db, LootService loot, ScoreService score, ConfigService config, MilestoneService milestones, PushNotificationService push, SupabaseBroadcastService broadcast, ILogger<ShipService> logger)
     {
         _db = db;
         _loot = loot;
@@ -19,6 +19,8 @@ public class ShipService
         _config = config;
         _milestones = milestones;
         _push = push;
+        _broadcast = broadcast;
+        _logger = logger;
     }
 
     public async Task<(bool Success, string? Error, string? SlotACode, string? SlotBCode)> CreateAsync(Guid shipperId, string slotAPhone, string slotBPhone)
@@ -27,8 +29,6 @@ public class ShipService
             !System.Text.RegularExpressions.Regex.IsMatch(slotBPhone, @"^\d{8}$"))
             return (false, "Phone numbers must be 8 digits", null, null);
 
-        // A dead-end ship (no match possible, unclearable prompt loop for
-        // whoever's on the other end) — reject before any resolution work.
         if (slotAPhone == slotBPhone)
             return (false, "Cannot weave a thread to the same person twice", null, null);
 
@@ -45,11 +45,6 @@ public class ShipService
         var (slotAUserId, slotACode) = await ResolveSlotAsync(slotAPhone);
         var (slotBUserId, slotBCode) = await ResolveSlotAsync(slotBPhone);
 
-        // Privacy-preserving no-ops below: the Weaver must never be able to
-        // tell, from the response, that a slot resolved to a real account
-        // that has blocked them, or that the pair is already matched — both
-        // outcomes return the exact same success + codes shape as a real
-        // thread, just without a Ship row ever existing server-side.
         bool blockedByA = slotAUserId.HasValue &&
             await _db.BlockedUsers.AnyAsync(bl => bl.BlockerId == slotAUserId && bl.BlockedId == shipperId);
         bool blockedByB = slotBUserId.HasValue &&
@@ -79,12 +74,6 @@ public class ShipService
         return (true, null, slotACode, slotBCode);
     }
 
-    // A code is generated for every slot regardless of resolution — an
-    // already-registered slot never needs its code to actually resolve
-    // anything (GET /ships/pending finds them directly), but the Weaver's
-    // response has to carry one anyway so both branches look identical and
-    // so both cost the same DB round trips (no timing side-channel between
-    // "known number" and "unknown number").
     private async Task<(Guid? UserId, string InviteCode)> ResolveSlotAsync(string phoneNumber)
     {
         var existing = await _db.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
@@ -101,24 +90,14 @@ public class ShipService
     {
         var chars = new char[6];
         for (int i = 0; i < 6; i++)
-            chars[i] = CodeAlphabet[Random.Shared.Next(CodeAlphabet.Length)];
+            chars[i] = InviteCode.Alphabet[Random.Shared.Next(InviteCode.Alphabet.Length)];
         return new string(chars);
     }
 
-    // Shared code namespace with ReferralService.GetOrCreateCodeAsync — see
-    // the Fated Threads spec's "Code namespace" note. A referral code and a
-    // ship invite code must never collide, since onboarding's single code
-    // field resolves both without knowing in advance which table it's in.
     private async Task<bool> CodeExistsAsync(string code) =>
         await _db.Users.AnyAsync(u => u.ReferralCode == code) ||
         await _db.Ships.AnyAsync(s => s.SlotAInviteCode == code || s.SlotBInviteCode == code);
 
-    // Called from UsersController.Upsert alongside ReferralService's own
-    // code check — at most one of the two will ever match a given code,
-    // since the namespace above is shared and unique. Best-effort by
-    // design, mirrors ReferralService.TryCompleteReferralAsync's own
-    // try/catch — a failure here must never fail the onboarding submission
-    // this is called from.
     public async Task TryResolveInviteCodeAsync(Guid newUserId, string? code)
     {
         if (string.IsNullOrWhiteSpace(code)) return;
@@ -143,17 +122,14 @@ public class ShipService
             }
             await _db.SaveChangesAsync();
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Ship invite-code resolution swallowed a failure for new user {UserId} (code {Code})", newUserId, code);
+
             _db.ChangeTracker.Clear();
         }
     }
 
-    // Returns true only when this specific response is the one that sparked
-    // the match (both slots now Accepted) — false for every other outcome
-    // (recorded but not yet complete, declined, not found, not a
-    // participant, already responded). The caller (ShipsController) treats
-    // all of those uniformly; see the spec's privacy constraint.
     public async Task<bool> RespondAsync(Guid userId, Guid shipId, bool accept)
     {
         var lookup = await _db.Ships.AsNoTracking().FirstOrDefaultAsync(s => s.Id == shipId);
@@ -165,15 +141,6 @@ public class ShipService
 
         string newOptIn = accept ? "Accepted" : "Declined";
 
-        // Atomic conditional UPDATE ... RETURNING: sets this caller's slot and
-        // reads back the row's just-committed state (including the OTHER
-        // slot's value) in the same statement, re-checking Status = 'Pending'
-        // in the WHERE clause. Two concurrent responses to the same ship (one
-        // per slot) used to each check the other slot against their own stale
-        // in-memory snapshot, so neither ever observed "both Accepted" even
-        // though both values landed in the row — Postgres's row lock now
-        // serializes the two UPDATEs, so whichever commits second is
-        // guaranteed to read the first's already-committed value back.
         var updated = isSlotA
             ? await _db.Database.SqlQuery<ShipOptInRow>(
                 $"""
@@ -187,7 +154,7 @@ public class ShipService
                 WHERE "Id" = {shipId} AND "Status" = 'Pending'
                 RETURNING "SlotAOptIn", "SlotBOptIn", "SlotAUserId", "SlotBUserId"
                 """).ToListAsync();
-        if (updated.Count == 0) return false; // ship resolved concurrently since the read above
+        if (updated.Count == 0) return false;
         var row = updated[0];
 
         if (row.SlotAOptIn == "Declined" || row.SlotBOptIn == "Declined")
@@ -203,43 +170,33 @@ public class ShipService
         var ship = await _db.Ships.FindAsync(shipId);
         if (ship is null) return false;
 
-        // Both accepted. Re-check pair existence now, not just at creation:
-        // creation time couldn't check it if either slot was still
-        // AwaitingUser, and that slot may have since resolved via onboarding.
-        bool alreadyMatched = await _db.Matches.AnyAsync(m =>
-            (m.InitiatorId == row.SlotAUserId && m.ReceiverId == row.SlotBUserId) ||
-            (m.InitiatorId == row.SlotBUserId && m.ReceiverId == row.SlotAUserId));
-        if (alreadyMatched)
+        bool alreadyMatched = await MatchPairing.PairAlreadyMatchedAsync(_db, row.SlotAUserId!.Value, row.SlotBUserId!.Value);
+        bool blocked = await MatchPairing.IsPairBlockedAsync(_db, row.SlotAUserId!.Value, row.SlotBUserId!.Value);
+        if (alreadyMatched || blocked)
         {
             ship.Status = "Expired";
             await _db.SaveChangesAsync();
             return false;
         }
 
-        var match = new Match
-        {
-            InitiatorId = row.SlotAUserId!.Value,
-            ReceiverId = row.SlotBUserId!.Value,
-            Status = "Active",
-            RevealLevel = 1,
-            ShipId = ship.Id,
-        };
+        var match = MatchPairing.NewMatch(row.SlotAUserId!.Value, row.SlotBUserId!.Value, ship.Id);
         _db.Matches.Add(match);
         ship.Status = "Sparked";
         await _db.SaveChangesAsync();
+
         ship.ResultMatchId = match.Id;
+        await _db.SaveChangesAsync();
 
         var shipperReward = await _loot.GrantGuaranteedAsync(ship.ShipperUserId, "ShipSparked");
-        ship.ShipperRewardItemId = shipperReward?.Id;
-        await _db.SaveChangesAsync();
+        if (shipperReward is not null)
+        {
+            ship.ShipperRewardItemId = shipperReward.Id;
+            await _db.SaveChangesAsync();
+        }
 
         await _score.AwardAsync(ship.ShipperUserId, "ShipSparked");
         await GrantMilestoneTitleIfEarnedAsync(ship.ShipperUserId);
 
-        // Mirrors MatchesController.RequestMatch's own first_match milestone
-        // + push notification — a sparked thread is a normal Match from here
-        // on, so both newly-matched users get the same "you have a match"
-        // signals a regular match creates, not silence.
         await _milestones.AchieveAsync(row.SlotAUserId.Value, "first_match");
         await _milestones.AchieveAsync(row.SlotBUserId.Value, "first_match");
 
@@ -253,6 +210,8 @@ public class ShipService
             "Thread Sparked!",
             "A thread you accepted just became a match.",
             new Dictionary<string, object> { ["matchId"] = match.Id.ToString(), ["type"] = "match" });
+        await _broadcast.BroadcastAsync("app-nudges", "match_created",
+            new { matchId = match.Id, userIds = new[] { match.InitiatorId, match.ReceiverId }, source = "ship" });
 
         return true;
     }

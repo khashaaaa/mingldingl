@@ -1,11 +1,8 @@
+using Microsoft.Extensions.Logging.Abstractions;
 namespace MinglDingl.Engine.Tests.Integration;
 
 public class PushNotificationServiceIntegrationTests : IntegrationTestBase
 {
-    // Captures outbound requests instead of hitting Expo's real push API —
-    // lets these tests assert whether NotifyUserAsync's now-single-query
-    // PushEnabled+PushTokens lookup actually gates the send correctly,
-    // without any network dependency.
     private sealed class CapturingHandler : HttpMessageHandler
     {
         public int RequestCount { get; private set; }
@@ -21,7 +18,7 @@ public class PushNotificationServiceIntegrationTests : IntegrationTestBase
     {
         var handler = new CapturingHandler();
         var http = new HttpClient(handler);
-        return (new PushNotificationService(http, Db), handler);
+        return (new PushNotificationService(http, Db, NullLogger<PushNotificationService>.Instance), handler);
     }
 
     [Fact]
@@ -43,9 +40,6 @@ public class PushNotificationServiceIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task NotifyUserAsync_PushDisabled_DoesNotSendEvenWithTokens()
     {
-        // Regression guard for the two-query -> one-query combine: the
-        // PushEnabled check must still short-circuit the send, not just get
-        // silently dropped once folded into the same query as the token lookup.
         var userId = Guid.NewGuid();
         var user = NewCompleteUser(userId);
         user.PushEnabled = false;

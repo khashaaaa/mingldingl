@@ -1,6 +1,15 @@
 import type { components } from '../lib/api/api.generated';
+import type { Oath } from './user';
 
 export type MatchStatus = 'Pending' | 'Active' | 'Ghosted' | 'Completed';
+
+export interface DeepFields {
+  hasKids: boolean | null;
+  smokingHabit: string | null;
+  drinkingHabit: string | null;
+  religion: string | null;
+  lifestyle: string | null;
+}
 
 export interface PartialUser {
   displayName?: string;
@@ -10,11 +19,11 @@ export interface PartialUser {
   secondPhoto?: string;
   thirdPhoto?: string;
   district?: string;
-  // True once the other person's account has been anonymized (7+ days past
-  // their own deletion request) — every other field above is blank in that
-  // case too, not just unrevealed. Render a localized placeholder, never a
-  // blank name.
+  deep?: DeepFields | null;
+
   isDeleted?: boolean;
+  oath?: Oath | null;
+  oathProven?: boolean;
 }
 
 export interface Match {
@@ -27,6 +36,14 @@ export interface Match {
   videoCallUnlocked: boolean;
   otherUser: PartialUser;
   weaverDisplayName?: string;
+
+  flameRiteProposedById?: string | null;
+  flameRiteProposedAt?: string | null;
+  flameRiteAcceptedAt?: string | null;
+  flameRiteCompletedAt?: string | null;
+
+  flameRiteDurationMinutes: number;
+  flameRiteRequired: boolean;
 }
 
 export function parseMatch(d: components['schemas']['MatchResponse']): Match {
@@ -47,8 +64,25 @@ export function parseMatch(d: components['schemas']['MatchResponse']): Match {
       secondPhoto: o.secondPhoto ?? undefined,
       thirdPhoto: o.thirdPhoto ?? undefined,
       district: o.district ?? undefined,
+      deep: o.deep
+        ? {
+            hasKids: o.deep.hasKids ?? null,
+            smokingHabit: o.deep.smokingHabit ?? null,
+            drinkingHabit: o.deep.drinkingHabit ?? null,
+            religion: o.deep.religion ?? null,
+            lifestyle: o.deep.lifestyle ?? null,
+          }
+        : null,
       isDeleted: o.isDeleted ?? false,
+      oath: (o.oath as Oath | undefined) ?? null,
+      oathProven: o.oathProven ?? false,
     },
     weaverDisplayName: d.weaverDisplayName ?? undefined,
+    flameRiteProposedById: d.flameRiteProposedById ?? null,
+    flameRiteProposedAt: d.flameRiteProposedAt ?? null,
+    flameRiteAcceptedAt: d.flameRiteAcceptedAt ?? null,
+    flameRiteCompletedAt: d.flameRiteCompletedAt ?? null,
+    flameRiteDurationMinutes: d.flameRiteDurationMinutes ?? 5,
+    flameRiteRequired: d.flameRiteRequired ?? true,
   };
 }

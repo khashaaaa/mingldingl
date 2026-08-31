@@ -5,17 +5,12 @@ import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
 import { useAuthStore } from '../../store/authStore';
 
-// Factory form, not the bare `jest.mock('../../lib/api/apiClient')` automock —
-// the automock still has to load the real module once to introspect its
-// shape, which cascades through lib/api.ts into lib/supabase.ts's real
-// createClient() call at module scope and throws on the missing
-// EXPO_PUBLIC_SUPABASE_URL env var in the test environment. A factory skips
-// loading the real module entirely.
 jest.mock('../../lib/api/apiClient', () => ({
-  apiClient: { users: { upsert: jest.fn() } },
+  apiClient: { users: { upsert: jest.fn(), swearOath: jest.fn() } },
 }));
 
 const mockUpsert = apiClient.users.upsert as jest.Mock;
+const mockSwearOath = apiClient.users.swearOath as jest.Mock;
 
 function makeWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: React.ReactNode }) {
@@ -23,11 +18,11 @@ function makeWrapper(queryClient: QueryClient) {
   };
 }
 
-// Fills in every field the completeness check requires; tests override one
-// field at a time to prove each is actually load-bearing.
 function fillComplete(result: { current: ReturnType<typeof useOnboarding> }) {
   act(() => {
-    result.current.update({ displayName: 'Bat', age: 25, gender: 'Male', city: 'Ulaanbaatar', bio: 'hello there' });
+    result.current.update({
+      displayName: 'Bat', age: 25, gender: 'Male', city: 'Ulaanbaatar', bio: 'hello there', oath: 'Bond',
+    });
     result.current.updatePhotos(['a.jpg', 'b.jpg', 'c.jpg']);
   });
 }
@@ -39,7 +34,7 @@ describe('useOnboarding completeness check', () => {
     expect(result.current.isComplete).toBe(false);
   });
 
-  it('is complete once all five fields are filled', () => {
+  it('is complete once all fields, including the oath, are filled', () => {
     const queryClient = new QueryClient();
     const { result } = renderHook(() => useOnboarding(), { wrapper: makeWrapper(queryClient) });
     fillComplete(result);
@@ -83,6 +78,14 @@ describe('useOnboarding completeness check', () => {
     const { result } = renderHook(() => useOnboarding(), { wrapper: makeWrapper(queryClient) });
     fillComplete(result);
     act(() => result.current.update({ bio: '' }));
+    expect(result.current.isComplete).toBe(false);
+  });
+
+  it('requires a sworn oath', () => {
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useOnboarding(), { wrapper: makeWrapper(queryClient) });
+    fillComplete(result);
+    act(() => result.current.update({ oath: null }));
     expect(result.current.isComplete).toBe(false);
   });
 
@@ -158,6 +161,24 @@ describe('useOnboarding submit', () => {
     expect(result.current.state.error).toBeNull();
   });
 
+  it('on success, also swears the collected oath — a separate call, never folded into the upsert body', async () => {
+    mockUpsert.mockResolvedValue({ id: 'u1', displayName: 'Bat' });
+    mockSwearOath.mockResolvedValue({ id: 'u1', displayName: 'Bat', oath: 'Bond', oathProven: false });
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useOnboarding(), { wrapper: makeWrapper(queryClient) });
+    fillComplete(result);
+
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(mockSwearOath).toHaveBeenCalledWith('Bond');
+    expect(mockUpsert.mock.calls[0][0]).not.toHaveProperty('oath');
+    const cached = queryClient.getQueryData(queryKeys.userProfile) as { oath: string | null; oathProven: boolean };
+    expect(cached.oath).toBe('Bond');
+    expect(cached.oathProven).toBe(false);
+  });
+
   it('omits latitude/longitude from the request when they were never captured', async () => {
     mockUpsert.mockResolvedValue({ id: 'u1' });
     const queryClient = new QueryClient();
@@ -185,10 +206,7 @@ describe('useOnboarding submit', () => {
     expect(ok).toBe(false);
     expect(result.current.state.error).toBe("Your words didn't reach the scribe. Try again.");
     expect(result.current.state.loading).toBe(false);
-    // The critical regression this guards against: app/_layout.tsx routes
-    // purely off `!!userProfile` in the query cache, so a fake profile
-    // written here on failure would route the user into the main app with
-    // no server-side row behind it.
+
     expect(queryClient.getQueryData(queryKeys.userProfile)).toBeUndefined();
   });
 

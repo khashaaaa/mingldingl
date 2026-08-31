@@ -7,7 +7,7 @@ export const queryKeys = {
   businessDetail: (id: string) => ['businessDetail', id] as const,
   analyticsOverview: ['analyticsOverview'] as const,
   pricing: ['pricing'] as const,
-  auditLog: (page: number) => ['auditLog', page] as const,
+  auditLog: (page: number, pageSize: number) => ['auditLog', page, pageSize] as const,
   config: ['config'] as const,
   ships: (status: string, page: number) => ['ships', status, page] as const,
   townSquareSessions: (page: number) => ['townSquareSessions', page] as const,

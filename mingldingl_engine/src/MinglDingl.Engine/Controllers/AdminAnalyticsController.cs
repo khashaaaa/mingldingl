@@ -55,6 +55,13 @@ public class AdminAnalyticsController : ControllerBase
             .Select(e => new EventTypeCountDto(e.EventType, e.Count))
             .ToList();
 
+        var oathSwornUsers = await _db.Users.CountAsync(u => u.OathSwornAt != null);
+        var oathProvenUsers = await _db.Users.CountAsync(u => u.OathProven);
+        var noShowFlaggedUsers = await _db.Users.CountAsync(u => u.NoShowFlagCount > 0);
+        var flameRitesCompleted = await _db.Matches.CountAsync(m => m.FlameRiteCompletedAt != null);
+        var shipsSparked = await _db.Ships.CountAsync(s => s.Status == "Sparked");
+        var townSquareSessions = await _db.TownSquareSessions.CountAsync();
+
         var priceByLevel = MembershipController.AllTiers.ToDictionary(t => t.Level, t => t.MonthlyPriceMnt ?? 0);
         var estimatedRevenue = byMembership.Sum(m => m.Count * priceByLevel.GetValueOrDefault(m.Level));
 
@@ -62,6 +69,7 @@ public class AdminAnalyticsController : ControllerBase
             totalUsers, activeUsers, pausedUsers, deletedUsers,
             byMembership.ToDictionary(m => m.Level, m => m.Count),
             byGemTier.ToDictionary(t => t.Tier, t => t.Count),
-            signups, totalMatches, totalMessages, scoreEvents, estimatedRevenue));
+            signups, totalMatches, totalMessages, scoreEvents, estimatedRevenue,
+            oathSwornUsers, oathProvenUsers, noShowFlaggedUsers, flameRitesCompleted, shipsSparked, townSquareSessions));
     }
 }

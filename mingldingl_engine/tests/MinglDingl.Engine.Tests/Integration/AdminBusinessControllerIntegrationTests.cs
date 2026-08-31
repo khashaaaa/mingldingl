@@ -13,8 +13,6 @@ public class AdminBusinessControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task Create_ThenList_IncludesUnverifiedListing()
     {
-        // Unlike the public BusinessController, admin should see everything,
-        // including businesses not yet verified/featured.
         await BuildController().Create(SampleCreateRequest());
 
         var result = Assert.IsType<OkObjectResult>(await BuildController().List(null, 1, 20));

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Share, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Spinner } from 'tamagui';
 import { useActivitySuggestions } from '../../hooks/useActivitySuggestions';
+import { useMatches } from '../../hooks/useMatches';
 import { usePhotoUpload } from '../../hooks/usePhotoUpload';
 import { useAuthStore } from '../../store/authStore';
 import { AlertModal } from '../../components/modals/AlertModal';
@@ -19,18 +20,19 @@ import { COLORS, FONTS, RADIUS } from '../../lib/theme';
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function ActivitiesScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const router = useRouter();
   const {
-    suggestions, isLoading, error,
+    suggestions, partnerPledged, isLoading, error,
     confirmDate, isConfirming, completed,
     rated, rateBusiness, isRating, rateError,
   } = useActivitySuggestions(matchId);
 
-  // The "memorable moment" photo — optional, attached to the star rating so
-  // other daters browsing this business can see what a date there actually
-  // looked like, not just an aggregate number.
+  const { data: matches } = useMatches();
+  const match = matches?.find((m) => m.matchId === matchId);
+  const riteLocked = (match?.flameRiteRequired ?? true) && !match?.flameRiteCompletedAt;
+
   const session = useAuthStore((s) => s.session);
   const { pickPhoto, uploadPhoto, uploading } = usePhotoUpload(session?.user.id);
   const [localPhotoUri, setLocalPhotoUri] = useState<string | null>(null);
@@ -42,15 +44,15 @@ export default function ActivitiesScreen() {
     if (rateError) setRateFailedAlert(true);
   }, [rateError]);
 
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   function handleShareSafetyInfo() {
     if (!completed?.business) return;
-    // completed.title is already "{Category} at {BusinessName}" (see
-    // ActivityService.GetOrCreateSuggestionsAsync) — using business.name
-    // here too would repeat the venue name twice in the same sentence.
-    //
-    // Explicitly typed, matching InviteAllyCard's identical fix — i18n.t()'s
-    // generic return type widens to `string | undefined` when fed straight
-    // into Share's contextual ShareContent union otherwise.
+
     const message: string = i18n.t('safety_check_share_message', {
       activity: completed.title,
       district: completed.business.district,
@@ -60,13 +62,14 @@ export default function ActivitiesScreen() {
 
   async function handleAddMomentPhoto() {
     const [uri] = await pickPhoto(1);
-    if (!uri) return;
+    if (!uri || !mountedRef.current) return;
     setLocalPhotoUri(uri);
     const url = await uploadPhoto(uri);
+    if (!mountedRef.current) return;
     if (url) {
       setUploadedPhotoUrl(url);
     } else {
-      setLocalPhotoUri(null); // upload failed — clear the optimistic local preview
+      setLocalPhotoUri(null);
       setUploadFailedAlert(true);
     }
   }
@@ -79,7 +82,7 @@ export default function ActivitiesScreen() {
 
   if (error || !suggestions || suggestions.length === 0) return (
     <View style={styles.centered}>
-      <Text style={styles.emoji}>🗓️</Text>
+      <Icon name="calendar" size={32} color={COLORS.bronze} />
       <Text style={styles.title}>{i18n.t('no_date_ideas')}</Text>
       <Text style={styles.subtitle}>{i18n.t('keep_chatting')}</Text>
       <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
@@ -89,7 +92,7 @@ export default function ActivitiesScreen() {
   if (completed) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emoji}>{rated ? '🎉' : '📍'}</Text>
+        <Icon name={rated ? 'party-popper' : 'map-marker'} size={16} color={COLORS.ember} />
         <AppCard style={styles.completionCard}>
           <Text style={styles.title}>{i18n.t('both_in')}</Text>
           <Text style={styles.subtitle}>{completed.title}</Text>
@@ -129,7 +132,7 @@ export default function ActivitiesScreen() {
                   disabled={isRating || uploading}
                   onPress={() => rateBusiness(n, uploadedPhotoUrl)}
                 >
-                  <Text style={styles.star}>⭐</Text>
+                  <Icon name="star" size={16} color={COLORS.gold} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -157,29 +160,41 @@ export default function ActivitiesScreen() {
   return (
     <View style={styles.screen}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <ScreenHeader title={`📍 ${i18n.t('plan_encounter')}`} />
+      <ScreenHeader title={i18n.t('plan_encounter')} />
 
       <ScrollView contentContainerStyle={styles.list}>
+        {partnerPledged && !suggestions.some((s) => s.myConfirmed) && (
+          <View style={styles.partnerPledgedBanner}>
+            <Icon name="hand-heart" size={16} color={COLORS.gold} />
+            <Text style={styles.partnerPledgedText}>{i18n.t('pledge_partner_first')}</Text>
+          </View>
+        )}
         {suggestions.map((s) => (
           <AppCard key={s.id} style={styles.card}>
             <View style={styles.sealRow}>
-              <View style={styles.seal}><Text style={styles.sealIcon}>🕯️</Text></View>
+              <View style={styles.seal}><Icon name="candle" size={16} color={COLORS.ember} /></View>
               <Text style={styles.cardTitle}>{s.title}</Text>
             </View>
             {s.business && (
               <Text style={styles.cardMeta}>
-                {s.business.name} · {s.business.district} · ⭐ {s.business.averageRating.toFixed(1)}
+                {s.business.name} · {s.business.district} · {s.business.averageRating.toFixed(1)}
               </Text>
             )}
             <View style={styles.confirmWrap}>
               <GameButton
                 variant="ghost"
                 loading={isConfirming}
-                disabled={s.myConfirmed}
+                disabled={s.myConfirmed || riteLocked}
                 onPress={() => confirmDate(s.id)}
               >
                 {s.myConfirmed ? i18n.t('pledge_waiting') : i18n.t('pledge_encounter')}
               </GameButton>
+              {riteLocked && !s.myConfirmed && (
+                <Text style={styles.pledgeLockedText}>{i18n.t('pledge_locked')}</Text>
+              )}
+              {s.myConfirmed && !s.isComplete && (
+                <Text style={styles.pledgeLockedText}>{i18n.t('pledge_status_waiting')}</Text>
+              )}
             </View>
           </AppCard>
         ))}
@@ -210,7 +225,14 @@ const styles = StyleSheet.create({
   sealIcon: { fontSize: 15 },
   cardTitle: { color: COLORS.text, fontSize: 16, fontFamily: FONTS.bodyBold },
   cardMeta: { color: COLORS.textDim, fontSize: 13, marginBottom: 12, fontFamily: FONTS.body },
-  confirmWrap: { marginTop: 4 },
+  confirmWrap: { marginTop: 4, gap: 6 },
+  pledgeLockedText: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.textDim, textAlign: 'center' },
+  partnerPledgedBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.brass, backgroundColor: COLORS.panel,
+  },
+  partnerPledgedText: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.gold },
   emoji: { fontSize: 48 },
   title: { color: COLORS.text, fontSize: 22, fontFamily: FONTS.display, textAlign: 'center' },
   subtitle: { color: COLORS.textDim, fontSize: 14, textAlign: 'center', fontFamily: FONTS.body },

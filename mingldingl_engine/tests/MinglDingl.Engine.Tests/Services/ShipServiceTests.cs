@@ -1,15 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MinglDingl.Engine.Tests.Services;
 
 public class ShipServiceTests : Integration.IntegrationTestBase
 {
-    private ShipService BuildService()
+    private ShipService BuildService(SupabaseBroadcastService? broadcast = null)
     {
         var scoreService = new ScoreService(Db, new ConfigService());
-        var milestones = new MilestoneService(Db);
-        var push = new PushNotificationService(new HttpClient(), Db);
-        return new ShipService(Db, new LootService(Db, scoreService), scoreService, new ConfigService(), milestones, push);
+        var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
+        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        return new ShipService(Db, new LootService(Db, scoreService, NullLogger<LootService>.Instance), scoreService, new ConfigService(), milestones, push, broadcast ?? BuildTestBroadcast(), NullLogger<ShipService>.Instance);
     }
 
     private User AddUser(string phone)
@@ -53,9 +54,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         var (success, _, slotACode, slotBCode) = await BuildService().CreateAsync(weaver.Id, "88110002", "88110003");
 
         Assert.True(success);
-        // Codes are always returned to the caller — even for slots that
-        // resolved to a real account — so the response shape can't be used
-        // to distinguish "this phone number is on the app" from "it isn't".
+
         Assert.NotNull(slotACode);
         Assert.NotNull(slotBCode);
         Db.ChangeTracker.Clear();
@@ -64,8 +63,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         Assert.Equal(b.Id, ship.SlotBUserId);
         Assert.Equal("PendingOptIn", ship.SlotAOptIn);
         Assert.Equal("PendingOptIn", ship.SlotBOptIn);
-        // But the returned codes for resolved slots are never persisted —
-        // they're inert, there's nothing for them to redeem.
+
         Assert.Null(ship.SlotAInviteCode);
         Assert.Null(ship.SlotBInviteCode);
     }
@@ -101,9 +99,6 @@ public class ShipServiceTests : Integration.IntegrationTestBase
     [Fact]
     public async Task CreateAsync_PairAlreadyMatched_SilentlySucceedsWithoutCreatingAShipRow()
     {
-        // Privacy constraint: this outcome must be indistinguishable from a
-        // real thread being woven — no error, same codes shape, just no Ship
-        // row persisted.
         var weaver = AddUser("88110001");
         var a = AddUser("88110002");
         var b = AddUser("88110003");
@@ -209,6 +204,49 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         Assert.True(weaverAfter!.TotalScore >= 40);
     }
 
+    private sealed class FailingLootService : LootService
+    {
+        private readonly AppDbContext _db;
+        public FailingLootService(AppDbContext db, ScoreService score)
+            : base(db, score, NullLogger<LootService>.Instance) => _db = db;
+
+        public override Task<DroppedItem?> GrantGuaranteedAsync(Guid userId, string source)
+        {
+            _db.ChangeTracker.Clear();
+            return Task.FromResult<DroppedItem?>(null);
+        }
+    }
+
+    [Fact]
+    public async Task RespondAsync_LootGrantFails_ResultMatchIdStillPersisted()
+    {
+        var weaver = AddUser("88110001");
+        var a = AddUser("88110002");
+        var b = AddUser("88110003");
+        await Db.SaveChangesAsync();
+
+        var scoreService = new ScoreService(Db, new ConfigService());
+        var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
+        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var service = new ShipService(Db, new FailingLootService(Db, scoreService), scoreService,
+            new ConfigService(), milestones, push, BuildTestBroadcast(), NullLogger<ShipService>.Instance);
+
+        await service.CreateAsync(weaver.Id, "88110002", "88110003");
+        Db.ChangeTracker.Clear();
+        var ship = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaver.Id);
+
+        await service.RespondAsync(a.Id, ship.Id, accept: true);
+        var sparked = await service.RespondAsync(b.Id, ship.Id, accept: true);
+        Assert.True(sparked);
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Ships.FindAsync(ship.Id);
+        var match = await Db.Matches.FirstAsync(m => m.ShipId == ship.Id);
+        Assert.Equal("Sparked", reloaded!.Status);
+        Assert.Equal(match.Id, reloaded.ResultMatchId);
+        Assert.Null(reloaded.ShipperRewardItemId);
+    }
+
     [Fact]
     public async Task RespondAsync_SparkGrantsFirstMatchMilestoneToBothNominees()
     {
@@ -274,7 +312,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         var weaver = AddUser("88110001");
         await Db.SaveChangesAsync();
         var service = BuildService();
-        await service.CreateAsync(weaver.Id, "88119999", "88118888"); // both AwaitingUser
+        await service.CreateAsync(weaver.Id, "88119999", "88118888");
         Db.ChangeTracker.Clear();
         var ship = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaver.Id);
         var code = ship.SlotAInviteCode!;
@@ -297,30 +335,23 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         await Db.SaveChangesAsync();
 
         await BuildService().TryResolveInviteCodeAsync(newUser.Id, "ZZZZZZ");
-
-        // No exception is the assertion here — nothing to look up afterward.
     }
 
     [Fact]
     public async Task RespondAsync_PairBecameMatchedBetweenCreationAndSpark_ExpiresInsteadOfDuplicating()
     {
-        // Covers the spec's required spark-time recheck: creation-time
-        // couldn't reject this pair (slot A was still AwaitingUser then),
-        // so the check has to run again right before the match is created.
         var weaver = AddUser("88110001");
         var b = AddUser("88110003");
         await Db.SaveChangesAsync();
         var service = BuildService();
-        await service.CreateAsync(weaver.Id, "88119999", "88110003"); // slot A starts AwaitingUser
+        await service.CreateAsync(weaver.Id, "88119999", "88110003");
         Db.ChangeTracker.Clear();
         var ship = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaver.Id);
         var code = ship.SlotAInviteCode!;
         var a = AddUser("88119999");
         await Db.SaveChangesAsync();
-        await service.TryResolveInviteCodeAsync(a.Id, code); // slot A resolves to a real user
+        await service.TryResolveInviteCodeAsync(a.Id, code);
 
-        // A and B become matched through an unrelated route before either
-        // responds to the ship.
         Db.Matches.Add(new Match { InitiatorId = a.Id, ReceiverId = b.Id, Status = "Active", RevealLevel = 1 });
         await Db.SaveChangesAsync();
 
@@ -332,8 +363,80 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         Db.ChangeTracker.Clear();
         var reloaded = await Db.Ships.FindAsync(ship.Id);
         Assert.Equal("Expired", reloaded!.Status);
-        // Only the one Match that already existed — RespondAsync must not
-        // have added a second one for the same pair.
+
         Assert.Single(Db.Matches.Where(m => m.InitiatorId == a.Id && m.ReceiverId == b.Id));
+    }
+    [Fact]
+    public async Task RespondAsync_BothAcceptButNomineesBlockedEachOther_DoesNotSpark()
+    {
+        var weaver = AddUser("88110001");
+        var a = AddUser("88110002");
+        var b = AddUser("88110003");
+        await Db.SaveChangesAsync();
+        var service = BuildService();
+        await service.CreateAsync(weaver.Id, "88110002", "88110003");
+        Db.ChangeTracker.Clear();
+        var ship = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaver.Id);
+        Db.BlockedUsers.Add(new BlockedUser { BlockerId = a.Id, BlockedId = b.Id });
+        await Db.SaveChangesAsync();
+
+        var firstResult = await service.RespondAsync(a.Id, ship.Id, accept: true);
+        var secondResult = await service.RespondAsync(b.Id, ship.Id, accept: true);
+
+        Assert.False(firstResult);
+        Assert.False(secondResult);
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Ships.FindAsync(ship.Id);
+        Assert.NotEqual("Sparked", reloaded!.Status);
+        Assert.Empty(Db.Matches.Where(m => m.ShipId == ship.Id));
+    }
+
+    [Fact]
+    public async Task RespondAsync_BothAcceptButBlockedInReverseDirection_DoesNotSpark()
+    {
+        var weaver = AddUser("88110001");
+        var a = AddUser("88110002");
+        var b = AddUser("88110003");
+        await Db.SaveChangesAsync();
+        var service = BuildService();
+        await service.CreateAsync(weaver.Id, "88110002", "88110003");
+        Db.ChangeTracker.Clear();
+        var ship = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaver.Id);
+        Db.BlockedUsers.Add(new BlockedUser { BlockerId = b.Id, BlockedId = a.Id });
+        await Db.SaveChangesAsync();
+
+        await service.RespondAsync(a.Id, ship.Id, accept: true);
+        var secondResult = await service.RespondAsync(b.Id, ship.Id, accept: true);
+
+        Assert.False(secondResult);
+        Db.ChangeTracker.Clear();
+        Assert.Empty(Db.Matches.Where(m => m.ShipId == ship.Id));
+    }
+
+    [Fact]
+    public async Task RespondAsync_BothAccept_BroadcastsMatchCreatedWithShipSource()
+    {
+        var weaver = AddUser("88110001");
+        var a = AddUser("88110002");
+        var b = AddUser("88110003");
+        await Db.SaveChangesAsync();
+        var (broadcast, handler) = BuildCapturingBroadcast();
+        var service = BuildService(broadcast);
+        await service.CreateAsync(weaver.Id, "88110002", "88110003");
+        Db.ChangeTracker.Clear();
+        var ship = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaver.Id);
+
+        await service.RespondAsync(a.Id, ship.Id, accept: true);
+        Assert.Null(handler.LastRequestBody);
+        await service.RespondAsync(b.Id, ship.Id, accept: true);
+
+        Db.ChangeTracker.Clear();
+        var match = await Db.Matches.FirstAsync(m => m.ShipId == ship.Id);
+        Assert.NotNull(handler.LastRequestBody);
+        Assert.Contains("\"app-nudges\"", handler.LastRequestBody);
+        Assert.Contains("\"match_created\"", handler.LastRequestBody);
+        Assert.Contains($"\"matchId\":\"{match.Id}\"", handler.LastRequestBody);
+        Assert.Contains($"\"userIds\":[\"{match.InitiatorId}\",\"{match.ReceiverId}\"]", handler.LastRequestBody);
+        Assert.Contains("\"source\":\"ship\"", handler.LastRequestBody);
     }
 }

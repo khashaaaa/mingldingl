@@ -17,16 +17,12 @@ import { DismissKeyboardView } from '../../components/ui/DismissKeyboardView';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
 
 export default function OtpScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const { phone } = useLocalSearchParams<{ phone: string }>();
   const [code, setCode] = useState('');
   const { verifyOtp, loading, error } = useAuth();
   const router = useRouter();
 
-  // Reaching this screen without a phone param (deep link, back-navigation
-  // quirk) would otherwise render "+976 undefined" and verifyOtp(undefined,
-  // code) would silently no-op the phone-linking step — send the user back
-  // to re-enter it instead.
   useEffect(() => {
     if (!phone) router.replace('/(auth)/phone');
   }, [phone]);
@@ -112,7 +108,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
   },
   error: {
-    color: COLORS.ember,
+    color: COLORS.emberLight,
     fontSize: 14,
     textAlign: 'center',
     fontFamily: FONTS.body,

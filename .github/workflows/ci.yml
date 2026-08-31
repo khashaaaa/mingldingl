@@ -40,12 +40,18 @@ jobs:
       - run: dotnet tool install --global dotnet-ef --version 8.0.11
       - run: dotnet build
         working-directory: mingldingl_engine
+      # appsettings.Development.json is gitignored and appsettings.json ships an
+      # empty connection string, so the runner must be told where the service
+      # container is — same string IntegrationTestBase.cs hardcodes.
       - run: dotnet ef database update --project src/MinglDingl.Engine
         working-directory: mingldingl_engine
         env:
           ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__DefaultConnection: "Host=127.0.0.1;Database=mingldingl;Username=postgres;Password=1234;Port=5432"
       - run: dotnet test
         working-directory: mingldingl_engine
+        env:
+          ConnectionStrings__DefaultConnection: "Host=127.0.0.1;Database=mingldingl;Username=postgres;Password=1234;Port=5432"
 
   app:
     runs-on: ubuntu-latest
@@ -53,12 +59,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: mingldingl_app/package-lock.json
       - run: npm ci
         working-directory: mingldingl_app
-      - run: npx tsc --noEmit
+      - run: npm run typecheck
         working-directory: mingldingl_app
       - run: npm test
         working-directory: mingldingl_app
@@ -69,7 +75,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: mingldingl_control/package-lock.json
       - run: npm ci

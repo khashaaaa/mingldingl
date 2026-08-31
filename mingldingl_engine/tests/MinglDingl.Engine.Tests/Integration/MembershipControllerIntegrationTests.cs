@@ -17,6 +17,30 @@ public class MembershipControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public void GetTiers_ExposesExactlyFreeSilverAndGold()
+    {
+        var controller = BuildController(Guid.NewGuid());
+        var result = Assert.IsType<OkObjectResult>(controller.GetTiers());
+        var tiers = Assert.IsType<List<MembershipTierResponse>>(result.Value);
+
+        Assert.Equal(new[] { "Free", "Silver", "Gold" }, tiers.Select(t => t.Level));
+    }
+
+    [Fact]
+    public async Task Upgrade_ToRetiredPlatinumTier_ReturnsBadRequest()
+    {
+        var userId = Guid.NewGuid();
+        Db.Users.Add(NewCompleteUser(userId));
+        await Db.SaveChangesAsync();
+        var controller = BuildController(userId);
+
+        var result = await controller.Upgrade(new UpgradeMembershipDto("Platinum", 1));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Free", (await Db.Users.AsNoTracking().SingleAsync(u => u.Id == userId)).MembershipLevel);
+    }
+
+    [Fact]
     public void GetTiers_FreeTier_HasNoPriceOptions()
     {
         var controller = BuildController(Guid.NewGuid());
@@ -36,9 +60,9 @@ public class MembershipControllerIntegrationTests : IntegrationTestBase
 
         var silver = tiers.Single(t => t.Level == "Silver");
         Assert.Equal(new[] { 1, 3, 6 }, silver.Prices.Select(p => p.DurationMonths).OrderBy(m => m));
-        Assert.Equal(5900, silver.Prices.Single(p => p.DurationMonths == 1).TotalPriceMnt);
-        Assert.Equal(15930, silver.Prices.Single(p => p.DurationMonths == 3).TotalPriceMnt);
-        Assert.Equal(28320, silver.Prices.Single(p => p.DurationMonths == 6).TotalPriceMnt);
+        Assert.Equal(10900, silver.Prices.Single(p => p.DurationMonths == 1).TotalPriceMnt);
+        Assert.Equal(29430, silver.Prices.Single(p => p.DurationMonths == 3).TotalPriceMnt);
+        Assert.Equal(52320, silver.Prices.Single(p => p.DurationMonths == 6).TotalPriceMnt);
     }
 
     [Theory]
@@ -65,7 +89,8 @@ public class MembershipControllerIntegrationTests : IntegrationTestBase
         var purchase = await Db.Memberships.SingleAsync(m => m.UserId == userId);
         Assert.Equal("Silver", purchase.Level);
         Assert.Equal(durationMonths, purchase.DurationMonths);
-        Assert.Equal(MembershipPricing.PriceOptions(5900).Single(p => p.DurationMonths == durationMonths).TotalPriceMnt, purchase.PriceMnt);
+        var silverMonthly = MembershipController.AllTiers.Single(t => t.Level == "Silver").MonthlyPriceMnt!.Value;
+        Assert.Equal(MembershipPricing.PriceOptions(silverMonthly).Single(p => p.DurationMonths == durationMonths).TotalPriceMnt, purchase.PriceMnt);
     }
 
     [Fact]
@@ -127,7 +152,7 @@ public class MembershipControllerIntegrationTests : IntegrationTestBase
         var userId = Guid.NewGuid();
         var user = NewCompleteUser(userId);
         user.MembershipLevel = "Silver";
-        user.MembershipExpiresAt = DateTime.UtcNow.AddMonths(5); // plenty of time left
+        user.MembershipExpiresAt = DateTime.UtcNow.AddMonths(5);
         Db.Users.Add(user);
         await Db.SaveChangesAsync();
 
@@ -136,7 +161,6 @@ public class MembershipControllerIntegrationTests : IntegrationTestBase
         var result = Assert.IsType<OkObjectResult>(await controller.Upgrade(new UpgradeMembershipDto("Silver", 1)));
         var body = Assert.IsType<MembershipMeResponse>(result.Value);
 
-        // Reset from now, not extended from the old expiry ~5 months out.
         var expectedExpiry = before.AddMonths(1);
         Assert.True(Math.Abs((body.ExpiresAt!.Value - expectedExpiry).TotalSeconds) < 5,
             $"expected ExpiresAt near {expectedExpiry:o} (reset), got {body.ExpiresAt:o}");
@@ -157,10 +181,7 @@ public class MembershipControllerIntegrationTests : IntegrationTestBase
         var body = Assert.IsType<MembershipMeResponse>(result.Value);
 
         Assert.Equal("Gold", body.MembershipLevel);
-        // Postgres "timestamp with time zone" only has microsecond precision, so a
-        // round-trip through AsNoTracking() can lose up to 9 ticks (900ns) versus the
-        // in-memory DateTime.UtcNow value that was saved. Tolerate that DB truncation
-        // rather than asserting bit-for-bit tick equality.
+
         Assert.True(Math.Abs((body.ExpiresAt!.Value - user.MembershipExpiresAt!.Value).Ticks) < 10,
             $"expected {user.MembershipExpiresAt:o}, got {body.ExpiresAt:o}");
     }

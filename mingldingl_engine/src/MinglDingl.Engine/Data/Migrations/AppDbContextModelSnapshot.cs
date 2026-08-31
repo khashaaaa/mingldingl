@@ -81,6 +81,8 @@ namespace MinglDingl.Engine.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt");
+
                     b.ToTable("AdminAuditLogs");
                 });
 
@@ -373,6 +375,18 @@ namespace MinglDingl.Engine.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("FlameRiteAcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FlameRiteCompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FlameRiteProposedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FlameRiteProposedById")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IcebreakerComplete")
                         .HasColumnType("boolean");
 
@@ -626,6 +640,8 @@ namespace MinglDingl.Engine.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("CreatedAt", "EventType");
 
                     b.ToTable("ScoreEvents");
                 });
@@ -947,6 +963,15 @@ namespace MinglDingl.Engine.Data.Migrations
                     b.Property<int>("NoShowFlagCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Oath")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("OathProven")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("OathSwornAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
 
@@ -974,6 +999,8 @@ namespace MinglDingl.Engine.Data.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
 
                     b.HasIndex("PhoneNumber")
                         .IsUnique();

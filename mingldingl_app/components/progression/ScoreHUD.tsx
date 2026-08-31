@@ -45,5 +45,5 @@ const styles = StyleSheet.create({
   score: { fontFamily: FONTS.display, fontSize: 14, letterSpacing: 0.5 },
   pts: { fontFamily: FONTS.display, fontSize: 10, color: COLORS.textDim, letterSpacing: 1 },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 4 },
-  streak: { fontFamily: FONTS.display, fontSize: 12, color: COLORS.ember, letterSpacing: 0.5 },
+  streak: { fontFamily: FONTS.display, fontSize: 12, color: COLORS.emberLight, letterSpacing: 0.5 },
 });

@@ -1,12 +1,5 @@
 import type { components } from '../lib/api/api.generated';
 
-// Server returns both languages together (see engine's ContentDto.cs). Kept
-// bilingual here rather than picking one at parse time: this object is
-// cached by react-query, and locale picked inside the parse step gets baked
-// into that cache — switching languages then re-renders the screen (via its
-// useLocaleStore subscription) without the cached data ever being
-// re-derived, so the page silently stays in whichever language it was first
-// fetched in. selectContentPageLocale() re-picks on every render instead.
 export interface ContentPage {
   slug: string;
   titleEn: string;

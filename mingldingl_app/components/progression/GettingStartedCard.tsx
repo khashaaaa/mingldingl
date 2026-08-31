@@ -6,8 +6,7 @@ import { COLORS, FONTS, SPACE } from '../../lib/theme';
 
 interface Props {
   isProfileComplete: boolean;
-  // Achieved milestone ids from GET /engagement/milestones (achievedAt set) —
-  // only 'first_match' | 'first_icebreaker' | 'first_quiz' are read here.
+
   achievedMilestoneIds: string[];
   onCompleteProfile: () => void;
 }
@@ -34,12 +33,6 @@ function StepRow({ step }: { step: Step }) {
   return <TouchableOpacity onPress={step.onPress}>{row}</TouchableOpacity>;
 }
 
-// A new user's first async match can take a while to land — this makes the
-// pre-match funnel (profile → match → icebreaker → quiz) explicit instead of
-// leaving it to be discovered through the daily quest board, which rotates
-// and may not even include icebreaker/quiz on a given day (see
-// QuestService.QuestsForDate). Self-hides once every step is done, the same
-// way InviteAllyCard hides once there's nothing left to show.
 export function GettingStartedCard({ isProfileComplete, achievedMilestoneIds, onCompleteProfile }: Props) {
   const steps: Step[] = [
     {

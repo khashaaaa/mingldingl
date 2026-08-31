@@ -4,6 +4,7 @@ import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
+import OathSigil from '../OathSigil';
 import type { Match } from '../../models/match';
 
 interface Props {
@@ -22,10 +23,7 @@ function questStatus(match: Match): { icon: StatusIconName; label: string; color
 export function QuestTile({ match, onPress }: Props) {
   const { otherUser, revealLevel } = match;
   const blurred = revealLevel < 2;
-  // Tracks the URL that failed, not just a boolean, matching the same fix
-  // applied to CandidateCard.tsx — a photo URL that exists but fails to load
-  // (dead host, expired link) must fall back to the placeholder, not vanish
-  // along with its always-mounted blurred sibling layer below.
+
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const photo = otherUser.firstPhoto;
   const showPhoto = photo && photo !== failedUrl;
@@ -33,10 +31,6 @@ export function QuestTile({ match, onPress }: Props) {
   const tierColor = colorForTier(tier);
   const status = questStatus(match);
 
-  // Only animates the moment identity actually unlocks (blurred -> revealed),
-  // never on ordinary mount/re-render — `wasBlurred` remembers the prior
-  // state across renders so a tile that's always been revealed just renders
-  // sharp immediately instead of replaying the reveal every time it appears.
   const wasBlurred = useRef(blurred);
   const reveal = useRef(new Animated.Value(blurred ? 0 : 1)).current;
   useEffect(() => {
@@ -79,9 +73,6 @@ export function QuestTile({ match, onPress }: Props) {
           {blurred ? (
             <Text style={styles.name} numberOfLines={1}>{i18n.t('mystery_match_name')}</Text>
           ) : (
-            // Only this branch (the actual revealed name) animates in — the
-            // "Mystery" label above is static so it's never briefly invisible
-            // while `reveal` is still at its blurred starting value.
             <Animated.Text
               style={[
                 styles.name,
@@ -92,6 +83,7 @@ export function QuestTile({ match, onPress }: Props) {
               {otherUser.isDeleted ? i18n.t('deleted_user') : (otherUser.displayName ?? i18n.t('unknown_name'))}
             </Animated.Text>
           )}
+          <OathSigil oath={otherUser.oath ?? null} proven={otherUser.oathProven ?? false} size="sm" />
           <Text style={[styles.status, { color: status.color }]}>{status.label}</Text>
         </View>
       </View>
@@ -121,8 +113,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  // Same corner-brace language as AppCard, at rune-strip scale — the box
-  // reads as a carved tablet instead of a flat tinted rectangle.
   runeCorner: { position: 'absolute', width: 7, height: 7 },
   runeCornerTl: { top: 2, left: 2, borderTopWidth: 1.5, borderLeftWidth: 1.5 },
   runeCornerBr: { bottom: 2, right: 2, borderBottomWidth: 1.5, borderRightWidth: 1.5 },

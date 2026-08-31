@@ -58,12 +58,6 @@ public class ScoresController : ControllerBase
             var item = LootService.Catalog.FirstOrDefault(c => c.Id == pendingReferral.InviterRewardItemId);
             if (item is not null)
                 pendingReward = new DroppedItem(item.Id, item.NameKey, item.Rarity, item.ItemType);
-
-            // pendingReferral came from a tracked query (no AsNoTracking()
-            // on this one, unlike `user` above), so mutating it directly is
-            // enough — no second fetch needed.
-            pendingReferral.InviterNotifiedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
         }
 
         var pendingShip = await _db.Ships
@@ -77,16 +71,13 @@ public class ScoresController : ControllerBase
             var item = LootService.Catalog.FirstOrDefault(c => c.Id == pendingShip.ShipperRewardItemId);
             if (item is not null)
                 pendingShipReward = new DroppedItem(item.Id, item.NameKey, item.Rarity, item.ItemType);
-
-            pendingShip.ShipperNotifiedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
         }
 
         return Ok(new ScoreDetailResponse(
             user.TotalScore,
             user.GemTier,
             user.ReputationScore,
-            user.CurrentStreak,
+            ScoreService.DisplayStreak(user.CurrentStreak, user.LastLoginDate, DateTime.UtcNow.Date),
             user.LongestStreak,
             tierIndex,
             tierIndex,
@@ -96,6 +87,42 @@ public class ScoresController : ControllerBase
             ScoreService.DailyMatchBudget(user),
             pendingReward,
             pendingShipReward));
+    }
+
+    [HttpPost("me/notifications/ack")]
+    [ProducesResponseType(typeof(AckNotificationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AckRewardNotification([FromBody] AckNotificationDto req)
+    {
+        var userId = this.CurrentUserId();
+
+        if (req.Kind == "referral")
+        {
+            var pending = await _db.Referrals
+                .Where(r => r.InviterUserId == userId && r.InviterNotifiedAt == null)
+                .OrderBy(r => r.CreatedAt)
+                .FirstOrDefaultAsync();
+            if (pending is null) return Ok(new AckNotificationResponse(false));
+
+            pending.InviterNotifiedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return Ok(new AckNotificationResponse(true));
+        }
+
+        if (req.Kind == "ship")
+        {
+            var pending = await _db.Ships
+                .Where(s => s.ShipperUserId == userId && s.Status == "Sparked" && s.ShipperNotifiedAt == null)
+                .OrderBy(s => s.CreatedAt)
+                .FirstOrDefaultAsync();
+            if (pending is null) return Ok(new AckNotificationResponse(false));
+
+            pending.ShipperNotifiedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return Ok(new AckNotificationResponse(true));
+        }
+
+        return this.BadRequestError("kind must be 'referral' or 'ship'");
     }
 
     [HttpGet("me/history")]
@@ -108,10 +135,6 @@ public class ScoresController : ControllerBase
         var query = _db.ScoreEvents.AsNoTracking().Where(e => e.UserId == userId);
         if (cursor is not null && cursorId is not null)
         {
-            // Seek/keyset pagination: CreatedAt alone isn't a unique sort key (two
-            // events for the same user could share an identical timestamp), so a
-            // strict CreatedAt-only cursor can silently skip a tied row at a page
-            // boundary. Id is the tiebreaker for a stable total order.
             query = query.Where(e =>
                 e.CreatedAt < cursor ||
                 (e.CreatedAt == cursor && e.Id.CompareTo(cursorId.Value) < 0));
@@ -134,13 +157,6 @@ public class ScoresController : ControllerBase
             nextCursorId));
     }
 
-    // Top 50 by score within the caller's own city, anonymized to rank + gem
-    // tier — no other user's name or photo ever leaves this endpoint. The
-    // caller's own row is always included (appended past position 50, with
-    // its real rank, if it didn't place in the top slice) so "you" is never
-    // silently missing from your own leaderboard.
-    // Static reference data (the gem-tier cutoff table) — not per-user, so no
-    // AsNoTracking() DB round trip needed. See ScoreService.GetTierTable.
     [HttpGet("tiers")]
     [ProducesResponseType(typeof(TierThresholdsResponse), StatusCodes.Status200OK)]
     public IActionResult GetTiers()
@@ -210,8 +226,10 @@ public class ScoresController : ControllerBase
 
         if (alreadyAwarded)
         {
-            await _db.SaveChangesAsync(); // persist daily-matches reset even on the early path
-            return Ok(new DailyLoginResponse(0, "Already logged in today", user.CurrentStreak, user.LongestStreak));
+            await _db.SaveChangesAsync();
+
+            return Ok(new DailyLoginResponse(0, "Already logged in today",
+                ScoreService.DisplayStreak(user.CurrentStreak, user.LastLoginDate, today), user.LongestStreak));
         }
 
         int streak = ScoreService.ComputeStreak(user.CurrentStreak, user.LastLoginDate, today);
@@ -221,12 +239,8 @@ public class ScoresController : ControllerBase
 
         bool bonus = streak % 7 == 0;
         int award = ScoreService.GetDelta("DailyLogin") * Math.Min(streak, 7) + (bonus ? 50 : 0);
-        await _db.SaveChangesAsync();                       // persist streak fields on the tracked user first
+        await _db.SaveChangesAsync();
 
-        // The AnyAsync check above is TOCTOU-racy; ix_score_events_once_per_day (partial
-        // unique index on ScoreEvents) is the real guard. The loser of a concurrent
-        // daily-login call hits a unique violation here instead of double-awarding —
-        // return the idempotent already-logged-in response instead of a 500.
         try
         {
             await _score.AwardWithDeltaAsync(userId, "DailyLogin", award);

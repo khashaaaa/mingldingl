@@ -11,10 +11,6 @@ public class CurrentUserMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // Anonymous requests (no/invalid JWT) are left alone here — [Authorize]
-        // endpoints already get rejected by the authorization middleware that
-        // runs after this one, and public endpoints (health checks, etc.)
-        // don't read Items["UserId"] at all.
         if (context.User.Identity?.IsAuthenticated != true)
         {
             await _next(context);
@@ -24,11 +20,6 @@ public class CurrentUserMiddleware
         var userId = ExtractUserId(context.User);
         if (!userId.HasValue)
         {
-            // A JWT that passed signature validation but has no parseable
-            // "sub" claim. Every [Authorize] controller reads
-            // Items["UserId"] with `(Guid)HttpContext.Items["UserId"]!`, which
-            // throws NullReferenceException if we let this through — fail
-            // here with the correct 401 instead of a misleading 500.
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsJsonAsync(new { error = "Invalid authentication token." });
@@ -38,9 +29,6 @@ public class CurrentUserMiddleware
         var phone = ExtractPhone(context.User);
         var resolvedUserId = await ResolveUserIdAsync(context, userId.Value, phone);
 
-        // Admin moderation action (mingldingl_control) — rejected here, not
-        // just hidden from discovery like IsPaused. A cheap PK lookup, not
-        // worth caching for this app's traffic.
         var db = context.RequestServices.GetRequiredService<AppDbContext>();
         var isBanned = await db.Users.AsNoTracking()
             .Where(u => u.Id == resolvedUserId)
@@ -59,13 +47,6 @@ public class CurrentUserMiddleware
         await _next(context);
     }
 
-    // Fake-OTP login (no real SMS provider configured) can't verify a phone
-    // number, so it re-authenticates via Supabase anonymous sign-in, which
-    // mints a brand-new auth id every time. The phone number rides along in
-    // the JWT's user_metadata claim instead (see useAuth.ts on the client).
-    // If this auth id is new but a User already claimed that phone number
-    // under a different (earlier) auth id, alias this request back to that
-    // account instead of treating the returning user as brand new.
     private static async Task<Guid> ResolveUserIdAsync(HttpContext context, Guid authId, string? phone)
     {
         if (phone is null) return authId;

@@ -2,9 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-// Read-only support lookup for the Fated Threads flow — before this,
-// nobody could see a Ship stuck AwaitingUser/PendingOptIn, or investigate
-// one a user complained about, from the admin dashboard at all.
 [ApiController]
 [Route("admin/ships")]
 [Authorize(AuthenticationSchemes = "AdminBearer")]

@@ -13,11 +13,20 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export DOTNET_ROOT="${DOTNET_ROOT:-$HOME/.dotnet}"
 export PATH="$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH"
 
-echo "== engine: dotnet test =="
-(cd "$ROOT/mingldingl_engine" && dotnet test)
+PG_HOST="${PGHOST:-127.0.0.1}"; PG_PORT="${PGPORT:-5432}"
+if [[ "${CHECK_SKIP_ENGINE:-}" == "1" ]]; then
+  echo "== engine: skipped (CHECK_SKIP_ENGINE=1) =="
+elif ! (exec 3<>"/dev/tcp/$PG_HOST/$PG_PORT") 2>/dev/null; then
+  echo "== engine: Postgres not reachable at $PG_HOST:$PG_PORT =="
+  echo "   Integration tests need it. Start it, or re-run with CHECK_SKIP_ENGINE=1 to skip the engine suite."
+  exit 1
+else
+  echo "== engine: dotnet test =="
+  (cd "$ROOT/mingldingl_engine" && dotnet test)
+fi
 
-echo "== app: tsc --noEmit =="
-(cd "$ROOT/mingldingl_app" && npx tsc --noEmit)
+echo "== app: typecheck =="
+(cd "$ROOT/mingldingl_app" && npm run typecheck)
 
 echo "== app: jest =="
 (cd "$ROOT/mingldingl_app" && npm test)

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
@@ -10,15 +11,17 @@ public class ActivitiesControllerIntegrationTests : IntegrationTestBase
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
-        var score = new ScoreService(Db, new ConfigService());
-        var quests = new QuestService(Db, score);
-        var milestones = new MilestoneService(Db);
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var httpClient = new HttpClient();
         var mockConfig = new Moq.Mock<IConfiguration>();
         mockConfig.Setup(c => c["Supabase:ProjectUrl"]).Returns("https://test.supabase.co");
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
-        var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object);
-        var activities = new ActivityService(Db, score, quests, milestones, broadcast, new ConfigService());
+        var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
+        var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
+        var activities = new ActivityService(Db, score, quests, milestones, broadcast, config, oaths);
         var controller = new ActivitiesController(Db, activities)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
@@ -29,10 +32,6 @@ public class ActivitiesControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task GetSuggestions_CallerNotAMatchParticipant_ReturnsForbidden()
     {
-        // Security regression: GetSuggestions loaded the match but never checked
-        // IsParticipant, unlike ConfirmDate in the same controller — any
-        // authenticated user who knew a matchId could read that match's private
-        // date-activity suggestions.
         var initiator = NewCompleteUser();
         var receiver = NewCompleteUser();
         Db.Users.AddRange(initiator, receiver);
@@ -41,7 +40,7 @@ public class ActivitiesControllerIntegrationTests : IntegrationTestBase
             InitiatorId = initiator.Id,
             ReceiverId = receiver.Id,
             Status = "Active",
-            MessageCount = 20, // above the 15-message unlock threshold
+            MessageCount = 20,
         };
         Db.Matches.Add(match);
         await Db.SaveChangesAsync();
@@ -120,7 +119,7 @@ public class ActivitiesControllerIntegrationTests : IntegrationTestBase
         var controller = BuildController(receiver.Id);
         var result = Assert.IsType<OkObjectResult>(await controller.PostAttendanceCheck(match.Id, new AttendanceCheckRequestDto(false)));
         var body = Assert.IsType<AttendanceCheckResponse>(result.Value);
-        Assert.False(body.Attended); // reflects the value just submitted, not "did they respond" (which would always be true)
+        Assert.False(body.Attended);
     }
 
     [Fact]
@@ -191,4 +190,52 @@ public class ActivitiesControllerIntegrationTests : IntegrationTestBase
         var entry = Assert.Single(body);
         Assert.False(entry.Mismatched);
     }
+
+    [Fact]
+    public async Task ConfirmDate_RiteRequiredAndIncomplete_ReturnsForbiddenWithRiteCopy()
+    {
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        var match = new Match
+        {
+            InitiatorId = initiator.Id, ReceiverId = receiver.Id,
+            MessageCount = 20, IcebreakerComplete = true,
+        };
+        Db.Matches.Add(match);
+        var suggestion = new ActivitySuggestion { MatchId = match.Id, ActivityType = "Coffee", Title = "Coffee Date" };
+        Db.ActivitySuggestions.Add(suggestion);
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(initiator.Id);
+        var result = Assert.IsType<ObjectResult>(await controller.ConfirmDate(match.Id, new ConfirmDateDto(suggestion.Id)));
+
+        Assert.Equal(403, result.StatusCode);
+        Assert.Equal("Complete the Flame Rite before pledging an encounter", ErrorMessage(result));
+    }
+
+    [Fact]
+    public async Task ConfirmDate_SuggestionNotInMatch_ReturnsNotFoundWithSuggestionCopy()
+    {
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        var match = new Match
+        {
+            InitiatorId = initiator.Id, ReceiverId = receiver.Id,
+            MessageCount = 20, IcebreakerComplete = true,
+            FlameRiteCompletedAt = DateTime.UtcNow,
+        };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(initiator.Id);
+        var result = Assert.IsType<NotFoundObjectResult>(await controller.ConfirmDate(match.Id, new ConfirmDateDto(Guid.NewGuid())));
+
+        Assert.Equal(404, result.StatusCode);
+        Assert.Equal("Activity suggestion not found for this match", ErrorMessage(result));
+    }
+
+    private static string? ErrorMessage(ObjectResult result) =>
+        result.Value?.GetType().GetProperty("error")?.GetValue(result.Value) as string;
 }

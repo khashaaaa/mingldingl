@@ -1,19 +1,14 @@
-// Single source of truth for React Query keys. Several keys are shared or
-// invalidated across hook files (e.g. useMilestones invalidates the `items`
-// prefix that useInventory owns; useDiscover writes directly into the
-// `matches` cache that useMatches owns) — centralizing them here turns that
-// cross-file coupling into a compiler-checked reference instead of
-// hand-typed string literals that can silently drift apart.
 export const queryKeys = {
   quiz: ['quiz'] as const,
-  quizSubmit: (matchId: string, quizId?: string) => ['quizSubmit', matchId, quizId] as const,
   quizStatus: (matchId: string, quizId?: string) => ['quizStatus', matchId, quizId] as const,
+  quizStatusByMatch: (matchId: string) => ['quizStatus', matchId] as const,
   milestones: ['milestones'] as const,
   messages: (matchId: string) => ['messages', matchId] as const,
   discover: ['discover'] as const,
   discoverSeen: ['discover:seen'] as const,
   icebreaker: (matchId: string) => ['icebreaker', matchId] as const,
   icebreakerReveal: (matchId: string, questionId?: string) => ['icebreakerReveal', matchId, questionId] as const,
+  icebreakerRevealByMatch: (matchId: string) => ['icebreakerReveal', matchId] as const,
   icebreakerStatus: (matchId: string, questionId?: string) => ['icebreakerStatus', matchId, questionId] as const,
   membership: ['membership', 'me'] as const,
   membershipTiers: ['membership', 'tiers'] as const,
@@ -29,6 +24,8 @@ export const queryKeys = {
   matches: ['matches'] as const,
   userProfile: ['userProfile'] as const,
   scoreDetail: ['scoreDetail'] as const,
+  score: ['score', 'me'] as const,
+  partnerPledged: (matchId: string) => ['partnerPledged', matchId] as const,
   scoreHistory: ['scoreHistory'] as const,
   leaderboard: ['leaderboard'] as const,
   tierThresholds: ['tierThresholds'] as const,

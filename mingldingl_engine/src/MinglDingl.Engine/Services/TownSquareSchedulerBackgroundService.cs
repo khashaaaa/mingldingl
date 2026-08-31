@@ -1,15 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
-// Drives TownSquareSession lifecycle on a server-authoritative clock: locks the
-// roster once RSVPs close, starts the session at its scheduled time, and
-// advances rounds once each round's window elapses. Same thin-loop-plus-
-// internal-sweep shape as DailyMaintenanceBackgroundService, for the same
-// reason: it's what makes RunSweepAsync directly unit-testable.
 public class TownSquareSchedulerBackgroundService : BackgroundService
 {
-    // Much shorter than DailyMaintenanceBackgroundService's hourly interval —
-    // round transitions need to land within seconds of their real end time,
-    // not once an hour.
     private static readonly TimeSpan SweepInterval = TimeSpan.FromSeconds(10);
 
     private readonly IServiceScopeFactory _scopeFactory;

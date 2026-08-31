@@ -46,9 +46,6 @@ public class CompatibilityScorerTests
     [Fact]
     public void Score_OnlyOneSideHasAField_DoesNotCountThatField()
     {
-        // b has never filled in a religion — comparing an unset field against
-        // a set one is "unknown", not a mismatch, so it must be excluded from
-        // the average rather than silently scored as 0.
         var a = User(hasKids: false, religion: "None");
         var b = User(hasKids: false);
 
@@ -58,9 +55,6 @@ public class CompatibilityScorerTests
     [Fact]
     public void Score_OrdinalHabits_PartialMismatchScoresBetweenZeroAndOne()
     {
-        // "Never" vs "Occasionally" is one step apart on a 0-2 scale, so it
-        // should score better than "Never" vs "Regularly" (two steps), not
-        // collapse to the same 0 a plain equality check would give both.
         var never = User(smoking: "Never");
         var occasionally = User(smoking: "Occasionally");
         var regularly = User(smoking: "Regularly");
@@ -76,9 +70,6 @@ public class CompatibilityScorerTests
     [Fact]
     public void Score_MixOfMatchingAndMissingFields_AveragesOnlyComparableOnes()
     {
-        // Kids match (1.0), smoking matches (1.0), drinking is unset on b so
-        // it's excluded — average should be over 2 fields, not penalized by
-        // a 3rd field neither side can compare.
         var a = User(hasKids: true, smoking: "Never", drinking: "Occasionally");
         var b = User(hasKids: true, smoking: "Never");
 

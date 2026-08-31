@@ -6,7 +6,6 @@ public class Referral
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? InviterRewardItemId { get; set; }
     public string? InviteeRewardItemId { get; set; }
-    // Set the moment GET /scores/me/detail has surfaced the inviter's
-    // reward once — read-once, no separate acknowledge call.
+
     public DateTime? InviterNotifiedAt { get; set; }
 }

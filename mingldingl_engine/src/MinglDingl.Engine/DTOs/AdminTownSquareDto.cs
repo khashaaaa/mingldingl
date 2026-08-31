@@ -1,6 +1,3 @@
-// Support-lookup views of Town Square sessions/pairings — a stuck pairing
-// (one side never joined, a round that never advanced) had nowhere to be
-// seen from the admin dashboard otherwise.
 public record AdminTownSquareSessionDto(
     Guid Id,
     string Status,
@@ -23,3 +20,8 @@ public record AdminTownSquarePairingDto(
     string UserBResponse,
     DateTime? UserBJoinedAt,
     Guid? ResultingMatchId);
+
+public record CreateTownSquareSessionRequest(
+    DateTime RsvpOpensAt,
+    DateTime RsvpClosesAt,
+    DateTime ScheduledStartAt);

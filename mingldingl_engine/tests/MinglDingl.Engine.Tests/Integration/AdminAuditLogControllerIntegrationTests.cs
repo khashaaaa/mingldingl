@@ -7,8 +7,6 @@ public class AdminAuditLogControllerIntegrationTests : IntegrationTestBase
     [Fact]
     public async Task List_ReturnsEntriesMostRecentFirst()
     {
-        // Explicit, clearly-separated timestamps (not two near-simultaneous
-        // LogAsync calls) so the ordering assertion can't be timing-flaky.
         Db.AdminAuditLogs.Add(new AdminAuditLog
         {
             Id = Guid.NewGuid(), AdminUsername = "tester", Action = "OldAction",
@@ -27,7 +25,7 @@ public class AdminAuditLogControllerIntegrationTests : IntegrationTestBase
 
         var ours = page.Items.Where(i => i.EntityType == "Test").ToList();
         Assert.Equal(2, ours.Count);
-        Assert.Equal("NewAction", ours[0].Action); // most recent first
+        Assert.Equal("NewAction", ours[0].Action);
         Assert.Equal("tester", ours[0].AdminUsername);
     }
 

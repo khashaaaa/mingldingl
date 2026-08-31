@@ -1,6 +1,3 @@
-// Single-series time series. Mark spec: 2px line (round join/cap), area fill
-// at ~10% opacity, end-marker >=8px with a 2px surface ring, hairline
-// baseline, direct label only at the line's end (never one per point).
 const ACCENT = '#2a78d6';
 const WIDTH = 600;
 const HEIGHT = 160;

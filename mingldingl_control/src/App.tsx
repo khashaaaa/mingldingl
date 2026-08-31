@@ -19,12 +19,17 @@ import { Config } from './pages/Config';
 import { Ships } from './pages/Ships';
 import { TownSquare } from './pages/TownSquare';
 import { Toaster } from './components/ui/toaster';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { useCrossTabSync } from './hooks/useCrossTabSync';
 
 function App() {
+  useCrossTabSync();
+
   return (
     <QueryClientProvider client={queryClient}>
       <Toaster />
-      <BrowserRouter>
+      <ErrorBoundary>
+        <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute />}>
@@ -48,7 +53,8 @@ function App() {
             </Route>
           </Route>
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }

@@ -14,8 +14,10 @@ public class MatchesController : ControllerBase
     private readonly QuestService _quests;
     private readonly MilestoneService _milestones;
     private readonly PushNotificationService _push;
+    private readonly ConfigService _config;
+    private readonly SupabaseBroadcastService _broadcast;
 
-    public MatchesController(AppDbContext db, ScoreService score, GhostingService ghosting, QuestService quests, MilestoneService milestones, PushNotificationService push)
+    public MatchesController(AppDbContext db, ScoreService score, GhostingService ghosting, QuestService quests, MilestoneService milestones, PushNotificationService push, ConfigService config, SupabaseBroadcastService broadcast)
     {
         _db = db;
         _score = score;
@@ -23,6 +25,8 @@ public class MatchesController : ControllerBase
         _quests = quests;
         _milestones = milestones;
         _push = push;
+        _config = config;
+        _broadcast = broadcast;
     }
 
     [HttpGet("candidates")]
@@ -36,11 +40,6 @@ public class MatchesController : ControllerBase
 
         var (safePage, safePageSize, skip) = PagingDefaults.Normalize(page, pageSize);
 
-        // Opposite-sex only (2026-07-28 brainstorm — "Other" was removed as a
-        // gender option entirely rather than left as an unhandled edge case).
-        // Legacy rows from before that change fall through to null, which
-        // deliberately means "no gender filter" rather than "show nobody" —
-        // failing open is the safer default for stale data we don't control.
         string? oppositeGender = me.Gender switch
         {
             "Male" => "Female",
@@ -48,14 +47,10 @@ public class MatchesController : ControllerBase
             _ => null,
         };
 
-        // A NOT EXISTS correlated subquery does this in one round trip instead of
-        // pulling every matched-partner id into app memory first and shipping it
-        // back as a query parameter array — cheaper, and scales with users who
-        // have many matches instead of with the size of that array.
         var unmatched = await _db.Users
             .AsNoTracking()
             .Where(u => u.Id != userId
-                && u.DeletionRequestedAt == null // pending or completed deletion — hidden either way
+                && u.DeletionRequestedAt == null
                 && !u.IsPaused
                 && u.Age >= me.AgeMin && u.Age <= me.AgeMax
                 && (oppositeGender == null || u.Gender == oppositeGender)
@@ -67,37 +62,12 @@ public class MatchesController : ControllerBase
                     (bl.BlockerId == u.Id && bl.BlockedId == userId)))
             .ToListAsync();
 
-        // Distance ranking needs Haversine (sin/cos/atan2), which EF Core can't
-        // translate to SQL, hence ranking in memory over the already-filtered
-        // (unmatched) set above rather than in the query itself. Fine at this
-        // app's current scale — if the user base grows large enough for this to
-        // matter, that's a later optimization (PostGIS/raw SQL), not a day-one
-        // concern.
-        //
-        // Distance is the primary signal, score proximity the next tiebreaker
-        // (see 2026-07-27 brainstorm), and deep-field compatibility the last —
-        // it only ever separates candidates who are already equally close and
-        // equally scored. Like distance, it's a soft signal: candidates with
-        // no comparable deep fields on either side sort after everyone who
-        // has some overlap, but are never excluded.
-        //
-        // Priority matching (Gold/Platinum membership perk, 2026-07-28): for
-        // paying members, candidates within the same ~15km band count as
-        // equally near, so compatibility decides order *within* that band
-        // instead of only ever breaking an exact distance+score tie. This is
-        // what makes deep-profile compatibility a real, paid-for ranking
-        // factor rather than a mostly-theoretical one everyone gets for free.
         const double PriorityCompatibilityBandKm = 15;
-        // Day-0 activation: within the same ~10km band, a candidate with zero
-        // matches anywhere (not just with the viewer) is boosted ahead of one
-        // who's already matched — so a brand-new user surfaces sooner in
-        // other people's decks instead of sitting unseen behind everyone
-        // who's already been discovered. Self-expiring: the moment they get
-        // one match, this stops applying to them. Deliberately its own
-        // (narrower) band rather than reusing PriorityCompatibilityBandKm —
-        // that one is a paid perk; this applies to every membership level.
+
         const double NewUserBoostBandKm = 10;
-        bool priorityMatching = me.MembershipLevel is "Gold" or "Platinum";
+
+        const double OathAffinityBandKm = 25;
+        bool priorityMatching = me.MembershipLevel == "Gold";
         bool myLocationKnown = me.Latitude.HasValue && me.Longitude.HasValue;
         var totalCount = unmatched.Count;
 
@@ -114,11 +84,17 @@ public class MatchesController : ControllerBase
                 ScoreDiff = Math.Abs(u.TotalScore - me.TotalScore),
                 Compatibility = CompatibilityScorer.Score(me, u),
                 IsUnmatchedElsewhere = !matchedUserIds.Contains(u.Id),
+                OathAffinity = OathService.Affinity(me.Oath, u.Oath),
+                BothProven = me.OathProven && u.OathProven,
             });
 
         var ordered = priorityMatching
             ? projected
                 .OrderBy(x => x.DistanceKm.HasValue ? 0 : 1)
+                .ThenBy(x => x.DistanceKm.HasValue ? Math.Floor(x.DistanceKm.Value / OathAffinityBandKm) : 0)
+                .ThenBy(x => x.OathAffinity.HasValue ? 0 : 1)
+                .ThenByDescending(x => x.OathAffinity ?? 0)
+                .ThenByDescending(x => x.BothProven)
                 .ThenBy(x => x.DistanceKm.HasValue ? Math.Floor(x.DistanceKm.Value / PriorityCompatibilityBandKm) : 0)
                 .ThenBy(x => x.Compatibility.HasValue ? 0 : 1)
                 .ThenByDescending(x => x.Compatibility ?? 0)
@@ -128,6 +104,10 @@ public class MatchesController : ControllerBase
                 .ThenBy(x => x.ScoreDiff)
             : projected
                 .OrderBy(x => x.DistanceKm.HasValue ? 0 : 1)
+                .ThenBy(x => x.DistanceKm.HasValue ? Math.Floor(x.DistanceKm.Value / OathAffinityBandKm) : 0)
+                .ThenBy(x => x.OathAffinity.HasValue ? 0 : 1)
+                .ThenByDescending(x => x.OathAffinity ?? 0)
+                .ThenByDescending(x => x.BothProven)
                 .ThenBy(x => x.DistanceKm.HasValue ? Math.Floor(x.DistanceKm.Value / NewUserBoostBandKm) : 0)
                 .ThenByDescending(x => x.IsUnmatchedElsewhere)
                 .ThenBy(x => x.DistanceKm ?? double.MaxValue)
@@ -143,7 +123,8 @@ public class MatchesController : ControllerBase
 
         var items = candidates.Select(c => new CandidateResponse(
             c.Id, c.DisplayName, c.Age, c.City, c.GemTier, c.ReputationScore,
-            c.PhotoUrls, c.Bio, c.EquippedFrameId, c.EquippedTitleId)).ToList();
+            c.PhotoUrls, c.Bio, c.EquippedFrameId, c.EquippedTitleId,
+            c.Oath, c.OathProven)).ToList();
 
         return Ok(new PagedResponse<CandidateResponse>(items, safePage, safePageSize, totalCount, skip + items.Count < totalCount));
     }
@@ -163,48 +144,19 @@ public class MatchesController : ControllerBase
         if (me.DailyMatchesUsed >= ScoreService.DailyMatchBudget(me))
             return this.BadRequestError("Daily match budget exhausted");
 
-        // Matches has no unique constraint on the unordered (InitiatorId, ReceiverId)
-        // pair, so two concurrent requests between the same two users can both pass
-        // the existence check below before either commits (confirmed via stress test:
-        // 20 concurrent requests produced 18 duplicate Match rows). An advisory xact
-        // lock keyed on the sorted pair serializes concurrent requests for the same
-        // two users without requiring a schema change.
-        //
-        // Wrapped in the execution strategy so EnableRetryOnFailure (Program.cs)
-        // can retry this on a transient DB failure — EF Core forbids a
-        // manually-opened BeginTransactionAsync outside of one. DailyMatchesUsed
-        // is incremented via a raw atomic UPDATE (not `me.DailyMatchesUsed++` on
-        // a tracked entity captured from outside) specifically so a retry is
-        // safe: the increment only ever takes effect if this transaction
-        // actually commits, so re-running it on a rolled-back retry can't
-        // double-count the way mutating an outer in-memory counter would.
         var (outcome, matchId) = await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
             await using var tx = await _db.Database.BeginTransactionAsync();
             await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock({PairLockKey(userId, req.TargetUserId)})");
+                $"SELECT pg_advisory_xact_lock({MatchPairing.PairLockKey(userId, req.TargetUserId)})");
 
-            var existing = await _db.Matches.FirstOrDefaultAsync(m =>
-                (m.InitiatorId == userId && m.ReceiverId == req.TargetUserId) ||
-                (m.InitiatorId == req.TargetUserId && m.ReceiverId == userId));
-            if (existing is not null) return ("conflict", (Guid?)null);
+            if (await MatchPairing.PairAlreadyMatchedAsync(_db, userId, req.TargetUserId))
+                return ("conflict", (Guid?)null);
 
-            // Defense in depth: GetCandidates already excludes blocked pairs from
-            // the list a client would request from, but a direct call here (or a
-            // block that landed after the candidate list was fetched) should
-            // still be rejected server-side.
-            bool blocked = await _db.BlockedUsers.AnyAsync(bl =>
-                (bl.BlockerId == userId && bl.BlockedId == req.TargetUserId) ||
-                (bl.BlockerId == req.TargetUserId && bl.BlockedId == userId));
-            if (blocked) return ("blocked", (Guid?)null);
+            if (await MatchPairing.IsPairBlockedAsync(_db, userId, req.TargetUserId))
+                return ("blocked", (Guid?)null);
 
-            var match = new Match
-            {
-                InitiatorId = userId,
-                ReceiverId = req.TargetUserId,
-                Status = "Active",
-                RevealLevel = 1
-            };
+            var match = MatchPairing.NewMatch(userId, req.TargetUserId);
             _db.Matches.Add(match);
             await _db.SaveChangesAsync();
             await _db.Database.ExecuteSqlInterpolatedAsync(
@@ -216,6 +168,9 @@ public class MatchesController : ControllerBase
         if (outcome == "conflict") return this.ConflictError("Match already exists");
         if (outcome == "blocked") return this.ForbiddenError("Cannot match with this user");
 
+        var trackedMe = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == userId)?.Entity;
+        if (trackedMe is not null) trackedMe.DailyMatchesUsed++;
+
         int awarded = await _quests.IncrementAsync(userId, "summons");
         await _milestones.AchieveAsync(userId, "first_match");
         await _milestones.AchieveAsync(req.TargetUserId, "first_match");
@@ -225,6 +180,8 @@ public class MatchesController : ControllerBase
             "New Match!",
             $"{me.DisplayName} sent you a summons.",
             new Dictionary<string, object> { ["matchId"] = matchId!.Value.ToString(), ["type"] = "match" });
+        await _broadcast.BroadcastAsync("app-nudges", "match_created",
+            new { matchId = matchId!.Value, userIds = new[] { userId, req.TargetUserId }, source = "like" });
 
         return Ok(new CreateMatchResponse(matchId!.Value, awarded));
     }
@@ -269,21 +226,14 @@ public class MatchesController : ControllerBase
     public async Task<IActionResult> GhostCheck(Guid id)
     {
         var userId = this.CurrentUserId();
-        var match = await _db.Matches.FindAsync(id);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, id);
+        if (accessError is not null) return accessError;
 
         await _ghosting.CheckAsync(match);
 
         return Ok(new GhostCheckResponse(match.Status));
     }
 
-    // The status flip alone is enough to permanently block rematching:
-    // GetCandidates excludes anyone with an existing Match row regardless of
-    // status, so this row staying around (not deleted) is what keeps it
-    // that way forever, for both participants. Block (below) additionally
-    // prevents a brand-new match request between the two — see RequestMatch.
     [HttpPost("{id}/unmatch")]
     [ProducesResponseType(typeof(UnmatchResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -291,20 +241,18 @@ public class MatchesController : ControllerBase
     public async Task<IActionResult> Unmatch(Guid id)
     {
         var userId = this.CurrentUserId();
-        var match = await _db.Matches.FindAsync(id);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, id);
+        if (accessError is not null) return accessError;
 
         match.Status = "Unmatched";
         await _db.SaveChangesAsync();
+
+        await _broadcast.BroadcastAsync("app-nudges", "match_status_changed",
+            new { matchId = match.Id, status = match.Status, userId });
+
         return Ok(new UnmatchResponse(true));
     }
 
-    // Unlike Unmatch, this also prevents the other person from sending a new
-    // match request in future (RequestMatch checks BlockedUsers; GetCandidates
-    // excludes blocked pairs too, so they stop appearing in Discover). No
-    // report/moderation queue yet — see the 2026-07-28 brainstorm.
     [HttpPost("{id}/block")]
     [ProducesResponseType(typeof(UnmatchResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -312,10 +260,8 @@ public class MatchesController : ControllerBase
     public async Task<IActionResult> Block(Guid id)
     {
         var userId = this.CurrentUserId();
-        var match = await _db.Matches.FindAsync(id);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, id);
+        if (accessError is not null) return accessError;
 
         var otherId = match.OtherParticipant(userId);
         match.Status = "Unmatched";
@@ -325,10 +271,14 @@ public class MatchesController : ControllerBase
             _db.BlockedUsers.Add(new BlockedUser { BlockerId = userId, BlockedId = otherId });
 
         await _db.SaveChangesAsync();
+
+        await _broadcast.BroadcastAsync("app-nudges", "match_status_changed",
+            new { matchId = match.Id, status = match.Status, userId });
+
         return Ok(new UnmatchResponse(true));
     }
 
-    private static MatchResponse BuildMatchResponse(Match m, Guid viewerId, string membership, IReadOnlyDictionary<Guid, string> weaverNamesByShipId)
+    private MatchResponse BuildMatchResponse(Match m, Guid viewerId, string membership, IReadOnlyDictionary<Guid, string> weaverNamesByShipId)
     {
         var other = m.InitiatorId == viewerId ? m.Receiver : m.Initiator;
         int level = RevealService.GetRevealLevel(m);
@@ -344,22 +294,21 @@ public class MatchesController : ControllerBase
                 SecondPhoto: level >= 2 ? other.PhotoUrls.ElementAtOrDefault(1) : null,
                 ThirdPhoto:  level >= 3 ? other.PhotoUrls.ElementAtOrDefault(2) : null,
                 District:    level >= 3 ? other.City : null,
-                Deep: level >= 4 && membership is "Silver" or "Gold" or "Platinum"
+                Deep: level >= 4 && membership is "Silver" or "Gold"
                     ? new UserDeepFields(other.HasKids, other.SmokingHabit, other.DrinkingHabit, other.Religion, other.Lifestyle)
                     : null,
                 EquippedFrameId: level >= 1 ? other.EquippedFrameId : null,
                 EquippedTitleId: level >= 1 ? other.EquippedTitleId : null,
-                IsDeleted: other.IsDeleted),
-            m.ShipId.HasValue ? weaverNamesByShipId.GetValueOrDefault(m.ShipId.Value) : null);
-    }
-
-    // pg_advisory_xact_lock takes a bigint; order-independent so both users
-    // requesting a match with each other at the same time hash to the same key.
-    private static long PairLockKey(Guid a, Guid b)
-    {
-        var (lo, hi) = string.CompareOrdinal(a.ToString(), b.ToString()) <= 0 ? (a, b) : (b, a);
-        var hash = System.Security.Cryptography.SHA256.HashData([.. lo.ToByteArray(), .. hi.ToByteArray()]);
-        return BitConverter.ToInt64(hash, 0);
+                IsDeleted: other.IsDeleted,
+                Oath: level >= 1 ? other.Oath : null,
+                OathProven: level >= 1 && other.OathProven),
+            m.ShipId.HasValue ? weaverNamesByShipId.GetValueOrDefault(m.ShipId.Value) : null,
+            m.FlameRiteProposedById,
+            m.FlameRiteProposedAt,
+            m.FlameRiteAcceptedAt,
+            m.FlameRiteCompletedAt,
+            (int)_config.GetNumber("dating.flamerite.duration_minutes", 5),
+            _config.GetBool("dating.flamerite.required", true));
     }
 }
 

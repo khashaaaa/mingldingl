@@ -2,16 +2,15 @@ using Microsoft.EntityFrameworkCore;
 
 public class ReferralService
 {
-    // Excludes 0/O, 1/I/L — ambiguous when read off a phone screen.
-    private const string CodeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-
     private readonly AppDbContext _db;
     private readonly LootService _loot;
+    private readonly ILogger<ReferralService> _logger;
 
-    public ReferralService(AppDbContext db, LootService loot)
+    public ReferralService(AppDbContext db, LootService loot, ILogger<ReferralService> logger)
     {
         _db = db;
         _loot = loot;
+        _logger = logger;
     }
 
     public async Task<string> GetOrCreateCodeAsync(Guid userId)
@@ -36,13 +35,10 @@ public class ReferralService
     {
         var chars = new char[6];
         for (int i = 0; i < 6; i++)
-            chars[i] = CodeAlphabet[Random.Shared.Next(CodeAlphabet.Length)];
+            chars[i] = InviteCode.Alphabet[Random.Shared.Next(InviteCode.Alphabet.Length)];
         return new string(chars);
     }
 
-    // Best-effort by design, mirrors LootService.GrantAsync's own
-    // try/catch — a referral failure must never fail the onboarding
-    // submission this is called from (UsersController.Upsert).
     public async Task<DroppedItem?> TryCompleteReferralAsync(Guid inviteeId, string? code)
     {
         if (string.IsNullOrWhiteSpace(code)) return null;
@@ -71,8 +67,10 @@ public class ReferralService
 
             return inviteeReward;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Referral completion swallowed a failure for invitee {InviteeId} (code {Code})", inviteeId, code);
+
             _db.ChangeTracker.Clear();
             return null;
         }

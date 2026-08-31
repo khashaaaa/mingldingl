@@ -7,16 +7,12 @@ import { COLORS, RADIUS, overlay } from '../../lib/theme';
 interface Props {
   children: React.ReactNode;
   tier?: string;
-  // Explicit override for the corner-brace/shadow tint instead of the color
-  // looked up for `tier` — see GemTierBadge's `color` prop for why a caller
-  // might want `tier`'s rarity rank without its literal gemstone hue.
+
   tint?: string;
   textured?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
-// Decorative layers are absolutely positioned so callers' padding/margins
-// keep working exactly as before the reskin.
 export function AppCard({ children, tier, tint: tintOverride, textured, style }: Props) {
   const tint = tintOverride ?? (tier ? colorForTier(tier) : COLORS.gold);
   return (
@@ -36,17 +32,8 @@ export function AppCard({ children, tier, tint: tintOverride, textured, style }:
         </View>
       )}
       <View style={styles.hairline} pointerEvents="none" />
-      {/* Same top-lit/bottom-shadowed bevel language as GameButton's slab,
-          scaled down to a hairline so the whole card frame — not just the
-          corner braces — reads as struck metal. */}
       <View style={[styles.topHighlight, { backgroundColor: tint + '66' }]} pointerEvents="none" />
       <View style={styles.bottomShadow} pointerEvents="none" />
-      {/* Corner braces read as riveted metal fittings, not flat color brackets:
-          top two catch the light at full tint (mirrors GameButton's top
-          highlight), bottom two sit dimmer as if in shadow (mirrors its
-          bottom edge) — same light-from-above grammar as the buttons, kept
-          fully static since a card grid can have several of these on screen
-          at once (Character alone stacks four). */}
       <View style={[styles.corner, styles.tl, { borderColor: tint }]} pointerEvents="none" />
       <View style={[styles.corner, styles.tr, { borderColor: tint }]} pointerEvents="none" />
       <View style={[styles.corner, styles.bl, { borderColor: tint + '99' }]} pointerEvents="none" />
@@ -85,9 +72,6 @@ const styles = StyleSheet.create({
   tr: { top: 4, right: 4, borderTopWidth: 2, borderRightWidth: 2 },
   bl: { bottom: 4, left: 4, borderBottomWidth: 2, borderLeftWidth: 2 },
   br: { bottom: 4, right: 4, borderBottomWidth: 2, borderRightWidth: 2 },
-  // A small stud at each brace's joint, like a rivet pinning it to the panel.
-  // Kept one consistent bright color regardless of tier tint — the fitting is
-  // always the same metal, only the gem it's holding changes color.
   rivet: {
     position: 'absolute',
     width: 4,

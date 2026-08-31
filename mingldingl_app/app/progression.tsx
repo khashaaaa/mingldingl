@@ -15,11 +15,12 @@ import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { COLORS, FONTS } from '../lib/theme';
 import type { GemTier } from '../models/user';
+import { Icon } from '../components/ui/Icon';
 
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
 export default function ProgressionScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const router = useRouter();
   const { data: detail, isLoading, error, refetch } = useScoreDetail();
   const { data: historyItems, fetchNextPage, hasNextPage, isFetchingNextPage } = useScoreHistory();
@@ -35,7 +36,7 @@ export default function ProgressionScreen() {
   if (error || !detail) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emoji}>📉</Text>
+        <Icon name="trending-down" size={32} color={COLORS.bronze} />
         <Text style={styles.errorTitle}>{i18n.t('progression_load_error')}</Text>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
         <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
@@ -43,16 +44,13 @@ export default function ProgressionScreen() {
     );
   }
 
-  // The generated API response types gemTier/nextTier as plain `string`
-  // (OpenAPI has no knowledge of the GemTier union) — cast at this boundary,
-  // matching the existing convention in models/user.ts's parseUser.
   const gemTier = (detail.gemTier as GemTier) ?? 'Garnet';
   const nextTier = detail.nextTier as GemTier | null;
 
   return (
     <View style={styles.screen}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <GameHeader title={i18n.t('progression_title')} icon="chart-line" showBack toastBottomOffset={0} />
+      <GameHeader title={i18n.t('progression_title')} icon="chart-line" showBack />
       <View style={styles.headerRow}>
         <GemTierBadge tier={gemTier} size={44} glow />
         <View style={styles.xpBarWrap}>
@@ -61,10 +59,11 @@ export default function ProgressionScreen() {
             totalScore={detail.totalScore ?? 0}
             pct={(detail.progressPct ?? 0) / 100}
             nextTier={nextTier}
+            nextTierThreshold={detail.nextTierThreshold}
           />
         </View>
       </View>
-      <TierPerkCard gemTier={gemTier} tierBonus={detail.tierBonus ?? 0} nextTier={nextTier} />
+      <TierPerkCard gemTier={gemTier} tierBonus={detail.tierBonus ?? 0} nextTier={nextTier} dailyMatchBudget={detail.dailyMatchBudget} />
       <StreakSummary currentStreak={detail.currentStreak ?? 0} longestStreak={detail.longestStreak ?? 0} />
       <View style={styles.leaderboardButtonWrap}>
         <GameButton variant="ghost" icon="podium-gold" onPress={() => router.push('/leaderboard')}>

@@ -12,11 +12,12 @@ import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { Icon } from '../../components/ui/Icon';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function QuizScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const {
     quiz, isLoading, isLoadError, refetchQuiz, currentQuestion, answeredCount,
@@ -47,13 +48,10 @@ export default function QuizScreen() {
     </View>
   );
 
-  // Checked before the generic "no quiz assigned today" branch below — a
-  // fetch failure previously rendered the exact same "🤷 no quiz" copy as a
-  // genuine empty response, with no way to tell the two apart or retry.
   if (isLoadError) return (
     <View style={styles.centered}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <Text style={styles.emoji}>📡</Text>
+      <Icon name="wifi-off" size={32} color={COLORS.bronze} />
       <Text style={styles.completionTitle}>{i18n.t('quiz_load_error')}</Text>
       <GameButton variant="primary" onPress={() => refetchQuiz()}>{i18n.t('retry')}</GameButton>
       <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
@@ -63,7 +61,7 @@ export default function QuizScreen() {
   if (!quiz) return (
     <View style={styles.centered}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <Text style={styles.emoji}>🤷</Text>
+      <Icon name="help-circle-outline" size={32} color={COLORS.bronze} />
       <Text style={styles.completionTitle}>{i18n.t('no_quiz')}</Text>
       <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
     </View>
@@ -73,7 +71,7 @@ export default function QuizScreen() {
     return (
       <View style={styles.centered}>
         <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-        <Text style={styles.emoji}>{isWaitingForPartner ? '🧠' : '🏆'}</Text>
+        <Icon name={isWaitingForPartner ? 'brain' : 'trophy'} size={32} color={COLORS.gold} />
         <AppCard style={styles.completionCard}>
           <Text style={styles.completionTitle}>
             {isWaitingForPartner ? i18n.t('waiting_match') : i18n.t('compat_revealed')}
@@ -81,10 +79,6 @@ export default function QuizScreen() {
           {!isWaitingForPartner && (
             <Text style={styles.scoreEarned}>{i18n.t('percent_compatible', { pct: compatibility })}</Text>
           )}
-          {/* Only known right after this session's own submission (submit.data) —
-              a remount that finds hasResponded already true via the status
-              query has no reliable value to show, so the line is omitted
-              rather than displaying a guessed/stale number. */}
           {awarded > 0 && <Text style={styles.completionSub}>{i18n.t('xp_earned', { points: awarded })}</Text>}
         </AppCard>
         {isWaitingForPartner && <Spinner color="$gold" />}
@@ -120,7 +114,7 @@ export default function QuizScreen() {
   return (
     <View style={styles.screen}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <ScreenHeader title={`🧠 ${quiz.title}`} />
+      <ScreenHeader title={quiz.title} />
 
       <View style={styles.body}>
         <View style={styles.progressBar}>

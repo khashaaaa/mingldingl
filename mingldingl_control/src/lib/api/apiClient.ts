@@ -17,7 +17,6 @@ export const apiClient = {
     login: (username: string, password: string) =>
       api.post<Schemas['AdminLoginResponse']>('/admin/auth/login', { username, password }).then((r) => r.data),
   },
-
   users: {
     list: (search: string, page: number, pageSize = 20) =>
       api
@@ -33,16 +32,16 @@ export const apiClient = {
       api.post<Schemas['AdminUserDetailDto']>(`/admin/users/${id}/cancel-deletion`).then((r) => r.data),
     adjustScore: (id: string, delta: number, reason: string) =>
       api.post<Schemas['AdminUserDetailDto']>(`/admin/users/${id}/adjust-score`, { delta, reason }).then((r) => r.data),
+    resetNoShow: (id: string) =>
+      api.post<Schemas['AdminUserDetailDto']>(`/admin/users/${id}/reset-noshow`).then((r) => r.data),
     export: (search: string) =>
       api.get(`/admin/users/export${query({ search })}`, { responseType: 'blob' }).then((r) => r.data as Blob),
   },
-
   content: {
     list: () => api.get<Schemas['ContentPageResponse'][]>('/admin/content').then((r) => r.data),
     update: (slug: string, body: Schemas['AdminUpdateContentPageRequest']) =>
       api.put<Schemas['ContentPageResponse']>(`/admin/content/${slug}`, body).then((r) => r.data),
   },
-
   business: {
     list: (search: string, page: number, pageSize = 20) =>
       api
@@ -59,21 +58,17 @@ export const apiClient = {
     export: (search: string) =>
       api.get(`/admin/business/export${query({ search })}`, { responseType: 'blob' }).then((r) => r.data as Blob),
   },
-
   analytics: {
     overview: () => api.get<Schemas['AdminAnalyticsOverviewResponse']>('/admin/analytics/overview').then((r) => r.data),
   },
-
   ops: {
     runMaintenanceSweep: () => api.post('/admin/ops/run-maintenance-sweep').then((r) => r.data),
     pricing: () => api.get<Schemas['MembershipTierResponse'][]>('/admin/ops/pricing').then((r) => r.data),
   },
-
   auditLog: {
     list: (page: number, pageSize = 20) =>
       api.get<Schemas['AdminAuditLogDtoPagedResponse']>(`/admin/audit-log${query({ page, pageSize })}`).then((r) => r.data),
   },
-
   config: {
     list: () => api.get<Schemas['AdminConfigDto'][]>('/admin/config').then((r) => r.data),
     update: (key: string, value: string) =>
@@ -81,14 +76,12 @@ export const apiClient = {
     revert: (key: string) =>
       api.post<Schemas['AdminConfigDto']>(`/admin/config/${key}/revert`).then((r) => r.data),
   },
-
   ships: {
     list: (status: string, page: number, pageSize = 20) =>
       api
         .get<Schemas['AdminShipListItemDtoPagedResponse']>(`/admin/ships${query({ status, page, pageSize })}`)
         .then((r) => r.data),
   },
-
   townSquare: {
     sessions: (page: number, pageSize = 20) =>
       api
@@ -96,5 +89,9 @@ export const apiClient = {
         .then((r) => r.data),
     pairings: (sessionId: string) =>
       api.get<Schemas['AdminTownSquarePairingDto'][]>(`/admin/townsquare/sessions/${sessionId}/pairings`).then((r) => r.data),
+    createSession: (body: Schemas['CreateTownSquareSessionRequest']) =>
+      api.post<Schemas['AdminTownSquareSessionDto']>('/admin/townsquare/sessions', body).then((r) => r.data),
+    cancelSession: (sessionId: string) =>
+      api.post<Schemas['AdminTownSquareSessionDto']>(`/admin/townsquare/sessions/${sessionId}/cancel`).then((r) => r.data),
   },
 };

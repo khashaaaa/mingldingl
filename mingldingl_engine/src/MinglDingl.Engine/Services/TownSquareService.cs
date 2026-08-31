@@ -2,21 +2,18 @@ using Microsoft.EntityFrameworkCore;
 
 public class TownSquareService
 {
-    // v1 cap: a session only ever runs a complete round-robin (every man meets
-    // every woman exactly once), so roster size per side is capped at the round
-    // count rather than letting a bigger balanced roster force a partial/random
-    // subset of partners per person. Demand beyond this runs as a second parallel
-    // session, not a bigger one.
     public const int MaxPerSide = 5;
     public const int RoundDurationSeconds = 240;
 
     private readonly AppDbContext _db;
     private readonly SupabaseBroadcastService _broadcast;
+    private readonly PushNotificationService _push;
 
-    public TownSquareService(AppDbContext db, SupabaseBroadcastService broadcast)
+    public TownSquareService(AppDbContext db, SupabaseBroadcastService broadcast, PushNotificationService push)
     {
         _db = db;
         _broadcast = broadcast;
+        _push = push;
     }
 
     public async Task RsvpAsync(Guid sessionId, Guid userId)
@@ -45,11 +42,6 @@ public class TownSquareService
         await _db.SaveChangesAsync();
     }
 
-    // Called once RsvpClosesAt passes. Caps each side at MaxPerSide (first-come
-    // by RsvpAt), builds the full round-robin, and materializes every round +
-    // pairing up front so round advance is just a status/counter flip, not more
-    // roster logic. A session with nobody on one side cancels outright rather
-    // than running a zero-round session.
     public async Task LockRosterAsync(Guid sessionId)
     {
         var session = await _db.TownSquareSessions.FindAsync(sessionId);
@@ -69,8 +61,7 @@ public class TownSquareService
 
         if (n == 0)
         {
-            session.Status = "Cancelled";
-            await _db.SaveChangesAsync();
+            await CancelAsync(session);
             return;
         }
 
@@ -107,6 +98,23 @@ public class TownSquareService
         await _db.SaveChangesAsync();
     }
 
+    public async Task<bool> CancelSessionAsync(Guid sessionId)
+    {
+        var session = await _db.TownSquareSessions.FindAsync(sessionId);
+        if (session is null || session.Status is not ("Open" or "Locked")) return false;
+
+        await CancelAsync(session);
+        return true;
+    }
+
+    private async Task CancelAsync(TownSquareSession session)
+    {
+        session.Status = "Cancelled";
+        await _db.SaveChangesAsync();
+
+        await _broadcast.BroadcastAsync($"townsquare:{session.Id}", "session-cancelled", new { sessionId = session.Id, roundNumber = session.CurrentRoundNumber, status = session.Status });
+    }
+
     public async Task StartSessionAsync(Guid sessionId)
     {
         var session = await _db.TownSquareSessions.FindAsync(sessionId);
@@ -115,6 +123,8 @@ public class TownSquareService
         session.Status = "InProgress";
         session.CurrentRoundNumber = 1;
         await _db.SaveChangesAsync();
+
+        await _broadcast.BroadcastAsync($"townsquare:{sessionId}", "session-started", new { sessionId, roundNumber = session.CurrentRoundNumber, status = session.Status });
     }
 
     public async Task AdvanceRoundAsync(Guid sessionId)
@@ -130,11 +140,6 @@ public class TownSquareService
 
         await _db.SaveChangesAsync();
 
-        // Lets every paired client currently polling GetCurrentRound react
-        // immediately instead of waiting out its poll interval — the round
-        // transition is driven by this background sweep, not by either
-        // participant's own action, so there's no request handler to hang the
-        // broadcast off of the way EngagementController does for icebreaker/quiz.
         await _broadcast.BroadcastAsync($"townsquare:{sessionId}", "round-advanced", new { sessionId, roundNumber = session.CurrentRoundNumber, status = session.Status });
     }
 
@@ -151,10 +156,6 @@ public class TownSquareService
         await _db.SaveChangesAsync();
     }
 
-    // Records one side's Yes/No; on mutual Yes, creates (or reuses, if these two
-    // already matched some other way) a real Match through the same path as any
-    // other match — same table, same downstream chat/video/scoring/ghosting
-    // behavior. Returns the resulting MatchId if one exists after this call.
     public async Task<Guid?> RespondToPairingAsync(Guid pairingId, Guid userId, string response)
     {
         if (response != "Yes" && response != "No")
@@ -166,15 +167,6 @@ public class TownSquareService
 
         bool isUserA = lookup.UserAId == userId;
 
-        // Atomic conditional UPDATE ... RETURNING: sets this caller's response
-        // and reads back the row's just-committed state (including the OTHER
-        // side's response) in the same statement. Two concurrent responses to
-        // the same pairing (both partners answering "Yes" within the same
-        // ~4 min round) used to each check the other side against their own
-        // stale in-memory snapshot, so neither ever observed "both Yes" even
-        // though both values landed in the row — Postgres's row lock now
-        // serializes the two UPDATEs, so whichever commits second is
-        // guaranteed to read the first's already-committed value back.
         var updated = isUserA
             ? await _db.Database.SqlQuery<PairingResponseRow>(
                 $"""
@@ -193,9 +185,22 @@ public class TownSquareService
         if (row.UserAResponse != "Yes" || row.UserBResponse != "Yes" || row.ResultingMatchId is not null)
             return row.ResultingMatchId;
 
-        var matchId = await CreateOrReuseMatchAsync(row.UserAId, row.UserBId);
+        if (await MatchPairing.IsPairBlockedAsync(_db, row.UserAId, row.UserBId))
+            return null;
+
+        var (matchId, created) = await CreateOrReuseMatchAsync(row.UserAId, row.UserBId);
         await _db.Database.ExecuteSqlInterpolatedAsync(
             $"""UPDATE "TownSquarePairings" SET "ResultingMatchId" = {matchId} WHERE "Id" = {pairingId} AND "ResultingMatchId" IS NULL""");
+
+        if (created)
+        {
+            var pushData = new Dictionary<string, object> { ["matchId"] = matchId.ToString(), ["type"] = "match" };
+            await _push.NotifyUserAsync(row.UserAId, "New Match!", "You both said yes in the Town Square.", pushData);
+            await _push.NotifyUserAsync(row.UserBId, "New Match!", "You both said yes in the Town Square.", pushData);
+            await _broadcast.BroadcastAsync("app-nudges", "match_created",
+                new { matchId, userIds = new[] { row.UserAId, row.UserBId }, source = "townsquare" });
+        }
+
         return matchId;
     }
 
@@ -208,34 +213,18 @@ public class TownSquareService
         public Guid? ResultingMatchId { get; set; }
     }
 
-    private async Task<Guid> CreateOrReuseMatchAsync(Guid userAId, Guid userBId)
+    private async Task<(Guid MatchId, bool Created)> CreateOrReuseMatchAsync(Guid userAId, Guid userBId)
     {
-        // Unlocked fast path: most pairings between two users who already have a
-        // Match (from Discover, or an earlier Town Square session) never need the
-        // lock/transaction below at all.
         var existing = await _db.Matches.FirstOrDefaultAsync(m =>
             (m.InitiatorId == userAId && m.ReceiverId == userBId) ||
             (m.InitiatorId == userBId && m.ReceiverId == userAId));
-        if (existing is not null) return existing.Id;
+        if (existing is not null) return (existing.Id, false);
 
-        // Same advisory-lock-around-check-then-insert shape as
-        // MatchesController.RequestMatch's PairLockKey pattern, to close the
-        // identical concurrent-duplicate-Match race — the two round-robin
-        // partners can only submit their Yes within the same ~4 min round, but
-        // nothing rules out both requests landing at once. Re-check after taking
-        // the lock in case a concurrent insert won the race between the
-        // unlocked check above and here.
-        //
-        // Wrapped in the execution strategy so EnableRetryOnFailure
-        // (Program.cs) can retry this on a transient DB failure — EF Core
-        // forbids a manually-opened BeginTransactionAsync outside of one. The
-        // Match entity is built fresh inside the delegate so a retry can't
-        // re-Add() an instance left over from a prior, rolled-back attempt.
         return await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
             await using var tx = await _db.Database.BeginTransactionAsync();
             await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock({PairLockKey(userAId, userBId)})");
+                $"SELECT pg_advisory_xact_lock({MatchPairing.PairLockKey(userAId, userBId)})");
 
             var lockedExisting = await _db.Matches.FirstOrDefaultAsync(m =>
                 (m.InitiatorId == userAId && m.ReceiverId == userBId) ||
@@ -243,33 +232,17 @@ public class TownSquareService
             if (lockedExisting is not null)
             {
                 await tx.CommitAsync();
-                return lockedExisting.Id;
+                return (lockedExisting.Id, false);
             }
 
-            var match = new Match
-            {
-                InitiatorId = userAId,
-                ReceiverId = userBId,
-                Status = "Active",
-                RevealLevel = 1,
-            };
+            var match = MatchPairing.NewMatch(userAId, userBId);
             _db.Matches.Add(match);
             await _db.SaveChangesAsync();
             await tx.CommitAsync();
-            return match.Id;
+            return (match.Id, true);
         });
     }
 
-    private static long PairLockKey(Guid a, Guid b)
-    {
-        var (lo, hi) = string.CompareOrdinal(a.ToString(), b.ToString()) <= 0 ? (a, b) : (b, a);
-        var hash = System.Security.Cryptography.SHA256.HashData([.. lo.ToByteArray(), .. hi.ToByteArray()]);
-        return BitConverter.ToInt64(hash, 0);
-    }
-
-    // Circle method for bipartite round-robin: fixing the men's order and
-    // rotating the women's order by round index guarantees every man meets
-    // every woman exactly once across N rounds, with N = men.Count.
     public static List<List<(Guid UserAId, Guid UserBId)>> GenerateRoundRobin(List<Guid> men, List<Guid> women)
     {
         if (men.Count != women.Count)

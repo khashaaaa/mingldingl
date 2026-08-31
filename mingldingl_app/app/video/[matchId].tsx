@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react';
+import { View as RNView, Text as RNText, StyleSheet } from 'react-native';
 import { YStack, Text, Spinner } from 'tamagui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useVideoCall } from '../../hooks/useVideoCall';
+import { useMatches } from '../../hooks/useMatches';
 import { VideoControls } from '../../components/video/VideoControls';
 import { AgoraVideoCall } from '../../components/video/AgoraVideoCall';
 import { GameButton } from '../../components/ui/GameButton';
@@ -13,31 +16,58 @@ import { useLocaleStore } from '../../store/localeStore';
 import { queryKeys } from '../../lib/api/queryKeys';
 import { COLORS, FONTS } from '../../lib/theme';
 import { toDroppedItem } from '../../lib/tiers';
+import { Icon } from '../../components/ui/Icon';
+
+const DEFAULT_RITE_DURATION_MINUTES = 5;
+
+function formatCountdown(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 
 export default function VideoScreen() {
-  useLocaleStore((s) => s.locale); // forces re-render on language switch — see store/localeStore.ts
+  useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const router = useRouter();
   const qc = useQueryClient();
   const bumpScore = useOptimisticScoreBump();
   const setPendingDrop = useAuthStore((s) => s.setPendingDrop);
   const { token, loading, error, muted, setMuted, cameraOff, setCameraOff } = useVideoCall(matchId);
+  const { data: matches } = useMatches();
+  const match = matches?.find((m) => m.matchId === matchId);
+
+  const riteActive = !match?.flameRiteCompletedAt;
+
+  const riteDurationMinutes = match?.flameRiteDurationMinutes ?? DEFAULT_RITE_DURATION_MINUTES;
+
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  useEffect(() => {
+    if (!riteActive || !token) {
+      setSecondsLeft(null);
+      return;
+    }
+    setSecondsLeft(riteDurationMinutes * 60);
+    const interval = setInterval(() => {
+      setSecondsLeft((s) => (s === null ? null : Math.max(0, s - 1)));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [riteActive, token, riteDurationMinutes]);
 
   async function handleEnd() {
     try {
       const result = await apiClient.video.complete(matchId);
+
+      qc.invalidateQueries({ queryKey: queryKeys.matches });
       if ((result.awarded ?? 0) > 0) {
         bumpScore(result.awarded ?? 0);
-        // Completion also always calls MilestoneService.AchieveAsync
-        // ("first_video_call") — refresh the trophy case/quest board so
-        // they don't sit stale until their own staleTime lapses.
+
         qc.invalidateQueries({ queryKey: queryKeys.quests });
         qc.invalidateQueries({ queryKey: queryKeys.milestones });
       }
       const drop = toDroppedItem(result.droppedItem);
       if (drop) setPendingDrop(drop);
     } catch {
-      // Best-effort: don't block leaving the call on a failed award.
     }
     router.back();
   }
@@ -68,6 +98,15 @@ export default function VideoScreen() {
         onJoined={() => {}}
         onError={() => router.back()}
       />
+      {riteActive && secondsLeft !== null && (
+        <RNView style={styles.riteFraming} pointerEvents="none">
+          <RNView style={styles.riteTitleRow}>
+            <Icon name="fire" size={16} color={COLORS.ember} />
+            <RNText style={styles.riteFramingTitle}>{i18n.t('rite_title')}</RNText>
+          </RNView>
+          <RNText style={styles.riteFramingCountdown}>{formatCountdown(secondsLeft)}</RNText>
+        </RNView>
+      )}
       <VideoControls
         muted={muted}
         cameraOff={cameraOff}
@@ -78,3 +117,26 @@ export default function VideoScreen() {
     </YStack>
   );
 }
+
+const styles = StyleSheet.create({
+  riteFraming: {
+    position: 'absolute',
+    top: 16,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    gap: 2,
+  },
+  riteTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  riteFramingTitle: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 13,
+    color: COLORS.gold,
+    letterSpacing: 0.5,
+  },
+  riteFramingCountdown: {
+    fontFamily: FONTS.display,
+    fontSize: 20,
+    color: COLORS.text,
+  },
+});

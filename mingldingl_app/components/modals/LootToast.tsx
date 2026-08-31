@@ -12,9 +12,7 @@ interface Props {
   visible: boolean;
   onDismiss: () => void;
   item?: { nameKey: string; rarity: string } | null;
-  // Screens whose bottom edge already carries something else (e.g. the tab
-  // bar) pass extra clearance so the toast lands above it instead of
-  // partially behind it.
+
   bottomOffset?: number;
 }
 
@@ -88,12 +86,6 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
 }
 
 const styles = StyleSheet.create({
-  // Bottom-anchored (like a standard mobile snackbar) rather than
-  // top-anchored: the question/answer screens that fire this toast keep
-  // fresh content flowing in right at the top the instant it appears (next
-  // question, next candidate), so a top overlay sat directly on top of the
-  // thing the player needed to read next. The bottom edge is comparatively
-  // dead space once the player has already made their choice.
   container: { position: 'absolute', left: 20, right: 20, zIndex: 999 },
   card: {
     flexDirection: 'row',

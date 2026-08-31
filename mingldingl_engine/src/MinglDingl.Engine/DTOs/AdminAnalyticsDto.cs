@@ -13,8 +13,10 @@ public record AdminAnalyticsOverviewResponse(
     int TotalMatches,
     int TotalMessages,
     IReadOnlyList<EventTypeCountDto> ScoreEventsLast30Days,
-    // Projection from the current membership-level mix × MembershipController's
-    // listed monthly prices — there is no payment/transaction record anywhere
-    // in the engine, so this is NOT recorded revenue, just an estimate of what
-    // the current paid-tier mix would be worth per month if everyone renews.
-    int EstimatedMonthlyRevenueMnt);
+    int EstimatedMonthlyRevenueMnt,
+    int OathSwornUsers,
+    int OathProvenUsers,
+    int NoShowFlaggedUsers,
+    int FlameRitesCompleted,
+    int ShipsSparked,
+    int TownSquareSessions);

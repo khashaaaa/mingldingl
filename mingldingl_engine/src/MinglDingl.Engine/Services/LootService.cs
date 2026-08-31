@@ -7,8 +7,9 @@ public class LootService
 {
     private readonly AppDbContext _db;
     private readonly ScoreService _score;
+    private readonly ILogger<LootService> _logger;
 
-    public LootService(AppDbContext db, ScoreService score) { _db = db; _score = score; }
+    public LootService(AppDbContext db, ScoreService score, ILogger<LootService> logger) { _db = db; _score = score; _logger = logger; }
 
     public static readonly IReadOnlyList<ItemDef> Catalog =
     [
@@ -20,23 +21,16 @@ public class LootService
         new("title_icebreaker",    "item_title_icebreaker",  "Common", "Title"),
         new("title_flamekeeper",   "item_title_flamekeeper", "Rare",   "Title"),
         new("title_dragonheart",   "item_title_dragonheart", "Epic",   "Title"),
-        // Fated Threads milestone titles (1st / 5th / 10th sparked thread —
-        // see ShipService.GrantMilestoneTitleIfEarnedAsync). Not exclusive:
-        // like every catalog item, these could in principle also be won
-        // through the normal random pool (RollDropAsync/GrantGuaranteedAsync)
-        // — a cosmetic title having two possible acquisition paths is an
-        // accepted simplification, not a currency/economy concern.
         new("title_threadweaver", "item_title_threadweaver", "Common", "Title"),
         new("title_fateseer",     "item_title_fateseer",     "Rare",   "Title"),
         new("title_bondkeeper",   "item_title_bondkeeper",   "Epic",   "Title"),
+        new("title_oathkeeper",   "item_title_oathkeeper",  "Rare",   "Title"),
         new("emblem_torch",        "item_emblem_torch",      "Common", "Emblem"),
         new("emblem_worn_map",     "item_emblem_map",        "Common", "Emblem"),
         new("emblem_lucky_dice",   "item_emblem_dice",       "Rare",   "Emblem"),
         new("emblem_phoenix",      "item_emblem_phoenix",    "Epic",   "Emblem"),
     ];
 
-    // Probabilistic roll on scoring actions (Common 10%, Rare 3%, Epic 0.5%); max 3 drops/day.
-    // Best-effort by design: a loot failure must never fail the triggering action.
     public async Task<DroppedItem?> RollDropAsync(Guid userId, string source)
     {
         try
@@ -50,26 +44,22 @@ public class LootService
             if (rarity is null) return null;
             return await GrantAsync(userId, rarity, source);
         }
-        catch
+        catch (Exception ex)
         {
-            // Never leave poisoned entities tracked on the shared scoped DbContext.
+            _logger.LogWarning(ex, "Loot roll swallowed a failure for user {UserId} (source {Source}); no drop this time", userId, source);
+
             _db.ChangeTracker.Clear();
             return null;
         }
     }
 
-    // Guaranteed drop for chests/milestones (Common floor, upgrade chance). Not capped.
-    public async Task<DroppedItem?> GrantGuaranteedAsync(Guid userId, string source)
+    public virtual async Task<DroppedItem?> GrantGuaranteedAsync(Guid userId, string source)
     {
         double roll = Random.Shared.NextDouble();
         string rarity = roll < 0.05 ? "Epic" : roll < 0.25 ? "Rare" : "Common";
         return await GrantAsync(userId, rarity, source);
     }
 
-    // Deterministic grant of one specific catalog item, bypassing the
-    // random rarity roll entirely — used for Fated Threads' ship-count
-    // milestone titles, where the item earned is a fixed function of the
-    // milestone, not a roll.
     public async Task<DroppedItem?> GrantSpecificAsync(Guid userId, string itemId, string source)
     {
         try
@@ -84,25 +74,25 @@ public class LootService
             await _db.SaveChangesAsync();
             return new DroppedItem(def.Id, def.NameKey, def.Rarity, def.ItemType);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Specific loot grant of {ItemId} swallowed a failure for user {UserId} (source {Source})", itemId, userId, source);
+
             _db.ChangeTracker.Clear();
             return null;
         }
     }
 
-    // Best-effort by design: a loot failure (e.g. a concurrent duplicate grant hitting
-    // the unique (UserId, ItemId) index) must never fail the triggering action.
     private async Task<DroppedItem?> GrantAsync(Guid userId, string rarity, string source)
     {
         try
         {
             var owned = await _db.UserItems.Where(i => i.UserId == userId).Select(i => i.ItemId).ToListAsync();
             var pool = Catalog.Where(c => c.Rarity == rarity && !owned.Contains(c.Id)).ToList();
-            if (pool.Count == 0) pool = Catalog.Where(c => !owned.Contains(c.Id)).ToList(); // duplicate → re-roll any rarity
+            if (pool.Count == 0) pool = Catalog.Where(c => !owned.Contains(c.Id)).ToList();
             if (pool.Count == 0)
             {
-                await _score.AwardWithDeltaAsync(userId, "DuplicateLoot", 10);              // full collection → +10 XP
+                await _score.AwardWithDeltaAsync(userId, "DuplicateLoot", 10);
                 return null;
             }
             var item = pool[Random.Shared.Next(pool.Count)];
@@ -110,10 +100,10 @@ public class LootService
             await _db.SaveChangesAsync();
             return new DroppedItem(item.Id, item.NameKey, item.Rarity, item.ItemType);
         }
-        catch
+        catch (Exception ex)
         {
-            // Never leave poisoned (Added/Modified) entities tracked on the shared
-            // scoped DbContext for later saves. No drop this time.
+            _logger.LogWarning(ex, "Loot grant ({Rarity}) swallowed a failure for user {UserId} (source {Source}); no drop this time", rarity, userId, source);
+
             _db.ChangeTracker.Clear();
             return null;
         }

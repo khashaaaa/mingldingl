@@ -29,21 +29,13 @@ export function QuestBoard() {
   const bumpScore = useOptimisticScoreBump();
   const setPendingTierUp = useAuthStore((s) => s.setPendingTierUp);
   const [chest, setChest] = useState<{ xp: number; item?: ChestItem | null; deferredTierUp?: string | null } | null>(null);
-  // Separate from `chest` itself: ChestModal wraps RN's own <Modal
-  // animationType="fade">, which needs to stay mounted with visible
-  // toggling false→true to play its own dismiss transition. Unmounting it
-  // outright the instant the chest is dismissed (the old `{chest && ...}`
-  // pattern) tears the whole thing down mid-animation instead.
+
   const [chestVisible, setChestVisible] = useState(false);
   const [headingWidth, setHeadingWidth] = useState(0);
   const [failAlert, setFailAlert] = useState(false);
 
   if (isLoading || !board) return null;
 
-  // During a festival window (Naadam, Tsagaan Sar — see lib/festivals.ts),
-  // the board keeps its exact quest logic/targets and just swaps heading
-  // icon/copy/accent color for the occasion. accent falls back to the
-  // regular gold tint the rest of the year.
   const festival = activeFestival();
   const accent = festival?.color ?? COLORS.gold;
   const headingIcon = festival?.icon ?? 'anvil';
@@ -58,11 +50,7 @@ export function QuestBoard() {
       const res = await claimChest();
       if (!res.alreadyClaimed) {
         bumpScore(res.awarded ?? 0);
-        // bumpScore may have just set pendingTierUp, which GameHeader shows
-        // as a LootToast that starts its own auto-dismiss timer immediately
-        // — even while fully hidden behind this chest modal. Stash it and
-        // re-set it only once the modal closes, so it can't time out unseen
-        // while the user is still admiring the chest reward.
+
         const deferredTierUp = useAuthStore.getState().pendingTierUp;
         if (deferredTierUp) setPendingTierUp(null);
         setChest({ xp: res.awarded ?? 0, item: res.item as ChestItem | null, deferredTierUp });

@@ -5,10 +5,6 @@ using MinglDingl.Engine.Tests.Integration;
 
 namespace MinglDingl.Engine.Tests;
 
-// Extends IntegrationTestBase (real Postgres) because CurrentUserMiddleware
-// now does a DB-backed ban check on every authenticated request — a plain
-// DefaultHttpContext with no RequestServices can no longer exercise the
-// authenticated path at all.
 public class CurrentUserMiddlewareTests : IntegrationTestBase
 {
     private HttpContext BuildContext(ClaimsIdentity identity)
@@ -25,7 +21,7 @@ public class CurrentUserMiddlewareTests : IntegrationTestBase
     [Fact]
     public async Task InvokeAsync_Unauthenticated_PassesThroughWithoutSettingUserId()
     {
-        var context = BuildContext(new ClaimsIdentity()); // no authenticationType => IsAuthenticated == false
+        var context = BuildContext(new ClaimsIdentity());
         var nextCalled = false;
         var middleware = new CurrentUserMiddleware(_ => { nextCalled = true; return Task.CompletedTask; });
 
@@ -79,7 +75,7 @@ public class CurrentUserMiddlewareTests : IntegrationTestBase
     [Fact]
     public async Task InvokeAsync_AuthenticatedWithNoParseableSub_ShortCircuitsWith401()
     {
-        var context = BuildContext(new ClaimsIdentity([], "Bearer")); // authenticated, but no "sub" claim at all
+        var context = BuildContext(new ClaimsIdentity([], "Bearer"));
         var nextCalled = false;
         var middleware = new CurrentUserMiddleware(_ => { nextCalled = true; return Task.CompletedTask; });
 

@@ -4,12 +4,6 @@ import { usePeriodicLocationRefresh } from '../usePeriodicLocationRefresh';
 import * as Location from 'expo-location';
 import { apiClient } from '../../lib/api/apiClient';
 
-// Factory form, not the bare `jest.mock('../../lib/api/apiClient')` automock —
-// the automock still has to load the real module once to introspect its
-// shape, which cascades through lib/api.ts into lib/supabase.ts's real
-// createClient() call at module scope and throws on the missing
-// EXPO_PUBLIC_SUPABASE_URL env var in the test environment. A factory skips
-// loading the real module entirely.
 jest.mock('../../lib/api/apiClient', () => ({
   apiClient: { users: { updateLocation: jest.fn() } },
 }));
@@ -24,10 +18,6 @@ const mockGetPermissions = Location.getForegroundPermissionsAsync as jest.Mock;
 const mockGetPosition = Location.getCurrentPositionAsync as jest.Mock;
 const mockUpdateLocation = apiClient.users.updateLocation as jest.Mock;
 
-// AppState's real RN mock in tests doesn't drive listeners on its own —
-// capture the registered handler ourselves and invoke it directly to
-// simulate a foreground transition, mirroring how the hook itself only
-// reacts to the 'change' event with state === 'active'.
 function captureAppStateHandler(): (state: string) => void {
   const addSpy = jest.spyOn(AppState, 'addEventListener');
   return (state: string) => {
@@ -86,7 +76,7 @@ describe('usePeriodicLocationRefresh', () => {
     await waitFor(() => expect(mockUpdateLocation).toHaveBeenCalledTimes(1));
 
     const fireAppStateChange = captureAppStateHandler();
-    // Just under 6 hours later.
+
     (Date.now as jest.Mock).mockReturnValue(1_000_000_000_000 + 1000 * 60 * 60 * 6 - 1);
     await act(async () => {
       fireAppStateChange('active');

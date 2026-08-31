@@ -11,8 +11,6 @@ export function useMembership() {
     queryFn: async () => parseMembershipMe(await apiClient.membership.me()),
   });
 
-  // Static reference data (pricing/feature flags per tier) — long staleTime
-  // since this only changes when the engine's Tiers list does, not per user.
   const { data: tiersData, isLoading: tiersLoading } = useQuery({
     queryKey: queryKeys.membershipTiers,
     queryFn: () => apiClient.membership.tiers(),

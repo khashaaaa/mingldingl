@@ -1,22 +1,21 @@
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=127.0.0.1;Database=mingldingl;Username=postgres;Password=yourpassword;Port=5432"
+    "DefaultConnection": "Host=127.0.0.1;Port=5432;Database=mingldingl;Username=postgres;Password=replace-with-local-postgres-password"
   },
   "Supabase": {
     "ProjectUrl": "https://yourproject.supabase.co",
-    "SecretKey": "sb_secret_your-service-role-key",
-    "JwksUrl": "https://yourproject.supabase.co/auth/v1/.well-known/jwks.json"
+    "SecretKey": "replace-with-supabase-secret-key"
   },
   "Agora": {
-    "AppId": "your-agora-app-id",
-    "AppCertificate": "your-agora-app-certificate"
+    "AppId": "replace-with-agora-app-id",
+    "AppCertificate": "replace-with-agora-app-certificate"
   },
   "Storage": {
     "PublicBaseUrl": "http://localhost:5150/uploads"
   },
   "Admin": {
     "Username": "admin",
-    "PasswordHash": "generate via AdminPasswordHasher.Hash(\"yourpassword\") — Services/AdminPasswordHasher.cs",
-    "JwtSigningKey": "a-long-random-string-at-least-32-chars"
+    "PasswordHash": "replace-with-output-of-AdminPasswordHasher.Hash",
+    "JwtSigningKey": "replace-with-a-random-64-char-secret"
   }
 }

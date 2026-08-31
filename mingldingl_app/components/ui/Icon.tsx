@@ -11,9 +11,6 @@ interface Props {
   style?: StyleProp<TextStyle>;
 }
 
-// Single import point for the app's decorative glyphs — a plain sized/tinted
-// font character, no gradients or shadow layers, so ornamentation never adds
-// paint cost the way a new texture or illustration would.
 export function Icon({ name, size = 20, color = COLORS.gold, style }: Props) {
   return <MaterialCommunityIcons name={name} size={size} color={color} style={style} />;
 }

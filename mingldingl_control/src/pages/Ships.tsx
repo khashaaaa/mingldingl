@@ -18,9 +18,6 @@ function statusVariant(status?: string | null): 'success' | 'warning' | 'destruc
   return 'secondary';
 }
 
-// Read-only support lookup for Fated Threads — there's no action to take
-// here yet (no admin-side unstick/cancel endpoint), just visibility into a
-// Ship a user complained about, or scanning for ones stuck Pending too long.
 export function Ships() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
@@ -68,6 +65,7 @@ export function Ships() {
                   <TableHead>Slot A</TableHead>
                   <TableHead>Slot B</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Match</TableHead>
                   <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
@@ -102,6 +100,20 @@ export function Ships() {
                     <TableCell>
                       <Badge variant={statusVariant(s.status)}>{s.status}</Badge>
                     </TableCell>
+                    <TableCell>
+                      {s.status === 'Sparked' && s.resultMatchId ? (
+                        <button
+                          type="button"
+                          title={`${s.resultMatchId} — click to copy`}
+                          className="text-muted-foreground font-mono text-xs hover:underline"
+                          onClick={() => navigator.clipboard?.writeText(s.resultMatchId ?? '')}
+                        >
+                          {s.resultMatchId.slice(0, 8)}
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {s.createdAt && new Date(s.createdAt).toLocaleDateString()}
                     </TableCell>
@@ -109,7 +121,7 @@ export function Ships() {
                 ))}
                 {data.items?.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-muted-foreground text-center">
+                    <TableCell colSpan={6} className="text-muted-foreground text-center">
                       No ships found.
                     </TableCell>
                   </TableRow>

@@ -20,7 +20,7 @@ interface Props {
 const GRADIENTS: Record<string, [string, string, string]> = {
   primary: ['#F2A03D', COLORS.gold, '#8A4310'],
   ghost: ['#2A241C', COLORS.panelRaised, '#14100C'],
-  danger: ['#C4663A', COLORS.ember, '#7E3D1F'],
+  danger: ['#934C2C', '#913416', '#5E2E17'],
   brass: metalGradient(COLORS.brass),
 };
 const BORDERS: Record<string, string> = {
@@ -35,18 +35,11 @@ const LABELS: Record<string, string> = {
   danger: COLORS.text,
   brass: '#241704',
 };
-// Metal variants get the forged bevel treatment; ghost is meant to read as
-// plain bordered UI chrome, not a struck metal slab.
+
 const METAL_VARIANTS = new Set(['primary', 'danger', 'brass']);
 
 const SIZES = {
   default: { minHeight: 52, paddingVertical: 8, paddingHorizontal: 14, fontSize: 14, letterSpacing: 1, iconSize: 15 },
-  // Used for dense nav/list-style rows (settings, profile) where a full-size
-  // slab reads oversized next to plain text rows around it. 44pt floor, not
-  // smaller — below iOS's 44pt / Android's 48dp minimum touch target,
-  // several of these packed close together (ChoiceRow chip rows) made it
-  // easy for a swipe-to-scroll gesture to land on a button instead of the
-  // gap between them.
   compact: { minHeight: 44, paddingVertical: 7, paddingHorizontal: 12, fontSize: 12, letterSpacing: 0.5, iconSize: 14 },
 } as const;
 
@@ -77,6 +70,8 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
         onPressIn={pressIn}
         onPressOut={pressOut}
         disabled={disabled || loading}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !!(disabled || loading), busy: !!loading }}
         style={[
           styles.slab,
           { borderColor: BORDERS[variant] },
@@ -93,11 +88,7 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
             {icon && <Icon name={icon} size={sz.iconSize} color={LABELS[variant]} />}
             <Text
               style={[styles.label, { color: LABELS[variant] }, { fontSize: sz.fontSize, letterSpacing: sz.letterSpacing }]}
-              // numberOfLines={2} used to let a single long, unbroken word
-              // (e.g. Mongolian "Алгасах" for "Skip") wrap mid-character
-              // once adjustsFontSizeToFit hit its floor — 1 line means it
-              // shrinks as far as minimumFontScale allows and, failing
-              // that, ellipsizes instead of splitting the word.
+
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.7}
@@ -122,7 +113,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     overflow: 'hidden',
   },
-  // Warm forge-light spilling off the primary action, as if it's still hot.
   forgeGlow: {
     shadowColor: COLORS.gold,
     shadowOffset: { width: 0, height: 0 },
@@ -134,7 +124,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0, left: 0, right: 0,
     height: 1,
-    backgroundColor: 'rgba(245,168,60,0.4)', // rgb form of COLORS.goldBright
+    backgroundColor: 'rgba(245,168,60,0.4)',
   },
   bottomShadow: {
     position: 'absolute',

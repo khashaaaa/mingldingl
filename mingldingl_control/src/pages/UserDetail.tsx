@@ -19,6 +19,17 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 
+function flameRiteStage(m: {
+  flameRiteProposedAt?: string | null;
+  flameRiteAcceptedAt?: string | null;
+  flameRiteCompletedAt?: string | null;
+}): string {
+  if (m.flameRiteCompletedAt) return `Completed ${new Date(m.flameRiteCompletedAt).toLocaleDateString()}`;
+  if (m.flameRiteAcceptedAt) return `Accepted ${new Date(m.flameRiteAcceptedAt).toLocaleDateString()}`;
+  if (m.flameRiteProposedAt) return `Proposed ${new Date(m.flameRiteProposedAt).toLocaleDateString()}`;
+  return '—';
+}
+
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
@@ -53,6 +64,9 @@ export function UserDetail() {
     mutationFn: () => apiClient.users.ban(id ?? '', banReason),
     onSuccess: (updated) => {
       updateUserCache(updated);
+
+      qc.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
       setBanDialogOpen(false);
       setBanReason('');
       toast({ variant: 'success', description: 'User banned.' });
@@ -64,6 +78,8 @@ export function UserDetail() {
     mutationFn: () => apiClient.users.unban(id ?? ''),
     onSuccess: (updated) => {
       updateUserCache(updated);
+      qc.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
       toast({ variant: 'success', description: 'User unbanned.' });
     },
     onError: () => toast({ variant: 'destructive', description: 'Unban failed — try again.' }),
@@ -73,6 +89,9 @@ export function UserDetail() {
     mutationFn: () => apiClient.users.cancelDeletion(id ?? ''),
     onSuccess: (updated) => {
       updateUserCache(updated);
+      qc.invalidateQueries({ queryKey: queryKeys.deletionRequests });
+      qc.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
       toast({ variant: 'success', description: 'Deletion request cancelled.' });
     },
     onError: () => toast({ variant: 'destructive', description: 'Failed to cancel — try again.' }),
@@ -82,12 +101,25 @@ export function UserDetail() {
     mutationFn: () => apiClient.users.adjustScore(id ?? '', Number(scoreDelta), scoreReason),
     onSuccess: (updated) => {
       updateUserCache(updated);
+      qc.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
       setScoreDialogOpen(false);
       setScoreDelta('');
       setScoreReason('');
       toast({ variant: 'success', description: 'Score adjusted.' });
     },
     onError: () => toast({ variant: 'destructive', description: 'Adjustment failed — try again.' }),
+  });
+
+  const resetNoShow = useMutation({
+    mutationFn: () => apiClient.users.resetNoShow(id ?? ''),
+    onSuccess: (updated) => {
+      updateUserCache(updated);
+      qc.invalidateQueries({ queryKey: queryKeys.user(id ?? '') });
+      qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
+      toast({ variant: 'success', description: 'No-show flags reset.' });
+    },
+    onError: () => toast({ variant: 'destructive', description: 'Reset failed — try again.' }),
   });
 
   return (
@@ -122,6 +154,10 @@ export function UserDetail() {
                 <Field label="City" value={user.city} />
                 <Field label="Gem tier" value={user.gemTier} />
                 <Field label="Membership" value={user.membershipLevel} />
+                <Field
+                  label="Membership expires"
+                  value={user.membershipExpiresAt && new Date(user.membershipExpiresAt).toLocaleDateString()}
+                />
                 <Field label="Total score" value={user.totalScore} />
                 <Field label="Reputation" value={user.reputationScore} />
                 <Field label="Streak" value={`${user.currentStreak} (longest ${user.longestStreak})`} />
@@ -130,7 +166,30 @@ export function UserDetail() {
                   label="Deletion requested"
                   value={user.deletionRequestedAt && new Date(user.deletionRequestedAt).toLocaleDateString()}
                 />
+                <Field label="Banned at" value={user.bannedAt && new Date(user.bannedAt).toLocaleString()} />
                 <Field label="Ban reason" value={user.banReason} />
+                <Field label="Oath" value={user.oath} />
+                <Field label="Oath sworn" value={user.oathSwornAt && new Date(user.oathSwornAt).toLocaleDateString()} />
+                <Field
+                  label="Oath proven"
+                  value={user.oathProven ? <Badge variant="success">Yes</Badge> : <Badge variant="secondary">No</Badge>}
+                />
+                <Field
+                  label="No-show flags"
+                  value={
+                    <span className="flex items-center gap-2">
+                      {user.noShowFlagCount ?? 0}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => resetNoShow.mutate()}
+                        disabled={resetNoShow.isPending || !(user.noShowFlagCount ?? 0)}
+                      >
+                        {resetNoShow.isPending ? 'Resetting…' : 'Reset'}
+                      </Button>
+                    </span>
+                  }
+                />
               </dl>
               <div className="mt-4">
                 <dt className="text-muted-foreground text-xs font-medium">Bio</dt>
@@ -230,10 +289,6 @@ export function UserDetail() {
             </CardContent>
           </Card>
 
-          {/* Message content is deliberately not shown here — MessageCount is
-              enough to see whether a conversation is active for support
-              purposes, without this panel doubling as a private-message
-              reader. */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Recent matches</CardTitle>
@@ -251,6 +306,7 @@ export function UserDetail() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">{m.status}</TableCell>
                         <TableCell className="text-muted-foreground">{m.messageCount} messages</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap text-xs">{flameRiteStage(m)}</TableCell>
                         <TableCell className="text-muted-foreground text-right">
                           {m.createdAt && new Date(m.createdAt).toLocaleDateString()}
                         </TableCell>

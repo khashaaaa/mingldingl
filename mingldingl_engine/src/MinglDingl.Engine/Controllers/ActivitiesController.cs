@@ -25,10 +25,8 @@ public class ActivitiesController : ControllerBase
     public async Task<IActionResult> GetSuggestions(Guid matchId)
     {
         var userId = this.CurrentUserId();
-        var match = await _db.Matches.FindAsync(matchId);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
+        if (accessError is not null) return accessError;
         if (match.MessageCount < 15)
             return this.BadRequestError("Keep chatting to unlock activity suggestions");
 
@@ -40,10 +38,6 @@ public class ActivitiesController : ControllerBase
         return Ok(suggestions.Select(s => ToResponse(s, confirmations, isInitiator, myRated)).ToList());
     }
 
-    // The caller's own confirmed dates across every match, newest first — the
-    // "trophy case" view of Group B's post-date memory feature. Reuses
-    // DateConfirmation/BusinessRating rows the confirm/rate flows already
-    // write; no new table.
     [HttpGet("mine")]
     [ProducesResponseType(typeof(List<TrophyResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyTrophies()
@@ -101,14 +95,17 @@ public class ActivitiesController : ControllerBase
     public async Task<IActionResult> ConfirmDate(Guid matchId, [FromBody] ConfirmDateDto req)
     {
         var userId = this.CurrentUserId();
-        var match = await _db.Matches.FindAsync(matchId);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
 
-        var (confirmation, awarded) = await _activities.ConfirmAsync(match, userId, req.ActivitySuggestionId);
-        if (confirmation is null) return this.NotFoundError("Activity suggestion not found for this match");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId, requireActive: true);
+        if (accessError is not null) return accessError;
 
+        var (result, awarded) = await _activities.ConfirmAsync(match, userId, req.ActivitySuggestionId);
+        if (result.Rejection == ConfirmRejection.SuggestionNotInMatch)
+            return this.NotFoundError("Activity suggestion not found for this match");
+        if (result.Rejection == ConfirmRejection.FlameRiteIncomplete)
+            return this.ForbiddenError("Complete the Flame Rite before pledging an encounter");
+
+        var confirmation = result.Confirmation!;
         return Ok(new ConfirmDateResponse(confirmation.InitiatorConfirmed, confirmation.ReceiverConfirmed, confirmation.IsComplete, awarded));
     }
 
@@ -119,10 +116,8 @@ public class ActivitiesController : ControllerBase
     public async Task<IActionResult> GetAttendanceCheck(Guid matchId)
     {
         var userId = this.CurrentUserId();
-        var match = await _db.Matches.FindAsync(matchId);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
+        if (accessError is not null) return accessError;
 
         var (due, activityTitle) = await _activities.GetAttendanceCheckStatusAsync(matchId, userId);
         return Ok(new AttendanceCheckStatusResponse(due, activityTitle));
@@ -135,10 +130,8 @@ public class ActivitiesController : ControllerBase
     public async Task<IActionResult> PostAttendanceCheck(Guid matchId, [FromBody] AttendanceCheckRequestDto req)
     {
         var userId = this.CurrentUserId();
-        var match = await _db.Matches.FindAsync(matchId);
-        if (match is null) return this.NotFoundError("Match not found");
-        if (!match.IsParticipant(userId))
-            return this.ForbiddenError("You are not a participant in this match");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
+        if (accessError is not null) return accessError;
 
         var answered = await _activities.SubmitAttendanceAsync(matchId, userId, req.Attended);
         if (answered is null) return this.NotFoundError("No confirmed date eligible for an attendance check on this match");

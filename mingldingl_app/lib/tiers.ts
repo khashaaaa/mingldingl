@@ -2,32 +2,22 @@ import type { GemTier } from '../models/user';
 
 export const TIER_ORDER: GemTier[] = ['Garnet', 'Opal', 'Amethyst', 'Sapphire', 'Ruby', 'Emerald'];
 
-// Fallback only, for the brief window before useTierThresholds()'s fetch of
-// GET /scores/tiers resolves (or if it fails). ScoreService.TierTable in the
-// engine is the actual single source of truth now — these used to be a
-// separately hand-maintained copy that drifted once already (this used to be
-// [0, 100, 250, 500, 1000, 2500], disagreeing with the server on the
-// Amethyst/Sapphire/Emerald boundaries: the client could show a tier-up toast
-// early, then have it silently revert on the next profile refetch).
 const DEFAULT_TIER_THRESHOLDS = [0, 100, 300, 600, 1000, 2000];
 let tierThresholds: number[] = DEFAULT_TIER_THRESHOLDS;
+let hydrated = false;
 
-// Called once by useTierThresholds() when GET /scores/tiers resolves.
-// Validates shape before adopting it — a malformed/partial response leaves
-// the existing (default or previously-hydrated) thresholds untouched rather
-// than corrupting tier math for the rest of the session.
 export function hydrateTierThresholds(raw: readonly { tier?: string | null; minScore?: number }[]): void {
   const byTier = new Map(raw.map((t) => [t.tier, t.minScore]));
   const ordered = TIER_ORDER.map((tier) => byTier.get(tier));
   if (ordered.some((v) => typeof v !== 'number')) return;
   tierThresholds = ordered as number[];
+  hydrated = true;
 }
 
-// Sharp, saturated colors that read as the actual named gemstone rather than
-// a pastel swatch (e.g. Opal is fire-opal teal, not washed-out pale cyan;
-// Sapphire sits near the real "sapphire blue" #0F52BA family). TIER_SHADES is
-// the deep/pavilion-in-shadow counterpart used for GemTierBadge's gradient —
-// TIER_COLORS stays the single "true" color used for text/border tints.
+export function areTierThresholdsHydrated(): boolean {
+  return hydrated;
+}
+
 export const TIER_COLORS: Record<GemTier, string> = {
   Garnet:   '#C23B54',
   Opal:     '#3DEFDB',
@@ -54,9 +44,6 @@ export function shadeForTier(tier: string): string {
   return TIER_SHADES[tier as GemTier] ?? TIER_SHADES.Garnet;
 }
 
-// Both read the same module-level tierThresholds (default until
-// hydrateTierThresholds resolves) so they can never disagree with each other
-// the way this used to disagree with the server.
 export function tierForScore(score: number): GemTier {
   let tier: GemTier = TIER_ORDER[0];
   for (let i = 0; i < TIER_ORDER.length; i++) {
@@ -77,9 +64,9 @@ export function tierProgress(totalScore: number, gemTier: GemTier): { pct: numbe
 }
 
 export const RARITY_COLORS: Record<string, string> = {
-  Common: '#4A5A6B',   // COLORS.bronze
-  Rare:   '#D97F1F',   // COLORS.gold
-  Epic:   '#C1461E',   // COLORS.ember
+  Common: '#4A5A6B',
+  Rare:   '#D97F1F',
+  Epic:   '#C1461E',
 };
 
 export const ITEM_NAME_KEYS: Record<string, string> = {
@@ -88,7 +75,7 @@ export const ITEM_NAME_KEYS: Record<string, string> = {
   title_wanderer: 'item_title_wanderer', title_icebreaker: 'item_title_icebreaker',
   title_flamekeeper: 'item_title_flamekeeper', title_dragonheart: 'item_title_dragonheart',
   title_threadweaver: 'item_title_threadweaver', title_fateseer: 'item_title_fateseer',
-  title_bondkeeper: 'item_title_bondkeeper',
+  title_bondkeeper: 'item_title_bondkeeper', title_oathkeeper: 'item_title_oathkeeper',
   emblem_torch: 'item_emblem_torch', emblem_worn_map: 'item_emblem_map',
   emblem_lucky_dice: 'item_emblem_dice', emblem_phoenix: 'item_emblem_phoenix',
 };
@@ -102,8 +89,6 @@ export interface DroppedItem {
   rarity: string;
 }
 
-/** Narrows an optional API DroppedItem (nullable string fields) down to the
- * shape LootToast/ChestModal expect, or null if the drop is absent/incomplete. */
 export function toDroppedItem(item?: { nameKey?: string | null; rarity?: string | null } | null): DroppedItem | null {
   if (!item?.nameKey || !item?.rarity) return null;
   return { nameKey: item.nameKey, rarity: item.rarity };

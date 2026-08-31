@@ -2,10 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
-// These run against the real dev Postgres (already seeded with ~100 users
-// via IntegrationTestBase), so every assertion here is a before/after delta
-// from adding known rows — never an absolute count, which would depend on
-// whatever happens to already be in the shared dev database.
 public class AdminAnalyticsControllerIntegrationTests : IntegrationTestBase
 {
     private AdminAnalyticsController BuildController() => new(Db);
@@ -46,13 +42,51 @@ public class AdminAnalyticsControllerIntegrationTests : IntegrationTestBase
             Assert.IsType<OkObjectResult>(await BuildController().GetOverview()).Value);
 
         var silverUser = NewCompleteUser();
-        silverUser.MembershipLevel = "Silver"; // 5900 MNT/month per MembershipController.AllTiers
+        silverUser.MembershipLevel = "Silver";
         Db.Users.Add(silverUser);
         await Db.SaveChangesAsync();
 
         var after = Assert.IsType<AdminAnalyticsOverviewResponse>(
             Assert.IsType<OkObjectResult>(await BuildController().GetOverview()).Value);
 
-        Assert.Equal(before.EstimatedMonthlyRevenueMnt + 5900, after.EstimatedMonthlyRevenueMnt);
+        Assert.Equal(before.EstimatedMonthlyRevenueMnt + 10900, after.EstimatedMonthlyRevenueMnt);
+    }
+
+    [Fact]
+    public async Task GetOverview_CountsOathNoShowFlameRiteShipAndTownSquareTotals()
+    {
+        var before = Assert.IsType<AdminAnalyticsOverviewResponse>(
+            Assert.IsType<OkObjectResult>(await BuildController().GetOverview()).Value);
+
+        var sworn = NewCompleteUser();
+        sworn.Oath = "Sworn";
+        sworn.OathSwornAt = DateTime.UtcNow;
+        var proven = NewCompleteUser();
+        proven.Oath = "Proven";
+        proven.OathSwornAt = DateTime.UtcNow;
+        proven.OathProven = true;
+        var flagged = NewCompleteUser();
+        flagged.NoShowFlagCount = 1;
+        Db.Users.AddRange(sworn, proven, flagged);
+        Db.Matches.Add(new Match { InitiatorId = sworn.Id, ReceiverId = proven.Id, Status = "Active", FlameRiteCompletedAt = DateTime.UtcNow });
+        Db.Matches.Add(new Match { InitiatorId = sworn.Id, ReceiverId = flagged.Id, Status = "Active" });
+        Db.Ships.Add(new Ship { ShipperUserId = flagged.Id, Status = "Sparked" });
+        Db.Ships.Add(new Ship { ShipperUserId = flagged.Id, Status = "Pending" });
+        Db.TownSquareSessions.Add(new TownSquareSession
+        {
+            RsvpOpensAt = DateTime.UtcNow.AddDays(-1), RsvpClosesAt = DateTime.UtcNow.AddHours(-1),
+            ScheduledStartAt = DateTime.UtcNow, Status = "Completed",
+        });
+        await Db.SaveChangesAsync();
+
+        var after = Assert.IsType<AdminAnalyticsOverviewResponse>(
+            Assert.IsType<OkObjectResult>(await BuildController().GetOverview()).Value);
+
+        Assert.Equal(before.OathSwornUsers + 2, after.OathSwornUsers);
+        Assert.Equal(before.OathProvenUsers + 1, after.OathProvenUsers);
+        Assert.Equal(before.NoShowFlaggedUsers + 1, after.NoShowFlaggedUsers);
+        Assert.Equal(before.FlameRitesCompleted + 1, after.FlameRitesCompleted);
+        Assert.Equal(before.ShipsSparked + 1, after.ShipsSparked);
+        Assert.Equal(before.TownSquareSessions + 1, after.TownSquareSessions);
     }
 }

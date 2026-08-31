@@ -3,6 +3,7 @@ import { Modal, View, Text, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { Icon } from '../ui/Icon';
 
 export type AlertTone = 'default' | 'warning';
 
@@ -12,22 +13,14 @@ interface Props {
   message?: string;
   onDismiss: () => void;
   tone?: AlertTone;
-  // Optional confirm/cancel pair for destructive actions (e.g. unmatch) —
-  // when omitted, renders as the original single-dismiss alert.
+
   confirmLabel?: string;
   onConfirm?: () => void;
   isConfirming?: boolean;
-  // Optional custom content between the message and the button row — e.g.
-  // a text input for "change phone number", so a form dialog doesn't need
-  // its own bespoke Modal just to reuse this card's chrome.
+
   children?: ReactNode;
 }
 
-// In-theme stand-in for Alert.alert — the native OS dialog box breaks the
-// dark-fantasy chrome (system font, default buttons) that every other
-// surface in the app avoids. Styled after ChestModal's reward card so a
-// "your photo failed to upload" message reads as the same world as
-// "you found loot," not a different app underneath.
 export function AlertModal({
   visible, title, message, onDismiss, tone = 'default',
   confirmLabel, onConfirm, isConfirming, children,
@@ -37,7 +30,7 @@ export function AlertModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.overlay}>
         <View style={[styles.card, { borderColor: tint }]}>
-          <Text style={[styles.sigil, { color: tint }]}>{tone === 'warning' ? '⚠' : '❖'}</Text>
+          <Icon name={tone === 'warning' ? 'alert' : 'rhombus-outline'} size={22} color={tint} />
           <Text style={styles.title}>{title}</Text>
           {!!message && <Text style={styles.message}>{message}</Text>}
           {children && <View style={styles.childrenWrap}>{children}</View>}
@@ -81,9 +74,5 @@ const styles = StyleSheet.create({
   message: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textDim, textAlign: 'center', lineHeight: 20 },
   childrenWrap: { alignSelf: 'stretch', marginTop: 4 },
   btnWrap: { marginTop: 10, alignSelf: 'stretch' },
-  // Stacked, not a side-by-side row: a 50/50 split left long confirm labels
-  // (e.g. "Abandon This Character") no room to breathe even after
-  // GameButton's own shrink-to-fit, and truncated. Full-width buttons fix
-  // that for every current and future confirm/cancel pair, not just this one.
   btnRow: { gap: 10, marginTop: 10, alignSelf: 'stretch' },
 });
