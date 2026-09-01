@@ -23,24 +23,24 @@ public class ShipService
         _logger = logger;
     }
 
-    public async Task<(bool Success, string? Error, string? SlotACode, string? SlotBCode)> CreateAsync(Guid shipperId, string slotAPhone, string slotBPhone)
+    public async Task<(bool Success, string? Error, string? ErrorCode, string? SlotACode, string? SlotBCode)> CreateAsync(Guid shipperId, string slotAPhone, string slotBPhone)
     {
         if (!System.Text.RegularExpressions.Regex.IsMatch(slotAPhone, @"^\d{8}$") ||
             !System.Text.RegularExpressions.Regex.IsMatch(slotBPhone, @"^\d{8}$"))
-            return (false, "Phone numbers must be 8 digits", null, null);
+            return (false, "Phone numbers must be 8 digits", "ship.phone_invalid", null, null);
 
         if (slotAPhone == slotBPhone)
-            return (false, "Cannot weave a thread to the same person twice", null, null);
+            return (false, "Cannot weave a thread to the same person twice", "ship.duplicate_nominee", null, null);
 
         var shipper = await _db.Users.FindAsync(shipperId);
-        if (shipper is null) return (false, "User not found", null, null);
+        if (shipper is null) return (false, "User not found", "user.not_found", null, null);
         if (shipper.PhoneNumber == slotAPhone || shipper.PhoneNumber == slotBPhone)
-            return (false, "Cannot weave a thread to yourself", null, null);
+            return (false, "Cannot weave a thread to yourself", "ship.self_nominee", null, null);
 
         int cap = (int)_config.GetNumber("ships.daily.cap", 3);
         var today = DateTime.UtcNow.Date;
         int todayCount = await _db.Ships.CountAsync(s => s.ShipperUserId == shipperId && s.CreatedAt >= today);
-        if (todayCount >= cap) return (false, "Daily thread limit reached", null, null);
+        if (todayCount >= cap) return (false, "Daily thread limit reached", "ship.daily_cap", null, null);
 
         var (slotAUserId, slotACode) = await ResolveSlotAsync(slotAPhone);
         var (slotBUserId, slotBCode) = await ResolveSlotAsync(slotBPhone);
@@ -50,14 +50,14 @@ public class ShipService
         bool blockedByB = slotBUserId.HasValue &&
             await _db.BlockedUsers.AnyAsync(bl => bl.BlockerId == slotBUserId && bl.BlockedId == shipperId);
         if (blockedByA || blockedByB)
-            return (true, null, slotACode, slotBCode);
+            return (true, null, null, slotACode, slotBCode);
 
         if (slotAUserId.HasValue && slotBUserId.HasValue)
         {
             bool alreadyMatched = await _db.Matches.AnyAsync(m =>
                 (m.InitiatorId == slotAUserId && m.ReceiverId == slotBUserId) ||
                 (m.InitiatorId == slotBUserId && m.ReceiverId == slotAUserId));
-            if (alreadyMatched) return (true, null, slotACode, slotBCode);
+            if (alreadyMatched) return (true, null, null, slotACode, slotBCode);
         }
 
         _db.Ships.Add(new Ship
@@ -71,7 +71,7 @@ public class ShipService
             SlotBOptIn = slotBUserId.HasValue ? "PendingOptIn" : "AwaitingUser",
         });
         await _db.SaveChangesAsync();
-        return (true, null, slotACode, slotBCode);
+        return (true, null, null, slotACode, slotBCode);
     }
 
     private async Task<(Guid? UserId, string InviteCode)> ResolveSlotAsync(string phoneNumber)

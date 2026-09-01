@@ -17,7 +17,7 @@ public class ContentController : ControllerBase
     public async Task<IActionResult> GetBySlug(string slug)
     {
         var page = await _db.ContentPages.AsNoTracking().FirstOrDefaultAsync(p => p.Slug == slug);
-        if (page is null) return this.NotFoundError("Content page not found");
+        if (page is null) return this.NotFoundError("Content page not found", "content.not_found");
         return Ok(new ContentPageResponse(page.Slug, page.TitleEn, page.TitleMn, page.BodyEn, page.BodyMn, page.UpdatedAt));
     }
 }

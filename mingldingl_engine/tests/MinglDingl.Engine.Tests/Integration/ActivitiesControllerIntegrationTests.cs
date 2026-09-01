@@ -237,5 +237,5 @@ public class ActivitiesControllerIntegrationTests : IntegrationTestBase
     }
 
     private static string? ErrorMessage(ObjectResult result) =>
-        result.Value?.GetType().GetProperty("error")?.GetValue(result.Value) as string;
+        (result.Value as ErrorResponse)?.Error;
 }

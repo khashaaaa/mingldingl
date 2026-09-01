@@ -24,7 +24,7 @@ public class ScoresController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         return Ok(new ScoreResponse(
             user.TotalScore,
@@ -42,7 +42,7 @@ public class ScoresController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         var (nextTier, nextThreshold, progressPct) = _score.TierProgress(user.TotalScore);
         int tierIndex = ScoreService.TierIndex(user.GemTier);
@@ -122,7 +122,7 @@ public class ScoresController : ControllerBase
             return Ok(new AckNotificationResponse(true));
         }
 
-        return this.BadRequestError("kind must be 'referral' or 'ship'");
+        return this.BadRequestError("kind must be 'referral' or 'ship'", "invite.kind_invalid");
     }
 
     [HttpGet("me/history")]
@@ -174,7 +174,7 @@ public class ScoresController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         var top = await _db.Users.AsNoTracking()
             .Where(u => u.City == user.City)
@@ -209,7 +209,7 @@ public class ScoresController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var user = await _db.Users.FindAsync(userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         var today = DateTime.UtcNow.Date;
 

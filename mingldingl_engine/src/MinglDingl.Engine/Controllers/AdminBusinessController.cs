@@ -50,7 +50,7 @@ public class AdminBusinessController : ControllerBase
     public async Task<IActionResult> Get(Guid id)
     {
         var business = await _db.BusinessPartners.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id);
-        if (business is null) return this.NotFoundError("Business not found");
+        if (business is null) return this.NotFoundError("Business not found", "business.not_found");
         return Ok(ToResponse(business));
     }
 
@@ -83,7 +83,7 @@ public class AdminBusinessController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] AdminUpdateBusinessRequest req)
     {
         var business = await _db.BusinessPartners.FirstOrDefaultAsync(b => b.Id == id);
-        if (business is null) return this.NotFoundError("Business not found");
+        if (business is null) return this.NotFoundError("Business not found", "business.not_found");
 
         business.Name = req.Name;
         business.Category = req.Category;
@@ -107,10 +107,10 @@ public class AdminBusinessController : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var business = await _db.BusinessPartners.FirstOrDefaultAsync(b => b.Id == id);
-        if (business is null) return this.NotFoundError("Business not found");
+        if (business is null) return this.NotFoundError("Business not found", "business.not_found");
 
         var hasRatings = await _db.BusinessRatings.AnyAsync(r => r.BusinessPartnerId == id);
-        if (hasRatings) return this.ConflictError("Cannot delete a business with existing reviews.");
+        if (hasRatings) return this.ConflictError("Cannot delete a business with existing reviews.", "business.has_reviews");
 
         var name = business.Name;
         _db.BusinessPartners.Remove(business);

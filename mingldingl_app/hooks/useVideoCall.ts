@@ -9,14 +9,6 @@ export interface VideoToken {
   appId: string;
 }
 
-const VIDEO_ERROR_I18N_KEYS: Record<string, string> = {
-  'Match not found': 'video_error_match_not_found',
-  'Video call not unlocked for this match': 'video_error_not_unlocked',
-  'You are not a participant in this match': 'video_error_not_participant',
-  'Video call reward already claimed for this match': 'video_error_reward_claimed',
-  'The Flame Rite has not been accepted for this match': 'video_error_rite_not_accepted',
-};
-
 export function useVideoCall(matchId: string) {
   const [token, setToken] = useState<VideoToken | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,9 +27,7 @@ export function useVideoCall(matchId: string) {
       })
       .catch((e) => {
         if (cancelled) return;
-        const raw = getApiErrorMessage(e, '');
-        const key = raw ? VIDEO_ERROR_I18N_KEYS[raw] : undefined;
-        setError(key ? i18n.t(key) : raw || i18n.t('video_unavailable'));
+        setError(getApiErrorMessage(e, i18n.t('video_unavailable')));
         setLoading(false);
       });
     return () => { cancelled = true; };

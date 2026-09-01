@@ -40,7 +40,7 @@ public class BusinessController : ControllerBase
     public async Task<IActionResult> Rate(Guid id, [FromBody] RateBusinessRequest req,
         [FromQuery] Guid matchId)
     {
-        if (req.Stars < 1 || req.Stars > 5) return this.BadRequestError("Stars must be 1-5");
+        if (req.Stars < 1 || req.Stars > 5) return this.BadRequestError("Stars must be 1-5", "rating.stars_out_of_range");
 
         var userId = this.CurrentUserId();
 
@@ -48,7 +48,7 @@ public class BusinessController : ControllerBase
         if (accessError is not null) return accessError;
 
         var business = await _db.BusinessPartners.FindAsync(id);
-        if (business is null) return this.NotFoundError("Business not found");
+        if (business is null) return this.NotFoundError("Business not found", "business.not_found");
 
         _db.BusinessRatings.Add(new BusinessRating
         {
@@ -68,7 +68,7 @@ public class BusinessController : ControllerBase
             ex, "IX_BusinessRatings_BusinessPartnerId_UserId_MatchId"))
         {
             _db.ChangeTracker.Clear();
-            return this.ConflictError("You already rated this business for this match");
+            return this.ConflictError("You already rated this business for this match", "rating.already_rated");
         }
 
         var updateResult = await _db.Database.SqlQuery<BusinessRatingAggregate>(
@@ -81,7 +81,7 @@ public class BusinessController : ControllerBase
             """).ToListAsync();
 
         var aggregate = updateResult.SingleOrDefault();
-        if (aggregate is null) return this.NotFoundError("Business not found");
+        if (aggregate is null) return this.NotFoundError("Business not found", "business.not_found");
         return Ok(new RateBusinessResponse(aggregate.AverageRating, aggregate.RatingCount));
     }
 

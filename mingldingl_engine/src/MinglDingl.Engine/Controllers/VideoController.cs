@@ -43,7 +43,7 @@ public class VideoController : ControllerBase
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, req.MatchId, tracked: false, requireActive: true);
         if (accessError is not null) return accessError;
         if (match.FlameRiteAcceptedAt is null)
-            return this.ForbiddenError("The Flame Rite has not been accepted for this match");
+            return this.ForbiddenError("The Flame Rite has not been accepted for this match", "rite.not_accepted");
 
         string token;
         if (match.FlameRiteCompletedAt is null)
@@ -72,7 +72,7 @@ public class VideoController : ControllerBase
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, req.MatchId, tracked: false, requireActive: true);
         if (accessError is not null) return accessError;
         if (match.FlameRiteAcceptedAt is null)
-            return this.ForbiddenError("The Flame Rite has not been accepted for this match");
+            return this.ForbiddenError("The Flame Rite has not been accepted for this match", "rite.not_accepted");
 
         int rowsAffected = await _db.Matches
             .Where(m => m.Id == req.MatchId && !m.VideoRewardClaimed)
@@ -110,7 +110,7 @@ public class VideoController : ControllerBase
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, req.MatchId, tracked: false, requireActive: true);
         if (accessError is not null) return accessError;
         if (!match.IcebreakerComplete)
-            return this.ForbiddenError("Complete the icebreaker before proposing the Flame Rite");
+            return this.ForbiddenError("Complete the icebreaker before proposing the Flame Rite", "rite.icebreaker_required");
 
         var now = DateTime.UtcNow;
 
@@ -120,7 +120,7 @@ public class VideoController : ControllerBase
                 .SetProperty(m => m.FlameRiteProposedById, userId)
                 .SetProperty(m => m.FlameRiteProposedAt, now));
         if (rowsAffected == 0)
-            return this.ConflictError("A Flame Rite proposal is already open for this match");
+            return this.ConflictError("A Flame Rite proposal is already open for this match", "rite.proposal_open");
 
         var other = match.OtherParticipant(userId);
         await _push.NotifyUserAsync(
@@ -146,7 +146,7 @@ public class VideoController : ControllerBase
         if (accessError is not null) return accessError;
 
         if (match.FlameRiteProposedById is null || match.FlameRiteProposedById == userId)
-            return this.ForbiddenError("There is no Flame Rite proposal for you to accept");
+            return this.ForbiddenError("There is no Flame Rite proposal for you to accept", "rite.no_proposal");
 
         var now = DateTime.UtcNow;
 
@@ -154,7 +154,7 @@ public class VideoController : ControllerBase
             .Where(m => m.Id == req.MatchId && m.FlameRiteProposedById != null && m.FlameRiteProposedById != userId)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.FlameRiteAcceptedAt, now));
         if (rowsAffected == 0)
-            return this.ForbiddenError("There is no Flame Rite proposal for you to accept");
+            return this.ForbiddenError("There is no Flame Rite proposal for you to accept", "rite.no_proposal");
 
         await _broadcast.BroadcastAsync("app-nudges", "flame_rite_accepted", new { userId, matchId = match.Id });
 

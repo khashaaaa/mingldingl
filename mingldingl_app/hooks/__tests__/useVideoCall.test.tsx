@@ -70,33 +70,37 @@ describe('useVideoCall', () => {
       expect(result.current.token).toBeNull();
     });
 
-    it("translates the engine's known error message when the fetch rejects with a structured axios error", async () => {
+    it("localises from the engine's error code", async () => {
       const axiosErr = new AxiosError('Request failed with status code 403');
       axiosErr.response = {
         status: 403,
-        data: { error: 'Video call not unlocked for this match' },
+        data: {
+          error: 'The Flame Rite has not been accepted for this match',
+          code: 'rite.not_accepted',
+        },
       } as AxiosError['response'];
       mockApi.video.token.mockRejectedValue(axiosErr);
 
       const { result } = renderHook(() => useVideoCall('m1'));
 
       await waitFor(() => expect(result.current.loading).toBe(false));
-      expect(result.current.error).toBe(i18n.t('video_error_not_unlocked'));
+      expect(result.current.error).toBe(i18n.t('err_rite_not_accepted'));
       expect(result.current.token).toBeNull();
     });
 
-    it("falls back to the engine's raw message when it doesn't match a known error", async () => {
+    // An unmapped code must degrade to localised copy, never to the server's English.
+    it('falls back to localised copy for a code it has no entry for', async () => {
       const axiosErr = new AxiosError('Request failed with status code 500');
       axiosErr.response = {
         status: 500,
-        data: { error: 'Something the client has no translation for' },
+        data: { error: 'Something the client has no translation for', code: 'not.mapped.yet' },
       } as AxiosError['response'];
       mockApi.video.token.mockRejectedValue(axiosErr);
 
       const { result } = renderHook(() => useVideoCall('m1'));
 
       await waitFor(() => expect(result.current.loading).toBe(false));
-      expect(result.current.error).toBe('Something the client has no translation for');
+      expect(result.current.error).toBe(i18n.t('video_unavailable'));
       expect(result.current.token).toBeNull();
     });
 

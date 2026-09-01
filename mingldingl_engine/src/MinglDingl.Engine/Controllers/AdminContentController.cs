@@ -33,7 +33,7 @@ public class AdminContentController : ControllerBase
     public async Task<IActionResult> UpdatePage(string slug, [FromBody] AdminUpdateContentPageRequest req)
     {
         var page = await _db.ContentPages.FirstOrDefaultAsync(p => p.Slug == slug);
-        if (page is null) return this.NotFoundError("Content page not found");
+        if (page is null) return this.NotFoundError("Content page not found", "content.not_found");
 
         page.TitleEn = req.TitleEn;
         page.TitleMn = req.TitleMn;

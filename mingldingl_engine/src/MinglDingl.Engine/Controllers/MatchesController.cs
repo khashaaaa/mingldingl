@@ -36,7 +36,7 @@ public class MatchesController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var me = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
-        if (me is null) return this.NotFoundError("User not found");
+        if (me is null) return this.NotFoundError("User not found", "user.not_found");
 
         var (safePage, safePageSize, skip) = PagingDefaults.Normalize(page, pageSize);
 
@@ -139,10 +139,10 @@ public class MatchesController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var me = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
-        if (me is null) return this.NotFoundError("User not found");
+        if (me is null) return this.NotFoundError("User not found", "user.not_found");
 
         if (me.DailyMatchesUsed >= ScoreService.DailyMatchBudget(me))
-            return this.BadRequestError("Daily match budget exhausted");
+            return this.BadRequestError("Daily match budget exhausted", "match.daily_budget_spent");
 
         var (outcome, matchId) = await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
@@ -165,8 +165,8 @@ public class MatchesController : ControllerBase
             return ("created", (Guid?)match.Id);
         });
 
-        if (outcome == "conflict") return this.ConflictError("Match already exists");
-        if (outcome == "blocked") return this.ForbiddenError("Cannot match with this user");
+        if (outcome == "conflict") return this.ConflictError("Match already exists", "match.already_exists");
+        if (outcome == "blocked") return this.ForbiddenError("Cannot match with this user", "match.not_allowed");
 
         var trackedMe = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == userId)?.Entity;
         if (trackedMe is not null) trackedMe.DailyMatchesUsed++;
@@ -193,7 +193,7 @@ public class MatchesController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var me = await _db.Users.FindAsync(userId);
-        if (me is null) return this.NotFoundError("Profile not found. Please complete onboarding.");
+        if (me is null) return this.NotFoundError("Profile not found. Please complete onboarding.", "user.profile_incomplete");
 
         var (safePage, safePageSize, skip) = PagingDefaults.Normalize(page, pageSize);
 

@@ -27,7 +27,7 @@ public class AuthController : ControllerBase
     {
         var phone = (req.Phone ?? "").Trim();
         if (!PhoneVerificationService.IsPhoneValid(phone))
-            return this.BadRequestError("Phone must be 8 digits");
+            return this.BadRequestError("Phone must be 8 digits", "phone.invalid_format");
 
         if (!_verification.IsConfigured)
             return StatusCode(503, new { error = "Phone verification is not configured" });
@@ -52,7 +52,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Status(Guid verificationId, CancellationToken ct)
     {
         var verification = await _verification.RefreshAsync(verificationId, ct);
-        if (verification is null) return this.NotFoundError("Verification not found");
+        if (verification is null) return this.NotFoundError("Verification not found", "verification.not_found");
 
         return Ok(new PhoneVerificationStatusResponse(
             verification.Status.ToString(), verification.ExpiresAt, verification.VerifiedAt));
@@ -85,15 +85,15 @@ public class AuthController : ControllerBase
         switch (result)
         {
             case PhoneClaimResult.NotFound:
-                return this.NotFoundError("Verification not found");
+                return this.NotFoundError("Verification not found", "verification.not_found");
             case PhoneClaimResult.NotVerified:
-                return this.BadRequestError("Phone is not verified yet");
+                return this.BadRequestError("Phone is not verified yet", "phone.not_verified");
             case PhoneClaimResult.Expired:
-                return this.BadRequestError("Verification expired before it was claimed");
+                return this.BadRequestError("Verification expired before it was claimed", "verification.expired");
             case PhoneClaimResult.AlreadyClaimed:
-                return this.ConflictError("Verification already used");
+                return this.ConflictError("Verification already used", "verification.already_used");
             case PhoneClaimResult.PhoneInUse:
-                return this.ConflictError("That phone number already belongs to another account");
+                return this.ConflictError("That phone number already belongs to another account", "phone.claimed_by_other");
         }
 
         var phone = await _verification.GetVerifiedPhoneAsync(userId, ct);

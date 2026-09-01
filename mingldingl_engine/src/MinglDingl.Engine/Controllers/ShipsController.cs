@@ -23,8 +23,8 @@ public class ShipsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateShipRequest req)
     {
         var userId = this.CurrentUserId();
-        var (success, error, slotACode, slotBCode) = await _ships.CreateAsync(userId, req.SlotAPhoneNumber, req.SlotBPhoneNumber);
-        if (!success) return this.BadRequestError(error ?? "Could not weave this thread");
+        var (success, error, errorCode, slotACode, slotBCode) = await _ships.CreateAsync(userId, req.SlotAPhoneNumber, req.SlotBPhoneNumber);
+        if (!success) return this.BadRequestError(error ?? "Could not weave this thread", errorCode ?? "ship.create_failed");
         return Ok(new CreateShipResponse(true, null, slotACode, slotBCode));
     }
 

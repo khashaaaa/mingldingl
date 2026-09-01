@@ -35,7 +35,8 @@ describe('query error handling', () => {
     expect(mockAlert).not.toHaveBeenCalled();
   });
 
-  it('surfaces the server message when the response carries one', async () => {
+  // The server's English is for logs. The user gets copy localised from the error code.
+  it('shows copy localised from the error code, not the server message', async () => {
     const qc = client();
     await qc
       .fetchQuery({
@@ -44,13 +45,18 @@ describe('query error handling', () => {
           Promise.reject(
             Object.assign(new Error('Request failed'), {
               isAxiosError: true,
-              response: { data: { error: 'Daily match budget exhausted' } },
+              response: {
+                data: { error: 'Daily match budget exhausted', code: 'match.daily_budget_spent' },
+              },
             }),
           ),
       })
       .catch(() => {});
 
-    expect(mockAlert).toHaveBeenCalledWith(expect.any(String), 'Daily match budget exhausted');
+    expect(mockAlert).toHaveBeenCalledWith(
+      expect.any(String),
+      'All summons spent — the realm rests until dawn.',
+    );
   });
 
   it('speaks up once when a dropped connection fails many queries at once', async () => {

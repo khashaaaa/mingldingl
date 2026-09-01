@@ -30,7 +30,7 @@ public class EngagementController : ControllerBase
             .Where(i => i.IsActive)
             .OrderBy(i => i.Id)
             .ToListAsync();
-        if (icebreakers.Count == 0) return this.NotFoundError("No active icebreaker available");
+        if (icebreakers.Count == 0) return this.NotFoundError("No active icebreaker available", "icebreaker.none_available");
 
         var icebreaker = icebreakers[StableIndex(matchId, icebreakers.Count)];
         return Ok(new IcebreakerQuestionResponse(icebreaker.Id, icebreaker.QuestionText, icebreaker.Type, icebreaker.Options));
@@ -50,7 +50,7 @@ public class EngagementController : ControllerBase
 
         var existing = await _db.IcebreakerResponses.FirstOrDefaultAsync(r =>
             r.MatchId == matchId && r.IcebreakerId == req.IcebreakerId && r.UserId == userId);
-        if (existing is not null) return this.ConflictError("Already responded");
+        if (existing is not null) return this.ConflictError("Already responded", "engagement.already_responded");
 
         _db.IcebreakerResponses.Add(new IcebreakerResponse
         {
@@ -66,7 +66,7 @@ public class EngagementController : ControllerBase
         catch (DbUpdateException ex) when (UniqueViolationGuard.IsViolation(ex, "IX_IcebreakerResponses_MatchId_IcebreakerId_UserId"))
         {
             _db.ChangeTracker.Clear();
-            return this.ConflictError("Already responded");
+            return this.ConflictError("Already responded", "engagement.already_responded");
         }
 
         await _broadcast.BroadcastAsync("app-nudges", "icebreaker", new { userId, matchId });
@@ -103,7 +103,7 @@ public class EngagementController : ControllerBase
             .Where(r => r.MatchId == matchId && r.IcebreakerId == icebreakerId)
             .ToListAsync();
 
-        if (responses.Count < 2) return this.BadRequestError("Icebreaker not complete yet");
+        if (responses.Count < 2) return this.BadRequestError("Icebreaker not complete yet", "icebreaker.incomplete");
 
         return Ok(responses.Select(r => new IcebreakerRevealEntry(r.UserId, r.Answer)).ToList());
     }
@@ -129,7 +129,7 @@ public class EngagementController : ControllerBase
     public async Task<IActionResult> GetQuiz([FromQuery] Guid? matchId = null)
     {
         var quizzes = await _db.Quizzes.OrderBy(q => q.Id).ToListAsync();
-        if (quizzes.Count == 0) return this.NotFoundError("No quiz available");
+        if (quizzes.Count == 0) return this.NotFoundError("No quiz available", "quiz.none_available");
 
         // Compatibility is only computed between two responses to the same quiz, so the pick has
         // to be stable per match rather than random per request.
@@ -270,7 +270,7 @@ public class EngagementController : ControllerBase
         var rows = await _db.UserDailyQuests.AsNoTracking()
             .Where(r => r.UserId == userId && r.QuestDate == today).ToListAsync();
         bool allComplete = defs.All(d => rows.Any(r => r.QuestId == d.Id && r.CompletedAt != null));
-        if (!allComplete) return this.BadRequestError("Complete all quests to claim the bounty chest");
+        if (!allComplete) return this.BadRequestError("Complete all quests to claim the bounty chest", "quest.incomplete");
 
         bool chestClaimed = await _db.ScoreEvents.AnyAsync(e =>
             e.UserId == userId && e.EventType == "QuestChest" && e.CreatedAt >= today);
@@ -310,9 +310,9 @@ public class EngagementController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var def = MilestoneService.Defs.FirstOrDefault(d => d.Id == id);
-        if (def is null) return this.NotFoundError("Unknown milestone");
+        if (def is null) return this.NotFoundError("Unknown milestone", "milestone.unknown");
         var exists = await _db.UserMilestones.AnyAsync(m => m.UserId == userId && m.MilestoneId == id);
-        if (!exists) return this.BadRequestError("Milestone not achieved yet");
+        if (!exists) return this.BadRequestError("Milestone not achieved yet", "milestone.not_achieved");
 
         int rowsAffected = await _db.UserMilestones
             .Where(m => m.UserId == userId && m.MilestoneId == id && m.OpenedAt == null)

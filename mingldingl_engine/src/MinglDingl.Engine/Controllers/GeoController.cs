@@ -13,7 +13,7 @@ public class GeoController : ControllerBase
     public IActionResult GetNearestCity([FromQuery] double latitude, [FromQuery] double longitude)
     {
         if (!MongoliaGeo.IsValidCoordinate(latitude, longitude))
-            return this.BadRequestError("Latitude/longitude out of range");
+            return this.BadRequestError("Latitude/longitude out of range", "profile.location_invalid");
 
         return Ok(new NearestCityResponse(MongoliaGeo.NearestCity(latitude, longitude)));
     }

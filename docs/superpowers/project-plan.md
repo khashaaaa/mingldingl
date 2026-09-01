@@ -1233,9 +1233,23 @@ paths; admin Ships list shows `resultMatchId`; admin Town Square create/cancel
 
 ### Codebase-wide, larger than any one feature
 
-- **`getApiErrorMessage` surfaces raw English server error strings.** Fated
-  Threads got a client-side mapping table for its own errors as a stopgap; every
-  other feature still shows untranslated server text. Needs a real pass.
-- **Swagger `ProducesResponseType(ErrorResponse)` doesn't match the actual
-  `{ error }` shape** returned by `BadRequestError` and friends. Wrong across
-  the codebase, so the generated client types are wrong for every error path.
+- ~~**`getApiErrorMessage` surfaces raw English server error strings.**~~ CLOSED
+  2026-09-01. Every error response now carries a stable `code` beside its English
+  `message` (`ErrorResponse(Error, Code)`); `DomainException` and the
+  `ApiErrorExtensions` helpers all require one, so the compiler refuses a new error
+  without a code. The app maps `code` -> `err_<code>` i18n keys (74 codes, EN + MN)
+  and, crucially, an *unmapped* code now falls back to the caller's localised message
+  rather than the server's English. The two stopgap tables keyed on English prose
+  (`SHIP_ERROR_I18N_KEYS` in `app/ship/new.tsx`, `VIDEO_ERROR_I18N_KEYS` in
+  `hooks/useVideoCall.ts`) are deleted — the latter was already stale, keyed on two
+  messages the engine had stopped returning. Verified live: a duplicate-nominee weave
+  in Mongolian renders "Хоёр өөр хүнийг сонгоно уу." with no English leak.
+  Covered by `lib/api/__tests__/errors.test.ts`.
+- ~~**Swagger `ProducesResponseType(ErrorResponse)` doesn't match the actual
+  `{ error }` shape**~~ CLOSED 2026-09-01 — fixed by the same change; `ErrorResponse`
+  is now the type actually returned on every error path, so the generated client
+  types are correct. Both frontends' `api.generated.d.ts` regenerated.
+
+  **Still open here:** the four `admin.*` codes are deliberately English-only (the
+  control panel is an internal tool); `mingldingl_control/src/lib/apiError.ts` was
+  left reading `error` and has not been moved onto codes.

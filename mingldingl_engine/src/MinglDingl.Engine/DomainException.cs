@@ -8,15 +8,25 @@ public class DomainException : Exception
 {
     public int StatusCode { get; }
 
-    public DomainException(string message, int statusCode = StatusCodes.Status400BadRequest)
-        : base(message) => StatusCode = statusCode;
+    /// <summary>
+    /// Stable identifier the client maps to its own localised copy. The message is developer-facing
+    /// English and is never shown to a user.
+    /// </summary>
+    public string Code { get; }
 
-    public static DomainException Forbidden(string message) =>
-        new(message, StatusCodes.Status403Forbidden);
+    public DomainException(string message, string code, int statusCode = StatusCodes.Status400BadRequest)
+        : base(message)
+    {
+        Code = code;
+        StatusCode = statusCode;
+    }
 
-    public static DomainException Conflict(string message) =>
-        new(message, StatusCodes.Status409Conflict);
+    public static DomainException Forbidden(string message, string code) =>
+        new(message, code, StatusCodes.Status403Forbidden);
 
-    public static DomainException NotFound(string message) =>
-        new(message, StatusCodes.Status404NotFound);
+    public static DomainException Conflict(string message, string code) =>
+        new(message, code, StatusCodes.Status409Conflict);
+
+    public static DomainException NotFound(string message, string code) =>
+        new(message, code, StatusCodes.Status404NotFound);
 }

@@ -50,9 +50,9 @@ public class AdminTownSquareController : ControllerBase
         var rsvpClosesAt = AsUtc(req.RsvpClosesAt);
         var scheduledStartAt = AsUtc(req.ScheduledStartAt);
 
-        if (rsvpOpensAt >= rsvpClosesAt) return this.BadRequestError("RsvpOpensAt must be before RsvpClosesAt");
-        if (rsvpClosesAt > scheduledStartAt) return this.BadRequestError("RsvpClosesAt must be on or before ScheduledStartAt");
-        if (scheduledStartAt <= DateTime.UtcNow) return this.BadRequestError("ScheduledStartAt must be in the future");
+        if (rsvpOpensAt >= rsvpClosesAt) return this.BadRequestError("RsvpOpensAt must be before RsvpClosesAt", "square.rsvp_window_invalid");
+        if (rsvpClosesAt > scheduledStartAt) return this.BadRequestError("RsvpClosesAt must be on or before ScheduledStartAt", "square.rsvp_after_start");
+        if (scheduledStartAt <= DateTime.UtcNow) return this.BadRequestError("ScheduledStartAt must be in the future", "square.start_in_past");
 
         var session = new TownSquareSession
         {
@@ -77,9 +77,9 @@ public class AdminTownSquareController : ControllerBase
     public async Task<IActionResult> CancelSession(Guid sessionId)
     {
         var session = await _db.TownSquareSessions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sessionId);
-        if (session is null) return this.NotFoundError("Session not found");
+        if (session is null) return this.NotFoundError("Session not found", "square.session_not_found");
         if (session.Status is not ("Open" or "Locked"))
-            return this.ConflictError($"Cannot cancel a session with status '{session.Status}'");
+            return this.ConflictError($"Cannot cancel a session with status '{session.Status}'", "admin.square_not_cancellable");
 
         var previous = session.Status;
         await _townSquare.CancelSessionAsync(sessionId);
@@ -96,7 +96,7 @@ public class AdminTownSquareController : ControllerBase
     public async Task<IActionResult> GetSessionPairings(Guid sessionId)
     {
         var sessionExists = await _db.TownSquareSessions.AsNoTracking().AnyAsync(s => s.Id == sessionId);
-        if (!sessionExists) return this.NotFoundError("Session not found");
+        if (!sessionExists) return this.NotFoundError("Session not found", "square.session_not_found");
 
         var pairings = await _db.TownSquarePairings.AsNoTracking()
             .Include(p => p.Round)

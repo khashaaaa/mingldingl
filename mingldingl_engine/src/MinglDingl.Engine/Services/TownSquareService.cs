@@ -20,7 +20,7 @@ public class TownSquareService
     {
         var session = await _db.TownSquareSessions.FindAsync(sessionId);
         if (session is null || session.Status != "Open")
-            throw new DomainException("Session is not open for RSVP");
+            throw new DomainException("Session is not open for RSVP", "square.rsvp_closed");
 
         bool exists = await _db.TownSquareRsvps.AnyAsync(r => r.SessionId == sessionId && r.UserId == userId);
         if (exists) return;
@@ -33,7 +33,7 @@ public class TownSquareService
     {
         var session = await _db.TownSquareSessions.FindAsync(sessionId);
         if (session is null || session.Status != "Open")
-            throw new DomainException("Session is not open for RSVP changes");
+            throw new DomainException("Session is not open for RSVP changes", "square.rsvp_locked");
 
         var rsvp = await _db.TownSquareRsvps.FirstOrDefaultAsync(r => r.SessionId == sessionId && r.UserId == userId);
         if (rsvp is null) return;
@@ -159,11 +159,11 @@ public class TownSquareService
     public async Task<Guid?> RespondToPairingAsync(Guid pairingId, Guid userId, string response)
     {
         if (response != "Yes" && response != "No")
-            throw new DomainException("Response must be Yes or No");
+            throw new DomainException("Response must be Yes or No", "square.response_invalid");
 
         var lookup = await _db.TownSquarePairings.AsNoTracking().FirstOrDefaultAsync(p => p.Id == pairingId);
         if (lookup is null || !lookup.IsParticipant(userId))
-            throw DomainException.Forbidden("Not a participant in this pairing");
+            throw DomainException.Forbidden("Not a participant in this pairing", "square.not_participant");
 
         bool isUserA = lookup.UserAId == userId;
 

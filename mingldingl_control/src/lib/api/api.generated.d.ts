@@ -5779,6 +5779,7 @@ export interface components {
         };
         ErrorResponse: {
             error?: string | null;
+            code?: string | null;
         };
         EventTypeCountDto: {
             eventType?: string | null;

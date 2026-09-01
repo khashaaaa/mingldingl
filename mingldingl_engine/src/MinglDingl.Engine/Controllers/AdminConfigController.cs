@@ -37,10 +37,10 @@ public class AdminConfigController : ControllerBase
     public async Task<IActionResult> Update(string key, [FromBody] UpdateConfigRequest request)
     {
         var entry = await _db.AdminConfigs.FirstOrDefaultAsync(c => c.Key == key);
-        if (entry is null) return this.NotFoundError($"Config key '{key}' not found");
+        if (entry is null) return this.NotFoundError($"Config key '{key}' not found", "admin.config_key_unknown");
 
         var validationError = ConfigValueValidator.Validate(entry.ValueType, request.Value);
-        if (validationError is not null) return this.BadRequestError(validationError);
+        if (validationError is not null) return this.BadRequestError(validationError, "admin.config_value_invalid");
 
         await ApplyUpdateAsync(entry, request.Value, isRevert: false);
         return Ok(ToDto(entry));
@@ -53,19 +53,19 @@ public class AdminConfigController : ControllerBase
     public async Task<IActionResult> Revert(string key)
     {
         var entry = await _db.AdminConfigs.FirstOrDefaultAsync(c => c.Key == key);
-        if (entry is null) return this.NotFoundError($"Config key '{key}' not found");
+        if (entry is null) return this.NotFoundError($"Config key '{key}' not found", "admin.config_key_unknown");
 
         var lastChange = await _db.AdminAuditLogs
             .Where(l => l.EntityType == "AdminConfig" && l.EntityId == key && l.Action == "UpdateConfig")
             .OrderByDescending(l => l.CreatedAt)
             .FirstOrDefaultAsync();
         if (lastChange?.Details is null)
-            return this.ConflictError($"No previous value recorded for '{key}'");
+            return this.ConflictError($"No previous value recorded for '{key}'", "admin.config_no_previous_value");
 
         var change = JsonSerializer.Deserialize<ConfigChangeDetails>(lastChange.Details)!;
 
         var validationError = ConfigValueValidator.Validate(entry.ValueType, change.OldValue);
-        if (validationError is not null) return this.BadRequestError(validationError);
+        if (validationError is not null) return this.BadRequestError(validationError, "admin.config_value_invalid");
 
         await ApplyUpdateAsync(entry, change.OldValue, isRevert: true);
         return Ok(ToDto(entry));

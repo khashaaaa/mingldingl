@@ -39,7 +39,7 @@ public class UsersController : ControllerBase
         // is set by the client and is not evidence of ownership, so it is never trusted here.
         var verifiedPhone = await _phones.GetVerifiedPhoneAsync(userId);
         if (existing is null && _phones.IsConfigured && verifiedPhone is null)
-            return this.ForbiddenError("Phone number must be verified before creating an account");
+            return this.ForbiddenError("Phone number must be verified before creating an account", "phone.verification_required");
 
         var user = existing ?? new User { Id = userId };
 
@@ -78,7 +78,7 @@ public class UsersController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         if (user.DeletionRequestedAt.HasValue && !user.IsDeleted)
         {
@@ -98,7 +98,7 @@ public class UsersController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var user = await _db.Users.FindAsync(userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         user.DeletionRequestedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -114,7 +114,7 @@ public class UsersController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var user = await _db.Users.FindAsync(userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         if (req.DisplayName is not null) user.DisplayName = req.DisplayName;
         if (req.Bio is not null) user.Bio = req.Bio;
@@ -143,7 +143,7 @@ public class UsersController : ControllerBase
         }
 
         if (user.AgeMin > user.AgeMax)
-            return this.BadRequestError("AgeMin cannot be greater than AgeMax");
+            return this.BadRequestError("AgeMin cannot be greater than AgeMax", "profile.age_range_invalid");
 
         await _db.SaveChangesAsync();
         return Ok(ToResponse(user));
@@ -156,11 +156,11 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> UpdateLocation([FromBody] UpdateLocationRequest req)
     {
         if (!MongoliaGeo.IsValidCoordinate(req.Latitude, req.Longitude))
-            return this.BadRequestError("Latitude/longitude out of range");
+            return this.BadRequestError("Latitude/longitude out of range", "profile.location_invalid");
 
         var userId = this.CurrentUserId();
         var user = await _db.Users.FindAsync(userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         user.Latitude = req.Latitude;
         user.Longitude = req.Longitude;
@@ -176,7 +176,7 @@ public class UsersController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
         var owned = await _db.UserItems.AsNoTracking().Where(i => i.UserId == userId).ToListAsync();
         var result = owned
             .Select(i => (Row: i, Def: LootService.Catalog.FirstOrDefault(c => c.Id == i.ItemId)))
@@ -197,17 +197,17 @@ public class UsersController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var user = await _db.Users.FindAsync(userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
         var def = LootService.Catalog.FirstOrDefault(c => c.Id == itemId);
-        if (def is null) return this.NotFoundError("Unknown item");
+        if (def is null) return this.NotFoundError("Unknown item", "item.unknown");
         bool owned = await _db.UserItems.AnyAsync(i => i.UserId == userId && i.ItemId == itemId);
-        if (!owned) return this.NotFoundError("Item not in your trophies");
+        if (!owned) return this.NotFoundError("Item not in your trophies", "item.not_owned");
 
         switch (def.ItemType)
         {
             case "Frame": user.EquippedFrameId = user.EquippedFrameId == itemId ? null : itemId; break;
             case "Title": user.EquippedTitleId = user.EquippedTitleId == itemId ? null : itemId; break;
-            default: return this.BadRequestError("Emblems are collection-only");
+            default: return this.BadRequestError("Emblems are collection-only", "item.emblem_not_equippable");
         }
         await _db.SaveChangesAsync();
         return Ok(ToResponse(user));
@@ -266,26 +266,26 @@ public class UsersController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var user = await _db.Users.FindAsync(userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         if (!PhoneVerificationService.IsPhoneValid(req.PhoneNumber))
-            return this.BadRequestError("Phone number must be 8 digits");
+            return this.BadRequestError("Phone number must be 8 digits", "phone.invalid_format");
 
         bool taken = await _db.Users.AnyAsync(u => u.Id != userId && u.PhoneNumber == req.PhoneNumber);
-        if (taken) return this.BadRequestError("This phone number is already registered");
+        if (taken) return this.BadRequestError("This phone number is already registered", "phone.already_registered");
 
         if (_phones.IsConfigured)
         {
             if (req.VerificationId is not Guid verificationId)
-                return this.BadRequestError("The new phone number must be verified first");
+                return this.BadRequestError("The new phone number must be verified first", "phone.new_not_verified");
 
             var claim = await _phones.ClaimAsync(verificationId, userId);
             if (claim != PhoneClaimResult.Ok)
-                return this.BadRequestError("The new phone number must be verified first");
+                return this.BadRequestError("The new phone number must be verified first", "phone.new_not_verified");
 
             var proven = await _phones.GetVerifiedPhoneAsync(userId);
             if (proven != req.PhoneNumber)
-                return this.BadRequestError("Verification does not match the requested number");
+                return this.BadRequestError("Verification does not match the requested number", "verification.number_mismatch");
         }
 
         user.PhoneNumber = req.PhoneNumber;
@@ -300,10 +300,10 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> SwearOath([FromBody] SwearOathRequest req)
     {
         if (!OathService.ValidOaths.Contains(req.Oath))
-            return this.BadRequestError("Oath must be one of Bond, Fate, Kinship");
+            return this.BadRequestError("Oath must be one of Bond, Fate, Kinship", "oath.invalid");
 
         var user = await _oaths.SwearAsync(this.CurrentUserId(), req.Oath);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         var (held, needed) = await _oaths.GetProgressAsync(user.Id);
         return Ok(ToResponse(user) with { OathEncountersHeld = held, OathEncountersNeeded = needed });

@@ -26,22 +26,22 @@ public class ExceptionHandlingMiddleware
             // Nothing can be rewritten once the response is on the wire — rethrow so the original
             // exception (and its stack) reaches the host rather than emitting a half-written body.
             if (context.Response.HasStarted) throw;
-            await WriteError(context, ex.StatusCode, ex.Message);
+            await WriteError(context, ex.StatusCode, ex.Message, ex.Code);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception processing {Method} {Path}", context.Request.Method, context.Request.Path);
 
             if (context.Response.HasStarted) throw;
-            await WriteError(context, StatusCodes.Status500InternalServerError, "Something went wrong. Please try again.");
+            await WriteError(context, StatusCodes.Status500InternalServerError, "Something went wrong. Please try again.", "server.unexpected");
         }
     }
 
-    private static async Task WriteError(HttpContext context, int statusCode, string message)
+    private static async Task WriteError(HttpContext context, int statusCode, string message, string code)
     {
         context.Response.Clear();
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
-        await context.Response.WriteAsJsonAsync(new { error = message });
+        await context.Response.WriteAsJsonAsync(new ErrorResponse(message, code));
     }
 }

@@ -43,16 +43,16 @@ public class TownSquareController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var session = await _db.TownSquareSessions.FindAsync(sessionId);
-        if (session is null) return this.NotFoundError("Session not found");
-        if (session.Status != "InProgress") return this.BadRequestError("Session is not in progress");
+        if (session is null) return this.NotFoundError("Session not found", "square.session_not_found");
+        if (session.Status != "InProgress") return this.BadRequestError("Session is not in progress", "square.not_in_progress");
 
         var round = await _db.TownSquareRounds
             .FirstOrDefaultAsync(r => r.SessionId == sessionId && r.RoundNumber == session.CurrentRoundNumber);
-        if (round is null) return this.NotFoundError("No active round");
+        if (round is null) return this.NotFoundError("No active round", "square.no_active_round");
 
         var pairing = await _db.TownSquarePairings
             .FirstOrDefaultAsync(p => p.RoundId == round.Id && (p.UserAId == userId || p.UserBId == userId));
-        if (pairing is null) return this.NotFoundError("You are not paired in this round");
+        if (pairing is null) return this.NotFoundError("You are not paired in this round", "square.not_paired");
 
         var icebreaker = await _db.Icebreakers.FindAsync(round.IcebreakerId);
 

@@ -30,7 +30,7 @@ public class MembershipController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
         return Ok(new MembershipMeResponse(user.MembershipLevel, user.MembershipExpiresAt));
     }
 
@@ -45,13 +45,13 @@ public class MembershipController : ControllerBase
     {
         var canonicalLevel = ValidLevels.FirstOrDefault(l => string.Equals(l, req.Level, StringComparison.OrdinalIgnoreCase));
         if (canonicalLevel is null)
-            return this.BadRequestError("Unknown membership tier");
+            return this.BadRequestError("Unknown membership tier", "membership.unknown_tier");
         if (canonicalLevel != "Free" && !MembershipPricing.AvailableDurations.Contains(req.DurationMonths))
-            return this.BadRequestError("Unknown billing duration");
+            return this.BadRequestError("Unknown billing duration", "membership.unknown_duration");
 
         var userId = this.CurrentUserId();
         var user = await _db.Users.FindAsync(userId);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         var now = DateTime.UtcNow;
         if (canonicalLevel == "Free")

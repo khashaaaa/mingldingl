@@ -27,7 +27,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         var weaver = AddUser("88110001");
         await Db.SaveChangesAsync();
 
-        var (success, error, slotACode, slotBCode) = await BuildService().CreateAsync(weaver.Id, "88110002", "88110003");
+        var (success, error, _, slotACode, slotBCode) = await BuildService().CreateAsync(weaver.Id, "88110002", "88110003");
 
         Assert.True(success);
         Assert.Null(error);
@@ -51,7 +51,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         var b = AddUser("88110003");
         await Db.SaveChangesAsync();
 
-        var (success, _, slotACode, slotBCode) = await BuildService().CreateAsync(weaver.Id, "88110002", "88110003");
+        var (success, _, _, slotACode, slotBCode) = await BuildService().CreateAsync(weaver.Id, "88110002", "88110003");
 
         Assert.True(success);
 
@@ -74,7 +74,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         var weaver = AddUser("88110001");
         await Db.SaveChangesAsync();
 
-        var (success, error, _, _) = await BuildService().CreateAsync(weaver.Id, "88110001", "88110002");
+        var (success, error, _, _, _) = await BuildService().CreateAsync(weaver.Id, "88110001", "88110002");
 
         Assert.False(success);
         Assert.NotNull(error);
@@ -90,7 +90,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         var weaver = AddUser("88110001");
         await Db.SaveChangesAsync();
 
-        var (success, error, _, _) = await BuildService().CreateAsync(weaver.Id, "88110002", "88110002");
+        var (success, error, _, _, _) = await BuildService().CreateAsync(weaver.Id, "88110002", "88110002");
 
         Assert.False(success);
         Assert.NotNull(error);
@@ -109,7 +109,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         Db.Matches.Add(new Match { InitiatorId = a.Id, ReceiverId = b.Id, Status = "Active", RevealLevel = 1 });
         await Db.SaveChangesAsync();
 
-        var (success, error, slotACode, slotBCode) = await BuildService().CreateAsync(weaver.Id, "88110002", "88110003");
+        var (success, error, _, slotACode, slotBCode) = await BuildService().CreateAsync(weaver.Id, "88110002", "88110003");
 
         Assert.True(success);
         Assert.Null(error);
@@ -128,7 +128,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         Db.BlockedUsers.Add(new BlockedUser { BlockerId = a.Id, BlockedId = weaver.Id });
         await Db.SaveChangesAsync();
 
-        var (success, error, slotACode, slotBCode) = await BuildService().CreateAsync(weaver.Id, "88110002", "88110003");
+        var (success, error, _, slotACode, slotBCode) = await BuildService().CreateAsync(weaver.Id, "88110002", "88110003");
 
         Assert.True(success);
         Assert.Null(error);
@@ -146,11 +146,11 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         var service = BuildService();
         for (int i = 0; i < 3; i++)
         {
-            var (success, _, _, _) = await service.CreateAsync(weaver.Id, $"8811{1000 + i}", $"8811{2000 + i}");
+            var (success, _, _, _, _) = await service.CreateAsync(weaver.Id, $"8811{1000 + i}", $"8811{2000 + i}");
             Assert.True(success);
         }
 
-        var (fourthSuccess, fourthError, _, _) = await service.CreateAsync(weaver.Id, "88113000", "88114000");
+        var (fourthSuccess, fourthError, _, _, _) = await service.CreateAsync(weaver.Id, "88113000", "88114000");
 
         Assert.False(fourthSuccess);
         Assert.NotNull(fourthError);

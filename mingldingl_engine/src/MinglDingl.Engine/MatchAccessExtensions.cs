@@ -10,11 +10,11 @@ public static class MatchAccessExtensions
             ? await db.Matches.FindAsync(matchId)
             : await db.Matches.AsNoTracking().FirstOrDefaultAsync(m => m.Id == matchId);
 
-        if (match is null) return (null!, c.NotFoundError("Match not found"));
+        if (match is null) return (null!, c.NotFoundError("Match not found", "match.not_found"));
         if (!match.IsParticipant(c.CurrentUserId()))
-            return (null!, c.ForbiddenError("You are not a participant in this match"));
+            return (null!, c.ForbiddenError("You are not a participant in this match", "match.not_participant"));
         if (requireActive && match.Status != "Active")
-            return (null!, c.ForbiddenError("This match is no longer active"));
+            return (null!, c.ForbiddenError("This match is no longer active", "match.inactive"));
         return (match, null);
     }
 }

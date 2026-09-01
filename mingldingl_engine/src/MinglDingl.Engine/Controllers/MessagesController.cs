@@ -64,7 +64,7 @@ public class MessagesController : ControllerBase
 
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId, requireActive: true);
         if (accessError is not null) return accessError;
-        if (string.IsNullOrWhiteSpace(req.Content)) return this.BadRequestError("Content is required");
+        if (string.IsNullOrWhiteSpace(req.Content)) return this.BadRequestError("Content is required", "content.required");
 
         var lastMessage = await _db.Messages
             .Where(m => m.MatchId == matchId)

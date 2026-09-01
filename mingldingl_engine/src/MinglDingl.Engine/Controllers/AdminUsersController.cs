@@ -54,7 +54,7 @@ public class AdminUsersController : ControllerBase
     public async Task<IActionResult> GetUser(Guid id)
     {
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         var recentEvents = await _db.ScoreEvents.AsNoTracking()
             .Where(e => e.UserId == id)
@@ -144,7 +144,7 @@ public class AdminUsersController : ControllerBase
     public async Task<IActionResult> BanUser(Guid id, [FromBody] AdminBanUserRequest req)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         user.IsBanned = true;
         user.BannedAt = DateTime.UtcNow;
@@ -161,7 +161,7 @@ public class AdminUsersController : ControllerBase
     public async Task<IActionResult> UnbanUser(Guid id)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         user.IsBanned = false;
         user.BannedAt = null;
@@ -178,7 +178,7 @@ public class AdminUsersController : ControllerBase
     public async Task<IActionResult> CancelDeletion(Guid id)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         user.DeletionRequestedAt = null;
         await _db.SaveChangesAsync();
@@ -193,7 +193,7 @@ public class AdminUsersController : ControllerBase
     public async Task<IActionResult> ResetNoShow(Guid id)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
-        if (user is null) return this.NotFoundError("User not found");
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
         var previous = user.NoShowFlagCount;
         user.NoShowFlagCount = 0;
@@ -209,7 +209,7 @@ public class AdminUsersController : ControllerBase
     public async Task<IActionResult> AdjustScore(Guid id, [FromBody] AdminAdjustScoreRequest req)
     {
         var exists = await _db.Users.AsNoTracking().AnyAsync(u => u.Id == id);
-        if (!exists) return this.NotFoundError("User not found");
+        if (!exists) return this.NotFoundError("User not found", "user.not_found");
 
         await _score.AwardWithDeltaAsync(id, "AdminAdjustment", req.Delta);
         await _audit.LogAsync(User, "AdjustScore", "User", id.ToString(), $"{(req.Delta >= 0 ? "+" : "")}{req.Delta}: {req.Reason}");

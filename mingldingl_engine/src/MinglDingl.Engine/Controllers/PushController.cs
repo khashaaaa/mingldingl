@@ -16,7 +16,7 @@ public class PushController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegisterPushTokenDto req)
     {
-        if (string.IsNullOrWhiteSpace(req.Token)) return this.BadRequestError("Token is required");
+        if (string.IsNullOrWhiteSpace(req.Token)) return this.BadRequestError("Token is required", "auth.token_required");
 
         var userId = this.CurrentUserId();
         var existing = await _db.PushTokens.FirstOrDefaultAsync(t => t.Token == req.Token);

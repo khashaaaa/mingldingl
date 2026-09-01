@@ -28,7 +28,7 @@ public class ActivitiesController : ControllerBase
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
         if (accessError is not null) return accessError;
         if (match.MessageCount < 15)
-            return this.BadRequestError("Keep chatting to unlock activity suggestions");
+            return this.BadRequestError("Keep chatting to unlock activity suggestions", "activity.locked");
 
         var suggestions = await _activities.GetOrCreateSuggestionsAsync(matchId);
         var confirmations = await _db.DateConfirmations.Where(c => c.MatchId == matchId).ToListAsync();
@@ -101,9 +101,9 @@ public class ActivitiesController : ControllerBase
 
         var (result, awarded) = await _activities.ConfirmAsync(match, userId, req.ActivitySuggestionId);
         if (result.Rejection == ConfirmRejection.SuggestionNotInMatch)
-            return this.NotFoundError("Activity suggestion not found for this match");
+            return this.NotFoundError("Activity suggestion not found for this match", "activity.suggestion_not_found");
         if (result.Rejection == ConfirmRejection.FlameRiteIncomplete)
-            return this.ForbiddenError("Complete the Flame Rite before pledging an encounter");
+            return this.ForbiddenError("Complete the Flame Rite before pledging an encounter", "rite.required_before_pledge");
 
         var confirmation = result.Confirmation!;
         return Ok(new ConfirmDateResponse(confirmation.InitiatorConfirmed, confirmation.ReceiverConfirmed, confirmation.IsComplete, awarded));
@@ -134,7 +134,7 @@ public class ActivitiesController : ControllerBase
         if (accessError is not null) return accessError;
 
         var answered = await _activities.SubmitAttendanceAsync(matchId, userId, req.Attended);
-        if (answered is null) return this.NotFoundError("No confirmed date eligible for an attendance check on this match");
+        if (answered is null) return this.NotFoundError("No confirmed date eligible for an attendance check on this match", "attendance.no_eligible_date");
 
         return Ok(new AttendanceCheckResponse(answered.Value));
     }

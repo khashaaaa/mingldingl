@@ -22,7 +22,7 @@ public class CampaignController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetCampaign(Guid matchId)
     {
-        if (!_campaign.IsEnabled) return this.NotFoundError("The campaign is not enabled");
+        if (!_campaign.IsEnabled) return this.NotFoundError("The campaign is not enabled", "campaign.disabled");
 
         var userId = this.CurrentUserId();
         // requireActive stays false: a ghosted match shows its frozen map, and already-cleared
@@ -40,7 +40,7 @@ public class CampaignController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ClaimRoom(Guid matchId, string roomId)
     {
-        if (!_campaign.IsEnabled) return this.NotFoundError("The campaign is not enabled");
+        if (!_campaign.IsEnabled) return this.NotFoundError("The campaign is not enabled", "campaign.disabled");
 
         var userId = this.CurrentUserId();
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId, tracked: false);

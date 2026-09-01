@@ -15,13 +15,6 @@ import { COLORS, FONTS } from '../../lib/theme';
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 const PHONE_REGEX = /^\d{8}$/;
 
-const SHIP_ERROR_I18N_KEYS: Record<string, string> = {
-  'Phone numbers must be 8 digits': 'ship_error_invalid_phone',
-  'Cannot weave a thread to yourself': 'ship_error_self',
-  'Cannot weave a thread to the same person twice': 'ship_error_duplicate',
-  'Daily thread limit reached': 'ship_error_daily_cap',
-};
-
 export default function NewShipScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
@@ -46,9 +39,7 @@ export default function NewShipScreen() {
       setCodes({ slotACode: response.slotACode ?? null, slotBCode: response.slotBCode ?? null });
       setSent(true);
     } catch (err) {
-      const raw = getApiErrorMessage(err, '');
-      const key = raw ? SHIP_ERROR_I18N_KEYS[raw] : undefined;
-      setError(key ? i18n.t(key) : raw || i18n.t('ship_create_error'));
+      setError(getApiErrorMessage(err, i18n.t('ship_create_error')));
     } finally {
       setLoading(false);
     }

@@ -54,7 +54,7 @@ public class ExceptionHandlingMiddlewareTests
         context.Response.Body = body;
 
         var middleware = new ExceptionHandlingMiddleware(
-            _ => throw new DomainException("Session is not open for RSVP"),
+            _ => throw new DomainException("Session is not open for RSVP", "square.rsvp_closed"),
             NullLogger<ExceptionHandlingMiddleware>.Instance);
 
         await middleware.InvokeAsync(context);
@@ -74,7 +74,7 @@ public class ExceptionHandlingMiddlewareTests
         context.Response.Body = new MemoryStream();
 
         var middleware = new ExceptionHandlingMiddleware(
-            _ => throw new DomainException("nope", status),
+            _ => throw new DomainException("nope", "test.nope", status),
             NullLogger<ExceptionHandlingMiddleware>.Instance);
 
         await middleware.InvokeAsync(context);

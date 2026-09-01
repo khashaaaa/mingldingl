@@ -29,10 +29,10 @@ public class PhotosController : ControllerBase
     [RequestSizeLimit(MaxUploadBytes)]
     public async Task<IActionResult> Upload(IFormFile file)
     {
-        if (file.Length == 0) return this.BadRequestError("No file provided");
-        if (file.Length > MaxUploadBytes) return this.BadRequestError("Photo is too large");
+        if (file.Length == 0) return this.BadRequestError("No file provided", "photo.none_provided");
+        if (file.Length > MaxUploadBytes) return this.BadRequestError("Photo is too large", "photo.too_large");
         if (!AllowedContentTypes.Contains(file.ContentType))
-            return this.BadRequestError("Unsupported file type");
+            return this.BadRequestError("Unsupported file type", "photo.unsupported_type");
 
         byte[] compressed;
         try
@@ -42,7 +42,7 @@ public class PhotosController : ControllerBase
         }
         catch (Exception)
         {
-            return this.BadRequestError("Could not read this file as an image");
+            return this.BadRequestError("Could not read this file as an image", "photo.unreadable");
         }
 
         var userId = this.CurrentUserId();

@@ -54,11 +54,11 @@ public class CampaignService
     public async Task<ClaimCampaignRoomResponse> ClaimAsync(Match match, Guid userId, string roomId)
     {
         if (!RoomOrder.Contains(roomId))
-            throw DomainException.NotFound("Unknown campaign room");
+            throw DomainException.NotFound("Unknown campaign room", "campaign.room_unknown");
 
         var cleared = await GetClearedRoomsAsync(match);
         if (!cleared.Contains(roomId))
-            throw DomainException.Conflict("This room has not been cleared yet");
+            throw DomainException.Conflict("This room has not been cleared yet", "campaign.room_not_cleared");
 
         _db.CampaignRoomClaims.Add(new CampaignRoomClaim { MatchId = match.Id, UserId = userId, RoomId = roomId });
         try
@@ -67,7 +67,7 @@ public class CampaignService
         }
         catch (DbUpdateException ex) when (UniqueViolationGuard.IsViolation(ex, "IX_CampaignRoomClaims_MatchId_UserId_RoomId"))
         {
-            throw DomainException.Conflict("You have already claimed this room's spoils");
+            throw DomainException.Conflict("You have already claimed this room's spoils", "campaign.room_already_claimed");
         }
 
         bool isBoss = roomId == BossRoomId;
