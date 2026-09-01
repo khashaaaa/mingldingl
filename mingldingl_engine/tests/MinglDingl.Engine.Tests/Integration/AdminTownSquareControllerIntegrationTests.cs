@@ -220,7 +220,7 @@ public class AdminTownSquareControllerIntegrationTests : IntegrationTestBase
         var result = Assert.IsType<OkObjectResult>(await BuildController().ListSessions(1, 20));
         var page = Assert.IsType<PagedResponse<AdminTownSquareSessionDto>>(result.Value);
 
-        var item = Assert.Single(page.Items);
+        var item = Assert.Single(page.Items.Where(i => i.Id == session.Id));
         Assert.Equal(2, item.RsvpCount);
     }
 

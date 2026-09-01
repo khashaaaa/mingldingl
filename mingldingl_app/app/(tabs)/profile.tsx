@@ -22,7 +22,7 @@ import { useAuthStore } from '../../store/authStore';
 import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
 import { parseUserProfile } from '../../models/user';
-import { colorForTier, ITEM_NAME_KEYS, FRAME_COLORS } from '../../lib/tiers';
+import { colorForTier, itemLabel, membershipLabel, FRAME_COLORS } from '../../lib/tiers';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { AppCard } from '../../components/ui/AppCard';
 import { GameButton } from '../../components/ui/GameButton';
@@ -39,7 +39,7 @@ import { TrophyCase } from '../../components/progression/TrophyCase';
 import { useInventory } from '../../hooks/useInventory';
 import { TorchGlow } from '../../components/vfx/TorchGlow';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
-import OathSigil, { OATH_VALUES, OATH_GLYPHS, OATH_NAME_KEYS, OATH_DESC_KEYS } from '../../components/OathSigil';
+import OathSigil, { OATH_VALUES, OATH_SIGILS, OATH_NAME_KEYS, OATH_DESC_KEYS } from '../../components/OathSigil';
 import { useSwearOath } from '../../hooks/useOath';
 import { COLORS, FONTS, RADIUS, overlay } from '../../lib/theme';
 import type { GemTier, Oath } from '../../models/user';
@@ -217,7 +217,7 @@ export default function ProfileScreen() {
         <View style={styles.nameBlock}>
           <Text style={styles.displayName}>{profile.displayName}</Text>
           {profile.equippedTitleId && (
-            <Text style={styles.equippedTitle}>{i18n.t(ITEM_NAME_KEYS[profile.equippedTitleId] ?? '')}</Text>
+            <Text style={styles.equippedTitle}>{itemLabel(profile.equippedTitleId)}</Text>
           )}
           <Text style={styles.subText}>{profile.age} · {profile.city}</Text>
         </View>
@@ -244,7 +244,7 @@ export default function ProfileScreen() {
         <TouchableOpacity onPress={() => router.push('/membership')}>
           <Text style={styles.cardLabel}>{i18n.t('guild_rank').toUpperCase()}</Text>
           <View style={styles.membershipRow}>
-            <Text style={styles.membershipValue}>{profile.membershipLevel}</Text>
+            <Text style={styles.membershipValue}>{membershipLabel(profile.membershipLevel)}</Text>
             <Text style={styles.membershipArrow}>→</Text>
           </View>
         </TouchableOpacity>
@@ -352,9 +352,10 @@ export default function ProfileScreen() {
                   onPress={() => (isCurrent ? setOathModalVisible(false) : handleSwear(oath))}
                   style={[styles.oathOption, isCurrent && styles.oathOptionCurrent]}
                 >
-                  <Text style={[styles.oathOptionGlyph, isCurrent && styles.oathOptionGlyphCurrent]}>
-                    {OATH_GLYPHS[oath]}
-                  </Text>
+                  <Image
+                    source={OATH_SIGILS[oath]}
+                    style={[styles.oathOptionSigil, !isCurrent && styles.oathOptionSigilDim]}
+                  />
                   <View style={styles.oathOptionText}>
                     <Text style={styles.oathOptionName}>{i18n.t(OATH_NAME_KEYS[oath])}</Text>
                     <Text style={styles.oathOptionDesc}>{i18n.t(OATH_DESC_KEYS[oath])}</Text>
@@ -499,8 +500,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panelRaised,
   },
   oathOptionCurrent: { borderColor: COLORS.gold, borderWidth: 2 },
-  oathOptionGlyph: { fontSize: 24, fontFamily: FONTS.display, color: COLORS.bronze },
-  oathOptionGlyphCurrent: { color: COLORS.goldBright },
+  oathOptionSigil: { width: 30, height: 30 },
+  oathOptionSigilDim: { opacity: 0.5 },
   oathOptionText: { flex: 1, gap: 2 },
   oathOptionName: { fontSize: 15, fontFamily: FONTS.bodyBold, color: COLORS.text },
   oathOptionDesc: { fontSize: 12, fontFamily: FONTS.body, color: COLORS.textDim, lineHeight: 17 },

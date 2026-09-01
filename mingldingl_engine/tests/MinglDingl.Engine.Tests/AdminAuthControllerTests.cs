@@ -16,7 +16,12 @@ public class AdminAuthControllerTests
         config.Setup(c => c["Admin:Username"]).Returns(Username);
         config.Setup(c => c["Admin:PasswordHash"]).Returns(AdminPasswordHasher.Hash(Password));
         config.Setup(c => c["Admin:JwtSigningKey"]).Returns(SigningKey);
-        return new AdminAuthController(config.Object);
+        var controller = new AdminAuthController(config.Object, new LoginThrottleService());
+        controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext(),
+        };
+        return controller;
     }
 
     [Fact]

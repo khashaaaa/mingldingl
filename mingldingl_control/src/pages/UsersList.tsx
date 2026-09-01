@@ -34,7 +34,8 @@ export function UsersList() {
   async function handleExport() {
     setExporting(true);
     try {
-      const blob = await apiClient.users.export(search);
+      // Export what the table is actually showing, not a filter the user is still typing.
+      const blob = await apiClient.users.export(debouncedSearch);
       downloadBlob(blob, 'users.csv');
     } catch {
       toast({ variant: 'destructive', description: 'Export failed — try again.' });

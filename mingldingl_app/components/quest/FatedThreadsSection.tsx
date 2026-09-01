@@ -49,7 +49,6 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
   },
-  medallion: { fontSize: 22 },
   message: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.text, lineHeight: 20 },
   actions: { flexDirection: 'row', gap: 10 },
   btn: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },

@@ -25,6 +25,7 @@ const EVENT_ICONS: Record<string, EventGlyph> = {
   ReportPenalty: 'alert', ShipSparked: 'bow-arrow', QuestComplete: 'target',
   QuestChest: 'gift', MilestoneChest: 'medal', DuplicateLoot: 'recycle',
   AdminAdjustment: 'scale-balance',
+  CampaignRoomBonus: 'map-marker-path', CampaignBossBonus: 'trophy',
 };
 
 const EVENT_TYPE_KEYS: Record<string, string> = {
@@ -44,7 +45,18 @@ const EVENT_TYPE_KEYS: Record<string, string> = {
   MilestoneChest: 'event_milestone_chest',
   DuplicateLoot: 'event_duplicate_loot',
   AdminAdjustment: 'event_admin_adjustment',
+  CampaignRoomBonus: 'event_campaign_room_bonus',
+  CampaignBossBonus: 'event_campaign_boss_bonus',
 };
+
+/**
+ * Same guard as `tierLabel` in lib/tiers: an event type the engine has added but this map has
+ * not caught up with must show its raw identifier, not i18n-js's `[missing "en.X" translation]`.
+ */
+function eventLabel(eventType: string): string {
+  const key = EVENT_TYPE_KEYS[eventType];
+  return key ? i18n.t(key) : eventType;
+}
 
 export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Props) {
   if (items.length === 0) {
@@ -70,7 +82,7 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
         return (
           <View style={styles.row}>
             <Icon name={icon} size={16} color={COLORS.textDim} style={styles.icon} />
-            <Text style={styles.type}>{i18n.t(EVENT_TYPE_KEYS[item.eventType] ?? item.eventType)}</Text>
+            <Text style={styles.type}>{eventLabel(item.eventType)}</Text>
             <Text style={[styles.delta, { color }]}>{sign}{item.delta}</Text>
             <Text style={styles.date}>{date}</Text>
           </View>

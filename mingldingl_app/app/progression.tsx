@@ -86,7 +86,6 @@ export default function ProgressionScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   centered: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 },
-  emoji: { fontSize: 48 },
   errorTitle: { color: COLORS.text, fontSize: 18, textAlign: 'center' },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, marginBottom: 16 },
   xpBarWrap: { flex: 1 },

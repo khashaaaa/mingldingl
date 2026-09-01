@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import type { Session } from '@supabase/supabase-js';
@@ -13,6 +13,9 @@ export function isPhoneValid(phone: string): boolean {
 }
 
 const AUTH_CALL_TIMEOUT_MS = 10000;
+
+/** verify.mn's own guidance: never poll faster than 3s — SMS delivery is not sub-second. */
+export const VERIFICATION_POLL_MS = 3000;
 
 function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
@@ -43,26 +46,90 @@ async function supabaseAuthFetch(path: string, method: 'POST' | 'PUT', body: unk
   return json;
 }
 
+export interface PhoneVerification {
+  verificationId: string;
+  /** verify.mn's Mongolian instruction copy. Shown verbatim — it names the SIM to send from. */
+  displayInstruction: string;
+  /** Opens the SMS app pre-filled, so the code is never typed by hand. */
+  smsUri: string;
+  /**
+   * The same code the sms: URI carries, so the "text CODE to 144773 yourself" fallback does not
+   * depend on parsing the provider's URI — that fallback is exactly what the user needs when
+   * opening their SMS app failed.
+   */
+  code: string;
+  shortcode: string;
+  expiresAt: string;
+}
+
+export type VerificationOutcome = 'verified' | 'pending' | 'expired' | 'error';
+
 export function useAuth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setSession = useAuthStore((s) => s.setSession);
   const clearSession = useAuthStore((s) => s.clearSession);
+  const inFlight = useRef(false);
 
-  async function sendOtp(_phone: string): Promise<boolean> {
-    return true;
+  const clearError = useCallback(() => setError(null), []);
+
+  /**
+   * Asks the engine to open a verify.mn session. The engine holds the API key and generates the
+   * code; the app only ever sees the instruction and the sms: URI.
+   */
+  async function startPhoneVerification(phone: string): Promise<PhoneVerification | null> {
+    if (!isPhoneValid(phone)) {
+      setError(i18n.t('phone_invalid'));
+      return null;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiClient.auth.startPhoneVerification(phone);
+      return {
+        verificationId: res.verificationId ?? '',
+        displayInstruction: res.displayInstruction ?? '',
+        smsUri: res.smsUri ?? '',
+        code: res.code ?? '',
+        shortcode: res.shortcode ?? '144773',
+        expiresAt: res.expiresAt ?? new Date().toISOString(),
+      };
+    } catch {
+      setError(i18n.t('verification_start_failed'));
+      return null;
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function verifyOtp(phone: string, token: string): Promise<boolean> {
-    if (!/^\d{6}$/.test(token)) { setError(i18n.t('otp_invalid_code')); return false; }
+  /** One poll tick. The engine re-reads authoritative status from verify.mn. */
+  async function checkVerification(verificationId: string): Promise<VerificationOutcome> {
+    try {
+      const res = await apiClient.auth.phoneVerificationStatus(verificationId);
+      if (res.status === 'Verified') return 'verified';
+      if (res.status === 'Expired') return 'expired';
+      return 'pending';
+    } catch {
+      return 'error';
+    }
+  }
+
+  /**
+   * Completes sign-in for an already-verified number: creates the Supabase session, then binds the
+   * verification to it. The binding is what the engine trusts — the JWT's phone claim is not proof.
+   */
+  async function completeSignIn(verificationId: string, phone: string): Promise<boolean> {
+    if (inFlight.current) return false;
+    inFlight.current = true;
     setLoading(true);
     setError(null);
 
     let session: Session;
     try {
-      session = await withTimeout(supabaseAuthFetch('/auth/v1/signup', 'POST', {}), 'signInAnonymously (REST)') as Session;
+      session = await withTimeout(supabaseAuthFetch('/auth/v1/signup', 'POST', {}), 'signUp (REST)') as Session;
     } catch {
       setLoading(false);
+      inFlight.current = false;
       setError(i18n.t('otp_timed_out'));
       return false;
     }
@@ -75,12 +142,35 @@ export function useAuth() {
       );
       session = refreshed as Session;
     } catch {
+      // Non-fatal: the phone the engine trusts comes from the claim below, not this metadata.
     }
 
-    withTimeout(supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token }), 'setSession')
-      .catch(() => {});
+    try {
+      await withTimeout(
+        supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token }),
+        'setSession',
+      );
+    } catch {
+      setLoading(false);
+      inFlight.current = false;
+      setError(i18n.t('verification_claim_failed'));
+      return false;
+    }
+
+    // Must succeed before the session is accepted — without it the engine will refuse to create
+    // the account, which would strand the user in onboarding.
+    try {
+      await apiClient.auth.claimPhoneVerification(verificationId);
+    } catch {
+      await supabase.auth.signOut().catch(() => {});
+      setLoading(false);
+      inFlight.current = false;
+      setError(i18n.t('verification_claim_failed'));
+      return false;
+    }
 
     setLoading(false);
+    inFlight.current = false;
     setSession(session);
     return true;
   }
@@ -91,6 +181,7 @@ export function useAuth() {
         const { data: token } = await Notifications.getExpoPushTokenAsync();
         await apiClient.push.unregister(token).catch(() => {});
       } catch {
+        // Push de-registration is best-effort; never block sign-out on it.
       }
     }
 
@@ -100,5 +191,13 @@ export function useAuth() {
     queryClient.clear();
   }
 
-  return { sendOtp, verifyOtp, signOut, loading, error };
+  return {
+    startPhoneVerification,
+    checkVerification,
+    completeSignIn,
+    signOut,
+    loading,
+    error,
+    clearError,
+  };
 }

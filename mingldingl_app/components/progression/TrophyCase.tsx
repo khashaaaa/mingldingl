@@ -10,7 +10,7 @@ import { useMilestones } from '../../hooks/useMilestones';
 import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { useAuthStore } from '../../store/authStore';
 import { RARITY_COLORS } from '../../lib/tiers';
-import { i18n } from '../../lib/i18n';
+import { i18n, tKey } from '../../lib/i18n';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
 
 type ItemIconName = React.ComponentProps<typeof Icon>['name'];
@@ -66,7 +66,7 @@ export function TrophyCase() {
               <View style={styles.slotIconChip}>
                 <Icon name={TYPE_ICONS[it.itemType ?? ''] ?? 'help-circle-outline'} size={20} color={COLORS.gold} />
               </View>
-              <Text style={styles.slotName} numberOfLines={2}>{i18n.t(it.nameKey ?? '')}</Text>
+              <Text style={styles.slotName} numberOfLines={2}>{tKey(it.nameKey)}</Text>
               {it.equipped && <Text style={styles.equippedTag}>{i18n.t('equipped')}</Text>}
             </TouchableOpacity>
           ))}
@@ -79,7 +79,7 @@ export function TrophyCase() {
           {unopened.map((m) => (
             <TouchableOpacity key={m.id} disabled={isOpening} onPress={() => handleOpenMilestone(m.id!)} style={styles.milestoneRow}>
               <Icon name="treasure-chest-outline" size={20} color={COLORS.gold} />
-              <Text style={styles.milestoneName}>{i18n.t(m.nameKey ?? '')}</Text>
+              <Text style={styles.milestoneName}>{tKey(m.nameKey)}</Text>
               <Text style={styles.milestoneXp}>+{m.xp}</Text>
             </TouchableOpacity>
           ))}

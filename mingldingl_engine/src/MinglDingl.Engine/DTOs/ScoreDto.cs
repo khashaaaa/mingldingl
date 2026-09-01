@@ -36,7 +36,10 @@ public record ScoreEventDto(string EventType, int Delta, DateTime CreatedAt);
 
 public record ScoreHistoryResponse(IReadOnlyList<ScoreEventDto> Items, DateTime? NextCursor, Guid? NextCursorId);
 
-public record LeaderboardEntryDto(int Rank, string GemTier, bool IsCurrentUser);
+// Deliberately carries no display name: the leaderboard is anonymous, in keeping with
+// progressive profile reveal. Score is the basis of the ranking and is what makes one row
+// distinguishable from the next, so it is the one figure worth showing.
+public record LeaderboardEntryDto(int Rank, string GemTier, int Score, bool IsCurrentUser);
 
 public record LeaderboardResponse(string City, IReadOnlyList<LeaderboardEntryDto> Entries, int MyRank);
 

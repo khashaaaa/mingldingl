@@ -4,6 +4,7 @@ import { queryKeys } from '../lib/api/queryKeys';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfigField } from '@/components/ConfigField';
 import { useToast } from '@/hooks/use-toast';
+import { serverError } from '@/lib/apiError';
 
 export function Config() {
   const { toast } = useToast();
@@ -33,7 +34,7 @@ export function Config() {
       queryClient.invalidateQueries({ queryKey: queryKeys.config });
       toast({ variant: 'success', description: 'Reverted.' });
     },
-    onError: () => toast({ variant: 'destructive', description: 'Revert failed — try again.' }),
+    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Revert failed — try again.') }),
   });
 
   const categories = entries ? [...new Set(entries.map((e) => e.category))] : [];

@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
-import { COLORS, FONTS, RADIUS, metalGradient } from '../../lib/theme';
+import { COLORS, FONTS, RADIUS, metalGradient, tint } from '../../lib/theme';
 import { GemTierBadge } from './GemTierBadge';
 import { Icon } from '../ui/Icon';
 
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     gap: 5,
     overflow: 'hidden',
   },
-  topHighlight: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.14)' },
+  topHighlight: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: tint(COLORS.text, 0.14) },
   score: { fontFamily: FONTS.display, fontSize: 14, letterSpacing: 0.5 },
   pts: { fontFamily: FONTS.display, fontSize: 10, color: COLORS.textDim, letterSpacing: 1 },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 4 },

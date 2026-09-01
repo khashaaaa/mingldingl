@@ -25,7 +25,7 @@ export default function ActivitiesScreen() {
   const router = useRouter();
   const {
     suggestions, partnerPledged, isLoading, error,
-    confirmDate, isConfirming, completed,
+    confirmDate, isConfirming, confirmingId, completed,
     rated, rateBusiness, isRating, rateError,
   } = useActivitySuggestions(matchId);
 
@@ -183,8 +183,8 @@ export default function ActivitiesScreen() {
             <View style={styles.confirmWrap}>
               <GameButton
                 variant="ghost"
-                loading={isConfirming}
-                disabled={s.myConfirmed || riteLocked}
+                loading={confirmingId === s.id}
+                disabled={s.myConfirmed || riteLocked || isConfirming}
                 onPress={() => confirmDate(s.id)}
               >
                 {s.myConfirmed ? i18n.t('pledge_waiting') : i18n.t('pledge_encounter')}
@@ -222,7 +222,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: COLORS.ember,
     alignItems: 'center', justifyContent: 'center',
   },
-  sealIcon: { fontSize: 15 },
   cardTitle: { color: COLORS.text, fontSize: 16, fontFamily: FONTS.bodyBold },
   cardMeta: { color: COLORS.textDim, fontSize: 13, marginBottom: 12, fontFamily: FONTS.body },
   confirmWrap: { marginTop: 4, gap: 6 },
@@ -233,7 +232,6 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.brass, backgroundColor: COLORS.panel,
   },
   partnerPledgedText: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.gold },
-  emoji: { fontSize: 48 },
   title: { color: COLORS.text, fontSize: 22, fontFamily: FONTS.display, textAlign: 'center' },
   subtitle: { color: COLORS.textDim, fontSize: 14, textAlign: 'center', fontFamily: FONTS.body },
   completionCard: { alignItems: 'center', gap: 6, width: '100%' },
@@ -252,6 +250,5 @@ const styles = StyleSheet.create({
   rateLabel: { color: COLORS.gold, fontSize: 15, fontFamily: FONTS.bodyMedium, marginTop: 6 },
   stars: { flexDirection: 'row', gap: 4 },
   starTouchable: { padding: 8 },
-  star: { fontSize: 30, opacity: 0.9 },
   thanks: { color: COLORS.gold, fontSize: 16, fontFamily: FONTS.bodyMedium },
 });

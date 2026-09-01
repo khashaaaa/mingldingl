@@ -19,8 +19,10 @@ describe('api 401 response interceptor', () => {
     queryClient.clear();
   });
 
+  const authed = { headers: { Authorization: 'Bearer tok' } };
+
   it('clears the session AND the query cache on 401', async () => {
-    const err = { response: { status: 401 } };
+    const err = { response: { status: 401 }, config: authed };
 
     await expect(rejected(err)).rejects.toBe(err);
 
@@ -29,7 +31,19 @@ describe('api 401 response interceptor', () => {
   });
 
   it('leaves session and cache alone on non-401 errors', async () => {
-    const err = { response: { status: 500 } };
+    const err = { response: { status: 500 }, config: authed };
+
+    await expect(rejected(err)).rejects.toBe(err);
+
+    expect(useAuthStore.getState().session).toBe(fakeSession);
+    expect(queryClient.getQueryData(['userProfile'])).toEqual({ displayName: 'Old Account' });
+  });
+
+  // Queries mounted before sign-in completes go out with no Authorization header. That 401 says
+  // "you never sent a token", not "your token expired" — signing the user out on it is a
+  // self-inflicted logout during the login transition.
+  it('leaves session and cache alone on a 401 for a request that carried no token', async () => {
+    const err = { response: { status: 401 }, config: { headers: {} } };
 
     await expect(rejected(err)).rejects.toBe(err);
 

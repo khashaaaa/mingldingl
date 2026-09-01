@@ -1,4 +1,4 @@
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { Spinner } from 'tamagui';
 import { useRouter } from 'expo-router';
 import { useLeaderboard } from '../hooks/useLeaderboard';
@@ -18,7 +18,7 @@ const TOP_SLICE_SIZE = 50;
 export default function LeaderboardScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
-  const { data, isLoading, error, refetch } = useLeaderboard();
+  const { data, isLoading, error, isRefetching, refetch } = useLeaderboard();
 
   if (isLoading) {
     return (
@@ -50,14 +50,23 @@ export default function LeaderboardScreen() {
         data={entries}
         keyExtractor={(item, i) => `${item.rank ?? i}`}
         ListEmptyComponent={<Text style={styles.empty}>{i18n.t('leaderboard_empty')}</Text>}
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.gold} colors={[COLORS.gold]} />
+        }
         renderItem={({ item, index }) => {
           const showGap = ownRowDetached && item.isCurrentUser && index > 0;
           return (
             <>
               {showGap && <Text style={styles.gap}>···</Text>}
+              {/* The board is anonymous by design — no names come back from the engine — so the
+                  score is the only thing that distinguishes one rank from the next. Without it
+                  every row rendered identically. */}
               <View style={[styles.row, item.isCurrentUser && styles.rowSelf]}>
                 <Text style={[styles.rank, item.isCurrentUser && styles.rankSelf]}>#{item.rank}</Text>
                 <GemTierBadge tier={(item.gemTier as GemTier) ?? 'Garnet'} size={28} />
+                <Text style={[styles.score, item.isCurrentUser && styles.scoreSelf]}>
+                  {(item.score ?? 0).toLocaleString()} {i18n.t('pts')}
+                </Text>
                 {item.isCurrentUser && <Text style={styles.youTag}>{i18n.t('leaderboard_you')}</Text>}
               </View>
             </>
@@ -92,6 +101,8 @@ const styles = StyleSheet.create({
   },
   rank: { width: 40, fontFamily: FONTS.display, fontSize: 15, color: COLORS.textDim },
   rankSelf: { color: COLORS.gold },
+  score: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.text, flexShrink: 1 },
+  scoreSelf: { fontFamily: FONTS.bodyBold, color: COLORS.goldBright },
   youTag: {
     marginLeft: 'auto',
     fontFamily: FONTS.display,

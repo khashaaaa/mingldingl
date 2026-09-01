@@ -379,6 +379,15 @@ export interface paths {
                         "application/json": components["schemas"]["ProblemDetails"];
                     };
                 };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -1561,6 +1570,214 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/phone/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["StartPhoneVerificationRequest"];
+                    "text/json": components["schemas"]["StartPhoneVerificationRequest"];
+                    "application/*+json": components["schemas"]["StartPhoneVerificationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StartPhoneVerificationResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/phone/status/{verificationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    verificationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PhoneVerificationStatusResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/phone/callback/{verificationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    verificationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/phone/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ClaimPhoneVerificationRequest"];
+                    "text/json": components["schemas"]["ClaimPhoneVerificationRequest"];
+                    "application/*+json": components["schemas"]["ClaimPhoneVerificationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClaimPhoneVerificationResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/business": {
         parameters: {
             query?: never;
@@ -1713,6 +1930,126 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/matches/{matchId}/campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    matchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CampaignResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/matches/{matchId}/campaign/rooms/{roomId}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    matchId: string;
+                    roomId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClaimCampaignRoomResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -2055,7 +2392,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    matchId?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -4076,6 +4415,15 @@ export interface paths {
                         "application/json": components["schemas"]["UserResponse"];
                     };
                 };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -5266,6 +5614,19 @@ export interface components {
             district?: string | null;
             photo?: string | null;
         };
+        CampaignResponse: {
+            rooms?: components["schemas"]["CampaignRoomResponse"][] | null;
+            /** Format: int32 */
+            clearedCount?: number;
+            bossCleared?: boolean;
+        };
+        CampaignRoomResponse: {
+            roomId?: string | null;
+            cleared?: boolean;
+            claimed?: boolean;
+            /** Format: int32 */
+            bonusScore?: number;
+        };
         CandidateResponse: {
             /** Format: uuid */
             id?: string;
@@ -5295,16 +5656,30 @@ export interface components {
         };
         ChangePhoneRequest: {
             phoneNumber?: string | null;
+            /** Format: uuid */
+            verificationId?: string | null;
         };
         CitiesResponse: {
             provinces?: string[] | null;
             ulaanbaatarDistricts?: string[] | null;
+        };
+        ClaimCampaignRoomResponse: {
+            /** Format: int32 */
+            awarded?: number;
+            droppedItem?: components["schemas"]["DroppedItem"];
         };
         ClaimChestResponse: {
             /** Format: int32 */
             awarded?: number;
             alreadyClaimed?: boolean;
             item?: components["schemas"]["DroppedItem"];
+        };
+        ClaimPhoneVerificationRequest: {
+            /** Format: uuid */
+            verificationId?: string;
+        };
+        ClaimPhoneVerificationResponse: {
+            phone?: string | null;
         };
         ConfirmDateDto: {
             /** Format: uuid */
@@ -5464,6 +5839,8 @@ export interface components {
             /** Format: int32 */
             rank?: number;
             gemTier?: string | null;
+            /** Format: int32 */
+            score?: number;
             isCurrentUser?: boolean;
         };
         LeaderboardResponse: {
@@ -5604,6 +5981,13 @@ export interface components {
             /** Format: uuid */
             shipId?: string;
             weaverDisplayName?: string | null;
+        };
+        PhoneVerificationStatusResponse: {
+            status?: string | null;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            verifiedAt?: string | null;
         };
         PhotoUploadResponse: {
             url?: string | null;
@@ -5762,6 +6146,19 @@ export interface components {
             message?: components["schemas"]["MessageResponse"];
             /** Format: int32 */
             awarded?: number;
+        };
+        StartPhoneVerificationRequest: {
+            phone?: string | null;
+        };
+        StartPhoneVerificationResponse: {
+            /** Format: uuid */
+            verificationId?: string;
+            shortcode?: string | null;
+            smsUri?: string | null;
+            displayInstruction?: string | null;
+            /** Format: date-time */
+            expiresAt?: string;
+            code?: string | null;
         };
         SwearOathRequest: {
             oath?: string | null;

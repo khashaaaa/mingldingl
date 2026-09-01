@@ -17,6 +17,8 @@ export function useActivity() {
     initialPageParam: 1,
     getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
     staleTime: 1000 * 60 * 10,
+    // missions tab renders its own error state and retry.
+    meta: { silentError: true },
   });
 
   return {

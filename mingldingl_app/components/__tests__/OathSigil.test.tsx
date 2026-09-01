@@ -30,4 +30,14 @@ describe('OathSigil', () => {
     );
     expect(queryByText(/Held through/)).toBeNull();
   });
+
+  // The engine only ever stores Bond/Fate/Kinship, but seed data and older rows have carried
+  // other values. An unmapped oath must not leak i18n-js's `[missing "en." translation]` marker.
+  it('falls back to the raw value for an oath it has no name key for', () => {
+    const { getByText, queryByText } = render(
+      <OathSigil oath={'Hearth' as never} proven={false} />,
+    );
+    expect(getByText('Hearth')).toBeTruthy();
+    expect(queryByText(/missing/)).toBeNull();
+  });
 });

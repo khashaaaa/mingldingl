@@ -20,7 +20,7 @@ describe('SessionStatusCard', () => {
   it('renders an empty state when there is no upcoming session', () => {
     const { getByText } = render(
       <SessionStatusCard session={{ sessionId: null, rsvpOpensAt: null, rsvpClosesAt: null, scheduledStartAt: null, status: null, isRsvpd: false }}
-        now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} isRsvping={false} isCancelling={false} />,
+        now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
     expect(getByText(/The square stands quiet/i)).toBeTruthy();
   });
@@ -28,7 +28,7 @@ describe('SessionStatusCard', () => {
   it('shows an RSVP button and calls onRsvp with the session id when not yet RSVP\'d', () => {
     const onRsvp = jest.fn();
     const { getByText } = render(
-      <SessionStatusCard session={openSession()} now={NOW} onRsvp={onRsvp} onCancelRsvp={jest.fn()} isRsvping={false} isCancelling={false} />,
+      <SessionStatusCard session={openSession()} now={NOW} onRsvp={onRsvp} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
     fireEvent.press(getByText(/^RSVP$/i));
     expect(onRsvp).toHaveBeenCalledWith('s1');
@@ -37,7 +37,7 @@ describe('SessionStatusCard', () => {
   it('shows a Cancel RSVP button and calls onCancelRsvp when already RSVP\'d', () => {
     const onCancelRsvp = jest.fn();
     const { getByText } = render(
-      <SessionStatusCard session={openSession({ isRsvpd: true })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={onCancelRsvp} isRsvping={false} isCancelling={false} />,
+      <SessionStatusCard session={openSession({ isRsvpd: true })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={onCancelRsvp} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
     fireEvent.press(getByText(/Cancel RSVP/i));
     expect(onCancelRsvp).toHaveBeenCalledWith('s1');
@@ -45,16 +45,36 @@ describe('SessionStatusCard', () => {
 
   it('shows the RSVP countdown for an Open session', () => {
     const { getByText } = render(
-      <SessionStatusCard session={openSession()} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} isRsvping={false} isCancelling={false} />,
+      <SessionStatusCard session={openSession()} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
     expect(getByText(/8h 0m/)).toBeTruthy();
   });
 
   it('hides the RSVP button once the roster is Locked', () => {
     const { queryByText } = render(
-      <SessionStatusCard session={openSession({ status: 'Locked', isRsvpd: true })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} isRsvping={false} isCancelling={false} />,
+      <SessionStatusCard session={openSession({ status: 'Locked', isRsvpd: true })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
     expect(queryByText(/^RSVP$/i)).toBeNull();
     expect(queryByText(/Cancel RSVP/i)).toBeNull();
+  });
+
+  it('offers a way back into an in-progress session the user is RSVP\'d to', () => {
+    const onEnter = jest.fn();
+    const { getByText } = render(
+      <SessionStatusCard session={openSession({ status: 'InProgress', isRsvpd: true })} now={NOW}
+        onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={onEnter} isRsvping={false} isCancelling={false} />,
+    );
+    expect(getByText(/gathering is under way/i)).toBeTruthy();
+    fireEvent.press(getByText(/Return to the Square/i));
+    expect(onEnter).toHaveBeenCalledWith('s1');
+  });
+
+  it('does not offer entry to an in-progress session the user never joined', () => {
+    const { getByText, queryByText } = render(
+      <SessionStatusCard session={openSession({ status: 'InProgress', isRsvpd: false })} now={NOW}
+        onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
+    );
+    expect(getByText(/gathering is under way/i)).toBeTruthy();
+    expect(queryByText(/Return to the Square/i)).toBeNull();
   });
 });

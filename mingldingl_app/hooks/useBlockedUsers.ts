@@ -9,6 +9,8 @@ export function useBlockedUsers() {
   const query = useQuery({
     queryKey: queryKeys.blockedUsers,
     queryFn: () => apiClient.users.blockedUsers().then((items) => items.map(parseBlockedUser)),
+    // blocked-users screen renders its own error state and retry.
+    meta: { silentError: true },
   });
 
   const unblock = useMutation({

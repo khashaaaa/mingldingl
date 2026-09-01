@@ -118,8 +118,12 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         var firstOk = Assert.IsType<OkObjectResult>(first);
         var firstBody = Assert.IsType<VideoCompleteResponse>(firstOk.Value);
 
+        // A second completion is a normal outcome (the other participant hanging up), so it
+        // reports a zero award rather than an error the app would surface as a failure.
         var second = await controller.MarkComplete(new VideoCompleteDto(match.Id));
-        Assert.Equal(403, Assert.IsType<ObjectResult>(second).StatusCode);
+        var secondBody = Assert.IsType<VideoCompleteResponse>(Assert.IsType<OkObjectResult>(second).Value);
+        Assert.Equal(0, secondBody.Awarded);
+        Assert.Null(secondBody.DroppedItem);
 
         var videoCallEvents = await Db.ScoreEvents
             .Where(e => e.UserId == initiatorId && e.EventType == "VideoCallDone")

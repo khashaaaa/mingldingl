@@ -12,11 +12,12 @@ interface Props {
   now: number;
   onRsvp: (sessionId: string) => void;
   onCancelRsvp: (sessionId: string) => void;
+  onEnter: (sessionId: string) => void;
   isRsvping: boolean;
   isCancelling: boolean;
 }
 
-export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, isRsvping, isCancelling }: Props) {
+export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter, isRsvping, isCancelling }: Props) {
   if (!session?.sessionId) {
     return (
       <View style={styles.emptyWrap}>
@@ -30,7 +31,24 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, isRsvpin
   }
 
   const isOpen = session.status === 'Open';
+  const isInProgress = session.status === 'InProgress';
   const startsCountdown = formatCountdown(session.scheduledStartAt, now);
+
+  // An in-progress session used to render a frozen countdown with no way back in, which stranded
+  // anyone who left a round (or was bumped out) for the rest of the session.
+  if (isInProgress) {
+    return (
+      <AppCard style={styles.card}>
+        <Text style={styles.title}>{i18n.t('town_square_title')}</Text>
+        <Text style={styles.countdown}>{i18n.t('town_square_in_progress')}</Text>
+        {session.isRsvpd && (
+          <GameButton variant="primary" icon="bank" onPress={() => onEnter(session.sessionId!)}>
+            {i18n.t('town_square_rejoin')}
+          </GameButton>
+        )}
+      </AppCard>
+    );
+  }
 
   return (
     <AppCard style={styles.card}>
@@ -69,7 +87,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  emptyIcon: { fontSize: 40 },
   emptyTitle: { fontSize: 20, fontFamily: FONTS.display, color: COLORS.text },
   emptySub: { fontSize: 15, fontFamily: FONTS.body, color: COLORS.textDim, textAlign: 'center' },
 });

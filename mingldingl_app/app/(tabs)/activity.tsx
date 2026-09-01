@@ -2,6 +2,7 @@ import {
   Text,
   View,
   ScrollView,
+  RefreshControl,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -45,7 +46,7 @@ function missionPoints(b: Business): number {
 
 export default function ActivityScreen() {
   useLocaleStore((s) => s.locale);
-  const { data: businesses, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useActivity();
+  const { data: businesses, isLoading, isError, isRefetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useActivity();
   const router = useRouter();
 
   return (
@@ -54,6 +55,9 @@ export default function ActivityScreen() {
       <GameHeader title={i18n.t('mission_board')} icon="anvil" />
       <ScrollView
         contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.gold} colors={[COLORS.gold]} />
+        }
         onScroll={({ nativeEvent }) => {
           const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
           const nearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;

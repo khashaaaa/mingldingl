@@ -57,14 +57,14 @@ export function RevealStrip({ otherUser, messageCount }: Props) {
             <Image key={i} source={{ uri }} style={styles.photo} contentFit="cover" testID={`reveal-photo-${i}`} />
           ) : (
             <View key={i} style={[styles.photo, styles.locked]} accessibilityLabel={i18n.t('reveal_locked')} testID={`reveal-photo-locked-${i}`}>
-              <Icon name="lock" size={14} color={COLORS.bronze} />
+              <Icon name="lock" size={14} color={COLORS.textDim} />
             </View>
           )
         ))}
         <View style={styles.chips}>
           {chips.map((c) => (
             <View key={c.key} style={[styles.chip, c.value === null && styles.chipLocked]}>
-              {c.value === null && <Icon name="lock" size={10} color={COLORS.bronze} />}
+              {c.value === null && <Icon name="lock" size={10} color={COLORS.textDim} />}
               <Text style={[styles.chipText, c.value === null && styles.chipTextLocked]} numberOfLines={1}>
                 {c.value === null ? c.label : `${c.label}: ${c.value}`}
               </Text>
@@ -116,6 +116,6 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   chipLocked: { borderColor: COLORS.bronze },
-  chipText: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.text },
+  chipText: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.text, flexShrink: 1 },
   chipTextLocked: { color: COLORS.textDim },
 });

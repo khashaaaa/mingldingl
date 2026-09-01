@@ -20,7 +20,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
+    // Only a request that actually carried a token can tell us the session is dead. A query
+    // firing in the gap between mount and sign-in goes out with no Authorization header, and
+    // treating that 401 as an expiry signed the user straight back out.
+    const sentToken = Boolean(error?.config?.headers?.Authorization);
+    if (error?.response?.status === 401 && sentToken) {
       useAuthStore.getState().clearSession();
 
       queryClient.clear();

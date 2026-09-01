@@ -53,6 +53,9 @@ public class GhostingService
         _broadcast.BroadcastAsync("app-nudges", "match_status_changed",
             new { matchId, status = "Ghosted", userId = atFaultUserId });
 
+    /// <summary>Exposed so the sweep can push the same cutoff into SQL instead of filtering in memory.</summary>
+    public static TimeSpan StaleAfter => GhostThreshold;
+
     public static bool IsStale(Match match) =>
         match.Status == "Active" && match.LastMessageAt.HasValue &&
         DateTime.UtcNow - match.LastMessageAt.Value > GhostThreshold;

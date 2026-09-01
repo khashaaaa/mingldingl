@@ -1,4 +1,8 @@
-public record CreateShipRequest(string SlotAPhoneNumber, string SlotBPhoneNumber);
+using System.ComponentModel.DataAnnotations;
+
+public record CreateShipRequest(
+    [Required, MaxLength(FieldLimits.Phone)] string SlotAPhoneNumber,
+    [Required, MaxLength(FieldLimits.Phone)] string SlotBPhoneNumber);
 
 public record CreateShipResponse(bool Success, string? Error, string? SlotACode = null, string? SlotBCode = null);
 

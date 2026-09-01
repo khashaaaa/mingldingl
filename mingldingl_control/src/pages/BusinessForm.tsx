@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { serverError } from '@/lib/apiError';
 
 const CATEGORIES = ['Cafe', 'Cinema', 'Hiking', 'BoardGameCafe', 'Other'];
 
@@ -68,7 +69,7 @@ function BusinessFormFields({ id, existing }: { id?: string; existing?: Business
       if (isEditing) qc.invalidateQueries({ queryKey: queryKeys.businessDetail(id!) });
       navigate('/business');
     },
-    onError: () => setError('Save failed — check the fields and try again.'),
+    onError: (err) => setError(serverError(err, 'Save failed — check the fields and try again.')),
   });
 
   return (

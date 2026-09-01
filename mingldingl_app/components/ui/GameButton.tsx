@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Pressable, Text, Animated, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { COLORS, FONTS, RADIUS, overlay, metalGradient } from '../../lib/theme';
+import { COLORS, FONTS, RADIUS, overlay, metalGradient, tint } from '../../lib/theme';
 import { Icon } from './Icon';
 
 interface Props {
@@ -20,7 +20,7 @@ interface Props {
 const GRADIENTS: Record<string, [string, string, string]> = {
   primary: ['#F2A03D', COLORS.gold, '#8A4310'],
   ghost: ['#2A241C', COLORS.panelRaised, '#14100C'],
-  danger: ['#934C2C', '#913416', '#5E2E17'],
+  danger: ['#934C2C', COLORS.emberDark, '#5E2E17'],
   brass: metalGradient(COLORS.brass),
 };
 const BORDERS: Record<string, string> = {
@@ -28,6 +28,12 @@ const BORDERS: Record<string, string> = {
   ghost: COLORS.bronze,
   danger: '#7E3D1F',
   brass: COLORS.brassDark,
+};
+const HIGHLIGHTS: Record<string, string> = {
+  primary: tint(COLORS.goldBright, 0.4),
+  ghost: tint(COLORS.text, 0.1),
+  danger: tint(COLORS.emberLight, 0.4),
+  brass: tint(COLORS.brass, 0.5),
 };
 const LABELS: Record<string, string> = {
   primary: '#1A1406',
@@ -79,7 +85,7 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
         ]}
       >
         <LinearGradient colors={GRADIENTS[variant]} style={StyleSheet.absoluteFill} />
-        <View style={styles.topHighlight} />
+        <View style={[styles.topHighlight, { backgroundColor: HIGHLIGHTS[variant] }]} />
         {isMetal && <View style={styles.bottomShadow} />}
         {loading ? (
           <ActivityIndicator color={LABELS[variant]} />
@@ -124,7 +130,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0, left: 0, right: 0,
     height: 1,
-    backgroundColor: 'rgba(245,168,60,0.4)',
   },
   bottomShadow: {
     position: 'absolute',

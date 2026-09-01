@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { TamaguiProvider } from 'tamagui';
@@ -10,6 +10,7 @@ import { YesevaOne_400Regular } from '@expo-google-fonts/yeseva-one/400Regular';
 import { Alegreya_400Regular } from '@expo-google-fonts/alegreya/400Regular';
 import { Alegreya_500Medium } from '@expo-google-fonts/alegreya/500Medium';
 import { Alegreya_700Bold } from '@expo-google-fonts/alegreya/700Bold';
+import { AlegreyaSC_700Bold } from '@expo-google-fonts/alegreya-sc/700Bold';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAuthStore } from '../store/authStore';
 import { useProfile } from '../hooks/useProfile';
@@ -19,12 +20,15 @@ import { queryClient } from '../lib/api/queryClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api/apiClient';
-import { COLORS } from '../lib/theme';
+import { COLORS, FONTS } from '../lib/theme';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { installGlobalErrorHandlers } from '../lib/globalErrorHandler';
 import { NudgeToast } from '../components/modals/NudgeToast';
 import { RewardToastHost } from '../components/RewardToastHost';
+import { AlertModal } from '../components/modals/AlertModal';
+import { GameButton } from '../components/ui/GameButton';
+import { i18n } from '../lib/i18n';
 import { wireFocusToAppState } from '../lib/appFocus';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useRealtimeNudges } from '../hooks/useRealtimeNudges';
@@ -38,6 +42,16 @@ installGlobalErrorHandlers();
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.bg },
+  splash: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+    paddingHorizontal: 28,
+  },
+  splashTitle: { fontFamily: FONTS.display, fontSize: 20, color: COLORS.text, textAlign: 'center' },
+  splashBody: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textDim, textAlign: 'center' },
   webFrame: Platform.OS === 'web'
     ? { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' }
     : { flex: 1 },
@@ -57,7 +71,7 @@ function AppContent() {
   const setStreakBonusPending = useAuthStore((s) => s.setStreakBonusPending);
   const pendingNudge = useAuthStore((s) => s.pendingNudge);
   const setPendingNudge = useAuthStore((s) => s.setPendingNudge);
-  const { data: userProfile, isLoading: profileLoading, isError: profileError } = useProfile();
+  const { data: userProfile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useProfile();
   const bumpScore = useOptimisticScoreBump();
   const isOnline = useNetworkStatus();
   useRealtimeNudges();
@@ -69,11 +83,12 @@ function AppContent() {
   const [mounted, setMounted] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
     YesevaOne_400Regular,
-    Alegreya_400Regular, Alegreya_500Medium, Alegreya_700Bold,
+    Alegreya_400Regular, Alegreya_500Medium, Alegreya_700Bold, AlegreyaSC_700Bold,
     'CloisterBlack-Light': require('../assets/fonts/CloisterBlack.ttf'),
     ...MaterialCommunityIcons.font,
   });
 
+  const [dailyLoginFailed, setDailyLoginFailed] = useState(false);
   const [fontTimeout, setFontTimeout] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setFontTimeout(true), 3000);
@@ -121,6 +136,9 @@ function AppContent() {
         setStreakBonusPending(!!daily.streakBonusAwarded);
         queryClient.invalidateQueries({ queryKey: queryKeys.scoreDetail });
       } catch {
+        // Don't lose the daily award to one bad request — retry once the profile query settles.
+        queryClient.invalidateQueries({ queryKey: queryKeys.scoreDetail });
+        setDailyLoginFailed(true);
       }
     });
     return () => subscription.unsubscribe();
@@ -133,7 +151,9 @@ function AppContent() {
     if (!session) {
       if (!inAuth) router.replace('/(auth)/phone');
     } else if (profileLoading) {
+      // Hold position until the profile query settles.
     } else if (profileError) {
+      // Handled by the recovery screen below rather than by routing.
     } else if (!userProfile) {
       if (!inOnboarding) router.replace('/(onboarding)');
     } else {
@@ -141,7 +161,23 @@ function AppContent() {
     }
   }, [mounted, storeHydrated, session, profileLoading, profileError, userProfile, segments]);
 
-  if (!fontsReady || !localeReady) return null;
+  if (!fontsReady || !localeReady) {
+    return (
+      <View style={styles.splash}>
+        <ActivityIndicator color={COLORS.gold} size="large" />
+      </View>
+    );
+  }
+
+  if (session && profileError && !userProfile) {
+    return (
+      <View style={styles.splash}>
+        <Text style={styles.splashTitle}>{i18n.t('profile_load_error_title')}</Text>
+        <Text style={styles.splashBody}>{i18n.t('profile_load_error_body')}</Text>
+        <GameButton variant="primary" onPress={() => refetchProfile()}>{i18n.t('retry')}</GameButton>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaProvider>
@@ -153,6 +189,13 @@ function AppContent() {
               <Stack screenOptions={{ headerShown: false }} />
             </ErrorBoundary>
             <RewardToastHost />
+            <AlertModal
+              visible={dailyLoginFailed}
+              tone="warning"
+              title={i18n.t('action_failed_title')}
+              message={i18n.t('action_failed_body')}
+              onDismiss={() => setDailyLoginFailed(false)}
+            />
             {pendingNudge && (
               <NudgeToast
 

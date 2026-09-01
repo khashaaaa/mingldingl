@@ -10,6 +10,7 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isPhoneValid, useAuth } from '../../hooks/useAuth';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
@@ -17,14 +18,19 @@ import { GameButton } from '../../components/ui/GameButton';
 import { DismissKeyboardView } from '../../components/ui/DismissKeyboardView';
 import { GlowText } from '../../components/vfx/GlowText';
 import { EmberField } from '../../components/vfx/EmberField';
+import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
+import { SectionDivider } from '../../components/ui/SectionDivider';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+
+const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function PhoneScreen() {
   useLocaleStore((s) => s.locale);
   const [phone, setPhone] = useState('');
-  const { sendOtp, loading, error } = useAuth();
+  const { startPhoneVerification, loading, error, clearError } = useAuth();
   const router = useRouter();
   const [screenSize, setScreenSize] = useState({ w: 0, h: 0 });
+  const insets = useSafeAreaInsets();
 
   function onContainerLayout(e: LayoutChangeEvent) {
     const { width, height } = e.nativeEvent.layout;
@@ -33,9 +39,21 @@ export default function PhoneScreen() {
 
   async function handleSend() {
     Keyboard.dismiss();
-    if (!isPhoneValid(phone)) return;
-    const ok = await sendOtp(phone);
-    if (ok) router.push({ pathname: '/(auth)/otp', params: { phone } });
+    if (!isPhoneValid(phone) || loading) return;
+    const verification = await startPhoneVerification(phone);
+    if (!verification) return;
+    router.push({
+      pathname: '/(auth)/otp',
+      params: {
+        phone,
+        verificationId: verification.verificationId,
+        smsUri: verification.smsUri,
+        code: verification.code,
+        displayInstruction: verification.displayInstruction,
+        shortcode: verification.shortcode,
+        expiresAt: verification.expiresAt,
+      },
+    });
   }
 
   return (
@@ -44,12 +62,16 @@ export default function PhoneScreen() {
         style={styles.container}
         onLayout={onContainerLayout}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        // Measured relative to its parent, so the offset is that parent's screen-space origin —
+        // the root SafeAreaView's top edge.
+        keyboardVerticalOffset={insets.top}
       >
+        <TiledBackdrop source={DUNGEON_WALL_ASSET} />
         {screenSize.w > 0 && <EmberField width={screenSize.w} height={screenSize.h} density={10} />}
         <View style={styles.inner}>
           <GlowText style={styles.logo}>MINGLDINGL</GlowText>
           <Text style={styles.subtitle}>{i18n.t('enter_the_realm')}</Text>
-          <View style={styles.divider} />
+          <View style={styles.divider}><SectionDivider tint={COLORS.gold} /></View>
           <Text style={styles.label}>{i18n.t('your_phone_number')}</Text>
           <View style={styles.inputRow}>
             <View style={styles.prefixBadge}>
@@ -58,7 +80,10 @@ export default function PhoneScreen() {
             <TextInput
               style={styles.input}
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(t) => { setPhone(t); if (error) clearError(); }}
+              autoFocus
+              autoComplete="tel"
+              textContentType="telephoneNumber"
               placeholder={i18n.t('phone_placeholder')}
               placeholderTextColor={COLORS.textDim}
               keyboardType="phone-pad"
@@ -108,7 +133,8 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
   },
   divider: {
-    height: 24,
+    alignSelf: 'stretch',
+    marginVertical: 4,
   },
   label: {
     fontSize: 13,

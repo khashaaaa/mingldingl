@@ -297,7 +297,8 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
         await initiatorController.RespondIcebreaker(match.Id, new IcebreakerRespondDto(icebreaker.Id, "Mine"));
 
         Db.ChangeTracker.Clear();
-        Assert.Empty(Db.UserMilestones.Where(m => m.MilestoneId == "first_icebreaker"));
+        Assert.Empty(Db.UserMilestones.Where(m =>
+            (m.UserId == initiator.Id || m.UserId == receiver.Id) && m.MilestoneId == "first_icebreaker"));
 
         var receiverController = BuildController(receiver.Id);
         await receiverController.RespondIcebreaker(match.Id, new IcebreakerRespondDto(icebreaker.Id, "Theirs"));
@@ -350,5 +351,117 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
 
         var result = Assert.IsType<ObjectResult>(await controller.GetIcebreakerStatus(match.Id, icebreaker.Id));
         Assert.Equal(403, result.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetIcebreaker_ServesBothParticipantsTheSameQuestion()
+    {
+        // A random draw per request meant the two users answered different questions, so
+        // BothRespondedAsync never became true: no completion, no reveal, no award.
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        var match = new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active" };
+        Db.Matches.Add(match);
+        for (var i = 0; i < 8; i++)
+            Db.Icebreakers.Add(new Icebreaker { QuestionText = $"Q{i}", Type = "OpenText", IsActive = true });
+        await Db.SaveChangesAsync();
+
+        var mine = Assert.IsType<IcebreakerQuestionResponse>(
+            Assert.IsType<OkObjectResult>(await BuildController(initiator.Id).GetIcebreaker(match.Id)).Value);
+        var theirs = Assert.IsType<IcebreakerQuestionResponse>(
+            Assert.IsType<OkObjectResult>(await BuildController(receiver.Id).GetIcebreaker(match.Id)).Value);
+
+        Assert.Equal(mine.Id, theirs.Id);
+    }
+
+    [Fact]
+    public async Task GetIcebreaker_ReturnsTheSameQuestionOnEveryLoad()
+    {
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        var match = new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active" };
+        Db.Matches.Add(match);
+        for (var i = 0; i < 8; i++)
+            Db.Icebreakers.Add(new Icebreaker { QuestionText = $"Q{i}", Type = "OpenText", IsActive = true });
+        await Db.SaveChangesAsync();
+
+        var controller = BuildController(initiator.Id);
+        var ids = new List<Guid>();
+        for (var i = 0; i < 10; i++)
+            ids.Add(Assert.IsType<IcebreakerQuestionResponse>(
+                Assert.IsType<OkObjectResult>(await controller.GetIcebreaker(match.Id)).Value).Id);
+
+        Assert.Single(ids.Distinct());
+    }
+
+    [Fact]
+    public async Task GetIcebreaker_NeverServesAnInactiveQuestion()
+    {
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        Db.Icebreakers.Add(new Icebreaker { QuestionText = "Active", Type = "OpenText", IsActive = true });
+        Db.Icebreakers.Add(new Icebreaker { QuestionText = "Retired", Type = "OpenText", IsActive = false });
+
+        // Several matches, so the stable index is exercised across different seeds.
+        var matches = Enumerable.Range(0, 6)
+            .Select(_ => new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active" })
+            .ToList();
+        Db.Matches.AddRange(matches);
+        await Db.SaveChangesAsync();
+
+        var inactiveIds = Db.Icebreakers.Where(i => !i.IsActive).Select(i => i.Id).ToHashSet();
+        Assert.NotEmpty(inactiveIds);
+
+        foreach (var match in matches)
+        {
+            var served = Assert.IsType<IcebreakerQuestionResponse>(
+                Assert.IsType<OkObjectResult>(await BuildController(initiator.Id).GetIcebreaker(match.Id)).Value);
+            Assert.DoesNotContain(served.Id, inactiveIds);
+        }
+    }
+
+    [Fact]
+    public async Task GetIcebreaker_SpreadsAcrossQuestionsRatherThanPinningEveryMatchToOne()
+    {
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        for (var i = 0; i < 8; i++)
+            Db.Icebreakers.Add(new Icebreaker { QuestionText = $"Q{i}", Type = "OpenText", IsActive = true });
+        var matches = Enumerable.Range(0, 25)
+            .Select(_ => new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active" })
+            .ToList();
+        Db.Matches.AddRange(matches);
+        await Db.SaveChangesAsync();
+
+        var served = new List<Guid>();
+        foreach (var match in matches)
+            served.Add(Assert.IsType<IcebreakerQuestionResponse>(
+                Assert.IsType<OkObjectResult>(await BuildController(initiator.Id).GetIcebreaker(match.Id)).Value).Id);
+
+        Assert.True(served.Distinct().Count() > 1, "every match was pinned to the same question");
+    }
+
+    [Fact]
+    public async Task GetQuiz_ServesBothParticipantsTheSameQuiz()
+    {
+        // Compatibility is only computed between two responses to the same quiz id.
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        Db.Quizzes.AddRange(Enumerable.Range(0, 4).Select(i => new Quiz { Title = $"Quiz {i}" }));
+        var match = new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active" };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        var first = Assert.IsType<QuizDetailsResponse>(
+            Assert.IsType<OkObjectResult>(await BuildController(initiator.Id).GetQuiz(match.Id)).Value);
+        var second = Assert.IsType<QuizDetailsResponse>(
+            Assert.IsType<OkObjectResult>(await BuildController(receiver.Id).GetQuiz(match.Id)).Value);
+
+        Assert.Equal(first.Id, second.Id);
     }
 }

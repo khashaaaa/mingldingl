@@ -16,14 +16,19 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AdminAuditService>();
         services.AddScoped<TownSquareService>();
         services.AddScoped<OathService>();
+        services.AddScoped<PhoneVerificationService>();
+        services.AddScoped<CampaignService>();
         services.AddSingleton<VideoTokenService>();
         services.AddSingleton<PhotoCompressionService>();
         services.AddSingleton<LocalFileStorageService>();
         services.AddSingleton<ConfigService>();
+        services.AddSingleton<LoginThrottleService>();
 
         services.AddHttpClient<PushNotificationService>(client => client.Timeout = TimeSpan.FromSeconds(5));
 
         services.AddHttpClient<SupabaseBroadcastService>(client => client.Timeout = TimeSpan.FromSeconds(5));
+
+        services.AddHttpClient<VerifyMnClient>(client => client.Timeout = TimeSpan.FromSeconds(10));
 
         services.AddSingleton<DailyMaintenanceBackgroundService>();
         services.AddHostedService<DailyMaintenanceBackgroundService>(sp => sp.GetRequiredService<DailyMaintenanceBackgroundService>());

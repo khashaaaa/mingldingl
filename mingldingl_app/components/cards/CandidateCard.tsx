@@ -8,7 +8,7 @@ import { Icon } from '../ui/Icon';
 import OathSigil from '../OathSigil';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
-import { ITEM_NAME_KEYS } from '../../lib/tiers';
+import { itemLabel } from '../../lib/tiers';
 import type { Candidate } from '../../models/user';
 
 interface Props {
@@ -85,7 +85,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
           <GemTierBadge tier={candidate.gemTier} size={32} />
         </View>
         {candidate.equippedTitleId && (
-          <Text style={styles.equippedTitle}>{i18n.t(ITEM_NAME_KEYS[candidate.equippedTitleId] ?? '')}</Text>
+          <Text style={styles.equippedTitle}>{itemLabel(candidate.equippedTitleId)}</Text>
         )}
         <OathSigil oath={candidate.oath} proven={candidate.oathProven} size="sm" />
         {candidate.city && (

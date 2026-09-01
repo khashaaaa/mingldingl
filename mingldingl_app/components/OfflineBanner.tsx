@@ -1,12 +1,14 @@
-import { Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../lib/i18n';
 import { COLORS, FONTS } from '../lib/theme';
 
 export function OfflineBanner() {
+  const insets = useSafeAreaInsets();
   return (
-    <Text style={styles.banner} accessibilityLiveRegion="polite">
-      {i18n.t('offline_banner')}
-    </Text>
+    <View style={[styles.banner, { paddingTop: insets.top + 6 }]} accessibilityLiveRegion="polite">
+      <Text style={styles.text}>{i18n.t('offline_banner')}</Text>
+    </View>
   );
 }
 
@@ -17,11 +19,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    backgroundColor: COLORS.ember,
-    color: '#fff',
+    backgroundColor: COLORS.emberDark,
+    paddingBottom: 6,
+    paddingHorizontal: 12,
+  },
+  text: {
+    color: COLORS.text,
     fontFamily: FONTS.bodyBold,
     fontSize: 12,
     textAlign: 'center',
-    paddingVertical: 6,
   },
 });

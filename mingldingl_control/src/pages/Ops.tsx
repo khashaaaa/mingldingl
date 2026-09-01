@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import { serverError } from '@/lib/apiError';
 
 export function Ops() {
   const { toast } = useToast();
@@ -24,7 +25,7 @@ export function Ops() {
       qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
       toast({ variant: 'success', description: `Sweep ran at ${new Date().toLocaleTimeString()}` });
     },
-    onError: () => toast({ variant: 'destructive', description: 'Sweep failed — try again.' }),
+    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Sweep failed — try again.') }),
   });
 
   return (

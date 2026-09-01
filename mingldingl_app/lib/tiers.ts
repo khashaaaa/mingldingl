@@ -1,4 +1,5 @@
 import type { GemTier } from '../models/user';
+import { i18n } from './i18n';
 
 export const TIER_ORDER: GemTier[] = ['Garnet', 'Opal', 'Amethyst', 'Sapphire', 'Ruby', 'Emerald'];
 
@@ -79,6 +80,38 @@ export const ITEM_NAME_KEYS: Record<string, string> = {
   emblem_torch: 'item_emblem_torch', emblem_worn_map: 'item_emblem_map',
   emblem_lucky_dice: 'item_emblem_dice', emblem_phoenix: 'item_emblem_phoenix',
 };
+const TIER_NAME_KEYS: Record<GemTier, string> = {
+  Garnet: 'gem_garnet', Opal: 'gem_opal', Amethyst: 'gem_amethyst',
+  Sapphire: 'gem_sapphire', Ruby: 'gem_ruby', Emerald: 'gem_emerald',
+};
+const MEMBERSHIP_NAME_KEYS: Record<string, string> = {
+  Free: 'rank_free', Silver: 'rank_silver', Gold: 'rank_gold',
+};
+
+/**
+ * Gem tiers and guild ranks arrive from the engine as English identifiers. Falling back to the
+ * raw identifier rather than `i18n.t('')` matters: an unmapped key would otherwise render as
+ * i18n-js's literal `[missing "mn." translation]` marker in the UI.
+ */
+export function tierLabel(tier: string | null | undefined): string {
+  if (!tier) return '';
+  const key = TIER_NAME_KEYS[tier as GemTier];
+  return key ? i18n.t(key) : tier;
+}
+
+export function membershipLabel(level: string | null | undefined): string {
+  if (!level) return '';
+  const key = MEMBERSHIP_NAME_KEYS[level];
+  return key ? i18n.t(key) : level;
+}
+
+/** Same guard for loot item names, which are keyed by an engine-side catalogue id. */
+export function itemLabel(itemId: string | null | undefined): string {
+  if (!itemId) return '';
+  const key = ITEM_NAME_KEYS[itemId];
+  return key ? i18n.t(key) : itemId;
+}
+
 export const FRAME_COLORS: Record<string, string> = {
   frame_bronze_ring: '#4A5A6B', frame_ember_ring: '#C1461E',
   frame_gold_crown: '#F5A83C', frame_iron_thorns: '#8F97A3',

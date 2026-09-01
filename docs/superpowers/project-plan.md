@@ -733,6 +733,400 @@ All 11 tasks shipped (Group A — Oath, Tasks 1–6; Group B — Flame Rite, Tas
 
 ---
 
+## Phone Verification via verify.mn — Shipped (2026-08-31)
+
+### What shipped
+
+Replaced the stubbed OTP flow (`sendOtp` was a no-op returning `true`, `verifyOtp`
+accepted any 6 digits and did an anonymous Supabase signup — i.e. anyone could claim
+any number) with real phone-ownership proof via **verify.mn**.
+
+verify.mn is **Mobile-Originated**: the user texts *our* code *to* shortcode 144773.
+There is no outbound SMS and no code to type in, which reshaped the second auth screen
+entirely — it now shows verify.mn's Mongolian `displayInstruction` verbatim, a one-tap
+`sms:` button, a live TTL countdown, and a 3s poll, with an explicit expired state.
+
+**Engine** — `VerifyMnClient` (HTTP), `PhoneVerificationService` (session lifecycle +
+single-use claim), `AuthController` (`/auth/phone/start|status|callback|claim`),
+`PhoneVerification` entity + `AddPhoneVerifications` migration.
+**App** — `useAuth` rewritten around start/poll/complete, `(auth)/otp.tsx` rewritten,
+`PhoneChangeModal` for the settings phone-change path.
+
+### Decisions worth keeping
+
+- **The engine owns the proof, not the client.** `POST /users` refuses to create a new
+  account without a claimed verification and reads `PhoneNumber` from it. The JWT's
+  phone claim is client-set (`user_metadata.phone`) and is no longer trusted anywhere.
+  `PUT /users/me/phone` requires the same proof, so a number can't be swapped freely.
+- **A claim is single-use and cannot be replayed** onto a second account, has a 30-minute
+  window after verification, and is refused if the number already belongs to someone else
+  (`Users.PhoneNumber` is uniquely indexed, so this is belt-and-braces).
+- **Session reuse is deliberate.** Each SMS costs the *user* 150₮, so `StartAsync` returns
+  the in-flight session for the same number instead of minting a second code.
+- **Unset key = inert enforcement.** With no `VerifyMn:ApiKey`, `IsConfigured` is false and
+  the old behaviour stands. That is what lets the pre-existing engine tests pass unchanged,
+  and it is also the deploy hazard: **production must set the key or the gate is off.**
+- **The callback is a hint, never evidence.** No body, no signature; it only triggers a
+  re-read of `GET /sessions/{id}`. `CallbackBaseUrl` is left empty unless the engine is
+  publicly reachable, because verify.mn retries failed callbacks.
+
+### Verified
+
+560 engine tests (19 new), 379 app tests, app typecheck, control build. Live smoke test
+against the real API: session created, Mongolian instruction returned, status polled,
+duplicate start reused the same session and code, 7-digit/letters rejected 400,
+`claim` and `POST /users` return 401 unauthenticated, callback answered 200 in 144ms.
+
+### Open
+
+- **Account recovery on reinstall is not built.** A reinstall yields a new Supabase
+  anonymous identity; claiming the same number then hits `PhoneInUse` and the user is
+  stuck rather than being returned to their account. This is the main gap — it needs a
+  deliberate "this number already has an account, sign back into it" path.
+- **No rate limit on `POST /auth/phone/start`.** It is anonymous and creates provider
+  sessions. Sessions are free and reuse caps per-number growth, but a wide spray across
+  many numbers is currently uncapped.
+- The old `verify_button` / `otp_invalid_code` i18n keys were removed; `verify_title` was
+  repurposed from "Enter the code" to "Prove your number".
+
+## Security & Data-Hygiene Hardening — Shipped (2026-08-31)
+
+Found by an engine-focused audit after the verify.mn work; three of the items were
+introduced by that work and are self-corrections.
+
+### What changed
+
+- **Admin login brute-force protection.** `POST /admin/auth/login` guards the only admin
+  account and was anonymous and unlimited. `LoginThrottleService` locks a
+  username+IP pair for 15 minutes after 5 failures in a 15-minute window and returns
+  429 with `Retry-After`. In-memory and per-instance — **a multi-instance deploy needs
+  this moved to shared state.**
+- **Deletion now deletes.** Anonymisation cleared `PhotoUrls` but `/uploads` is public
+  and unauthenticated and `LocalFileStorageService` had no delete method at all, so every
+  photo stayed fetchable forever by anyone holding an old URL. Added
+  `DeleteByPublicUrl`, called from the anonymisation sweep and when `PUT /users/me`
+  drops a photo. Also purges `PhoneVerifications` rows for anonymised users (they hold
+  the number in plaintext) and stale unclaimed rows after 24h.
+- **Input length caps.** There was not one `[MaxLength]` in the codebase: every string
+  was bounded only by Kestrel's 30MB default. `DTOs/FieldLimits.cs` now centralises the
+  caps and every free-text request field carries one. The app's composer caps at the
+  same 2000 chars so a long message is stopped locally rather than by a 400.
+- **CORS allowlist.** `SetIsOriginAllowed(_ => true) + AllowCredentials()` reflected any
+  origin with credentials, unconditionally including Production. Now `Cors:AllowedOrigins`
+  from config; Development without it stays permissive **but drops credentials**, and
+  Production **refuses to boot** without it rather than failing open.
+- **Phone-verification races (self-correction).** `ClaimAsync` was read-then-write, so
+  the "single use" guarantee did not survive concurrency — now a conditional
+  `UPDATE … WHERE "ClaimedByUserId" IS NULL`. `StartAsync` could open two provider
+  sessions for one number, leaving the user holding two codes — now serialised on a
+  `pg_advisory_xact_lock` keyed by phone, joining an ambient transaction rather than
+  nesting one.
+- **Sweep no longer loads whole tables.** The hourly pass pulled every active match,
+  every user (daily), and every paid user into memory to filter in C#. Staleness now
+  goes into SQL via `GhostingService.StaleAfter`, and the budget reset and membership
+  expiry are single `ExecuteUpdateAsync` statements.
+- **Reveal level on a fresh match.** `NewMatch` stored `RevealLevel = 1` but
+  `GetRevealLevel` recomputed from `MessageCount`, where 0 messages meant level 0 — so a
+  just-accepted match returned a nameless, photoless, bio-less profile, contradicting
+  "Match accepted → first name, 1 photo, short bio". The stored column is now the floor
+  (`Math.Max`), which also makes the Ghosted freeze a case of one rule instead of a
+  second source of truth.
+- **Path-traversal guard** on `LocalFileStorageService` (latent — no caller passed user
+  input, but the service accepted arbitrary strings).
+
+### Worth knowing
+
+- Validation attributes on record primary-constructor parameters must **not** use the
+  `[property: ...]` target — ASP.NET throws `InvalidOperationException` at model-binding
+  time. Caught by a live smoke test, not by the unit tests, which never exercise binding.
+- Verified: 582 engine tests (22 new), 379 app tests, app typecheck, control build. Live:
+  oversized phone → 400, five bad admin logins → 401 then 429 with `Retry-After: 900`,
+  hostile origin gets `Allow-Origin` but no `Allow-Credentials`.
+
+### Deliberately not done
+
+- **No general API rate limiting.** Only the admin login is throttled. `POST
+  /auth/phone/start` is still anonymous and uncapped across distinct numbers (per-number
+  growth is capped by session reuse).
+
+## Error-Handling Consolidation — Shipped (2026-08-31)
+
+Prompted by an audit of how centralized error handling actually was. The mutation and
+crash paths were already solid; reads and domain-vs-fault classification were not.
+
+- **`DomainException`** now carries business rules (status code + caller-facing message)
+  and `ExceptionHandlingMiddleware` maps it centrally. Previously `TownSquareService`
+  threw `InvalidOperationException`/`ArgumentException` and `TownSquareController` caught
+  those types and echoed `ex.Message` — so an EF-thrown `InvalidOperationException` would
+  have been reported as a **400 containing internal text** instead of a logged 500. Four
+  try/catch blocks deleted from the controller. Internal preconditions
+  (`GenerateRoundRobin`'s count check, missing config) stay as framework exceptions and
+  correctly become 500s.
+- **`QueryCache.onError` in the app.** There was no global handler for reads at all, and
+  12 of 27 query-consuming screens had no error state — so a failed read fell through to
+  the screen's *empty* state and looked like "no matches"/"no quests". The handler
+  surfaces the server's message via `getApiErrorMessage`, with a 10s cooldown so one
+  dropped connection does not fire an alert per mounted query. Screens that already
+  render their own error + retry opt out with `meta.silentError` (8 hooks).
+- **`serverError` promoted** from a private function inside `TownSquare.tsx` to
+  `control/src/lib/apiError.ts` and wired into every page's `onError`. The admin panel
+  now shows what the engine actually said rather than "Save failed - try again."
+- **`notifyUser()` throttled** — an error loop used to stack one modal per rejection.
+
+**Verified:** 588 engine tests (6 new), 383 app tests (4 new), typecheck, control build.
+Live: a domain rule returns its own status with the message verbatim; the fault path is
+covered by unit tests asserting the internal text does *not* appear in the body.
+
+## Dev Database Reseed + Behavioural Pass — 2026-08-31
+
+Wiped and reseeded the local dev database (`mingldingl_engine/scripts/reseed-dev-db.sql`,
+now the standard way to do this) and drove the API with real Supabase JWTs. The old
+database held 511 mostly load-test users, **zero icebreakers and zero quizzes**, which was
+hiding two real bugs.
+
+### Bugs found and fixed
+
+- **P0 — the icebreaker could almost never complete.** `GET /engagement/icebreaker/{matchId}`
+  drew a *random* active question per request, but `BothRespondedAsync` requires both users to
+  answer the **same** `IcebreakerId`. With 7 active questions the two participants got the same
+  one ~14% of the time; otherwise both answered, `bothResponded` stayed false, `IcebreakerComplete`
+  never flipped, neither saw the reveal, and no score was awarded — the core loop dead-ended.
+  Invisible before the reseed because there were no icebreakers at all (the endpoint just 404'd).
+  The quiz had the identical bug (`FindCompatibilityAsync` matches on `quizId`).
+  Both now pick deterministically from the match id (`StableIndex`, SHA-256 over the Guid — not
+  `GetHashCode`, which is per-process randomised and would differ between the two users).
+  `GET /engagement/quiz` gained an optional `matchId`; the app passes it and its cache key is
+  now scoped per match.
+- **Photo deletion silently skipped most files.** `DeleteByPublicUrl` prefix-matched the whole
+  configured `Storage:PublicBaseUrl`. That value is the LAN IP for on-device testing while stored
+  URLs said `localhost`, so nothing matched and the files survived account deletion — the exact
+  bug the delete was added to fix. Now matches on the path beneath the uploads root, so a photo
+  stored under any earlier origin (localhost / LAN IP / prod domain) is still deletable.
+- **Seven tests only passed on an empty database.** `Assert.Single(page.Items)` /
+  `Assert.Empty(Db.Ships)` / a global `first_icebreaker` milestone check, all unscoped. The
+  integration suite shares this database, so realistic data broke them. Scoped to their own
+  fixtures.
+
+### Verified against the reseeded data
+
+Reveal ladder walks exactly per the design table (0 msgs → name+photo+bio, 5 → +age+photo2,
+15 → +photo3+district, 30 → deep fields, and deep stays null on Free). Phone-verification gate
+returns 403 without a claim. Ghosting sweep, deletion sweep and photo deletion all fire.
+598 engine tests, 383 app tests, control build.
+
+### Note
+
+The first reseed replaced `ContentPages` with placeholders, destroying the real authored guides
+copy (2.5k chars). Restored from a pre-reseed `pg_dump`; the script no longer truncates that
+table, on the same reasoning that already exempted `AdminConfigs`.
+
+## The Campaign (Dungeon Crawl) — Spec (2026-09-01)
+
+**What it is.** A per-match "dungeon map" that renders the existing engagement ladder
+(match → icebreaker → quiz → 15 messages → Flame Rite → date pledge → real date) as seven
+rooms a pair clears together. The June 2026 dungeon-crawler design did not survive the
+ledger prune; this is a fresh, smaller design with one governing rule:
+
+**The anti-annoyance rule (structural, not aspirational).** The campaign is a *lens over
+the ladder, never a gate on it*. Room state is **purely derived** from existing match
+state — there is no campaign progression state machine, nothing to advance, nothing that
+can desync. No existing flow gains a new precondition; chat is untouched except one added
+entry banner. The only interaction is optional loot claiming; ignoring the feature
+entirely costs a dater nothing. No new push notifications or nudges.
+
+### Rooms (ids are wire-stable string constants, in order)
+
+| # | RoomId | Name | Cleared when (derived) |
+|---|---|---|---|
+| 1 | `gate` | The Meeting Gate | always (the match exists) |
+| 2 | `echoes` | Hall of Echoes | `Match.IcebreakerComplete` |
+| 3 | `runes` | The Rune Chamber | two distinct `QuizResponses.UserId` rows share this `MatchId` + `QuizId` |
+| 4 | `voices` | Gate of Voices | `Match.MessageCount >= 15` |
+| 5 | `flame` | The Flame Altar | `FlameRiteCompletedAt != null \|\| VideoRewardClaimed` (same equivalence the `AddFlameRite` backfill used) |
+| 6 | `bridge` | The Pledge Bridge | any `DateConfirmation` for the match with `CompletedAt != null` |
+| 7 | `threshold` | The Dragon's Threshold (boss) | a completed `DateConfirmation` with `InitiatorAttended == true && ReceiverAttended == true` |
+
+Rooms are independent (no sequential lock): a pair that skips the quiz still clears
+`voices` by chatting. "Current room" in the UI is simply the first uncleared room.
+
+### Engine
+
+- **Entity `CampaignRoomClaim`** — `Id, MatchId, UserId, RoomId (string), ClaimedAt`.
+  Unique index `(MatchId, UserId, RoomId)`; claims are per-user (each partner opens their
+  own chest). Migration `AddCampaignRoomClaims` also adds the deferred `Memberships.UserId`
+  index (Outstanding Follow-ups said to fold it into the next migration).
+- **`CampaignService`** (registered in `AddApplicationServices`): room definitions,
+  `GetStateAsync(match)` derivation, `ClaimAsync(match, userId, roomId)`. Claim of an
+  uncleared room → `DomainException.Conflict`; double claim → unique-index catch → 409.
+  Rewards via `AwardWithDeltaAsync` (event types `CampaignRoomBonus` / `CampaignBossBonus`
+  — not in `GetDelta`, so no economy-table edit), plus `LootService.RollDropAsync(userId,
+  "campaign")` on normal rooms (daily 3-drop cap applies) and `GrantGuaranteedAsync` on
+  the boss. Reward machinery keeps its never-fail-the-request convention.
+- **`CampaignController`** — `[Route("matches/{matchId}/campaign")]`, `LoadParticipantMatchAsync`
+  (requireActive: false — a ghosted match shows its frozen map, claims still allowed for
+  already-cleared rooms), `GET` → `CampaignResponse(Rooms[], ClearedCount, BossCleared)`
+  with per-room `RoomId, Cleared, Claimed, BonusScore`; `POST rooms/{roomId}/claim` →
+  `ClaimCampaignRoomResponse(Awarded, DroppedItem?)`.
+- **Config keys**: `campaign.enabled` (Bool, true, Growth), `campaign.room.bonus`
+  (Number, 5, Scoring), `campaign.boss.bonus` (Number, 25, Scoring). Disabled ⇒ both
+  endpoints 404, app hides its entry banner on 404.
+- **No new broadcast events.** Every room-clearing action already broadcasts
+  (`icebreaker`, `quiz`, `message`, `flame_rite_completed`, `date_confirmed`); the app
+  adds `queryKeys.campaign(matchId)` invalidation to those existing handlers.
+
+### App
+
+- `app/campaign/[matchId].tsx` — vertical dungeon path: `TiledBackdrop` + `ScreenHeader`,
+  room nodes (medallion icon, name, state) joined by a path line; cleared-unclaimed rooms
+  show a chest CTA; the first uncleared room is highlighted with a `QuestBanner` deep link
+  to the screen that clears it (icebreaker/quiz/chat/video/activities); boss room
+  ember-tinted. Claim feedback via inline `LootToast` + `awardedSelector` score bump +
+  `setPendingDrop` for items.
+- `hooks/useCampaign.ts` (house style: parse function, `enabled: !!matchId`,
+  `meta.invalidates` + `awardedSelector` on the claim mutation), `queryKeys.campaign`,
+  `apiClient.matches.campaign/claimCampaignRoom`.
+- Entry point: one `QuestBanner icon="map"` in `chat/[matchId].tsx` above the existing
+  ladder banners, hidden while the campaign query 404s.
+- i18n `campaign_*` keys, EN + MN, `%{}` interpolation; locale-store subscription line.
+
+### Testing
+
+Engine integration tests (real Postgres, `IntegrationTestBase`): per-room derivation,
+claim pays once (asserted through the `ScoreEvents` ledger), uncleared claim 409, double
+claim 409 with no double award, disabled-config 404, boss guaranteed loot. App: hook test
+with `createAppQueryClient`, screen test with mocked hooks asserting literal EN copy.
+
+### Deliberately out of scope
+
+Milestone-based reveal (the known Flame Rite deferral), campaign push notifications,
+partner-visible claim state, admin analytics tiles, QuestTile progress pips.
+
+### Execution Outcome (2026-09-01)
+
+Shipped as specced, TDD throughout (tests written and watched fail before each unit).
+**Engine**: `Models/CampaignRoomClaim.cs`, `Services/CampaignService.cs`,
+`Controllers/CampaignController.cs`, `DTOs/CampaignDto.cs`, migration
+`20260831163301_AddCampaignRoomClaims` (includes the deferred `Memberships.UserId`
+index — that follow-up is closed), three `campaign.*` config keys. 17 new integration
+tests (`CampaignServiceIntegrationTests`, `CampaignControllerIntegrationTests`); full
+suite 615/615. **App**: `hooks/useCampaign.ts`, `app/campaign/[matchId].tsx` (vertical
+dungeon path, chest claims via `GameButton` + `setPendingDrop`, current-room
+`QuestBanner` deep links), entry banner in `chat/[matchId].tsx` (hidden while the
+campaign GET 404s), `campaign(matchId)`/`campaignAll` query keys, `campaign_*` i18n
+EN+MN, campaign invalidation added to the five relevant realtime handlers (after the
+self-guards — own actions invalidate via their mutations' `meta.invalidates`, which
+gained `campaignAll` in useIcebreaker/useQuiz/useChat/useActivitySuggestions and a
+direct invalidate in the video screen). 8 new app tests; 403/403, typecheck clean.
+Control types regenerated; lint + build pass.
+
+**Notes for a future reader:**
+- The claim endpoint intentionally works on ghosted matches (`requireActive: false`) —
+  already-cleared rooms stay claimable; a frozen map punishes nothing beyond what
+  ghosting already did.
+- `flame_rite_completed`'s realtime handler has no self-guard (the completer's own
+  screen invalidates directly, and the payload's `userId` is the completer) — the
+  campaign invalidation there fires for both participants, which is harmless.
+- Room claim loot uses source `"campaign"`; boss claims use `GrantGuaranteedAsync`, so
+  `Assert.NotNull(DroppedItem)` in the boss test is safe only because the test user owns
+  no items (a fully-collected user gets `DuplicateLoot` +10 and null instead).
+
+**Manual two-account walk — RUN and PASSED (2026-09-01, same day).** API-level against the
+real stack (two `e2e-campaign-*@mingldingl.test` Supabase users, real JWTs, live engine,
+local Postgres): fresh match showed gate-only cleared; double gate claim 409; sealed-room
+claim 409; unknown room 404; icebreaker both-responded cleared `echoes`; quiz
+both-responded cleared `runes` (compatibility 100 returned to the second responder); 16
+alternating messages cleared `voices`; rite propose→accept→`/video/complete` cleared
+`flame` (self-accept correctly 403); both-confirm pledge cleared `bridge`; after
+backdating `CompletedAt` 49 h, both attendance submissions cleared `threshold` with
+`bossCleared: true`. Ledger verified in Postgres: user A had exactly 6×`CampaignRoomBonus`
+(+30) + 1×`CampaignBossBonus` (+25), two `UserItems` with source `campaign` (boss claim
+paid its guaranteed drop), 8 `CampaignRoomClaims` rows total. Kill-switch verified by
+flipping the `AdminConfigs` row + engine restart: both endpoints 404 while off, full state
+intact when re-enabled. Not exercised: the admin Config *page* path for the flip
+(`PUT /admin/config/{key}` + in-process `Set`) — the dev admin password is only stored
+hashed; the DB-value + seeder path is what was proven. The two e2e users and their match
+remain in the dev DB under the `e2e-campaign-` prefix.
+
+## Ulzii Design Language — Spec (2026-09-01)
+
+**What it is.** Replaces the app's generic-fantasy ornament layer (L-bracket corners,
+rivets, plain dividers) with Mongolian ornament rendered from geometry: **өлзий** (the
+endless knot, a billiard-path interlace woven over/under by crossing parity) and
+**алхан хээ** (the walking fret, an integer-lattice meander). Approved from the live
+design probe published as the "Ulzii Design Language" artifact, which is the visual
+reference for this work; its "doctrine" section is normative:
+
+1. **Edges and thresholds only** — corners, frames, dividers, seals, meter fills; never
+   behind text, never over photos, never as background texture.
+2. **Three metals, three meanings** — gold default; ember for stakes (boss, Rite, Oath);
+   brass for utility. No fourth metal.
+3. **Density ladder** — 2×2 knots at corners, 3×4-ish for sigils, 5×5 only for set
+   pieces; at most one grand knot per screen.
+4. **Static by default** — PNG assets everywhere (works at vfx=off); Skia motion only
+   where a moment earns it, only at vfx=full (deferred, see below).
+
+**Generator, not illustration.** `mingldingl_app/scripts/gen-ornaments.js` — pure Node
+(zlib PNG encoder, same pattern as `gen-parchment.js`; no node-canvas): traces knot
+strands, flattens the boundary-loop beziers, rasterizes capsule strokes with analytic
+AA in the app's palette (5-layer gild: shadow/dark/main/bright + crossing punch-outs
+rendered as alpha erase so assets sit on any ground), writes `assets/ornaments/*.png`
+at 3x. Rerunnable any time; assets are checked in.
+
+**Assets**: `knot_gold` / `knot_dim` / `knot_ember` (2×2), `knot_boss_ember` (5×5),
+`sigil_bond` (3×3 gold) / `sigil_fate` (3×4 ember) / `sigil_kinship` (4×3 brass),
+`fret_gold` + `fret_dark` (long meander strips).
+
+**Component changes** (shared components carry the spread):
+- `AppCard` — corner brackets + rivets → one knot asset in 4 flip orientations.
+- `SectionDivider` — center ◆ → mini knot; gradient lines stay.
+- `XPBar` — dim gold fret on the empty track; dark fret engraved over the tier-gradient
+  fill; shimmer/ticks/flash untouched.
+- `QuestBanner` — optional `medallion="knot"` (default stays the meaningful icon);
+  the campaign entry banner in chat uses it.
+- `CharacterCard` — woven frame: fret strips on four edges (two rotated) + knot-locked
+  corners, inside the tier-colored border; tier still controls the light.
+- `OathSigil` — glyph char → per-oath sigil image (gold/ember/brass), text unchanged.
+- `app/campaign/[matchId].tsx` — room medallions become knots: gold cleared, dim
+  sealed, ember 5×5 for the boss; current-room glow ring stays.
+- Type: `Alegreya SC` added as `FONTS.utility` for small-caps labels in the changed
+  components (app-wide small-label sweep is a follow-up).
+
+**Deferred**: Skia shimmer tracing the Oath sigil / boss seal (vfx=full set piece);
+empty-state unlit knots; festival-tinted ornament variants.
+
+### Execution Outcome (2026-09-01)
+
+Shipped as specced, tests-first. **Generator**: `scripts/gen-ornaments.js` — billiard
+trace + bezier-flattened wall loops + analytic-AA capsule rasterizer + RGBA PNG encoder,
+~250 lines, no dependencies; wrote all 9 assets to `assets/ornaments/` (checked in;
+2×2 knots 127px, boss 169px, fret strips 1610×50 — sizes are 3× display points).
+**Components**: `AppCard` (4 knot corners via one asset + flips; brackets and rivets
+gone), `SectionDivider` (knot replaces ◆), `XPBar` (fret at 0.15 on the track,
+`fret_dark` engraved at 0.5 on the fill; `pointerEvents` note: RN `Image` takes it in
+style, not as a prop), `QuestBanner` (`medallion="knot"` opt-in; default icon behavior
+covered by a test), `CharacterCard` (fret frame: two horizontal strips + two 452-long
+strips rotated about their centers, 4 corner knots), `OathSigil` + `OathStep` + the
+profile re-swear sheet (glyph chars → `OATH_SIGILS` images; `OATH_GLYPHS` still exported
+but unused), campaign screen (knot medallions: gold cleared/current, dim sealed, ember
+5×5 boss). `lib/ornaments.ts` is the asset registry; `FONTS.utility` =
+`AlegreyaSC_700Bold` (new dep `@expo-google-fonts/alegreya-sc`), applied in the campaign
+screen labels.
+
+**Verified**: 7 new jest tests (`ulziiOrnaments.test.tsx`), suites 51/51 (410 tests),
+typecheck clean — and a **live Playwright walk of the real web app against the real
+engine** (real Supabase session for `e2e-campaign-a`; engine phone endpoints
+route-stubbed: `verificationId` is the field `useAuth` needs, not `id`): screenshots
+confirmed knot corners + divider knots on the Character Sheet, the fret walking through
+the XP bar, the knot campaign banner in chat, and the full campaign map — six gold rooms
+and the ember boss seal. RN-web + Playwright gotchas worth keeping: `fill()` and
+`pressSequentially` do NOT reach RN's controlled TextInput (focus + `page.keyboard.type`
+works), and RN-web `button` presses need `element.click()` in `evaluate` — added here to
+supplement the verify skill's list.
+
+**Follow-ups**: the deferred items above, plus an app-wide sweep replacing small-size
+Yeseva labels with `FONTS.utility` (only campaign labels done), and a device pass for
+density/brightness tuning (web pass looked right at first review).
+
 ## Outstanding Follow-ups
 
 Salvaged from the per-feature SDD execution ledgers before those were pruned
@@ -746,13 +1140,26 @@ what still has a real consequence.
 Three features shipped without the manual pass their own plans called for. All
 three need the `verify` skill (real Supabase JWTs, full stack running):
 
-- **The Flame Rite — Task 11, Step 9: the two-account ladder walk.** Explicitly
-  still OWED. The reviewer noted it would have caught three of the issues that
-  were only found later, which makes it the highest-value item in this section.
+- ~~**The Flame Rite — Task 11, Step 9: the two-account ladder walk.**~~ RUN and
+  PASSED 2026-09-01, API-level with two real Supabase users (`e2e-rite-c/d`):
+  token before any proposal 403 → pledge before rite 403 (`FlameRiteIncomplete`) →
+  propose → decline clears the proposal and re-propose succeeds → duplicate propose
+  while open 409 → self-accept 403 → token before acceptance 403, after acceptance
+  200 → `/video/complete` → pledge 200 → attendance mismatch (see No-Show below).
+  Flag retreat also verified with a second pair (`e2e-rite-e/f`):
+  `dating.flamerite.required=false` (DB value + restart) let a rite-less pledge
+  through 200; restoring the flag re-engaged the 403 on the same match. Not
+  verified: the 5-minute vs long token TTL difference (the Agora token is opaque —
+  would need decoding its privilege expiry) and the app UI screens themselves
+  (jest-covered only); the decorative video countdown remains open below.
 - **Fated Threads — the full 12-step pass**, summarised under "Still owed" in the
   Fated Threads entry above, including the five rechecks added after fix wave 1.
-- **No-Show Tracking — a two-account attendance walk** (see the "Open" line in its
-  entry above). Never run; only integration tests cover the mismatch → flag → penalty path.
+- **No-Show Tracking — a two-account attendance walk.** Mismatch → flag path RUN and
+  PASSED 2026-09-01 (same `e2e-rite-c/d` pair): initiator answered attended=true,
+  receiver attended=false → the denier's `NoShowFlagCount` went 0→1, `PenaltyApplied`
+  latched on the confirmation, and `ReputationScore` correctly untouched below the
+  threshold of 3. The threshold-crossing `RepeatedNoShowPenalty` leg was not walked
+  live (needs three distinct-match mismatches) — that remains integration-test-only.
 - **Membership billing cycles — the duration ChoiceRow's rendered layout** (MN
   label length, chip wrapping) and one real end-to-end upgrade call. Never
   visually verified; only `tsc` + bundle build + reading the JSX.
@@ -770,8 +1177,23 @@ three need the `verify` skill (real Supabase JWTs, full stack running):
 - **The video-screen countdown is decorative.** It resets on remount, is not
   anchored to token issue time or `FlameRiteAcceptedAt`, and reaching 0:00 does
   nothing. A user can read it as an enforced limit that isn't enforced.
-- **`Memberships.UserId` has no index.** Append-only table, so cheap — fold into
-  the next migration rather than writing one for it.
+- ~~**`Memberships.UserId` has no index.**~~ Closed 2026-09-01 — folded into the
+  `AddCampaignRoomClaims` migration as planned.
+- **`AdminConfigControllerIntegrationTests.Update_TierThreshold_BackfillsStoredGemTiers`
+  deadlocks intermittently under the parallel test run** (Postgres 40P01: its
+  `RecomputeAllGemTiersAsync` bulk-updates every Users row while reward tests hold row
+  locks in their open transactions). Passes alone and on re-run; seen twice on
+  2026-09-01. Pre-existing structural flake, not tied to any one feature — fix is test
+  isolation (serialize that test class or scope the backfill), not code.
+- **Phone-verification account recovery + start-endpoint rate limiting.** See the
+  "Open" list under the verify.mn entry above. Recovery-on-reinstall is the one with a
+  real user-facing consequence.
+- **`LoginThrottleService` is per-instance.** Fine for the current single-container
+  deploy; a second instance halves the effective lockout. Needs shared state if the
+  engine is ever scaled out.
+- **`Cors:AllowedOrigins` must be set before any non-Development deploy** — the engine
+  now throws at startup without it. Deliberate (fail closed), but it will stop a deploy
+  that has not been updated.
 
 ### Known gaps, deliberately not built
 

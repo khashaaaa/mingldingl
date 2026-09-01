@@ -32,9 +32,13 @@ export function useTownSquareSession() {
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data || data.sessionId == null) return 60000;
-      if (data.status === 'InProgress') return false;
+      // Keep polling while a session runs: it is the only signal that tells this screen the
+      // session has ended. Stopping here used to freeze the tab until the app was restarted.
+      if (data.status === 'InProgress') return 30000;
       return 15000;
     },
+    // town square tab renders its own error state and retry.
+    meta: { silentError: true },
   });
 
   const sessionId = session?.sessionId ?? null;

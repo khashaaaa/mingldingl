@@ -16,7 +16,7 @@ type StatusIconName = React.ComponentProps<typeof Icon>['name'];
 
 function questStatus(match: Match): { icon: StatusIconName; label: string; color: string } {
   if (!match.icebreakerComplete) return { icon: 'lock', label: i18n.t('quest_new'), color: COLORS.gold };
-  if (match.messageCount < 5) return { icon: 'sword-cross', label: i18n.t('quest_in_progress'), color: COLORS.bronze };
+  if (match.messageCount < 5) return { icon: 'sword-cross', label: i18n.t('quest_in_progress'), color: COLORS.brass };
   return { icon: 'fire', label: i18n.t('quest_active'), color: COLORS.goldBright };
 }
 

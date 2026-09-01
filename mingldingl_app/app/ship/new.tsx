@@ -93,6 +93,7 @@ export default function NewShipScreen() {
           backgroundColor={COLORS.panel}
           borderColor={COLORS.bronze}
           color={COLORS.text}
+          placeholderTextColor={COLORS.textDim as any}
         />
         <Text style={styles.label}>{i18n.t('second_thread_label')}</Text>
         <Input
@@ -104,6 +105,7 @@ export default function NewShipScreen() {
           backgroundColor={COLORS.panel}
           borderColor={COLORS.bronze}
           color={COLORS.text}
+          placeholderTextColor={COLORS.textDim as any}
         />
         {error && <Text style={styles.error}>{error}</Text>}
         <GameButton

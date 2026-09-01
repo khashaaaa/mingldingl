@@ -1,116 +1,182 @@
-import { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-} from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ScrollView, View, Text, StyleSheet, Linking, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth, VERIFICATION_POLL_MS } from '../../hooks/useAuth';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { GameButton } from '../../components/ui/GameButton';
-import { DismissKeyboardView } from '../../components/ui/DismissKeyboardView';
+import { Icon } from '../../components/ui/Icon';
+import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
 
+const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
+
+/**
+ * verify.mn is Mobile-Originated: the user sends our code to the shortcode rather than receiving
+ * one. So this screen shows the provider's instruction, offers a one-tap pre-filled SMS, and
+ * polls for the result — there is no code to type in.
+ */
 export default function OtpScreen() {
   useLocaleStore((s) => s.locale);
-  const { phone } = useLocalSearchParams<{ phone: string }>();
-  const [code, setCode] = useState('');
-  const { verifyOtp, loading, error } = useAuth();
+  const params = useLocalSearchParams<{
+    phone: string;
+    verificationId: string;
+    smsUri: string;
+    code: string;
+    displayInstruction: string;
+    shortcode: string;
+    expiresAt: string;
+  }>();
+  const { phone, verificationId, smsUri, code, displayInstruction, shortcode, expiresAt } = params;
+  const { checkVerification, completeSignIn, loading, error } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!phone) router.replace('/(auth)/phone');
-  }, [phone]);
+  const [expired, setExpired] = useState(false);
+  const [openFailed, setOpenFailed] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const completing = useRef(false);
 
-  async function handleVerify() {
-    Keyboard.dismiss();
-    await verifyOtp(phone, code);
+  const expiresAtMs = expiresAt ? new Date(expiresAt).getTime() : 0;
+  const secondsLeft = Math.max(0, Math.round((expiresAtMs - now) / 1000));
+
+  const restart = useCallback(() => router.replace('/(auth)/phone'), [router]);
+
+  useEffect(() => {
+    if (!verificationId) restart();
+  }, [verificationId, restart]);
+
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  // Poll no faster than 3s per verify.mn guidance, and stop the moment it is terminal so the
+  // user is never nudged into sending (and paying for) a second SMS.
+  useEffect(() => {
+    if (!verificationId || expired) return;
+    let cancelled = false;
+
+    async function poll() {
+      const outcome = await checkVerification(verificationId);
+      if (cancelled) return;
+      if (outcome === 'verified') {
+        if (completing.current) return;
+        completing.current = true;
+        const ok = await completeSignIn(verificationId, phone);
+        if (!ok && !cancelled) completing.current = false;
+        return;
+      }
+      if (outcome === 'expired') setExpired(true);
+    }
+
+    const id = setInterval(poll, VERIFICATION_POLL_MS);
+    void poll();
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [verificationId, expired, phone]);
+
+  useEffect(() => {
+    if (secondsLeft === 0 && expiresAtMs > 0) setExpired(true);
+  }, [secondsLeft, expiresAtMs]);
+
+  async function openSmsApp() {
+    setOpenFailed(false);
+    try {
+      await Linking.openURL(smsUri);
+    } catch {
+      setOpenFailed(true);
+    }
   }
 
-  if (!phone) return null;
+  if (!verificationId) return null;
+
+  const mmss = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
 
   return (
-    <DismissKeyboardView>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.inner}>
-          <Text style={styles.title}>{i18n.t('verify_title')}</Text>
-          <Text style={styles.phone}>+976 {phone}</Text>
-          <TextInput
-            style={styles.otpInput}
-            value={code}
-            onChangeText={(t) => { setCode(t); if (t.length === 6) Keyboard.dismiss(); }}
-            keyboardType="number-pad"
-            maxLength={6}
-            returnKeyType="done"
-            onSubmitEditing={handleVerify}
-            placeholder="------"
-            placeholderTextColor={COLORS.bronze}
-            textAlign="center"
-          />
-          {!!error && <Text style={styles.error}>{error}</Text>}
-          <GameButton
-            variant="primary"
-            onPress={handleVerify}
-            disabled={code.length !== 6 || loading}
-            loading={loading}
-          >
-            {i18n.t('verify_button')}
-          </GameButton>
+    // The provider's instruction copy is variable-length and this screen has no other escape
+    // hatch, so it has to be able to scroll rather than clip on a short phone.
+    <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
+      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
+      <Text style={styles.title}>{i18n.t('verify_title')}</Text>
+      <Text style={styles.phone}>+976 {phone}</Text>
+
+      {expired ? (
+        <View style={styles.card}>
+          <Icon name="timer-sand-empty" size={28} color={COLORS.emberLight} />
+          <Text style={styles.cardTitle}>{i18n.t('verify_expired_title')}</Text>
+          <Text style={styles.instruction}>{i18n.t('verify_expired_body')}</Text>
+          <GameButton variant="primary" onPress={restart}>{i18n.t('verify_start_over')}</GameButton>
         </View>
-      </KeyboardAvoidingView>
-    </DismissKeyboardView>
+      ) : (
+        <>
+          <View style={styles.card}>
+            {/* verify.mn's own copy — it names the SIM the SMS must come from, which is the
+                single most common reason a verification fails. Shown verbatim. */}
+            <Text style={styles.instruction}>{displayInstruction}</Text>
+            {!!code && (
+              <Text style={styles.manual}>
+                {i18n.t('verify_sms_manual', { code, shortcode: shortcode ?? '144773' })}
+              </Text>
+            )}
+          </View>
+
+          <GameButton variant="primary" icon="message-text" onPress={openSmsApp} disabled={loading}>
+            {i18n.t('verify_sms_open')}
+          </GameButton>
+          {openFailed && <Text style={styles.error}>{i18n.t('verify_open_sms_failed')}</Text>}
+
+          <View style={styles.waitingRow}>
+            <ActivityIndicator color={COLORS.gold} size="small" />
+            <Text style={styles.waiting}>
+              {loading ? i18n.t('verify_sms_sent') : i18n.t('verify_sms_waiting')}
+            </Text>
+          </View>
+
+          <Text style={styles.meta}>{i18n.t('verify_expires_in', { time: mmss })}</Text>
+          <Text style={styles.meta}>{i18n.t('verify_sms_cost')}</Text>
+        </>
+      )}
+
+      {!!error && <Text style={styles.error}>{error}</Text>}
+
+      <GameButton variant="ghost" size="compact" onPress={restart}>{i18n.t('back')}</GameButton>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-  inner: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-    gap: 16,
-  },
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 28, paddingVertical: 24, gap: 14 },
   title: {
-    fontSize: 32,
+    fontSize: 30,
     color: COLORS.text,
     textAlign: 'center',
     letterSpacing: 0.5,
     fontFamily: FONTS.display,
   },
-  phone: {
-    fontSize: 16,
-    color: COLORS.textDim,
-    textAlign: 'center',
-    marginBottom: 8,
-    fontFamily: FONTS.body,
-  },
-  otpInput: {
-    height: 64,
+  phone: { fontSize: 16, color: COLORS.textDim, textAlign: 'center', fontFamily: FONTS.body },
+  card: {
     backgroundColor: COLORS.panel,
-    borderWidth: 2,
-    borderColor: COLORS.gold,
+    borderWidth: 1,
+    borderColor: COLORS.bronze,
     borderRadius: RADIUS.md,
+    padding: 16,
+    gap: 10,
+    alignItems: 'center',
+  },
+  cardTitle: { fontFamily: FONTS.display, fontSize: 17, color: COLORS.text, textAlign: 'center' },
+  instruction: {
+    fontFamily: FONTS.body,
+    fontSize: 15,
     color: COLORS.text,
-    fontSize: 28,
-    letterSpacing: 8,
     textAlign: 'center',
-    fontFamily: FONTS.body,
+    lineHeight: 22,
   },
-  error: {
-    color: COLORS.emberLight,
-    fontSize: 14,
-    textAlign: 'center',
-    fontFamily: FONTS.body,
-  },
+  manual: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.textDim, textAlign: 'center' },
+  waitingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  waiting: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textDim },
+  meta: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.textDim, textAlign: 'center' },
+  error: { color: COLORS.emberLight, fontSize: 14, textAlign: 'center', fontFamily: FONTS.body },
 });

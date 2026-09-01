@@ -71,6 +71,24 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         return (new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance), handler);
     }
 
+    /// <summary>Phone verification with no API key configured — enforcement is inert.</summary>
+    protected static PhoneVerificationService BuildUnconfiguredPhoneVerification(AppDbContext db)
+    {
+        var config = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>().Object;
+        var client = new VerifyMnClient(new HttpClient(), config, NullLogger<VerifyMnClient>.Instance);
+        return new PhoneVerificationService(db, client, config, NullLogger<PhoneVerificationService>.Instance);
+    }
+
+    /// <summary>File storage rooted at a throwaway temp directory.</summary>
+    protected static LocalFileStorageService BuildTestStorage()
+    {
+        var env = new Moq.Mock<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+        var root = Path.Combine(Path.GetTempPath(), "mingldingl-tests", Guid.NewGuid().ToString("N"));
+        env.SetupGet(e => e.ContentRootPath).Returns(root);
+        var config = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>().Object;
+        return new LocalFileStorageService(env.Object, config, NullLogger<LocalFileStorageService>.Instance);
+    }
+
     protected static UsersController NewUsersController(
         AppDbContext db, OathService oaths, Microsoft.AspNetCore.Http.HttpContext httpContext)
     {
@@ -78,7 +96,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         var loot = new LootService(db, score, NullLogger<LootService>.Instance);
         var ships = new ShipService(db, loot, score, new ConfigService(),
             new MilestoneService(db, NullLogger<MilestoneService>.Instance), new PushNotificationService(new HttpClient(), db, NullLogger<PushNotificationService>.Instance), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
-        var controller = new UsersController(db, score, new ReferralService(db, loot, NullLogger<ReferralService>.Instance), ships, oaths);
+        var controller = new UsersController(db, score, new ReferralService(db, loot, NullLogger<ReferralService>.Instance), ships, oaths, BuildUnconfiguredPhoneVerification(db), BuildTestStorage());
         controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext { HttpContext = httpContext };
         return controller;
     }

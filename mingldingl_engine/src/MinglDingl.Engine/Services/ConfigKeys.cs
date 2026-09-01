@@ -14,6 +14,12 @@ public static class ConfigKeys
             "Length of the Flame Rite video call, and the TTL of the token minted for it"),
         new("dating.flamerite.required", "Safety", "Bool", "true",
             "When true, a match cannot pledge an encounter until the Flame Rite is complete"),
+        new("campaign.enabled", "Growth", "Bool", "true",
+            "When false, the per-match campaign (dungeon map) endpoints return 404 and the app hides the map"),
+        new("campaign.room.bonus", "Scoring", "Number", "5",
+            "Bonus score for claiming a cleared campaign room (per user, per room)"),
+        new("campaign.boss.bonus", "Scoring", "Number", "25",
+            "Bonus score for claiming the campaign boss room (a completed real date with both attended)"),
     ];
 }
 

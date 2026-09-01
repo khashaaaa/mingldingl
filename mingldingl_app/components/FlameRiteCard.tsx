@@ -162,6 +162,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(217,127,31,0.1)',
     alignSelf: 'flex-start',
   },
-  completeIcon: { fontSize: 14 },
   completeText: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.gold, letterSpacing: 0.5 },
 });

@@ -13,22 +13,34 @@ public class UsersController : ControllerBase
     private readonly ReferralService _referral;
     private readonly ShipService _ships;
     private readonly OathService _oaths;
+    private readonly PhoneVerificationService _phones;
+    private readonly LocalFileStorageService _storage;
 
-    public UsersController(AppDbContext db, ScoreService score, ReferralService referral, ShipService ships, OathService oaths)
+    public UsersController(AppDbContext db, ScoreService score, ReferralService referral, ShipService ships, OathService oaths, PhoneVerificationService phones, LocalFileStorageService storage)
     {
+        _storage = storage;
         _db = db;
         _score = score;
         _referral = referral;
         _ships = ships;
         _oaths = oaths;
+        _phones = phones;
     }
 
     [HttpPost]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Upsert([FromBody] CreateUserRequest req)
     {
         var userId = this.CurrentUserId();
         var existing = await _db.Users.FindAsync(userId);
+
+        // A new account requires a phone this engine verified via verify.mn. The JWT's phone claim
+        // is set by the client and is not evidence of ownership, so it is never trusted here.
+        var verifiedPhone = await _phones.GetVerifiedPhoneAsync(userId);
+        if (existing is null && _phones.IsConfigured && verifiedPhone is null)
+            return this.ForbiddenError("Phone number must be verified before creating an account");
+
         var user = existing ?? new User { Id = userId };
 
         user.DisplayName = req.DisplayName;
@@ -39,7 +51,7 @@ public class UsersController : ControllerBase
         user.PhotoUrls = req.PhotoUrls;
         if (req.Latitude.HasValue) user.Latitude = req.Latitude;
         if (req.Longitude.HasValue) user.Longitude = req.Longitude;
-        user.PhoneNumber ??= this.CurrentPhoneNumber();
+        user.PhoneNumber ??= verifiedPhone ?? (_phones.IsConfigured ? null : this.CurrentPhoneNumber());
 
         var wasComplete = user.IsProfileComplete;
         user.IsProfileComplete = ScoreService.IsProfileComplete(user);
@@ -106,7 +118,14 @@ public class UsersController : ControllerBase
 
         if (req.DisplayName is not null) user.DisplayName = req.DisplayName;
         if (req.Bio is not null) user.Bio = req.Bio;
-        if (req.PhotoUrls is not null) user.PhotoUrls = req.PhotoUrls;
+        if (req.PhotoUrls is not null)
+        {
+            // Drop files that are no longer referenced — /uploads is public, so an orphaned photo
+            // stays fetchable by anyone holding its URL long after the user removed it.
+            foreach (var dropped in user.PhotoUrls.Except(req.PhotoUrls))
+                _storage.DeleteByPublicUrl(dropped);
+            user.PhotoUrls = req.PhotoUrls;
+        }
         if (req.HasKids is not null) user.HasKids = req.HasKids;
         if (req.SmokingHabit is not null) user.SmokingHabit = req.SmokingHabit;
         if (req.DrinkingHabit is not null) user.DrinkingHabit = req.DrinkingHabit;
@@ -249,11 +268,25 @@ public class UsersController : ControllerBase
         var user = await _db.Users.FindAsync(userId);
         if (user is null) return this.NotFoundError("User not found");
 
-        if (!System.Text.RegularExpressions.Regex.IsMatch(req.PhoneNumber, @"^\d{8}$"))
+        if (!PhoneVerificationService.IsPhoneValid(req.PhoneNumber))
             return this.BadRequestError("Phone number must be 8 digits");
 
         bool taken = await _db.Users.AnyAsync(u => u.Id != userId && u.PhoneNumber == req.PhoneNumber);
         if (taken) return this.BadRequestError("This phone number is already registered");
+
+        if (_phones.IsConfigured)
+        {
+            if (req.VerificationId is not Guid verificationId)
+                return this.BadRequestError("The new phone number must be verified first");
+
+            var claim = await _phones.ClaimAsync(verificationId, userId);
+            if (claim != PhoneClaimResult.Ok)
+                return this.BadRequestError("The new phone number must be verified first");
+
+            var proven = await _phones.GetVerifiedPhoneAsync(userId);
+            if (proven != req.PhoneNumber)
+                return this.BadRequestError("Verification does not match the requested number");
+        }
 
         user.PhoneNumber = req.PhoneNumber;
         await _db.SaveChangesAsync();

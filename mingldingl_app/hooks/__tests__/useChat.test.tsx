@@ -369,5 +369,58 @@ describe('useChat', () => {
       expect(result.current.hasMore).toBe(true);
       expect(result.current.loadingEarlier).toBe(false);
     });
+
+    it('surfaces earlierError when the page fails, and clears it on a successful retry', async () => {
+      mockList.mockResolvedValueOnce(serverPage(50, PAGE));
+      const { result } = await setup();
+
+      mockList.mockRejectedValueOnce(new Error('offline'));
+      await act(async () => { await result.current.loadEarlier(); });
+      expect(result.current.earlierError).toBe(true);
+
+      mockList.mockResolvedValueOnce(serverPage(45, 5));
+      await act(async () => { await result.current.loadEarlier(); });
+      expect(result.current.earlierError).toBe(false);
+    });
+
+    it('flags justLoadedEarlier so the list does not scroll back to the bottom', async () => {
+      mockList.mockResolvedValueOnce(serverPage(50, PAGE));
+      const { result } = await setup();
+      expect(result.current.justLoadedEarlier).toBe(false);
+
+      mockList.mockResolvedValueOnce(serverPage(45, 5));
+      await act(async () => { await result.current.loadEarlier(); });
+      expect(result.current.justLoadedEarlier).toBe(true);
+
+      // The list acknowledges once the prepended page has been measured.
+      act(() => result.current.acknowledgeEarlierLoaded());
+      expect(result.current.justLoadedEarlier).toBe(false);
+    });
+
+    it('does not flag justLoadedEarlier when the earlier fetch failed', async () => {
+      mockList.mockResolvedValueOnce(serverPage(50, PAGE));
+      const { result } = await setup();
+
+      mockList.mockRejectedValueOnce(new Error('offline'));
+      await act(async () => { await result.current.loadEarlier(); });
+
+      expect(result.current.justLoadedEarlier).toBe(false);
+    });
+
+    it('keeps earlier pages through a refetch instead of collapsing to the newest page', async () => {
+      mockList.mockResolvedValueOnce(serverPage(50, PAGE));
+      const { result } = await setup();
+
+      mockList.mockResolvedValueOnce(serverPage(45, 5));
+      await act(async () => { await result.current.loadEarlier(); });
+      await waitFor(() => expect(result.current.messages).toHaveLength(55));
+
+      // A background refetch returns only the newest page.
+      mockList.mockResolvedValueOnce(serverPage(50, PAGE));
+      await act(async () => { await result.current.refetch(); });
+
+      await waitFor(() => expect(result.current.messages).toHaveLength(55));
+      expect(result.current.messages[0].id).toBe('s45');
+    });
   });
 });

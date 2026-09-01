@@ -1,6 +1,7 @@
-import { View as RNView, Text as RNText, StyleSheet } from 'react-native';
+import { View as RNView, Text as RNText, Image as RNImage, StyleSheet } from 'react-native';
 import { i18n } from '../lib/i18n';
 import { COLORS, FONTS, RADIUS, glow } from '../lib/theme';
+import { ORNAMENTS } from '../lib/ornaments';
 import type { Oath } from '../models/user';
 
 interface Props {
@@ -14,6 +15,12 @@ interface Props {
 export const OATH_VALUES: readonly Oath[] = ['Bond', 'Fate', 'Kinship'];
 
 export const OATH_GLYPHS: Record<Oath, string> = { Bond: '\u2694\uFE0E', Fate: '◈', Kinship: '○' };
+// Each oath's ulzii sigil — a different knot density in a different metal.
+export const OATH_SIGILS: Record<Oath, number> = {
+  Bond: ORNAMENTS.sigilBond,
+  Fate: ORNAMENTS.sigilFate,
+  Kinship: ORNAMENTS.sigilKinship,
+};
 export const OATH_NAME_KEYS: Record<Oath, string> = {
   Bond: 'oath_bond_name',
   Fate: 'oath_fate_name',
@@ -24,6 +31,17 @@ export const OATH_DESC_KEYS: Record<Oath, string> = {
   Fate: 'oath_fate_desc',
   Kinship: 'oath_kinship_desc',
 };
+
+/**
+ * Oaths arrive from the engine as English identifiers. Same guard as `tierLabel` in lib/tiers:
+ * falling back to the raw value rather than `i18n.t(undefined)` matters, because an unmapped
+ * oath would otherwise render as i18n-js's literal `[missing "en." translation]` marker.
+ */
+export function oathLabel(oath: string | null | undefined): string {
+  if (!oath) return '';
+  const key = OATH_NAME_KEYS[oath as Oath];
+  return key ? i18n.t(key) : oath;
+}
 
 const SIZES = {
   sm: { glyph: 13, name: 11, state: 9, padH: 8, padV: 4, gap: 5 },
@@ -49,10 +67,16 @@ export default function OathSigil({ oath, proven, size = 'md', progress }: Props
         proven && glow(COLORS.goldBright, 0.4),
       ]}
     >
-      <RNText style={[styles.glyph, { fontSize: sz.glyph, color: tint }]}>{OATH_GLYPHS[oath]}</RNText>
+      {!!OATH_SIGILS[oath] && (
+        <RNImage
+          source={OATH_SIGILS[oath]}
+          testID={`oath-sigil-${oath}`}
+          style={{ width: sz.glyph + 6, height: sz.glyph + 6, opacity: proven ? 1 : 0.75 }}
+        />
+      )}
       <RNView>
         <RNText style={[styles.name, { fontSize: sz.name }]} numberOfLines={1}>
-          {i18n.t(OATH_NAME_KEYS[oath])}
+          {oathLabel(oath)}
         </RNText>
         <RNText style={[styles.state, { fontSize: sz.state, color: tint }]}>
           {i18n.t(proven ? 'oath_state_proven' : 'oath_state_sworn')}

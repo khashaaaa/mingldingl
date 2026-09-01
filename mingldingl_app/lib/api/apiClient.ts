@@ -48,6 +48,16 @@ export const apiClient = {
         .then((r) => r.data);
     },
   },
+  auth: {
+    /** Starts verify.mn phone verification. Anonymous — runs before the user has a session. */
+    startPhoneVerification: (phone: string) =>
+      api.post<Schemas['StartPhoneVerificationResponse']>('/auth/phone/start', { phone }).then((r) => r.data),
+    phoneVerificationStatus: (verificationId: string) =>
+      api.get<Schemas['PhoneVerificationStatusResponse']>(`/auth/phone/status/${verificationId}`).then((r) => r.data),
+    /** Binds a verified number to the signed-in identity. Requires the Supabase JWT. */
+    claimPhoneVerification: (verificationId: string) =>
+      api.post<Schemas['ClaimPhoneVerificationResponse']>('/auth/phone/claim', { verificationId }).then((r) => r.data),
+  },
   users: {
     upsert: (body: Schemas['CreateUserRequest']) =>
       api.post<Schemas['UserResponse']>('/users', body).then((r) => r.data),
@@ -60,8 +70,8 @@ export const apiClient = {
     blockedUsers: () => api.get<Schemas['BlockedUserResponse'][]>('/users/me/blocked').then((r) => r.data),
     unblock: (targetUserId: string) =>
       api.post<Schemas['BlockedUserResponse'][]>(`/users/me/blocked/${targetUserId}/unblock`).then((r) => r.data),
-    changePhone: (phoneNumber: string) =>
-      api.put<Schemas['UserResponse']>('/users/me/phone', { phoneNumber }).then((r) => r.data),
+    changePhone: (phoneNumber: string, verificationId: string) =>
+      api.put<Schemas['UserResponse']>('/users/me/phone', { phoneNumber, verificationId }).then((r) => r.data),
     swearOath: (oath: Oath) =>
       api.post<Schemas['UserResponse']>('/users/me/oath', { oath } satisfies Schemas['SwearOathRequest']).then((r) => r.data),
   },
@@ -100,6 +110,10 @@ export const apiClient = {
       api.post<Schemas['UnmatchResponse']>(`/matches/${id}/unmatch`).then((r) => r.data),
     block: (id: string) =>
       api.post<Schemas['UnmatchResponse']>(`/matches/${id}/block`).then((r) => r.data),
+    campaign: (id: string) =>
+      api.get<Schemas['CampaignResponse']>(`/matches/${id}/campaign`).then((r) => r.data),
+    claimCampaignRoom: (id: string, roomId: string) =>
+      api.post<Schemas['ClaimCampaignRoomResponse']>(`/matches/${id}/campaign/rooms/${roomId}/claim`).then((r) => r.data),
   },
   ships: {
     create: (slotAPhoneNumber: string, slotBPhoneNumber: string) =>
@@ -125,7 +139,9 @@ export const apiClient = {
       api.get<Schemas['IcebreakerRevealEntry'][]>(`/engagement/icebreaker/${matchId}/reveal${query({ icebreakerId })}`).then((r) => r.data),
     icebreakerStatus: (matchId: string, icebreakerId: string) =>
       api.get<Schemas['IcebreakerStatusResponse']>(`/engagement/icebreaker/${matchId}/status${query({ icebreakerId })}`).then((r) => r.data),
-    quiz: () => api.get<Schemas['QuizDetailsResponse']>('/engagement/quiz').then((r) => r.data),
+    /** matchId keeps the pick stable per match, so both participants answer the same quiz. */
+    quiz: (matchId: string) =>
+      api.get<Schemas['QuizDetailsResponse']>(`/engagement/quiz${query({ matchId })}`).then((r) => r.data),
     quizRespond: (quizId: string, body: Schemas['QuizRespondDto']) =>
       api.post<Schemas['QuizCompatibilityResponse']>(`/engagement/quiz/${quizId}/respond`, body).then((r) => r.data),
     quizStatus: (quizId: string, matchId: string) =>

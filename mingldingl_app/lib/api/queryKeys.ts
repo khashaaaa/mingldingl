@@ -1,5 +1,6 @@
 export const queryKeys = {
-  quiz: ['quiz'] as const,
+  // The quiz is chosen per match, so the cache key has to be too.
+  quiz: (matchId: string) => ['quiz', matchId] as const,
   quizStatus: (matchId: string, quizId?: string) => ['quizStatus', matchId, quizId] as const,
   quizStatusByMatch: (matchId: string) => ['quizStatus', matchId] as const,
   milestones: ['milestones'] as const,
@@ -35,4 +36,7 @@ export const queryKeys = {
   townSquareNextSession: ['townSquareNextSession'] as const,
   townSquareCurrentRound: (sessionId: string) => ['townSquareCurrentRound', sessionId] as const,
   pendingShips: ['pendingShips'] as const,
+  campaign: (matchId: string) => ['campaign', matchId] as const,
+  // Prefix key so realtime handlers and mutations can invalidate every match's campaign at once.
+  campaignAll: ['campaign'] as const,
 };

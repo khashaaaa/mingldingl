@@ -24,14 +24,22 @@ export function HeaderBar({ title, showBack = true, onBack, icon, right, childre
       <View style={styles.row}>
         <View style={styles.titleRow}>
           {showBack && (
-            <TouchableOpacity onPress={onBack ?? (() => router.back())} style={styles.backBtn} accessibilityLabel={i18n.t('back')}>
-              <Text style={styles.backText}>←</Text>
+            <TouchableOpacity
+              onPress={onBack ?? (() => router.back())}
+              style={styles.backBtn}
+              accessibilityRole="button"
+              accessibilityLabel={i18n.t('back')}
+            >
+              <Icon name="arrow-left" size={22} color={COLORS.gold} />
             </TouchableOpacity>
           )}
           {icon && <Icon name={icon} size={20} style={styles.titleIcon} />}
+          {/* Two lines, because `adjustsFontSizeToFit` is iOS-only: on web and Android a long
+              title (interpolated city names, the longer Mongolian copy) simply clipped —
+              "Ulaanbaatar Leaderboard" rendered as "Ulaanbaatar Leaderb…". */}
           <Text
             style={[styles.title, right ? styles.titleCompact : null]}
-            numberOfLines={1}
+            numberOfLines={2}
             adjustsFontSizeToFit
             minimumFontScale={0.8}
           >
@@ -49,10 +57,9 @@ export function HeaderBar({ title, showBack = true, onBack, icon, right, childre
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexShrink: 1 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   titleIcon: { marginTop: 2 },
-  backBtn: { padding: 4 },
-  backText: { color: COLORS.gold, fontSize: 22, fontFamily: FONTS.bodyMedium },
+  backBtn: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
   title: {
     fontFamily: FONTS.displayBlack,
     fontSize: 24,

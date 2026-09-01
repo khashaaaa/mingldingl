@@ -31,6 +31,8 @@ export function useDiscover() {
     initialPageParam: 1,
     getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
     staleTime: 1000 * 60 * 5,
+    // discover renders its own error state and retry.
+    meta: { silentError: true },
   });
 
   const allCandidates = useMemo(() => data?.pages.flatMap((p) => p.items), [data]);

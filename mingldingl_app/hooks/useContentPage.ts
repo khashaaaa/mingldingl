@@ -8,5 +8,7 @@ export function useContentPage(slug: string) {
     queryKey: queryKeys.contentPage(slug),
     queryFn: async () => parseContentPage(await apiClient.content.get(slug)),
     staleTime: 1000 * 60 * 60,
+    // content screen renders its own error state and retry.
+    meta: { silentError: true },
   });
 }

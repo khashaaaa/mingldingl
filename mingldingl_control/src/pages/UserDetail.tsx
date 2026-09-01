@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { serverError } from '@/lib/apiError';
 
 function flameRiteStage(m: {
   flameRiteProposedAt?: string | null;
@@ -71,7 +72,7 @@ export function UserDetail() {
       setBanReason('');
       toast({ variant: 'success', description: 'User banned.' });
     },
-    onError: () => toast({ variant: 'destructive', description: 'Ban failed — try again.' }),
+    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Ban failed — try again.') }),
   });
 
   const unban = useMutation({
@@ -82,7 +83,7 @@ export function UserDetail() {
       qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
       toast({ variant: 'success', description: 'User unbanned.' });
     },
-    onError: () => toast({ variant: 'destructive', description: 'Unban failed — try again.' }),
+    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Unban failed — try again.') }),
   });
 
   const cancelDeletion = useMutation({
@@ -94,7 +95,7 @@ export function UserDetail() {
       qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
       toast({ variant: 'success', description: 'Deletion request cancelled.' });
     },
-    onError: () => toast({ variant: 'destructive', description: 'Failed to cancel — try again.' }),
+    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Failed to cancel — try again.') }),
   });
 
   const adjustScore = useMutation({
@@ -108,7 +109,7 @@ export function UserDetail() {
       setScoreReason('');
       toast({ variant: 'success', description: 'Score adjusted.' });
     },
-    onError: () => toast({ variant: 'destructive', description: 'Adjustment failed — try again.' }),
+    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Adjustment failed — try again.') }),
   });
 
   const resetNoShow = useMutation({
@@ -119,7 +120,7 @@ export function UserDetail() {
       qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
       toast({ variant: 'success', description: 'No-show flags reset.' });
     },
-    onError: () => toast({ variant: 'destructive', description: 'Reset failed — try again.' }),
+    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Reset failed — try again.') }),
   });
 
   return (

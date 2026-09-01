@@ -1,49 +1,51 @@
 import { Tabs } from 'expo-router';
-import { Text, View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 import { i18n } from '../../lib/i18n';
+import { useLocaleStore } from '../../store/localeStore';
 
 type TabGlyph = React.ComponentProps<typeof Icon>['name'];
 
-function TabIcon({ glyph, label, focused }: { glyph: TabGlyph; label: string; focused: boolean }) {
-  const color = focused ? COLORS.goldBright : COLORS.textDim;
-  return (
-    <View style={styles.iconWrap}>
-      <Icon name={glyph} size={22} color={color} style={styles.glyph} />
-      <Text
-        style={[styles.label, { color }]}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.7}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}
+/**
+ * The label goes through React Navigation's own label slot rather than being drawn inside
+ * `tabBarIcon`. The icon slot is sized to the glyph (~31px against an 84px tab), so a label
+ * nested in it resolved `width: '100%'` against 31px and clipped every tab to "Se…"/"Ха…".
+ */
+const tabIcon = (glyph: TabGlyph) => ({ color }: { color: string }) => (
+  <Icon name={glyph} size={22} color={color} style={styles.glyph} />
+);
 
 export default function TabsLayout() {
+  // The tab labels are baked into the options objects below, so React Navigation keeps serving
+  // the strings from this component's last render. Subscribing re-renders it on a locale switch.
+  useLocaleStore((s) => s.locale);
   const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: [styles.tabBar, { height: 60 + insets.bottom, paddingBottom: 8 + insets.bottom }],
-        tabBarShowLabel: false,
+        tabBarStyle: [styles.tabBar, { height: 68 + insets.bottom, paddingBottom: 6 + insets.bottom }],
+        tabBarActiveTintColor: COLORS.goldBright,
+        tabBarInactiveTintColor: COLORS.textDim,
+        // Without this the label is laid out beside the icon on wide viewports and the two
+        // collide inside a 84px tab.
+        tabBarLabelPosition: 'below-icon',
+        tabBarLabelStyle: styles.label,
+        tabBarItemStyle: styles.item,
       }}
     >
       <Tabs.Screen name="discover"
-        options={{ tabBarIcon: ({ focused }) => <TabIcon glyph="sword" label={i18n.t('tab_seek')} focused={focused} /> }} />
+        options={{ title: i18n.t('tab_seek'), tabBarIcon: tabIcon('sword') }} />
       <Tabs.Screen name="matches"
-        options={{ tabBarIcon: ({ focused }) => <TabIcon glyph="script-text" label={i18n.t('tab_quest_log')} focused={focused} /> }} />
+        options={{ title: i18n.t('tab_quest_log'), tabBarIcon: tabIcon('script-text') }} />
       <Tabs.Screen name="townsquare"
-        options={{ tabBarIcon: ({ focused }) => <TabIcon glyph="bank" label={i18n.t('tab_town_square')} focused={focused} /> }} />
+        options={{ title: i18n.t('tab_town_square'), tabBarIcon: tabIcon('bank') }} />
       <Tabs.Screen name="activity"
-        options={{ tabBarIcon: ({ focused }) => <TabIcon glyph="sword-cross" label={i18n.t('tab_missions')} focused={focused} /> }} />
+        options={{ title: i18n.t('tab_missions'), tabBarIcon: tabIcon('sword-cross') }} />
       <Tabs.Screen name="profile"
-        options={{ tabBarIcon: ({ focused }) => <TabIcon glyph="shield" label={i18n.t('tab_character')} focused={focused} /> }} />
+        options={{ title: i18n.t('tab_character'), tabBarIcon: tabIcon('shield') }} />
     </Tabs>
   );
 }
@@ -53,17 +55,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panelDeep,
     borderTopWidth: 1,
     borderTopColor: COLORS.bronze,
-    paddingTop: 8,
+    paddingTop: 6,
   },
-  iconWrap: { alignItems: 'center', gap: 2, minWidth: 72 },
-  glyph: { height: 24, lineHeight: 24, textAlign: 'center' },
+  item: { paddingHorizontal: 2 },
+  glyph: { textAlign: 'center' },
   label: {
     fontFamily: FONTS.display,
     fontSize: 11,
     lineHeight: 14,
-    height: 14,
-    letterSpacing: 1,
-    width: '100%',
+    letterSpacing: 0.5,
     textAlign: 'center',
   },
 });

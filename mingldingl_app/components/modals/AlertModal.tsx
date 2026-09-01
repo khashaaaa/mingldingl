@@ -17,17 +17,21 @@ interface Props {
   confirmLabel?: string;
   onConfirm?: () => void;
   isConfirming?: boolean;
+  /** Destructive confirms get the danger slab; everything else uses the primary one. */
+  destructive?: boolean;
 
   children?: ReactNode;
 }
 
 export function AlertModal({
   visible, title, message, onDismiss, tone = 'default',
-  confirmLabel, onConfirm, isConfirming, children,
+  confirmLabel, onConfirm, isConfirming, destructive = tone === 'warning', children,
 }: Props) {
   const tint = tone === 'warning' ? COLORS.ember : COLORS.gold;
+  // #7: while a confirm is in flight, cancelling (or hardware back) would race the request.
+  const locked = !!isConfirming;
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={() => { if (!locked) onDismiss(); }}>
       <View style={styles.overlay}>
         <View style={[styles.card, { borderColor: tint }]}>
           <Icon name={tone === 'warning' ? 'alert' : 'rhombus-outline'} size={22} color={tint} />
@@ -36,8 +40,15 @@ export function AlertModal({
           {children && <View style={styles.childrenWrap}>{children}</View>}
           {onConfirm ? (
             <View style={styles.btnRow}>
-              <GameButton variant="ghost" onPress={onDismiss}>{i18n.t('alert_cancel')}</GameButton>
-              <GameButton variant="danger" loading={isConfirming} onPress={onConfirm}>
+              <GameButton variant="ghost" flex={1} disabled={locked} onPress={onDismiss}>
+                {i18n.t('alert_cancel')}
+              </GameButton>
+              <GameButton
+                variant={destructive ? 'danger' : 'primary'}
+                flex={1}
+                loading={isConfirming}
+                onPress={onConfirm}
+              >
                 {confirmLabel ?? i18n.t('alert_dismiss')}
               </GameButton>
             </View>
@@ -69,10 +80,9 @@ const styles = StyleSheet.create({
     maxWidth: 340,
     width: '100%',
   },
-  sigil: { fontSize: 26, marginBottom: 2 },
   title: { fontFamily: FONTS.display, fontSize: 17, color: COLORS.text, textAlign: 'center' },
   message: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textDim, textAlign: 'center', lineHeight: 20 },
   childrenWrap: { alignSelf: 'stretch', marginTop: 4 },
   btnWrap: { marginTop: 10, alignSelf: 'stretch' },
-  btnRow: { gap: 10, marginTop: 10, alignSelf: 'stretch' },
+  btnRow: { flexDirection: 'row', gap: 10, marginTop: 10, alignSelf: 'stretch' },
 });

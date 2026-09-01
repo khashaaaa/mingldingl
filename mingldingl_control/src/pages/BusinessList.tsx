@@ -20,6 +20,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { Pagination } from '@/components/Pagination';
+import { serverError } from '@/lib/apiError';
 
 const PAGE_SIZE = 20;
 
@@ -49,8 +50,8 @@ export function BusinessList() {
       invalidateList();
       setPendingDelete(null);
     },
-    onError: () => {
-      toast({ variant: 'destructive', description: "Couldn't delete — it may have existing reviews attached." });
+    onError: (err) => {
+      toast({ variant: 'destructive', description: serverError(err, "Couldn't delete — it may have existing reviews attached.") });
       setPendingDelete(null);
     },
   });
@@ -63,7 +64,7 @@ export function BusinessList() {
       setSelected(new Set());
       toast({ variant: 'success', description: `Updated ${res.updated} businesses.` });
     },
-    onError: () => toast({ variant: 'destructive', description: 'Bulk update failed — try again.' }),
+    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Bulk update failed — try again.') }),
   });
 
   function toggleSelected(id: string) {

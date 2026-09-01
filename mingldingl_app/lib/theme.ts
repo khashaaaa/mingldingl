@@ -11,6 +11,7 @@ export const COLORS = {
   brass: '#B8923F',
   brassDark: '#5C4720',
   ember: '#C1461E',
+  emberDark: '#913416',
   emberLight: '#D77951',
   text: '#EDE4D3',
   textDim: '#8F97A3',
@@ -24,6 +25,8 @@ export const FONTS = {
   bodyMedium: 'Alegreya_500Medium',
   bodyBold: 'Alegreya_700Bold',
   wordmark: 'CloisterBlack-Light',
+  // Small-caps utility face for tiny labels, where a display face turns to mush.
+  utility: 'AlegreyaSC_700Bold',
 } as const;
 
 export const SPACE = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, gutter: 20 } as const;

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { GameButton } from '../../components/ui/GameButton';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
@@ -20,10 +20,18 @@ export default function TownSquareScreen() {
   const { session, isError, refetch, rsvp, cancelRsvp, isRsvping, isCancelling } = useTownSquareSession();
   const [now, setNow] = useState(() => Date.now());
 
-  useEffect(() => {
+  // Tab screens stay mounted, so an unconditional ticker re-rendered this screen every second
+  // while the user was elsewhere in the app.
+  useFocusEffect(useCallback(() => {
+    if (!session?.sessionId) return;
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [session?.sessionId]));
+
+  const enterRound = useCallback((sessionId: string) => {
+    router.push(`/townsquare-round/${sessionId}` as any);
+  }, [router]);
 
   useEffect(() => {
     if (
@@ -32,9 +40,9 @@ export default function TownSquareScreen() {
       !autoNavigatedSessions.has(session.sessionId)
     ) {
       autoNavigatedSessions.add(session.sessionId);
-      router.push(`/townsquare-round/${session.sessionId}` as any);
+      enterRound(session.sessionId);
     }
-  }, [session?.sessionId, session?.status, router]);
+  }, [session?.sessionId, session?.status, enterRound]);
 
   return (
     <View style={styles.screen}>
@@ -52,6 +60,7 @@ export default function TownSquareScreen() {
             now={now}
             onRsvp={rsvp}
             onCancelRsvp={cancelRsvp}
+            onEnter={enterRound}
             isRsvping={isRsvping}
             isCancelling={isCancelling}
           />

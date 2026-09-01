@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { serverError } from '@/lib/apiError';
 
 type ContentPage = NonNullable<Awaited<ReturnType<typeof apiClient.content.list>>>[number];
 
@@ -42,7 +43,7 @@ function ContentPageEditForm({ slug, page }: { slug: string; page: ContentPage }
       qc.invalidateQueries({ queryKey: queryKeys.content });
       toast({ description: 'Saved.' });
     },
-    onError: () => toast({ variant: 'destructive', description: 'Save failed — try again.' }),
+    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Save failed — try again.') }),
   });
 
   return (

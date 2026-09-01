@@ -57,7 +57,6 @@ const styles = StyleSheet.create({
     maxWidth: 340,
     width: '100%',
   },
-  sigil: { fontSize: 26, marginBottom: 2 },
   title: { fontFamily: FONTS.display, fontSize: 17, color: COLORS.text, textAlign: 'center' },
   question: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textDim, textAlign: 'center', lineHeight: 20 },
   btnRow: { flexDirection: 'row', gap: 10, marginTop: 10, alignSelf: 'stretch' },

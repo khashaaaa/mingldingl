@@ -21,7 +21,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         }
     }
 
-    private DailyMaintenanceBackgroundService BuildService()
+    private DailyMaintenanceBackgroundService BuildService(LocalFileStorageService? storage = null)
     {
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
@@ -31,6 +31,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
             .AddSingleton(score)
             .AddSingleton(oaths)
             .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast()))
+            .AddSingleton(storage ?? BuildTestStorage())
             .BuildServiceProvider();
         return new DailyMaintenanceBackgroundService(
             new SingleProviderScopeFactory(provider),
@@ -161,5 +162,73 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         var reloadedUser = await Db.Users.FindAsync(silent.Id);
         Assert.Equal("Ghosted", reloadedMatch!.Status);
         Assert.False(reloadedUser!.OathProven);
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_AnonymizingAUser_DeletesTheirPhotoFilesFromDisk()
+    {
+        // /uploads is public and unauthenticated, so clearing the column alone would leave the
+        // photos fetchable by anyone holding an old URL.
+        var storage = BuildTestStorage();
+        var url = await storage.UploadAsync("photos", "u1/a.jpg", [1, 2, 3], "image/jpeg");
+
+        var user = NewCompleteUser();
+        user.PhotoUrls = [url];
+        user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriod - TimeSpan.FromDays(1);
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        await BuildService(storage).RunSweepAsync(CancellationToken.None);
+
+        Assert.False(storage.DeleteByPublicUrl(url), "the file should already be gone");
+        Assert.Empty((await Db.Users.FindAsync(user.Id))!.PhotoUrls);
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_AnonymizingAUser_PurgesTheirPhoneVerificationRecords()
+    {
+        // Verification rows hold the phone number in plaintext; deletion has to reach them too.
+        var user = NewCompleteUser();
+        user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriod - TimeSpan.FromDays(1);
+        Db.Users.Add(user);
+        Db.PhoneVerifications.Add(new PhoneVerification
+        {
+            Id = Guid.NewGuid(),
+            Phone = "99887766",
+            Code = "123456",
+            ProviderSessionId = "sess-1",
+            Status = PhoneVerificationStatus.Verified,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+            VerifiedAt = DateTime.UtcNow,
+            ClaimedByUserId = user.Id,
+            ClaimedAt = DateTime.UtcNow,
+        });
+        await Db.SaveChangesAsync();
+
+        await BuildService().RunSweepAsync(CancellationToken.None);
+
+        Assert.False(await Db.PhoneVerifications.AnyAsync(v => v.ClaimedByUserId == user.Id));
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_DropsStaleUnclaimedVerifications_ButKeepsRecentOnes()
+    {
+        var stale = new PhoneVerification
+        {
+            Id = Guid.NewGuid(), Phone = "99887711", Code = "111111", ProviderSessionId = "s1",
+            Status = PhoneVerificationStatus.Expired, ExpiresAt = DateTime.UtcNow.AddDays(-3),
+        };
+        var recent = new PhoneVerification
+        {
+            Id = Guid.NewGuid(), Phone = "99887722", Code = "222222", ProviderSessionId = "s2",
+            Status = PhoneVerificationStatus.Pending, ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+        };
+        Db.PhoneVerifications.AddRange(stale, recent);
+        await Db.SaveChangesAsync();
+
+        await BuildService().RunSweepAsync(CancellationToken.None);
+
+        Assert.False(await Db.PhoneVerifications.AnyAsync(v => v.Id == stale.Id));
+        Assert.True(await Db.PhoneVerifications.AnyAsync(v => v.Id == recent.Id));
     }
 }

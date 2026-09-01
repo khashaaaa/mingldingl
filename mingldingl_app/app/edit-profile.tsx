@@ -12,6 +12,7 @@ import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { COLORS, FONTS } from '../lib/theme';
+import { FIELD_LIMITS } from '../lib/fieldLimits';
 import { DismissKeyboardView } from '../components/ui/DismissKeyboardView';
 import { AppCard } from '../components/ui/AppCard';
 import { GameButton } from '../components/ui/GameButton';
@@ -43,6 +44,7 @@ export default function EditProfileScreen() {
   const [city, setCity] = useState(profile?.city ?? '');
   const [cityPickerVisible, setCityPickerVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [photosUploading, setPhotosUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bioRef = useRef<TextInput>(null);
   const { capture, isCapturing, permissionDenied } = useLocationCapture();
@@ -63,7 +65,9 @@ export default function EditProfileScreen() {
     setCity(profile.city ?? '');
   }, [profile]);
 
-  const canSave = displayName.trim().length > 0 && photoUrls.length >= 3 && !saving;
+  // `photoUrls` carries local file:// placeholders until their upload resolves, so saving mid-upload
+  // would persist one of those as a photo URL.
+  const canSave = displayName.trim().length > 0 && photoUrls.length >= 3 && !saving && !photosUploading;
 
   async function handleRefreshLocation() {
     const coords = await capture();
@@ -123,7 +127,7 @@ export default function EditProfileScreen() {
         <AppCard textured style={{ padding: 16 }}>
           <YStack gap="$3" zIndex={1}>
             <Text color={COLORS.gold} fontSize={14} fontFamily={FONTS.bodyBold as any}>{i18n.t('your_photos')}</Text>
-            <PhotoGrid photoUrls={photoUrls} onChange={setPhotoUrls} />
+            <PhotoGrid photoUrls={photoUrls} onChange={setPhotoUrls} onUploadingChange={setPhotosUploading} />
             <Text color={photoUrls.length >= 3 ? COLORS.goldBright : COLORS.gold} fontSize={12} fontFamily={FONTS.body as any}>
               {i18n.t('photos_minimum', { n: photoUrls.length })}
             </Text>
@@ -135,6 +139,7 @@ export default function EditProfileScreen() {
             <Input
               value={displayName} onChangeText={setDisplayName}
               placeholder={i18n.t('display_name_placeholder')} placeholderTextColor={COLORS.textDim as any}
+              maxLength={FIELD_LIMITS.displayName}
               backgroundColor={COLORS.panel} borderColor={COLORS.bronze} color={COLORS.text}
               fontFamily={FONTS.body as any}
               returnKeyType="next" onSubmitEditing={() => bioRef.current?.focus()} blurOnSubmit={false}
@@ -148,7 +153,7 @@ export default function EditProfileScreen() {
               returnKeyType="done" onSubmitEditing={Keyboard.dismiss} blurOnSubmit
               style={{ resize: 'none' } as never}
 />
-            {error && <Text color={COLORS.ember} fontSize={13} fontFamily={FONTS.body as any}>{error}</Text>}
+            {error && <Text color={COLORS.emberLight} fontSize={13} fontFamily={FONTS.body as any}>{error}</Text>}
           </YStack>
         </AppCard>
 
@@ -166,7 +171,6 @@ export default function EditProfileScreen() {
               optionLabel={(opt) => i18n.t(opt === 'yes' ? 'has_kids_yes' : 'has_kids_no')}
               onChange={(opt) => setHasKids(opt === 'yes')}
               size="compact"
-              unselectedVariant="brass"
             />
             <ChoiceRow
               label={i18n.t('smoking_habit')}
@@ -175,7 +179,6 @@ export default function EditProfileScreen() {
               optionLabel={(opt) => i18n.t(`habit_${opt.toLowerCase()}`)}
               onChange={setSmokingHabit}
               size="compact"
-              unselectedVariant="brass"
             />
             <ChoiceRow
               label={i18n.t('drinking_habit')}
@@ -184,7 +187,6 @@ export default function EditProfileScreen() {
               optionLabel={(opt) => i18n.t(`habit_${opt.toLowerCase()}`)}
               onChange={setDrinkingHabit}
               size="compact"
-              unselectedVariant="brass"
             />
             <ChoiceRow
               label={i18n.t('religion')}
@@ -193,7 +195,6 @@ export default function EditProfileScreen() {
               optionLabel={(opt) => i18n.t(`religion_${opt.toLowerCase()}`)}
               onChange={setReligion}
               size="compact"
-              unselectedVariant="brass"
             />
             <ChoiceRow
               label={i18n.t('lifestyle')}
@@ -202,7 +203,6 @@ export default function EditProfileScreen() {
               optionLabel={(opt) => i18n.t(`lifestyle_${opt.toLowerCase()}`)}
               onChange={setLifestyle}
               size="compact"
-              unselectedVariant="brass"
             />
           </YStack>
         </AppCard>
@@ -223,7 +223,7 @@ export default function EditProfileScreen() {
             <GameButton variant="brass" size="compact" icon="crosshairs-gps" loading={isCapturing} onPress={handleRefreshLocation}>
               {i18n.t('refresh_location')}
             </GameButton>
-            {error && <Text color={COLORS.ember} fontSize={13} fontFamily={FONTS.body as any}>{error}</Text>}
+            {error && <Text color={COLORS.emberLight} fontSize={13} fontFamily={FONTS.body as any}>{error}</Text>}
             {permissionDenied && (
               <YStack gap="$2">
                 <Text color={COLORS.textDim} fontSize={12} fontFamily={FONTS.body as any}>

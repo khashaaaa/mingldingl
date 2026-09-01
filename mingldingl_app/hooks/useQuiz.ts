@@ -21,9 +21,9 @@ export function useQuiz(matchId: string) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
   const { data: quiz, isLoading: quizLoading, isError: quizLoadError, refetch: refetchQuiz } = useQuery<QuizData>({
-    queryKey: queryKeys.quiz,
+    queryKey: queryKeys.quiz(matchId),
     queryFn: async () => {
-      const res = await apiClient.engagement.quiz();
+      const res = await apiClient.engagement.quiz(matchId);
       return {
         id: res.id ?? '',
         title: res.title ?? '',
@@ -51,7 +51,7 @@ export function useQuiz(matchId: string) {
     mutationFn: (finalAnswers: Record<string, string>) =>
       apiClient.engagement.quizRespond(quiz!.id, { matchId, answers: finalAnswers }),
     meta: {
-      invalidates: [queryKeys.quests],
+      invalidates: [queryKeys.quests, queryKeys.campaignAll],
       awardedSelector: (data) => (data as { awarded?: number }).awarded,
       silentError: true,
     },

@@ -34,6 +34,7 @@ export function useRealtimeNudges() {
         const { userId, matchId } = msg.payload as { userId: string; matchId: string };
         if (userId === myId) return;
 
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaign(matchId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.icebreakerRevealByMatch(matchId) });
         setPendingNudge({
           icon: '🧊',
@@ -45,6 +46,7 @@ export function useRealtimeNudges() {
         const { userId, matchId } = msg.payload as { userId: string; matchId: string | null };
         if (!matchId || userId === myId) return;
 
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaign(matchId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.quizStatusByMatch(matchId) });
         setPendingNudge({
           icon: '🎯',
@@ -55,6 +57,7 @@ export function useRealtimeNudges() {
       .on('broadcast', { event: 'date_confirmed' }, (msg) => {
         const { matchId, userId, isComplete } = msg.payload as { matchId: string; userId?: string; isComplete?: boolean };
         if (userId === myId) return;
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaign(matchId) });
         queryClient.setQueryData(queryKeys.partnerPledged(matchId), !isComplete);
         queryClient.invalidateQueries({ queryKey: queryKeys.activitySuggestions(matchId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.matches });
@@ -82,6 +85,8 @@ export function useRealtimeNudges() {
         const { senderId, matchId } = msg.payload as { senderId: string; matchId: string };
         if (senderId === myId) return;
 
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaign(matchId) });
+
         queryClient.invalidateQueries({ queryKey: queryKeys.matches });
         if (matchId === useAuthStore.getState().activeChatMatchId) return;
         setPendingNudge({
@@ -100,8 +105,10 @@ export function useRealtimeNudges() {
       .on('broadcast', { event: 'flame_rite_declined' }, () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.matches });
       })
-      .on('broadcast', { event: 'flame_rite_completed' }, () => {
+      .on('broadcast', { event: 'flame_rite_completed' }, (msg) => {
+        const { matchId } = msg.payload as { matchId?: string };
         queryClient.invalidateQueries({ queryKey: queryKeys.matches });
+        if (matchId) queryClient.invalidateQueries({ queryKey: queryKeys.campaign(matchId) });
       })
       .on('broadcast', { event: 'match_status_changed' }, (msg) => {
         const { matchId, status } = msg.payload as { matchId: string; status: string };

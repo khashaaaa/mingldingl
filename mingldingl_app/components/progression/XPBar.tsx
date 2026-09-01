@@ -1,9 +1,11 @@
 import { useRef, useEffect } from 'react';
-import { View, Text, Animated, StyleSheet } from 'react-native';
+import { View, Text, Image, Animated, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
+import { tierLabel } from '../../lib/tiers';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { GemTierBadge } from './GemTierBadge';
 import type { GemTier } from '../../models/user';
 
@@ -42,28 +44,35 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
       <View style={styles.labels}>
         <View style={styles.tierRow}>
           <GemTierBadge tier={gemTier} size={16} />
-          <Text style={[styles.tier, { color }]}>{gemTier}</Text>
+          <Text style={[styles.tier, { color }]}>{tierLabel(gemTier)}</Text>
         </View>
-        {nextTier && <Text style={styles.next}>→ {nextTier}</Text>}
+        {nextTier && <Text style={styles.next}>→ {tierLabel(nextTier)}</Text>}
       </View>
       <View style={styles.track}>
+        <Image source={ORNAMENTS.fretGold} testID="ulzii-track-fret" style={styles.trackFret} />
+        {/* Quarter marks belong to the empty road only. Drawn over the fill, the one at 75%
+            landed where the gradient turns gold and made a full bar read as three-quarters. */}
+        {[0.25, 0.5, 0.75].map((t) => (
+          <View key={t} style={[styles.tick, { left: `${t * 100}%` }]} />
+        ))}
         <Animated.View style={[styles.fill, { width: fillWidth }]}>
           <LinearGradient
             colors={[color, COLORS.goldBright]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={StyleSheet.absoluteFill}
           />
+          <Image source={ORNAMENTS.fretDark} testID="ulzii-fill-fret" style={styles.fillFret} />
+          {/* The only vertical edge on the filled stretch, so where the fill ends is never
+              in doubt — including at 100%, where there is no dark remainder to contrast with. */}
+          <View style={styles.fillCap} />
         </Animated.View>
         <Animated.View style={[styles.shimmer, { transform: [{ translateX: shimmer }] }]} />
-        {[0.25, 0.5, 0.75].map((t) => (
-          <View key={t} style={[styles.tick, { left: `${t * 100}%` }]} />
-        ))}
         <Animated.View style={[StyleSheet.absoluteFill, styles.flash, { opacity: flash }]} />
       </View>
       <View style={styles.footer}>
         {pointsToNext !== null && (
           <Text style={styles.nextThreshold}>
-            {i18n.t('next_tier_threshold', { points: pointsToNext.toLocaleString(), tier: nextTier })}
+            {i18n.t('next_tier_threshold', { points: pointsToNext.toLocaleString(), tier: tierLabel(nextTier) })}
           </Text>
         )}
         <Text style={styles.scoreText}>{totalScore.toLocaleString()} {i18n.t('pts')}</Text>
@@ -89,6 +98,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   fill: { height: '100%', borderRadius: FILL_BORDER_RADIUS, overflow: 'hidden' },
+  // The walking pattern (алхан хээ): faint on the empty road, engraved into the fill.
+  trackFret: { position: 'absolute', left: 0, top: 0, height: 12, width: 12 * FRET_ASPECT, opacity: 0.15 },
+  fillFret: { position: 'absolute', left: 0, top: 0, height: 12, width: 12 * FRET_ASPECT, opacity: 0.5 },
+  fillCap: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 2, backgroundColor: COLORS.text },
   shimmer: {
     position: 'absolute',
     top: 0, bottom: 0,

@@ -72,26 +72,61 @@ function renderWithClient() {
   return { ...view, invalidateSpy };
 }
 
+/** Hanging up now asks for confirmation first, so every end goes through the dialog. */
+async function endCall(view: ReturnType<typeof renderWithClient>) {
+  fireEvent.press(view.getByText('End Call'));
+  await waitFor(() => view.getByText(/End the Rite\?/i));
+  fireEvent.press(view.getByText(/^END THE CALL$/i));
+}
+
 describe('VideoScreen handleEnd', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('invalidates the matches cache on end, even when nothing was awarded', async () => {
     mockComplete.mockResolvedValue({ awarded: 0, droppedItem: null });
-    const { getByText, invalidateSpy } = renderWithClient();
+    const view = renderWithClient();
 
-    fireEvent.press(getByText('End Call'));
+    await endCall(view);
 
     await waitFor(() => expect(mockBack).toHaveBeenCalled());
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+    expect(view.invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
   });
 
   it('still invalidates the matches cache when an award was granted', async () => {
     mockComplete.mockResolvedValue({ awarded: 25, droppedItem: null });
-    const { getByText, invalidateSpy } = renderWithClient();
+    const view = renderWithClient();
 
-    fireEvent.press(getByText('End Call'));
+    await endCall(view);
 
     await waitFor(() => expect(mockBack).toHaveBeenCalled());
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+    expect(view.invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+  });
+
+  it('asks before ending, and does not complete the call if the user backs out', async () => {
+    mockComplete.mockResolvedValue({ awarded: 0, droppedItem: null });
+    const { getByText } = renderWithClient();
+
+    fireEvent.press(getByText('End Call'));
+    await waitFor(() => getByText(/End the Rite\?/i));
+    fireEvent.press(getByText(/^CANCEL$/i));
+
+    expect(mockComplete).not.toHaveBeenCalled();
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it('completes only once when the confirm is double-tapped', async () => {
+    let resolve!: (v: unknown) => void;
+    mockComplete.mockReturnValue(new Promise((r) => { resolve = r; }));
+    const { getByText } = renderWithClient();
+
+    fireEvent.press(getByText('End Call'));
+    await waitFor(() => getByText(/End the Rite\?/i));
+    const confirm = getByText(/^END THE CALL$/i);
+    fireEvent.press(confirm);
+    fireEvent.press(confirm);
+
+    expect(mockComplete).toHaveBeenCalledTimes(1);
+    resolve({ awarded: 0, droppedItem: null });
+    await waitFor(() => expect(mockBack).toHaveBeenCalled());
   });
 });

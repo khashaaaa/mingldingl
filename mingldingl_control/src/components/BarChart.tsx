@@ -1,4 +1,4 @@
-const ACCENT = '#2a78d6';
+const ACCENT = 'var(--chart-accent)';
 const CHART_HEIGHT = 160;
 
 export function BarChart({ data }: { data: { label: string; value: number }[] }) {

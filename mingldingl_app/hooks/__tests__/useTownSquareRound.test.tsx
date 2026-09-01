@@ -120,7 +120,7 @@ describe('useTownSquareRound', () => {
     expect(mockApi.townSquare.currentRound).not.toHaveBeenCalled();
   });
 
-  it('polls every 30s while mounted, as a fallback for a missed broadcast', async () => {
+  it("polls at the scheduler's 10s cadence, as a fallback for a missed broadcast", async () => {
     jest.useFakeTimers();
     mockApi.townSquare.currentRound.mockResolvedValue(round1);
 
@@ -130,7 +130,7 @@ describe('useTownSquareRound', () => {
     await waitFor(() => expect(mockApi.townSquare.currentRound).toHaveBeenCalledTimes(1));
 
     await act(async () => {
-      await jest.advanceTimersByTimeAsync(30000);
+      await jest.advanceTimersByTimeAsync(10000);
     });
     await waitFor(() => expect(mockApi.townSquare.currentRound).toHaveBeenCalledTimes(2));
   });
@@ -284,5 +284,50 @@ describe('useTownSquareRound', () => {
     await act(async () => {
       resolveRespond({ matchId: null });
     });
+  });
+
+  it('keeps a pairing marked as responded, so a remount cannot re-open the prompt', async () => {
+    mockApi.townSquare.currentRound.mockResolvedValue(round1);
+    mockApi.townSquare.respond.mockResolvedValue({ matchId: 'match-1' });
+
+    const queryClient = makeQueryClient();
+    const { result } = renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+    await waitFor(() => expect(result.current.round).toBeTruthy());
+
+    expect(result.current.hasResponded).toBe(false);
+    await act(async () => { result.current.submitResponse(round1.pairingId, 'Yes'); });
+
+    await waitFor(() => expect(result.current.hasResponded).toBe(true));
+    expect(result.current.matchId).toBe('match-1');
+  });
+
+  it('surfaces a respond failure instead of silently leaving the prompt unanswered', async () => {
+    mockApi.townSquare.currentRound.mockResolvedValue(round1);
+    mockApi.townSquare.respond.mockRejectedValue(new Error('offline'));
+
+    const queryClient = makeQueryClient();
+    const { result } = renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+    await waitFor(() => expect(result.current.round).toBeTruthy());
+
+    await act(async () => { result.current.submitResponse(round1.pairingId, 'Yes'); });
+
+    await waitFor(() => expect(result.current.respondError).toBe(true));
+    expect(result.current.hasResponded).toBe(false);
+
+    act(() => result.current.clearRespondError());
+    expect(result.current.respondError).toBe(false);
+  });
+
+  it('reports a join failure so attendance is not assumed to have registered', async () => {
+    mockApi.townSquare.currentRound.mockResolvedValue(round1);
+    mockApi.townSquare.joined.mockRejectedValue(new Error('offline'));
+
+    const queryClient = makeQueryClient();
+    const { result } = renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+    await waitFor(() => expect(result.current.round).toBeTruthy());
+
+    await act(async () => { result.current.markJoined(round1.pairingId); });
+
+    await waitFor(() => expect(result.current.joinError).toBe(true));
   });
 });

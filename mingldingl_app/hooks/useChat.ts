@@ -59,6 +59,10 @@ export function useChat(matchId: string) {
   const myId = useAuthStore((s) => s.session?.user.id);
   const [earlierExhausted, setEarlierExhausted] = useState(false);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [earlierError, setEarlierError] = useState(false);
+  // #2: cleared only after the inserted page has been laid out, so the list is not yanked
+  // back to the bottom by onContentSizeChange.
+  const [justLoadedEarlier, setJustLoadedEarlier] = useState(false);
 
   useEffect(() => {
     setEarlierExhausted(false);
@@ -71,14 +75,19 @@ export function useChat(matchId: string) {
       if (data.length < MESSAGE_PAGE_SIZE) setEarlierExhausted(true);
 
       const cached = qc.getQueryData<Message[]>(queryKeys.messages(matchId)) ?? [];
-      return mergeMessages(
-        data.map(parseMessage),
-        cached.filter((m) => m.status === 'sending' || m.status === 'failed'),
-      );
+      // Keep pages already pulled in by loadEarlier, plus anything still in flight locally —
+      // otherwise a background refetch collapses the thread back to the newest page.
+      const fresh = data.map(parseMessage);
+      const freshIds = new Set(fresh.map((m) => m.id));
+      const older = cached.filter((m) => m.status === 'sent' && !freshIds.has(m.id));
+      const local = cached.filter((m) => m.status === 'sending' || m.status === 'failed');
+      return mergeMessages([...older, ...fresh].sort((a, b) => a.createdAt.localeCompare(b.createdAt)), local);
     },
     enabled: !!matchId,
     staleTime: 15 * 1000,
     gcTime: Infinity,
+    // chat renders its own error state and retry.
+    meta: { silentError: true },
   });
 
   useEffect(() => {
@@ -104,21 +113,29 @@ export function useChat(matchId: string) {
     const oldest = oldestServerMessage(qc.getQueryData<Message[]>(queryKeys.messages(matchId)) ?? []);
     if (!oldest) return;
     setLoadingEarlier(true);
+    setEarlierError(false);
     try {
       const page = await apiClient.messages.list(matchId, { before: oldest.createdAt, limit: MESSAGE_PAGE_SIZE });
       if (page.length < MESSAGE_PAGE_SIZE) setEarlierExhausted(true);
+      setJustLoadedEarlier(true);
       qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) =>
         mergeMessages(page.map(parseMessage), old ?? []));
     } catch {
+      setEarlierError(true);
     } finally {
       setLoadingEarlier(false);
     }
   }
 
+  /** Called by the list once the newly prepended page has been measured. */
+  function acknowledgeEarlierLoaded(): void {
+    setJustLoadedEarlier(false);
+  }
+
   const sendMutation = useMutation({
     mutationFn: (content: string) => apiClient.messages.send(matchId, content),
     meta: {
-      invalidates: [queryKeys.quests, queryKeys.milestones, queryKeys.matches],
+      invalidates: [queryKeys.quests, queryKeys.milestones, queryKeys.matches, queryKeys.campaignAll],
       awardedSelector: (data) => (data as { awarded?: number }).awarded,
       silentError: true,
     },
@@ -159,5 +176,8 @@ export function useChat(matchId: string) {
     void attemptSend(tempId, target.content);
   }
 
-  return { messages, loading, isError, refetch, sendMessage, retryMessage, myId, loadEarlier, hasMore, loadingEarlier };
+  return {
+    messages, loading, isError, refetch, sendMessage, retryMessage, myId,
+    loadEarlier, hasMore, loadingEarlier, earlierError, justLoadedEarlier, acknowledgeEarlierLoaded,
+  };
 }

@@ -26,11 +26,13 @@ public class EngagementController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetIcebreaker(Guid matchId)
     {
-        var icebreaker = await _db.Icebreakers
+        var icebreakers = await _db.Icebreakers
             .Where(i => i.IsActive)
-            .OrderBy(_ => Guid.NewGuid())
-            .FirstOrDefaultAsync();
-        if (icebreaker is null) return this.NotFoundError("No active icebreaker available");
+            .OrderBy(i => i.Id)
+            .ToListAsync();
+        if (icebreakers.Count == 0) return this.NotFoundError("No active icebreaker available");
+
+        var icebreaker = icebreakers[StableIndex(matchId, icebreakers.Count)];
         return Ok(new IcebreakerQuestionResponse(icebreaker.Id, icebreaker.QuestionText, icebreaker.Type, icebreaker.Options));
     }
 
@@ -124,12 +126,14 @@ public class EngagementController : ControllerBase
     [HttpGet("quiz")]
     [ProducesResponseType(typeof(QuizDetailsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetQuiz()
+    public async Task<IActionResult> GetQuiz([FromQuery] Guid? matchId = null)
     {
-        var quiz = await _db.Quizzes
-            .OrderBy(_ => Guid.NewGuid())
-            .FirstOrDefaultAsync();
-        if (quiz is null) return this.NotFoundError("No quiz available");
+        var quizzes = await _db.Quizzes.OrderBy(q => q.Id).ToListAsync();
+        if (quizzes.Count == 0) return this.NotFoundError("No quiz available");
+
+        // Compatibility is only computed between two responses to the same quiz, so the pick has
+        // to be stable per match rather than random per request.
+        var quiz = quizzes[matchId is Guid m ? StableIndex(m, quizzes.Count) : 0];
 
         var questions = await _db.QuizQuestions
             .Where(q => q.QuizId == quiz.Id)
@@ -319,4 +323,13 @@ public class EngagementController : ControllerBase
         var item = await _loot.GrantGuaranteedAsync(userId, "milestone");
         return Ok(new OpenMilestoneResponse(def.Xp, item, false));
     }
+
+    /// <summary>
+    /// Deterministic index derived from a match id, so both participants are served the same
+    /// item and it does not change between screen loads. Uses a hash rather than GetHashCode,
+    /// which is randomised per process and would differ between the two users' requests.
+    /// </summary>
+    private static int StableIndex(Guid seed, int count) =>
+        count <= 0 ? 0 : (int)(BitConverter.ToUInt32(
+            System.Security.Cryptography.SHA256.HashData(seed.ToByteArray()), 0) % (uint)count);
 }

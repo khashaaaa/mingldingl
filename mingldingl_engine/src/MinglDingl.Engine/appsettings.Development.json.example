@@ -6,6 +6,14 @@
     "ProjectUrl": "https://yourproject.supabase.co",
     "SecretKey": "replace-with-supabase-secret-key"
   },
+  "Cors": {
+    "AllowedOrigins": []
+  },
+  "VerifyMn": {
+    "ApiKey": "replace-with-verify-mn-api-key",
+    "BaseUrl": "https://api.verify.mn",
+    "CallbackBaseUrl": ""
+  },
   "Agora": {
     "AppId": "replace-with-agora-app-id",
     "AppCertificate": "replace-with-agora-app-certificate"

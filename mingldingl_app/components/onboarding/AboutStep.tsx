@@ -3,7 +3,7 @@ import { Keyboard, TextInput, View, Text } from 'react-native';
 import { YStack, XStack, TextArea, Spinner } from 'tamagui';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS } from '../../lib/theme';
-import { DismissKeyboardView } from '../ui/DismissKeyboardView';
+import { StepScaffold } from './StepScaffold';
 import { GameButton } from '../ui/GameButton';
 import { CityPickerModal } from '../modals/CityPickerModal';
 import { useLocationCapture } from '../../hooks/useLocationCapture';
@@ -28,7 +28,7 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
   const [geocodeFailed, setGeocodeFailed] = useState(false);
   const { capture, isCapturing, permissionDenied } = useLocationCapture();
   const { data: cities } = useGeoCities();
-  const canNext = city.length > 0 && bio.length > 0;
+  const canNext = city.length > 0 && bio.trim().length > 0;
   const bioRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
   }
 
   return (
-    <DismissKeyboardView>
+    <StepScaffold>
       <YStack flex={1} padding="$6" gap="$4">
         <Text style={{ color: COLORS.text, fontSize: 22, fontFamily: FONTS.display as any }}>{i18n.t('about_you')}</Text>
 
@@ -115,6 +115,6 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
           onDismiss={() => setPickerVisible(false)}
         />
       </YStack>
-    </DismissKeyboardView>
+    </StepScaffold>
   );
 }

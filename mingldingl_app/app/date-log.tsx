@@ -96,6 +96,5 @@ const styles = StyleSheet.create({
   subtitle: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 12 },
   date: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 11 },
   starsRow: { flexDirection: 'row', gap: 2 },
-  stars: { fontSize: 13, marginTop: 2 },
   unrated: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 11, fontStyle: 'italic', marginTop: 2 },
 });

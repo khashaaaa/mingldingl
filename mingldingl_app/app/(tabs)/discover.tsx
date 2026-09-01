@@ -14,6 +14,7 @@ import { LootToast } from '../../components/modals/LootToast';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
 import { GameHeader } from '../../components/ui/GameHeader';
+import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { PanelReveal } from '../../components/modals/PanelReveal';
 import { EmberField } from '../../components/vfx/EmberField';
 import { FogDrift } from '../../components/vfx/FogDrift';
@@ -22,12 +23,14 @@ import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 
+const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
+
 export default function DiscoverScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
   const [toast, setToast] = useState(false);
   const [toastPoints, setToastPoints] = useState(0);
-  const [failAlert, setFailAlert] = useState<'generic' | 'dailyBudget' | null>(null);
+  const [failAlert, setFailAlert] = useState<'generic' | 'dailyBudget' | 'unavailable' | null>(null);
   const { candidates, isLoading, isError, refetch, markSeen } = useDiscover();
   const { mutate: requestMatch, isPending: isRequesting } = useRequestMatch();
   const { data: profile } = useProfile();
@@ -49,12 +52,14 @@ export default function DiscoverScreen() {
 
   if (isLoading) return (
     <View style={styles.center}>
+      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <Spinner color="$gold" size="large" />
     </View>
   );
 
   if (isError) return (
     <View style={styles.center}>
+      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <View style={styles.emptyCard}>
         <Icon name="wifi-off" size={44} color={COLORS.bronze} />
         <RNText style={styles.emptyTitle}>{i18n.t('discover_load_error')}</RNText>
@@ -67,11 +72,15 @@ export default function DiscoverScreen() {
 
   if (!candidate) return (
     <View style={styles.center}>
+      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <View style={styles.emptyCard} onLayout={onEmptyLayout}>
         {emptySize.w > 0 && <FogDrift width={emptySize.w} height={emptySize.h} />}
         <Icon name="weather-night" size={44} color={COLORS.bronze} />
         <RNText style={styles.emptyTitle}>{i18n.t('empty_seek_title')}</RNText>
         <RNText style={styles.emptySub}>{i18n.t('empty_seek_sub')}</RNText>
+        <GameButton variant="ghost" size="compact" icon="refresh" onPress={() => refetch()}>
+          {i18n.t('refresh')}
+        </GameButton>
       </View>
     </View>
   );
@@ -80,6 +89,7 @@ export default function DiscoverScreen() {
 
   return (
     <View style={styles.screen}>
+      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <GameHeader title={i18n.t('seek_title')} icon="sword-cross" showScore />
       <GettingStartedCard
         isProfileComplete={profile?.isProfileComplete ?? false}
@@ -102,6 +112,7 @@ export default function DiscoverScreen() {
                 const status = isAxiosError(err) ? err.response?.status : undefined;
                 if (status === 409 || status === 403) {
                   markSeen(candidate.id);
+                  setFailAlert('unavailable');
                 } else if (status === 400) {
                   setFailAlert('dailyBudget');
                 } else {
@@ -124,8 +135,16 @@ export default function DiscoverScreen() {
       <AlertModal
         visible={failAlert !== null}
         tone="warning"
-        title={i18n.t(failAlert === 'dailyBudget' ? 'daily_budget_title' : 'action_failed_title')}
-        message={i18n.t(failAlert === 'dailyBudget' ? 'daily_budget_body' : 'action_failed_body')}
+        title={i18n.t(
+          failAlert === 'dailyBudget' ? 'daily_budget_title'
+            : failAlert === 'unavailable' ? 'candidate_unavailable'
+            : 'action_failed_title',
+        )}
+        message={i18n.t(
+          failAlert === 'dailyBudget' ? 'daily_budget_body'
+            : failAlert === 'unavailable' ? 'candidate_unavailable_body'
+            : 'action_failed_body',
+        )}
         onDismiss={() => setFailAlert(null)}
       />
     </View>

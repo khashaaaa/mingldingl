@@ -4,6 +4,7 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/alegreya": "^0.4.1",
+    "@expo-google-fonts/alegreya-sc": "^0.4.2",
     "@expo-google-fonts/yeseva-one": "^0.4.1",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.1.1",

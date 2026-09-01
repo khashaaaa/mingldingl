@@ -113,9 +113,11 @@ public class AdminUsersControllerIntegrationTests : IntegrationTestBase
         var result = Assert.IsType<OkObjectResult>(await controller.GetDeletionRequests());
         var list = Assert.IsAssignableFrom<IReadOnlyList<AdminDeletionRequestDto>>(result.Value);
 
-        var entry = Assert.Single(list);
-        Assert.Equal(pending.Id, entry.Id);
+        // Scoped to this test's own users — the list is global, so any other pending deletion
+        // in the database would break a bare Assert.Single.
+        var entry = Assert.Single(list.Where(e => e.Id == pending.Id));
         Assert.Equal(5, entry.DaysRemaining);
+        Assert.DoesNotContain(list, e => e.Id == alreadyDeleted.Id || e.Id == notRequested.Id);
     }
 
     [Fact]

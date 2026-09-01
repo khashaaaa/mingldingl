@@ -33,6 +33,7 @@ public class DevControllerIntegrationTests : IntegrationTestBase
             .AddSingleton(score)
             .AddSingleton(oaths)
             .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast()))
+            .AddSingleton(BuildTestStorage())
             .BuildServiceProvider();
         var sweep = new DailyMaintenanceBackgroundService(
             new SingleProviderScopeFactory(provider),

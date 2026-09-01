@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
 import { supabase } from '../lib/supabase';
@@ -39,7 +39,11 @@ export function useTownSquareRound(sessionId: string | undefined) {
       };
     },
     enabled: !!sessionId,
-    refetchInterval: 30000,
+    // Broadcast is primary, but it is exactly the channel that fails silently — poll at the
+    // scheduler's own 10s cadence so a missed event costs seconds, not a whole round.
+    refetchInterval: 10000,
+    // round screen shows a dedicated connection-lost modal.
+    meta: { silentError: true },
   });
 
   useEffect(() => {
@@ -55,31 +59,50 @@ export function useTownSquareRound(sessionId: string | undefined) {
     );
   }, [sessionId]);
 
+  // Pairings answered in this session, so a remount cannot re-open a prompt already sent.
+  const [respondedPairings, setRespondedPairings] = useState<Record<string, string | null>>({});
+  const [joinError, setJoinError] = useState(false);
+  const [respondError, setRespondError] = useState(false);
+
   const markJoinedMutation = useMutation({
     mutationFn: (pairingId: string) => apiClient.townSquare.joined(pairingId),
     meta: { invalidates: [queryKeys.matches] },
+    onSuccess: () => setJoinError(false),
+    onError: () => setJoinError(true),
   });
 
   const respondMutation = useMutation({
     mutationFn: ({ pairingId, response }: { pairingId: string; response: 'Yes' | 'No' }) =>
       apiClient.townSquare.respond(pairingId, response),
     meta: { invalidates: [queryKeys.matches] },
+    onSuccess: (data, variables) => {
+      setRespondError(false);
+      setRespondedPairings((prev) => ({ ...prev, [variables.pairingId]: data?.matchId ?? null }));
+    },
+    onError: () => setRespondError(true),
   });
 
   function submitResponse(pairingId: string, response: 'Yes' | 'No') {
     if (respondMutation.isPending) return;
+    setRespondError(false);
     respondMutation.mutate({ pairingId, response });
   }
 
-  const hasResponded = respondMutation.isSuccess && respondMutation.variables?.pairingId === round?.pairingId;
+  const currentPairingId = round?.pairingId ?? '';
+  const hasResponded = currentPairingId in respondedPairings;
 
   return {
     round,
     isLoading,
     error,
     markJoined: (pairingId: string) => markJoinedMutation.mutate(pairingId),
+    retryJoin: (pairingId: string) => markJoinedMutation.mutate(pairingId),
     submitResponse,
     hasResponded,
-    matchId: hasResponded ? respondMutation.data?.matchId ?? null : null,
+    matchId: respondedPairings[currentPairingId] ?? null,
+    isResponding: respondMutation.isPending,
+    respondError,
+    clearRespondError: () => setRespondError(false),
+    joinError,
   };
 }

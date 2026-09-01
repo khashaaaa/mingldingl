@@ -17,11 +17,11 @@ describe('ScreenHeader', () => {
 
   it('renders the title and fires onBack when the back arrow is pressed', () => {
     const onBack = jest.fn();
-    const { getByText } = render(<ScreenHeader title="Guild Rank" onBack={onBack} />);
+    const { getByText, getByLabelText } = render(<ScreenHeader title="Guild Rank" onBack={onBack} />);
 
     expect(getByText('Guild Rank')).toBeTruthy();
 
-    fireEvent.press(getByText('←'));
+    fireEvent.press(getByLabelText('Back'));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
@@ -33,11 +33,11 @@ describe('ScreenHeader', () => {
   });
 
   it('calls router.back() when back arrow is pressed and no onBack prop is provided', () => {
-    const { getByText } = render(<ScreenHeader title="Guild Rank" />);
+    const { getByText, getByLabelText } = render(<ScreenHeader title="Guild Rank" />);
 
     expect(getByText('Guild Rank')).toBeTruthy();
 
-    fireEvent.press(getByText('←'));
+    fireEvent.press(getByLabelText('Back'));
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 

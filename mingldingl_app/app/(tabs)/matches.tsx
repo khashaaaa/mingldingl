@@ -1,4 +1,4 @@
-import { View, Text, FlatList, StyleSheet, type LayoutChangeEvent } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { Spinner } from 'tamagui';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -17,7 +17,7 @@ const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function MatchesScreen() {
   useLocaleStore((s) => s.locale);
-  const { data: matches, isLoading, isError, refetch } = useMatches();
+  const { data: matches, isLoading, isError, isRefetching, refetch } = useMatches();
   const router = useRouter();
   const [emptySize, setEmptySize] = useState({ w: 0, h: 0 });
 
@@ -60,6 +60,9 @@ export default function MatchesScreen() {
           data={matches}
           keyExtractor={(m) => m.matchId}
           contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.gold} colors={[COLORS.gold]} />
+          }
           renderItem={({ item }) => (
             <QuestTile
               match={item}

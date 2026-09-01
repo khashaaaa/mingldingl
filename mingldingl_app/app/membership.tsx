@@ -19,6 +19,7 @@ import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
 import { COLORS, FONTS } from '../lib/theme';
+import { membershipLabel } from '../lib/tiers';
 import type { GemTier } from '../models/user';
 import type { MembershipPriceOption } from '../models/membership';
 
@@ -104,7 +105,7 @@ export default function MembershipScreen() {
                   <View style={styles.crestRow}>
                     <GemTierBadge tier={gemTier} size={30} color={badgeColor.color} shade={badgeColor.shade} />
                     <View>
-                      <Text style={styles.tierName}>{t.level}</Text>
+                      <Text style={styles.tierName}>{membershipLabel(t.level)}</Text>
                       {isCurrent && <Text style={styles.currentBadge}>{i18n.t('current_rank')}</Text>}
                     </View>
                   </View>
@@ -124,7 +125,12 @@ export default function MembershipScreen() {
                   {t.featureKeys.map((key) => (
                     <View key={key} style={styles.perkRow}>
                       <Text style={styles.perkCheck}>✦</Text>
-                      <Text style={styles.perkLabel}>{i18n.t(`perk_${key}`)}</Text>
+                      {/* Feature keys come from the engine's tier table, so one can arrive
+                          before its translation does — degrade to the readable key rather than
+                          printing i18n-js's missing-translation marker on a paid upgrade card. */}
+                      <Text style={styles.perkLabel}>
+                        {i18n.t(`perk_${key}`, { defaultValue: key.replace(/_/g, ' ') })}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -148,7 +154,12 @@ export default function MembershipScreen() {
             disabled={membershipLoading || (selectedTier === 'Free' && currentLevel === 'Free')}
             loading={isUpgrading}
           >
-            {i18n.t(selectedTier === currentLevel && selectedTier !== 'Free' ? 'renew_tier' : 'upgrade_to', { tier: selectedTier })}
+            {i18n.t(
+              selectedTier === currentLevel && selectedTier !== 'Free' ? 'renew_tier' : 'upgrade_to',
+              // The tier cards localise their names, so the call to action has to as well —
+              // interpolating the raw enum produced "SILVER СУНГАХ" next to a card reading "Мөнгөн".
+              { tier: membershipLabel(selectedTier) },
+            )}
           </GameButton>
         </View>
       </ScrollView>

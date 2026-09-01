@@ -241,9 +241,6 @@ const styles = StyleSheet.create({
   optionTextSelected: {
     color: COLORS.goldBright,
   },
-  emoji: {
-    fontSize: 48,
-  },
   completionCard: {
     alignItems: 'center',
     gap: 10,

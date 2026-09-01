@@ -1,23 +1,25 @@
+using System.ComponentModel.DataAnnotations;
+
 public record AdminCreateBusinessRequest(
-    string Name,
-    string Category,
-    string City,
-    string District,
-    string Description,
-    List<string> PhotoUrls,
-    string OperatingHours,
+    [Required, MaxLength(FieldLimits.Title)] string Name,
+    [Required, MaxLength(FieldLimits.ShortLabel)] string Category,
+    [Required, MaxLength(FieldLimits.ShortLabel)] string City,
+    [MaxLength(FieldLimits.ShortLabel)] string District,
+    [MaxLength(FieldLimits.Bio)] string Description,
+    [MaxLength(FieldLimits.MaxPhotos)] List<string> PhotoUrls,
+    [MaxLength(FieldLimits.ShortLabel)] string OperatingHours,
     bool IsVerified,
     bool IsFeatured);
 
 public record AdminBulkUpdateBusinessRequest(List<Guid> Ids, bool? IsVerified, bool? IsFeatured);
 
 public record AdminUpdateBusinessRequest(
-    string Name,
-    string Category,
-    string City,
-    string District,
-    string Description,
-    List<string> PhotoUrls,
-    string OperatingHours,
+    [Required, MaxLength(FieldLimits.Title)] string Name,
+    [Required, MaxLength(FieldLimits.ShortLabel)] string Category,
+    [Required, MaxLength(FieldLimits.ShortLabel)] string City,
+    [MaxLength(FieldLimits.ShortLabel)] string District,
+    [MaxLength(FieldLimits.Bio)] string Description,
+    [MaxLength(FieldLimits.MaxPhotos)] List<string> PhotoUrls,
+    [MaxLength(FieldLimits.ShortLabel)] string OperatingHours,
     bool IsVerified,
     bool IsFeatured);

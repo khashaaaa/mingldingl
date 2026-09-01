@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Moon, Sun } from 'lucide-react';
 import { clearToken } from '../lib/auth';
 import { ErrorBoundary } from './ErrorBoundary';
-import { applyTheme, getStoredTheme } from '../lib/theme';
+import { applyTheme, getStoredTheme, subscribeTheme } from '../lib/theme';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +24,10 @@ const NAV_ITEMS = [
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [theme, setTheme] = useState(getStoredTheme());
+  const [theme, setTheme] = useState(getStoredTheme);
+
+  // Keep the toggle in step with a theme change made in another tab.
+  useEffect(() => subscribeTheme(setTheme), []);
 
   function handleLogout() {
     clearToken();
@@ -32,9 +35,7 @@ export function Layout() {
   }
 
   function toggleTheme() {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    setTheme(next);
+    applyTheme(theme === 'dark' ? 'light' : 'dark');
   }
 
   return (

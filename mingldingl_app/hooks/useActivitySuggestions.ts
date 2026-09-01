@@ -63,7 +63,7 @@ export function useActivitySuggestions(matchId: string) {
     mutationFn: (activitySuggestionId: string) =>
       apiClient.activities.confirm(matchId, { activitySuggestionId }),
     meta: {
-      invalidates: [queryKeys.quests, queryKeys.milestones],
+      invalidates: [queryKeys.quests, queryKeys.milestones, queryKeys.campaignAll],
       awardedSelector: (data) => (data as { awarded?: number }).awarded,
     },
     onSuccess: (data, activitySuggestionId) => {
@@ -102,6 +102,8 @@ export function useActivitySuggestions(matchId: string) {
     error: error as Error | null,
     confirmDate: confirm.mutate,
     isConfirming: confirm.isPending,
+    // Which suggestion is in flight, so one pledge does not spin every card's button.
+    confirmingId: confirm.isPending ? confirm.variables ?? null : null,
     completed,
     rated: (completed?.myRated ?? false) || rate.isSuccess || rateConflict,
     rateBusiness: (stars: number, photoUrl?: string | null) => {

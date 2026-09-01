@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Spinner } from 'tamagui';
 import { useQuiz } from '../../hooks/useQuiz';
@@ -126,6 +126,9 @@ export default function QuizScreen() {
           ))}
         </View>
 
+        {/* Long questions and long Mongolian options overflowed a fixed-height body with no
+            way to reach the answers below the fold. */}
+        <ScrollView contentContainerStyle={styles.bodyScroll} keyboardShouldPersistTaps="handled">
         <AppCard style={styles.questionCard}>
           <Text style={styles.questionMeta}>{i18n.t('question_of', { n: answeredCount + 1, total: quiz.questions.length })}</Text>
           <Text style={styles.questionText}>{q.text}</Text>
@@ -148,6 +151,7 @@ export default function QuizScreen() {
             );
           })}
         </View>
+        </ScrollView>
       </View>
 
       <LootToast
@@ -176,8 +180,8 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingBottom: 24,
   },
+  bodyScroll: { paddingBottom: 24, flexGrow: 1 },
   centered: {
     flex: 1,
     backgroundColor: COLORS.bg,
@@ -246,9 +250,6 @@ const styles = StyleSheet.create({
   },
   optionTextSelected: {
     color: COLORS.goldBright,
-  },
-  emoji: {
-    fontSize: 48,
   },
   completionCard: {
     alignItems: 'center',

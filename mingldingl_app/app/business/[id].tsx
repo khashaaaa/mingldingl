@@ -102,6 +102,5 @@ const styles = StyleSheet.create({
   reviewCard: { padding: 12, gap: 8 },
   reviewPhoto: { width: '100%', height: 160, borderRadius: RADIUS.sm },
   reviewStarsRow: { flexDirection: 'row', gap: 2 },
-  reviewStars: { fontSize: 14 },
   reviewText: { color: COLORS.text, fontSize: 14, fontFamily: FONTS.body, lineHeight: 19 },
 });

@@ -82,19 +82,7 @@ public class TownSquareController : ControllerBase
     public async Task<IActionResult> RespondToPairing(Guid pairingId, [FromBody] TownSquareRespondDto req)
     {
         var userId = this.CurrentUserId();
-        Guid? matchId;
-        try
-        {
-            matchId = await _townSquare.RespondToPairingAsync(pairingId, userId, req.Response);
-        }
-        catch (ArgumentException ex)
-        {
-            return this.BadRequestError(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return this.ForbiddenError(ex.Message);
-        }
+        var matchId = await _townSquare.RespondToPairingAsync(pairingId, userId, req.Response);
         return Ok(new TownSquareRespondResult(matchId));
     }
 
@@ -104,14 +92,7 @@ public class TownSquareController : ControllerBase
     public async Task<IActionResult> Rsvp([FromBody] TownSquareRsvpDto req)
     {
         var userId = this.CurrentUserId();
-        try
-        {
-            await _townSquare.RsvpAsync(req.SessionId, userId);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return this.BadRequestError(ex.Message);
-        }
+        await _townSquare.RsvpAsync(req.SessionId, userId);
         return Ok();
     }
 
@@ -121,14 +102,7 @@ public class TownSquareController : ControllerBase
     public async Task<IActionResult> CancelRsvp([FromQuery] Guid sessionId)
     {
         var userId = this.CurrentUserId();
-        try
-        {
-            await _townSquare.CancelRsvpAsync(sessionId, userId);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return this.BadRequestError(ex.Message);
-        }
+        await _townSquare.CancelRsvpAsync(sessionId, userId);
         return Ok();
     }
 }

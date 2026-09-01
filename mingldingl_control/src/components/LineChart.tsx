@@ -1,4 +1,4 @@
-const ACCENT = '#2a78d6';
+const ACCENT = 'var(--chart-accent)';
 const WIDTH = 600;
 const HEIGHT = 160;
 const PAD = 16;

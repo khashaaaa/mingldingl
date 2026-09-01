@@ -66,8 +66,20 @@ builder.Services.AddAuthentication("Bearer")
     });
 builder.Services.AddAuthorization();
 builder.Services.AddApplicationServices();
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
-    p.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
+{
+    p.AllowAnyHeader().AllowAnyMethod();
+    if (allowedOrigins is { Length: > 0 })
+        p.WithOrigins(allowedOrigins).AllowCredentials();
+    else if (builder.Environment.IsDevelopment())
+        // Expo web, Vite, and LAN device testing all vary by port, so dev stays permissive —
+        // but without credentials, so a stray origin still cannot ride an authenticated session.
+        p.SetIsOriginAllowed(_ => true);
+    else
+        throw new InvalidOperationException(
+            "Cors:AllowedOrigins must be configured outside Development.");
+}));
 
 var app = builder.Build();
 

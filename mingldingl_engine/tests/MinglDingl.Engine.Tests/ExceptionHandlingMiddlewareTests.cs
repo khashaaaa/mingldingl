@@ -45,4 +45,77 @@ public class ExceptionHandlingMiddlewareTests
 
         Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
     }
+
+    [Fact]
+    public async Task InvokeAsync_DomainException_ReturnsItsStatusAndMessageVerbatim()
+    {
+        var context = new DefaultHttpContext();
+        var body = new MemoryStream();
+        context.Response.Body = body;
+
+        var middleware = new ExceptionHandlingMiddleware(
+            _ => throw new DomainException("Session is not open for RSVP"),
+            NullLogger<ExceptionHandlingMiddleware>.Instance);
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        body.Position = 0;
+        Assert.Contains("Session is not open for RSVP", await new StreamReader(body).ReadToEndAsync());
+    }
+
+    [Theory]
+    [InlineData(StatusCodes.Status403Forbidden)]
+    [InlineData(StatusCodes.Status404NotFound)]
+    [InlineData(StatusCodes.Status409Conflict)]
+    public async Task InvokeAsync_DomainException_HonoursItsStatusCode(int status)
+    {
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        var middleware = new ExceptionHandlingMiddleware(
+            _ => throw new DomainException("nope", status),
+            NullLogger<ExceptionHandlingMiddleware>.Instance);
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(status, context.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_FrameworkException_DoesNotLeakItsMessage()
+    {
+        // The whole point of DomainException: an EF/BCL InvalidOperationException must not be
+        // mistaken for a business rule and echoed to the caller.
+        var context = new DefaultHttpContext();
+        var body = new MemoryStream();
+        context.Response.Body = body;
+
+        var middleware = new ExceptionHandlingMiddleware(
+            _ => throw new InvalidOperationException("The connection is already in a transaction"),
+            NullLogger<ExceptionHandlingMiddleware>.Instance);
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
+        body.Position = 0;
+        var json = await new StreamReader(body).ReadToEndAsync();
+        Assert.DoesNotContain("transaction", json);
+        Assert.Contains("Something went wrong", json);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ArgumentException_IsAlsoTreatedAsAFault()
+    {
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        var middleware = new ExceptionHandlingMiddleware(
+            _ => throw new ArgumentNullException("someInternalParam"),
+            NullLogger<ExceptionHandlingMiddleware>.Instance);
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
+    }
 }

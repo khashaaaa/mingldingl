@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../lib/api/apiClient';
+import { serverError } from '@/lib/apiError';
 import { queryKeys } from '../lib/api/queryKeys';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,10 +34,6 @@ function responseVariant(response?: string | null): 'success' | 'warning' | 'des
   if (response === 'Yes') return 'success';
   if (response === 'No') return 'destructive';
   return 'warning';
-}
-
-function serverError(err: unknown, fallback: string): string {
-  return (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? fallback;
 }
 
 function toLocalInput(d: Date): string {

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Spinner } from 'tamagui';
@@ -14,11 +14,17 @@ interface Props {
   photoUrls: string[];
   maxPhotos?: number;
   onChange: (next: string[] | ((prev: string[]) => string[])) => void;
+  /**
+   * Newly picked photos land in `photoUrls` as local `file://` URIs before the upload finishes,
+   * so a parent that gates "save" on the photo count alone can persist one of those placeholders.
+   * Parents that can submit must block on this.
+   */
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 const TILE = 90;
 
-export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange }: Props) {
+export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChange }: Props) {
   const session = useAuthStore((s) => s.session);
   const { pickPhoto, takePhoto, uploadPhoto, uploading, permissionDenied, clearPermissionDenied } = usePhotoUpload(session?.user.id);
   const [sourceModalVisible, setSourceModalVisible] = useState(false);
@@ -26,6 +32,14 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange }: Props) {
   const [pendingLocalUris, setPendingLocalUris] = useState<string[]>([]);
   const [pendingDeleteUrl, setPendingDeleteUrl] = useState<string | null>(null);
   const pendingSourceActionRef = useRef<(() => void) | null>(null);
+
+  // Held in a ref so an inline callback from the parent cannot make these effects re-run (and
+  // flap the flag) on every render.
+  const uploadingCbRef = useRef(onUploadingChange);
+  uploadingCbRef.current = onUploadingChange;
+  const hasPendingUploads = pendingLocalUris.length > 0;
+  useEffect(() => { uploadingCbRef.current?.(hasPendingUploads); }, [hasPendingUploads]);
+  useEffect(() => () => uploadingCbRef.current?.(false), []);
 
   function closeSourceModalThen(action: () => void) {
     if (Platform.OS === 'ios') {

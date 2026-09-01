@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +23,7 @@ public class PhotosControllerIntegrationTests : IntegrationTestBase, IDisposable
         envMock.Setup(e => e.ContentRootPath).Returns(_tempRoot);
 
         var config = new ConfigurationBuilder().Build();
-        var storage = new LocalFileStorageService(envMock.Object, config);
+        var storage = new LocalFileStorageService(envMock.Object, config, NullLogger<LocalFileStorageService>.Instance);
         var compression = new PhotoCompressionService();
 
         return new PhotosController(compression, storage)

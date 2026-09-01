@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace MinglDingl.Engine.Tests.Integration;
@@ -60,7 +61,8 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         await Db.SaveChangesAsync();
 
         var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RsvpAsync(session.Id, user.Id));
+        var ex = await Assert.ThrowsAsync<DomainException>(() => service.RsvpAsync(session.Id, user.Id));
+        Assert.Equal(StatusCodes.Status400BadRequest, ex.StatusCode);
     }
 
     [Fact]
@@ -353,7 +355,8 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         Db.Users.Add(stranger);
         await Db.SaveChangesAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RespondToPairingAsync(pairing.Id, stranger.Id, "Yes"));
+        var ex = await Assert.ThrowsAsync<DomainException>(() => service.RespondToPairingAsync(pairing.Id, stranger.Id, "Yes"));
+        Assert.Equal(StatusCodes.Status403Forbidden, ex.StatusCode);
     }
     [Fact]
     public async Task RespondToPairingAsync_MutualYesButPairIsBlocked_DoesNotCreateMatch()

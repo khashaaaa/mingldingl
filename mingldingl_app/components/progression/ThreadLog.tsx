@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { AppCard } from '../ui/AppCard';
 import { i18n } from '../../lib/i18n';
-import { ITEM_NAME_KEYS } from '../../lib/tiers';
+import { itemLabel } from '../../lib/tiers';
 import { COLORS, FONTS } from '../../lib/theme';
 
 const MILESTONE_TITLE_IDS = ['title_threadweaver', 'title_fateseer', 'title_bondkeeper'] as const;
@@ -21,7 +21,7 @@ export function ThreadLog({ ownedItemIds }: Props) {
       ) : (
         <View style={styles.list}>
           {earned.map((id) => (
-            <Text key={id} style={styles.titleRow}>{i18n.t(ITEM_NAME_KEYS[id])}</Text>
+            <Text key={id} style={styles.titleRow}>{itemLabel(id)}</Text>
           ))}
         </View>
       )}

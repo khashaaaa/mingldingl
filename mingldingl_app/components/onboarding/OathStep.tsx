@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { YStack, XStack } from 'tamagui';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, RADIUS } from '../../lib/theme';
 import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
-import { OATH_VALUES, OATH_GLYPHS, OATH_NAME_KEYS, OATH_DESC_KEYS } from '../OathSigil';
+import { StepScaffold } from './StepScaffold';
+import { OATH_VALUES, OATH_SIGILS, OATH_NAME_KEYS, OATH_DESC_KEYS } from '../OathSigil';
 import type { Oath } from '../../models/user';
 
 interface Props {
@@ -20,7 +21,8 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
   const [selected, setSelected] = useState<Oath | null>(initialOath);
 
   return (
-    <YStack flex={1} padding="$6" gap="$4">
+    <StepScaffold>
+      <YStack flex={1} padding="$6" gap="$4">
       <Text style={styles.heading}>{i18n.t('oath_step_heading')}</Text>
       <Text style={styles.help}>{i18n.t('oath_step_help')}</Text>
 
@@ -40,7 +42,7 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
                 tint={isSelected ? COLORS.gold : undefined}
                 style={[styles.card, isSelected && styles.cardSelected]}
               >
-                <Text style={[styles.glyph, isSelected && styles.glyphSelected]}>{OATH_GLYPHS[oath]}</Text>
+                <Image source={OATH_SIGILS[oath]} style={[styles.glyphImg, !isSelected && styles.glyphImgDim]} />
                 <View style={styles.cardText}>
                   <Text style={styles.cardName}>{i18n.t(OATH_NAME_KEYS[oath])}</Text>
                   <Text style={styles.cardDesc}>{i18n.t(OATH_DESC_KEYS[oath])}</Text>
@@ -66,7 +68,8 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
           {i18n.t('complete_profile')}
         </GameButton>
       </XStack>
-    </YStack>
+      </YStack>
+    </StepScaffold>
   );
 }
 
@@ -84,8 +87,8 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderRadius: RADIUS.md,
   },
-  glyph: { fontSize: 28, fontFamily: FONTS.display, color: COLORS.bronze },
-  glyphSelected: { color: COLORS.goldBright },
+  glyphImg: { width: 34, height: 34 },
+  glyphImgDim: { opacity: 0.45 },
   cardText: { flex: 1, gap: 3 },
   cardName: { fontSize: 16, fontFamily: FONTS.bodyBold, color: COLORS.text },
   cardDesc: { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textDim, lineHeight: 18 },

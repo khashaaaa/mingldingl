@@ -77,12 +77,16 @@ public class VideoController : ControllerBase
         int rowsAffected = await _db.Matches
             .Where(m => m.Id == req.MatchId && !m.VideoRewardClaimed)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.VideoRewardClaimed, true));
-        if (rowsAffected == 0)
-            return this.ForbiddenError("Video call reward already claimed for this match");
 
         await _db.Matches
             .Where(m => m.Id == req.MatchId && m.FlameRiteCompletedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.FlameRiteCompletedAt, DateTime.UtcNow));
+
+        // The reward is claimed once per match, so whichever participant hangs up second always
+        // lands here. Their call still ended normally — returning 403 made the app show them a
+        // failure alert on every completed rite. Report a zero award instead.
+        if (rowsAffected == 0)
+            return Ok(new VideoCompleteResponse(0, null));
 
         await _score.AwardAsync(userId, "VideoCallDone");
         int questBonus = await _quests.IncrementAsync(userId, "video");

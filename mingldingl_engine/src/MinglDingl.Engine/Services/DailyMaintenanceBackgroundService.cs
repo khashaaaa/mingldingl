@@ -5,6 +5,7 @@ public class DailyMaintenanceBackgroundService : BackgroundService
     private static readonly TimeSpan SweepInterval = TimeSpan.FromHours(1);
     private static readonly TimeSpan DeletionGracePeriod = TimeSpan.FromDays(7);
     private static readonly TimeSpan ShipExpiryPeriod = TimeSpan.FromDays(14);
+    private static readonly TimeSpan VerificationRetention = TimeSpan.FromDays(1);
 
     public static TimeSpan GracePeriod => DeletionGracePeriod;
 
@@ -43,9 +44,13 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         var score = scope.ServiceProvider.GetRequiredService<ScoreService>();
         var oaths = scope.ServiceProvider.GetRequiredService<OathService>();
         var ghosting = scope.ServiceProvider.GetRequiredService<GhostingService>();
+        var storage = scope.ServiceProvider.GetRequiredService<LocalFileStorageService>();
 
+        // Push the staleness cutoff into SQL — this used to pull the whole active-match table
+        // into memory every hour just to filter it on LastMessageAt.
+        var staleCutoff = DateTime.UtcNow - GhostingService.StaleAfter;
         var staleMatches = await db.Matches
-            .Where(m => m.Status == "Active" && m.LastMessageAt != null)
+            .Where(m => m.Status == "Active" && m.LastMessageAt != null && m.LastMessageAt < staleCutoff)
             .ToListAsync(ct);
 
         var ghostedMatches = new List<Match>();
@@ -68,14 +73,11 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             .ToList();
 
         var today = DateTime.UtcNow.Date;
-        var usersNeedingReset = await db.Users
+        var usersReset = await db.Users
             .Where(u => u.DailyMatchesResetAt < today)
-            .ToListAsync(ct);
-        foreach (var user in usersNeedingReset)
-        {
-            user.DailyMatchesUsed = 0;
-            user.DailyMatchesResetAt = today;
-        }
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(u => u.DailyMatchesUsed, 0).SetProperty(u => u.DailyMatchesResetAt, today),
+                ct);
 
         var deletionCutoff = DateTime.UtcNow - DeletionGracePeriod;
         var usersToAnonymize = await db.Users
@@ -83,6 +85,11 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             .ToListAsync(ct);
         foreach (var user in usersToAnonymize)
         {
+            // Clearing the column is not deletion: /uploads is public and unauthenticated, so the
+            // files have to go too or anyone holding an old URL keeps access after deletion.
+            foreach (var photoUrl in user.PhotoUrls)
+                storage.DeleteByPublicUrl(photoUrl);
+
             user.DisplayName = "";
             user.Bio = "";
             user.PhotoUrls = [];
@@ -104,16 +111,27 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             user.IsDeleted = true;
         }
 
-        var now = DateTime.UtcNow;
-        var candidateMemberships = await db.Users
-            .Where(u => u.MembershipLevel != "Free" && u.MembershipExpiresAt != null)
-            .ToListAsync(ct);
-        var expiredMemberships = candidateMemberships.Where(u => MembershipExpiry.HasExpired(u, now)).ToList();
-        foreach (var user in expiredMemberships)
+        if (usersToAnonymize.Count > 0)
         {
-            user.MembershipLevel = "Free";
-            user.MembershipExpiresAt = null;
+            // Verification rows hold the phone number in plaintext; deletion has to reach them too.
+            var anonymizedIds = usersToAnonymize.Select(u => u.Id).ToList();
+            await db.PhoneVerifications
+                .Where(v => v.ClaimedByUserId != null && anonymizedIds.Contains(v.ClaimedByUserId.Value))
+                .ExecuteDeleteAsync(ct);
         }
+
+        // Unclaimed verifications are short-lived proof-of-ownership records with no purpose
+        // once expired, so they are not retained either.
+        await db.PhoneVerifications
+            .Where(v => v.ClaimedByUserId == null && v.ExpiresAt < DateTime.UtcNow - VerificationRetention)
+            .ExecuteDeleteAsync(ct);
+
+        var now = DateTime.UtcNow;
+        var expiredMemberships = await db.Users
+            .Where(u => u.MembershipLevel != "Free" && u.MembershipExpiresAt != null && u.MembershipExpiresAt < now)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(u => u.MembershipLevel, "Free").SetProperty(u => u.MembershipExpiresAt, (DateTime?)null),
+                ct);
 
         var shipExpiryCutoff = DateTime.UtcNow - ShipExpiryPeriod;
         var expiredShips = await db.Ships
@@ -122,8 +140,12 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         foreach (var ship in expiredShips)
             ship.Status = "Expired";
 
-        if (ghostedMatches.Count > 0 || usersNeedingReset.Count > 0 || usersToAnonymize.Count > 0 || expiredMemberships.Count > 0 || expiredShips.Count > 0)
+        if (ghostedMatches.Count > 0 || usersToAnonymize.Count > 0 || expiredShips.Count > 0)
             await db.SaveChangesAsync(ct);
+
+        if (usersReset > 0 || expiredMemberships > 0)
+            _logger.LogInformation(
+                "Sweep reset {Reset} daily budgets and expired {Memberships} memberships", usersReset, expiredMemberships);
 
         foreach (var match in ghostedMatches)
             await ghosting.BroadcastGhostedAsync(match.Id, GhostingService.GetGhostAtFaultUserId(match));

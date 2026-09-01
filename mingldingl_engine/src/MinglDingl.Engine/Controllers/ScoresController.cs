@@ -181,11 +181,11 @@ public class ScoresController : ControllerBase
             .OrderByDescending(u => u.TotalScore)
             .ThenBy(u => u.Id)
             .Take(50)
-            .Select(u => new { u.Id, u.GemTier })
+            .Select(u => new { u.Id, u.GemTier, u.TotalScore })
             .ToListAsync();
 
         int rank = 1;
-        var entries = top.Select(u => new LeaderboardEntryDto(rank++, u.GemTier, u.Id == userId)).ToList();
+        var entries = top.Select(u => new LeaderboardEntryDto(rank++, u.GemTier, u.TotalScore, u.Id == userId)).ToList();
 
         var mine = entries.FirstOrDefault(e => e.IsCurrentUser);
         int myRank;
@@ -196,7 +196,7 @@ public class ScoresController : ControllerBase
         else
         {
             myRank = 1 + await _db.Users.CountAsync(u => u.City == user.City && u.TotalScore > user.TotalScore);
-            entries.Add(new LeaderboardEntryDto(myRank, user.GemTier, true));
+            entries.Add(new LeaderboardEntryDto(myRank, user.GemTier, user.TotalScore, true));
         }
 
         return Ok(new LeaderboardResponse(user.City, entries, myRank));

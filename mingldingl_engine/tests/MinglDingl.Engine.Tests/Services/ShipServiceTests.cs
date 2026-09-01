@@ -79,7 +79,9 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         Assert.False(success);
         Assert.NotNull(error);
         Db.ChangeTracker.Clear();
-        Assert.Empty(Db.Ships);
+        // Scoped to this test's own fixtures: the assertion used to query the whole table,
+        // so it only held on an empty database.
+        Assert.Empty(Db.Ships.Where(s => s.ShipperUserId == weaver.Id));
     }
 
     [Fact]
@@ -93,7 +95,9 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         Assert.False(success);
         Assert.NotNull(error);
         Db.ChangeTracker.Clear();
-        Assert.Empty(Db.Ships);
+        // Scoped to this test's own fixtures: the assertion used to query the whole table,
+        // so it only held on an empty database.
+        Assert.Empty(Db.Ships.Where(s => s.ShipperUserId == weaver.Id));
     }
 
     [Fact]

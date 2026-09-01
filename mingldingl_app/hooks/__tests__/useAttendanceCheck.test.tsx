@@ -87,4 +87,21 @@ describe('useAttendanceCheck', () => {
     await waitFor(() => expect(result.current.due).toBe(false));
     expect(result.current.activityTitle).toBeNull();
   });
+
+  it('reports submitFailed so a lost answer is not mistaken for a recorded one', async () => {
+    mockApi.activities.attendanceCheckStatus.mockResolvedValue({ due: true, activityTitle: 'Coffee' });
+    mockApi.activities.attendanceCheckSubmit.mockRejectedValue(new Error('offline'));
+
+    const { result } = renderHook(() => useAttendanceCheck('m1'), { wrapper: makeWrapper(makeQueryClient()) });
+    await waitFor(() => expect(result.current.due).toBe(true));
+
+    await act(async () => { result.current.submit(true); });
+
+    await waitFor(() => expect(result.current.submitFailed).toBe(true));
+    // The prompt must stay outstanding — attendance feeds the no-show reputation penalty.
+    expect(result.current.due).toBe(true);
+
+    await act(async () => { result.current.clearSubmitFailed(); });
+    await waitFor(() => expect(result.current.submitFailed).toBe(false));
+  });
 });

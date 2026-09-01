@@ -28,5 +28,7 @@ export function useAttendanceCheck(matchId: string) {
     isLoading,
     submit: (attended: boolean) => submitMutation.mutate(attended),
     isSubmitting: submitMutation.isPending,
+    submitFailed: submitMutation.isError,
+    clearSubmitFailed: () => submitMutation.reset(),
   };
 }

@@ -28,7 +28,8 @@ public class AdminShipsControllerIntegrationTests : IntegrationTestBase
         var result = Assert.IsType<OkObjectResult>(await BuildController().ListShips(null, 1, 20));
         var page = Assert.IsType<PagedResponse<AdminShipListItemDto>>(result.Value);
 
-        var item = Assert.Single(page.Items);
+        // Pick this test's own row rather than assuming the table holds nothing else.
+        var item = Assert.Single(page.Items.Where(i => i.ShipperDisplayName == "Shipper Bat"));
         Assert.Equal("Shipper Bat", item.ShipperDisplayName);
         Assert.Equal("Slot A Sarnai", item.SlotADisplayName);
         Assert.Null(item.SlotBDisplayName);
@@ -46,7 +47,7 @@ public class AdminShipsControllerIntegrationTests : IntegrationTestBase
         var result = Assert.IsType<OkObjectResult>(await BuildController().ListShips("Sparked", 1, 20));
         var page = Assert.IsType<PagedResponse<AdminShipListItemDto>>(result.Value);
 
-        Assert.Single(page.Items);
-        Assert.Equal("Sparked", page.Items[0].Status);
+        Assert.NotEmpty(page.Items);
+        Assert.All(page.Items, i => Assert.Equal("Sparked", i.Status));
     }
 }

@@ -58,7 +58,7 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Rsvp_SessionNotOpen_ReturnsBadRequest()
+    public async Task Rsvp_SessionNotOpen_RaisesA400DomainRule()
     {
         var user = NewCompleteUser();
         var session = NewSession(status: "Locked");
@@ -67,9 +67,10 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
         await Db.SaveChangesAsync();
 
         var controller = BuildController(user.Id);
-        var result = await controller.Rsvp(new TownSquareRsvpDto(session.Id));
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var ex = await Assert.ThrowsAsync<DomainException>(
+            () => controller.Rsvp(new TownSquareRsvpDto(session.Id)));
+        Assert.Equal(StatusCodes.Status400BadRequest, ex.StatusCode);
     }
 
     [Fact]
@@ -205,7 +206,7 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task RespondToPairing_NonParticipant_ReturnsForbidden()
+    public async Task RespondToPairing_NonParticipant_RaisesA403DomainRule()
     {
         var (_, pairing) = await SeedInProgressPairing();
         var stranger = NewGenderedUser("Male");
@@ -213,9 +214,8 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
         await Db.SaveChangesAsync();
         var controller = BuildController(stranger.Id);
 
-        var result = await controller.RespondToPairing(pairing.Id, new TownSquareRespondDto("Yes"));
-
-        var objResult = Assert.IsType<ObjectResult>(result);
-        Assert.Equal(403, objResult.StatusCode);
+        var ex = await Assert.ThrowsAsync<DomainException>(
+            () => controller.RespondToPairing(pairing.Id, new TownSquareRespondDto("Yes")));
+        Assert.Equal(StatusCodes.Status403Forbidden, ex.StatusCode);
     }
 }

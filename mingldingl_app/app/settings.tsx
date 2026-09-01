@@ -12,10 +12,12 @@ import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { COLORS, FONTS, RADIUS } from '../lib/theme';
 import { AlertModal } from '../components/modals/AlertModal';
+import { PhoneChangeModal } from '../components/settings/PhoneChangeModal';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
 import { GameButton } from '../components/ui/GameButton';
 import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { SectionDivider } from '../components/ui/SectionDivider';
 
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
@@ -49,10 +51,8 @@ export default function SettingsScreen() {
   }, [profile]);
 
   const [changingPhone, setChangingPhone] = useState(false);
-  const [newPhone, setNewPhone] = useState('');
-  const [phoneError, setPhoneError] = useState(false);
-  const [savingPhone, setSavingPhone] = useState(false);
   const [saveFailedAlert, setSaveFailedAlert] = useState(false);
+  const [savedNotice, setSavedNotice] = useState(false);
 
   async function handlePickLanguage(lang: (typeof LANGUAGE_OPTIONS)[number]) {
     await setLocale(lang);
@@ -76,35 +76,37 @@ export default function SettingsScreen() {
     }
   }
 
+  const [ageRangeMessage, setAgeRangeMessage] = useState<string | null>(null);
+
   async function handleSaveAgeRange() {
     const min = Number(ageMinInput);
     const max = Number(ageMaxInput);
-    if (!min || !max || min > max) {
-      setAgeRangeError(true);
+    if (!Number.isInteger(min) || !Number.isInteger(max) || min > max) {
+      setAgeRangeMessage(i18n.t('age_range_invalid'));
       return;
     }
-    setAgeRangeError(false);
+    if (min < 18) {
+      setAgeRangeMessage(i18n.t('age_min_too_low'));
+      return;
+    }
+    if (max > 99) {
+      setAgeRangeMessage(i18n.t('age_max_too_high'));
+      return;
+    }
+    setAgeRangeMessage(null);
     try {
       const updated = await apiClient.users.update({ ageMin: min, ageMax: max });
       queryClient.setQueryData(queryKeys.userProfile, parseUserProfile(updated));
+      setSavedNotice(true);
     } catch {
       setSaveFailedAlert(true);
     }
   }
 
-  async function handleSavePhone() {
-    setSavingPhone(true);
-    setPhoneError(false);
-    try {
-      const updated = await apiClient.users.changePhone(newPhone);
-      queryClient.setQueryData(queryKeys.userProfile, parseUserProfile(updated));
-      setChangingPhone(false);
-      setNewPhone('');
-    } catch {
-      setPhoneError(true);
-    } finally {
-      setSavingPhone(false);
-    }
+  function handlePhoneChanged() {
+    setChangingPhone(false);
+    setSavedNotice(true);
+    queryClient.invalidateQueries({ queryKey: queryKeys.userProfile });
   }
 
   async function handleDeleteConfirmed() {
@@ -113,6 +115,9 @@ export default function SettingsScreen() {
       await apiClient.users.requestDeletion();
       setConfirmDelete(false);
       setDeletedAlert(true);
+    } catch {
+      setConfirmDelete(false);
+      setSaveFailedAlert(true);
     } finally {
       setDeleting(false);
     }
@@ -135,7 +140,6 @@ export default function SettingsScreen() {
           optionLabel={(opt) => i18n.t(opt === 'en' ? 'language_english' : 'language_mongolian')}
           onChange={handlePickLanguage}
           size="compact"
-          unselectedVariant="brass"
         />
         <ChoiceRow
           label={i18n.t('notifications')}
@@ -144,9 +148,9 @@ export default function SettingsScreen() {
           optionLabel={(opt) => i18n.t(opt === 'on' ? 'notif_on' : 'notif_off')}
           onChange={handleToggleNotifications}
           size="compact"
-          unselectedVariant="brass"
         />
 
+        <SectionDivider />
         <YStack gap="$2">
           <Text style={styles.sectionLabel}>{i18n.t('match_preferences')}</Text>
           <Text style={styles.sectionHint}>{i18n.t('age_range')}</Text>
@@ -170,7 +174,7 @@ export default function SettingsScreen() {
               />
             </YStack>
           </XStack>
-          {ageRangeError && <Text style={styles.errorText}>{i18n.t('age_range_invalid')}</Text>}
+          {!!ageRangeMessage && <Text style={styles.errorText}>{ageRangeMessage}</Text>}
           <GameButton variant="brass" size="compact" onPress={handleSaveAgeRange}>{i18n.t('save')}</GameButton>
         </YStack>
 
@@ -182,7 +186,6 @@ export default function SettingsScreen() {
             optionLabel={(opt) => i18n.t(opt === 'on' ? 'pause_on' : 'pause_off')}
             onChange={handleTogglePause}
             size="compact"
-            unselectedVariant="brass"
           />
           <Text style={styles.sectionHint}>{i18n.t('pause_profile_hint')}</Text>
         </YStack>
@@ -195,6 +198,7 @@ export default function SettingsScreen() {
           {i18n.t('manage_membership')}
         </GameButton>
 
+        <SectionDivider />
         <YStack gap="$2">
           <Text style={styles.sectionLabel}>{i18n.t('help_and_legal')}</Text>
           <GameButton variant="brass" size="compact" icon="book-open-variant" onPress={() => router.push('/guides')}>
@@ -208,6 +212,7 @@ export default function SettingsScreen() {
           </GameButton>
         </YStack>
 
+        <SectionDivider />
         <YStack gap="$2">
           <Text style={styles.sectionLabel}>{i18n.t('phone_number')}</Text>
           <Text style={styles.sectionHint}>{profile?.phoneNumber ?? '—'}</Text>
@@ -243,24 +248,16 @@ export default function SettingsScreen() {
         message={i18n.t('delete_account_requested_body')}
         onDismiss={handleAcknowledgeDeletion}
       />
-      <AlertModal
+      <PhoneChangeModal
         visible={changingPhone}
-        title={i18n.t('change_phone_title')}
-        message={phoneError ? i18n.t('phone_change_error') : ''}
-        tone={phoneError ? 'warning' : 'default'}
-        confirmLabel={i18n.t('save')}
-        isConfirming={savingPhone}
-        onConfirm={handleSavePhone}
-        onDismiss={() => { setChangingPhone(false); setNewPhone(''); setPhoneError(false); }}
-      >
-        <Input
-          value={newPhone} onChangeText={setNewPhone}
-          placeholder={i18n.t('new_phone_placeholder')} keyboardType="number-pad" maxLength={8}
-          placeholderTextColor={COLORS.textDim as any}
-          backgroundColor={COLORS.panel} borderColor={COLORS.bronze} color={COLORS.text}
-          fontFamily={FONTS.body as any}
-        />
-      </AlertModal>
+        onDismiss={() => setChangingPhone(false)}
+        onChanged={handlePhoneChanged}
+      />
+      <AlertModal
+        visible={savedNotice}
+        title={i18n.t('settings_saved')}
+        onDismiss={() => setSavedNotice(false)}
+      />
       <AlertModal
         visible={saveFailedAlert}
         tone="warning"

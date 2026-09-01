@@ -150,7 +150,9 @@ describe('useTownSquareSession', () => {
     await waitFor(() => expect(result.current.session?.isRsvpd).toBe(false));
   });
 
-  it('stops polling once the session is InProgress', async () => {
+  // Polling used to stop entirely while a session ran, which left the tab frozen on a dead card
+  // for anyone who left the round — nothing could tell it the session had finished.
+  it('keeps polling (slowly) while the session is InProgress', async () => {
     jest.useFakeTimers();
     mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: 's1', status: 'InProgress', isRsvpd: true });
 
@@ -162,11 +164,12 @@ describe('useTownSquareSession', () => {
     await act(async () => {
       await jest.advanceTimersByTimeAsync(15000);
     });
+    expect(mockApi.townSquare.nextSession).toHaveBeenCalledTimes(1);
+
     await act(async () => {
       await jest.advanceTimersByTimeAsync(15000);
     });
-
-    expect(mockApi.townSquare.nextSession).toHaveBeenCalledTimes(1);
+    expect(mockApi.townSquare.nextSession).toHaveBeenCalledTimes(2);
   });
 
   it('polls fast (15s) while a session is upcoming', async () => {

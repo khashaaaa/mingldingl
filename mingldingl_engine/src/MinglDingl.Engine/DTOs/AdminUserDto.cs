@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 public record AdminUserListItemDto(
     Guid Id,
     string DisplayName,
@@ -67,6 +69,9 @@ public record AdminDeletionRequestDto(
     DateTime DeletionRequestedAt,
     int DaysRemaining);
 
-public record AdminBanUserRequest(string? Reason);
+public record AdminBanUserRequest(
+    [MaxLength(FieldLimits.Reason)] string? Reason);
 
-public record AdminAdjustScoreRequest(int Delta, string Reason);
+public record AdminAdjustScoreRequest(
+    int Delta,
+    [Required, MaxLength(FieldLimits.Reason)] string Reason);

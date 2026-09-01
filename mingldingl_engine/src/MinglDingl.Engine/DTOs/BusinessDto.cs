@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 public record BusinessResponse(
     Guid Id,
     string Name,
@@ -12,7 +14,10 @@ public record BusinessResponse(
     decimal AverageRating,
     int RatingCount);
 
-public record RateBusinessRequest(int Stars, string? Review, string? PhotoUrl = null);
+public record RateBusinessRequest(
+    [Range(1, 5)] int Stars,
+    [MaxLength(FieldLimits.Review)] string? Review,
+    [MaxLength(FieldLimits.Url)] string? PhotoUrl = null);
 
 public record RateBusinessResponse(decimal AverageRating, int RatingCount);
 

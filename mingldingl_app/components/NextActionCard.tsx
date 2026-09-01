@@ -62,6 +62,5 @@ const styles = StyleSheet.create({
   card: { marginHorizontal: 20, marginBottom: 16, padding: 16 },
   heading: { fontFamily: FONTS.display, fontSize: 10, color: COLORS.textDim, letterSpacing: 2, marginBottom: 4 },
   staticRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 4 },
-  staticIcon: { fontSize: 18 },
   staticTitle: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.text },
 });

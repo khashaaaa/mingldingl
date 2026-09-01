@@ -1,4 +1,7 @@
-public record SendMessageRequest(string Content);
+using System.ComponentModel.DataAnnotations;
+
+public record SendMessageRequest(
+    [Required, MaxLength(FieldLimits.MessageContent)] string Content);
 
 public record MessageResponse(
     Guid Id,

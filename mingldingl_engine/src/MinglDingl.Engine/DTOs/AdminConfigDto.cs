@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 public record AdminConfigDto(
     string Key,
     string Category,
@@ -7,4 +9,5 @@ public record AdminConfigDto(
     DateTime UpdatedAt,
     string UpdatedBy);
 
-public record UpdateConfigRequest(string Value);
+public record UpdateConfigRequest(
+    [Required, MaxLength(FieldLimits.ConfigValue)] string Value);

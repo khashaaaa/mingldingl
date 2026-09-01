@@ -1,34 +1,37 @@
+using System.ComponentModel.DataAnnotations;
+
 public record CreateUserRequest(
-    string DisplayName,
-    int Age,
-    string Gender,
-    string City,
-    string Bio,
-    List<string> PhotoUrls,
-    double? Latitude = null,
-    double? Longitude = null,
-    string? ReferralCode = null);
+    [Required, MaxLength(FieldLimits.DisplayName)] string DisplayName,
+    [Range(FieldLimits.MinAge, FieldLimits.MaxAge)] int Age,
+    [Required, MaxLength(FieldLimits.ShortLabel)] string Gender,
+    [Required, MaxLength(FieldLimits.ShortLabel)] string City,
+    [Required, MaxLength(FieldLimits.Bio)] string Bio,
+    [MaxLength(FieldLimits.MaxPhotos)] List<string> PhotoUrls,
+    [Range(-90, 90)] double? Latitude = null,
+    [Range(-180, 180)] double? Longitude = null,
+    [MaxLength(FieldLimits.Code)] string? ReferralCode = null);
 
 public record UpdateLocationRequest(double Latitude, double Longitude);
 
 public record UpdateLocationResponse(string City);
 
 public record UpdateUserRequest(
-    string? DisplayName,
-    string? Bio,
-    List<string>? PhotoUrls,
+    [MaxLength(FieldLimits.DisplayName)] string? DisplayName,
+    [MaxLength(FieldLimits.Bio)] string? Bio,
+    [MaxLength(FieldLimits.MaxPhotos)] List<string>? PhotoUrls,
     bool? HasKids,
-    string? SmokingHabit,
-    string? DrinkingHabit,
-    string? Religion,
-    string? Lifestyle,
+    [MaxLength(FieldLimits.ShortLabel)] string? SmokingHabit,
+    [MaxLength(FieldLimits.ShortLabel)] string? DrinkingHabit,
+    [MaxLength(FieldLimits.ShortLabel)] string? Religion,
+    [MaxLength(FieldLimits.ShortLabel)] string? Lifestyle,
     bool? PushEnabled = null,
-    int? AgeMin = null,
-    int? AgeMax = null,
+    [Range(FieldLimits.MinAge, FieldLimits.MaxAge)] int? AgeMin = null,
+    [Range(FieldLimits.MinAge, FieldLimits.MaxAge)] int? AgeMax = null,
     bool? IsPaused = null,
-    string? City = null);
+    [MaxLength(FieldLimits.ShortLabel)] string? City = null);
 
-public record SwearOathRequest(string Oath);
+public record SwearOathRequest(
+    [Required, MaxLength(FieldLimits.ShortLabel)] string Oath);
 
 public record UserResponse(
     Guid Id,
@@ -63,4 +66,7 @@ public record OwnedItemResponse(string ItemId, string NameKey, string Rarity, st
 
 public record BlockedUserResponse(Guid UserId, string DisplayName, string? FirstPhoto, DateTime BlockedAt);
 
-public record ChangePhoneRequest(string PhoneNumber);
+/// <summary>VerificationId proves ownership of the new number; without it the change is refused.</summary>
+public record ChangePhoneRequest(
+    [Required, MaxLength(FieldLimits.Phone)] string PhoneNumber,
+    Guid? VerificationId = null);

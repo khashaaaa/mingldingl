@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 
 @theme inline {
+  --color-chart-accent: var(--chart-accent);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -28,7 +29,9 @@
 }
 
 :root {
+  color-scheme: light;
   --radius: 0.5rem;
+  --chart-accent: #2a78d6;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -51,6 +54,8 @@
 }
 
 .dark {
+  color-scheme: dark;
+  --chart-accent: #5aa2f0;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

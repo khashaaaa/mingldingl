@@ -6,7 +6,7 @@ import { useScoreDetail } from '../hooks/useScoreDetail';
 import { apiClient } from '../lib/api/apiClient';
 import { i18n } from '../lib/i18n';
 import { queryKeys } from '../lib/api/queryKeys';
-import { toDroppedItem } from '../lib/tiers';
+import { toDroppedItem, tierLabel } from '../lib/tiers';
 import type { components } from '../lib/api/api.generated';
 
 type ScoreDetailResponse = components['schemas']['ScoreDetailResponse'];
@@ -45,7 +45,7 @@ export function RewardToastHost() {
     return (
       <LootToast
         key="tier-up"
-        title={i18n.t('tier_up_title', { tier: pendingTierUp })}
+        title={i18n.t('tier_up_title', { tier: tierLabel(pendingTierUp) })}
         points={0}
         visible
         onDismiss={() => setPendingTierUp(null)}

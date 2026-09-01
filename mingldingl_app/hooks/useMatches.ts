@@ -10,5 +10,7 @@ export function useMatches() {
       const data = await apiClient.matches.list(1);
       return (data.items ?? []).map(parseMatch);
     },
+    // matches tab renders its own error state and retry.
+    meta: { silentError: true },
   });
 }
