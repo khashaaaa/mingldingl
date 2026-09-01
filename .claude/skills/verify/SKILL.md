@@ -19,6 +19,13 @@ description: How to run + drive MingldIngl end-to-end (engine API with real Supa
 - Sign in: `POST {url}/auth/v1/token?grant_type=password` with the publishable key → full session JSON. JWT `sub` = engine UserId.
 - Engine user row: `POST /users` (upsert) with the bearer token.
 - JWTs are JWKS-validated (asymmetric) — cannot be minted locally.
+- **Pin the Supabase user's `id` to sign in *as* a seeded user.** `POST /auth/v1/admin/users`
+  accepts an `id` field, so creating the user with `id` set to a seeded row's `Users.Id` makes the
+  JWT's `sub` equal that user — you get a fully-populated character (matches, score, history,
+  Oath) with one call, and skip the FK-juggling ID-swap described under the raw-SQL gotchas
+  entirely. This is the fastest way to drive the app as a rich user:
+  `{ id: "<seeded Users.Id>", email: "e2e-...@mingldingl.test", password, email_confirm: true }`
+  then sign in normally with the publishable key.
 
 ## Web app (expo, port 8081)
 - `cd mingldingl_app && npx expo start --web --port 8081`
