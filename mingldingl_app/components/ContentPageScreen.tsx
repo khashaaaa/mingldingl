@@ -1,5 +1,4 @@
-import { ScrollView, Text, View, StyleSheet } from 'react-native';
-import { Spinner } from 'tamagui';
+import { ActivityIndicator, ScrollView, Text, View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenHeader } from './ui/ScreenHeader';
 import { TiledBackdrop } from './ui/TiledBackdrop';
@@ -28,7 +27,7 @@ export function ContentPageScreen({ slug }: Props) {
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={localized?.title ?? ''} onBack={() => router.back()} />
       <ScrollView contentContainerStyle={styles.content}>
-        {isLoading && <Spinner color="$gold" />}
+        {isLoading && <ActivityIndicator color={COLORS.gold} />}
         {isError && (
           <View style={styles.errorWrap}>
             <Text style={styles.errorTitle}>{i18n.t('error_boundary_title')}</Text>

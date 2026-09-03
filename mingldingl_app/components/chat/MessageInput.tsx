@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Keyboard, Platform } from 'react-native';
-import { XStack, Input } from 'tamagui';
+import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, SPACE } from '../../lib/theme';
 import { GameButton } from '../ui/GameButton';
+import { TextField } from '../ui/TextField';
 
 interface Props { onSend: (text: string) => void; }
 
@@ -39,35 +39,36 @@ export function MessageInput({ onSend }: Props) {
   }
 
   return (
-    <XStack
-      paddingHorizontal="$3"
-      paddingTop="$3"
-
-      paddingBottom={13 + (keyboardVisible ? 0 : insets.bottom)}
-      alignItems="flex-end"
-      gap="$2"
-      backgroundColor={COLORS.panel}
-      borderTopColor={COLORS.bronze}
-      borderTopWidth={1}
-    >
-      <Input
-        flex={1} value={text} onChangeText={setText}
-        placeholder={i18n.t('type_message')} placeholderTextColor={COLORS.textDim as any}
-        backgroundColor={COLORS.panelRaised} borderColor={COLORS.bronze} color={COLORS.text}
-        fontFamily={FONTS.body as any}
+    <View style={[styles.bar, { paddingBottom: SPACE.md + (keyboardVisible ? 0 : insets.bottom) }]}>
+      <TextField
+        value={text} onChangeText={setText}
+        placeholder={i18n.t('type_message')}
         maxLength={MAX_MESSAGE_LENGTH}
         // A 2000-character limit on a fixed single line meant you could not see what you had
         // typed. Grows with the message and then scrolls internally.
         multiline
-        textAlignVertical="top"
         minHeight={52}
         maxHeight={132}
-        paddingTop="$2"
+        style={styles.field}
         blurOnSubmit={false}
       />
       <GameButton variant="primary" disabled={!text.trim()} onPress={handleSend}>
         {i18n.t('send')}
       </GameButton>
-    </XStack>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    paddingHorizontal: SPACE.md,
+    paddingTop: SPACE.md,
+    alignItems: 'flex-end',
+    gap: SPACE.sm,
+    backgroundColor: COLORS.panel,
+    borderTopColor: COLORS.bronze,
+    borderTopWidth: 1,
+  },
+  field: { flex: 1, paddingVertical: SPACE.sm, backgroundColor: COLORS.panelRaised },
+});

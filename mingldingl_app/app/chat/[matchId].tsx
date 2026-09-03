@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Modal, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Modal, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Spinner } from 'tamagui';
 import { useCampaign } from '../../hooks/useCampaign';
 import { useChat } from '../../hooks/useChat';
 import { useAttendanceCheck } from '../../hooks/useAttendanceCheck';
@@ -157,7 +156,7 @@ export default function ChatScreen() {
 
         {loading ? (
           <View style={styles.spinnerWrap}>
-            <Spinner color="$gold" />
+            <ActivityIndicator color={COLORS.gold} />
           </View>
         ) : isError ? (
           <View style={styles.spinnerWrap}>
@@ -178,7 +177,7 @@ export default function ChatScreen() {
             ListHeaderComponent={hasMore ? (
               <>
                 <TouchableOpacity style={styles.loadEarlierBtn} onPress={() => loadEarlier()} disabled={loadingEarlier} accessibilityRole="button">
-                  {loadingEarlier ? <Spinner color="$gold" size="small" /> : (
+                  {loadingEarlier ? <ActivityIndicator color={COLORS.gold} size="small" /> : (
                     <>
                       <Icon name="chevron-double-up" size={14} color={COLORS.gold} />
                       <Text style={styles.loadEarlierText}>{i18n.t('load_earlier')}</Text>

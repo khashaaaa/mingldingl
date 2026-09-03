@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { View, Text, Share, StyleSheet } from 'react-native';
-import { Input } from 'tamagui';
 import { useRouter } from 'expo-router';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { GameButton } from '../../components/ui/GameButton';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
+import { TextField } from '../../components/ui/TextField';
 import { apiClient } from '../../lib/api/apiClient';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { i18n } from '../../lib/i18n';
@@ -75,28 +75,20 @@ export default function NewShipScreen() {
       <View style={styles.form}>
         <Text style={styles.hint}>{i18n.t('weave_thread_hint')}</Text>
         <Text style={styles.label}>{i18n.t('first_thread_label')}</Text>
-        <Input
+        <TextField
           placeholder={i18n.t('phone_placeholder')}
           value={slotA}
           onChangeText={setSlotA}
           keyboardType="phone-pad"
           maxLength={8}
-          backgroundColor={COLORS.panel}
-          borderColor={COLORS.bronze}
-          color={COLORS.text}
-          placeholderTextColor={COLORS.textDim as any}
         />
         <Text style={styles.label}>{i18n.t('second_thread_label')}</Text>
-        <Input
+        <TextField
           placeholder={i18n.t('phone_placeholder')}
           value={slotB}
           onChangeText={setSlotB}
           keyboardType="phone-pad"
           maxLength={8}
-          backgroundColor={COLORS.panel}
-          borderColor={COLORS.bronze}
-          color={COLORS.text}
-          placeholderTextColor={COLORS.textDim as any}
         />
         {error && <Text style={styles.error}>{error}</Text>}
         <GameButton

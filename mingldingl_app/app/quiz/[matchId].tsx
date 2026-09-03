@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Spinner } from 'tamagui';
 import { useQuiz } from '../../hooks/useQuiz';
 import { AppCard } from '../../components/ui/AppCard';
 import { AlertModal } from '../../components/modals/AlertModal';
@@ -44,7 +43,7 @@ export default function QuizScreen() {
   if (isLoading) return (
     <View style={styles.centered}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <Spinner color="$gold" />
+      <ActivityIndicator color={COLORS.gold} />
     </View>
   );
 
@@ -81,7 +80,7 @@ export default function QuizScreen() {
           )}
           {awarded > 0 && <Text style={styles.completionSub}>{i18n.t('xp_earned', { points: awarded })}</Text>}
         </AppCard>
-        {isWaitingForPartner && <Spinner color="$gold" />}
+        {isWaitingForPartner && <ActivityIndicator color={COLORS.gold} />}
         <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
         {droppedItem && dropToastVisible && (
           <LootToast

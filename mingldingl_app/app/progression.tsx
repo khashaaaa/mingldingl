@@ -1,5 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { Spinner } from 'tamagui';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useScoreDetail } from '../hooks/useScoreDetail';
 import { useScoreHistory } from '../hooks/useScoreHistory';
@@ -29,7 +28,7 @@ export default function ProgressionScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <Spinner color="$gold" />
+        <ActivityIndicator color={COLORS.gold} />
       </View>
     );
   }

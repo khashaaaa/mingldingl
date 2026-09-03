@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, ScrollView, TextInput } from 'react-native';
-import { YStack, XStack, Text, Input, TextArea, Spinner } from 'tamagui';
+import { ActivityIndicator, Keyboard, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfile } from '../hooks/useProfile';
@@ -11,7 +10,7 @@ import { parseUserProfile } from '../models/user';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
 import { FIELD_LIMITS } from '../lib/fieldLimits';
 import { DismissKeyboardView } from '../components/ui/DismissKeyboardView';
 import { AppCard } from '../components/ui/AppCard';
@@ -21,6 +20,7 @@ import { CityPickerModal } from '../components/modals/CityPickerModal';
 import { PhotoGrid } from '../components/PhotoGrid';
 import { SectionDivider } from '../components/ui/SectionDivider';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { TextField } from '../components/ui/TextField';
 import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 
 const SMOKING_DRINKING_OPTIONS = ['Never', 'Occasionally', 'Regularly'] as const;
@@ -120,49 +120,43 @@ export default function EditProfileScreen() {
 
   return (
     <DismissKeyboardView>
-      <YStack flex={1} backgroundColor={COLORS.bg}>
+      <View style={styles.screen}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={i18n.t('edit_profile')} onBack={() => router.back()} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: SPACE.gutter, paddingVertical: SPACE.xxl, gap: SPACE.lg }}>
         <AppCard textured style={{ padding: SPACE.lg }}>
-          <YStack gap="$3" zIndex={1}>
-            <Text color={COLORS.gold} fontSize={14} fontFamily={FONTS.bodyBold as any}>{i18n.t('your_photos')}</Text>
+          <View style={styles.cardBody}>
+            <Text style={styles.sectionTitle}>{i18n.t('your_photos')}</Text>
             <PhotoGrid photoUrls={photoUrls} onChange={setPhotoUrls} onUploadingChange={setPhotosUploading} />
-            <Text color={photoUrls.length >= 3 ? COLORS.goldBright : COLORS.gold} fontSize={12} fontFamily={FONTS.body as any}>
+            <Text style={[styles.hint, { color: photoUrls.length >= 3 ? COLORS.goldBright : COLORS.gold }]}>
               {i18n.t('photos_minimum', { n: photoUrls.length })}
             </Text>
-          </YStack>
+          </View>
         </AppCard>
 
         <AppCard textured style={{ padding: SPACE.lg }}>
-          <YStack gap="$4" zIndex={1}>
-            <Input
+          <View style={styles.cardBodyLoose}>
+            <TextField
               value={displayName} onChangeText={setDisplayName}
-              placeholder={i18n.t('display_name_placeholder')} placeholderTextColor={COLORS.textDim as any}
+              placeholder={i18n.t('display_name_placeholder')}
               maxLength={FIELD_LIMITS.displayName}
-              backgroundColor={COLORS.panel} borderColor={COLORS.bronze} color={COLORS.text}
-              fontFamily={FONTS.body as any}
               returnKeyType="next" onSubmitEditing={() => bioRef.current?.focus()} blurOnSubmit={false}
             />
-            <TextArea
-              ref={bioRef as any} value={bio} onChangeText={setBio}
-              placeholder={i18n.t('bio_placeholder')} maxLength={200} numberOfLines={4}
-              backgroundColor={COLORS.panel} borderColor={COLORS.bronze} color={COLORS.text}
-              fontFamily={FONTS.body as any}
-              placeholderTextColor={COLORS.textDim as any}
+            <TextField
+              ref={bioRef} value={bio} onChangeText={setBio}
+              placeholder={i18n.t('bio_placeholder')} maxLength={200} multiline numberOfLines={4}
               returnKeyType="done" onSubmitEditing={Keyboard.dismiss} blurOnSubmit
-              style={{ resize: 'none' } as never}
-/>
-            {error && <Text color={COLORS.emberLight} fontSize={13} fontFamily={FONTS.body as any}>{error}</Text>}
-          </YStack>
+            />
+            {error && <Text style={styles.error}>{error}</Text>}
+          </View>
         </AppCard>
 
         <AppCard textured style={{ padding: SPACE.lg }}>
-          <YStack gap="$4" zIndex={1}>
-            <YStack gap="$1">
-              <Text color={COLORS.gold} fontSize={14} fontFamily={FONTS.bodyBold as any}>{i18n.t('deep_profile_title')}</Text>
-              <Text color={COLORS.textDim} fontSize={12} fontFamily={FONTS.body as any}>{i18n.t('deep_profile_hint')}</Text>
-            </YStack>
+          <View style={styles.cardBodyLoose}>
+            <View style={styles.titleBlock}>
+              <Text style={styles.sectionTitle}>{i18n.t('deep_profile_title')}</Text>
+              <Text style={styles.hint}>{i18n.t('deep_profile_hint')}</Text>
+            </View>
             <SectionDivider />
             <ChoiceRow
               label={i18n.t('has_kids')}
@@ -204,37 +198,37 @@ export default function EditProfileScreen() {
               onChange={setLifestyle}
               size="compact"
             />
-          </YStack>
+          </View>
         </AppCard>
 
         <AppCard textured style={{ padding: SPACE.lg }}>
-          <YStack gap="$3" zIndex={1}>
-            <Text color={COLORS.gold} fontSize={14} fontFamily={FONTS.bodyBold as any}>{i18n.t('your_area')}</Text>
+          <View style={styles.cardBody}>
+            <Text style={styles.sectionTitle}>{i18n.t('your_area')}</Text>
             {isCapturing ? (
-              <XStack alignItems="center" gap="$2">
-                <Spinner color="$gold" size="small" />
-                <Text color={COLORS.textDim} fontSize={13} fontFamily={FONTS.body as any}>
+              <View style={styles.locatingRow}>
+                <ActivityIndicator color={COLORS.gold} size="small" />
+                <Text style={styles.hint}>
                   {i18n.t('detecting_location')}
                 </Text>
-              </XStack>
+              </View>
             ) : (
-              <Text color={COLORS.text} fontSize={15} fontFamily={FONTS.bodyBold as any}>{city || '—'}</Text>
+              <Text style={styles.city}>{city || '—'}</Text>
             )}
             <GameButton variant="brass" size="compact" icon="crosshairs-gps" loading={isCapturing} onPress={handleRefreshLocation}>
               {i18n.t('refresh_location')}
             </GameButton>
-            {error && <Text color={COLORS.emberLight} fontSize={13} fontFamily={FONTS.body as any}>{error}</Text>}
+            {error && <Text style={styles.error}>{error}</Text>}
             {permissionDenied && (
-              <YStack gap="$2">
-                <Text color={COLORS.textDim} fontSize={12} fontFamily={FONTS.body as any}>
+              <View style={styles.deniedBlock}>
+                <Text style={styles.hint}>
                   {i18n.t('location_permission_denied')}
                 </Text>
                 <GameButton variant="brass" size="compact" onPress={() => setCityPickerVisible(true)}>
                   {i18n.t('choose_your_city')}
                 </GameButton>
-              </YStack>
+              </View>
             )}
-          </YStack>
+          </View>
         </AppCard>
       </ScrollView>
 
@@ -246,7 +240,7 @@ export default function EditProfileScreen() {
         onDismiss={() => setCityPickerVisible(false)}
       />
 
-      <XStack gap="$3" padding="$6" paddingTop="$3">
+      <View style={styles.footer}>
         <GameButton variant="brass" size="compact" flex={1} onPress={() => { Keyboard.dismiss(); router.back(); }}>
           {i18n.t('back')}
         </GameButton>
@@ -257,8 +251,22 @@ export default function EditProfileScreen() {
         >
           {i18n.t('save')}
         </GameButton>
-      </XStack>
-      </YStack>
+      </View>
+      </View>
     </DismissKeyboardView>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: COLORS.bg },
+  cardBody: { gap: SPACE.md, zIndex: 1 },
+  cardBodyLoose: { gap: SPACE.lg, zIndex: 1 },
+  titleBlock: { gap: SPACE.hair },
+  locatingRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  deniedBlock: { gap: SPACE.sm },
+  footer: { flexDirection: 'row', gap: SPACE.md, padding: SPACE.huge, paddingTop: SPACE.md },
+  sectionTitle: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
+  hint: { color: COLORS.textDim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
+  error: { color: COLORS.emberLight, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
+  city: { color: COLORS.text, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },
+});

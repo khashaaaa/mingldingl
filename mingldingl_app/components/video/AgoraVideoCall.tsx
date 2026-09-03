@@ -1,7 +1,7 @@
-import { YStack, Text } from 'tamagui';
+import { View, Text, StyleSheet } from 'react-native';
 import type { VideoToken } from '../../hooks/useVideoCall';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, SPACE } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 
 interface Props {
@@ -14,11 +14,16 @@ interface Props {
 
 export function AgoraVideoCall({ token }: Props) {
   return (
-    <YStack flex={1} backgroundColor={COLORS.bg} alignItems="center" justifyContent="center" gap="$3">
+    <View style={styles.placeholder}>
       <Icon name="video" size={36} color={COLORS.textDim} />
-      <Text color={COLORS.text} fontFamily={FONTS.body as any} textAlign="center" paddingHorizontal="$6">
+      <Text style={styles.placeholderText}>
         {i18n.t('video_web_unsupported', { channel: token.channelName })}
       </Text>
-    </YStack>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  placeholder: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
+  placeholderText: { color: COLORS.text, fontFamily: FONTS.body, textAlign: 'center', paddingHorizontal: SPACE.huge },
+});

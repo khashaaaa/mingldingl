@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { YStack, XStack } from 'tamagui';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import { AppCard } from '../ui/AppCard';
@@ -22,7 +21,7 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
 
   return (
     <StepScaffold>
-      <YStack flex={1} padding="$6" gap="$4">
+      <View style={styles.container}>
       <Text style={styles.heading}>{i18n.t('oath_step_heading')}</Text>
       <Text style={styles.help}>{i18n.t('oath_step_help')}</Text>
 
@@ -55,7 +54,7 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
 
       {error && <Text style={styles.error}>{error}</Text>}
 
-      <XStack gap="$3" marginTop="auto">
+      <View style={styles.actions}>
         <GameButton variant="ghost" flex={1} disabled={loading} onPress={onBack}>
           {i18n.t('back')}
         </GameButton>
@@ -67,13 +66,15 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
         >
           {i18n.t('complete_profile')}
         </GameButton>
-      </XStack>
-      </YStack>
+      </View>
+      </View>
     </StepScaffold>
   );
 }
 
 const styles = StyleSheet.create({
+  container: { flex: 1, padding: SPACE.huge, gap: SPACE.lg },
+  actions: { flexDirection: 'row', gap: SPACE.md, marginTop: 'auto' },
   heading: { color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
   help: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: 19 },
   cardList: { gap: SPACE.md },

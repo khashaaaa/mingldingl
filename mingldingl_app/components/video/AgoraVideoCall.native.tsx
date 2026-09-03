@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { PermissionsAndroid, Platform, StyleSheet } from 'react-native';
-import { YStack, Text } from 'tamagui';
+import { PermissionsAndroid, Platform, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import type { VideoToken } from '../../hooks/useVideoCall';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, SPACE, RADIUS } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 
 interface Props {
@@ -108,33 +107,45 @@ function AgoraVideoCallImpl({ token, muted, cameraOff, onJoined, onError }: Prop
   }, [cameraOff]);
 
   return (
-    <YStack flex={1} backgroundColor={COLORS.bg}>
+    <View style={styles.root}>
       {remoteUid !== null ? (
         <RtcSurfaceView style={StyleSheet.absoluteFill} canvas={{ uid: remoteUid }} />
       ) : (
-        <YStack flex={1} alignItems="center" justifyContent="center">
-          <Text color={COLORS.textDim} fontFamily={FONTS.body as any}>{i18n.t('waiting_join')}</Text>
-        </YStack>
+        <View style={styles.waiting}>
+          <Text style={styles.waitingText}>{i18n.t('waiting_join')}</Text>
+        </View>
       )}
       {localReady && !cameraOff && (
-        <YStack position="absolute" top={16} right={16} width={100} height={140} borderRadius={12} overflow="hidden">
+        <View style={styles.localPreview}>
           <RtcSurfaceView style={StyleSheet.absoluteFill} canvas={{ uid: 0 }} />
-        </YStack>
+        </View>
       )}
-    </YStack>
+    </View>
   );
 }
 
 export function AgoraVideoCall(props: Props) {
   if (!IS_DEV_BUILD) {
     return (
-      <YStack flex={1} backgroundColor={COLORS.bg} alignItems="center" justifyContent="center" gap="$3">
+      <View style={styles.placeholder}>
         <Icon name="video" size={36} color={COLORS.textDim} />
-        <Text color={COLORS.text} fontFamily={FONTS.body as any} textAlign="center" paddingHorizontal="$6">
+        <Text style={styles.placeholderText}>
           {i18n.t('video_dev_build_required')}
         </Text>
-      </YStack>
+      </View>
     );
   }
   return <AgoraVideoCallImpl {...props} />;
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: COLORS.bg },
+  waiting: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  waitingText: { color: COLORS.textDim, fontFamily: FONTS.body },
+  localPreview: {
+    position: 'absolute', top: SPACE.lg, right: SPACE.lg,
+    width: 100, height: 140, borderRadius: RADIUS.lg, overflow: 'hidden',
+  },
+  placeholder: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
+  placeholderText: { color: COLORS.text, fontFamily: FONTS.body, textAlign: 'center', paddingHorizontal: SPACE.huge },
+});

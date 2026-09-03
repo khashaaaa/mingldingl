@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View as RNView, Text as RNText, StyleSheet } from 'react-native';
-import { YStack, Text, Spinner } from 'tamagui';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useVideoCall } from '../../hooks/useVideoCall';
@@ -90,40 +89,40 @@ export default function VideoScreen() {
   }, [matchId, qc, bumpScore, setPendingDrop, router]);
 
   if (loading) return (
-    <YStack flex={1} backgroundColor={COLORS.bg} alignItems="center" justifyContent="center">
-      <Spinner color={COLORS.gold} />
-    </YStack>
+    <View style={styles.centered}>
+      <ActivityIndicator color={COLORS.gold} />
+    </View>
   );
 
   if (error || !token) return (
-    <YStack flex={1} backgroundColor={COLORS.bg} alignItems="center" justifyContent="center" gap="$4">
-      <Text color={COLORS.text} fontSize={18} textAlign="center" fontFamily={FONTS.body as any}>
+    <View style={[styles.centered, styles.stack]}>
+      <Text style={styles.unavailable}>
         {error ?? i18n.t('video_unavailable')}
       </Text>
       <GameButton variant="primary" onPress={() => router.back()}>
         {i18n.t('back')}
       </GameButton>
-    </YStack>
+    </View>
   );
 
   // A failed connection used to bounce the user straight back to the chat with no explanation —
   // the same gap the Town Square round screen already closes.
   if (callFailed) return (
-    <YStack flex={1} backgroundColor={COLORS.bg} alignItems="center" justifyContent="center" gap="$4" paddingHorizontal="$6">
+    <View style={[styles.centered, styles.stack, styles.failPadding]}>
       <Icon name="video-off" size={44} color={COLORS.emberLight} />
-      <RNText style={styles.errorTitle}>{i18n.t('video_connect_error_title')}</RNText>
-      <RNText style={styles.errorBody}>{i18n.t('video_connect_error_body')}</RNText>
+      <Text style={styles.errorTitle}>{i18n.t('video_connect_error_title')}</Text>
+      <Text style={styles.errorBody}>{i18n.t('video_connect_error_body')}</Text>
       <GameButton variant="primary" onPress={() => { setCallFailed(false); setAttempt((a) => a + 1); }}>
         {i18n.t('rejoin')}
       </GameButton>
       <GameButton variant="ghost" size="compact" onPress={() => router.back()}>
         {i18n.t('back')}
       </GameButton>
-    </YStack>
+    </View>
   );
 
   return (
-    <YStack flex={1} backgroundColor={COLORS.bg}>
+    <View style={styles.screen}>
       <AgoraVideoCall
         key={attempt}
         token={token}
@@ -133,13 +132,13 @@ export default function VideoScreen() {
         onError={() => setCallFailed(true)}
       />
       {riteActive && secondsLeft !== null && (
-        <RNView style={styles.riteFraming} pointerEvents="none">
-          <RNView style={styles.riteTitleRow}>
+        <View style={styles.riteFraming} pointerEvents="none">
+          <View style={styles.riteTitleRow}>
             <Icon name="fire" size={16} color={COLORS.ember} />
-            <RNText style={styles.riteFramingTitle}>{i18n.t('rite_title')}</RNText>
-          </RNView>
-          <RNText style={styles.riteFramingCountdown}>{formatCountdown(secondsLeft)}</RNText>
-        </RNView>
+            <Text style={styles.riteFramingTitle}>{i18n.t('rite_title')}</Text>
+          </View>
+          <Text style={styles.riteFramingCountdown}>{formatCountdown(secondsLeft)}</Text>
+        </View>
       )}
       <VideoControls
         muted={muted}
@@ -167,11 +166,16 @@ export default function VideoScreen() {
         message={i18n.t('video_award_failed')}
         onDismiss={() => { setCompleteFailed(false); router.back(); }}
       />
-    </YStack>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: COLORS.bg },
+  centered: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  stack: { gap: SPACE.lg },
+  failPadding: { paddingHorizontal: SPACE.huge },
+  unavailable: { color: COLORS.text, fontSize: FONT_SIZES.xl, textAlign: 'center', fontFamily: FONTS.body },
   riteFraming: {
     position: 'absolute',
     top: 16,

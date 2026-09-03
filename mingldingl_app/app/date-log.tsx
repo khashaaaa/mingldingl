@@ -1,6 +1,5 @@
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { Spinner } from 'tamagui';
 import { useMyTrophies } from '../hooks/useMyTrophies';
 import { GameHeader } from '../components/ui/GameHeader';
 import { GameButton } from '../components/ui/GameButton';
@@ -58,7 +57,7 @@ export default function DateLogScreen() {
       <GameHeader title={i18n.t('date_log_title')} icon="book-heart" showBack />
       {isLoading ? (
         <View style={styles.centered}>
-          <Spinner color="$gold" />
+          <ActivityIndicator color={COLORS.gold} />
         </View>
       ) : isError ? (
         <View style={styles.errorWrap}>

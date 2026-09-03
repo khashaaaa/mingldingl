@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { Input, YStack, XStack } from 'tamagui';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfile } from '../hooks/useProfile';
@@ -18,6 +17,7 @@ import { GameButton } from '../components/ui/GameButton';
 import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { SectionDivider } from '../components/ui/SectionDivider';
+import { TextField } from '../components/ui/TextField';
 
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
@@ -151,34 +151,30 @@ export default function SettingsScreen() {
         />
 
         <SectionDivider />
-        <YStack gap="$2">
+        <View style={styles.section}>
           <Text style={styles.sectionLabel}>{i18n.t('match_preferences')}</Text>
           <Text style={styles.sectionHint}>{i18n.t('age_range')}</Text>
-          <XStack gap="$3" alignItems="center">
-            <YStack gap="$1" flex={1}>
+          <View style={styles.ageRow}>
+            <View style={styles.ageField}>
               <Text style={styles.fieldLabel}>{i18n.t('age_min_label')}</Text>
-              <Input
+              <TextField
                 value={ageMinInput} onChangeText={setAgeMinInput}
                 keyboardType="number-pad" maxLength={2}
-                backgroundColor={COLORS.panel} borderColor={COLORS.bronze} color={COLORS.text}
-                fontFamily={FONTS.body as any}
               />
-            </YStack>
-            <YStack gap="$1" flex={1}>
+            </View>
+            <View style={styles.ageField}>
               <Text style={styles.fieldLabel}>{i18n.t('age_max_label')}</Text>
-              <Input
+              <TextField
                 value={ageMaxInput} onChangeText={setAgeMaxInput}
                 keyboardType="number-pad" maxLength={2}
-                backgroundColor={COLORS.panel} borderColor={COLORS.bronze} color={COLORS.text}
-                fontFamily={FONTS.body as any}
               />
-            </YStack>
-          </XStack>
+            </View>
+          </View>
           {!!ageRangeMessage && <Text style={styles.errorText}>{ageRangeMessage}</Text>}
           <GameButton variant="brass" size="compact" onPress={handleSaveAgeRange}>{i18n.t('save')}</GameButton>
-        </YStack>
+        </View>
 
-        <YStack gap="$2">
+        <View style={styles.section}>
           <ChoiceRow
             label={i18n.t('pause_profile')}
             value={(profile?.isPaused ? 'on' : 'off') as (typeof PAUSE_OPTIONS)[number]}
@@ -188,7 +184,7 @@ export default function SettingsScreen() {
             size="compact"
           />
           <Text style={styles.sectionHint}>{i18n.t('pause_profile_hint')}</Text>
-        </YStack>
+        </View>
 
         <GameButton variant="brass" size="compact" icon="account-off-outline" onPress={() => router.push('/blocked-users')}>
           {i18n.t('view_blocked_users')}
@@ -199,7 +195,7 @@ export default function SettingsScreen() {
         </GameButton>
 
         <SectionDivider />
-        <YStack gap="$2">
+        <View style={styles.section}>
           <Text style={styles.sectionLabel}>{i18n.t('help_and_legal')}</Text>
           <GameButton variant="brass" size="compact" icon="book-open-variant" onPress={() => router.push('/guides')}>
             {i18n.t('guides')}
@@ -210,16 +206,16 @@ export default function SettingsScreen() {
           <GameButton variant="brass" size="compact" icon="shield-lock-outline" onPress={() => router.push('/privacy')}>
             {i18n.t('privacy_policy')}
           </GameButton>
-        </YStack>
+        </View>
 
         <SectionDivider />
-        <YStack gap="$2">
+        <View style={styles.section}>
           <Text style={styles.sectionLabel}>{i18n.t('phone_number')}</Text>
           <Text style={styles.sectionHint}>{profile?.phoneNumber ?? '—'}</Text>
           <GameButton variant="brass" size="compact" icon="phone-outline" onPress={() => setChangingPhone(true)}>
             {i18n.t('change_phone')}
           </GameButton>
-        </YStack>
+        </View>
 
         <View style={styles.dangerWrap}>
           <GameButton variant="danger" size="compact" icon="account-remove" onPress={() => setConfirmDelete(true)}>
@@ -272,6 +268,9 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   content: { padding: SPACE.xl, gap: SPACE.xxl },
+  section: { gap: SPACE.sm },
+  ageRow: { flexDirection: 'row', gap: SPACE.md, alignItems: 'center' },
+  ageField: { gap: SPACE.hair, flex: 1 },
   sectionLabel: { color: COLORS.gold, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
   sectionHint: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: 17 },
   fieldLabel: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },

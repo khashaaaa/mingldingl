@@ -5,8 +5,8 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
-import { Spinner } from 'tamagui';
 import { AlertModal } from '../components/modals/AlertModal';
 import { AppCard } from '../components/ui/AppCard';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
@@ -72,7 +72,7 @@ export default function MembershipScreen() {
             {i18n.t('membership_active_until', { date: formatDate(expiresAt) })}
           </Text>
         )}
-        {tiersLoading && <Spinner color="$gold" />}
+        {tiersLoading && <ActivityIndicator color={COLORS.gold} />}
         {tiers.map((t) => {
           const isSelected = selectedTier === t.level;
           const isCurrent = currentLevel === t.level;

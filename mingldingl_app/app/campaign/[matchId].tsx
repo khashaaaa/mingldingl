@@ -1,6 +1,5 @@
-import { View, Text, Image, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Spinner } from 'tamagui';
 import { useCampaign } from '../../hooks/useCampaign';
 import type { CampaignRoom } from '../../hooks/useCampaign';
 import { useAuthStore } from '../../store/authStore';
@@ -139,7 +138,7 @@ export default function CampaignScreen() {
 
       {isLoading ? (
         <View style={styles.centered}>
-          <Spinner color="$gold" />
+          <ActivityIndicator color={COLORS.gold} />
         </View>
       ) : unavailable ? (
         <View style={styles.centered}>

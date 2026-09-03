@@ -1,5 +1,4 @@
-import { View, Text, FlatList, RefreshControl, StyleSheet, type LayoutChangeEvent } from 'react-native';
-import { Spinner } from 'tamagui';
+import { View, Text, FlatList, RefreshControl, StyleSheet, ActivityIndicator, type LayoutChangeEvent } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useMatches } from '../../hooks/useMatches';
@@ -32,7 +31,7 @@ export default function MatchesScreen() {
       <GameHeader title={i18n.t('tab_quest_log')} icon="script-text" showScore />
       {isLoading && (
         <View style={styles.center}>
-          <Spinner color="$gold" />
+          <ActivityIndicator color={COLORS.gold} />
         </View>
       )}
       {!isLoading && isError && (

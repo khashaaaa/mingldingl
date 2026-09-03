@@ -1,6 +1,6 @@
-import { YStack, XStack, Text } from 'tamagui';
+import { View, Text, StyleSheet } from 'react-native';
 import { GameButton } from './GameButton';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 
 interface Props<T extends string> {
   label: string;
@@ -17,9 +17,9 @@ export function ChoiceRow<T extends string>({
   label, value, options, optionLabel, onChange, size = 'default', unselectedVariant = 'ghost',
 }: Props<T>) {
   return (
-    <YStack gap="$2">
-      <Text color={COLORS.textDim} fontSize={13} fontFamily={FONTS.body as any}>{label}</Text>
-      <XStack gap="$2" flexWrap="wrap">
+    <View style={styles.container}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.options}>
         {options.map((opt) => (
           <GameButton
             key={opt}
@@ -30,7 +30,13 @@ export function ChoiceRow<T extends string>({
             {optionLabel(opt)}
           </GameButton>
         ))}
-      </XStack>
-    </YStack>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { gap: SPACE.sm },
+  label: { color: COLORS.textDim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
+  options: { flexDirection: 'row', gap: SPACE.sm, flexWrap: 'wrap' },
+});

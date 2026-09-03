@@ -1,6 +1,5 @@
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { Spinner } from 'tamagui';
 import { useBlockedUsers } from '../hooks/useBlockedUsers';
 import { GameButton } from '../components/ui/GameButton';
 import { TiledBackdrop } from '../components/ui/TiledBackdrop';
@@ -22,7 +21,7 @@ export default function BlockedUsersScreen() {
       <ScreenHeader title={i18n.t('blocked_users_title')} />
       {isLoading ? (
         <View style={styles.centered}>
-          <Spinner color="$gold" />
+          <ActivityIndicator color={COLORS.gold} />
         </View>
       ) : isError ? (
         <View style={styles.errorWrap}>

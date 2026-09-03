@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { YStack, XStack, Text, Input } from 'tamagui';
+import { View, Text, StyleSheet } from 'react-native';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 import { PhotoGrid } from '../PhotoGrid';
 import { StepScaffold } from './StepScaffold';
 import { GameButton } from '../ui/GameButton';
+import { TextField } from '../ui/TextField';
 
 interface Props {
   photoUrls: string[];
@@ -19,28 +20,24 @@ export function PhotosStep({ photoUrls, onPhotosChange, referralCode, onReferral
   const [photosUploading, setPhotosUploading] = useState(false);
   return (
     <StepScaffold>
-      <YStack flex={1} padding="$6" gap="$4">
-      <Text color={COLORS.text} fontSize={22} fontFamily={FONTS.display as any}>{i18n.t('your_photos')}</Text>
-      <Text color={COLORS.textDim} fontSize={14} fontFamily={FONTS.body as any}>{i18n.t('add_photos_hint')}</Text>
+      <View style={styles.container}>
+      <Text style={styles.heading}>{i18n.t('your_photos')}</Text>
+      <Text style={styles.hint}>{i18n.t('add_photos_hint')}</Text>
       <PhotoGrid photoUrls={photoUrls} onChange={onPhotosChange} onUploadingChange={setPhotosUploading} />
-      <Text color={photoUrls.length >= 3 ? COLORS.goldBright : COLORS.gold} fontSize={13} fontFamily={FONTS.body as any}>
+      <Text style={[styles.count, { color: photoUrls.length >= 3 ? COLORS.goldBright : COLORS.gold }]}>
         {i18n.t('photos_minimum', { n: photoUrls.length })}
       </Text>
-      <Text color={COLORS.textDim} fontSize={13} fontFamily={FONTS.body as any}>
+      <Text style={styles.label}>
         {i18n.t('referral_code_field_label')}
       </Text>
-      <Input
+      <TextField
         placeholder={i18n.t('referral_code_field_placeholder')}
         value={referralCode}
         onChangeText={(text) => onReferralCodeChange(text.toUpperCase())}
         autoCapitalize="characters"
         maxLength={6}
-        backgroundColor={COLORS.panel}
-        borderColor={COLORS.bronze}
-        color={COLORS.text}
-        placeholderTextColor={COLORS.textDim as any}
       />
-      <XStack gap="$3" marginTop="auto">
+      <View style={styles.actions}>
         <GameButton variant="ghost" flex={1} onPress={onBack}>
           {i18n.t('back')}
         </GameButton>
@@ -52,8 +49,17 @@ export function PhotosStep({ photoUrls, onPhotosChange, referralCode, onReferral
         >
           {i18n.t('next')}
         </GameButton>
-      </XStack>
-      </YStack>
+      </View>
+      </View>
     </StepScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: SPACE.huge, gap: SPACE.lg },
+  heading: { color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
+  hint: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
+  count: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
+  label: { color: COLORS.textDim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
+  actions: { flexDirection: 'row', gap: SPACE.md, marginTop: 'auto' },
+});

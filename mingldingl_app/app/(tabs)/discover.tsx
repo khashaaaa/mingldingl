@@ -1,5 +1,4 @@
-import { View, Text as RNText, StyleSheet, type LayoutChangeEvent } from 'react-native';
-import { Spinner } from 'tamagui';
+import { View, Text as RNText, StyleSheet, ActivityIndicator, type LayoutChangeEvent } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { isAxiosError } from 'axios';
@@ -53,7 +52,7 @@ export default function DiscoverScreen() {
   if (isLoading) return (
     <View style={styles.center}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <Spinner color="$gold" size="large" />
+      <ActivityIndicator color={COLORS.gold} size="large" />
     </View>
   );
 

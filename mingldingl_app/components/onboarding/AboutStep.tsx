@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, TextInput, View, Text } from 'react-native';
-import { YStack, XStack, TextArea, Spinner } from 'tamagui';
+import { ActivityIndicator, Keyboard, TextInput, View, Text, StyleSheet } from 'react-native';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 import { StepScaffold } from './StepScaffold';
 import { GameButton } from '../ui/GameButton';
+import { TextField } from '../ui/TextField';
 import { CityPickerModal } from '../modals/CityPickerModal';
 import { useLocationCapture } from '../../hooks/useLocationCapture';
 import { useGeoCities } from '../../hooks/useGeoCities';
@@ -57,7 +57,7 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
 
   return (
     <StepScaffold>
-      <YStack flex={1} padding="$6" gap="$4">
+      <View style={styles.container}>
         <Text style={{ color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display as any }}>{i18n.t('about_you')}</Text>
 
         {city ? (
@@ -68,34 +68,29 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
             <Text style={{ color: COLORS.gold, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xl }}>{city}</Text>
           </View>
         ) : isCapturing ? (
-          <XStack alignItems="center" gap="$2">
-            <Spinner color="$gold" />
+          <View style={styles.detecting}>
+            <ActivityIndicator color={COLORS.gold} />
             <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md }}>
               {i18n.t('detecting_location')}
             </Text>
-          </XStack>
+          </View>
         ) : (permissionDenied || geocodeFailed) ? (
-          <YStack gap="$2">
+          <View style={styles.fallback}>
             <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md }}>
               {i18n.t('location_permission_denied')}
             </Text>
             <GameButton variant="ghost" onPress={() => setPickerVisible(true)}>
               {i18n.t('choose_your_city')}
             </GameButton>
-          </YStack>
+          </View>
         ) : null}
 
-        <TextArea
-          ref={bioRef as any} value={bio} onChangeText={setBio}
-          placeholder={i18n.t('bio_placeholder')} maxLength={200} numberOfLines={4}
-          backgroundColor={COLORS.panel} borderColor={COLORS.bronze} color={COLORS.text}
-          fontFamily={FONTS.body as any}
-          placeholderTextColor={COLORS.textDim as any}
+        <TextField
+          ref={bioRef} value={bio} onChangeText={setBio}
+          placeholder={i18n.t('bio_placeholder')} maxLength={200} multiline numberOfLines={4}
           returnKeyType="done" onSubmitEditing={Keyboard.dismiss} blurOnSubmit
-
-          style={{ resize: 'none' } as never}
         />
-        <XStack gap="$3" marginTop="auto">
+        <View style={styles.actions}>
           <GameButton variant="ghost" flex={1} onPress={() => { Keyboard.dismiss(); onBack(); }}>
             {i18n.t('back')}
           </GameButton>
@@ -106,7 +101,7 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
           >
             {i18n.t('next')}
           </GameButton>
-        </XStack>
+        </View>
         <CityPickerModal
           visible={pickerVisible}
           provinces={cities?.provinces ?? []}
@@ -114,7 +109,14 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
           onSelect={handlePickCity}
           onDismiss={() => setPickerVisible(false)}
         />
-      </YStack>
+      </View>
     </StepScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: SPACE.huge, gap: SPACE.lg },
+  detecting: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  fallback: { gap: SPACE.sm },
+  actions: { flexDirection: 'row', gap: SPACE.md, marginTop: 'auto' },
+});

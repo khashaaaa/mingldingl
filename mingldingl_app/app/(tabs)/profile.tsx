@@ -12,7 +12,6 @@ import {
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Spinner } from 'tamagui';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { useProfile } from '../../hooks/useProfile';
@@ -82,7 +81,7 @@ export default function ProfileScreen() {
     return (
       <View style={styles.loadingScreen}>
         <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-        <Spinner color="$gold" />
+        <ActivityIndicator color={COLORS.gold} />
       </View>
     );
   }

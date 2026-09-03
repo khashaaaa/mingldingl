@@ -1,9 +1,7 @@
 import { render, fireEvent } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { TamaguiProvider } from 'tamagui';
 import { NameAgeStep } from '../NameAgeStep';
 import { PhotosStep } from '../PhotosStep';
-import tamaguiConfig from '../../../tamagui.config';
 
 jest.mock('../../PhotoGrid', () => ({ PhotoGrid: () => null }));
 
@@ -15,7 +13,7 @@ const METRICS = {
 function wrap(ui: React.ReactElement) {
   return render(
     <SafeAreaProvider initialMetrics={METRICS}>
-      <TamaguiProvider config={tamaguiConfig} defaultTheme="dark">{ui}</TamaguiProvider>
+      {ui}
     </SafeAreaProvider>,
   );
 }

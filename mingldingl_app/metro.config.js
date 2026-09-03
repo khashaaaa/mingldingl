@@ -4,9 +4,6 @@ const config = getDefaultConfig(__dirname);
 
 const defaultResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (moduleName === 'react-dom' && platform !== 'web') {
-    return { filePath: require.resolve('./shims/react-dom'), type: 'sourceFile' };
-  }
   if (moduleName === 'expo-secure-store' && platform === 'web') {
     return { filePath: require.resolve('./shims/secure-store.web.js'), type: 'sourceFile' };
   }

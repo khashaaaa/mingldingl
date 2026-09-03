@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Share, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Share, StyleSheet, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Spinner } from 'tamagui';
 import { useActivitySuggestions } from '../../hooks/useActivitySuggestions';
 import { useMatches } from '../../hooks/useMatches';
 import { usePhotoUpload } from '../../hooks/usePhotoUpload';
@@ -76,7 +75,7 @@ export default function ActivitiesScreen() {
 
   if (isLoading) return (
     <View style={styles.centered}>
-      <Spinner color="$gold" />
+      <ActivityIndicator color={COLORS.gold} />
     </View>
   );
 
@@ -118,7 +117,7 @@ export default function ActivitiesScreen() {
               )}
               {uploading && (
                 <View style={styles.momentPhotoOverlay}>
-                  <Spinner color="$gold" size="small" />
+                  <ActivityIndicator color={COLORS.gold} size="small" />
                 </View>
               )}
             </TouchableOpacity>

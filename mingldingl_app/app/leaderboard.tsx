@@ -1,5 +1,4 @@
-import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
-import { Spinner } from 'tamagui';
+import { View, Text, FlatList, RefreshControl, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { GameHeader } from '../components/ui/GameHeader';
@@ -23,7 +22,7 @@ export default function LeaderboardScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <Spinner color="$gold" />
+        <ActivityIndicator color={COLORS.gold} />
       </View>
     );
   }

@@ -1,7 +1,6 @@
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import { Spinner } from 'tamagui';
 import { useBusinessReviews } from '../../hooks/useBusinessReviews';
 import { AppCard } from '../../components/ui/AppCard';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
@@ -54,7 +53,7 @@ export default function BusinessDetailScreen() {
         <Text style={styles.sectionTitle}>{i18n.t('memorable_moments')}</Text>
 
         {isLoading ? (
-          <Spinner color="$gold" />
+          <ActivityIndicator color={COLORS.gold} />
         ) : !reviews || reviews.length === 0 ? (
           <Text style={styles.emptyText}>{i18n.t('no_moments_yet')}</Text>
         ) : (

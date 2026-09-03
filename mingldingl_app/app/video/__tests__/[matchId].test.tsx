@@ -1,10 +1,8 @@
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { TamaguiProvider } from 'tamagui';
 import VideoScreen from '../[matchId]';
 import { apiClient } from '../../../lib/api/apiClient';
 import { queryKeys } from '../../../lib/api/queryKeys';
-import tamaguiConfig from '../../../tamagui.config';
 
 const mockBack = jest.fn();
 jest.mock('expo-router', () => ({
@@ -63,11 +61,9 @@ function renderWithClient() {
   const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
   const view = render(
-    <TamaguiProvider config={tamaguiConfig} defaultTheme="dark">
-      <QueryClientProvider client={queryClient}>
-        <VideoScreen />
-      </QueryClientProvider>
-    </TamaguiProvider>,
+    <QueryClientProvider client={queryClient}>
+      <VideoScreen />
+    </QueryClientProvider>,
   );
   return { ...view, invalidateSpy };
 }

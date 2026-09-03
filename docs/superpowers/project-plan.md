@@ -59,7 +59,7 @@ ASP.NET Core API (:5150)  ←→  local PostgreSQL 16
 
 | Purpose | Package |
 |---|---|
-| UI + theming | `tamagui` + `@tamagui/config` |
+| UI + theming | plain React Native `StyleSheet` over `lib/theme.ts` tokens (Tamagui removed 2026-09-03) |
 | Navigation | `expo-router` |
 | Auth/Realtime | `@supabase/supabase-js` (DB access removed — engine owns all data via REST now) |
 | Server state | `@tanstack/react-query` |
@@ -274,7 +274,7 @@ Platinum was retired (2026-08-18, migration `RetirePlatinumTier` merged it into 
 ```
 mingldingl_app/
 ├── app/
-│   ├── _layout.tsx             # Root: Tamagui provider, auth gate
+│   ├── _layout.tsx             # Root: providers, auth gate
 │   ├── (auth)/
 │   │   ├── _layout.tsx
 │   │   ├── phone.tsx
@@ -321,7 +321,6 @@ mingldingl_app/
 │   └── authStore.ts   # Zustand: session + pending toasts only. The profile is
 │                      # react-query state (useProfile); it used to be mirrored
 │                      # here and the two copies drifted.
-├── tamagui.config.ts
 ├── babel.config.js
 ├── app.json
 ├── tsconfig.json

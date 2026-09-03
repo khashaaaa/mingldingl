@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Spinner, TextArea } from 'tamagui';
 import { useIcebreaker } from '../../hooks/useIcebreaker';
 import { AppCard } from '../../components/ui/AppCard';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
+import { TextField } from '../../components/ui/TextField';
 import { LootToast } from '../../components/modals/LootToast';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
@@ -41,7 +41,7 @@ export default function IcebreakerScreen() {
   if (isLoading) return (
     <View style={styles.centered}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <Spinner color="$gold" />
+      <ActivityIndicator color={COLORS.gold} />
     </View>
   );
 
@@ -85,7 +85,7 @@ export default function IcebreakerScreen() {
     return (
       <View style={styles.centered}>
         <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-        <Spinner color="$gold" />
+        <ActivityIndicator color={COLORS.gold} />
         <Text style={styles.completionTitle}>{i18n.t('waiting_partner')}</Text>
         <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
       </View>
@@ -116,17 +116,14 @@ export default function IcebreakerScreen() {
 
         {question.type === 'OpenText' ? (
           <View style={styles.textAnswerWrap}>
-            <TextArea
+            <TextField
+              multiline
               value={textAnswer}
               onChangeText={setTextAnswer}
               placeholder={i18n.t('icebreaker_answer_placeholder')}
               maxLength={200}
               numberOfLines={4}
-              backgroundColor={COLORS.panel} borderColor={COLORS.bronze} color={COLORS.text}
-              fontFamily={FONTS.body as any}
-              placeholderTextColor={COLORS.textDim as any}
-              style={{ resize: 'none' } as never}
-/>
+            />
             <GameButton
               variant="primary"
               disabled={selected !== null || textAnswer.trim().length === 0}

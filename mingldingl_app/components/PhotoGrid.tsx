@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Modal, Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, Modal, Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import { Spinner } from 'tamagui';
 import { useAuthStore } from '../store/authStore';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { Icon } from './ui/Icon';
@@ -87,7 +86,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
           <Image source={{ uri: url }} style={styles.image} contentFit="cover" />
           {pendingLocalUris.includes(url) && (
             <View style={styles.uploadOverlay}>
-              <Spinner size="small" color="$gold" />
+              <ActivityIndicator size="small" color={COLORS.gold} />
             </View>
           )}
           {i === 0 && (
@@ -121,7 +120,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
           disabled={uploading}
           onPress={() => setSourceModalVisible(true)}
         >
-          {uploading ? <Spinner size="small" color="$gold" /> : <Icon name="image-plus" size={26} color={COLORS.textDim} />}
+          {uploading ? <ActivityIndicator size="small" color={COLORS.gold} /> : <Icon name="image-plus" size={26} color={COLORS.textDim} />}
         </TouchableOpacity>
       )}
 

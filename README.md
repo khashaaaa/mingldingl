@@ -7,7 +7,7 @@ A gamified dating app for the Mongolian market — a score-based economy, gemsto
 | Dir | Purpose | Stack |
 |---|---|---|
 | [`mingldingl_engine/`](mingldingl_engine) | Backend API — monolithic, owns all business logic and data | ASP.NET Core 8, EF Core, PostgreSQL (Npgsql), xUnit |
-| [`mingldingl_app/`](mingldingl_app) | Mobile app (iOS/Android/web) for end users (daters) | React Native 0.81 + Expo ~54, expo-router, Tamagui, Zustand, TanStack Query, Jest |
+| [`mingldingl_app/`](mingldingl_app) | Mobile app (iOS/Android/web) for end users (daters) | React Native 0.81 + Expo ~54, expo-router, Zustand, TanStack Query, Jest |
 | [`mingldingl_control/`](mingldingl_control) | Internal admin panel (users, moderation, business partners, config, analytics) | React 19 + Vite, React Router, TanStack Query, Tailwind 4, Radix UI, oxlint |
 
 Both frontends talk to `mingldingl_engine` over REST and generate their TypeScript API types from the engine's live Swagger doc — there is no hand-maintained shared types package.
