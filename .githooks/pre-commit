@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Runs the same checks CI (.github/workflows/ci.yml) runs, before the commit
-# lands rather than after a push — catches a broken change locally instead
-# of waiting on CI. Enabled via `git config core.hooksPath .githooks` (see
-# scripts/check-all.sh, which this just delegates to).
+# Fast gate (typecheck + lint, ~5s) before a commit lands. Tests and builds
+# run in CI (.github/workflows/ci.yml); run scripts/check-all.sh with no
+# flag to get the full set locally. Enabled via `git config core.hooksPath .githooks`.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-"$ROOT/scripts/check-all.sh"
+"$ROOT/scripts/check-all.sh" --fast
