@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
+[Collection(SerialCollection.Name)]
 public class AdminConfigControllerIntegrationTests : IntegrationTestBase
 {
     private async Task<(AdminConfigController Controller, ConfigService Config)> BuildControllerAsync()
