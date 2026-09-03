@@ -5,7 +5,7 @@ name: CI
 # in one doesn't hide the others, and they run in parallel.
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 jobs:
