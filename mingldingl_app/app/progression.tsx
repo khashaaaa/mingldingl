@@ -13,9 +13,10 @@ import { GameButton } from '../components/ui/GameButton';
 import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS } from '../lib/theme';
+import { COLORS, FONT_SIZES, SPACE } from '../lib/theme';
 import type { GemTier } from '../models/user';
 import { Icon } from '../components/ui/Icon';
+import { CardEyebrow } from '../components/ui/CardEyebrow';
 
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
@@ -70,7 +71,7 @@ export default function ProgressionScreen() {
           {i18n.t('view_leaderboard')}
         </GameButton>
       </View>
-      <Text style={styles.historyTitle}>{i18n.t('progression_history_title')}</Text>
+      <CardEyebrow style={styles.historyTitle}>{i18n.t('progression_history_title')}</CardEyebrow>
       <ScoreHistoryList
         items={(historyItems ?? []).filter(
           (item): item is { eventType: string; delta: number; createdAt: string } =>
@@ -85,10 +86,10 @@ export default function ProgressionScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
-  centered: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 },
-  errorTitle: { color: COLORS.text, fontSize: 18, textAlign: 'center' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, marginBottom: 16 },
+  centered: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
+  errorTitle: { color: COLORS.text, fontSize: FONT_SIZES.xl, textAlign: 'center' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   xpBarWrap: { flex: 1 },
-  leaderboardButtonWrap: { marginHorizontal: 20, marginBottom: 4 },
-  historyTitle: { color: COLORS.textDim, fontFamily: FONTS.display, fontSize: 12, letterSpacing: 2, marginHorizontal: 20, marginBottom: 8 },
+  leaderboardButtonWrap: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.xs },
+  historyTitle: { marginHorizontal: SPACE.gutter },
 });

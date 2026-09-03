@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../lib/i18n';
-import { COLORS, FONTS } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
 
 export function OfflineBanner() {
   const insets = useSafeAreaInsets();
@@ -20,13 +20,13 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1000,
     backgroundColor: COLORS.emberDark,
-    paddingBottom: 6,
-    paddingHorizontal: 12,
+    paddingBottom: SPACE.sm,
+    paddingHorizontal: SPACE.md,
   },
   text: {
     color: COLORS.text,
     fontFamily: FONTS.bodyBold,
-    fontSize: 12,
+    fontSize: FONT_SIZES.sm,
     textAlign: 'center',
   },
 });

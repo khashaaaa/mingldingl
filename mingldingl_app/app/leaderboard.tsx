@@ -8,7 +8,7 @@ import { GemTierBadge } from '../components/progression/GemTierBadge';
 import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, RADIUS } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
 import type { GemTier } from '../models/user';
 
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
@@ -79,34 +79,34 @@ export default function LeaderboardScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
-  centered: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 },
-  errorTitle: { color: COLORS.text, fontSize: 18, textAlign: 'center' },
-  list: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
-  listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20 },
-  empty: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 14, textAlign: 'center' },
-  gap: { color: COLORS.textDim, textAlign: 'center', fontFamily: FONTS.display, fontSize: 16, marginVertical: 4 },
+  centered: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
+  errorTitle: { color: COLORS.text, fontSize: FONT_SIZES.xl, textAlign: 'center' },
+  list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
+  listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
+  empty: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
+  gap: { color: COLORS.textDim, textAlign: 'center', fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, marginVertical: SPACE.xs },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    gap: SPACE.lg,
+    paddingVertical: SPACE.md,
+    paddingHorizontal: SPACE.lg,
     borderRadius: RADIUS.md,
-    marginBottom: 6,
+    marginBottom: SPACE.sm,
   },
   rowSelf: {
     backgroundColor: COLORS.panelRaised,
     borderWidth: 1,
     borderColor: COLORS.gold,
   },
-  rank: { width: 40, fontFamily: FONTS.display, fontSize: 15, color: COLORS.textDim },
+  rank: { width: 40, fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.textDim },
   rankSelf: { color: COLORS.gold },
-  score: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.text, flexShrink: 1 },
+  score: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.text, flexShrink: 1 },
   scoreSelf: { fontFamily: FONTS.bodyBold, color: COLORS.goldBright },
   youTag: {
     marginLeft: 'auto',
     fontFamily: FONTS.display,
-    fontSize: 11,
+    fontSize: FONT_SIZES.sm,
     letterSpacing: 1,
     color: COLORS.gold,
   },

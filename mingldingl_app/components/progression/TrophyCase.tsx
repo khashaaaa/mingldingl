@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CardEyebrow } from '../ui/CardEyebrow';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { AppCard } from '../ui/AppCard';
 import { SectionDivider } from '../ui/SectionDivider';
@@ -11,7 +12,7 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { useAuthStore } from '../../store/authStore';
 import { RARITY_COLORS } from '../../lib/tiers';
 import { i18n, tKey } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
 
 type ItemIconName = React.ComponentProps<typeof Icon>['name'];
 const TYPE_ICONS: Record<string, ItemIconName> = { Frame: 'image-frame', Title: 'certificate', Emblem: 'shield' };
@@ -44,7 +45,7 @@ export function TrophyCase() {
 
   return (
     <AppCard textured style={styles.card}>
-      <Text style={styles.heading}>{i18n.t('trophies').toUpperCase()}</Text>
+      <CardEyebrow>{i18n.t('trophies')}</CardEyebrow>
       {items.length === 0 ? (
         <View style={styles.emptyWrap}>
           <Icon name="bone-off" size={28} color={COLORS.bronze} style={styles.emptyIcon} />
@@ -75,7 +76,7 @@ export function TrophyCase() {
       {unopened.length > 0 && (
         <>
           <SectionDivider />
-          <Text style={styles.heading}>{i18n.t('milestones').toUpperCase()}</Text>
+          <CardEyebrow>{i18n.t('milestones')}</CardEyebrow>
           {unopened.map((m) => (
             <TouchableOpacity key={m.id} disabled={isOpening} onPress={() => handleOpenMilestone(m.id!)} style={styles.milestoneRow}>
               <Icon name="treasure-chest-outline" size={20} color={COLORS.gold} />
@@ -106,25 +107,24 @@ export function TrophyCase() {
 }
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 20, marginBottom: 16, padding: 16 },
-  heading: { fontFamily: FONTS.display, fontSize: 10, color: COLORS.textDim, letterSpacing: 2, marginBottom: 10 },
-  emptyWrap: { alignItems: 'center', gap: 6, paddingVertical: 4 },
+  card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg },
+  emptyWrap: { alignItems: 'center', gap: SPACE.sm, paddingVertical: SPACE.xs },
   emptyIcon: { opacity: 0.6 },
-  empty: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textDim, textAlign: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  empty: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md },
   slot: {
     width: '30%', minWidth: 92, borderWidth: 1.5, borderRadius: RADIUS.md,
-    backgroundColor: COLORS.panelDeep, alignItems: 'center', paddingVertical: 10, paddingHorizontal: 6, gap: 4,
+    backgroundColor: COLORS.panelDeep, alignItems: 'center', paddingVertical: SPACE.md, paddingHorizontal: SPACE.sm, gap: SPACE.xs,
   },
   slotEquipped: { backgroundColor: COLORS.panelRaised },
   slotIconChip: {
-    width: 36, height: 36, borderRadius: 18,
+    ...circle(36),
     backgroundColor: COLORS.panelRaised,
     alignItems: 'center', justifyContent: 'center',
   },
-  slotName: { fontFamily: FONTS.bodyMedium, fontSize: 10, color: COLORS.text, textAlign: 'center' },
-  equippedTag: { fontFamily: FONTS.display, fontSize: 8, color: COLORS.gold, letterSpacing: 1 },
-  milestoneRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
-  milestoneName: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.text },
-  milestoneXp: { fontFamily: FONTS.display, fontSize: 13, color: COLORS.gold },
+  slotName: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.xs, color: COLORS.text, textAlign: 'center' },
+  equippedTag: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: COLORS.gold, letterSpacing: 1 },
+  milestoneRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm },
+  milestoneName: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.text },
+  milestoneXp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: COLORS.gold },
 });

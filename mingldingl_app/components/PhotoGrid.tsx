@@ -8,7 +8,7 @@ import { Icon } from './ui/Icon';
 import { AlertModal } from './modals/AlertModal';
 import { GameButton } from './ui/GameButton';
 import { i18n } from '../lib/i18n';
-import { COLORS, RADIUS, overlay } from '../lib/theme';
+import { COLORS, RADIUS, SPACE, circle, overlay } from '../lib/theme';
 
 interface Props {
   photoUrls: string[];
@@ -197,7 +197,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },
   tile: { width: TILE, height: TILE, borderRadius: RADIUS.sm, overflow: 'hidden', backgroundColor: COLORS.panel },
   image: { width: '100%', height: '100%' },
   addTile: {
@@ -211,28 +211,28 @@ const styles = StyleSheet.create({
   },
   primaryBadge: {
     position: 'absolute', top: 4, left: 4,
-    width: 18, height: 18, borderRadius: 9,
+    ...circle(18),
     backgroundColor: COLORS.gold,
     alignItems: 'center', justifyContent: 'center',
   },
   deleteButton: {
     position: 'absolute', top: 4, right: 4,
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: 'rgba(10,11,16,0.75)',
+    ...circle(22),
+    backgroundColor: overlay(0.75),
     alignItems: 'center', justifyContent: 'center',
   },
   primaryButton: {
     position: 'absolute', bottom: 4, right: 4,
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: 'rgba(10,11,16,0.75)',
+    ...circle(22),
+    backgroundColor: overlay(0.75),
     alignItems: 'center', justifyContent: 'center',
   },
-  overlay: { flex: 1, backgroundColor: overlay(0.88), alignItems: 'center', justifyContent: 'center', padding: 24 },
+  overlay: { flex: 1, backgroundColor: overlay(0.88), alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl },
   sheet: {
     width: '100%', maxWidth: 360,
     backgroundColor: COLORS.panel,
     borderWidth: 1, borderColor: COLORS.bronze,
     borderRadius: RADIUS.md,
-    padding: 16, gap: 10,
+    padding: SPACE.lg, gap: SPACE.md,
   },
 });

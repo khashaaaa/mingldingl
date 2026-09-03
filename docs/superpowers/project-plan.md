@@ -1123,9 +1123,56 @@ and the ember boss seal. RN-web + Playwright gotchas worth keeping: `fill()` and
 works), and RN-web `button` presses need `element.click()` in `evaluate` — added here to
 supplement the verify skill's list.
 
-**Follow-ups**: the deferred items above, plus an app-wide sweep replacing small-size
-Yeseva labels with `FONTS.utility` (only campaign labels done), and a device pass for
-density/brightness tuning (web pass looked right at first review).
+**Follow-ups**: the deferred items above, plus a device pass for density/brightness
+tuning (web pass looked right at first review). The app-wide `FONTS.utility` sweep that
+was open here is done — see "Design Token Consolidation" below.
+
+## Design Token Consolidation — Shipped (2026-09-01)
+
+An aesthetics audit of `mingldingl_app` (113 screens/components) found colour well
+tokenised (647 `COLORS.*` references, zero raw `fontFamily` strings) but the type and
+space scales declared in `lib/theme.ts` almost entirely unused: `FONT_SIZES` was exported
+and imported by **nothing** while 241 raw `fontSize` literals spread across 19 distinct
+values, and `SPACE` had 11 references against 453 spacing literals. The visible symptom
+was on `app/progression.tsx`, where four stacked cards rendered eyebrow labels at 10/11/12
+and body copy at 13/14, and two adjacent stat cards showed their headline numeral at 18
+and 20.
+
+**What changed**
+
+- `lib/theme.ts` is now the single source of every colour, size and space value.
+  `FONT_SIZES` gained a `wordmark` step (the CloisterBlack logo, a real role, not drift);
+  `SPACE` became a strict 4px grid with `hair`/`gutter`/`scrollTail` named for the layout
+  roles they always play; `RADIUS` gained `pill`. New: `FILL` (one alpha per affordance
+  role), `circle(size)`, and `BUTTON_METALS` — GameButton's hand-tuned variant table,
+  hoisted out of the component unchanged so no button shifted a pixel.
+- Every `fontSize`, spacing and `borderRadius` literal in `app/` and `components/` was
+  snapped to those scales by codemod (nearest step; 13→14, 15→16, 17→18, 20→22). Ten
+  geometric radii became `circle()` calls. All 25 raw `rgba()` literals now route through
+  `tint()`/`overlay()`/`FILL`, which also collapsed the gold "selected" fill from four
+  drifting alphas (0.1/0.15/0.2/0.22) to one.
+- New `components/ui/CardEyebrow.tsx` replaces the tracked card/section label that had
+  been copy-pasted ten times with drifting size, tracking and margin. It uppercases its
+  own label (six call sites were doing `.toUpperCase()` by hand) and sets it in
+  `FONTS.utility` — closing the Ulzii follow-up. Verified `AlegreyaSC_700Bold` carries
+  Cyrillic including Ө/Ү/ө/ү before adopting it for Mongolian copy.
+- `FatedThreadsSection` was re-implementing AppCard's exact shell (panel + bronze +
+  `RADIUS.md`) minus the corner knots, gold hairline and texture, so it read flatter than
+  its neighbours on the quest screen; it now uses `AppCard`. `DailyBudgetMeter` is an
+  inline pill, not a card — it just took `RADIUS.pill`.
+- `lib/tiers.ts` had restated five palette hexes verbatim in `RARITY_COLORS` and
+  `FRAME_COLORS`, so a palette edit would not have reached rarity or frame colours; those
+  now reference `COLORS`. Membership's Silver badge hexes moved into the palette. The gem
+  and gem-shade tables in `tiers.ts` stay literal — they are a deliberate second palette.
+
+**Remaining literals, by design**: the twelve gem/shade hexes in `lib/tiers.ts`, and
+`'#00000000'` in `TorchGlow.tsx` (a transparent Skia gradient stop, not a colour).
+
+**Verification**: `npm run typecheck` clean, 54 suites / 427 tests pass (`CardEyebrow`
+adds 4, including a Mongolian-uppercase case), and `npx expo export --platform web`
+bundles. Not yet checked on a device — the size changes are at most ±2px per step but
+Mongolian strings are longer than English, so button and tab labels deserve a real
+look before this is called done.
 
 ## Outstanding Follow-ups
 

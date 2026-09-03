@@ -8,7 +8,7 @@ import { SessionStatusCard } from '../../components/townsquare/SessionStatusCard
 import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 
 const PARCHMENT_ASSET = require('../../assets/textures/parchment.png');
 
@@ -72,7 +72,7 @@ export default function TownSquareScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
-  content: { flex: 1, paddingTop: 16 },
-  errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: 16, textAlign: 'center' },
+  content: { flex: 1, paddingTop: SPACE.lg },
+  errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.md },
+  errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
 });

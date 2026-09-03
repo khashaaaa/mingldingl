@@ -20,7 +20,7 @@ import { queryClient } from '../lib/api/queryClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api/apiClient';
-import { COLORS, FONTS } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { installGlobalErrorHandlers } from '../lib/globalErrorHandler';
@@ -47,11 +47,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 14,
-    paddingHorizontal: 28,
+    gap: SPACE.lg,
+    paddingHorizontal: SPACE.xxxl,
   },
-  splashTitle: { fontFamily: FONTS.display, fontSize: 20, color: COLORS.text, textAlign: 'center' },
-  splashBody: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textDim, textAlign: 'center' },
+  splashTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: COLORS.text, textAlign: 'center' },
+  splashBody: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center' },
   webFrame: Platform.OS === 'web'
     ? { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' }
     : { flex: 1 },

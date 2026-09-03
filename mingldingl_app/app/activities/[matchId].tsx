@@ -15,7 +15,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
@@ -210,32 +210,32 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    gap: 16,
+    padding: SPACE.xxl,
+    gap: SPACE.lg,
   },
-  list: { paddingHorizontal: 20, paddingTop: 16, gap: 14, paddingBottom: 40 },
-  card: { padding: 16 },
-  sealRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, gap: SPACE.lg, paddingBottom: SPACE.scrollTail },
+  card: { padding: SPACE.lg },
+  sealRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginBottom: SPACE.sm },
   seal: {
-    width: 34, height: 34, borderRadius: 17,
+    ...circle(34),
     backgroundColor: COLORS.panelRaised,
     borderWidth: 1.5, borderColor: COLORS.ember,
     alignItems: 'center', justifyContent: 'center',
   },
-  cardTitle: { color: COLORS.text, fontSize: 16, fontFamily: FONTS.bodyBold },
-  cardMeta: { color: COLORS.textDim, fontSize: 13, marginBottom: 12, fontFamily: FONTS.body },
-  confirmWrap: { marginTop: 4, gap: 6 },
-  pledgeLockedText: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.textDim, textAlign: 'center' },
+  cardTitle: { color: COLORS.text, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },
+  cardMeta: { color: COLORS.textDim, fontSize: FONT_SIZES.md, marginBottom: SPACE.md, fontFamily: FONTS.body },
+  confirmWrap: { marginTop: SPACE.xs, gap: SPACE.sm },
+  pledgeLockedText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
   partnerPledgedBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 8,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
+    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
     borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.brass, backgroundColor: COLORS.panel,
   },
-  partnerPledgedText: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.gold },
-  title: { color: COLORS.text, fontSize: 22, fontFamily: FONTS.display, textAlign: 'center' },
-  subtitle: { color: COLORS.textDim, fontSize: 14, textAlign: 'center', fontFamily: FONTS.body },
-  completionCard: { alignItems: 'center', gap: 6, width: '100%' },
-  rateRow: { alignItems: 'center', gap: 10 },
+  partnerPledgedText: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
+  title: { color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display, textAlign: 'center' },
+  subtitle: { color: COLORS.textDim, fontSize: FONT_SIZES.md, textAlign: 'center', fontFamily: FONTS.body },
+  completionCard: { alignItems: 'center', gap: SPACE.sm, width: '100%' },
+  rateRow: { alignItems: 'center', gap: SPACE.md },
   momentPhoto: {
     width: 72, height: 72, borderRadius: RADIUS.md,
     backgroundColor: COLORS.panelRaised, borderWidth: 1, borderColor: COLORS.bronze,
@@ -244,11 +244,11 @@ const styles = StyleSheet.create({
   momentPhotoImage: { width: '100%', height: '100%' },
   momentPhotoOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10,11,16,0.55)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: overlay(0.55), alignItems: 'center', justifyContent: 'center',
   },
-  momentHint: { color: COLORS.textDim, fontSize: 12, fontFamily: FONTS.body, textAlign: 'center', maxWidth: 220 },
-  rateLabel: { color: COLORS.gold, fontSize: 15, fontFamily: FONTS.bodyMedium, marginTop: 6 },
-  stars: { flexDirection: 'row', gap: 4 },
-  starTouchable: { padding: 8 },
-  thanks: { color: COLORS.gold, fontSize: 16, fontFamily: FONTS.bodyMedium },
+  momentHint: { color: COLORS.textDim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, textAlign: 'center', maxWidth: 220 },
+  rateLabel: { color: COLORS.gold, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyMedium, marginTop: SPACE.sm },
+  stars: { flexDirection: 'row', gap: SPACE.xs },
+  starTouchable: { padding: SPACE.sm },
+  thanks: { color: COLORS.gold, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyMedium },
 });

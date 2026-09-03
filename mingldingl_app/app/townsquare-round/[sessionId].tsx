@@ -8,7 +8,7 @@ import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { useTownSquareRound } from '../../hooks/useTownSquareRound';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 
@@ -128,7 +128,7 @@ export default function TownSquareRoundScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
-  center: { alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 28 },
-  status: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textDim, textAlign: 'center' },
-  errorTitle: { fontFamily: FONTS.display, fontSize: 20, color: COLORS.text, textAlign: 'center' },
+  center: { alignItems: 'center', justifyContent: 'center', gap: SPACE.lg, paddingHorizontal: SPACE.xxxl },
+  status: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center' },
+  errorTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: COLORS.text, textAlign: 'center' },
 });

@@ -2,7 +2,7 @@ import { FlatList, View, Text, StyleSheet, ActivityIndicator } from 'react-nativ
 import { i18n } from '../../lib/i18n';
 import { Icon } from '../ui/Icon';
 import { formatDate } from '../../lib/formatDate';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 
 interface ScoreEventItem {
   eventType: string;
@@ -94,15 +94,15 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 10, paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
+    paddingVertical: SPACE.md, paddingHorizontal: SPACE.gutter,
     borderBottomWidth: 1, borderBottomColor: COLORS.panelRaised,
   },
   icon: { width: 18, textAlign: 'center' },
-  type: { flex: 1, fontSize: 13, fontFamily: FONTS.body, color: COLORS.text },
-  delta: { fontSize: 14, fontFamily: FONTS.bodyBold },
-  date: { fontSize: 11, fontFamily: FONTS.body, color: COLORS.textDim },
-  footer: { marginVertical: 16 },
-  empty: { alignItems: 'center', padding: 32 },
-  emptyText: { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textDim, textAlign: 'center' },
+  type: { flex: 1, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.text },
+  delta: { fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
+  date: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, color: COLORS.textDim },
+  footer: { marginVertical: SPACE.lg },
+  empty: { alignItems: 'center', padding: SPACE.huge },
+  emptyText: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.textDim, textAlign: 'center' },
 });

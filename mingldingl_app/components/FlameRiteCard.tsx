@@ -7,7 +7,7 @@ import { AlertModal } from './modals/AlertModal';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
-import { COLORS, FONTS, RADIUS, SPACE } from '../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
 import { Icon } from './ui/Icon';
 
 export interface FlameRiteState {
@@ -134,33 +134,33 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
 }
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 20, marginTop: 8, marginBottom: 8, padding: 16, gap: SPACE.sm },
-  title: { fontFamily: FONTS.display, fontSize: 15, color: COLORS.gold, letterSpacing: 1 },
-  body: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textDim, lineHeight: 19 },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  btn: { paddingVertical: 10, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
-  proposeBtn: { borderColor: COLORS.gold, backgroundColor: 'rgba(217,127,31,0.15)', marginTop: 4 },
-  proposeText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.gold },
+  card: { marginHorizontal: SPACE.gutter, marginTop: SPACE.sm, marginBottom: SPACE.sm, padding: SPACE.lg, gap: SPACE.sm },
+  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, letterSpacing: 1 },
+  body: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, lineHeight: 19 },
+  actions: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.xs },
+  btn: { paddingVertical: SPACE.md, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
+  proposeBtn: { borderColor: COLORS.gold, backgroundColor: FILL.gold, marginTop: SPACE.xs },
+  proposeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
   declineBtn: { flex: 1, borderColor: COLORS.bronze, backgroundColor: COLORS.panelRaised },
-  declineText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textDim },
-  acceptBtn: { flex: 1, borderColor: COLORS.gold, backgroundColor: 'rgba(217,127,31,0.15)' },
-  acceptText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.gold },
-  joinBtn: { borderColor: COLORS.gold, backgroundColor: 'rgba(217,127,31,0.15)', marginTop: 4 },
-  joinText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.gold },
+  declineText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  acceptBtn: { flex: 1, borderColor: COLORS.gold, backgroundColor: FILL.gold },
+  acceptText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
+  joinBtn: { borderColor: COLORS.gold, backgroundColor: FILL.gold, marginTop: SPACE.xs },
+  joinText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
   completeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    gap: SPACE.sm,
+    marginHorizontal: SPACE.gutter,
+    marginTop: SPACE.sm,
+    marginBottom: SPACE.sm,
+    paddingVertical: SPACE.sm,
+    paddingHorizontal: SPACE.md,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.gold,
-    backgroundColor: 'rgba(217,127,31,0.1)',
+    backgroundColor: FILL.gold,
     alignSelf: 'flex-start',
   },
-  completeText: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.gold, letterSpacing: 0.5 },
+  completeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: COLORS.gold, letterSpacing: 0.5 },
 });

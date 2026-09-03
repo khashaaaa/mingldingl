@@ -1,7 +1,9 @@
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { usePendingShips } from '../../hooks/usePendingShips';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { AppCard } from '../ui/AppCard';
+import { CardEyebrow } from '../ui/CardEyebrow';
 import { Icon } from '../ui/Icon';
 
 export function FatedThreadsSection() {
@@ -11,9 +13,9 @@ export function FatedThreadsSection() {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.heading}>{i18n.t('fated_threads_title')}</Text>
+      <CardEyebrow color={COLORS.gold}>{i18n.t('fated_threads_title')}</CardEyebrow>
       {pendingShips.map((ship) => (
-        <View key={ship.shipId} style={styles.card}>
+        <AppCard key={ship.shipId} style={styles.card}>
           <Icon name="bow-arrow" size={18} color={COLORS.gold} />
           <Text style={styles.message}>
             {i18n.t('ship_prompt_message', { weaver: ship.weaverDisplayName })}
@@ -32,28 +34,20 @@ export function FatedThreadsSection() {
               <Text style={styles.acceptText}>{i18n.t('ship_accept')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </AppCard>
       ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  section: { gap: 10, marginBottom: 16 },
-  heading: { fontFamily: FONTS.display, fontSize: 12, color: COLORS.gold, letterSpacing: 2 },
-  card: {
-    backgroundColor: COLORS.panel,
-    borderWidth: 1,
-    borderColor: COLORS.bronze,
-    borderRadius: RADIUS.md,
-    padding: 16,
-    gap: 10,
-  },
-  message: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.text, lineHeight: 20 },
-  actions: { flexDirection: 'row', gap: 10 },
-  btn: { flex: 1, paddingVertical: 10, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
+  section: { gap: SPACE.md, marginBottom: SPACE.lg },
+  card: { padding: SPACE.lg, gap: SPACE.md },
+  message: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.text, lineHeight: 20 },
+  actions: { flexDirection: 'row', gap: SPACE.md },
+  btn: { flex: 1, paddingVertical: SPACE.md, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
   pass: { borderColor: COLORS.bronze, backgroundColor: COLORS.panelRaised },
-  passText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textDim },
-  accept: { borderColor: COLORS.gold, backgroundColor: 'rgba(217,127,31,0.15)' },
-  acceptText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.gold },
+  passText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  accept: { borderColor: COLORS.gold, backgroundColor: FILL.gold },
+  acceptText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
 });

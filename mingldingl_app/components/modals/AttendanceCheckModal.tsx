@@ -1,7 +1,7 @@
 import { Modal, Text, View, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 
 interface Props {
@@ -40,24 +40,24 @@ export function AttendanceCheckModal({ visible, activityTitle, onYes, onNo, isSu
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(10,11,16,0.88)',
+    backgroundColor: overlay(0.88),
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    padding: SPACE.xxl,
   },
   card: {
     backgroundColor: COLORS.panel,
     borderWidth: 2,
     borderColor: COLORS.gold,
     borderRadius: RADIUS.md,
-    paddingHorizontal: 28,
-    paddingVertical: 26,
+    paddingHorizontal: SPACE.xxxl,
+    paddingVertical: SPACE.xxxl,
     alignItems: 'center',
-    gap: 8,
+    gap: SPACE.sm,
     maxWidth: 340,
     width: '100%',
   },
-  title: { fontFamily: FONTS.display, fontSize: 17, color: COLORS.text, textAlign: 'center' },
-  question: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textDim, textAlign: 'center', lineHeight: 20 },
-  btnRow: { flexDirection: 'row', gap: 10, marginTop: 10, alignSelf: 'stretch' },
+  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.text, textAlign: 'center' },
+  question: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center', lineHeight: 20 },
+  btnRow: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.md, alignSelf: 'stretch' },
 });

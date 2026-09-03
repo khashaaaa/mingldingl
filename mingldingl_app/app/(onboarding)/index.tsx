@@ -6,7 +6,7 @@ import { AboutStep } from '../../components/onboarding/AboutStep';
 import { PhotosStep } from '../../components/onboarding/PhotosStep';
 import { OathStep } from '../../components/onboarding/OathStep';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE, circle } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 
@@ -25,11 +25,11 @@ export default function OnboardingScreen() {
       <Text
         style={{
           fontFamily: FONTS.display,
-          fontSize: 18,
+          fontSize: FONT_SIZES.xl,
           color: COLORS.gold,
           textAlign: 'center',
           letterSpacing: 1.5,
-          paddingTop: 12,
+          paddingTop: SPACE.md,
         }}
       >
         {i18n.t('create_character')}
@@ -103,10 +103,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-    gap: 12,
+    paddingHorizontal: SPACE.gutter,
+    paddingTop: SPACE.xl,
+    paddingBottom: SPACE.xl,
+    gap: SPACE.md,
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -115,21 +115,17 @@ const styles = StyleSheet.create({
   },
   dotsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: SPACE.sm,
     alignItems: 'center',
   },
   signOutLink: {
-    fontSize: 12,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textDim,
     letterSpacing: 0.3,
     fontFamily: FONTS.body,
     textDecorationLine: 'underline',
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
+  dot: circle(10),
   dotActive: {
     backgroundColor: COLORS.gold,
   },
@@ -137,7 +133,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bronze,
   },
   stepLabel: {
-    fontSize: 12,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textDim,
     letterSpacing: 0.3,
     fontFamily: FONTS.body,

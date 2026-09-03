@@ -5,7 +5,7 @@ import { GameButton } from '../ui/GameButton';
 import { apiClient } from '../../lib/api/apiClient';
 import { isPhoneValid, useAuth, VERIFICATION_POLL_MS } from '../../hooks/useAuth';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 
 interface Props {
   visible: boolean;
@@ -140,19 +140,19 @@ export function PhoneChangeModal({ visible, onDismiss, onChanged }: Props) {
 }
 
 const styles = StyleSheet.create({
-  stack: { gap: 10 },
+  stack: { gap: SPACE.md },
   input: {
     height: 48,
     backgroundColor: COLORS.panelRaised,
     borderWidth: 1,
     borderColor: COLORS.bronze,
     borderRadius: RADIUS.md,
-    paddingHorizontal: 14,
+    paddingHorizontal: SPACE.lg,
     color: COLORS.text,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.body,
   },
-  instruction: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.text, textAlign: 'center', lineHeight: 20 },
-  hint: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.textDim, textAlign: 'center' },
-  waitingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  instruction: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.text, textAlign: 'center', lineHeight: 20 },
+  hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
+  waitingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.sm },
 });

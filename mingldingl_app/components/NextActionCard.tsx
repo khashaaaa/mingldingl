@@ -2,10 +2,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppCard } from './ui/AppCard';
 import { QuestBanner } from './quest/QuestBanner';
+import { CardEyebrow } from './ui/CardEyebrow';
 import { Icon } from './ui/Icon';
 import { useNextAction } from '../hooks/useNextAction';
 import { i18n } from '../lib/i18n';
-import { COLORS, FONTS } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
 
 export function NextActionCard() {
   const action = useNextAction();
@@ -45,7 +46,7 @@ export function NextActionCard() {
 
   return (
     <AppCard style={styles.card}>
-      <Text style={styles.heading}>{i18n.t('next_action_heading').toUpperCase()}</Text>
+      <CardEyebrow>{i18n.t('next_action_heading')}</CardEyebrow>
       {onPress ? (
         <QuestBanner icon={icon} title={title} onPress={onPress} />
       ) : (
@@ -59,8 +60,7 @@ export function NextActionCard() {
 }
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 20, marginBottom: 16, padding: 16 },
-  heading: { fontFamily: FONTS.display, fontSize: 10, color: COLORS.textDim, letterSpacing: 2, marginBottom: 4 },
-  staticRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 4 },
-  staticTitle: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.text },
+  card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg },
+  staticRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.xs },
+  staticTitle: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.text },
 });

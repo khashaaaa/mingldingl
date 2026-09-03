@@ -10,7 +10,7 @@ import { parseUserProfile } from '../models/user';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, RADIUS } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
 import { AlertModal } from '../components/modals/AlertModal';
 import { PhoneChangeModal } from '../components/settings/PhoneChangeModal';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
@@ -271,11 +271,11 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  content: { padding: 20, gap: 24 },
-  sectionLabel: { color: COLORS.gold, fontFamily: FONTS.bodyBold, fontSize: 14 },
-  sectionHint: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 12, lineHeight: 17 },
-  fieldLabel: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 12 },
-  errorText: { color: COLORS.emberLight, fontFamily: FONTS.body, fontSize: 12 },
-  dangerWrap: { marginTop: 16 },
-  signOutWrap: { marginTop: 4 },
+  content: { padding: SPACE.xl, gap: SPACE.xxl },
+  sectionLabel: { color: COLORS.gold, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
+  sectionHint: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: 17 },
+  fieldLabel: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
+  errorText: { color: COLORS.emberLight, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
+  dangerWrap: { marginTop: SPACE.lg },
+  signOutWrap: { marginTop: SPACE.xs },
 });

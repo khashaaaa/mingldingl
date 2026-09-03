@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { YStack, XStack } from 'tamagui';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { StepScaffold } from './StepScaffold';
@@ -74,10 +74,10 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
 }
 
 const styles = StyleSheet.create({
-  heading: { color: COLORS.text, fontSize: 22, fontFamily: FONTS.display },
-  help: { color: COLORS.textDim, fontSize: 13, fontFamily: FONTS.body, lineHeight: 19 },
-  cardList: { gap: 12 },
-  card: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
+  heading: { color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
+  help: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: 19 },
+  cardList: { gap: SPACE.md },
+  card: { flexDirection: 'row', alignItems: 'center', padding: SPACE.lg, gap: SPACE.lg },
   cardSelected: { borderColor: COLORS.gold, borderWidth: 2 },
   selectedGlow: {
     shadowColor: COLORS.gold,
@@ -89,8 +89,8 @@ const styles = StyleSheet.create({
   },
   glyphImg: { width: 34, height: 34 },
   glyphImgDim: { opacity: 0.45 },
-  cardText: { flex: 1, gap: 3 },
-  cardName: { fontSize: 16, fontFamily: FONTS.bodyBold, color: COLORS.text },
-  cardDesc: { fontSize: 13, fontFamily: FONTS.body, color: COLORS.textDim, lineHeight: 18 },
-  error: { color: COLORS.emberLight, fontSize: 13, fontFamily: FONTS.body },
+  cardText: { flex: 1, gap: SPACE.xs },
+  cardName: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text },
+  cardDesc: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.textDim, lineHeight: 18 },
+  error: { color: COLORS.emberLight, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
 });

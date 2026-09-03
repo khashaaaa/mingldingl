@@ -15,7 +15,7 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 import { toDroppedItem } from '../../lib/tiers';
 import { Icon } from '../../components/ui/Icon';
 
@@ -178,20 +178,20 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
-    gap: 2,
+    gap: SPACE.hair,
   },
-  riteTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  riteTitleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   riteFramingTitle: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 13,
+    fontSize: FONT_SIZES.md,
     color: COLORS.gold,
     letterSpacing: 0.5,
   },
   riteFramingCountdown: {
     fontFamily: FONTS.display,
-    fontSize: 20,
+    fontSize: FONT_SIZES.title,
     color: COLORS.text,
   },
-  errorTitle: { fontFamily: FONTS.display, fontSize: 20, color: COLORS.text, textAlign: 'center' },
-  errorBody: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textDim, textAlign: 'center' },
+  errorTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: COLORS.text, textAlign: 'center' },
+  errorBody: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center' },
 });

@@ -1,8 +1,8 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { CardEyebrow } from '../ui/CardEyebrow';
 import { i18n } from '../../lib/i18n';
 import { AppCard } from '../ui/AppCard';
-import { COLORS, FONTS } from '../../lib/theme';
-import { Icon } from '../ui/Icon';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 
 interface Props {
   currentStreak: number;
@@ -14,11 +14,11 @@ export function StreakSummary({ currentStreak, longestStreak }: Props) {
     <AppCard style={styles.card}>
       <View style={styles.row}>
         <View style={styles.stat}>
-          <Text style={styles.label}>{i18n.t('streak_current')}</Text>
+          <CardEyebrow>{i18n.t('streak_current')}</CardEyebrow>
           <Text style={styles.value}>{currentStreak}</Text>
         </View>
         <View style={styles.stat}>
-          <Text style={styles.label}>{i18n.t('streak_longest')}</Text>
+          <CardEyebrow>{i18n.t('streak_longest')}</CardEyebrow>
           <Text style={styles.value}>{longestStreak}</Text>
         </View>
       </View>
@@ -27,9 +27,8 @@ export function StreakSummary({ currentStreak, longestStreak }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 16, marginHorizontal: 20, marginBottom: 16 },
+  card: { padding: SPACE.lg, marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   row: { flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center' },
-  label: { fontSize: 10, fontFamily: FONTS.display, color: COLORS.textDim, letterSpacing: 1.5, marginBottom: 6 },
-  value: { fontSize: 20, fontFamily: FONTS.displayBlack, color: COLORS.gold },
+  value: { fontSize: FONT_SIZES.title, fontFamily: FONTS.displayBlack, color: COLORS.gold },
 });

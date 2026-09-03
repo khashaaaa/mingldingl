@@ -1,6 +1,6 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import type { Message } from '../../hooks/useChat';
-import { COLORS, FONTS, RADIUS, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, tint } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 
@@ -36,15 +36,15 @@ export function MessageBubble({ message, myId, onRetry }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginBottom: 8, maxWidth: '75%' },
+  wrap: { marginBottom: SPACE.sm, maxWidth: '75%' },
   alignEnd: { alignSelf: 'flex-end' },
   alignStart: { alignSelf: 'flex-start' },
-  bubble: { borderRadius: 16, padding: 12, maxWidth: '100%' },
+  bubble: { borderRadius: RADIUS.lg, padding: SPACE.md, maxWidth: '100%' },
   bubbleMine: { alignSelf: 'flex-end', backgroundColor: tint(COLORS.gold, 0.9), borderBottomRightRadius: RADIUS.sm },
   bubbleTheirs: { alignSelf: 'flex-start', backgroundColor: COLORS.panel, borderBottomLeftRadius: RADIUS.sm },
   bubbleFailed: { opacity: 0.55 },
-  text: { fontFamily: FONTS.body, fontSize: 15, color: COLORS.text },
+  text: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: COLORS.text },
   textMine: { color: COLORS.panelDeep },
-  retryRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, alignSelf: 'flex-end' },
-  retryText: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.emberLight },
+  retryRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginTop: SPACE.xs, alignSelf: 'flex-end' },
+  retryText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.emberLight },
 });

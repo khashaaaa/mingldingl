@@ -2,8 +2,9 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import type { DeepFields, PartialUser } from '../../models/match';
+import { CardEyebrow } from '../ui/CardEyebrow';
 
 export const REVEAL_THRESHOLDS = [5, 15, 30] as const;
 
@@ -46,7 +47,7 @@ export function RevealStrip({ otherUser, messageCount }: Props) {
   return (
     <View style={styles.wrap}>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>{i18n.t('reveal_title')}</Text>
+        <CardEyebrow style={styles.title}>{i18n.t('reveal_title')}</CardEyebrow>
         <Text style={styles.next}>
           {nextAt !== null ? i18n.t('reveal_next_at', { count: nextAt }) : i18n.t('reveal_complete')}
         </Text>
@@ -80,19 +81,19 @@ const PHOTO = 36;
 
 const styles = StyleSheet.create({
   wrap: {
-    marginHorizontal: 20,
-    marginBottom: 8,
-    padding: 8,
-    gap: 6,
+    marginHorizontal: SPACE.gutter,
+    marginBottom: SPACE.sm,
+    padding: SPACE.sm,
+    gap: SPACE.sm,
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.bronze,
   },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontFamily: FONTS.display, fontSize: 10, color: COLORS.textDim, letterSpacing: 2, textTransform: 'uppercase' },
-  next: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.gold },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title: { marginBottom: 0 },
+  next: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.gold },
+  row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   photo: {
     width: PHOTO,
     height: PHOTO,
@@ -102,13 +103,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panelRaised,
   },
   locked: { borderColor: COLORS.bronze, alignItems: 'center', justifyContent: 'center' },
-  chips: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  chips: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    gap: SPACE.xs,
+    paddingHorizontal: SPACE.sm,
+    paddingVertical: SPACE.hair,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: COLORS.brass,
@@ -116,6 +117,6 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   chipLocked: { borderColor: COLORS.bronze },
-  chipText: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.text, flexShrink: 1 },
+  chipText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.text, flexShrink: 1 },
   chipTextLocked: { color: COLORS.textDim },
 });

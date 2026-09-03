@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import OathSigil from '../OathSigil';
 import type { Match } from '../../models/match';
@@ -95,13 +95,13 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: SPACE.md,
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.bronze,
-    padding: 12,
-    marginBottom: 10,
+    padding: SPACE.md,
+    marginBottom: SPACE.md,
     overflow: 'hidden',
   },
   runeStrip: {
@@ -116,8 +116,8 @@ const styles = StyleSheet.create({
   runeCorner: { position: 'absolute', width: 7, height: 7 },
   runeCornerTl: { top: 2, left: 2, borderTopWidth: 1.5, borderLeftWidth: 1.5 },
   runeCornerBr: { bottom: 2, right: 2, borderBottomWidth: 1.5, borderRightWidth: 1.5 },
-  avatarRing: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, overflow: 'hidden' },
-  avatar: { width: 52, height: 52, borderRadius: 26 },
+  avatarRing: { ...circle(56), borderWidth: 2, overflow: 'hidden' },
+  avatar: circle(52),
   avatarSharpOverlay: { position: 'absolute', top: 0, left: 0 },
   avatarPlaceholder: {
     flex: 1,
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  info: { flex: 1, gap: 4 },
-  name: { fontFamily: FONTS.bodyBold, fontSize: 16, color: COLORS.text },
-  status: { fontFamily: FONTS.bodyMedium, fontSize: 13 },
+  info: { flex: 1, gap: SPACE.xs },
+  name: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg, color: COLORS.text },
+  status: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md },
 });

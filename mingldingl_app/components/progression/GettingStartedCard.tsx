@@ -1,8 +1,9 @@
 import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { CardEyebrow } from '../ui/CardEyebrow';
 import { AppCard } from '../ui/AppCard';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 
 interface Props {
   isProfileComplete: boolean;
@@ -50,16 +51,15 @@ export function GettingStartedCard({ isProfileComplete, achievedMilestoneIds, on
 
   return (
     <AppCard style={styles.card}>
-      <Text style={styles.heading}>{i18n.t('getting_started_title').toUpperCase()}</Text>
+      <CardEyebrow>{i18n.t('getting_started_title')}</CardEyebrow>
       {steps.map((step) => <StepRow key={step.key} step={step} />)}
     </AppCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 20, marginBottom: 16, padding: 16, gap: SPACE.sm },
-  heading: { fontFamily: FONTS.display, fontSize: 10, color: COLORS.textDim, letterSpacing: 2, marginBottom: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
-  label: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.text },
+  card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg, gap: SPACE.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm },
+  label: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.text },
   labelDone: { color: COLORS.textDim, textDecorationLine: 'line-through' },
 });

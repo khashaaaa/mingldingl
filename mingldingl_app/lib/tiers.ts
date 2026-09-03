@@ -1,5 +1,6 @@
 import type { GemTier } from '../models/user';
 import { i18n } from './i18n';
+import { COLORS, GEM_COLORS, GEM_SHADES } from './theme';
 
 export const TIER_ORDER: GemTier[] = ['Garnet', 'Opal', 'Amethyst', 'Sapphire', 'Ruby', 'Emerald'];
 
@@ -19,23 +20,9 @@ export function areTierThresholdsHydrated(): boolean {
   return hydrated;
 }
 
-export const TIER_COLORS: Record<GemTier, string> = {
-  Garnet:   '#C23B54',
-  Opal:     '#3DEFDB',
-  Amethyst: '#A855F7',
-  Sapphire: '#2D6CDF',
-  Ruby:     '#E0115F',
-  Emerald:  '#2ECC71',
-};
+export const TIER_COLORS: Record<GemTier, string> = GEM_COLORS;
 
-export const TIER_SHADES: Record<GemTier, string> = {
-  Garnet:   '#5C0F22',
-  Opal:     '#0E6E68',
-  Amethyst: '#4C1D82',
-  Sapphire: '#0A2F6E',
-  Ruby:     '#6E0630',
-  Emerald:  '#0B5A32',
-};
+export const TIER_SHADES: Record<GemTier, string> = GEM_SHADES;
 
 export function colorForTier(tier: string): string {
   return TIER_COLORS[tier as GemTier] ?? TIER_COLORS.Garnet;
@@ -65,9 +52,9 @@ export function tierProgress(totalScore: number, gemTier: GemTier): { pct: numbe
 }
 
 export const RARITY_COLORS: Record<string, string> = {
-  Common: '#4A5A6B',
-  Rare:   '#D97F1F',
-  Epic:   '#C1461E',
+  Common: COLORS.bronze,
+  Rare:   COLORS.gold,
+  Epic:   COLORS.ember,
 };
 
 export const ITEM_NAME_KEYS: Record<string, string> = {
@@ -113,8 +100,8 @@ export function itemLabel(itemId: string | null | undefined): string {
 }
 
 export const FRAME_COLORS: Record<string, string> = {
-  frame_bronze_ring: '#4A5A6B', frame_ember_ring: '#C1461E',
-  frame_gold_crown: '#F5A83C', frame_iron_thorns: '#8F97A3',
+  frame_bronze_ring: COLORS.bronze, frame_ember_ring: COLORS.ember,
+  frame_gold_crown: COLORS.goldBright, frame_iron_thorns: COLORS.textDim,
 };
 
 export interface DroppedItem {

@@ -23,7 +23,7 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { COLORS, FONTS, RADIUS, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
 
 const DEFAULT_RITE_DURATION_MINUTES = 5;
@@ -250,7 +250,7 @@ export default function ChatScreen() {
           <TouchableOpacity
             activeOpacity={1}
             onPress={() => {}}
-            style={[styles.optionsSheet, { paddingBottom: 16 + insets.bottom }]}
+            style={[styles.optionsSheet, { paddingBottom: SPACE.lg + insets.bottom }]}
           >
             <Text style={styles.optionsTitle}>{i18n.t('chat_options_title')}</Text>
             <GameButton variant="ghost" icon="heart-broken" onPress={() => { setOptionsVisible(false); setConfirmUnmatch(true); }}>
@@ -275,45 +275,45 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   unmatchBtn: {
-    padding: 12,
+    padding: SPACE.md,
   },
   videoBtn: {
-    padding: 12,
+    padding: SPACE.md,
   },
   wovenByBanner: {
     fontFamily: FONTS.body,
-    fontSize: 12,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.gold,
     textAlign: 'center',
-    paddingVertical: 4,
+    paddingVertical: SPACE.xs,
   },
   spinnerWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: SPACE.md,
   },
   loadErrorText: {
     fontFamily: FONTS.body,
-    fontSize: 15,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textDim,
     textAlign: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: SPACE.huge,
   },
   messageList: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: SPACE.gutter,
+    paddingVertical: SPACE.lg,
     flexGrow: 1,
   },
   loadEarlierBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: SPACE.sm,
     alignSelf: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    marginBottom: SPACE.md,
+    paddingHorizontal: SPACE.lg,
+    paddingVertical: SPACE.sm,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     borderColor: COLORS.brass,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   },
   loadEarlierText: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 12,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.gold,
     letterSpacing: 0.5,
   },
@@ -336,16 +336,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.bronze,
     borderTopLeftRadius: RADIUS.md,
     borderTopRightRadius: RADIUS.md,
-    padding: 16,
-    gap: 10,
+    padding: SPACE.lg,
+    gap: SPACE.md,
   },
   optionsTitle: {
     fontFamily: FONTS.display,
-    fontSize: 12,
+    fontSize: FONT_SIZES.sm,
     color: COLORS.textDim,
     letterSpacing: 2,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: SPACE.xs,
     textTransform: 'uppercase',
   },
 });

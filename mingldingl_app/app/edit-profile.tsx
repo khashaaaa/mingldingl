@@ -11,7 +11,7 @@ import { parseUserProfile } from '../models/user';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS } from '../lib/theme';
+import { COLORS, FONTS, SPACE } from '../lib/theme';
 import { FIELD_LIMITS } from '../lib/fieldLimits';
 import { DismissKeyboardView } from '../components/ui/DismissKeyboardView';
 import { AppCard } from '../components/ui/AppCard';
@@ -123,8 +123,8 @@ export default function EditProfileScreen() {
       <YStack flex={1} backgroundColor={COLORS.bg}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={i18n.t('edit_profile')} onBack={() => router.back()} />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 24, gap: 16 }}>
-        <AppCard textured style={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: SPACE.gutter, paddingVertical: SPACE.xxl, gap: SPACE.lg }}>
+        <AppCard textured style={{ padding: SPACE.lg }}>
           <YStack gap="$3" zIndex={1}>
             <Text color={COLORS.gold} fontSize={14} fontFamily={FONTS.bodyBold as any}>{i18n.t('your_photos')}</Text>
             <PhotoGrid photoUrls={photoUrls} onChange={setPhotoUrls} onUploadingChange={setPhotosUploading} />
@@ -134,7 +134,7 @@ export default function EditProfileScreen() {
           </YStack>
         </AppCard>
 
-        <AppCard textured style={{ padding: 16 }}>
+        <AppCard textured style={{ padding: SPACE.lg }}>
           <YStack gap="$4" zIndex={1}>
             <Input
               value={displayName} onChangeText={setDisplayName}
@@ -157,7 +157,7 @@ export default function EditProfileScreen() {
           </YStack>
         </AppCard>
 
-        <AppCard textured style={{ padding: 16 }}>
+        <AppCard textured style={{ padding: SPACE.lg }}>
           <YStack gap="$4" zIndex={1}>
             <YStack gap="$1">
               <Text color={COLORS.gold} fontSize={14} fontFamily={FONTS.bodyBold as any}>{i18n.t('deep_profile_title')}</Text>
@@ -207,7 +207,7 @@ export default function EditProfileScreen() {
           </YStack>
         </AppCard>
 
-        <AppCard textured style={{ padding: 16 }}>
+        <AppCard textured style={{ padding: SPACE.lg }}>
           <YStack gap="$3" zIndex={1}>
             <Text color={COLORS.gold} fontSize={14} fontFamily={FONTS.bodyBold as any}>{i18n.t('your_area')}</Text>
             {isCapturing ? (

@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
@@ -26,7 +26,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: [styles.tabBar, { height: 68 + insets.bottom, paddingBottom: 6 + insets.bottom }],
+        tabBarStyle: [styles.tabBar, { height: 68 + insets.bottom, paddingBottom: SPACE.sm + insets.bottom }],
         tabBarActiveTintColor: COLORS.goldBright,
         tabBarInactiveTintColor: COLORS.textDim,
         // Without this the label is laid out beside the icon on wide viewports and the two
@@ -55,13 +55,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panelDeep,
     borderTopWidth: 1,
     borderTopColor: COLORS.bronze,
-    paddingTop: 6,
+    paddingTop: SPACE.sm,
   },
-  item: { paddingHorizontal: 2 },
+  item: { paddingHorizontal: SPACE.hair },
   glyph: { textAlign: 'center' },
   label: {
     fontFamily: FONTS.display,
-    fontSize: 11,
+    fontSize: FONT_SIZES.sm,
     lineHeight: 14,
     letterSpacing: 0.5,
     textAlign: 'center',

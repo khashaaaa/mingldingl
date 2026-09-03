@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import type { DailyMatchBudget } from '../../hooks/useScore';
 
 interface Props {
@@ -27,17 +27,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: SPACE.sm,
     alignSelf: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: RADIUS.lg,
+    marginBottom: SPACE.sm,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.xs,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
     borderColor: COLORS.brass,
     backgroundColor: COLORS.panel,
   },
   wrapSpent: { borderColor: COLORS.bronze },
-  text: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.gold, letterSpacing: 0.5 },
+  text: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: COLORS.gold, letterSpacing: 0.5 },
   textSpent: { color: COLORS.textDim },
 });

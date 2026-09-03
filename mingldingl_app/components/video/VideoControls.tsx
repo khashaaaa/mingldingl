@@ -2,7 +2,7 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS } from '../../lib/theme';
+import { COLORS, SPACE, circle } from '../../lib/theme';
 
 interface Props {
   muted: boolean;
@@ -50,11 +50,9 @@ export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, 
 }
 
 const styles = StyleSheet.create({
-  bar: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 20 },
+  bar: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: SPACE.xl },
   button: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    ...circle(60),
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

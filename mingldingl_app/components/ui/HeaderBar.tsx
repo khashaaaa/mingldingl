@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { SectionDivider } from './SectionDivider';
 import { Icon } from './Icon';
@@ -55,17 +55,17 @@ export function HeaderBar({ title, showBack = true, onBack, icon, right, childre
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, gap: 12 },
+  wrap: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.md, gap: SPACE.md },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
-  titleIcon: { marginTop: 2 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, flexShrink: 1 },
+  titleIcon: { marginTop: SPACE.hair },
   backBtn: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
   title: {
     fontFamily: FONTS.displayBlack,
-    fontSize: 24,
+    fontSize: FONT_SIZES.title,
     color: COLORS.text,
     letterSpacing: 1.5,
     flexShrink: 1,
   },
-  titleCompact: { fontSize: 19, letterSpacing: 1 },
+  titleCompact: { fontSize: FONT_SIZES.xl, letterSpacing: 1 },
 });

@@ -11,7 +11,7 @@ import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { FogDrift } from '../../components/vfx/FogDrift';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
@@ -87,10 +87,10 @@ export default function MatchesScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  list: { paddingHorizontal: 20, paddingTop: 8 },
-  emptyIcon: { opacity: 0.6, marginBottom: 4 },
-  emptyTitle: { fontSize: 18, fontFamily: FONTS.bodyBold, color: COLORS.text },
-  emptySub: { fontSize: 14, color: COLORS.textDim, fontFamily: FONTS.body },
-  emptyCta: { marginTop: 16 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.sm },
+  list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.sm },
+  emptyIcon: { opacity: 0.6, marginBottom: SPACE.xs },
+  emptyTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.bodyBold, color: COLORS.text },
+  emptySub: { fontSize: FONT_SIZES.md, color: COLORS.textDim, fontFamily: FONTS.body },
+  emptyCta: { marginTop: SPACE.lg },
 });

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CardEyebrow } from '../ui/CardEyebrow';
 import { View, Text, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
@@ -11,7 +12,7 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { useAuthStore } from '../../store/authStore';
 import { activeFestival } from '../../lib/festivals';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 
 function ProgressPips({ progress, target }: { progress: number; target: number }) {
   if (target === 1) return null;
@@ -65,7 +66,7 @@ export function QuestBoard() {
         <View style={styles.headingRow} onLayout={onHeadingLayout}>
           <View style={styles.headingLabel}>
             <Icon name={headingIcon} size={16} color={accent} />
-            <Text style={[styles.heading, { color: accent }]}>{headingText.toUpperCase()}</Text>
+            <CardEyebrow color={accent} style={styles.heading}>{headingText}</CardEyebrow>
           </View>
           {headingWidth > 0 && <EmberField width={headingWidth} height={30} density={4} />}
         </View>
@@ -127,30 +128,30 @@ export function QuestBoard() {
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: 14, padding: 16 },
-  headingRow: { height: 30, justifyContent: 'center', marginBottom: 10 },
-  headingLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  heading: { fontFamily: FONTS.display, fontSize: 11, color: COLORS.gold, letterSpacing: 2 },
-  questRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
+  card: { marginBottom: SPACE.lg, padding: SPACE.lg },
+  headingRow: { height: 30, justifyContent: 'center', marginBottom: SPACE.md },
+  headingLabel: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  heading: { marginBottom: 0 },
+  questRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm },
   rune: {
     width: 28, height: 28, borderRadius: RADIUS.sm, borderWidth: 1,
     borderColor: COLORS.gold + '66', backgroundColor: COLORS.gold + '15',
     alignItems: 'center', justifyContent: 'center',
   },
   runeDone: { borderColor: COLORS.bronze, backgroundColor: COLORS.panelDeep },
-  runeText: { color: COLORS.gold, fontSize: 13, fontFamily: FONTS.display },
+  runeText: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.display },
   runeTextDone: { color: COLORS.textDim },
-  questInfo: { flex: 1, gap: 4 },
-  questName: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.text },
+  questInfo: { flex: 1, gap: SPACE.xs },
+  questName: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.text },
   questNameDone: { color: COLORS.textDim, textDecorationLine: 'line-through' },
-  questXp: { fontFamily: FONTS.display, fontSize: 13, color: COLORS.gold },
-  pips: { flexDirection: 'row', gap: 4 },
-  pip: { width: 14, height: 4, borderRadius: 2, backgroundColor: COLORS.panelRaised },
+  questXp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: COLORS.gold },
+  pips: { flexDirection: 'row', gap: SPACE.xs },
+  pip: { width: 14, height: 4, borderRadius: RADIUS.pill, backgroundColor: COLORS.panelRaised },
   pipFilled: { backgroundColor: COLORS.gold },
   chestRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10, paddingTop: 12,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginTop: SPACE.md, paddingTop: SPACE.md,
     borderTopWidth: 1, borderTopColor: COLORS.bronze,
   },
-  chestHint: { flex: 1, fontFamily: FONTS.body, fontSize: 12, color: COLORS.textDim },
+  chestHint: { flex: 1, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim },
   chestBtn: { flex: 1 },
 });

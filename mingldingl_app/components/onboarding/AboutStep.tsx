@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Keyboard, TextInput, View, Text } from 'react-native';
 import { YStack, XStack, TextArea, Spinner } from 'tamagui';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 import { StepScaffold } from './StepScaffold';
 import { GameButton } from '../ui/GameButton';
 import { CityPickerModal } from '../modals/CityPickerModal';
@@ -58,25 +58,25 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
   return (
     <StepScaffold>
       <YStack flex={1} padding="$6" gap="$4">
-        <Text style={{ color: COLORS.text, fontSize: 22, fontFamily: FONTS.display as any }}>{i18n.t('about_you')}</Text>
+        <Text style={{ color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display as any }}>{i18n.t('about_you')}</Text>
 
         {city ? (
           <View>
-            <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 12, marginBottom: 4 }}>
+            <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, marginBottom: SPACE.xs }}>
               {i18n.t('your_area')}
             </Text>
-            <Text style={{ color: COLORS.gold, fontFamily: FONTS.bodyBold, fontSize: 17 }}>{city}</Text>
+            <Text style={{ color: COLORS.gold, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xl }}>{city}</Text>
           </View>
         ) : isCapturing ? (
           <XStack alignItems="center" gap="$2">
             <Spinner color="$gold" />
-            <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 14 }}>
+            <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md }}>
               {i18n.t('detecting_location')}
             </Text>
           </XStack>
         ) : (permissionDenied || geocodeFailed) ? (
           <YStack gap="$2">
-            <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 13 }}>
+            <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md }}>
               {i18n.t('location_permission_denied')}
             </Text>
             <GameButton variant="ghost" onPress={() => setPickerVisible(true)}>

@@ -7,7 +7,7 @@ import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, RADIUS } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle } from '../lib/theme';
 import type { BlockedUser } from '../models/blockedUser';
 
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
@@ -63,24 +63,24 @@ export default function BlockedUsersScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: 16, textAlign: 'center' },
-  list: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
-  listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20 },
-  empty: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 14, textAlign: 'center' },
+  errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.md },
+  errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
+  list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
+  listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
+  empty: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    gap: SPACE.md,
+    paddingVertical: SPACE.md,
+    paddingHorizontal: SPACE.md,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.panel,
     borderWidth: 1,
     borderColor: COLORS.bronze,
-    marginBottom: 10,
+    marginBottom: SPACE.md,
   },
-  photo: { width: 44, height: 44, borderRadius: 22 },
+  photo: circle(44),
   photoPlaceholder: { backgroundColor: COLORS.panelRaised },
-  name: { flex: 1, color: COLORS.text, fontFamily: FONTS.bodyBold, fontSize: 14 },
+  name: { flex: 1, color: COLORS.text, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
 });

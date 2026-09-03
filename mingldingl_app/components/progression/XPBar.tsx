@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { tierLabel } from '../../lib/tiers';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, tint } from '../../lib/theme';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { GemTierBadge } from './GemTierBadge';
 import type { GemTier } from '../../models/user';
@@ -84,11 +84,11 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
 const FILL_BORDER_RADIUS = RADIUS.sm - 1;
 
 const styles = StyleSheet.create({
-  container: { gap: 8 },
+  container: { gap: SPACE.sm },
   labels: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  tierRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  tier: { fontFamily: FONTS.display, fontSize: 13, letterSpacing: 0.5 },
-  next: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textDim },
+  tierRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  tier: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: 0.5 },
+  next: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
   track: {
     height: 14,
     backgroundColor: COLORS.panelDeep,
@@ -106,12 +106,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0, bottom: 0,
     width: 40,
-    backgroundColor: 'rgba(237,228,211,0.25)',
+    backgroundColor: tint(COLORS.text, 0.25),
     transform: [{ skewX: '-20deg' }],
   },
-  tick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(74,90,107,0.6)' },
+  tick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: tint(COLORS.bronze, 0.6) },
   flash: { backgroundColor: COLORS.goldBright },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  nextThreshold: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.textDim, flexShrink: 1 },
-  scoreText: { fontFamily: FONTS.display, fontSize: 11, color: COLORS.textDim, textAlign: 'right', letterSpacing: 1, marginLeft: 'auto' },
+  nextThreshold: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, flexShrink: 1 },
+  scoreText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'right', letterSpacing: 1, marginLeft: 'auto' },
 });

@@ -5,7 +5,7 @@ import { ChestBurst } from '../vfx/ChestBurst';
 import { Icon } from '../ui/Icon';
 import { RARITY_COLORS } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 
 export interface ChestItem { nameKey: string; rarity: string; itemType: string; }
 interface Props { visible: boolean; xp: number; item?: ChestItem | null; onDismiss: () => void; }
@@ -78,13 +78,13 @@ export function ChestModal({ visible, xp, item, onDismiss }: Props) {
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(10,11,16,0.92)', alignItems: 'center', justifyContent: 'center', gap: 24 },
+  overlay: { flex: 1, backgroundColor: overlay(0.92), alignItems: 'center', justifyContent: 'center', gap: SPACE.xxl },
   rewardCard: {
     backgroundColor: COLORS.panel, borderWidth: 2, borderRadius: RADIUS.md,
-    paddingHorizontal: 32, paddingVertical: 24, alignItems: 'center', gap: 8, minWidth: 260,
+    paddingHorizontal: SPACE.huge, paddingVertical: SPACE.xxl, alignItems: 'center', gap: SPACE.sm, minWidth: 260,
   },
-  xp: { fontFamily: FONTS.displayBlack, fontSize: 28, color: COLORS.gold },
-  rarity: { fontFamily: FONTS.display, fontSize: 11, letterSpacing: 2 },
-  itemName: { fontFamily: FONTS.bodyBold, fontSize: 17, color: COLORS.text, textAlign: 'center' },
-  closeBtn: { marginTop: 12, alignSelf: 'stretch' },
+  xp: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.display, color: COLORS.gold },
+  rarity: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, letterSpacing: 1 },
+  itemName: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xl, color: COLORS.text, textAlign: 'center' },
+  closeBtn: { marginTop: SPACE.md, alignSelf: 'stretch' },
 });

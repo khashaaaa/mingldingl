@@ -2,8 +2,8 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GemTierBadge } from '../progression/GemTierBadge';
 import { colorForTier, tierLabel } from '../../lib/tiers';
-import { COLORS, FONTS } from '../../lib/theme';
-import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
+import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
 import type { GemTier } from '../../models/user';
 import { Icon } from '../ui/Icon';
@@ -66,13 +66,13 @@ const styles = StyleSheet.create({
   card: {
     width: WIDTH,
     height: HEIGHT,
-    borderRadius: 16,
+    borderRadius: RADIUS.lg,
     alignItems: 'center',
-    paddingTop: 40,
-    paddingHorizontal: 24,
+    paddingTop: SPACE.giant,
+    paddingHorizontal: SPACE.xxl,
     overflow: 'hidden',
   },
-  border: { ...StyleSheet.absoluteFillObject, borderWidth: 3, borderRadius: 16 },
+  border: { ...StyleSheet.absoluteFillObject, borderWidth: 3, borderRadius: RADIUS.lg },
   frameEdge: { position: 'absolute', opacity: 0.55 },
   frameTop: { top: 8, left: 34, width: 292, height: 9 },
   frameBottom: { bottom: 8, left: 34, width: 292, height: 9, transform: [{ rotate: '180deg' }] },
@@ -84,19 +84,19 @@ const styles = StyleSheet.create({
   fkTr: { top: 5, right: 5, transform: [{ scaleX: -1 }] },
   fkBl: { bottom: 5, left: 5, transform: [{ scaleY: -1 }] },
   fkBr: { bottom: 5, right: 5, transform: [{ scaleX: -1 }, { scaleY: -1 }] },
-  avatar: { width: 140, height: 140, borderRadius: 70, marginBottom: 20 },
+  avatar: { ...circle(140), marginBottom: SPACE.xl },
   avatarPlaceholder: { backgroundColor: COLORS.panelRaised },
-  name: { fontFamily: FONTS.display, fontSize: 26, color: COLORS.text, marginBottom: 16 },
-  tierRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  tierName: { fontFamily: FONTS.display, fontSize: 22, letterSpacing: 0 },
-  score: { fontFamily: FONTS.display, fontSize: 16, color: COLORS.gold, marginBottom: 8 },
-  streakRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 20 },
-  streak: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.textDim },
+  name: { fontFamily: FONTS.display, fontSize: FONT_SIZES.display, color: COLORS.text, marginBottom: SPACE.lg },
+  tierRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginBottom: SPACE.md },
+  tierName: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, letterSpacing: 0 },
+  score: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, marginBottom: SPACE.sm },
+  streakRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginBottom: SPACE.xl },
+  streak: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.textDim },
   wordmark: {
     position: 'absolute',
     bottom: 24,
     fontFamily: FONTS.display,
-    fontSize: 13,
+    fontSize: FONT_SIZES.md,
     letterSpacing: 3,
     color: COLORS.textDim,
   },

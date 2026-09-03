@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
-import { COLORS, FONTS, RADIUS, metalGradient, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, metalGradient, tint } from '../../lib/theme';
 import { GemTierBadge } from './GemTierBadge';
 import { Icon } from '../ui/Icon';
 
@@ -36,14 +36,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: RADIUS.sm,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    gap: 5,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
+    gap: SPACE.xs,
     overflow: 'hidden',
   },
   topHighlight: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: tint(COLORS.text, 0.14) },
-  score: { fontFamily: FONTS.display, fontSize: 14, letterSpacing: 0.5 },
-  pts: { fontFamily: FONTS.display, fontSize: 10, color: COLORS.textDim, letterSpacing: 1 },
-  streakRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 4 },
-  streak: { fontFamily: FONTS.display, fontSize: 12, color: COLORS.emberLight, letterSpacing: 0.5 },
+  score: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: 0.5 },
+  pts: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: COLORS.textDim, letterSpacing: 1 },
+  streakRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginLeft: SPACE.xs },
+  streak: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: COLORS.emberLight, letterSpacing: 1 },
 });

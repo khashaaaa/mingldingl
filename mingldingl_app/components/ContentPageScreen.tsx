@@ -9,7 +9,7 @@ import { selectContentPageLocale } from '../models/content';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { COLORS, FONTS } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
 
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
@@ -51,28 +51,28 @@ export function ContentPageScreen({ slug }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  content: { padding: 20, paddingBottom: 40 },
+  content: { padding: SPACE.xl, paddingBottom: SPACE.scrollTail },
   updatedAt: {
     color: COLORS.textDim,
-    fontSize: 12,
+    fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.body,
-    marginBottom: 12,
+    marginBottom: SPACE.md,
   },
-  errorWrap: { gap: 12, paddingVertical: 20, alignItems: 'flex-start' },
+  errorWrap: { gap: SPACE.md, paddingVertical: SPACE.xl, alignItems: 'flex-start' },
   errorTitle: {
     color: COLORS.text,
-    fontSize: 18,
+    fontSize: FONT_SIZES.xl,
     fontFamily: FONTS.displayBlack,
   },
   errorMessage: {
     color: COLORS.textDim,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     lineHeight: 20,
     fontFamily: FONTS.body,
   },
   body: {
     color: COLORS.text,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     lineHeight: 22,
     fontFamily: FONTS.body,
   },

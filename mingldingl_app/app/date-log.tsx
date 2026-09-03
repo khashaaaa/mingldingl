@@ -9,7 +9,7 @@ import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { COLORS, FONTS, RADIUS } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
 import type { Trophy } from '../models/trophy';
 import { Icon } from '../components/ui/Icon';
 
@@ -82,19 +82,19 @@ export default function DateLogScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: 16, textAlign: 'center' },
-  list: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
-  listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20 },
-  empty: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 14, textAlign: 'center' },
-  card: { padding: 12, marginBottom: 12 },
-  row: { flexDirection: 'row', gap: 12 },
+  errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.md },
+  errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
+  list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
+  listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
+  empty: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
+  card: { padding: SPACE.md, marginBottom: SPACE.md },
+  row: { flexDirection: 'row', gap: SPACE.md },
   photo: { width: 64, height: 64, borderRadius: RADIUS.md },
   photoPlaceholder: { backgroundColor: COLORS.panelRaised },
-  info: { flex: 1, justifyContent: 'center', gap: 3 },
-  title: { color: COLORS.text, fontFamily: FONTS.bodyBold, fontSize: 15 },
-  subtitle: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 12 },
-  date: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 11 },
-  starsRow: { flexDirection: 'row', gap: 2 },
-  unrated: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: 11, fontStyle: 'italic', marginTop: 2 },
+  info: { flex: 1, justifyContent: 'center', gap: SPACE.xs },
+  title: { color: COLORS.text, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg },
+  subtitle: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
+  date: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
+  starsRow: { flexDirection: 'row', gap: SPACE.hair },
+  unrated: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, fontStyle: 'italic', marginTop: SPACE.hair },
 });

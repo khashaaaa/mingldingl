@@ -18,7 +18,7 @@ import { useMembership } from '../hooks/useMembership';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { COLORS, FONTS } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
 import { membershipLabel } from '../lib/tiers';
 import type { GemTier } from '../models/user';
 import type { MembershipPriceOption } from '../models/membership';
@@ -30,8 +30,8 @@ const BADGE_TIER: Record<string, GemTier> = {
 };
 
 const BADGE_COLOR: Record<string, { color: string; shade: string }> = {
-  Free: { color: COLORS.bronze, shade: '#26303B' },
-  Silver: { color: '#C7D0DA', shade: '#5B6672' },
+  Free: { color: COLORS.bronze, shade: COLORS.bronzeDark },
+  Silver: { color: COLORS.silver, shade: COLORS.silverDark },
   Gold: { color: COLORS.goldBright, shade: COLORS.gold },
 };
 
@@ -180,25 +180,25 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    gap: 14,
-    paddingBottom: 40,
+    paddingHorizontal: SPACE.gutter,
+    paddingTop: SPACE.lg,
+    gap: SPACE.lg,
+    paddingBottom: SPACE.scrollTail,
   },
   subtitle: {
     color: COLORS.textDim,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     fontFamily: FONTS.body,
-    marginBottom: 4,
+    marginBottom: SPACE.xs,
   },
   expiryLine: {
     color: COLORS.gold,
-    fontSize: 13,
+    fontSize: FONT_SIZES.md,
     fontFamily: FONTS.bodyMedium,
-    marginBottom: 4,
+    marginBottom: SPACE.xs,
   },
   tierCard: {
-    padding: 20,
+    padding: SPACE.xl,
   },
   tierCardSelected: {
     borderColor: COLORS.gold,
@@ -215,24 +215,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: SPACE.lg,
   },
   crestRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: SPACE.md,
   },
   tierName: {
     color: COLORS.text,
-    fontSize: 17,
+    fontSize: FONT_SIZES.xl,
     fontFamily: FONTS.display,
     letterSpacing: 0.3,
   },
   currentBadge: {
     color: COLORS.gold,
-    fontSize: 11,
+    fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.bodyMedium,
-    marginTop: 2,
+    marginTop: SPACE.hair,
     letterSpacing: 0.5,
   },
   priceColumn: {
@@ -240,41 +240,41 @@ const styles = StyleSheet.create({
   },
   tierPrice: {
     color: COLORS.gold,
-    fontSize: 17,
+    fontSize: FONT_SIZES.xl,
     fontFamily: FONTS.bodyBold,
   },
   saveBadge: {
     color: COLORS.goldBright,
-    fontSize: 12,
+    fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.bodyMedium,
-    marginTop: 2,
+    marginTop: SPACE.hair,
   },
   totalPriceLabel: {
     color: COLORS.textDim,
-    fontSize: 12,
+    fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.body,
-    marginTop: 1,
+    marginTop: SPACE.hair,
   },
   perkList: {
-    gap: 8,
+    gap: SPACE.sm,
   },
   perkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: SPACE.md,
   },
   perkCheck: {
     color: COLORS.gold,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     fontFamily: FONTS.bodyBold,
     width: 16,
   },
   perkLabel: {
     color: COLORS.text,
-    fontSize: 13,
+    fontSize: FONT_SIZES.md,
     fontFamily: FONTS.body,
   },
   buttonWrap: {
-    marginTop: 8,
+    marginTop: SPACE.sm,
   },
 });

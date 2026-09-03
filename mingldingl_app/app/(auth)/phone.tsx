@@ -20,7 +20,7 @@ import { GlowText } from '../../components/vfx/GlowText';
 import { EmberField } from '../../components/vfx/EmberField';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { SectionDivider } from '../../components/ui/SectionDivider';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
@@ -115,18 +115,18 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 28,
-    gap: 12,
+    paddingHorizontal: SPACE.xxxl,
+    gap: SPACE.md,
   },
   logo: {
-    fontSize: 40,
+    fontSize: FONT_SIZES.wordmark,
     color: COLORS.gold,
     textAlign: 'center',
     letterSpacing: 0,
     fontFamily: FONTS.wordmark,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textDim,
     textAlign: 'center',
     letterSpacing: 0.5,
@@ -134,24 +134,24 @@ const styles = StyleSheet.create({
   },
   divider: {
     alignSelf: 'stretch',
-    marginVertical: 4,
+    marginVertical: SPACE.xs,
   },
   label: {
-    fontSize: 13,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textDim,
     letterSpacing: 0.3,
-    marginBottom: 4,
+    marginBottom: SPACE.xs,
     fontFamily: FONTS.body,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
+    gap: SPACE.md,
+    marginBottom: SPACE.xs,
   },
   prefixBadge: {
     height: 52,
-    paddingHorizontal: 14,
+    paddingHorizontal: SPACE.lg,
     backgroundColor: COLORS.panel,
     borderWidth: 1.5,
     borderColor: COLORS.gold,
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   prefixText: {
     color: COLORS.gold,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.bodyBold,
   },
   input: {
@@ -171,15 +171,15 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.bronze,
     borderRadius: RADIUS.md,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACE.lg,
     color: COLORS.text,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.body,
   },
   error: {
     color: COLORS.emberLight,
-    fontSize: 14,
-    marginBottom: 4,
+    fontSize: FONT_SIZES.md,
+    marginBottom: SPACE.xs,
     fontFamily: FONTS.body,
   },
 });

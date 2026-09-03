@@ -1,5 +1,5 @@
 import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { Icon } from '../ui/Icon';
 
@@ -36,11 +36,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 48,
-    gap: 10,
-    marginHorizontal: 12,
-    marginTop: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    gap: SPACE.md,
+    marginHorizontal: SPACE.md,
+    marginTop: SPACE.sm,
+    paddingVertical: SPACE.sm,
+    paddingHorizontal: SPACE.md,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     backgroundColor: COLORS.panel,
@@ -48,13 +48,13 @@ const styles = StyleSheet.create({
   medallion: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: RADIUS.lg,
     borderWidth: 1.5,
     backgroundColor: COLORS.panelRaised,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { flex: 1, fontFamily: FONTS.bodyBold, fontSize: 14 },
-  chevron: { fontFamily: FONTS.display, fontSize: 18 },
+  title: { flex: 1, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
+  chevron: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl },
   knot: { width: 20, height: 20 },
 });

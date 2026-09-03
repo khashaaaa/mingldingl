@@ -10,7 +10,7 @@ import { getApiErrorMessage } from '../../lib/api/errors';
 import { i18n } from '../../lib/i18n';
 import { shipInviteMessage } from '../../lib/shipInvite';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 const PHONE_REGEX = /^\d{8}$/;
@@ -115,10 +115,10 @@ export default function NewShipScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  form: { padding: 20, gap: 12 },
-  hint: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textDim },
-  label: { fontFamily: FONTS.display, fontSize: 12, color: COLORS.gold, letterSpacing: 1, marginTop: 8 },
-  error: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.emberLight },
-  confirmWrap: { padding: 20, gap: 16, alignItems: 'center' },
-  confirmText: { fontFamily: FONTS.body, fontSize: 15, color: COLORS.text, textAlign: 'center' },
+  form: { padding: SPACE.xl, gap: SPACE.md },
+  hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  label: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: COLORS.gold, letterSpacing: 1, marginTop: SPACE.sm },
+  error: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.emberLight },
+  confirmWrap: { padding: SPACE.xl, gap: SPACE.lg, alignItems: 'center' },
+  confirmText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: COLORS.text, textAlign: 'center' },
 });

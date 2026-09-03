@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import { RARITY_COLORS } from '../../lib/tiers';
 import { Icon } from '../ui/Icon';
 
@@ -90,13 +90,13 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: SPACE.lg,
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 2,
     borderColor: COLORS.gold,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: SPACE.lg,
+    paddingVertical: SPACE.md,
     shadowColor: COLORS.gold,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
   },
   iconWrap: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   ray: { position: 'absolute', width: 36, height: 2, backgroundColor: COLORS.goldBright },
-  textCol: { flex: 1, gap: 2 },
-  title: { fontFamily: FONTS.bodyBold, fontSize: 14, color: COLORS.text },
-  points: { fontFamily: FONTS.display, fontSize: 11, color: COLORS.gold, letterSpacing: 0.5 },
-  itemLine: { fontFamily: FONTS.bodyMedium, fontSize: 12 },
+  textCol: { flex: 1, gap: SPACE.hair },
+  title: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md, color: COLORS.text },
+  points: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: COLORS.gold, letterSpacing: 1 },
+  itemLine: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm },
 });

@@ -20,7 +20,7 @@ import { EmberField } from '../../components/vfx/EmberField';
 import { FogDrift } from '../../components/vfx/FogDrift';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
@@ -154,16 +154,16 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   center: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
-  cardArea: { flex: 1, paddingHorizontal: 20, paddingBottom: 16 },
+  cardArea: { flex: 1, paddingHorizontal: SPACE.gutter, paddingBottom: SPACE.lg },
   emptyCard: {
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.bronze,
-    padding: 40,
+    padding: SPACE.giant,
     alignItems: 'center',
-    gap: 12,
+    gap: SPACE.md,
   },
-  emptyTitle: { fontSize: 20, fontFamily: FONTS.display, color: COLORS.text },
-  emptySub: { fontSize: 15, fontFamily: FONTS.body, color: COLORS.textDim, textAlign: 'center' },
+  emptyTitle: { fontSize: FONT_SIZES.title, fontFamily: FONTS.display, color: COLORS.text },
+  emptySub: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: COLORS.textDim, textAlign: 'center' },
 });

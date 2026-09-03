@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 
 interface Props {
   visible: boolean;
@@ -69,24 +69,24 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: RADIUS.md,
     borderTopRightRadius: RADIUS.md,
     maxHeight: '70%',
-    paddingTop: 16,
+    paddingTop: SPACE.lg,
   },
   title: {
     fontFamily: FONTS.display,
-    fontSize: 13,
+    fontSize: FONT_SIZES.md,
     color: COLORS.textDim,
     letterSpacing: 2,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: SPACE.sm,
     textTransform: 'uppercase',
   },
   list: { maxHeight: '100%' },
-  cancelWrap: { padding: 16 },
+  cancelWrap: { padding: SPACE.lg },
   row: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingVertical: SPACE.lg,
+    paddingHorizontal: SPACE.xxl,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.panelRaised,
   },
-  rowText: { fontFamily: FONTS.body, fontSize: 16, color: COLORS.text },
+  rowText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: COLORS.text },
 });

@@ -6,7 +6,7 @@ import { GameButton } from '../ui/GameButton';
 import { CharacterCard } from './CharacterCard';
 import { i18n } from '../../lib/i18n';
 import type { GemTier } from '../../models/user';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES } from '../../lib/theme';
 
 interface Props {
   displayName: string;
@@ -66,5 +66,5 @@ export function ShareCharacterButton({ displayName, photoUrl, gemTier, totalScor
 
 const styles = StyleSheet.create({
   offscreen: { position: 'absolute', top: 0, left: -9999 },
-  error: { color: COLORS.emberLight, fontFamily: FONTS.body, fontSize: 12, textAlign: 'center' },
+  error: { color: COLORS.emberLight, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, textAlign: 'center' },
 });

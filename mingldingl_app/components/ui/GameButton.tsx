@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Pressable, Text, Animated, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { COLORS, FONTS, RADIUS, overlay, metalGradient, tint } from '../../lib/theme';
+import { BUTTON_METALS, COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from './Icon';
 
 interface Props {
@@ -17,36 +17,12 @@ interface Props {
   flex?: number;
 }
 
-const GRADIENTS: Record<string, [string, string, string]> = {
-  primary: ['#F2A03D', COLORS.gold, '#8A4310'],
-  ghost: ['#2A241C', COLORS.panelRaised, '#14100C'],
-  danger: ['#934C2C', COLORS.emberDark, '#5E2E17'],
-  brass: metalGradient(COLORS.brass),
-};
-const BORDERS: Record<string, string> = {
-  primary: '#8A4310',
-  ghost: COLORS.bronze,
-  danger: '#7E3D1F',
-  brass: COLORS.brassDark,
-};
-const HIGHLIGHTS: Record<string, string> = {
-  primary: tint(COLORS.goldBright, 0.4),
-  ghost: tint(COLORS.text, 0.1),
-  danger: tint(COLORS.emberLight, 0.4),
-  brass: tint(COLORS.brass, 0.5),
-};
-const LABELS: Record<string, string> = {
-  primary: '#1A1406',
-  ghost: COLORS.text,
-  danger: COLORS.text,
-  brass: '#241704',
-};
 
 const METAL_VARIANTS = new Set(['primary', 'danger', 'brass']);
 
 const SIZES = {
-  default: { minHeight: 52, paddingVertical: 8, paddingHorizontal: 14, fontSize: 14, letterSpacing: 1, iconSize: 15 },
-  compact: { minHeight: 44, paddingVertical: 7, paddingHorizontal: 12, fontSize: 12, letterSpacing: 0.5, iconSize: 14 },
+  default: { minHeight: 52, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.lg, fontSize: FONT_SIZES.md, letterSpacing: 1, iconSize: 15 },
+  compact: { minHeight: 44, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md, fontSize: FONT_SIZES.sm, letterSpacing: 0.5, iconSize: 14 },
 } as const;
 
 export function GameButton({ children, onPress, variant = 'primary', size = 'default', icon, disabled, loading, style, flex }: Props) {
@@ -80,20 +56,20 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
         accessibilityState={{ disabled: !!(disabled || loading), busy: !!loading }}
         style={[
           styles.slab,
-          { borderColor: BORDERS[variant] },
+          { borderColor: BUTTON_METALS[variant].border },
           { minHeight: sz.minHeight, paddingVertical: sz.paddingVertical, paddingHorizontal: sz.paddingHorizontal },
         ]}
       >
-        <LinearGradient colors={GRADIENTS[variant]} style={StyleSheet.absoluteFill} />
-        <View style={[styles.topHighlight, { backgroundColor: HIGHLIGHTS[variant] }]} />
+        <LinearGradient colors={BUTTON_METALS[variant].gradient} style={StyleSheet.absoluteFill} />
+        <View style={[styles.topHighlight, { backgroundColor: BUTTON_METALS[variant].highlight }]} />
         {isMetal && <View style={styles.bottomShadow} />}
         {loading ? (
-          <ActivityIndicator color={LABELS[variant]} />
+          <ActivityIndicator color={BUTTON_METALS[variant].label} />
         ) : (
           <View style={styles.labelRow}>
-            {icon && <Icon name={icon} size={sz.iconSize} color={LABELS[variant]} />}
+            {icon && <Icon name={icon} size={sz.iconSize} color={BUTTON_METALS[variant].label} />}
             <Text
-              style={[styles.label, { color: LABELS[variant] }, { fontSize: sz.fontSize, letterSpacing: sz.letterSpacing }]}
+              style={[styles.label, { color: BUTTON_METALS[variant].label }, { fontSize: sz.fontSize, letterSpacing: sz.letterSpacing }]}
 
               numberOfLines={1}
               adjustsFontSizeToFit
@@ -115,8 +91,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: SPACE.lg,
+    paddingVertical: SPACE.sm,
     overflow: 'hidden',
   },
   forgeGlow: {
@@ -137,7 +113,7 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: overlay(0.35),
   },
-  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: '100%' },
-  label: { fontFamily: FONTS.display, fontSize: 14, letterSpacing: 1, flexShrink: 1, textAlign: 'center' },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, maxWidth: '100%' },
+  label: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: 1, flexShrink: 1, textAlign: 'center' },
   disabled: { opacity: 0.4 },
 });

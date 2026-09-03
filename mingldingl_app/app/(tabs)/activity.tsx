@@ -19,7 +19,7 @@ import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 
 const PARCHMENT_ASSET = require('../../assets/textures/parchment.png');
 
@@ -141,13 +141,13 @@ export default function ActivityScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 8 },
-  retryButton: { marginTop: 8 },
-  emptyText: { color: COLORS.textDim, fontSize: 16, fontFamily: FONTS.body },
-  list: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40, flexGrow: 1 },
-  weaveButton: { marginBottom: 16 },
-  missionCard: { marginBottom: 14, padding: 16 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.giant, gap: SPACE.sm },
+  retryButton: { marginTop: SPACE.sm },
+  emptyText: { color: COLORS.textDim, fontSize: FONT_SIZES.lg, fontFamily: FONTS.body },
+  list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail, flexGrow: 1 },
+  weaveButton: { marginBottom: SPACE.lg },
+  missionCard: { marginBottom: SPACE.lg, padding: SPACE.lg },
+  row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
   iconWrap: {
     width: 48,
     height: 48,
@@ -158,19 +158,19 @@ const styles = StyleSheet.create({
   },
   missionIcon: { width: 26, textAlign: 'center' },
   info: { flex: 1 },
-  missionTitle: { fontSize: 15, fontFamily: FONTS.bodyBold, color: COLORS.text, marginBottom: 3 },
-  missionDesc: { fontSize: 12, color: COLORS.textDim, lineHeight: 17, marginBottom: 4, fontFamily: FONTS.body },
-  meta: { fontSize: 11, color: COLORS.textDim, fontFamily: FONTS.body },
+  missionTitle: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text, marginBottom: SPACE.xs },
+  missionDesc: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, lineHeight: 17, marginBottom: SPACE.xs, fontFamily: FONTS.body },
+  meta: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, fontFamily: FONTS.body },
   pointsBadge: {
-    backgroundColor: 'rgba(217,127,31,0.15)',
+    backgroundColor: FILL.gold,
     borderWidth: 1,
     borderColor: COLORS.gold,
     borderRadius: RADIUS.md,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
     alignItems: 'center',
     minWidth: 52,
   },
-  pointsValue: { color: COLORS.gold, fontSize: 16, fontFamily: FONTS.display },
-  pointsLabel: { color: COLORS.gold, fontSize: 9, fontFamily: FONTS.bodyMedium, letterSpacing: 0.5 },
+  pointsValue: { color: COLORS.gold, fontSize: FONT_SIZES.lg, fontFamily: FONTS.display },
+  pointsLabel: { color: COLORS.gold, fontSize: FONT_SIZES.xs, fontFamily: FONTS.bodyMedium, letterSpacing: 0.5 },
 });

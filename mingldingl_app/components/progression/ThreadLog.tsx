@@ -1,8 +1,9 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { CardEyebrow } from '../ui/CardEyebrow';
 import { AppCard } from '../ui/AppCard';
 import { i18n } from '../../lib/i18n';
 import { itemLabel } from '../../lib/tiers';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 
 const MILESTONE_TITLE_IDS = ['title_threadweaver', 'title_fateseer', 'title_bondkeeper'] as const;
 
@@ -15,7 +16,7 @@ export function ThreadLog({ ownedItemIds }: Props) {
 
   return (
     <AppCard style={styles.card}>
-      <Text style={styles.heading}>{i18n.t('thread_log_title').toUpperCase()}</Text>
+      <CardEyebrow>{i18n.t('thread_log_title')}</CardEyebrow>
       {earned.length === 0 ? (
         <Text style={styles.empty}>{i18n.t('thread_log_empty')}</Text>
       ) : (
@@ -30,9 +31,8 @@ export function ThreadLog({ ownedItemIds }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 20, marginBottom: 16, padding: 16, gap: 10 },
-  heading: { fontFamily: FONTS.display, fontSize: 10, color: COLORS.textDim, letterSpacing: 2 },
-  empty: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textDim },
-  list: { gap: 6 },
-  titleRow: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.gold },
+  card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg, gap: SPACE.md },
+  empty: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  list: { gap: SPACE.sm },
+  titleRow: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
 });

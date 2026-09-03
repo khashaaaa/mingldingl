@@ -7,7 +7,7 @@ import { useLocaleStore } from '../../store/localeStore';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
@@ -148,35 +148,35 @@ export default function OtpScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 28, paddingVertical: 24, gap: 14 },
+  inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.xxxl, paddingVertical: SPACE.xxl, gap: SPACE.lg },
   title: {
-    fontSize: 30,
+    fontSize: FONT_SIZES.display,
     color: COLORS.text,
     textAlign: 'center',
     letterSpacing: 0.5,
     fontFamily: FONTS.display,
   },
-  phone: { fontSize: 16, color: COLORS.textDim, textAlign: 'center', fontFamily: FONTS.body },
+  phone: { fontSize: FONT_SIZES.lg, color: COLORS.textDim, textAlign: 'center', fontFamily: FONTS.body },
   card: {
     backgroundColor: COLORS.panel,
     borderWidth: 1,
     borderColor: COLORS.bronze,
     borderRadius: RADIUS.md,
-    padding: 16,
-    gap: 10,
+    padding: SPACE.lg,
+    gap: SPACE.md,
     alignItems: 'center',
   },
-  cardTitle: { fontFamily: FONTS.display, fontSize: 17, color: COLORS.text, textAlign: 'center' },
+  cardTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.text, textAlign: 'center' },
   instruction: {
     fontFamily: FONTS.body,
-    fontSize: 15,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.text,
     textAlign: 'center',
     lineHeight: 22,
   },
-  manual: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.textDim, textAlign: 'center' },
-  waitingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  waiting: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textDim },
-  meta: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.textDim, textAlign: 'center' },
-  error: { color: COLORS.emberLight, fontSize: 14, textAlign: 'center', fontFamily: FONTS.body },
+  manual: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
+  waitingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.sm },
+  waiting: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  meta: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
+  error: { color: COLORS.emberLight, fontSize: FONT_SIZES.md, textAlign: 'center', fontFamily: FONTS.body },
 });

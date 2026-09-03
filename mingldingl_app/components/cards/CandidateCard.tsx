@@ -7,7 +7,7 @@ import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
 import OathSigil from '../OathSigil';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay, tint } from '../../lib/theme';
 import { itemLabel } from '../../lib/tiers';
 import type { Candidate } from '../../models/user';
 
@@ -72,7 +72,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
       )}
 
       <LinearGradient
-        colors={['transparent', 'rgba(10,11,16,0.6)', 'rgba(10,11,16,0.97)']}
+        colors={['transparent', overlay(0.6), overlay(0.97)]}
         style={StyleSheet.absoluteFill}
         locations={[0.35, 0.65, 1]}
         pointerEvents="none"
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.bronze,
   },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
   photo: { ...StyleSheet.absoluteFillObject },
   photoPlaceholder: {
     ...StyleSheet.absoluteFillObject,
@@ -131,9 +131,9 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     flexDirection: 'row',
-    gap: 4,
+    gap: SPACE.xs,
   },
-  photoDot: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(237,228,211,0.3)' },
+  photoDot: { flex: 1, height: 3, borderRadius: RADIUS.pill, backgroundColor: tint(COLORS.text, 0.3) },
   photoDotActive: { backgroundColor: COLORS.gold },
   photoTapLeft: { position: 'absolute', top: 0, bottom: 0, left: 0, width: '35%' },
   photoTapRight: { position: 'absolute', top: 0, bottom: 0, right: 0, width: '65%' },
@@ -142,24 +142,24 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 24,
-    gap: 8,
+    padding: SPACE.xxl,
+    gap: SPACE.sm,
   },
-  plaqueRule: { height: 1, backgroundColor: 'rgba(217,127,31,0.5)', marginBottom: 4 },
+  plaqueRule: { height: 1, backgroundColor: tint(COLORS.gold, 0.5), marginBottom: SPACE.xs },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   name: {
-    fontSize: 26,
+    fontSize: FONT_SIZES.display,
     fontFamily: FONTS.display,
     color: COLORS.text,
     letterSpacing: 0.3,
     flex: 1,
   },
-  equippedTitle: { fontSize: 11, fontFamily: FONTS.display, color: COLORS.gold, letterSpacing: 1 },
-  location: { fontSize: 14, fontFamily: FONTS.body, color: COLORS.textDim },
-  bio: { fontSize: 15, fontFamily: FONTS.body, color: COLORS.text, lineHeight: 22 },
-  actions: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: COLORS.gold, letterSpacing: 1 },
+  location: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.textDim },
+  bio: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: COLORS.text, lineHeight: 22 },
+  actions: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.sm },
 });

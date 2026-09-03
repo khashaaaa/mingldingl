@@ -8,7 +8,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
@@ -82,25 +82,25 @@ export default function BusinessDetailScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   scroll: { flex: 1 },
-  content: { paddingBottom: 40 },
+  content: { paddingBottom: SPACE.scrollTail },
   hero: { width: '100%', height: 200 },
   heroPlaceholder: { backgroundColor: COLORS.panelRaised },
   metaRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, marginTop: 12,
+    paddingHorizontal: SPACE.gutter, marginTop: SPACE.md,
   },
-  meta: { color: COLORS.textDim, fontSize: 13, fontFamily: FONTS.body },
-  rating: { color: COLORS.gold, fontSize: 13, fontFamily: FONTS.bodyBold },
-  description: { color: COLORS.text, fontSize: 14, fontFamily: FONTS.body, lineHeight: 20, paddingHorizontal: 20, marginTop: 12 },
-  hours: { color: COLORS.textDim, fontSize: 13, fontFamily: FONTS.body, paddingHorizontal: 20, marginTop: 8 },
+  meta: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
+  rating: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
+  description: { color: COLORS.text, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: 20, paddingHorizontal: SPACE.gutter, marginTop: SPACE.md },
+  hours: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter, marginTop: SPACE.sm },
   sectionTitle: {
-    color: COLORS.gold, fontSize: 13, fontFamily: FONTS.display, letterSpacing: 1,
-    textTransform: 'uppercase', paddingHorizontal: 20, marginTop: 24, marginBottom: 12,
+    color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.display, letterSpacing: 1,
+    textTransform: 'uppercase', paddingHorizontal: SPACE.gutter, marginTop: SPACE.xxl, marginBottom: SPACE.md,
   },
-  emptyText: { color: COLORS.textDim, fontSize: 13, fontFamily: FONTS.body, paddingHorizontal: 20 },
-  reviewList: { paddingHorizontal: 20, gap: 12 },
-  reviewCard: { padding: 12, gap: 8 },
+  emptyText: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter },
+  reviewList: { paddingHorizontal: SPACE.gutter, gap: SPACE.md },
+  reviewCard: { padding: SPACE.md, gap: SPACE.sm },
   reviewPhoto: { width: '100%', height: 160, borderRadius: RADIUS.sm },
-  reviewStarsRow: { flexDirection: 'row', gap: 2 },
-  reviewText: { color: COLORS.text, fontSize: 14, fontFamily: FONTS.body, lineHeight: 19 },
+  reviewStarsRow: { flexDirection: 'row', gap: SPACE.hair },
+  reviewText: { color: COLORS.text, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: 19 },
 });

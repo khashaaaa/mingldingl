@@ -1,6 +1,6 @@
 import { View, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, metalGradient } from '../../lib/theme';
+import { COLORS, SPACE, metalGradient } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 
 interface Props { tint?: string; }
@@ -17,7 +17,7 @@ export function SectionDivider({ tint = COLORS.bronze }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, marginVertical: SPACE.sm },
   line: { flex: 1, height: 1.5, opacity: 0.85 },
   knot: { width: 15, height: 15, opacity: 0.9 },
 });

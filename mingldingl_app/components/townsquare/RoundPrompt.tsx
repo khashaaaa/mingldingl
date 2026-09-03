@@ -1,6 +1,6 @@
 import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, tint } from '../../lib/theme';
 
 interface Props {
   icebreakerText: string;
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     bottom: 100,
     left: 16,
     right: 16,
-    backgroundColor: 'rgba(18,20,28,0.92)',
+    backgroundColor: tint(COLORS.panel, 0.92),
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.bronze,
@@ -73,17 +73,17 @@ const styles = StyleSheet.create({
     gap: SPACE.sm,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  roundLabel: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textDim, letterSpacing: 1 },
-  clock: { fontFamily: FONTS.displayBlack, fontSize: 16, color: COLORS.goldBright },
-  question: { fontFamily: FONTS.display, fontSize: 17, color: COLORS.text },
-  waitingText: { fontFamily: FONTS.body, fontSize: 14, color: COLORS.textDim },
-  matchText: { fontFamily: FONTS.displayBlack, fontSize: 18, color: COLORS.goldBright },
+  roundLabel: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: COLORS.textDim, letterSpacing: 1 },
+  clock: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.lg, color: COLORS.goldBright },
+  question: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.text },
+  waitingText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  matchText: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, color: COLORS.goldBright },
   buttonRow: { flexDirection: 'row', gap: SPACE.md },
-  button: { flex: 1, borderRadius: RADIUS.sm, paddingVertical: 12, alignItems: 'center', borderWidth: 1 },
+  button: { flex: 1, borderRadius: RADIUS.sm, paddingVertical: SPACE.md, alignItems: 'center', borderWidth: 1 },
   buttonBusy: { opacity: 0.5 },
   yesButton: { backgroundColor: COLORS.gold, borderColor: COLORS.goldBright },
   noButton: { backgroundColor: COLORS.panelRaised, borderColor: COLORS.bronze },
-  buttonText: { fontFamily: FONTS.display, fontSize: 15, letterSpacing: 1 },
+  buttonText: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, letterSpacing: 1 },
   // Light-on-gold reads at 2.4:1; the rest of the app puts a dark label on this slab (as GameButton does).
   yesButtonText: { color: COLORS.panelDeep },
   noButtonText: { color: COLORS.text },

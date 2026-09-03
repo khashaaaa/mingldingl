@@ -3,7 +3,7 @@ import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { formatCountdown } from '../../lib/townSquareTime';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import type { TownSquareNextSession } from '../../hooks/useTownSquareSession';
 import { Icon } from '../ui/Icon';
 
@@ -73,20 +73,20 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
 }
 
 const styles = StyleSheet.create({
-  card: { marginHorizontal: 20, marginBottom: 16, padding: 16, gap: SPACE.sm },
-  title: { fontFamily: FONTS.display, fontSize: 16, color: COLORS.gold, letterSpacing: 1 },
-  hint: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textDim },
-  countdown: { fontFamily: FONTS.displayBlack, fontSize: 22, color: COLORS.text },
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
+  card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg, gap: SPACE.sm },
+  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, letterSpacing: 1 },
+  hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  countdown: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.title, color: COLORS.text },
+  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.gutter },
   emptyCard: {
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.bronze,
-    padding: 40,
+    padding: SPACE.giant,
     alignItems: 'center',
-    gap: 12,
+    gap: SPACE.md,
   },
-  emptyTitle: { fontSize: 20, fontFamily: FONTS.display, color: COLORS.text },
-  emptySub: { fontSize: 15, fontFamily: FONTS.body, color: COLORS.textDim, textAlign: 'center' },
+  emptyTitle: { fontSize: FONT_SIZES.title, fontFamily: FONTS.display, color: COLORS.text },
+  emptySub: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: COLORS.textDim, textAlign: 'center' },
 });

@@ -11,7 +11,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, RADIUS, SPACE, tint } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
@@ -181,41 +181,41 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingHorizontal: SPACE.gutter,
+    paddingBottom: SPACE.xxl,
   },
   centered: {
     flex: 1,
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    gap: 16,
+    padding: SPACE.xxl,
+    gap: SPACE.lg,
   },
   questionCard: {
-    marginBottom: 24,
+    marginBottom: SPACE.xxl,
   },
   questionText: {
     color: COLORS.text,
-    fontSize: 22,
+    fontSize: FONT_SIZES.title,
     fontFamily: FONTS.bodyBold,
     lineHeight: 30,
     textAlign: 'center',
   },
   options: {
-    gap: 12,
+    gap: SPACE.md,
     marginTop: 'auto',
   },
   textAnswerWrap: {
-    gap: 12,
+    gap: SPACE.md,
     marginTop: 'auto',
   },
   option: {
     borderWidth: 1,
-    borderTopColor: 'rgba(245,168,60,0.35)',
+    borderTopColor: tint(COLORS.goldBright, 0.35),
     borderRadius: RADIUS.sm,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: SPACE.lg,
+    paddingHorizontal: SPACE.gutter,
     alignItems: 'center',
   },
   optionDefault: {
@@ -225,13 +225,13 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.bronze,
   },
   optionSelected: {
-    backgroundColor: 'rgba(217,127,31,0.2)',
+    backgroundColor: FILL.gold,
     borderLeftColor: COLORS.gold,
     borderRightColor: COLORS.gold,
     borderBottomColor: COLORS.gold,
   },
   optionText: {
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.bodyMedium,
     textAlign: 'center',
   },
@@ -243,25 +243,25 @@ const styles = StyleSheet.create({
   },
   completionCard: {
     alignItems: 'center',
-    gap: 10,
-    marginVertical: 16,
+    gap: SPACE.md,
+    marginVertical: SPACE.lg,
     width: '100%',
   },
   completionTitle: {
     color: COLORS.text,
-    fontSize: 22,
+    fontSize: FONT_SIZES.title,
     fontFamily: FONTS.display,
     textAlign: 'center',
   },
   matchCount: {
     color: COLORS.gold,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.body,
     textAlign: 'center',
   },
   ptsEarned: {
     color: COLORS.textDim,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     fontFamily: FONTS.body,
     textAlign: 'center',
   },

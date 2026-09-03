@@ -1,6 +1,6 @@
 import { View as RNView, Text as RNText, Image as RNImage, StyleSheet } from 'react-native';
 import { i18n } from '../lib/i18n';
-import { COLORS, FONTS, RADIUS, glow } from '../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, RADIUS, SPACE, glow } from '../lib/theme';
 import { ORNAMENTS } from '../lib/ornaments';
 import type { Oath } from '../models/user';
 
@@ -44,8 +44,8 @@ export function oathLabel(oath: string | null | undefined): string {
 }
 
 const SIZES = {
-  sm: { glyph: 13, name: 11, state: 9, padH: 8, padV: 4, gap: 5 },
-  md: { glyph: 17, name: 13, state: 10, padH: 10, padV: 6, gap: 7 },
+  sm: { glyph: 13, name: 11, state: 9, padH: 8, padV: 4, gap: SPACE.xs },
+  md: { glyph: 17, name: 13, state: 10, padH: 10, padV: 6, gap: SPACE.sm },
 } as const;
 
 export default function OathSigil({ oath, proven, size = 'md', progress }: Props) {
@@ -62,7 +62,7 @@ export default function OathSigil({ oath, proven, size = 'md', progress }: Props
           paddingHorizontal: sz.padH,
           paddingVertical: sz.padV,
           gap: sz.gap,
-          backgroundColor: proven ? 'rgba(245,168,60,0.12)' : 'rgba(74,90,107,0.16)',
+          backgroundColor: proven ? FILL.goldSoft : FILL.bronze,
         },
         proven && glow(COLORS.goldBright, 0.4),
       ]}
@@ -102,5 +102,5 @@ const styles = StyleSheet.create({
   glyph: { fontFamily: FONTS.display },
   name: { fontFamily: FONTS.bodyBold, color: COLORS.text, letterSpacing: 0.2 },
   state: { fontFamily: FONTS.body, letterSpacing: 0.5, textTransform: 'uppercase' },
-  progress: { fontFamily: FONTS.body, fontSize: 10, color: COLORS.textDim, marginTop: 1 },
+  progress: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textDim, marginTop: SPACE.hair },
 });

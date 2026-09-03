@@ -12,7 +12,7 @@ import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { toDroppedItem } from '../../lib/tiers';
-import { COLORS, FONTS, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
@@ -169,35 +169,33 @@ export default function CampaignScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.md, padding: SPACE.xxl },
   emptyText: {
     fontFamily: FONTS.body,
-    fontSize: 15,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.textDim,
     textAlign: 'center',
   },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  scrollContent: { padding: SPACE.lg, paddingBottom: SPACE.scrollTail },
   progress: {
     fontFamily: FONTS.display,
-    fontSize: 16,
+    fontSize: FONT_SIZES.lg,
     color: COLORS.goldBright,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: SPACE.xs,
   },
   completeText: {
     fontFamily: FONTS.bodyBold,
-    fontSize: 14,
+    fontSize: FONT_SIZES.md,
     color: COLORS.emberLight,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: SPACE.xs,
   },
-  map: { marginTop: 12 },
+  map: { marginTop: SPACE.md },
   roomRow: { flexDirection: 'row', alignItems: 'stretch' },
   pathColumn: { alignItems: 'center', width: 48 },
   medallion: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    ...circle(44),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -209,24 +207,24 @@ const styles = StyleSheet.create({
   },
   roomKnot: { width: 38, height: 38 },
   bossKnot: { width: 44, height: 44 },
-  pathLine: { flex: 1, width: 2, backgroundColor: COLORS.bronze, marginVertical: 4, minHeight: 16 },
+  pathLine: { flex: 1, width: 2, backgroundColor: COLORS.bronze, marginVertical: SPACE.xs, minHeight: 16 },
   roomBody: {
     flex: 1,
-    paddingLeft: 8,
-    paddingBottom: 20,
+    paddingLeft: SPACE.sm,
+    paddingBottom: SPACE.xl,
   },
   roomBodyDimmed: { opacity: 0.55 },
-  roomTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40 },
-  roomName: { fontFamily: FONTS.display, fontSize: 16, flexShrink: 1 },
+  roomTitleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, minHeight: 40 },
+  roomName: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, flexShrink: 1 },
   bossChip: {
     borderWidth: 1,
     borderColor: COLORS.ember,
     borderRadius: RADIUS.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+    paddingHorizontal: SPACE.sm,
+    paddingVertical: SPACE.hair,
   },
-  bossChipText: { fontFamily: FONTS.utility, fontSize: 10, letterSpacing: 1, color: COLORS.emberLight },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-  statusText: { fontFamily: FONTS.utility, fontSize: 12, letterSpacing: 1, color: COLORS.textDim },
-  claimButton: { alignSelf: 'flex-start', marginTop: 4 },
+  bossChipText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, letterSpacing: 1, color: COLORS.emberLight },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, marginTop: SPACE.hair },
+  statusText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, letterSpacing: 1, color: COLORS.textDim },
+  claimButton: { alignSelf: 'flex-start', marginTop: SPACE.xs },
 });

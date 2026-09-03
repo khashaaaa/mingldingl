@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { CardEyebrow } from '../ui/CardEyebrow';
 import type { GemTier } from '../../models/user';
 import { TIER_ORDER, colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { AppCard } from '../ui/AppCard';
 import { GemTierBadge } from './GemTierBadge';
-import { COLORS, FONTS } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 
 interface Props {
   gemTier: GemTier;
@@ -20,7 +21,7 @@ export function TierPerkCard({ gemTier, tierBonus, nextTier, dailyMatchBudget }:
 
   return (
     <AppCard tier={gemTier} textured style={styles.card}>
-      <Text style={styles.label}>{i18n.t('tier_perk_label')}</Text>
+      <CardEyebrow>{i18n.t('tier_perk_label')}</CardEyebrow>
       <View style={styles.row}>
         <GemTierBadge tier={gemTier} size={20} />
         <Text style={[styles.bonus, { color }]}>+{tierBonus} {i18n.t('daily_matches')}</Text>
@@ -38,10 +39,9 @@ export function TierPerkCard({ gemTier, tierBonus, nextTier, dailyMatchBudget }:
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 16, marginHorizontal: 20, marginBottom: 16 },
-  label: { fontSize: 10, fontFamily: FONTS.display, color: COLORS.textDim, letterSpacing: 2, marginBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  bonus: { fontSize: 18, fontFamily: FONTS.displayBlack },
-  budget: { fontSize: 13, color: COLORS.text, fontFamily: FONTS.bodyMedium, marginTop: 8 },
-  preview: { fontSize: 12, color: COLORS.textDim, fontFamily: FONTS.body, marginTop: 8 },
+  card: { padding: SPACE.lg, marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
+  row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  bonus: { fontSize: FONT_SIZES.title, fontFamily: FONTS.displayBlack },
+  budget: { fontSize: FONT_SIZES.md, color: COLORS.text, fontFamily: FONTS.bodyMedium, marginTop: SPACE.sm },
+  preview: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, fontFamily: FONTS.body, marginTop: SPACE.sm },
 });

@@ -50,7 +50,7 @@ export function GemTierBadge({ tier, size = 40, glow = false, color: colorOverri
           height: gemSize,
           borderRadius: Math.max(2, size * 0.05),
           borderWidth: 1,
-          borderColor: 'rgba(237,228,211,0.28)',
+          borderColor: tint(COLORS.text, 0.28),
           overflow: 'hidden',
           transform: [{ rotate: '45deg' }],
         }}
