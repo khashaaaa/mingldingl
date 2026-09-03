@@ -1225,12 +1225,11 @@ three need the `verify` skill (real Supabase JWTs, full stack running):
   nothing. A user can read it as an enforced limit that isn't enforced.
 - ~~**`Memberships.UserId` has no index.**~~ Closed 2026-09-01 — folded into the
   `AddCampaignRoomClaims` migration as planned.
-- **`AdminConfigControllerIntegrationTests.Update_TierThreshold_BackfillsStoredGemTiers`
-  deadlocks intermittently under the parallel test run** (Postgres 40P01: its
-  `RecomputeAllGemTiersAsync` bulk-updates every Users row while reward tests hold row
-  locks in their open transactions). Passes alone and on re-run; seen twice on
-  2026-09-01. Pre-existing structural flake, not tied to any one feature — fix is test
-  isolation (serialize that test class or scope the backfill), not code.
+- ~~**`AdminConfigControllerIntegrationTests.Update_TierThreshold_BackfillsStoredGemTiers`
+  deadlocks intermittently under the parallel test run**~~ Closed 2026-09-03 after it
+  turned CI red on an unchanged engine — the class now runs in the parallel-disabled
+  `SerialCollection` (`tests/.../Integration/SerialCollection.cs`). Any future test
+  that runs table-wide statements should join that collection.
 - **Phone-verification account recovery + start-endpoint rate limiting.** See the
   "Open" list under the verify.mn entry above. Recovery-on-reinstall is the one with a
   real user-facing consequence.
