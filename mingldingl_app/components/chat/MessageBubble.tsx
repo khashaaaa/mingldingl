@@ -1,6 +1,6 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import type { Message } from '../../hooks/useChat';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, tint } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 
@@ -26,7 +26,7 @@ export function MessageBubble({ message, myId, onRetry }: Props) {
         <Pressable onPress={() => onRetry?.(message.id)} accessibilityLabel={i18n.t('message_tap_to_retry')}>
           {bubble}
           <View style={styles.retryRow}>
-            <Icon name="alert-circle" size={13} color={COLORS.emberLight} />
+            <Icon name="alert-circle" size={ICON_SIZES.sm} color={COLORS.emberLight} />
             <Text style={styles.retryText}>{i18n.t('message_tap_to_retry')}</Text>
           </View>
         </Pressable>

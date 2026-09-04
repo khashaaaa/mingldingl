@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Pressable, Text, Animated, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { BUTTON_METALS, COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { BUTTON_METALS, COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from './Icon';
 
 interface Props {
@@ -21,8 +21,8 @@ interface Props {
 const METAL_VARIANTS = new Set(['primary', 'danger', 'brass']);
 
 const SIZES = {
-  default: { minHeight: 52, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.lg, fontSize: FONT_SIZES.md, letterSpacing: 1, iconSize: 15 },
-  compact: { minHeight: 44, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md, fontSize: FONT_SIZES.sm, letterSpacing: 0.5, iconSize: 14 },
+  default: { minHeight: 52, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.lg, fontSize: FONT_SIZES.md, letterSpacing: 1, iconSize: ICON_SIZES.md },
+  compact: { minHeight: 44, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md, fontSize: FONT_SIZES.sm, letterSpacing: 0.5, iconSize: ICON_SIZES.sm },
 } as const;
 
 export function GameButton({ children, onPress, variant = 'primary', size = 'default', icon, disabled, loading, style, flex }: Props) {

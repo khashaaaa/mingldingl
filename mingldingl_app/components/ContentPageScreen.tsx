@@ -8,7 +8,7 @@ import { selectContentPageLocale } from '../models/content';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, LINE_HEIGHTS, SPACE } from '../lib/theme';
 
 const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
@@ -66,13 +66,13 @@ const styles = StyleSheet.create({
   errorMessage: {
     color: COLORS.textDim,
     fontSize: FONT_SIZES.md,
-    lineHeight: 20,
+    lineHeight: LINE_HEIGHTS.md,
     fontFamily: FONTS.body,
   },
   body: {
     color: COLORS.text,
     fontSize: FONT_SIZES.md,
-    lineHeight: 22,
+    lineHeight: LINE_HEIGHTS.md,
     fontFamily: FONTS.body,
   },
 });

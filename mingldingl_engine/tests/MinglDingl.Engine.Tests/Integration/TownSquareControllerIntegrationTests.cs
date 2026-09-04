@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 using MinglDingl.Engine.Tests;
+using Moq;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
@@ -14,7 +15,7 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
         httpContext.Items["UserId"] = userId;
         var mockConfig = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>();
         var videoToken = new VideoTokenService(mockConfig.Object, TestHostEnvironment.Development);
-        var controller = new TownSquareController(Db, new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush()), videoToken)
+        var controller = new TownSquareController(Db, new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance), videoToken)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -137,7 +138,7 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
         Db.TownSquareRsvps.Add(new TownSquareRsvp { SessionId = session.Id, UserId = woman.Id });
         await Db.SaveChangesAsync();
 
-        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance);
         await townSquare.LockRosterAsync(session.Id);
         await townSquare.StartSessionAsync(session.Id);
 

@@ -12,7 +12,7 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { useAuthStore } from '../../store/authStore';
 import { activeFestival } from '../../lib/festivals';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
 
 function ProgressPips({ progress, target }: { progress: number; target: number }) {
   if (target === 1) return null;
@@ -65,7 +65,7 @@ export function QuestBoard() {
       <AppCard textured style={styles.card}>
         <View style={styles.headingRow} onLayout={onHeadingLayout}>
           <View style={styles.headingLabel}>
-            <Icon name={headingIcon} size={16} color={accent} />
+            <Icon name={headingIcon} size={ICON_SIZES.md} color={accent} />
             <CardEyebrow color={accent} style={styles.heading}>{headingText}</CardEyebrow>
           </View>
           {headingWidth > 0 && <EmberField width={headingWidth} height={30} density={4} />}
@@ -76,7 +76,7 @@ export function QuestBoard() {
               {q.completed ? (
                 <Text style={[styles.runeText, styles.runeTextDone]}>✓</Text>
               ) : (
-                <Icon name="sword-cross" size={13} color={accent} />
+                <Icon name="sword-cross" size={ICON_SIZES.sm} color={accent} />
               )}
             </View>
             <View style={styles.questInfo}>
@@ -91,7 +91,7 @@ export function QuestBoard() {
         <View style={styles.chestRow}>
           <Icon
             name={board.chestClaimed ? 'treasure-chest' : 'treasure-chest-outline'}
-            size={22}
+            size={ICON_SIZES.xl}
             color={board.chestClaimed ? COLORS.textDim : accent}
           />
           {board.chestClaimed ? (

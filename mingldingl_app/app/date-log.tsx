@@ -8,7 +8,7 @@ import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../lib/theme';
 import type { Trophy } from '../models/trophy';
 import { Icon } from '../components/ui/Icon';
 
@@ -35,7 +35,7 @@ function TrophyRow({ trophy }: { trophy: Trophy }) {
           ) : trophy.myStars ? (
             <View style={styles.starsRow}>
               {Array.from({ length: trophy.myStars }).map((_, i) => (
-                <Icon key={i} name="star" size={13} color={COLORS.gold} />
+                <Icon key={i} name="star" size={ICON_SIZES.sm} color={COLORS.gold} />
               ))}
             </View>
           ) : (
@@ -61,7 +61,7 @@ export default function DateLogScreen() {
         </View>
       ) : isError ? (
         <View style={styles.errorWrap}>
-          <Icon name="alert-circle-outline" size={32} color={COLORS.bronze} />
+          <Icon name="alert-circle-outline" size={ICON_SIZES.huge} color={COLORS.bronze} />
           <Text style={styles.errorText}>{i18n.t('screen_load_error')}</Text>
           <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
         </View>

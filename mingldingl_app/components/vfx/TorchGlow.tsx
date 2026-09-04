@@ -2,10 +2,15 @@ import { ReactNode, useEffect, useRef } from 'react';
 import { Animated, View, StyleSheet } from 'react-native';
 import { Canvas, Circle, RadialGradient, vec } from '@shopify/react-native-skia';
 import { useSharedValue, withRepeat, withTiming, useDerivedValue } from 'react-native-reanimated';
-import { COLORS } from '../../lib/theme';
+import { COLORS, tint } from '../../lib/theme';
 import { useVfxLevel } from '../../lib/vfx';
 
 interface Props { size: number; color?: string; children: ReactNode; }
+
+// Concatenating hex alpha onto the colour (`color + 'AA'`) silently produced garbage for any
+// input that was not a 6-digit hex. Fading to a transparent version of the colour itself,
+// rather than to transparent black, also avoids a grey fringe at the edge of the falloff.
+const GLOW_STOPS = (color: string) => [tint(color, 0.67), tint(color, 0.13), tint(color, 0)];
 
 export function TorchGlow({ size, color = COLORS.gold, children }: Props) {
   const level = useVfxLevel();
@@ -25,7 +30,7 @@ function SkiaGlow({ size, color, children }: Required<Props>) {
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Canvas pointerEvents="none" style={[StyleSheet.absoluteFillObject, { left: -(canvas - size) / 2, top: -(canvas - size) / 2, width: canvas, height: canvas }]}>
         <Circle cx={canvas / 2} cy={canvas / 2} r={canvas / 2} opacity={opacity}>
-          <RadialGradient c={vec(canvas / 2, canvas / 2)} r={canvas / 2} colors={[color + 'AA', color + '22', '#00000000']} />
+          <RadialGradient c={vec(canvas / 2, canvas / 2)} r={canvas / 2} colors={GLOW_STOPS(color)} />
         </Circle>
       </Canvas>
       {children}

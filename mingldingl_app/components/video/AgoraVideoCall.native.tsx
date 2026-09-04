@@ -3,7 +3,7 @@ import { PermissionsAndroid, Platform, StyleSheet, Text, View } from 'react-nati
 import Constants from 'expo-constants';
 import type { VideoToken } from '../../hooks/useVideoCall';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, SPACE, RADIUS } from '../../lib/theme';
+import { COLORS, FONTS, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 
 interface Props {
@@ -128,7 +128,7 @@ export function AgoraVideoCall(props: Props) {
   if (!IS_DEV_BUILD) {
     return (
       <View style={styles.placeholder}>
-        <Icon name="video" size={36} color={COLORS.textDim} />
+        <Icon name="video" size={ICON_SIZES.huge} color={COLORS.textDim} />
         <Text style={styles.placeholderText}>
           {i18n.t('video_dev_build_required')}
         </Text>

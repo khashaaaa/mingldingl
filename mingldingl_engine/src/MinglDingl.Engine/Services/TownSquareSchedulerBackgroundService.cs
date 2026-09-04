@@ -45,14 +45,14 @@ public class TownSquareSchedulerBackgroundService : BackgroundService
             .Select(s => s.Id)
             .ToListAsync(ct);
         foreach (var sessionId in dueToLock)
-            await townSquare.LockRosterAsync(sessionId);
+            await RunPerSessionAsync(sessionId, "lock roster", () => townSquare.LockRosterAsync(sessionId));
 
         var dueToStart = await db.TownSquareSessions
             .Where(s => s.Status == "Locked" && s.ScheduledStartAt <= now)
             .Select(s => s.Id)
             .ToListAsync(ct);
         foreach (var sessionId in dueToStart)
-            await townSquare.StartSessionAsync(sessionId);
+            await RunPerSessionAsync(sessionId, "start session", () => townSquare.StartSessionAsync(sessionId));
 
         var inProgress = await db.TownSquareSessions
             .Where(s => s.Status == "InProgress")
@@ -62,7 +62,24 @@ public class TownSquareSchedulerBackgroundService : BackgroundService
             var currentRound = await db.TownSquareRounds
                 .FirstOrDefaultAsync(r => r.SessionId == session.Id && r.RoundNumber == session.CurrentRoundNumber, ct);
             if (currentRound is not null && currentRound.StartsAt.AddSeconds(currentRound.DurationSeconds) <= now)
-                await townSquare.AdvanceRoundAsync(session.Id);
+                await RunPerSessionAsync(session.Id, "advance round", () => townSquare.AdvanceRoundAsync(session.Id));
+        }
+    }
+
+    /// <summary>
+    /// One broken session must not stall the others. The sweep runs every 10s and a session it
+    /// cannot advance stays in the same state, so an escaping exception is not a one-off — it
+    /// re-throws forever and no session on the instance ever progresses again.
+    /// </summary>
+    private async Task RunPerSessionAsync(Guid sessionId, string step, Func<Task> action)
+    {
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Town Square sweep step '{Step}' failed for session {SessionId}", step, sessionId);
         }
     }
 }

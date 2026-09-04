@@ -44,7 +44,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
     }
 
     [Fact]
-    public async Task CreateAsync_BothPhonesKnown_ResolvesToPendingOptInImmediatelyButStillReturnsCodes()
+    public async Task CreateAsync_BothPhonesKnown_ResolvesToPendingOptInImmediatelyAndMintsNoCodes()
     {
         var weaver = AddUser("88110001");
         var a = AddUser("88110002");
@@ -55,8 +55,10 @@ public class ShipServiceTests : Integration.IntegrationTestBase
 
         Assert.True(success);
 
-        Assert.NotNull(slotACode);
-        Assert.NotNull(slotBCode);
+        // Both nominees are invited in-app, so there is no code to hand the Weaver — and a code
+        // returned here would not be stored on the ship, so it could never resolve.
+        Assert.Null(slotACode);
+        Assert.Null(slotBCode);
         Db.ChangeTracker.Clear();
         var ship = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaver.Id);
         Assert.Equal(a.Id, ship.SlotAUserId);
@@ -113,8 +115,8 @@ public class ShipServiceTests : Integration.IntegrationTestBase
 
         Assert.True(success);
         Assert.Null(error);
-        Assert.NotNull(slotACode);
-        Assert.NotNull(slotBCode);
+        Assert.Null(slotACode);
+        Assert.Null(slotBCode);
         Db.ChangeTracker.Clear();
         Assert.Empty(Db.Ships.Where(s => s.ShipperUserId == weaver.Id));
     }
@@ -132,8 +134,8 @@ public class ShipServiceTests : Integration.IntegrationTestBase
 
         Assert.True(success);
         Assert.Null(error);
-        Assert.NotNull(slotACode);
-        Assert.NotNull(slotBCode);
+        Assert.Null(slotACode);
+        Assert.Null(slotBCode);
         Db.ChangeTracker.Clear();
         Assert.Empty(Db.Ships.Where(s => s.ShipperUserId == weaver.Id));
     }

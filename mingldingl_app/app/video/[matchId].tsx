@@ -14,7 +14,7 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 import { toDroppedItem } from '../../lib/tiers';
 import { Icon } from '../../components/ui/Icon';
 
@@ -109,7 +109,7 @@ export default function VideoScreen() {
   // the same gap the Town Square round screen already closes.
   if (callFailed) return (
     <View style={[styles.centered, styles.stack, styles.failPadding]}>
-      <Icon name="video-off" size={44} color={COLORS.emberLight} />
+      <Icon name="video-off" size={ICON_SIZES.hero} color={COLORS.emberLight} />
       <Text style={styles.errorTitle}>{i18n.t('video_connect_error_title')}</Text>
       <Text style={styles.errorBody}>{i18n.t('video_connect_error_body')}</Text>
       <GameButton variant="primary" onPress={() => { setCallFailed(false); setAttempt((a) => a + 1); }}>
@@ -134,7 +134,7 @@ export default function VideoScreen() {
       {riteActive && secondsLeft !== null && (
         <View style={styles.riteFraming} pointerEvents="none">
           <View style={styles.riteTitleRow}>
-            <Icon name="fire" size={16} color={COLORS.ember} />
+            <Icon name="fire" size={ICON_SIZES.md} color={COLORS.ember} />
             <Text style={styles.riteFramingTitle}>{i18n.t('rite_title')}</Text>
           </View>
           <Text style={styles.riteFramingCountdown}>{formatCountdown(secondsLeft)}</Text>

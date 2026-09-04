@@ -31,7 +31,6 @@ public class AppDbContext : DbContext
     public DbSet<TownSquareRsvp> TownSquareRsvps => Set<TownSquareRsvp>();
     public DbSet<TownSquareRound> TownSquareRounds => Set<TownSquareRound>();
     public DbSet<TownSquarePairing> TownSquarePairings => Set<TownSquarePairing>();
-    public DbSet<TownSquareIcebreakerResponse> TownSquareIcebreakerResponses => Set<TownSquareIcebreakerResponse>();
     public DbSet<Ship> Ships => Set<Ship>();
     public DbSet<PhoneVerification> PhoneVerifications => Set<PhoneVerification>();
     public DbSet<CampaignRoomClaim> CampaignRoomClaims => Set<CampaignRoomClaim>();
@@ -86,7 +85,6 @@ public class AppDbContext : DbContext
         b.Entity<TownSquareRound>().HasIndex(r => new { r.SessionId, r.RoundNumber }).IsUnique();
         b.Entity<TownSquarePairing>().HasOne(p => p.UserA).WithMany().HasForeignKey(p => p.UserAId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<TownSquarePairing>().HasOne(p => p.UserB).WithMany().HasForeignKey(p => p.UserBId).OnDelete(DeleteBehavior.Restrict);
-        b.Entity<TownSquareIcebreakerResponse>().HasIndex(r => new { r.PairingId, r.UserId }).IsUnique();
         b.Entity<Ship>().HasIndex(s => s.ShipperUserId);
         b.Entity<Ship>().HasIndex(s => s.SlotAUserId);
         b.Entity<Ship>().HasIndex(s => s.SlotBUserId);

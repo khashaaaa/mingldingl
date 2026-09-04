@@ -8,7 +8,7 @@ import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { useTownSquareRound } from '../../hooks/useTownSquareRound';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 
@@ -16,7 +16,7 @@ export default function TownSquareRoundScreen() {
   useLocaleStore((s) => s.locale);
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const router = useRouter();
-  const { round, isLoading, error, markJoined, submitResponse, hasResponded, matchId, isResponding, respondError, clearRespondError } =
+  const { round, isLoading, error, markJoined, submitResponse, hasResponded, matchId, isResponding, respondError, clearRespondError, joinError, clearJoinError } =
     useTownSquareRound(sessionId);
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
@@ -64,7 +64,7 @@ export default function TownSquareRoundScreen() {
       {/* #15: a failed connection used to leave a blank screen with no way forward. */}
       {callFailed ? (
         <View style={[styles.screen, styles.center]}>
-          <Icon name="video-off" size={44} color={COLORS.emberLight} />
+          <Icon name="video-off" size={ICON_SIZES.hero} color={COLORS.emberLight} />
           <Text style={styles.errorTitle}>{i18n.t('round_connect_error_title')}</Text>
           <Text style={styles.status}>{i18n.t('round_connect_error_body')}</Text>
           <GameButton
@@ -121,6 +121,16 @@ export default function TownSquareRoundScreen() {
         title={i18n.t('action_failed_title')}
         message={i18n.t('action_failed_body')}
         onDismiss={clearRespondError}
+      />
+      {/* A failed join is silent otherwise, and attendance for the round goes unrecorded. */}
+      <AlertModal
+        visible={joinError}
+        tone="warning"
+        title={i18n.t('round_join_failed_title')}
+        message={i18n.t('round_join_failed_body')}
+        confirmLabel={i18n.t('retry')}
+        onConfirm={() => { clearJoinError(); markJoined(round.pairingId); }}
+        onDismiss={clearJoinError}
       />
     </View>
   );

@@ -2,7 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import type { DeepFields, PartialUser } from '../../models/match';
 import { CardEyebrow } from '../ui/CardEyebrow';
 
@@ -58,14 +58,14 @@ export function RevealStrip({ otherUser, messageCount }: Props) {
             <Image key={i} source={{ uri }} style={styles.photo} contentFit="cover" testID={`reveal-photo-${i}`} />
           ) : (
             <View key={i} style={[styles.photo, styles.locked]} accessibilityLabel={i18n.t('reveal_locked')} testID={`reveal-photo-locked-${i}`}>
-              <Icon name="lock" size={14} color={COLORS.textDim} />
+              <Icon name="lock" size={ICON_SIZES.sm} color={COLORS.textDim} />
             </View>
           )
         ))}
         <View style={styles.chips}>
           {chips.map((c) => (
             <View key={c.key} style={[styles.chip, c.value === null && styles.chipLocked]}>
-              {c.value === null && <Icon name="lock" size={10} color={COLORS.textDim} />}
+              {c.value === null && <Icon name="lock" size={ICON_SIZES.xs} color={COLORS.textDim} />}
               <Text style={[styles.chipText, c.value === null && styles.chipTextLocked]} numberOfLines={1}>
                 {c.value === null ? c.label : `${c.label}: ${c.value}`}
               </Text>

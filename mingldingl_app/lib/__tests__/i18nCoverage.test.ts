@@ -1,0 +1,75 @@
+import { readdirSync, readFileSync, statSync } from 'fs';
+import { join } from 'path';
+import { translations } from '../i18n';
+
+/**
+ * Key parity is covered by i18n.test.ts. What was never covered — and what let five
+ * `video_error_*` keys survive the error-code refactor that deleted their lookup table —
+ * is the link between a key and the code that uses it, in both directions.
+ */
+
+const ROOT = join(__dirname, '..', '..');
+const SOURCE_DIRS = ['app', 'components', 'hooks', 'lib', 'store'];
+
+/** Key families the engine supplies as data (a `nameKey` on an API response), so no app
+ *  source file ever names them literally. Adding a family here should be deliberate. */
+const ENGINE_SUPPLIED = ['milestone_', 'quest_'];
+
+
+function sourceFiles(): string[] {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) {
+        if (entry !== 'node_modules' && entry !== '__tests__') walk(full);
+      } else if (/\.tsx?$/.test(entry) && !full.endsWith(join('lib', 'i18n.ts'))) {
+        out.push(full);
+      }
+    }
+  };
+  for (const dir of SOURCE_DIRS) walk(join(ROOT, dir));
+  return out;
+}
+
+const blob = sourceFiles().map((f) => readFileSync(f, 'utf8')).join('\n');
+const defined = Object.keys(translations.en);
+
+/** Families built at the call site — i18n.t(`campaign_room_${id}`), or a key assembled first
+ *  as in errors.ts's `err_${code}`. Discovered from the source rather than listed here, so a
+ *  family that loses its call site shows up as orphaned keys instead of staying whitelisted.
+ *  A prefix only counts once some defined key uses it (asserted below). */
+const dynamicPrefixes = [
+  ...new Set(
+    [...blob.matchAll(/`([a-z0-9]+_[a-z0-9_]*)\$\{/g)]
+      .map((m) => m[1])
+      .filter((prefix) => defined.some((key) => key.startsWith(prefix))),
+  ),
+];
+
+describe('i18n key coverage', () => {
+  it('has no key that nothing in the app references', () => {
+    const literals = new Set([...blob.matchAll(/['"`]([a-zA-Z0-9_]+)['"`]/g)].map((m) => m[1]));
+    const orphans = defined.filter(
+      (key) =>
+        !literals.has(key) &&
+        !ENGINE_SUPPLIED.some((p) => key.startsWith(p)) &&
+        !dynamicPrefixes.some((p) => key.startsWith(p)),
+    );
+    expect(orphans).toEqual([]);
+  });
+
+  it('resolves every key named literally in an i18n.t() call', () => {
+    const used = [...blob.matchAll(/i18n\.t\(\s*['"]([a-zA-Z0-9_]+)['"]/g)].map((m) => m[1]);
+    const missing = [...new Set(used)].filter((key) => !defined.includes(key)).sort();
+    expect(missing).toEqual([]);
+  });
+
+  it('has at least one real key behind every dynamic prefix the code builds', () => {
+    // A prefix with no keys behind it means the family was renamed or deleted out from
+    // under its call site, and every lookup through it now silently falls back.
+    expect(dynamicPrefixes.length).toBeGreaterThan(0);
+    const empty = dynamicPrefixes.filter((p) => !defined.some((k) => k.startsWith(p)));
+    expect(empty).toEqual([]);
+  });
+});

@@ -2,7 +2,7 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GemTierBadge } from '../progression/GemTierBadge';
 import { colorForTier, tierLabel } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
 import type { GemTier } from '../../models/user';
@@ -53,7 +53,7 @@ export function CharacterCard({ displayName, photoUrl, gemTier, totalScore, curr
       <Text style={styles.score}>{totalScore.toLocaleString()} {i18n.t('pts')}</Text>
       {currentStreak > 0 && (
         <View style={styles.streakRow}>
-          <Icon name="fire" size={13} color={COLORS.ember} />
+          <Icon name="fire" size={ICON_SIZES.sm} color={COLORS.ember} />
           <Text style={styles.streak}>{i18n.t('streak_current')}: {currentStreak}</Text>
         </View>
       )}

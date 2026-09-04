@@ -1,6 +1,6 @@
 import { View as RNView, Text as RNText, Image as RNImage, StyleSheet } from 'react-native';
 import { i18n } from '../lib/i18n';
-import { COLORS, FILL, FONTS, FONT_SIZES, RADIUS, SPACE, glow } from '../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, glow } from '../lib/theme';
 import { ORNAMENTS } from '../lib/ornaments';
 import type { Oath } from '../models/user';
 
@@ -14,7 +14,6 @@ interface Props {
 
 export const OATH_VALUES: readonly Oath[] = ['Bond', 'Fate', 'Kinship'];
 
-export const OATH_GLYPHS: Record<Oath, string> = { Bond: '\u2694\uFE0E', Fate: '◈', Kinship: '○' };
 // Each oath's ulzii sigil — a different knot density in a different metal.
 export const OATH_SIGILS: Record<Oath, number> = {
   Bond: ORNAMENTS.sigilBond,
@@ -44,8 +43,8 @@ export function oathLabel(oath: string | null | undefined): string {
 }
 
 const SIZES = {
-  sm: { glyph: 13, name: 11, state: 9, padH: 8, padV: 4, gap: SPACE.xs },
-  md: { glyph: 17, name: 13, state: 10, padH: 10, padV: 6, gap: SPACE.sm },
+  sm: { sigil: ICON_SIZES.lg, name: FONT_SIZES.sm, state: FONT_SIZES.xs, padH: SPACE.sm, padV: SPACE.xs, gap: SPACE.xs },
+  md: { sigil: ICON_SIZES.xl, name: FONT_SIZES.md, state: FONT_SIZES.sm, padH: SPACE.md, padV: SPACE.sm, gap: SPACE.sm },
 } as const;
 
 export default function OathSigil({ oath, proven, size = 'md', progress }: Props) {
@@ -71,7 +70,7 @@ export default function OathSigil({ oath, proven, size = 'md', progress }: Props
         <RNImage
           source={OATH_SIGILS[oath]}
           testID={`oath-sigil-${oath}`}
-          style={{ width: sz.glyph + 6, height: sz.glyph + 6, opacity: proven ? 1 : 0.75 }}
+          style={{ width: sz.sigil, height: sz.sigil, opacity: proven ? 1 : 0.75 }}
         />
       )}
       <RNView>
@@ -99,8 +98,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: RADIUS.md,
   },
-  glyph: { fontFamily: FONTS.display },
-  name: { fontFamily: FONTS.bodyBold, color: COLORS.text, letterSpacing: 0.2 },
-  state: { fontFamily: FONTS.body, letterSpacing: 0.5, textTransform: 'uppercase' },
+  name: { fontFamily: FONTS.bodyBold, color: COLORS.text, letterSpacing: 0.3 },
+  state: { fontFamily: FONTS.utility, letterSpacing: 0.5, textTransform: 'uppercase' },
   progress: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textDim, marginTop: SPACE.hair },
 });

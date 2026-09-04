@@ -42,6 +42,7 @@ public class ReferralService
     public async Task<DroppedItem?> TryCompleteReferralAsync(Guid inviteeId, string? code)
     {
         if (string.IsNullOrWhiteSpace(code)) return null;
+        Referral? added = null;
         try
         {
             var normalized = code.ToUpperInvariant();
@@ -56,13 +57,14 @@ public class ReferralService
             var inviterReward = await _loot.GrantGuaranteedAsync(inviter.Id, "ReferralReward");
             var inviteeReward = await _loot.GrantGuaranteedAsync(inviteeId, "ReferralReward");
 
-            _db.Referrals.Add(new Referral
+            added = new Referral
             {
                 InviterUserId = inviter.Id,
                 InviteeUserId = inviteeId,
                 InviterRewardItemId = inviterReward?.Id,
                 InviteeRewardItemId = inviteeReward?.Id,
-            });
+            };
+            _db.Referrals.Add(added);
             await _db.SaveChangesAsync();
 
             return inviteeReward;
@@ -71,7 +73,9 @@ public class ReferralService
         {
             _logger.LogWarning(ex, "Referral completion swallowed a failure for invitee {InviteeId} (code {Code})", inviteeId, code);
 
-            _db.ChangeTracker.Clear();
+            // Detach only what this method added. Clearing the whole tracker would silently throw
+            // away unsaved work belonging to whoever else is sharing this scoped context.
+            if (added is not null) _db.Entry(added).State = EntityState.Detached;
             return null;
         }
     }

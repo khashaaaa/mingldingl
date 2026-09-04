@@ -14,7 +14,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
@@ -81,7 +81,7 @@ export default function ActivitiesScreen() {
 
   if (error || !suggestions || suggestions.length === 0) return (
     <View style={styles.centered}>
-      <Icon name="calendar" size={32} color={COLORS.bronze} />
+      <Icon name="calendar" size={ICON_SIZES.huge} color={COLORS.bronze} />
       <Text style={styles.title}>{i18n.t('no_date_ideas')}</Text>
       <Text style={styles.subtitle}>{i18n.t('keep_chatting')}</Text>
       <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
@@ -91,7 +91,7 @@ export default function ActivitiesScreen() {
   if (completed) {
     return (
       <View style={styles.centered}>
-        <Icon name={rated ? 'party-popper' : 'map-marker'} size={16} color={COLORS.ember} />
+        <Icon name={rated ? 'party-popper' : 'map-marker'} size={ICON_SIZES.md} color={COLORS.ember} />
         <AppCard style={styles.completionCard}>
           <Text style={styles.title}>{i18n.t('both_in')}</Text>
           <Text style={styles.subtitle}>{completed.title}</Text>
@@ -113,7 +113,7 @@ export default function ActivitiesScreen() {
               {localPhotoUri ? (
                 <Image source={{ uri: localPhotoUri }} style={styles.momentPhotoImage} />
               ) : (
-                <Icon name="image-plus" size={22} color={COLORS.textDim} />
+                <Icon name="image-plus" size={ICON_SIZES.xl} color={COLORS.textDim} />
               )}
               {uploading && (
                 <View style={styles.momentPhotoOverlay}>
@@ -131,7 +131,7 @@ export default function ActivitiesScreen() {
                   disabled={isRating || uploading}
                   onPress={() => rateBusiness(n, uploadedPhotoUrl)}
                 >
-                  <Icon name="star" size={16} color={COLORS.gold} />
+                  <Icon name="star" size={ICON_SIZES.md} color={COLORS.gold} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -164,14 +164,14 @@ export default function ActivitiesScreen() {
       <ScrollView contentContainerStyle={styles.list}>
         {partnerPledged && !suggestions.some((s) => s.myConfirmed) && (
           <View style={styles.partnerPledgedBanner}>
-            <Icon name="hand-heart" size={16} color={COLORS.gold} />
+            <Icon name="hand-heart" size={ICON_SIZES.md} color={COLORS.gold} />
             <Text style={styles.partnerPledgedText}>{i18n.t('pledge_partner_first')}</Text>
           </View>
         )}
         {suggestions.map((s) => (
           <AppCard key={s.id} style={styles.card}>
             <View style={styles.sealRow}>
-              <View style={styles.seal}><Icon name="candle" size={16} color={COLORS.ember} /></View>
+              <View style={styles.seal}><Icon name="candle" size={ICON_SIZES.md} color={COLORS.ember} /></View>
               <Text style={styles.cardTitle}>{s.title}</Text>
             </View>
             {s.business && (
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   seal: {
     ...circle(34),
     backgroundColor: COLORS.panelRaised,
-    borderWidth: 1.5, borderColor: COLORS.ember,
+    borderWidth: 2, borderColor: COLORS.ember,
     alignItems: 'center', justifyContent: 'center',
   },
   cardTitle: { color: COLORS.text, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },

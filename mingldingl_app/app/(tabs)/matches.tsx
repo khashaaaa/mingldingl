@@ -10,7 +10,7 @@ import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { FogDrift } from '../../components/vfx/FogDrift';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
@@ -36,7 +36,7 @@ export default function MatchesScreen() {
       )}
       {!isLoading && isError && (
         <View style={styles.center}>
-          <Icon name="alert-circle-outline" size={36} color={COLORS.bronze} style={styles.emptyIcon} />
+          <Icon name="alert-circle-outline" size={ICON_SIZES.huge} color={COLORS.bronze} style={styles.emptyIcon} />
           <Text style={styles.emptyTitle}>{i18n.t('screen_load_error')}</Text>
           <GameButton size="compact" onPress={() => refetch()} style={styles.emptyCta}>
             {i18n.t('retry')}
@@ -46,7 +46,7 @@ export default function MatchesScreen() {
       {!isLoading && !isError && (!matches || matches.length === 0) && (
         <View style={styles.center} onLayout={onEmptyLayout}>
           {emptySize.w > 0 && <FogDrift width={emptySize.w} height={emptySize.h} />}
-          <Icon name="skull-outline" size={36} color={COLORS.bronze} style={styles.emptyIcon} />
+          <Icon name="skull-outline" size={ICON_SIZES.huge} color={COLORS.bronze} style={styles.emptyIcon} />
           <Text style={styles.emptyTitle}>{i18n.t('no_quests')}</Text>
           <Text style={styles.emptySub}>{i18n.t('no_quests_sub')}</Text>
           <GameButton size="compact" onPress={() => router.push('/(tabs)/discover')} style={styles.emptyCta}>

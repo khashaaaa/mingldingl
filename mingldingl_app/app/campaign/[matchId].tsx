@@ -11,7 +11,7 @@ import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { toDroppedItem } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
@@ -97,7 +97,7 @@ export default function CampaignScreen() {
           {room.cleared ? (
             room.claimed ? (
               <View style={styles.statusRow}>
-                <Icon name="check-decagram" size={14} color={COLORS.textDim} />
+                <Icon name="check-decagram" size={ICON_SIZES.sm} color={COLORS.textDim} />
                 <Text style={styles.statusText}>{i18n.t('campaign_claimed')}</Text>
               </View>
             ) : (
@@ -122,7 +122,7 @@ export default function CampaignScreen() {
             />
           ) : (
             <View style={styles.statusRow}>
-              <Icon name="lock" size={14} color={COLORS.textDim} />
+              <Icon name="lock" size={ICON_SIZES.sm} color={COLORS.textDim} />
               <Text style={styles.statusText}>{i18n.t('campaign_room_sealed')}</Text>
             </View>
           )}
@@ -142,7 +142,7 @@ export default function CampaignScreen() {
         </View>
       ) : unavailable ? (
         <View style={styles.centered}>
-          <Icon name="door-closed-lock" size={40} color={COLORS.textDim} />
+          <Icon name="door-closed-lock" size={ICON_SIZES.hero} color={COLORS.textDim} />
           <Text style={styles.emptyText}>{i18n.t('campaign_unavailable')}</Text>
         </View>
       ) : error || !campaign ? (

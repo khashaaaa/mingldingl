@@ -42,48 +42,55 @@ public class ShipService
         int todayCount = await _db.Ships.CountAsync(s => s.ShipperUserId == shipperId && s.CreatedAt >= today);
         if (todayCount >= cap) return (false, "Daily thread limit reached", "ship.daily_cap", null, null);
 
-        var (slotAUserId, slotACode) = await ResolveSlotAsync(slotAPhone);
-        var (slotBUserId, slotBCode) = await ResolveSlotAsync(slotBPhone);
+        var (slotAUserId, slotACode) = await ResolveSlotAsync(slotAPhone, null);
+        var (slotBUserId, slotBCode) = await ResolveSlotAsync(slotBPhone, slotACode);
 
         bool blockedByA = slotAUserId.HasValue &&
             await _db.BlockedUsers.AnyAsync(bl => bl.BlockerId == slotAUserId && bl.BlockedId == shipperId);
         bool blockedByB = slotBUserId.HasValue &&
             await _db.BlockedUsers.AnyAsync(bl => bl.BlockerId == slotBUserId && bl.BlockedId == shipperId);
         if (blockedByA || blockedByB)
-            return (true, null, null, slotACode, slotBCode);
+            return (true, null, null, null, null);
 
         if (slotAUserId.HasValue && slotBUserId.HasValue)
         {
             bool alreadyMatched = await _db.Matches.AnyAsync(m =>
                 (m.InitiatorId == slotAUserId && m.ReceiverId == slotBUserId) ||
                 (m.InitiatorId == slotBUserId && m.ReceiverId == slotAUserId));
-            if (alreadyMatched) return (true, null, null, slotACode, slotBCode);
+            if (alreadyMatched) return (true, null, null, null, null);
         }
 
         _db.Ships.Add(new Ship
         {
             ShipperUserId = shipperId,
             SlotAUserId = slotAUserId,
-            SlotAInviteCode = slotAUserId.HasValue ? null : slotACode,
+            SlotAInviteCode = slotACode,
             SlotAOptIn = slotAUserId.HasValue ? "PendingOptIn" : "AwaitingUser",
             SlotBUserId = slotBUserId,
-            SlotBInviteCode = slotBUserId.HasValue ? null : slotBCode,
+            SlotBInviteCode = slotBCode,
             SlotBOptIn = slotBUserId.HasValue ? "PendingOptIn" : "AwaitingUser",
         });
         await _db.SaveChangesAsync();
         return (true, null, null, slotACode, slotBCode);
     }
 
-    private async Task<(Guid? UserId, string InviteCode)> ResolveSlotAsync(string phoneNumber)
+    /// <summary>
+    /// A nominee who already has an account is invited in-app and needs no code, so none is minted:
+    /// returning one anyway gave the Weaver something to share that could never resolve. The two
+    /// slots are resolved in sequence because a freshly generated code is not in the database yet
+    /// and so is invisible to <see cref="CodeExistsAsync"/>.
+    /// </summary>
+    private async Task<(Guid? UserId, string? InviteCode)> ResolveSlotAsync(string phoneNumber, string? reservedCode)
     {
         var existing = await _db.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
+        if (existing is not null) return (existing.Id, null);
 
         string code;
         do
         {
             code = GenerateCode();
-        } while (await CodeExistsAsync(code));
-        return (existing?.Id, code);
+        } while (code == reservedCode || await CodeExistsAsync(code));
+        return (null, code);
     }
 
     private static string GenerateCode()
@@ -101,10 +108,11 @@ public class ShipService
     public async Task TryResolveInviteCodeAsync(Guid newUserId, string? code)
     {
         if (string.IsNullOrWhiteSpace(code)) return;
+        Ship? ship = null;
         try
         {
             var normalized = code.ToUpperInvariant();
-            var ship = await _db.Ships.FirstOrDefaultAsync(s =>
+            ship = await _db.Ships.FirstOrDefaultAsync(s =>
                 s.Status == "Pending" && (s.SlotAInviteCode == normalized || s.SlotBInviteCode == normalized));
             if (ship is null) return;
 
@@ -126,7 +134,9 @@ public class ShipService
         {
             _logger.LogWarning(ex, "Ship invite-code resolution swallowed a failure for new user {UserId} (code {Code})", newUserId, code);
 
-            _db.ChangeTracker.Clear();
+            // Detach only what this method touched. Clearing the whole tracker would silently
+            // throw away unsaved work belonging to whoever else is sharing this scoped context.
+            if (ship is not null) _db.Entry(ship).State = EntityState.Detached;
         }
     }
 
@@ -172,16 +182,21 @@ public class ShipService
 
         bool alreadyMatched = await MatchPairing.PairAlreadyMatchedAsync(_db, row.SlotAUserId!.Value, row.SlotBUserId!.Value);
         bool blocked = await MatchPairing.IsPairBlockedAsync(_db, row.SlotAUserId!.Value, row.SlotBUserId!.Value);
-        if (alreadyMatched || blocked)
-        {
-            ship.Status = "Expired";
-            await _db.SaveChangesAsync();
-            return false;
-        }
+        string terminalStatus = alreadyMatched || blocked ? "Expired" : "Sparked";
+
+        // Leaving Pending is the claim, and it is what makes everything below run exactly once.
+        // Both slots can observe "both accepted" concurrently — a double-tapped accept on the
+        // second slot is enough — and the rest of this method creates a match and pays the Weaver.
+        int claimed = await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"""UPDATE "Ships" SET "Status" = {terminalStatus} WHERE "Id" = {shipId} AND "Status" = 'Pending'""");
+        if (claimed == 0) return false;
+
+        ship.Status = terminalStatus;
+        _db.Entry(ship).Property(s => s.Status).IsModified = false;
+        if (terminalStatus == "Expired") return false;
 
         var match = MatchPairing.NewMatch(row.SlotAUserId!.Value, row.SlotBUserId!.Value, ship.Id);
         _db.Matches.Add(match);
-        ship.Status = "Sparked";
         await _db.SaveChangesAsync();
 
         ship.ResultMatchId = match.Id;

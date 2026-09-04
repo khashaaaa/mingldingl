@@ -7,7 +7,7 @@ namespace MinglDingl.Engine.Tests.Integration;
 
 public class UsersControllerIntegrationTests : IntegrationTestBase
 {
-    private UsersController BuildController(Guid userId, string? phone = null)
+    private UsersController BuildController(Guid userId, string? phone = null, LocalFileStorageService? storage = null)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
@@ -17,7 +17,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var referralService = new ReferralService(Db, lootService, NullLogger<ReferralService>.Instance);
         var shipService = new ShipService(Db, lootService, scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
         var oathService = new OathService(Db, new ConfigService(), scoreService, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), lootService);
-        var controller = new UsersController(Db, scoreService, referralService, shipService, oathService, BuildUnconfiguredPhoneVerification(Db), BuildTestStorage())
+        var controller = new UsersController(Db, scoreService, referralService, shipService, oathService, BuildUnconfiguredPhoneVerification(Db), storage ?? BuildTestStorage())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -248,5 +248,103 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
 
         Db.ChangeTracker.Clear();
         Assert.Single(Db.Referrals.Where(r => r.InviteeUserId == inviteeId));
+    }
+
+    [Fact]
+    public async Task Upsert_TogglingCompletenessRepeatedly_PaysProfileCompleteOnlyOnce()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        var photos = new List<string>
+            { "https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg" };
+        var complete = new CreateUserRequest("Farmer", 26, "Male", "Ulaanbaatar", "Filled in", photos);
+        var incomplete = new CreateUserRequest("Farmer", 26, "Male", "Ulaanbaatar", "", photos);
+
+        for (int i = 0; i < 5; i++)
+        {
+            await controller.Upsert(complete);
+            await controller.Upsert(incomplete);
+        }
+
+        Db.ChangeTracker.Clear();
+        var events = Db.ScoreEvents.Where(e => e.UserId == userId && e.EventType == "ProfileComplete").ToList();
+        Assert.Single(events);
+        Assert.Equal(100, Db.Users.Single(u => u.Id == userId).TotalScore);
+    }
+
+    [Fact]
+    public async Task Update_ClearingRequiredFields_MarksProfileIncomplete()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        await controller.Upsert(new CreateUserRequest(
+            "Complete", 26, "Male", "Ulaanbaatar", "Filled in",
+            ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"]));
+
+        await controller.Update(new UpdateUserRequest(
+            null, "", [], null, null, null, null, null, null, null, null, null, null));
+
+        Db.ChangeTracker.Clear();
+        Assert.False(Db.Users.Single(u => u.Id == userId).IsProfileComplete);
+    }
+
+    [Fact]
+    public async Task Update_CompletingProfileThroughPut_PaysProfileCompleteOnce()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        await controller.Upsert(new CreateUserRequest("Partial", 26, "Male", "Ulaanbaatar", "", []));
+
+        var photos = new List<string>
+            { "https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg" };
+        await controller.Update(new UpdateUserRequest(
+            null, "Filled in", photos, null, null, null, null, null, null, null, null, null, null));
+        await controller.Update(new UpdateUserRequest(
+            null, "Filled in again", photos, null, null, null, null, null, null, null, null, null, null));
+
+        Db.ChangeTracker.Clear();
+        Assert.True(Db.Users.Single(u => u.Id == userId).IsProfileComplete);
+        Assert.Single(Db.ScoreEvents.Where(e => e.UserId == userId && e.EventType == "ProfileComplete"));
+    }
+
+    [Fact]
+    public async Task Update_RejectedByValidation_KeepsPhotoFilesOnDisk()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        var photos = new List<string>
+            { "https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg" };
+        await controller.Upsert(new CreateUserRequest("Complete", 26, "Male", "Ulaanbaatar", "Filled in", photos));
+
+        var deleted = new List<string>();
+        var recordingController = BuildController(userId, storage: BuildRecordingStorage(deleted));
+
+        // AgeMin > AgeMax is rejected, so the dropped photos must survive: the row still points at them.
+        var result = await recordingController.Update(new UpdateUserRequest(
+            null, null, ["https://example.com/1.jpg"], null, null, null, null, null, null,
+            AgeMin: 40, AgeMax: 20, null, null));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Empty(deleted);
+        Db.ChangeTracker.Clear();
+        Assert.Equal(3, Db.Users.Single(u => u.Id == userId).PhotoUrls.Count);
+    }
+
+    [Fact]
+    public async Task Update_AcceptedByValidation_DeletesDroppedPhotoFiles()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        var photos = new List<string>
+            { "https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg" };
+        await controller.Upsert(new CreateUserRequest("Complete", 26, "Male", "Ulaanbaatar", "Filled in", photos));
+
+        var deleted = new List<string>();
+        var recordingController = BuildController(userId, storage: BuildRecordingStorage(deleted));
+
+        await recordingController.Update(new UpdateUserRequest(
+            null, null, ["https://example.com/1.jpg"], null, null, null, null, null, null, null, null, null, null));
+
+        Assert.Equal(["https://example.com/2.jpg", "https://example.com/3.jpg"], deleted);
     }
 }

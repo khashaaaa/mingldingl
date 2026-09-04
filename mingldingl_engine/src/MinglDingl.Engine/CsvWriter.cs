@@ -14,7 +14,14 @@ public static class CsvWriter
     private static string Escape(string? value)
     {
         value ??= "";
-        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+
+        // Spreadsheets evaluate a leading =, +, - or @ as a formula, so a DisplayName the user
+        // chose runs as code the moment an admin opens the export. The leading apostrophe is what
+        // Excel and Sheets both read as "this cell is text".
+        if (value.Length > 0 && "=+-@\t\r".Contains(value[0]))
+            value = "'" + value;
+
+        if (value.AsSpan().IndexOfAny(",\"\n\r".AsSpan()) >= 0)
             return $"\"{value.Replace("\"", "\"\"")}\"";
         return value;
     }

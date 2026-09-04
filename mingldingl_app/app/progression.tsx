@@ -12,7 +12,7 @@ import { GameButton } from '../components/ui/GameButton';
 import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONT_SIZES, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../lib/theme';
 import type { GemTier } from '../models/user';
 import { Icon } from '../components/ui/Icon';
 import { CardEyebrow } from '../components/ui/CardEyebrow';
@@ -36,7 +36,7 @@ export default function ProgressionScreen() {
   if (error || !detail) {
     return (
       <View style={styles.centered}>
-        <Icon name="trending-down" size={32} color={COLORS.bronze} />
+        <Icon name="trending-down" size={ICON_SIZES.huge} color={COLORS.bronze} />
         <Text style={styles.errorTitle}>{i18n.t('progression_load_error')}</Text>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
         <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
@@ -86,7 +86,7 @@ export default function ProgressionScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   centered: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
-  errorTitle: { color: COLORS.text, fontSize: FONT_SIZES.xl, textAlign: 'center' },
+  errorTitle: { color: COLORS.text, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, textAlign: 'center' },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   xpBarWrap: { flex: 1 },
   leaderboardButtonWrap: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.xs },

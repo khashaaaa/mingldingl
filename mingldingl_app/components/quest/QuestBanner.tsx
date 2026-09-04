@@ -1,5 +1,5 @@
 import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { Icon } from '../ui/Icon';
 
@@ -21,7 +21,7 @@ export function QuestBanner({ icon, title, onPress, tint = COLORS.gold, medallio
           {medallion === 'knot' ? (
             <Image source={ORNAMENTS.knotGold} testID="ulzii-medallion" style={styles.knot} />
           ) : (
-            <Icon name={icon} size={16} color={tint} />
+            <Icon name={icon} size={ICON_SIZES.md} color={tint} />
           )}
         </View>
         <Text style={[styles.title, { color: tint }]} numberOfLines={2}>{title}</Text>
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: RADIUS.lg,
-    borderWidth: 1.5,
+    borderWidth: 2,
     backgroundColor: COLORS.panelRaised,
     alignItems: 'center',
     justifyContent: 'center',

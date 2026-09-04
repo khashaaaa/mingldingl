@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
@@ -14,7 +14,7 @@ type TabGlyph = React.ComponentProps<typeof Icon>['name'];
  * nested in it resolved `width: '100%'` against 31px and clipped every tab to "Se…"/"Ха…".
  */
 const tabIcon = (glyph: TabGlyph) => ({ color }: { color: string }) => (
-  <Icon name={glyph} size={22} color={color} style={styles.glyph} />
+  <Icon name={glyph} size={ICON_SIZES.xl} color={color} style={styles.glyph} />
 );
 
 export default function TabsLayout() {
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.sm,
-    lineHeight: 14,
+    lineHeight: LINE_HEIGHTS.xs,
     letterSpacing: 0.5,
     textAlign: 'center',
   },

@@ -10,10 +10,7 @@ export interface TownSquareRound {
   videoToken: string;
   channelName: string;
   appId: string;
-  icebreakerId: string;
   icebreakerText: string;
-  icebreakerType: string;
-  icebreakerOptions: string[];
   roundNumber: number;
   roundEndsAt: string;
 }
@@ -30,10 +27,7 @@ export function useTownSquareRound(sessionId: string | undefined) {
         videoToken: res.videoToken ?? '',
         channelName: res.channelName ?? '',
         appId: res.appId ?? '',
-        icebreakerId: res.icebreakerId ?? '',
         icebreakerText: res.icebreakerText ?? '',
-        icebreakerType: res.icebreakerType ?? '',
-        icebreakerOptions: res.icebreakerOptions ?? [],
         roundNumber: res.roundNumber ?? 0,
         roundEndsAt: res.roundEndsAt ?? '',
       };
@@ -96,7 +90,6 @@ export function useTownSquareRound(sessionId: string | undefined) {
     isLoading,
     error,
     markJoined: (pairingId: string) => markJoinedMutation.mutate(pairingId),
-    retryJoin: (pairingId: string) => markJoinedMutation.mutate(pairingId),
     submitResponse,
     hasResponded,
     matchId: respondedPairings[currentPairingId] ?? null,
@@ -104,5 +97,6 @@ export function useTownSquareRound(sessionId: string | undefined) {
     respondError,
     clearRespondError: () => setRespondError(false),
     joinError,
+    clearJoinError: () => setJoinError(false),
   };
 }

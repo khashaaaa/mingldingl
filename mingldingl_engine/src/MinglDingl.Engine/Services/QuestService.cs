@@ -28,13 +28,14 @@ public class QuestService
 
     public async Task<int> IncrementAsync(Guid userId, string action)
     {
+        UserDailyQuest? row = null;
         try
         {
             var today = DateTime.UtcNow.Date;
             var quest = QuestsForDate(today).FirstOrDefault(q => q.Action == action);
             if (quest is null) return 0;
 
-            var row = await _db.UserDailyQuests.FirstOrDefaultAsync(r =>
+            row = await _db.UserDailyQuests.FirstOrDefaultAsync(r =>
                 r.UserId == userId && r.QuestDate == today && r.QuestId == quest.Id);
             if (row is null)
             {
@@ -59,7 +60,9 @@ public class QuestService
         {
             _logger.LogWarning(ex, "Quest tracking swallowed a failure for user {UserId} (action {Action}); no quest progress recorded", userId, action);
 
-            _db.ChangeTracker.Clear();
+            // Detach only what this method touched. Clearing the whole tracker would silently throw
+            // away unsaved work belonging to whoever else is sharing this scoped context.
+            if (row is not null) _db.Entry(row).State = EntityState.Detached;
             return 0;
         }
     }

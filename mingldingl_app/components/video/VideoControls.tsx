@@ -2,7 +2,7 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, SPACE, circle } from '../../lib/theme';
+import { COLORS, ICON_SIZES, SPACE, circle } from '../../lib/theme';
 
 interface Props {
   muted: boolean;
@@ -24,7 +24,7 @@ export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, 
         accessibilityState={{ selected: muted }}
         accessibilityLabel={i18n.t(muted ? 'unmute' : 'mute')}
       >
-        <Icon name={muted ? 'microphone-off' : 'microphone'} size={24} color={muted ? COLORS.panelDeep : COLORS.text} />
+        <Icon name={muted ? 'microphone-off' : 'microphone'} size={ICON_SIZES.xl} color={muted ? COLORS.panelDeep : COLORS.text} />
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.button, styles.buttonEnd, endDisabled && styles.buttonBusy]}
@@ -34,7 +34,7 @@ export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, 
         accessibilityState={{ disabled: endDisabled }}
         accessibilityLabel={i18n.t('end_call')}
       >
-        <Icon name="phone-hangup" size={24} color={COLORS.text} />
+        <Icon name="phone-hangup" size={ICON_SIZES.xl} color={COLORS.text} />
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.button, cameraOff ? styles.buttonActive : styles.buttonIdle]}
@@ -43,7 +43,7 @@ export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, 
         accessibilityState={{ selected: cameraOff }}
         accessibilityLabel={i18n.t(cameraOff ? 'camera_on' : 'camera_off')}
       >
-        <Icon name={cameraOff ? 'video-off' : 'video'} size={24} color={cameraOff ? COLORS.panelDeep : COLORS.text} />
+        <Icon name={cameraOff ? 'video-off' : 'video'} size={ICON_SIZES.xl} color={cameraOff ? COLORS.panelDeep : COLORS.text} />
       </TouchableOpacity>
     </View>
   );

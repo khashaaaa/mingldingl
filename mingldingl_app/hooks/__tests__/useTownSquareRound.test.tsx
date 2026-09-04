@@ -103,10 +103,7 @@ describe('useTownSquareRound', () => {
       videoToken: 'tok1',
       channelName: 'chan1',
       appId: 'app1',
-      icebreakerId: 'ib1',
       icebreakerText: 'Favorite trip?',
-      icebreakerType: 'OpenText',
-      icebreakerOptions: [],
       roundNumber: 1,
       roundEndsAt: '2026-08-14T20:04:00Z',
     });

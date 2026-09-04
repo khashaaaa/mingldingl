@@ -23,6 +23,8 @@ public class ScoreService
         "ShipSparked"     => 40,
         "OathProven"      => 40,
         "GhostPenalty"    => -15,
+        // Reserved: the design table specifies -30 for a negative report, but no reporting
+        // endpoint exists yet, so nothing awards this. Tracked under Outstanding Follow-ups.
         "ReportPenalty"   => -30,
         _ => 0
     };
@@ -144,6 +146,32 @@ public class ScoreService
 
         _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta });
         await _db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Awards an event whose ScoreEvent row is guarded by one of the partial unique indexes
+    /// (once per UTC day, or once ever). The row is claimed <em>before</em> the score moves:
+    /// <see cref="AwardWithDeltaAsync"/> pays first, so the loser of a race keeps the points
+    /// even though its event row is rejected. Returns false when the claim was already taken.
+    /// </summary>
+    public async Task<bool> TryAwardClaimedAsync(Guid userId, string eventType, int delta)
+    {
+        if (delta == 0) return false;
+
+        var claim = new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta };
+        _db.ScoreEvents.Add(claim);
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ScoreEventClaimGuard.IsViolation(ex))
+        {
+            _db.Entry(claim).State = EntityState.Detached;
+            return false;
+        }
+
+        await ApplyScoreDeltaAsync(userId, delta, isGhostPenalty: false);
+        return true;
     }
 
     public async Task AwardWithDeltaAsync(Guid userId, string eventType, int delta)

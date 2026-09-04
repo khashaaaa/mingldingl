@@ -20,6 +20,20 @@ Notifications.setNotificationHandler({
   },
 });
 
+/**
+ * The engine tags every push with a `type`. Routing every one of them to the chat sent a Flame
+ * Rite proposal — whose whole point is the video screen — to the wrong place; unknown types
+ * still fall back to the chat, which is where a match or a message belongs.
+ */
+export function destinationFor(type: string | undefined, matchId: string): `/video/${string}` | `/chat/${string}` {
+  switch (type) {
+    case 'flame_rite_proposed':
+      return `/video/${matchId}`;
+    default:
+      return `/chat/${matchId}`;
+  }
+}
+
 export function usePushNotifications() {
   const router = useRouter();
 
@@ -50,8 +64,10 @@ export function usePushNotifications() {
     register();
 
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const matchId = response.notification.request.content.data?.matchId as string | undefined;
-      if (matchId) router.push(`/chat/${matchId}`);
+      const data = response.notification.request.content.data;
+      const matchId = data?.matchId as string | undefined;
+      if (!matchId) return;
+      router.push(destinationFor(data?.type as string | undefined, matchId));
     });
 
     return () => {

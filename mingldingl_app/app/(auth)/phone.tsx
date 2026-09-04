@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +14,7 @@ import { isPhoneValid, useAuth } from '../../hooks/useAuth';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { GameButton } from '../../components/ui/GameButton';
+import { TextField } from '../../components/ui/TextField';
 import { DismissKeyboardView } from '../../components/ui/DismissKeyboardView';
 import { GlowText } from '../../components/vfx/GlowText';
 import { EmberField } from '../../components/vfx/EmberField';
@@ -77,7 +77,7 @@ export default function PhoneScreen() {
             <View style={styles.prefixBadge}>
               <Text style={styles.prefixText}>+976</Text>
             </View>
-            <TextInput
+            <TextField
               style={styles.input}
               value={phone}
               onChangeText={(t) => { setPhone(t); if (error) clearError(); }}
@@ -85,7 +85,6 @@ export default function PhoneScreen() {
               autoComplete="tel"
               textContentType="telephoneNumber"
               placeholder={i18n.t('phone_placeholder')}
-              placeholderTextColor={COLORS.textDim}
               keyboardType="phone-pad"
               maxLength={8}
               returnKeyType="done"
@@ -153,7 +152,7 @@ const styles = StyleSheet.create({
     height: 52,
     paddingHorizontal: SPACE.lg,
     backgroundColor: COLORS.panel,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: COLORS.gold,
     borderRadius: RADIUS.md,
     alignItems: 'center',
@@ -164,18 +163,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.bodyBold,
   },
-  input: {
-    flex: 1,
-    height: 52,
-    backgroundColor: COLORS.panel,
-    borderWidth: 1.5,
-    borderColor: COLORS.bronze,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACE.lg,
-    color: COLORS.text,
-    fontSize: FONT_SIZES.lg,
-    fontFamily: FONTS.body,
-  },
+  input: { flex: 1 },
   error: {
     color: COLORS.emberLight,
     fontSize: FONT_SIZES.md,

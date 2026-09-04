@@ -7,7 +7,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
@@ -40,7 +40,7 @@ export default function BusinessDetailScreen() {
 
         <View style={styles.metaRow}>
           <Text style={styles.meta}>{params.category} · {params.district}</Text>
-          <Icon name="star" size={14} color={COLORS.gold} />
+          <Icon name="star" size={ICON_SIZES.sm} color={COLORS.gold} />
           <Text style={styles.rating}>{Number(params.averageRating ?? 0).toFixed(1)} ({params.ratingCount ?? 0})</Text>
         </View>
 
@@ -65,7 +65,7 @@ export default function BusinessDetailScreen() {
                 )}
                 <View style={styles.reviewStarsRow}>
                   {Array.from({ length: r.stars }).map((_, i) => (
-                    <Icon key={i} name="star" size={12} color={COLORS.gold} />
+                    <Icon key={i} name="star" size={ICON_SIZES.xs} color={COLORS.gold} />
                   ))}
                 </View>
                 {r.review ? <Text style={styles.reviewText}>{r.review}</Text> : null}
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   },
   meta: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
   rating: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
-  description: { color: COLORS.text, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: 20, paddingHorizontal: SPACE.gutter, marginTop: SPACE.md },
+  description: { color: COLORS.text, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md, paddingHorizontal: SPACE.gutter, marginTop: SPACE.md },
   hours: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter, marginTop: SPACE.sm },
   sectionTitle: {
     color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.display, letterSpacing: 1,
@@ -101,5 +101,5 @@ const styles = StyleSheet.create({
   reviewCard: { padding: SPACE.md, gap: SPACE.sm },
   reviewPhoto: { width: '100%', height: 160, borderRadius: RADIUS.sm },
   reviewStarsRow: { flexDirection: 'row', gap: SPACE.hair },
-  reviewText: { color: COLORS.text, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: 19 },
+  reviewText: { color: COLORS.text, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
 });

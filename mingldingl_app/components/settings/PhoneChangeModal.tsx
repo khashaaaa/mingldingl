@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Linking, ActivityIndicator } from 'react-native';
 import { AlertModal } from '../modals/AlertModal';
 import { GameButton } from '../ui/GameButton';
+import { TextField } from '../ui/TextField';
 import { apiClient } from '../../lib/api/apiClient';
 import { isPhoneValid, useAuth, VERIFICATION_POLL_MS } from '../../hooks/useAuth';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, LINE_HEIGHTS, SPACE } from '../../lib/theme';
 
 interface Props {
   visible: boolean;
@@ -114,12 +115,10 @@ export function PhoneChangeModal({ visible, onDismiss, onChanged }: Props) {
         </View>
       ) : (
         <View style={styles.stack}>
-          <TextInput
-            style={styles.input}
+          <TextField
             value={phone}
             onChangeText={(t) => { setPhone(t); if (error) setError(null); }}
             placeholder={i18n.t('new_phone_placeholder')}
-            placeholderTextColor={COLORS.textDim}
             keyboardType="number-pad"
             maxLength={8}
           />
@@ -141,18 +140,7 @@ export function PhoneChangeModal({ visible, onDismiss, onChanged }: Props) {
 
 const styles = StyleSheet.create({
   stack: { gap: SPACE.md },
-  input: {
-    height: 48,
-    backgroundColor: COLORS.panelRaised,
-    borderWidth: 1,
-    borderColor: COLORS.bronze,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACE.lg,
-    color: COLORS.text,
-    fontSize: FONT_SIZES.lg,
-    fontFamily: FONTS.body,
-  },
-  instruction: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.text, textAlign: 'center', lineHeight: 20 },
+  instruction: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.text, textAlign: 'center', lineHeight: LINE_HEIGHTS.md },
   hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
   waitingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.sm },
 });

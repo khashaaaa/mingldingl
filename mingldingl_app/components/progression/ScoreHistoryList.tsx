@@ -2,7 +2,7 @@ import { FlatList, View, Text, StyleSheet, ActivityIndicator } from 'react-nativ
 import { i18n } from '../../lib/i18n';
 import { Icon } from '../ui/Icon';
 import { formatDate } from '../../lib/formatDate';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 
 interface ScoreEventItem {
   eventType: string;
@@ -18,17 +18,31 @@ interface Props {
 
 type EventGlyph = React.ComponentProps<typeof Icon>['name'];
 
-const EVENT_ICONS: Record<string, EventGlyph> = {
+/**
+ * Every `ScoreEvent.EventType` the engine can write, mirrored from its award call sites
+ * (`ScoreService.AwardAsync` / `AwardWithDeltaAsync` / `TryAwardClaimedAsync` / `AwardManyAsync`
+ * and `ApplyReputationPenaltyAsync`). There is no shared schema between the two sides, so this
+ * list plus its test is what keeps the maps below from falling behind the engine.
+ */
+export const ENGINE_EVENT_TYPES = [
+  'ProfileComplete', 'DailyLogin', 'FirstMessage', 'IcebreakerDone', 'QuizDone', 'MatchReply',
+  'DateConfirmed', 'VideoCallDone', 'ShipSparked', 'OathProven', 'GhostPenalty',
+  'RepeatedNoShowPenalty', 'QuestComplete', 'QuestChest', 'MilestoneChest', 'DuplicateLoot',
+  'AdminAdjustment', 'CampaignRoomBonus', 'CampaignBossBonus',
+] as const;
+
+export const EVENT_ICONS: Record<string, EventGlyph> = {
   ProfileComplete: 'account-edit', DailyLogin: 'weather-sunny', FirstMessage: 'message-text',
   IcebreakerDone: 'snowflake', QuizDone: 'script-text', MatchReply: 'keyboard-return',
   DateConfirmed: 'map-marker', VideoCallDone: 'video', GhostPenalty: 'ghost',
   ReportPenalty: 'alert', ShipSparked: 'bow-arrow', QuestComplete: 'target',
   QuestChest: 'gift', MilestoneChest: 'medal', DuplicateLoot: 'recycle',
-  AdminAdjustment: 'scale-balance',
+  AdminAdjustment: 'scale-balance', OathProven: 'seal-variant',
+  RepeatedNoShowPenalty: 'account-cancel',
   CampaignRoomBonus: 'map-marker-path', CampaignBossBonus: 'trophy',
 };
 
-const EVENT_TYPE_KEYS: Record<string, string> = {
+export const EVENT_TYPE_KEYS: Record<string, string> = {
   ProfileComplete: 'event_profile_complete',
   DailyLogin: 'event_daily_login',
   FirstMessage: 'event_first_message',
@@ -45,6 +59,8 @@ const EVENT_TYPE_KEYS: Record<string, string> = {
   MilestoneChest: 'event_milestone_chest',
   DuplicateLoot: 'event_duplicate_loot',
   AdminAdjustment: 'event_admin_adjustment',
+  OathProven: 'event_oath_proven',
+  RepeatedNoShowPenalty: 'event_repeated_no_show_penalty',
   CampaignRoomBonus: 'event_campaign_room_bonus',
   CampaignBossBonus: 'event_campaign_boss_bonus',
 };
@@ -81,7 +97,7 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
         const date = formatDate(item.createdAt);
         return (
           <View style={styles.row}>
-            <Icon name={icon} size={16} color={COLORS.textDim} style={styles.icon} />
+            <Icon name={icon} size={ICON_SIZES.md} color={COLORS.textDim} style={styles.icon} />
             <Text style={styles.type}>{eventLabel(item.eventType)}</Text>
             <Text style={[styles.delta, { color }]}>{sign}{item.delta}</Text>
             <Text style={styles.date}>{date}</Text>

@@ -5,7 +5,7 @@ import { ChestBurst } from '../vfx/ChestBurst';
 import { Icon } from '../ui/Icon';
 import { RARITY_COLORS } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 
 export interface ChestItem { nameKey: string; rarity: string; itemType: string; }
 interface Props { visible: boolean; xp: number; item?: ChestItem | null; onDismiss: () => void; }
@@ -53,7 +53,7 @@ export function ChestModal({ visible, xp, item, onDismiss }: Props) {
             ],
           }}
         >
-          <Icon name={revealed ? 'treasure-chest' : 'treasure-chest-outline'} size={72} color={COLORS.gold} />
+          <Icon name={revealed ? 'treasure-chest' : 'treasure-chest-outline'} size={ICON_SIZES.splash} color={COLORS.gold} />
         </Animated.View>
         <View style={{ width: 220, height: 220, position: 'absolute' }} pointerEvents="none">
           <ChestBurst size={220} trigger={burst} />

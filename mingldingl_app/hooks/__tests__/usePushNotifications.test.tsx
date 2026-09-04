@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { renderHook, waitFor } from '@testing-library/react-native';
-import { usePushNotifications } from '../usePushNotifications';
+import { usePushNotifications, destinationFor } from '../usePushNotifications';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { apiClient } from '../../lib/api/apiClient';
@@ -182,6 +182,45 @@ describe('usePushNotifications platform gating and registration flow', () => {
     expect(mockPush).toHaveBeenCalledWith('/chat/m42');
   });
 
+  // The engine tags every push with a `type` and this hook used to ignore it, sending a Flame
+  // Rite proposal — whose entire subject is the video screen — to the chat instead.
+  it("routes a Flame Rite proposal to the match's video screen, not its chat", async () => {
+    mockGetPermissions.mockResolvedValue({ status: 'granted' });
+    mockGetToken.mockResolvedValue({ data: 'tok' });
+    mockRegister.mockResolvedValue(undefined);
+    let tapCallback!: (response: unknown) => void;
+    mockAddResponseListener.mockImplementation((cb: (response: unknown) => void) => {
+      tapCallback = cb;
+      return { remove: jest.fn() };
+    });
+    renderHook(() => usePushNotifications());
+    await waitFor(() => expect(mockAddResponseListener).toHaveBeenCalled());
+
+    tapCallback({
+      notification: { request: { content: { data: { matchId: 'm7', type: 'flame_rite_proposed' } } } },
+    });
+    expect(mockPush).toHaveBeenCalledWith('/video/m7');
+  });
+
+  it('routes the match and message types to the chat', async () => {
+    mockGetPermissions.mockResolvedValue({ status: 'granted' });
+    mockGetToken.mockResolvedValue({ data: 'tok' });
+    mockRegister.mockResolvedValue(undefined);
+    let tapCallback!: (response: unknown) => void;
+    mockAddResponseListener.mockImplementation((cb: (response: unknown) => void) => {
+      tapCallback = cb;
+      return { remove: jest.fn() };
+    });
+    renderHook(() => usePushNotifications());
+    await waitFor(() => expect(mockAddResponseListener).toHaveBeenCalled());
+
+    for (const type of ['match', 'message']) {
+      tapCallback({ notification: { request: { content: { data: { matchId: 'm7', type } } } } });
+    }
+    expect(mockPush).toHaveBeenNthCalledWith(1, '/chat/m7');
+    expect(mockPush).toHaveBeenNthCalledWith(2, '/chat/m7');
+  });
+
   it('does not navigate when the tapped notification carries no matchId', async () => {
     mockGetPermissions.mockResolvedValue({ status: 'granted' });
     mockGetToken.mockResolvedValue({ data: 'tok' });
@@ -223,5 +262,22 @@ describe('usePushNotifications platform gating and registration flow', () => {
     await new Promise((r) => setTimeout(r, 0));
 
     expect(mockRegister).not.toHaveBeenCalled();
+  });
+});
+
+describe('destinationFor', () => {
+  it('sends a Flame Rite proposal to the video screen', () => {
+    expect(destinationFor('flame_rite_proposed', 'm1')).toBe('/video/m1');
+  });
+
+  it('sends every other engine push type to the chat', () => {
+    expect(destinationFor('match', 'm1')).toBe('/chat/m1');
+    expect(destinationFor('message', 'm1')).toBe('/chat/m1');
+  });
+
+  // A type this build has never heard of must still land somewhere useful.
+  it('falls back to the chat for an unknown or absent type', () => {
+    expect(destinationFor('some_future_type', 'm1')).toBe('/chat/m1');
+    expect(destinationFor(undefined, 'm1')).toBe('/chat/m1');
   });
 });

@@ -1,7 +1,7 @@
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { usePendingShips } from '../../hooks/usePendingShips';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FILL, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import { AppCard } from '../ui/AppCard';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { Icon } from '../ui/Icon';
@@ -16,7 +16,7 @@ export function FatedThreadsSection() {
       <CardEyebrow color={COLORS.gold}>{i18n.t('fated_threads_title')}</CardEyebrow>
       {pendingShips.map((ship) => (
         <AppCard key={ship.shipId} style={styles.card}>
-          <Icon name="bow-arrow" size={18} color={COLORS.gold} />
+          <Icon name="bow-arrow" size={ICON_SIZES.lg} color={COLORS.gold} />
           <Text style={styles.message}>
             {i18n.t('ship_prompt_message', { weaver: ship.weaverDisplayName })}
           </Text>
@@ -43,7 +43,7 @@ export function FatedThreadsSection() {
 const styles = StyleSheet.create({
   section: { gap: SPACE.md, marginBottom: SPACE.lg },
   card: { padding: SPACE.lg, gap: SPACE.md },
-  message: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.text, lineHeight: 20 },
+  message: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.text, lineHeight: LINE_HEIGHTS.md },
   actions: { flexDirection: 'row', gap: SPACE.md },
   btn: { flex: 1, paddingVertical: SPACE.md, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
   pass: { borderColor: COLORS.bronze, backgroundColor: COLORS.panelRaised },

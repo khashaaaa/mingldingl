@@ -8,12 +8,14 @@ public class TownSquareService
     private readonly AppDbContext _db;
     private readonly SupabaseBroadcastService _broadcast;
     private readonly PushNotificationService _push;
+    private readonly ILogger<TownSquareService> _logger;
 
-    public TownSquareService(AppDbContext db, SupabaseBroadcastService broadcast, PushNotificationService push)
+    public TownSquareService(AppDbContext db, SupabaseBroadcastService broadcast, PushNotificationService push, ILogger<TownSquareService> logger)
     {
         _db = db;
         _broadcast = broadcast;
         _push = push;
+        _logger = logger;
     }
 
     public async Task RsvpAsync(Guid sessionId, Guid userId)
@@ -69,6 +71,17 @@ public class TownSquareService
         women = women.Take(n).ToList();
 
         var icebreakers = await _db.Icebreakers.Where(i => i.IsActive).ToListAsync();
+        if (icebreakers.Count == 0)
+        {
+            // Nothing to talk about, so the session cannot run. Cancelling tells the roster;
+            // leaving it Open would hand the scheduler a session it retries — and crashes on —
+            // every sweep, taking every other session on the instance down with it.
+            _logger.LogError(
+                "Town Square session {SessionId} cancelled: no active icebreakers exist", sessionId);
+            await CancelAsync(session);
+            return;
+        }
+
         var rounds = GenerateRoundRobin(men, women);
 
         for (int r = 0; r < rounds.Count; r++)

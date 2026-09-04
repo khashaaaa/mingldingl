@@ -3,7 +3,7 @@ import { CardEyebrow } from '../ui/CardEyebrow';
 import { AppCard } from '../ui/AppCard';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 
 interface Props {
   isProfileComplete: boolean;
@@ -24,7 +24,7 @@ function StepRow({ step }: { step: Step }) {
     <View style={styles.row}>
       <Icon
         name={step.done ? 'check-circle' : 'circle-outline'}
-        size={20}
+        size={ICON_SIZES.lg}
         color={step.done ? COLORS.gold : COLORS.textDim}
       />
       <Text style={[styles.label, step.done && styles.labelDone]}>{i18n.t(step.labelKey)}</Text>

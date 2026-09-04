@@ -25,7 +25,7 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
     {
         var provider = new ServiceCollection()
             .AddSingleton(Db)
-            .AddSingleton(new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush()))
+            .AddSingleton(new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance))
             .BuildServiceProvider();
         return new TownSquareSchedulerBackgroundService(
             new SingleProviderScopeFactory(provider),
@@ -98,7 +98,7 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
         var session = await SeedOpenSessionWithRsvps(
             rsvpClosesAt: DateTime.UtcNow.AddMinutes(-10),
             scheduledStartAt: DateTime.UtcNow.AddMinutes(-1));
-        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance);
         await townSquare.LockRosterAsync(session.Id);
 
         await BuildService().RunSweepAsync(CancellationToken.None);
@@ -116,7 +116,7 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
             rsvpClosesAt: DateTime.UtcNow.AddMinutes(-10),
             scheduledStartAt: DateTime.UtcNow.AddMinutes(-10),
             pairs: 2);
-        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush());
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance);
         await townSquare.LockRosterAsync(session.Id);
         await townSquare.StartSessionAsync(session.Id);
 
@@ -169,5 +169,30 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
         Db.ChangeTracker.Clear();
         var afterThirdSweep = await Db.TownSquareSessions.FindAsync(session.Id);
         Assert.Equal("Completed", afterThirdSweep!.Status);
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_SessionThatCannotLock_DoesNotStallTheOtherSessions()
+    {
+        // A locked session that is due to start, plus an open session whose roster cannot be built
+        // because no icebreaker is active. The sweep runs every 10s and the failing session keeps
+        // its state, so an escaping exception would stall every session on the instance forever.
+        var healthy = await SeedOpenSessionWithRsvps(
+            rsvpClosesAt: DateTime.UtcNow.AddMinutes(-10),
+            scheduledStartAt: DateTime.UtcNow.AddMinutes(-1));
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance);
+        await townSquare.LockRosterAsync(healthy.Id);
+
+        var stuck = await SeedOpenSessionWithRsvps(
+            rsvpClosesAt: DateTime.UtcNow.AddMinutes(-1),
+            scheduledStartAt: DateTime.UtcNow.AddHours(1));
+        foreach (var icebreaker in await Db.Icebreakers.ToListAsync()) icebreaker.IsActive = false;
+        await Db.SaveChangesAsync();
+
+        await BuildService().RunSweepAsync(CancellationToken.None);
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal("Cancelled", (await Db.TownSquareSessions.FindAsync(stuck.Id))!.Status);
+        Assert.Equal("InProgress", (await Db.TownSquareSessions.FindAsync(healthy.Id))!.Status);
     }
 }

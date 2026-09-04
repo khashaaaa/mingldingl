@@ -21,19 +21,23 @@ public class MilestoneService
 
     public async Task AchieveAsync(Guid userId, string milestoneId)
     {
+        UserMilestone? added = null;
         try
         {
             if (!Defs.Any(d => d.Id == milestoneId)) return;
             bool exists = await _db.UserMilestones.AnyAsync(m => m.UserId == userId && m.MilestoneId == milestoneId);
             if (exists) return;
-            _db.UserMilestones.Add(new UserMilestone { UserId = userId, MilestoneId = milestoneId });
+            added = new UserMilestone { UserId = userId, MilestoneId = milestoneId };
+            _db.UserMilestones.Add(added);
             await _db.SaveChangesAsync();
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Milestone grant of {MilestoneId} swallowed a failure for user {UserId}", milestoneId, userId);
 
-            _db.ChangeTracker.Clear();
+            // Detach only what this method added. Clearing the whole tracker would silently throw
+            // away unsaved work belonging to whoever else is sharing this scoped context.
+            if (added is not null) _db.Entry(added).State = EntityState.Detached;
         }
     }
 }

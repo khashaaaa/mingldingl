@@ -17,7 +17,7 @@ export function BarChart({ data }: { data: { label: string; value: number }[] })
               style={{ height: Math.max(2, barHeight), backgroundColor: ACCENT }}
             />
             <div className="bg-border mt-1 h-px w-full" />
-            <span className="text-muted-foreground mt-1 max-w-full truncate text-[11px]" title={d.label}>
+            <span className="text-muted-foreground mt-1 max-w-full truncate text-xs" title={d.label}>
               {d.label}
             </span>
           </div>

@@ -7,7 +7,7 @@ import { Icon } from './ui/Icon';
 import { AlertModal } from './modals/AlertModal';
 import { GameButton } from './ui/GameButton';
 import { i18n } from '../lib/i18n';
-import { COLORS, RADIUS, SPACE, circle, overlay } from '../lib/theme';
+import { COLORS, ICON_SIZES, RADIUS, SPACE, circle, overlay } from '../lib/theme';
 
 interface Props {
   photoUrls: string[];
@@ -91,7 +91,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
           )}
           {i === 0 && (
             <View style={styles.primaryBadge}>
-              <Icon name="star" size={11} color={COLORS.bg} />
+              <Icon name="star" size={ICON_SIZES.xs} color={COLORS.bg} />
             </View>
           )}
           <TouchableOpacity
@@ -100,7 +100,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
             onPress={() => setPendingDeleteUrl(url)}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Icon name="close" size={13} color={COLORS.text} />
+            <Icon name="close" size={ICON_SIZES.sm} color={COLORS.text} />
           </TouchableOpacity>
           {i !== 0 && (
             <TouchableOpacity
@@ -109,7 +109,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
               onPress={() => handleSetPrimary(url)}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Icon name="star-outline" size={13} color={COLORS.text} />
+              <Icon name="star-outline" size={ICON_SIZES.sm} color={COLORS.text} />
             </TouchableOpacity>
           )}
         </View>
@@ -120,7 +120,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
           disabled={uploading}
           onPress={() => setSourceModalVisible(true)}
         >
-          {uploading ? <ActivityIndicator size="small" color={COLORS.gold} /> : <Icon name="image-plus" size={26} color={COLORS.textDim} />}
+          {uploading ? <ActivityIndicator size="small" color={COLORS.gold} /> : <Icon name="image-plus" size={ICON_SIZES.xxl} color={COLORS.textDim} />}
         </TouchableOpacity>
       )}
 

@@ -7,7 +7,7 @@ import { AlertModal } from './modals/AlertModal';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
-import { COLORS, FILL, FONTS, FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../lib/theme';
 import { Icon } from './ui/Icon';
 
 export interface FlameRiteState {
@@ -56,7 +56,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
   if (state.completedAt) {
     content = (
       <View style={styles.completeRow}>
-        <Icon name="fire" size={18} color={COLORS.ember} />
+        <Icon name="fire" size={ICON_SIZES.lg} color={COLORS.ember} />
         <Text style={styles.completeText}>{i18n.t('rite_complete')}</Text>
       </View>
     );
@@ -136,7 +136,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
 const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginTop: SPACE.sm, marginBottom: SPACE.sm, padding: SPACE.lg, gap: SPACE.sm },
   title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, letterSpacing: 1 },
-  body: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, lineHeight: 19 },
+  body: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, lineHeight: LINE_HEIGHTS.md },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.xs },
   btn: { paddingVertical: SPACE.md, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
   proposeBtn: { borderColor: COLORS.gold, backgroundColor: FILL.gold, marginTop: SPACE.xs },

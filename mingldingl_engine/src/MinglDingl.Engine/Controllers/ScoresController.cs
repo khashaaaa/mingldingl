@@ -241,15 +241,9 @@ public class ScoresController : ControllerBase
         int award = ScoreService.GetDelta("DailyLogin") * Math.Min(streak, 7) + (bonus ? 50 : 0);
         await _db.SaveChangesAsync();
 
-        try
-        {
-            await _score.AwardWithDeltaAsync(userId, "DailyLogin", award);
-        }
-        catch (DbUpdateException ex) when (OncePerDayScoreEventGuard.IsViolation(ex))
-        {
-            _db.ChangeTracker.Clear();
+        if (!await _score.TryAwardClaimedAsync(userId, "DailyLogin", award))
             return Ok(new DailyLoginResponse(0, "Already logged in today", user.CurrentStreak, user.LongestStreak));
-        }
+
         return Ok(new DailyLoginResponse(award, null, streak, user.LongestStreak, bonus));
     }
 }

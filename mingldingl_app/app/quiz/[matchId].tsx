@@ -10,7 +10,7 @@ import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FILL, FONTS, FONT_SIZES, RADIUS, SPACE, tint } from '../../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
@@ -50,7 +50,7 @@ export default function QuizScreen() {
   if (isLoadError) return (
     <View style={styles.centered}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <Icon name="wifi-off" size={32} color={COLORS.bronze} />
+      <Icon name="wifi-off" size={ICON_SIZES.huge} color={COLORS.bronze} />
       <Text style={styles.completionTitle}>{i18n.t('quiz_load_error')}</Text>
       <GameButton variant="primary" onPress={() => refetchQuiz()}>{i18n.t('retry')}</GameButton>
       <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
@@ -60,7 +60,7 @@ export default function QuizScreen() {
   if (!quiz) return (
     <View style={styles.centered}>
       <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <Icon name="help-circle-outline" size={32} color={COLORS.bronze} />
+      <Icon name="help-circle-outline" size={ICON_SIZES.huge} color={COLORS.bronze} />
       <Text style={styles.completionTitle}>{i18n.t('no_quiz')}</Text>
       <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
     </View>
@@ -70,7 +70,7 @@ export default function QuizScreen() {
     return (
       <View style={styles.centered}>
         <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-        <Icon name={isWaitingForPartner ? 'brain' : 'trophy'} size={32} color={COLORS.gold} />
+        <Icon name={isWaitingForPartner ? 'brain' : 'trophy'} size={ICON_SIZES.huge} color={COLORS.gold} />
         <AppCard style={styles.completionCard}>
           <Text style={styles.completionTitle}>
             {isWaitingForPartner ? i18n.t('waiting_match') : i18n.t('compat_revealed')}
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: FONT_SIZES.title,
     fontFamily: FONTS.bodyBold,
-    lineHeight: 30,
+    lineHeight: LINE_HEIGHTS.title,
     textAlign: 'center',
   },
   options: {

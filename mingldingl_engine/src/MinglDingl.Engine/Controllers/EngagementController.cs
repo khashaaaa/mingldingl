@@ -276,15 +276,9 @@ public class EngagementController : ControllerBase
             e.UserId == userId && e.EventType == "QuestChest" && e.CreatedAt >= today);
         if (chestClaimed) return Ok(new ClaimChestResponse(0, true));
 
-        try
-        {
-            await _score.AwardWithDeltaAsync(userId, "QuestChest", 30);
-        }
-        catch (DbUpdateException ex) when (OncePerDayScoreEventGuard.IsViolation(ex))
-        {
-            _db.ChangeTracker.Clear();
+        if (!await _score.TryAwardClaimedAsync(userId, "QuestChest", 30))
             return Ok(new ClaimChestResponse(0, true));
-        }
+
         var item = await _loot.GrantGuaranteedAsync(userId, "quest_chest");
         return Ok(new ClaimChestResponse(30, false, item));
     }

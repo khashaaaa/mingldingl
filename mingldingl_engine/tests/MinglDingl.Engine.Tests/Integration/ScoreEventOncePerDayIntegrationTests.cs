@@ -19,7 +19,7 @@ public class ScoreEventOncePerDayIntegrationTests : IntegrationTestBase
         var ex = await Record.ExceptionAsync(() => score.AwardWithDeltaAsync(user.Id, eventType, 30));
 
         var dbEx = Assert.IsType<DbUpdateException>(ex);
-        Assert.True(OncePerDayScoreEventGuard.IsViolation(dbEx));
+        Assert.True(ScoreEventClaimGuard.IsViolation(dbEx));
     }
 
     [Fact]

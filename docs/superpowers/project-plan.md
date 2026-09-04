@@ -659,14 +659,14 @@ Engine 452 → 456 tests, app 276, `tsc` clean, control builds and lints.
 
 ## Execution Outcome (recorded retroactively, 2026-08-31)
 
-**Shipped:** engine `Services/TownSquareService.cs`, `Services/TownSquareSchedulerBackgroundService.cs`, `Controllers/TownSquareController.cs`, `Controllers/AdminTownSquareController.cs`, models `TownSquareSession` / `TownSquareRsvp` / `TownSquareRound` / `TownSquarePairing` / `TownSquareIcebreakerResponse`, migration `20260814094851_AddTownSquare`. App: the fifth (middle) tab `app/(tabs)/townsquare.tsx` (`components/townsquare/SessionStatusCard.tsx` — countdowns, RSVP / cancel), `app/townsquare-round/[sessionId].tsx` (`AgoraVideoCall` + `components/townsquare/RoundPrompt.tsx` + `VideoControls`), hooks `useTownSquareSession` / `useTownSquareRound`, `lib/townSquareTime.ts`. Admin: `mingldingl_control/src/pages/TownSquare.tsx` (read-only sessions list with expandable pairings). Tests: `TownSquareServiceTests`, `TownSquareSchedulerBackgroundServiceTests`, `TownSquareService` / `TownSquareController` / `AdminTownSquareController` integration tests; app hook tests under `components/townsquare/__tests__/`.
+**Shipped:** engine `Services/TownSquareService.cs`, `Services/TownSquareSchedulerBackgroundService.cs`, `Controllers/TownSquareController.cs`, `Controllers/AdminTownSquareController.cs`, models `TownSquareSession` / `TownSquareRsvp` / `TownSquareRound` / `TownSquarePairing`, migration `20260814094851_AddTownSquare`. App: the fifth (middle) tab `app/(tabs)/townsquare.tsx` (`components/townsquare/SessionStatusCard.tsx` — countdowns, RSVP / cancel), `app/townsquare-round/[sessionId].tsx` (`AgoraVideoCall` + `components/townsquare/RoundPrompt.tsx` + `VideoControls`), hooks `useTownSquareSession` / `useTownSquareRound`, `lib/townSquareTime.ts`. Admin: `mingldingl_control/src/pages/TownSquare.tsx` (read-only sessions list with expandable pairings). Tests: `TownSquareServiceTests`, `TownSquareSchedulerBackgroundServiceTests`, `TownSquareService` / `TownSquareController` / `AdminTownSquareController` integration tests; app hook tests under `components/townsquare/__tests__/`.
 
 **Mechanics (code is authoritative):**
 - **Session lifecycle** — `TownSquareSession.Status`: `Open` → `Locked` → `InProgress` → `Completed`, or `Cancelled`. Timestamps `RsvpOpensAt` / `RsvpClosesAt` / `ScheduledStartAt`; `CurrentRoundNumber` advances during play.
 - **RSVP** — `POST /townsquare/rsvp` and `DELETE /townsquare/rsvp?sessionId=` only while `Open` (400 otherwise); idempotent; unique index on `(SessionId, UserId)`. `GET /townsquare/next-session` returns the earliest non-terminal session plus `isRsvpd`.
 - **Scheduler** — `TownSquareSchedulerBackgroundService` sweeps every 10 s: `Open` past `RsvpClosesAt` → `LockRosterAsync`; `Locked` past `ScheduledStartAt` → `StartSessionAsync`; `InProgress` with the current round elapsed → `AdvanceRoundAsync`. Registered as singleton + hosted service, the same pattern as `DailyMaintenanceBackgroundService`.
 - **Roster lock** — RSVPs ordered by `RsvpAt`, split by `User.Gender` into `Male` / `Female`, each side capped at `MaxPerSide = 5` and truncated to the smaller side. Zero pairs → `Cancelled` + broadcast. Otherwise `GenerateRoundRobin` (circle method) yields n rounds of n pairings; each round is `RoundDurationSeconds = 240`, starts at `ScheduledStartAt + r × 240 s`, and takes the r-th active `Icebreaker`, cycling. Both constants are hardcoded, not `ConfigKeys` entries.
-- **Rounds** — `GET /townsquare/session/{id}/current-round` (400 unless `InProgress`) returns the caller's pairing, an Agora token whose channel is the pairing id, the icebreaker text/options, and `roundEndsAt`. `POST /townsquare/pairing/{id}/joined` stamps `UserAJoinedAt` / `UserBJoinedAt`. `POST /townsquare/pairing/{id}/respond` with `{ response: "Yes" | "No" }` writes the caller's slot in one `UPDATE … RETURNING`; when both slots read `Yes` it checks `MatchPairing.IsPairBlockedAsync` (a blocked pair quietly yields no match, so neither side can infer the block) and then `CreateOrReuseMatchAsync` under the shared `MatchPairing.PairLockKey` advisory lock, storing `ResultingMatchId`. The response carries `matchId`, so the round screen shows "it's a match" without a refetch; the hook also invalidates the Matches list. Since 2026-08-31 the mutual-yes path also sends both users a push notification ("New Match!") and a `match_created` broadcast on `app-nudges` (`{ matchId, userIds, source }`), the same shape Fated Threads and `RequestMatch` emit.
+- **Rounds** — `GET /townsquare/session/{id}/current-round` (400 unless `InProgress`) returns the caller's pairing, an Agora token whose channel is the pairing id, the icebreaker text, and `roundEndsAt`. `POST /townsquare/pairing/{id}/joined` stamps `UserAJoinedAt` / `UserBJoinedAt`. `POST /townsquare/pairing/{id}/respond` with `{ response: "Yes" | "No" }` writes the caller's slot in one `UPDATE … RETURNING`; when both slots read `Yes` it checks `MatchPairing.IsPairBlockedAsync` (a blocked pair quietly yields no match, so neither side can infer the block) and then `CreateOrReuseMatchAsync` under the shared `MatchPairing.PairLockKey` advisory lock, storing `ResultingMatchId`. The response carries `matchId`, so the round screen shows "it's a match" without a refetch; the hook also invalidates the Matches list. Since 2026-08-31 the mutual-yes path also sends both users a push notification ("New Match!") and a `match_created` broadcast on `app-nudges` (`{ matchId, userIds, source }`), the same shape Fated Threads and `RequestMatch` emit.
 - **Realtime** — topic `townsquare:{sessionId}`, events `session-started`, `session-cancelled`, `round-advanced`, payload `{ sessionId, roundNumber, status }`. Nothing is broadcast on the `Open → Locked` transition. Hooks subscribe through `lib/realtime/subscribeWithRetry.ts` and keep 15 s (session) / 30 s (round) `refetchInterval` safety nets because `SupabaseBroadcastService` is best-effort — see the 2026-08-19 audit above for why those were kept rather than removed.
 - **Admin** — `GET /admin/townsquare/sessions` (paged, with RSVP counts) and `GET /admin/townsquare/sessions/{id}/pairings` (per-round responses, join times, resulting match). Added 2026-08-31: `POST /admin/townsquare/sessions` `{ rsvpOpensAt, rsvpClosesAt, scheduledStartAt }` (201; validates opens < closes ≤ start, start in the future; creates `Open`, audit `CreateTownSquareSession`) and `POST /admin/townsquare/sessions/{id}/cancel` (only `Open` / `Locked`, else 409; routes through `TownSquareService.CancelSessionAsync`, audit `CancelTownSquareSession`), with a Schedule / Cancel UI on the control panel's Town Square page. All under the `AdminBearer` scheme.
 
@@ -676,7 +676,7 @@ Engine 452 → 456 tests, app 276, `tsc` clean, control builds and lints.
 
 **Known gaps — not built, recorded here so nobody assumes otherwise:**
 - Pairing is strictly `Male` × `Female`; any other `Gender` value RSVPs successfully but is silently never rostered. Overflow RSVPs beyond 5-a-side, or on the larger side, are likewise dropped at lock time with no notification.
-- No score event, quest hook, or loot is attached to attending or matching in a round. `TownSquareIcebreakerResponse` exists as a table but nothing writes to it — the icebreaker is shown as a prompt only.
+- No score event, quest hook, or loot is attached to attending or matching in a round. The icebreaker is a conversation prompt shown during the call and is never answered in the app; the `TownSquareIcebreakerResponses` table that was scaffolded for answers, along with the `icebreakerId` / `icebreakerType` / `icebreakerOptions` fields on `CurrentRoundResponse` that fed it, were dropped on 2026-09-04 (migration `DropUnusedTownSquareResponsesAndConfigSchema`) after an audit found nothing had ever read or written any of them.
 - No manual end-to-end pass has been run (two browsers, a hand-inserted session, real Agora tokens through a full round-robin).
 
 ---
@@ -1298,3 +1298,33 @@ paths; admin Ships list shows `resultMatchId`; admin Town Square create/cancel
   **Still open here:** the four `admin.*` codes are deliberately English-only (the
   control panel is an internal tool); `mingldingl_control/src/lib/apiError.ts` was
   left reading `error` and has not been moved onto codes.
+
+### Score-economy gaps left open by the 2026-09-04 bug-fix wave
+
+Two findings from the same audit were judged design questions rather than defects
+and were deliberately not changed. Both are score-economy holes:
+
+- **`MatchReply` (+10) has no cap.** `MessagesController.SendMessage` awards it every
+  time the sender is not the previous sender, so two accounts can alternate
+  one-character messages and farm score without limit. The daily quest counter caps
+  its own bonus; the base award does not. The tier ladder tops out at 2000, so this is
+  200 alternating messages to Emerald. Options: a per-match or per-day cap on
+  `MatchReply`, a minimum content length, or a decay after the first few replies.
+- **A match where nobody ever messages can never be ghosted.** Both the sweep's SQL
+  filter in `DailyMaintenanceBackgroundService` and `GhostingService.IsStale` require
+  `LastMessageAt != null`, so the "matched and then total silence" case — arguably the
+  purest form of ghosting — stays `Active` forever and costs the silent party nothing.
+  Falling back to `Match.CreatedAt` when `LastMessageAt` is null would close it, but it
+  changes who is at fault: `GetGhostAtFaultUserId` reads `LastMessageSenderId`, which is
+  also null, so a no-message ghost has no single party to penalise.
+
+### Left open by the 2026-09-04 missing-link audit
+
+- **`ReportPenalty` (-30) has no award path.** The scoring table above specifies it for a
+  negative report, and `ScoreService.GetDelta` carries the value, but no reporting endpoint
+  exists — nothing can ever write the event. The value and its app-side label/icon were kept
+  (a report feature is specified, and the app map is designed to carry types it may not yet
+  see) and `GetDelta` now says so in a comment. Closing this means building the report flow:
+  an endpoint, a moderation surface in `mingldingl_control`, and the award call site.
+  `ScoreHistoryList.ENGINE_EVENT_TYPES` deliberately omits it, so the coverage test stays
+  honest about what the engine can actually emit.

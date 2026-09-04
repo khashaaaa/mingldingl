@@ -62,8 +62,7 @@ public class TownSquareController : ControllerBase
 
         return Ok(new CurrentRoundResponse(
             pairing.Id, token, channelName, _videoToken.AppId,
-            icebreaker?.Id ?? Guid.Empty, icebreaker?.QuestionText ?? "", icebreaker?.Type ?? "OpenText", icebreaker?.Options ?? [],
-            round.RoundNumber, roundEndsAt));
+            icebreaker?.QuestionText ?? "", round.RoundNumber, roundEndsAt));
     }
 
     [HttpPost("pairing/{pairingId}/joined")]
@@ -109,6 +108,6 @@ public class TownSquareController : ControllerBase
 
 public record TownSquareRsvpDto(Guid SessionId);
 public record NextSessionResponse(Guid? SessionId, DateTime? RsvpOpensAt, DateTime? RsvpClosesAt, DateTime? ScheduledStartAt, string? Status, bool IsRsvpd);
-public record CurrentRoundResponse(Guid PairingId, string VideoToken, string ChannelName, string AppId, Guid IcebreakerId, string IcebreakerText, string IcebreakerType, List<string> IcebreakerOptions, int RoundNumber, DateTime RoundEndsAt);
+public record CurrentRoundResponse(Guid PairingId, string VideoToken, string ChannelName, string AppId, string IcebreakerText, int RoundNumber, DateTime RoundEndsAt);
 public record TownSquareRespondDto(string Response);
 public record TownSquareRespondResult(Guid? MatchId);

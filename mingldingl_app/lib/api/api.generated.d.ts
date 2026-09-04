@@ -5745,11 +5745,7 @@ export interface components {
             videoToken?: string | null;
             channelName?: string | null;
             appId?: string | null;
-            /** Format: uuid */
-            icebreakerId?: string;
             icebreakerText?: string | null;
-            icebreakerType?: string | null;
-            icebreakerOptions?: string[] | null;
             /** Format: int32 */
             roundNumber?: number;
             /** Format: date-time */

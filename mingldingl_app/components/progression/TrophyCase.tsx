@@ -12,7 +12,7 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { useAuthStore } from '../../store/authStore';
 import { RARITY_COLORS } from '../../lib/tiers';
 import { i18n, tKey } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
 
 type ItemIconName = React.ComponentProps<typeof Icon>['name'];
 const TYPE_ICONS: Record<string, ItemIconName> = { Frame: 'image-frame', Title: 'certificate', Emblem: 'shield' };
@@ -48,7 +48,7 @@ export function TrophyCase() {
       <CardEyebrow>{i18n.t('trophies')}</CardEyebrow>
       {items.length === 0 ? (
         <View style={styles.emptyWrap}>
-          <Icon name="bone-off" size={28} color={COLORS.bronze} style={styles.emptyIcon} />
+          <Icon name="bone-off" size={ICON_SIZES.xxl} color={COLORS.bronze} style={styles.emptyIcon} />
           <Text style={styles.empty}>{i18n.t('no_trophies')}</Text>
         </View>
       ) : (
@@ -65,7 +65,7 @@ export function TrophyCase() {
               ]}
             >
               <View style={styles.slotIconChip}>
-                <Icon name={TYPE_ICONS[it.itemType ?? ''] ?? 'help-circle-outline'} size={20} color={COLORS.gold} />
+                <Icon name={TYPE_ICONS[it.itemType ?? ''] ?? 'help-circle-outline'} size={ICON_SIZES.lg} color={COLORS.gold} />
               </View>
               <Text style={styles.slotName} numberOfLines={2}>{tKey(it.nameKey)}</Text>
               {it.equipped && <Text style={styles.equippedTag}>{i18n.t('equipped')}</Text>}
@@ -79,7 +79,7 @@ export function TrophyCase() {
           <CardEyebrow>{i18n.t('milestones')}</CardEyebrow>
           {unopened.map((m) => (
             <TouchableOpacity key={m.id} disabled={isOpening} onPress={() => handleOpenMilestone(m.id!)} style={styles.milestoneRow}>
-              <Icon name="treasure-chest-outline" size={20} color={COLORS.gold} />
+              <Icon name="treasure-chest-outline" size={ICON_SIZES.lg} color={COLORS.gold} />
               <Text style={styles.milestoneName}>{tKey(m.nameKey)}</Text>
               <Text style={styles.milestoneXp}>+{m.xp}</Text>
             </TouchableOpacity>
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   empty: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md },
   slot: {
-    width: '30%', minWidth: 92, borderWidth: 1.5, borderRadius: RADIUS.md,
+    width: '30%', minWidth: 92, borderWidth: 2, borderRadius: RADIUS.md,
     backgroundColor: COLORS.panelDeep, alignItems: 'center', paddingVertical: SPACE.md, paddingHorizontal: SPACE.sm, gap: SPACE.xs,
   },
   slotEquipped: { backgroundColor: COLORS.panelRaised },

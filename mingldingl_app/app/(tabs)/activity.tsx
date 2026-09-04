@@ -19,7 +19,7 @@ import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FILL, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 
 const PARCHMENT_ASSET = require('../../assets/textures/parchment.png');
 
@@ -81,7 +81,7 @@ export default function ActivityScreen() {
           </View>
         ) : isError ? (
           <View style={styles.center}>
-            <Icon name="alert-circle-outline" size={32} color={COLORS.bronze} />
+            <Icon name="alert-circle-outline" size={ICON_SIZES.huge} color={COLORS.bronze} />
             <Text style={styles.emptyText}>{i18n.t('screen_load_error')}</Text>
             <GameButton size="compact" onPress={() => refetch()} style={styles.retryButton}>
               {i18n.t('retry')}
@@ -113,7 +113,7 @@ export default function ActivityScreen() {
               <AppCard style={styles.missionCard}>
                 <View style={styles.row}>
                   <View style={styles.iconWrap}>
-                    <Icon name={missionIcon(b.category)} size={24} color={COLORS.gold} style={styles.missionIcon} />
+                    <Icon name={missionIcon(b.category)} size={ICON_SIZES.xl} color={COLORS.gold} style={styles.missionIcon} />
                   </View>
                   <View style={styles.info}>
                     <Text style={styles.missionTitle} numberOfLines={1}>{b.name}</Text>
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   missionIcon: { width: 26, textAlign: 'center' },
   info: { flex: 1 },
   missionTitle: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text, marginBottom: SPACE.xs },
-  missionDesc: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, lineHeight: 17, marginBottom: SPACE.xs, fontFamily: FONTS.body },
+  missionDesc: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, lineHeight: LINE_HEIGHTS.sm, marginBottom: SPACE.xs, fontFamily: FONTS.body },
   meta: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, fontFamily: FONTS.body },
   pointsBadge: {
     backgroundColor: FILL.gold,

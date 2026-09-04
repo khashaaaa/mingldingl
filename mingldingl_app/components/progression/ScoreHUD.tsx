@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, metalGradient, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, metalGradient, tint } from '../../lib/theme';
 import { GemTierBadge } from './GemTierBadge';
 import { Icon } from '../ui/Icon';
 
@@ -22,7 +22,7 @@ export function ScoreHUD({ score, tier = 'Garnet', streak }: Props) {
       <Text style={styles.pts}>XP</Text>
       {streak !== undefined && streak >= 2 && (
         <View style={styles.streakRow}>
-          <Icon name="fire" size={12} color={COLORS.ember} />
+          <Icon name="fire" size={ICON_SIZES.xs} color={COLORS.ember} />
           <Text style={styles.streak}>{streak}</Text>
         </View>
       )}

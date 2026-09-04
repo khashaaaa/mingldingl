@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Modal, View, Text, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 
 export type AlertTone = 'default' | 'warning';
@@ -34,7 +34,7 @@ export function AlertModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={() => { if (!locked) onDismiss(); }}>
       <View style={styles.overlay}>
         <View style={[styles.card, { borderColor: tint }]}>
-          <Icon name={tone === 'warning' ? 'alert' : 'rhombus-outline'} size={22} color={tint} />
+          <Icon name={tone === 'warning' ? 'alert' : 'rhombus-outline'} size={ICON_SIZES.xl} color={tint} />
           <Text style={styles.title}>{title}</Text>
           {!!message && <Text style={styles.message}>{message}</Text>}
           {children && <View style={styles.childrenWrap}>{children}</View>}
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.text, textAlign: 'center' },
-  message: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center', lineHeight: 20 },
+  message: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center', lineHeight: LINE_HEIGHTS.md },
   childrenWrap: { alignSelf: 'stretch', marginTop: SPACE.xs },
   btnWrap: { marginTop: SPACE.md, alignSelf: 'stretch' },
   btnRow: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.md, alignSelf: 'stretch' },

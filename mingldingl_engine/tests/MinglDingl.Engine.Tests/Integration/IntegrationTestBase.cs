@@ -89,6 +89,22 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         return new LocalFileStorageService(env.Object, config, NullLogger<LocalFileStorageService>.Instance);
     }
 
+    /// <summary>
+    /// A storage service that records the URLs it was asked to unlink instead of touching disk,
+    /// so a test can assert on <em>when</em> deletion happens relative to validation.
+    /// </summary>
+    protected static LocalFileStorageService BuildRecordingStorage(List<string> deleted)
+    {
+        var env = new Moq.Mock<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+        env.SetupGet(e => e.ContentRootPath).Returns(Path.Combine(Path.GetTempPath(), "mingldingl-tests", Guid.NewGuid().ToString("N")));
+        var config = new Moq.Mock<Microsoft.Extensions.Configuration.IConfiguration>().Object;
+        var mock = new Moq.Mock<LocalFileStorageService>(env.Object, config, NullLogger<LocalFileStorageService>.Instance) { CallBase = true };
+        mock.Setup(m => m.DeleteByPublicUrl(Moq.It.IsAny<string?>()))
+            .Callback<string?>(url => { if (url is not null) deleted.Add(url); })
+            .Returns(true);
+        return mock.Object;
+    }
+
     protected static UsersController NewUsersController(
         AppDbContext db, OathService oaths, Microsoft.AspNetCore.Http.HttpContext httpContext)
     {

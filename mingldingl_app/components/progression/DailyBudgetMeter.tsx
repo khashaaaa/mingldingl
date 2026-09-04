@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import type { DailyMatchBudget } from '../../hooks/useScore';
 
 interface Props {
@@ -12,7 +12,7 @@ export function DailyBudgetMeter({ budget }: Props) {
   const spent = budget.remaining <= 0;
   return (
     <View style={[styles.wrap, spent && styles.wrapSpent]} accessibilityRole="text" testID="daily-budget-meter">
-      <Icon name={spent ? 'moon-waning-crescent' : 'fire'} size={13} color={spent ? COLORS.textDim : COLORS.gold} />
+      <Icon name={spent ? 'moon-waning-crescent' : 'fire'} size={ICON_SIZES.sm} color={spent ? COLORS.textDim : COLORS.gold} />
       <Text style={[styles.text, spent && styles.textSpent]} numberOfLines={1}>
         {spent
           ? i18n.t('daily_budget_spent')

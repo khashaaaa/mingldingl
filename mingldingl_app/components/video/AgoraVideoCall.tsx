@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import type { VideoToken } from '../../hooks/useVideoCall';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, ICON_SIZES, SPACE } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 
 interface Props {
@@ -15,7 +15,7 @@ interface Props {
 export function AgoraVideoCall({ token }: Props) {
   return (
     <View style={styles.placeholder}>
-      <Icon name="video" size={36} color={COLORS.textDim} />
+      <Icon name="video" size={ICON_SIZES.huge} color={COLORS.textDim} />
       <Text style={styles.placeholderText}>
         {i18n.t('video_web_unsupported', { channel: token.channelName })}
       </Text>

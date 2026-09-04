@@ -1,7 +1,7 @@
 import { Modal, Text, View, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 
 interface Props {
@@ -18,7 +18,7 @@ export function AttendanceCheckModal({ visible, activityTitle, onYes, onNo, isSu
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.overlay}>
         <View style={styles.card}>
-          <Icon name="calendar-check" size={26} color={COLORS.gold} />
+          <Icon name="calendar-check" size={ICON_SIZES.xxl} color={COLORS.gold} />
           <Text style={styles.title}>{i18n.t('attendance_check_title')}</Text>
           <Text style={styles.question}>
             {i18n.t('attendance_check_question', { activity: activityTitle ?? '' })}
@@ -58,6 +58,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.text, textAlign: 'center' },
-  question: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center', lineHeight: 20 },
+  question: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center', lineHeight: LINE_HEIGHTS.md },
   btnRow: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.md, alignSelf: 'stretch' },
 });

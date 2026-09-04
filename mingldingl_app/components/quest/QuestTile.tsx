@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import OathSigil from '../OathSigil';
 import type { Match } from '../../models/match';
@@ -46,7 +46,7 @@ export function QuestTile({ match, onPress }: Props) {
         <View style={[styles.runeStrip, { backgroundColor: status.color + '22', borderColor: status.color + '66' }]}>
           <View style={[styles.runeCorner, styles.runeCornerTl, { borderColor: status.color }]} />
           <View style={[styles.runeCorner, styles.runeCornerBr, { borderColor: status.color }]} />
-          <Icon name={status.icon} size={16} color={status.color} />
+          <Icon name={status.icon} size={ICON_SIZES.md} color={status.color} />
         </View>
         <View style={[styles.avatarRing, { borderColor: tierColor + '80' }]}>
           {showPhoto ? (
@@ -65,7 +65,7 @@ export function QuestTile({ match, onPress }: Props) {
             </>
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Icon name="account" size={24} color={COLORS.textDim} />
+              <Icon name="account" size={ICON_SIZES.xl} color={COLORS.textDim} />
             </View>
           )}
         </View>

@@ -1,4 +1,4 @@
-import type { TextStyle, ViewStyle } from 'react-native';
+import type { ViewStyle } from 'react-native';
 
 export const COLORS = {
   bg: '#0A0B10',
@@ -70,6 +70,21 @@ export const SPACE = {
 
 export const RADIUS = { sm: 4, md: 6, lg: 16, pill: 999 } as const;
 
+// Icon sizes. The last axis to get a ladder — before this, 17 distinct sizes were in play
+// with 13 and 14 both in heavy use, which is a difference nobody can see but every new
+// screen had to guess at.
+export const ICON_SIZES = {
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 20,
+  xl: 24,
+  xxl: 28,
+  huge: 32,
+  hero: 44,
+  splash: 72,
+} as const;
+
 // The type ladder. Every fontSize in the app resolves to one of these steps —
 // xs/sm are utility-face territory, md/lg carry body copy, xl and up are display.
 export const FONT_SIZES = {
@@ -81,6 +96,17 @@ export const FONT_SIZES = {
   title: 22,
   display: 28,
   wordmark: 40,
+} as const;
+
+// Leading, one step per type size, so the same size never gets two different line heights.
+// `xs` is also the deliberate snug setting for single-line labels set at `FONT_SIZES.sm`,
+// where full leading is dead space rather than breathing room.
+export const LINE_HEIGHTS = {
+  xs: 14,
+  sm: 17,
+  md: 20,
+  lg: 22,
+  title: 30,
 } as const;
 
 // Translucent affordance fills. One alpha per role, so a "selected" surface
@@ -100,10 +126,6 @@ export const BUTTON_METALS = {
   danger:  { gradient: ['#934C2C', COLORS.emberDark, '#5E2E17'], border: '#7E3D1F', highlight: tint(COLORS.emberLight, 0.4), label: COLORS.text },
   brass:   { gradient: metalGradient(COLORS.brass), border: COLORS.brassDark, highlight: tint(COLORS.brass, 0.5), label: '#241704' },
 } as const satisfies Record<string, { gradient: readonly [string, string, string]; border: string; highlight: string; label: string }>;
-
-export function panelBorder(tint: string = COLORS.bronze): ViewStyle {
-  return { borderWidth: 1, borderColor: tint, borderRadius: RADIUS.md };
-}
 
 export function overlay(opacity: number): string {
   return `rgba(10,11,16,${opacity})`;
@@ -126,10 +148,6 @@ export function glow(color: string, strength: number = 0.5, radius: number = 10,
     shadowRadius: radius,
     elevation,
   };
-}
-
-export function displayText(size: number, color: string = COLORS.text): TextStyle {
-  return { fontFamily: FONTS.display, fontSize: size, color, letterSpacing: 1 };
 }
 
 export function mix(hex: string, target: string, amt: number): string {

@@ -48,7 +48,7 @@ public class LootService
         {
             _logger.LogWarning(ex, "Loot roll swallowed a failure for user {UserId} (source {Source}); no drop this time", userId, source);
 
-            _db.ChangeTracker.Clear();
+            // GrantAsync detaches its own pending row; nothing else here writes.
             return null;
         }
     }
@@ -62,6 +62,7 @@ public class LootService
 
     public async Task<DroppedItem?> GrantSpecificAsync(Guid userId, string itemId, string source)
     {
+        UserItem? added = null;
         try
         {
             var def = Catalog.FirstOrDefault(c => c.Id == itemId);
@@ -70,7 +71,8 @@ public class LootService
             bool owned = await _db.UserItems.AnyAsync(i => i.UserId == userId && i.ItemId == itemId);
             if (owned) return null;
 
-            _db.UserItems.Add(new UserItem { UserId = userId, ItemId = itemId, Source = source });
+            added = new UserItem { UserId = userId, ItemId = itemId, Source = source };
+            _db.UserItems.Add(added);
             await _db.SaveChangesAsync();
             return new DroppedItem(def.Id, def.NameKey, def.Rarity, def.ItemType);
         }
@@ -78,13 +80,16 @@ public class LootService
         {
             _logger.LogWarning(ex, "Specific loot grant of {ItemId} swallowed a failure for user {UserId} (source {Source})", itemId, userId, source);
 
-            _db.ChangeTracker.Clear();
+            // Detach only what this method added. Clearing the whole tracker would silently throw
+            // away unsaved work belonging to whoever else is sharing this scoped context.
+            if (added is not null) _db.Entry(added).State = EntityState.Detached;
             return null;
         }
     }
 
     private async Task<DroppedItem?> GrantAsync(Guid userId, string rarity, string source)
     {
+        UserItem? added = null;
         try
         {
             var owned = await _db.UserItems.Where(i => i.UserId == userId).Select(i => i.ItemId).ToListAsync();
@@ -96,7 +101,8 @@ public class LootService
                 return null;
             }
             var item = pool[Random.Shared.Next(pool.Count)];
-            _db.UserItems.Add(new UserItem { UserId = userId, ItemId = item.Id, Source = source });
+            added = new UserItem { UserId = userId, ItemId = item.Id, Source = source };
+            _db.UserItems.Add(added);
             await _db.SaveChangesAsync();
             return new DroppedItem(item.Id, item.NameKey, item.Rarity, item.ItemType);
         }
@@ -104,7 +110,9 @@ public class LootService
         {
             _logger.LogWarning(ex, "Loot grant ({Rarity}) swallowed a failure for user {UserId} (source {Source}); no drop this time", rarity, userId, source);
 
-            _db.ChangeTracker.Clear();
+            // Detach only what this method added. Clearing the whole tracker would silently throw
+            // away unsaved work belonging to whoever else is sharing this scoped context.
+            if (added is not null) _db.Entry(added).State = EntityState.Detached;
             return null;
         }
     }

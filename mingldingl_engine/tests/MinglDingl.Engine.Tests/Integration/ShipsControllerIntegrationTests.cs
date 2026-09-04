@@ -92,4 +92,70 @@ public class ShipsControllerIntegrationTests : IntegrationTestBase
         Assert.False(firstBody.Sparked);
         Assert.True(secondBody.Sparked);
     }
+
+    [Fact]
+    public async Task Create_NomineeAlreadyRegistered_MintsNoInviteCodeForThatSlot()
+    {
+        var weaver = AddUser("88120001");
+        AddUser("88120002");
+        await Db.SaveChangesAsync();
+        var controller = BuildController(weaver.Id);
+
+        var result = await controller.Create(new CreateShipRequest("88120002", "88120003"));
+
+        var response = Assert.IsType<CreateShipResponse>(Assert.IsType<OkObjectResult>(result).Value);
+        // A registered nominee is invited in-app; a code handed to the Weaver for that slot is
+        // never written to the ship and so could never resolve.
+        Assert.Null(response.SlotACode);
+        Assert.NotNull(response.SlotBCode);
+
+        Db.ChangeTracker.Clear();
+        var ship = await Db.Ships.SingleAsync(s => s.ShipperUserId == weaver.Id);
+        Assert.Null(ship.SlotAInviteCode);
+        Assert.Equal(response.SlotBCode, ship.SlotBInviteCode);
+    }
+
+    [Fact]
+    public async Task Create_NomineeBlockedTheWeaver_ReturnsNoCodesBecauseNoShipWasWritten()
+    {
+        var weaver = AddUser("88120001");
+        var blocker = AddUser("88120002");
+        await Db.SaveChangesAsync();
+        Db.BlockedUsers.Add(new BlockedUser { BlockerId = blocker.Id, BlockedId = weaver.Id });
+        await Db.SaveChangesAsync();
+        var controller = BuildController(weaver.Id);
+
+        var result = await controller.Create(new CreateShipRequest("88120002", "88120003"));
+
+        var response = Assert.IsType<CreateShipResponse>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.True(response.Success);
+        Assert.Null(response.SlotACode);
+        Assert.Null(response.SlotBCode);
+
+        Db.ChangeTracker.Clear();
+        Assert.Empty(await Db.Ships.Where(s => s.ShipperUserId == weaver.Id).ToListAsync());
+    }
+
+    [Fact]
+    public async Task Respond_AcceptedTwiceConcurrently_SparksOnceAndPaysTheWeaverOnce()
+    {
+        var weaver = AddUser("88120001");
+        var slotA = AddUser("88120002");
+        var slotB = AddUser("88120003");
+        await Db.SaveChangesAsync();
+        await BuildController(weaver.Id).Create(new CreateShipRequest("88120002", "88120003"));
+
+        Db.ChangeTracker.Clear();
+        var shipId = (await Db.Ships.SingleAsync(s => s.ShipperUserId == weaver.Id)).Id;
+        await BuildController(slotA.Id).Respond(shipId, new RespondToShipRequest(true));
+
+        // A double-tapped accept on the second slot: both calls see both slots accepted.
+        await BuildController(slotB.Id).Respond(shipId, new RespondToShipRequest(true));
+        await BuildController(slotB.Id).Respond(shipId, new RespondToShipRequest(true));
+
+        Db.ChangeTracker.Clear();
+        Assert.Single(await Db.Matches.Where(m => m.ShipId == shipId).ToListAsync());
+        Assert.Single(await Db.ScoreEvents
+            .Where(e => e.UserId == weaver.Id && e.EventType == "ShipSparked").ToListAsync());
+    }
 }

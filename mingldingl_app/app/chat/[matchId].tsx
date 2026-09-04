@@ -22,7 +22,7 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
 
 const DEFAULT_RITE_DURATION_MINUTES = 5;
@@ -113,10 +113,10 @@ export default function ChatScreen() {
           right={
             <>
               <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.unmatchBtn} accessibilityLabel={i18n.t('chat_options_title')}>
-                <Icon name="dots-vertical" size={20} color={COLORS.textDim} />
+                <Icon name="dots-vertical" size={ICON_SIZES.lg} color={COLORS.textDim} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push(`/video/${matchId}`)} style={styles.videoBtn} accessibilityLabel={i18n.t('start_video_call')}>
-                <Icon name="video" size={20} color={COLORS.gold} />
+                <Icon name="video" size={ICON_SIZES.lg} color={COLORS.gold} />
               </TouchableOpacity>
             </>
           }
@@ -179,7 +179,7 @@ export default function ChatScreen() {
                 <TouchableOpacity style={styles.loadEarlierBtn} onPress={() => loadEarlier()} disabled={loadingEarlier} accessibilityRole="button">
                   {loadingEarlier ? <ActivityIndicator color={COLORS.gold} size="small" /> : (
                     <>
-                      <Icon name="chevron-double-up" size={14} color={COLORS.gold} />
+                      <Icon name="chevron-double-up" size={ICON_SIZES.sm} color={COLORS.gold} />
                       <Text style={styles.loadEarlierText}>{i18n.t('load_earlier')}</Text>
                     </>
                   )}

@@ -45,8 +45,8 @@ export default function NewShipScreen() {
     }
   }
 
-  function shareInvite(code: string | null) {
-    Share.share({ message: shipInviteMessage(code ?? '') });
+  function shareInvite(code: string) {
+    Share.share({ message: shipInviteMessage(code) });
   }
 
   if (sent) {
@@ -56,12 +56,18 @@ export default function NewShipScreen() {
         <ScreenHeader title={i18n.t('weave_thread_title')} onBack={() => router.back()} />
         <View style={styles.confirmWrap}>
           <Text style={styles.confirmText}>{i18n.t('ship_sent_confirmation')}</Text>
-          <GameButton variant="primary" onPress={() => shareInvite(codes.slotACode)}>
-            {i18n.t('share_thread_invite_a')}
-          </GameButton>
-          <GameButton variant="primary" onPress={() => shareInvite(codes.slotBCode)}>
-            {i18n.t('share_thread_invite_b')}
-          </GameButton>
+          {/* A nominee who already has an account is invited in-app and gets no code, so there is
+              nothing to share for that slot. */}
+          {codes.slotACode !== null && (
+            <GameButton variant="primary" onPress={() => shareInvite(codes.slotACode!)}>
+              {i18n.t('share_thread_invite_a')}
+            </GameButton>
+          )}
+          {codes.slotBCode !== null && (
+            <GameButton variant="primary" onPress={() => shareInvite(codes.slotBCode!)}>
+              {i18n.t('share_thread_invite_b')}
+            </GameButton>
+          )}
           <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
         </View>
       </View>

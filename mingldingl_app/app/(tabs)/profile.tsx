@@ -40,7 +40,7 @@ import { TorchGlow } from '../../components/vfx/TorchGlow';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import OathSigil, { OATH_VALUES, OATH_SIGILS, OATH_NAME_KEYS, OATH_DESC_KEYS } from '../../components/OathSigil';
 import { useSwearOath } from '../../hooks/useOath';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
 import type { GemTier, Oath } from '../../models/user';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
@@ -157,7 +157,7 @@ export default function ProfileScreen() {
                   />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <Icon name="camera" size={36} color={COLORS.gold} />
+                    <Icon name="camera" size={ICON_SIZES.huge} color={COLORS.gold} />
                   </View>
                 )}
                 {uploading && (
@@ -168,7 +168,7 @@ export default function ProfileScreen() {
               </View>
             </View>
             <View style={styles.avatarEditBadge}>
-              <Icon name="pencil" size={13} color={COLORS.bg} />
+              <Icon name="pencil" size={ICON_SIZES.sm} color={COLORS.bg} />
             </View>
           </View>
         </TorchGlow>
@@ -469,9 +469,9 @@ const styles = StyleSheet.create({
   membershipRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   membershipValue: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text },
   membershipArrow: { fontSize: FONT_SIZES.md, color: COLORS.gold, fontFamily: FONTS.body },
-  bioText: { fontSize: FONT_SIZES.md, color: COLORS.textDim, lineHeight: 22, fontFamily: FONTS.body },
+  bioText: { fontSize: FONT_SIZES.md, color: COLORS.textDim, lineHeight: LINE_HEIGHTS.md, fontFamily: FONTS.body },
   oathRow: { marginTop: SPACE.hair },
-  oathPrompt: { fontSize: FONT_SIZES.md, color: COLORS.gold, fontFamily: FONTS.body, lineHeight: 20 },
+  oathPrompt: { fontSize: FONT_SIZES.md, color: COLORS.gold, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
   oathSheet: {
     width: '100%',
     maxWidth: 360,
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     gap: SPACE.md,
   },
   oathSheetTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, color: COLORS.text, marginBottom: SPACE.hair },
-  oathSheetHelp: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, fontFamily: FONTS.body, lineHeight: 17 },
+  oathSheetHelp: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.sm },
   oathOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
   oathOptionSigilDim: { opacity: 0.5 },
   oathOptionText: { flex: 1, gap: SPACE.hair },
   oathOptionName: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text },
-  oathOptionDesc: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, color: COLORS.textDim, lineHeight: 17 },
+  oathOptionDesc: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, color: COLORS.textDim, lineHeight: LINE_HEIGHTS.sm },
   editButtonWrapper: { marginHorizontal: SPACE.gutter, marginTop: SPACE.sm },
   signOutWrapper: { marginHorizontal: SPACE.gutter, marginTop: SPACE.md },
 });

@@ -7,7 +7,7 @@ import { useLocaleStore } from '../../store/localeStore';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
@@ -104,7 +104,7 @@ export default function OtpScreen() {
 
       {expired ? (
         <View style={styles.card}>
-          <Icon name="timer-sand-empty" size={28} color={COLORS.emberLight} />
+          <Icon name="timer-sand-empty" size={ICON_SIZES.xxl} color={COLORS.emberLight} />
           <Text style={styles.cardTitle}>{i18n.t('verify_expired_title')}</Text>
           <Text style={styles.instruction}>{i18n.t('verify_expired_body')}</Text>
           <GameButton variant="primary" onPress={restart}>{i18n.t('verify_start_over')}</GameButton>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg,
     color: COLORS.text,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: LINE_HEIGHTS.lg,
   },
   manual: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
   waitingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.sm },

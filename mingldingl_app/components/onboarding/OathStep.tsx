@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { StepScaffold } from './StepScaffold';
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: SPACE.huge, gap: SPACE.lg },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: 'auto' },
   heading: { color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
-  help: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: 19 },
+  help: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
   cardList: { gap: SPACE.md },
   card: { flexDirection: 'row', alignItems: 'center', padding: SPACE.lg, gap: SPACE.lg },
   cardSelected: { borderColor: COLORS.gold, borderWidth: 2 },
@@ -92,6 +92,6 @@ const styles = StyleSheet.create({
   glyphImgDim: { opacity: 0.45 },
   cardText: { flex: 1, gap: SPACE.xs },
   cardName: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text },
-  cardDesc: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.textDim, lineHeight: 18 },
+  cardDesc: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.textDim, lineHeight: LINE_HEIGHTS.md },
   error: { color: COLORS.emberLight, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
 });

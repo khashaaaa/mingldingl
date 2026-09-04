@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { SectionDivider } from './SectionDivider';
 import { Icon } from './Icon';
@@ -30,10 +30,10 @@ export function HeaderBar({ title, showBack = true, onBack, icon, right, childre
               accessibilityRole="button"
               accessibilityLabel={i18n.t('back')}
             >
-              <Icon name="arrow-left" size={22} color={COLORS.gold} />
+              <Icon name="arrow-left" size={ICON_SIZES.xl} color={COLORS.gold} />
             </TouchableOpacity>
           )}
-          {icon && <Icon name={icon} size={20} style={styles.titleIcon} />}
+          {icon && <Icon name={icon} size={ICON_SIZES.lg} style={styles.titleIcon} />}
           {/* Two lines, because `adjustsFontSizeToFit` is iOS-only: on web and Android a long
               title (interpolated city names, the longer Mongolian copy) simply clipped —
               "Ulaanbaatar Leaderboard" rendered as "Ulaanbaatar Leaderb…". */}

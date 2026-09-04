@@ -7,7 +7,7 @@ import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
 import OathSigil from '../OathSigil';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE, overlay, tint } from '../../lib/theme';
 import { itemLabel } from '../../lib/tiers';
 import type { Candidate } from '../../models/user';
 
@@ -45,7 +45,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
         />
       ) : (
         <View style={styles.photoPlaceholder}>
-          <Icon name="account" size={72} color={COLORS.bronze} />
+          <Icon name="account" size={ICON_SIZES.splash} color={COLORS.bronze} />
         </View>
       )}
 
@@ -90,7 +90,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
         <OathSigil oath={candidate.oath} proven={candidate.oathProven} size="sm" />
         {candidate.city && (
           <View style={styles.locationRow}>
-            <Icon name="map-marker" size={13} color={COLORS.textDim} />
+            <Icon name="map-marker" size={ICON_SIZES.sm} color={COLORS.textDim} />
             <Text style={styles.location}>{candidate.city}</Text>
           </View>
         )}
@@ -160,6 +160,6 @@ const styles = StyleSheet.create({
   },
   equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: COLORS.gold, letterSpacing: 1 },
   location: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.textDim },
-  bio: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: COLORS.text, lineHeight: 22 },
+  bio: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: COLORS.text, lineHeight: LINE_HEIGHTS.lg },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.sm },
 });

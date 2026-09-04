@@ -63,7 +63,10 @@ public class UsersController : ControllerBase
         DroppedItem? referralReward = null;
         if (user.IsProfileComplete && !wasComplete)
         {
-            await _score.AwardAsync(userId, "ProfileComplete");
+            // Once ever, not once per transition: the flag flips back to false whenever a required
+            // field is cleared, so paying on every rising edge let a profile be emptied and refilled
+            // for +100 a round. The partial unique index is what actually settles it.
+            await _score.TryAwardClaimedAsync(userId, "ProfileComplete", ScoreService.GetDelta("ProfileComplete"));
             referralReward = await _referral.TryCompleteReferralAsync(userId, req.ReferralCode);
             await _ships.TryResolveInviteCodeAsync(userId, req.ReferralCode);
         }
@@ -116,14 +119,17 @@ public class UsersController : ControllerBase
         var user = await _db.Users.FindAsync(userId);
         if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
+        var droppedPhotos = new List<string>();
+
         if (req.DisplayName is not null) user.DisplayName = req.DisplayName;
         if (req.Bio is not null) user.Bio = req.Bio;
         if (req.PhotoUrls is not null)
         {
-            // Drop files that are no longer referenced — /uploads is public, so an orphaned photo
-            // stays fetchable by anyone holding its URL long after the user removed it.
-            foreach (var dropped in user.PhotoUrls.Except(req.PhotoUrls))
-                _storage.DeleteByPublicUrl(dropped);
+            // Files that are no longer referenced have to go — /uploads is public, so an orphaned
+            // photo stays fetchable by anyone holding its URL long after the user removed it. The
+            // unlink waits until the write has committed, or a later validation failure would
+            // destroy the files while the row still points at them.
+            droppedPhotos.AddRange(user.PhotoUrls.Except(req.PhotoUrls));
             user.PhotoUrls = req.PhotoUrls;
         }
         if (req.HasKids is not null) user.HasKids = req.HasKids;
@@ -145,7 +151,19 @@ public class UsersController : ControllerBase
         if (user.AgeMin > user.AgeMax)
             return this.BadRequestError("AgeMin cannot be greater than AgeMax", "profile.age_range_invalid");
 
+        // This endpoint can empty a required field just as easily as fill one, so the derived flag
+        // has to be recomputed here too — leaving it stale reported an emptied profile as complete.
+        var wasComplete = user.IsProfileComplete;
+        user.IsProfileComplete = ScoreService.IsProfileComplete(user);
+
         await _db.SaveChangesAsync();
+
+        foreach (var dropped in droppedPhotos)
+            _storage.DeleteByPublicUrl(dropped);
+
+        if (user.IsProfileComplete && !wasComplete)
+            await _score.TryAwardClaimedAsync(userId, "ProfileComplete", ScoreService.GetDelta("ProfileComplete"));
+
         return Ok(ToResponse(user));
     }
 

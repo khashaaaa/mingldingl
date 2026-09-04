@@ -40,7 +40,7 @@ public class LocalFileStorageService
     /// Returns false for URLs this service did not issue. Never throws: deletion runs from the
     /// maintenance sweep, where one bad row must not abort the rest of the pass.
     /// </summary>
-    public bool DeleteByPublicUrl(string? url)
+    public virtual bool DeleteByPublicUrl(string? url)
     {
         if (string.IsNullOrWhiteSpace(url)) return false;
 
