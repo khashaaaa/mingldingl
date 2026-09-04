@@ -47,6 +47,7 @@ function matchFixture(overrides: Partial<Match> = {}): Match {
     otherUser: { displayName: 'Riley' },
     flameRiteDurationMinutes: 5,
     flameRiteRequired: true,
+    videoEnabled: true,
     ...overrides,
   };
 }

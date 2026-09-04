@@ -60,7 +60,8 @@ public record UserResponse(
     string? Oath = null,
     bool OathProven = false,
     int? OathEncountersHeld = null,
-    int? OathEncountersNeeded = null);
+    int? OathEncountersNeeded = null,
+    int DeletionGraceDays = 7);
 
 public record OwnedItemResponse(string ItemId, string NameKey, string Rarity, string ItemType, DateTime AcquiredAt, bool Equipped);
 

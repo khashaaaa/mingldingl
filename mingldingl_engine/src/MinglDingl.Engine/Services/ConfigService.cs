@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 
 public class ConfigService
@@ -11,7 +12,14 @@ public class ConfigService
         _cache.TryGetValue(key, out var raw) && bool.TryParse(raw, out var value) ? value : defaultValue;
 
     public double GetNumber(string key, double defaultValue) =>
-        _cache.TryGetValue(key, out var raw) && double.TryParse(raw, out var value) ? value : defaultValue;
+        _cache.TryGetValue(key, out var raw) && double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && double.IsFinite(value) ? value : defaultValue;
+
+    /// <summary>
+    /// The Flame Rite can only gate pledges while video calls exist: with <c>video.enabled</c>
+    /// off, no token can be minted, so requiring the rite would deadlock every match.
+    /// </summary>
+    public bool FlameRiteRequired() =>
+        GetBool("dating.flamerite.required", true) && GetBool("video.enabled", true);
 
     public string GetString(string key, string defaultValue) =>
         _cache.TryGetValue(key, out var raw) ? raw : defaultValue;

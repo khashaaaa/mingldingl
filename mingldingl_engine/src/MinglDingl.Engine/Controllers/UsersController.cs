@@ -15,10 +15,12 @@ public class UsersController : ControllerBase
     private readonly OathService _oaths;
     private readonly PhoneVerificationService _phones;
     private readonly LocalFileStorageService _storage;
+    private readonly ConfigService _config;
 
-    public UsersController(AppDbContext db, ScoreService score, ReferralService referral, ShipService ships, OathService oaths, PhoneVerificationService phones, LocalFileStorageService storage)
+    public UsersController(AppDbContext db, ScoreService score, ReferralService referral, ShipService ships, OathService oaths, PhoneVerificationService phones, LocalFileStorageService storage, ConfigService config)
     {
         _storage = storage;
+        _config = config;
         _db = db;
         _score = score;
         _referral = referral;
@@ -66,7 +68,7 @@ public class UsersController : ControllerBase
             // Once ever, not once per transition: the flag flips back to false whenever a required
             // field is cleared, so paying on every rising edge let a profile be emptied and refilled
             // for +100 a round. The partial unique index is what actually settles it.
-            await _score.TryAwardClaimedAsync(userId, "ProfileComplete", ScoreService.GetDelta("ProfileComplete"));
+            await _score.TryAwardClaimedAsync(userId, "ProfileComplete", _score.Delta("ProfileComplete"));
             referralReward = await _referral.TryCompleteReferralAsync(userId, req.ReferralCode);
             await _ships.TryResolveInviteCodeAsync(userId, req.ReferralCode);
         }
@@ -162,7 +164,7 @@ public class UsersController : ControllerBase
             _storage.DeleteByPublicUrl(dropped);
 
         if (user.IsProfileComplete && !wasComplete)
-            await _score.TryAwardClaimedAsync(userId, "ProfileComplete", ScoreService.GetDelta("ProfileComplete"));
+            await _score.TryAwardClaimedAsync(userId, "ProfileComplete", _score.Delta("ProfileComplete"));
 
         return Ok(ToResponse(user));
     }
@@ -327,7 +329,7 @@ public class UsersController : ControllerBase
         return Ok(ToResponse(user) with { OathEncountersHeld = held, OathEncountersNeeded = needed });
     }
 
-    private static UserResponse ToResponse(User u) => new(
+    private UserResponse ToResponse(User u) => new(
         u.Id, u.DisplayName, u.Age, u.Gender, u.City, u.Bio,
         u.PhotoUrls,
         u.MembershipLevel, u.IsProfileComplete,
@@ -336,5 +338,6 @@ public class UsersController : ControllerBase
         u.PushEnabled, u.AgeMin, u.AgeMax, u.IsPaused, u.PhoneNumber,
         u.ReferralCode,
         Oath: u.Oath,
-        OathProven: u.OathProven);
+        OathProven: u.OathProven,
+        DeletionGraceDays: (int)DailyMaintenanceBackgroundService.GracePeriodFor(_config).TotalDays);
 }

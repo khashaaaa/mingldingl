@@ -78,7 +78,7 @@ public class EngagementController : ControllerBase
         {
             var otherUserId = match.OtherParticipant(userId);
             await _engagement.CompleteIcebreakerAsync(matchId, userId, otherUserId);
-            awarded = ScoreService.GetDelta("IcebreakerDone") + await _quests.IncrementAsync(userId, "icebreaker");
+            awarded = _score.Delta("IcebreakerDone") + await _quests.IncrementAsync(userId, "icebreaker");
             await _quests.IncrementAsync(otherUserId, "icebreaker");
             drop = await _loot.RollDropAsync(userId, "drop");
             await _milestones.AchieveAsync(userId, "first_icebreaker");
@@ -193,7 +193,7 @@ public class EngagementController : ControllerBase
         if (isFirstResponse)
         {
             await _score.AwardAsync(userId, "QuizDone");
-            awarded = ScoreService.GetDelta("QuizDone") + await _quests.IncrementAsync(userId, "quiz");
+            awarded = _score.Delta("QuizDone") + await _quests.IncrementAsync(userId, "quiz");
             drop = await _loot.RollDropAsync(userId, "drop");
             await _milestones.AchieveAsync(userId, "first_quiz");
             if (req.MatchId.HasValue)
@@ -244,7 +244,7 @@ public class EngagementController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var today = DateTime.UtcNow.Date;
-        var defs = QuestService.QuestsForDate(today);
+        var defs = _quests.QuestsForDate(today);
         var rows = await _db.UserDailyQuests.AsNoTracking()
             .Where(r => r.UserId == userId && r.QuestDate == today).ToListAsync();
         bool chestClaimed = await _db.ScoreEvents.AnyAsync(e =>
@@ -253,7 +253,9 @@ public class EngagementController : ControllerBase
         var quests = defs.Select(d =>
         {
             var row = rows.FirstOrDefault(r => r.QuestId == d.Id);
-            return new QuestEntryResponse(d.Id, d.NameKey, d.Target, row?.Progress ?? 0, row?.CompletedAt is not null, d.Xp);
+            // A target lowered in config below progress already made counts as done, so the board
+            // and the chest agree; the XP itself is paid when the quest's action next fires.
+            return new QuestEntryResponse(d.Id, d.NameKey, d.Target, row?.Progress ?? 0, row?.CompletedAt is not null || (row?.Progress ?? 0) >= d.Target, d.Xp);
         }).ToList();
 
         return Ok(new QuestBoardResponse(quests, quests.All(q => q.Completed), chestClaimed));
@@ -266,21 +268,22 @@ public class EngagementController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var today = DateTime.UtcNow.Date;
-        var defs = QuestService.QuestsForDate(today);
+        var defs = _quests.QuestsForDate(today);
         var rows = await _db.UserDailyQuests.AsNoTracking()
             .Where(r => r.UserId == userId && r.QuestDate == today).ToListAsync();
-        bool allComplete = defs.All(d => rows.Any(r => r.QuestId == d.Id && r.CompletedAt != null));
+        bool allComplete = defs.All(d => rows.Any(r => r.QuestId == d.Id && (r.CompletedAt != null || r.Progress >= d.Target)));
         if (!allComplete) return this.BadRequestError("Complete all quests to claim the bounty chest", "quest.incomplete");
 
         bool chestClaimed = await _db.ScoreEvents.AnyAsync(e =>
             e.UserId == userId && e.EventType == "QuestChest" && e.CreatedAt >= today);
         if (chestClaimed) return Ok(new ClaimChestResponse(0, true));
 
-        if (!await _score.TryAwardClaimedAsync(userId, "QuestChest", 30))
+        int chestXp = _score.QuestChestXp;
+        if (!await _score.TryAwardClaimedAsync(userId, "QuestChest", chestXp))
             return Ok(new ClaimChestResponse(0, true));
 
         var item = await _loot.GrantGuaranteedAsync(userId, "quest_chest");
-        return Ok(new ClaimChestResponse(30, false, item));
+        return Ok(new ClaimChestResponse(chestXp, false, item));
     }
 
     [HttpGet("milestones")]

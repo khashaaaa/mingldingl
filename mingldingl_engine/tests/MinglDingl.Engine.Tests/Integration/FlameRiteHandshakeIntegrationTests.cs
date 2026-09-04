@@ -27,7 +27,7 @@ public class FlameRiteHandshakeIntegrationTests : IntegrationTestBase
         var videoToken = new VideoTokenService(agoraConfig, TestHostEnvironment.Development);
 
         var score = new ScoreService(Db, new ConfigService());
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var appConfig = config ?? new ConfigService();

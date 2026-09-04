@@ -2,19 +2,19 @@ using Microsoft.EntityFrameworkCore;
 
 public class GhostingService
 {
-    private static readonly TimeSpan GhostThreshold = TimeSpan.FromHours(48);
-
     private readonly AppDbContext _db;
     private readonly ScoreService _score;
     private readonly OathService _oaths;
     private readonly SupabaseBroadcastService _broadcast;
+    private readonly ConfigService _config;
 
-    public GhostingService(AppDbContext db, ScoreService score, OathService oaths, SupabaseBroadcastService broadcast)
+    public GhostingService(AppDbContext db, ScoreService score, OathService oaths, SupabaseBroadcastService broadcast, ConfigService config)
     {
         _db = db;
         _score = score;
         _oaths = oaths;
         _broadcast = broadcast;
+        _config = config;
     }
 
     public async Task<bool> CheckAsync(Match match)
@@ -54,11 +54,11 @@ public class GhostingService
             new { matchId, status = "Ghosted", userId = atFaultUserId });
 
     /// <summary>Exposed so the sweep can push the same cutoff into SQL instead of filtering in memory.</summary>
-    public static TimeSpan StaleAfter => GhostThreshold;
+    public TimeSpan StaleAfter => TimeSpan.FromHours(Math.Max(1, _config.GetNumber("ghosting.stale_hours", 48)));
 
-    public static bool IsStale(Match match) =>
+    public bool IsStale(Match match) =>
         match.Status == "Active" && match.LastMessageAt.HasValue &&
-        DateTime.UtcNow - match.LastMessageAt.Value > GhostThreshold;
+        DateTime.UtcNow - match.LastMessageAt.Value > StaleAfter;
 
     public static Guid? GetGhostAtFaultUserId(Match match) =>
         match.LastMessageSenderId is null ? null :

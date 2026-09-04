@@ -59,8 +59,8 @@ export function Ops() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-4 text-sm">
-            Read-only — pricing is a hardcoded function of each tier's monthly price in the engine today, not
-            DB-backed config, so there's nothing here yet to edit.
+            Read-only view of what the app sells right now. Monthly prices and the 3- and 6-month discounts are
+            edited under Config → Membership; totals here recompute from those values.
           </p>
 
           {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}

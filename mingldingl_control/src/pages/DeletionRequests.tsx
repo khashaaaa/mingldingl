@@ -14,7 +14,7 @@ export function DeletionRequests() {
     <div>
       <h1 className="mb-1 text-lg font-semibold">Deletion Requests</h1>
       <p className="text-muted-foreground mb-4 text-sm">
-        Read-only — accounts are auto-anonymized 7 days after request unless the user logs back in themselves.
+        Read-only — accounts are auto-anonymized after the grace period (Config → Safety → account.deletion_grace_days) unless the user logs back in themselves. "Days left" below already uses the current value.
       </p>
 
       {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}

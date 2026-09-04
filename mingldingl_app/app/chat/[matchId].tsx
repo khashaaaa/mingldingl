@@ -142,7 +142,7 @@ export default function ChatScreen() {
         )}
         <QuestBanner icon="target" title={i18n.t('break_ice')}
           onPress={() => router.push(`/icebreaker/${matchId}`)} />
-        {match?.icebreakerComplete && (
+        {match?.icebreakerComplete && (match?.videoEnabled ?? true) && (
           <FlameRiteCard matchId={matchId} state={riteState} currentUserId={myId ?? ''} />
         )}
         <QuestBanner icon="brain" title={i18n.t('trial_compat')}

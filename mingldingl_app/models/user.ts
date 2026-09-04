@@ -34,6 +34,8 @@ export interface UserProfile {
 
   oathEncountersHeld: number | null;
   oathEncountersNeeded: number | null;
+  /** Days between a deletion request and anonymisation; admin-tunable, quoted in the deletion dialogs. */
+  deletionGraceDays: number;
 }
 
 export type Candidate = UserProfile & { gemTier: GemTier };
@@ -66,5 +68,6 @@ export function parseUserProfile(d: components['schemas']['UserResponse']): User
     oathProven:       d.oathProven         ?? false,
     oathEncountersHeld:   d.oathEncountersHeld   ?? null,
     oathEncountersNeeded: d.oathEncountersNeeded ?? null,
+    deletionGraceDays: d.deletionGraceDays ?? 7,
   };
 }

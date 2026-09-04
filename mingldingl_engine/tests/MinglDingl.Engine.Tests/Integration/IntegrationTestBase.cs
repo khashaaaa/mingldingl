@@ -112,7 +112,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         var loot = new LootService(db, score, NullLogger<LootService>.Instance);
         var ships = new ShipService(db, loot, score, new ConfigService(),
             new MilestoneService(db, NullLogger<MilestoneService>.Instance), new PushNotificationService(new HttpClient(), db, NullLogger<PushNotificationService>.Instance), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
-        var controller = new UsersController(db, score, new ReferralService(db, loot, NullLogger<ReferralService>.Instance), ships, oaths, BuildUnconfiguredPhoneVerification(db), BuildTestStorage());
+        var controller = new UsersController(db, score, new ReferralService(db, loot, NullLogger<ReferralService>.Instance), ships, oaths, BuildUnconfiguredPhoneVerification(db), BuildTestStorage(), new ConfigService());
         controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext { HttpContext = httpContext };
         return controller;
     }

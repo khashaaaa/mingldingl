@@ -9,10 +9,12 @@ public class AdminOpsController : ControllerBase
 {
     private readonly DailyMaintenanceBackgroundService _sweep;
     private readonly AdminAuditService _audit;
-    public AdminOpsController(DailyMaintenanceBackgroundService sweep, AdminAuditService audit)
+    private readonly MembershipCatalog _catalog;
+    public AdminOpsController(DailyMaintenanceBackgroundService sweep, AdminAuditService audit, MembershipCatalog catalog)
     {
         _sweep = sweep;
         _audit = audit;
+        _catalog = catalog;
     }
 
     [HttpPost("run-maintenance-sweep")]
@@ -26,5 +28,5 @@ public class AdminOpsController : ControllerBase
 
     [HttpGet("pricing")]
     [ProducesResponseType(typeof(List<MembershipTierResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetPricing() => Ok(MembershipController.AllTiers);
+    public IActionResult GetPricing() => Ok(_catalog.Tiers().ToList());
 }

@@ -7,7 +7,7 @@ namespace MinglDingl.Engine.Tests.Integration;
 
 public class ShipsControllerIntegrationTests : IntegrationTestBase
 {
-    private ShipsController BuildController(Guid userId)
+    private ShipsController BuildController(Guid userId, ConfigService? config = null)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
@@ -15,7 +15,7 @@ public class ShipsControllerIntegrationTests : IntegrationTestBase
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
         var shipService = new ShipService(Db, new LootService(Db, scoreService, NullLogger<LootService>.Instance), scoreService, new ConfigService(), milestones, push, BuildTestBroadcast(), NullLogger<ShipService>.Instance);
-        var controller = new ShipsController(shipService, Db)
+        var controller = new ShipsController(shipService, Db, config ?? new ConfigService())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -43,6 +43,22 @@ public class ShipsControllerIntegrationTests : IntegrationTestBase
         Assert.True(response.Success);
         Assert.NotNull(response.SlotACode);
         Assert.NotNull(response.SlotBCode);
+    }
+
+    [Fact]
+    public async Task Create_ShipsDisabledInConfig_ReturnsNotFoundWithCodeAndWeavesNothing()
+    {
+        var weaver = AddUser("88120001");
+        await Db.SaveChangesAsync();
+        var config = new ConfigService();
+        config.Set("ships.enabled", "false");
+        var controller = BuildController(weaver.Id, config);
+
+        var result = await controller.Create(new CreateShipRequest("88120002", "88120003"));
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal("ship.disabled", Assert.IsType<ErrorResponse>(notFound.Value).Code);
+        Assert.False(await Db.Ships.AnyAsync(s => s.ShipperUserId == weaver.Id));
     }
 
     [Fact]

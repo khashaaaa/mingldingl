@@ -44,6 +44,8 @@ export interface Match {
 
   flameRiteDurationMinutes: number;
   flameRiteRequired: boolean;
+  /** False while the admin has switched video off: no rite can be proposed, so the card hides. */
+  videoEnabled: boolean;
 }
 
 export function parseMatch(d: components['schemas']['MatchResponse']): Match {
@@ -84,5 +86,6 @@ export function parseMatch(d: components['schemas']['MatchResponse']): Match {
     flameRiteCompletedAt: d.flameRiteCompletedAt ?? null,
     flameRiteDurationMinutes: d.flameRiteDurationMinutes ?? 5,
     flameRiteRequired: d.flameRiteRequired ?? true,
+    videoEnabled: d.videoEnabled ?? true,
   };
 }

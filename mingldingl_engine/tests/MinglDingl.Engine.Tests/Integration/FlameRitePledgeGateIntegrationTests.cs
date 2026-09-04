@@ -9,7 +9,7 @@ public class FlameRitePledgeGateIntegrationTests : IntegrationTestBase
     private ActivityService BuildActivityService(ConfigService config)
     {
         var score = new ScoreService(Db, config);
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var httpClient = new HttpClient();
         var mockConfig = new Moq.Mock<IConfiguration>();
@@ -66,6 +66,22 @@ public class FlameRitePledgeGateIntegrationTests : IntegrationTestBase
         Assert.Equal(ConfirmRejection.FlameRiteIncomplete, result.Rejection);
         Assert.Equal(0, awarded);
         Assert.False(await Db.DateConfirmations.AnyAsync(c => c.MatchId == match.Id));
+    }
+
+    [Fact]
+    public async Task Confirm_WithoutTheRite_WhileVideoDisabled_Succeeds()
+    {
+        // With no video there can be no rite; requiring it would deadlock every pledge.
+        var (match, suggestion, aId, _) = await SeedPledgeableMatchAsync(riteComplete: false);
+        var config = new ConfigService();
+        config.Set("dating.flamerite.required", "true");
+        config.Set("video.enabled", "false");
+        var service = BuildActivityService(config);
+
+        var (result, _) = await service.ConfirmAsync(match, aId, suggestion.Id);
+
+        Assert.Null(result.Rejection);
+        Assert.True(await Db.DateConfirmations.AnyAsync(c => c.MatchId == match.Id));
     }
 
     [Fact]

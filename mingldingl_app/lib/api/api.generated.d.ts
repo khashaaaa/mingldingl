@@ -4034,6 +4034,15 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -5619,6 +5628,8 @@ export interface components {
             /** Format: int32 */
             clearedCount?: number;
             bossCleared?: boolean;
+            /** Format: int32 */
+            voicesMessageThreshold?: number;
         };
         CampaignRoomResponse: {
             roomId?: string | null;
@@ -5871,6 +5882,7 @@ export interface components {
             /** Format: int32 */
             flameRiteDurationMinutes?: number;
             flameRiteRequired?: boolean;
+            videoEnabled?: boolean;
         };
         MatchResponsePagedResponse: {
             items?: components["schemas"]["MatchResponse"][] | null;
@@ -6270,6 +6282,8 @@ export interface components {
             oathEncountersHeld?: number | null;
             /** Format: int32 */
             oathEncountersNeeded?: number | null;
+            /** Format: int32 */
+            deletionGraceDays?: number;
         };
         VideoCompleteDto: {
             /** Format: uuid */

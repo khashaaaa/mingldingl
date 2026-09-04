@@ -30,9 +30,9 @@ public class ScoresController : ControllerBase
             user.TotalScore,
             user.GemTier,
             user.ReputationScore,
-            ScoreService.DailyMatchBudget(user),
+            _score.DailyMatchBudget(user),
             user.DailyMatchesUsed,
-            Math.Max(0, ScoreService.DailyMatchBudget(user) - user.DailyMatchesUsed)));
+            Math.Max(0, _score.DailyMatchBudget(user) - user.DailyMatchesUsed)));
     }
 
     [HttpGet("me/detail")]
@@ -84,7 +84,7 @@ public class ScoresController : ControllerBase
             nextTier,
             nextThreshold,
             progressPct,
-            ScoreService.DailyMatchBudget(user),
+            _score.DailyMatchBudget(user),
             pendingReward,
             pendingShipReward));
     }
@@ -238,7 +238,7 @@ public class ScoresController : ControllerBase
         user.LastLoginDate = today;
 
         bool bonus = streak % 7 == 0;
-        int award = ScoreService.GetDelta("DailyLogin") * Math.Min(streak, 7) + (bonus ? 50 : 0);
+        int award = _score.Delta("DailyLogin") * Math.Min(streak, 7) + (bonus ? _score.WeeklyStreakBonus : 0);
         await _db.SaveChangesAsync();
 
         if (!await _score.TryAwardClaimedAsync(userId, "DailyLogin", award))

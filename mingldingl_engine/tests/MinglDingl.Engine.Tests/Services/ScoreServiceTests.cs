@@ -28,9 +28,95 @@ public class ScoreServiceTests
     [InlineData("OathProven", 40)]
     [InlineData("GhostPenalty", -15)]
     [InlineData("ReportPenalty", -30)]
-    public void GetDelta_KnownEventType_ReturnsExpectedDelta(string eventType, int expected)
+    public void Delta_KnownEventType_ReturnsDesignTableValue(string eventType, int expected)
     {
-        Assert.Equal(expected, ScoreService.GetDelta(eventType));
+        Assert.Equal(expected, CreateService().Delta(eventType));
+    }
+
+    [Fact]
+    public void Delta_UnknownEventType_ReturnsZero()
+    {
+        Assert.Equal(0, CreateService().Delta("NoSuchEvent"));
+    }
+
+    [Fact]
+    public void Delta_OverriddenInConfig_UsesConfigValue()
+    {
+        var config = new ConfigService();
+        config.Set("score.event.MatchReply", "3");
+        Assert.Equal(3, CreateService(config).Delta("MatchReply"));
+        Assert.Equal(10, CreateService(config).Delta("FirstMessage"));
+    }
+
+    [Fact]
+    public void WeeklyStreakBonusAndQuestChest_OverriddenInConfig_UseConfigValues()
+    {
+        var config = new ConfigService();
+        config.Set("score.streak.weekly_bonus", "75");
+        config.Set("score.quest_chest", "45");
+        var score = CreateService(config);
+        Assert.Equal(75, score.WeeklyStreakBonus);
+        Assert.Equal(45, score.QuestChestXp);
+        Assert.Equal(50, CreateService().WeeklyStreakBonus);
+        Assert.Equal(30, CreateService().QuestChestXp);
+    }
+
+    [Fact]
+    public void DailyMatchBudget_ConfigOverrides_ChangeBaseAndCap()
+    {
+        var config = new ConfigService();
+        config.Set("budget.base.free", "8");
+        config.Set("budget.cap.free", "9");
+        var score = CreateService(config);
+
+        Assert.Equal(8, score.DailyMatchBudget(new User { TotalScore = 0, MembershipLevel = "Free" }));
+        Assert.Equal(9, score.DailyMatchBudget(new User { TotalScore = 500, MembershipLevel = "Free" }));
+    }
+
+    [Fact]
+    public void DailyMatchBudget_ScoreDivisorOverridden_ChangesBonusRate()
+    {
+        var config = new ConfigService();
+        config.Set("budget.score_divisor", "10");
+        Assert.Equal(12, CreateService(config).DailyMatchBudget(new User { TotalScore = 100, MembershipLevel = "Free" }));
+    }
+
+    [Fact]
+    public void CalculateTier_RubyThresholdOverridden_UsesConfigValue()
+    {
+        var config = new ConfigService();
+        config.Set("tier.ruby.threshold", "900");
+        var score = CreateService(config);
+        Assert.Equal("Sapphire", score.CalculateTier(899));
+        Assert.Equal("Ruby", score.CalculateTier(900));
+    }
+
+    [Theory]
+    [InlineData("tier.sapphire.threshold", 250, false)]
+    [InlineData("tier.sapphire.threshold", 300, false)]
+    [InlineData("tier.sapphire.threshold", 1000, false)]
+    [InlineData("tier.sapphire.threshold", 999, true)]
+    [InlineData("tier.sapphire.threshold", 301, true)]
+    [InlineData("tier.emerald.threshold", 1001, true)]
+    [InlineData("tier.emerald.threshold", 1000, false)]
+    [InlineData("tier.opal.threshold", 0, false)]
+    [InlineData("tier.opal.threshold", 1, true)]
+    public void ValidateTierThreshold_EnforcesStrictOrdering(string key, int value, bool accepted)
+    {
+        var error = CreateService().ValidateTierThreshold(key, value);
+        Assert.Equal(accepted, error is null);
+    }
+
+    [Fact]
+    public void ValidateTierThreshold_GarnetFloor_IsRefused()
+    {
+        Assert.NotNull(CreateService().ValidateTierThreshold("tier.garnet.threshold", 5));
+    }
+
+    [Fact]
+    public void ValidateTierThreshold_UnknownKey_ReturnsNull()
+    {
+        Assert.Null(CreateService().ValidateTierThreshold("tier.platinum.threshold", 5));
     }
 
     [Theory]
@@ -42,7 +128,7 @@ public class ScoreServiceTests
     public void DailyMatchBudget_ReturnsCorrectSlots(int score, string membership, int expected)
     {
         var user = new User { TotalScore = score, MembershipLevel = membership };
-        Assert.Equal(expected, ScoreService.DailyMatchBudget(user));
+        Assert.Equal(expected, CreateService().DailyMatchBudget(user));
     }
 
     [Theory]
@@ -163,14 +249,14 @@ public class ScoreServiceTests
     public void DailyMatchBudget_AppliesFlatTierBonus_ToBaseAndCap()
     {
         var user = new User { TotalScore = 0, MembershipLevel = "Free", GemTier = "Emerald" };
-        Assert.Equal(10, ScoreService.DailyMatchBudget(user));
+        Assert.Equal(10, CreateService().DailyMatchBudget(user));
     }
 
     [Fact]
     public void DailyMatchBudget_TierBonusRaisesCap_WhenScoreBonusWouldOtherwiseBeCapped()
     {
         var user = new User { TotalScore = 2000, MembershipLevel = "Gold", GemTier = "Ruby" };
-        Assert.Equal(44, ScoreService.DailyMatchBudget(user));
+        Assert.Equal(44, CreateService().DailyMatchBudget(user));
     }
 
     [Theory]
@@ -183,7 +269,7 @@ public class ScoreServiceTests
     public void DailyMatchBudget_PaidTiersNeverFallBelowFree(int score)
     {
         int Budget(string level) =>
-            ScoreService.DailyMatchBudget(new User { TotalScore = score, MembershipLevel = level });
+            CreateService().DailyMatchBudget(new User { TotalScore = score, MembershipLevel = level });
 
         int free = Budget("Free");
         Assert.True(Budget("Silver") > free,

@@ -5,7 +5,7 @@ namespace MinglDingl.Engine.Tests.Integration;
 public class AdminUsersModerationIntegrationTests : IntegrationTestBase
 {
     private AdminUsersController BuildController() =>
-        new(Db, new AdminAuditService(Db), new ScoreService(Db, new ConfigService()));
+        new(Db, new AdminAuditService(Db), new ScoreService(Db, new ConfigService()), new ConfigService());
 
     private static System.Security.Claims.ClaimsPrincipal AdminPrincipal() =>
         new(new System.Security.Claims.ClaimsIdentity(

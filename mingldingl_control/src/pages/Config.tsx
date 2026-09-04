@@ -44,8 +44,9 @@ export function Config() {
       <div>
         <h1 className="text-lg font-semibold">Config</h1>
         <p className="text-muted-foreground text-sm">
-          Values that used to require a deploy to change. New keys are added here as more of the game's economy
-          (pricing, quests, matching weights) is migrated over.
+          Live levers for the economy, pacing, pricing, and feature availability. Each number has a safe range
+          and tier thresholds must stay in order; the engine refuses anything outside that. Score changes apply
+          to future events only.
         </p>
       </div>
 

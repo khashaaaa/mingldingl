@@ -75,6 +75,50 @@ public class AdminConfigControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Update_OutOfRegistryBounds_ReturnsBadRequestAndDoesNotChangeCache()
+    {
+        var (controller, config) = await BuildControllerAsync();
+
+        var result = await controller.Update("tier.sapphire.threshold", new UpdateConfigRequest("-5"));
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        var body = Assert.IsType<ErrorResponse>(bad.Value);
+        Assert.Equal("admin.config_value_invalid", body.Code);
+        Assert.Equal(600, config.GetNumber("tier.sapphire.threshold", 0));
+    }
+
+    [Fact]
+    public async Task Update_TierThresholdBelowLowerTier_ReturnsBadRequest()
+    {
+        var (controller, config) = await BuildControllerAsync();
+
+        var result = await controller.Update("tier.sapphire.threshold", new UpdateConfigRequest("250"));
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        var body = Assert.IsType<ErrorResponse>(bad.Value);
+        Assert.Contains("stay in order", body.Error);
+        Assert.Equal(600, config.GetNumber("tier.sapphire.threshold", 0));
+    }
+
+    [Fact]
+    public async Task Update_RubyThreshold_BackfillsStoredGemTiers()
+    {
+        var (controller, _) = await BuildControllerAsync();
+
+        var user = NewCompleteUser();
+        user.TotalScore = 950;
+        user.GemTier = "Sapphire";
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        Assert.IsType<OkObjectResult>(await controller.Update("tier.ruby.threshold", new UpdateConfigRequest("900")));
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.Equal("Ruby", reloaded.GemTier);
+    }
+
+    [Fact]
     public async Task Update_UnknownKey_ReturnsNotFound()
     {
         var (controller, _) = await BuildControllerAsync();

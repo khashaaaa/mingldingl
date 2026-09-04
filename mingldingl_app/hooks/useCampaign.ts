@@ -3,6 +3,8 @@ import { isAxiosError } from 'axios';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 
+const DEFAULT_VOICES_MESSAGE_THRESHOLD = 15;
+
 export interface CampaignRoom {
   roomId: string;
   cleared: boolean;
@@ -14,6 +16,8 @@ export interface Campaign {
   rooms: CampaignRoom[];
   clearedCount: number;
   bossCleared: boolean;
+  /** Messages the Voices room needs; admin-tunable, so it travels with the map. */
+  voicesMessageThreshold: number;
 }
 
 export function useCampaign(matchId: string) {
@@ -30,6 +34,7 @@ export function useCampaign(matchId: string) {
         })),
         clearedCount: res.clearedCount ?? 0,
         bossCleared: res.bossCleared ?? false,
+        voicesMessageThreshold: res.voicesMessageThreshold ?? DEFAULT_VOICES_MESSAGE_THRESHOLD,
       };
     },
     enabled: !!matchId,

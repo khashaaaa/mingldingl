@@ -39,7 +39,7 @@ public class AdminConfigController : ControllerBase
         var entry = await _db.AdminConfigs.FirstOrDefaultAsync(c => c.Key == key);
         if (entry is null) return this.NotFoundError($"Config key '{key}' not found", "admin.config_key_unknown");
 
-        var validationError = ConfigValueValidator.Validate(entry.ValueType, request.Value);
+        var validationError = ValidateValue(entry, request.Value);
         if (validationError is not null) return this.BadRequestError(validationError, "admin.config_value_invalid");
 
         await ApplyUpdateAsync(entry, request.Value, isRevert: false);
@@ -64,7 +64,7 @@ public class AdminConfigController : ControllerBase
 
         var change = JsonSerializer.Deserialize<ConfigChangeDetails>(lastChange.Details)!;
 
-        var validationError = ConfigValueValidator.Validate(entry.ValueType, change.OldValue);
+        var validationError = ValidateValue(entry, change.OldValue);
         if (validationError is not null) return this.BadRequestError(validationError, "admin.config_value_invalid");
 
         await ApplyUpdateAsync(entry, change.OldValue, isRevert: true);
@@ -86,6 +86,23 @@ public class AdminConfigController : ControllerBase
 
         if (IsTierThresholdKey(entry.Key))
             await _score.RecomputeAllGemTiersAsync();
+    }
+
+    /// <summary>
+    /// Registry bounds first, then the one cross-key rule: tier thresholds must stay strictly
+    /// increasing, or <see cref="ScoreService.CalculateTier"/> would hand out the wrong gem.
+    /// </summary>
+    private string? ValidateValue(AdminConfig entry, string value)
+    {
+        var def = ConfigKeys.Find(entry.Key);
+        var error = def is not null
+            ? ConfigValueValidator.Validate(def, value)
+            : ConfigValueValidator.Validate(entry.ValueType, value);
+        if (error is not null) return error;
+
+        if (IsTierThresholdKey(entry.Key))
+            return _score.ValidateTierThreshold(entry.Key, (int)double.Parse(value, System.Globalization.CultureInfo.InvariantCulture));
+        return null;
     }
 
     internal static bool IsTierThresholdKey(string key) =>

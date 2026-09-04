@@ -6,8 +6,15 @@ public class QuestService
 {
     private readonly AppDbContext _db;
     private readonly ScoreService _score;
+    private readonly ConfigService _config;
     private readonly ILogger<QuestService> _logger;
-    public QuestService(AppDbContext db, ScoreService score, ILogger<QuestService> logger) { _db = db; _score = score; _logger = logger; }
+    public QuestService(AppDbContext db, ScoreService score, ConfigService config, ILogger<QuestService> logger)
+    {
+        _db = db;
+        _score = score;
+        _config = config;
+        _logger = logger;
+    }
 
     public static readonly IReadOnlyList<QuestDef> AllQuests =
     [
@@ -19,11 +26,20 @@ public class QuestService
         new("q_pledge",     "quest_pledge",         "pledge",     1, 25),
     ];
 
-    public static List<QuestDef> QuestsForDate(DateTime dateUtc)
+    /// <summary>The defaults above with each quest's XP and target read from admin config.</summary>
+    public IReadOnlyList<QuestDef> EffectiveQuests() =>
+        AllQuests.Select(q => q with
+        {
+            Target = Math.Max(1, (int)_config.GetNumber($"quest.{q.Id}.target", q.Target)),
+            Xp = Math.Max(0, (int)_config.GetNumber($"quest.{q.Id}.xp", q.Xp)),
+        }).ToList();
+
+    public List<QuestDef> QuestsForDate(DateTime dateUtc)
     {
+        var quests = EffectiveQuests();
         int day = (int)(dateUtc.Date - new DateTime(2026, 1, 1)).TotalDays;
-        int start = ((day % AllQuests.Count) + AllQuests.Count) % AllQuests.Count;
-        return [AllQuests[start], AllQuests[(start + 1) % AllQuests.Count], AllQuests[(start + 2) % AllQuests.Count]];
+        int start = ((day % quests.Count) + quests.Count) % quests.Count;
+        return [quests[start], quests[(start + 1) % quests.Count], quests[(start + 2) % quests.Count]];
     }
 
     public async Task<int> IncrementAsync(Guid userId, string action)

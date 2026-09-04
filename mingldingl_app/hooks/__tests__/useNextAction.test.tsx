@@ -33,6 +33,7 @@ function match(overrides: Partial<Match> = {}): Match {
     otherUser: { displayName: 'Alex' },
     flameRiteDurationMinutes: 5,
     flameRiteRequired: true,
+    videoEnabled: true,
     ...overrides,
   };
 }

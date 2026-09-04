@@ -9,7 +9,12 @@ using Microsoft.EntityFrameworkCore;
 public class AdminAnalyticsController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public AdminAnalyticsController(AppDbContext db) => _db = db;
+    private readonly MembershipCatalog _catalog;
+    public AdminAnalyticsController(AppDbContext db, MembershipCatalog catalog)
+    {
+        _db = db;
+        _catalog = catalog;
+    }
 
     [HttpGet("overview")]
     [ProducesResponseType(typeof(AdminAnalyticsOverviewResponse), StatusCodes.Status200OK)]
@@ -62,7 +67,7 @@ public class AdminAnalyticsController : ControllerBase
         var shipsSparked = await _db.Ships.CountAsync(s => s.Status == "Sparked");
         var townSquareSessions = await _db.TownSquareSessions.CountAsync();
 
-        var priceByLevel = MembershipController.AllTiers.ToDictionary(t => t.Level, t => t.MonthlyPriceMnt ?? 0);
+        var priceByLevel = _catalog.Tiers().ToDictionary(t => t.Level, t => t.MonthlyPriceMnt ?? 0);
         var estimatedRevenue = byMembership.Sum(m => m.Count * priceByLevel.GetValueOrDefault(m.Level));
 
         return Ok(new AdminAnalyticsOverviewResponse(

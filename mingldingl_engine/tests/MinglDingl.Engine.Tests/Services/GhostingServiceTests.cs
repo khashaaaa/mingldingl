@@ -5,6 +5,9 @@ public class GhostingServiceTests
     private static readonly Guid InitiatorId = Guid.NewGuid();
     private static readonly Guid ReceiverId = Guid.NewGuid();
 
+    private static GhostingService CreateService(ConfigService? config = null) =>
+        new(null!, null!, null!, null!, config ?? new ConfigService());
+
     [Fact]
     public void GetGhostAtFaultUserId_InitiatorSentLastMessage_BlamesReceiver()
     {
@@ -37,6 +40,26 @@ public class GhostingServiceTests
             Status = status,
             LastMessageAt = DateTime.UtcNow.AddHours(-hoursSinceLastMessage),
         };
-        Assert.Equal(expected, GhostingService.IsStale(match));
+        Assert.Equal(expected, CreateService().IsStale(match));
+    }
+
+    [Fact]
+    public void IsStale_ThresholdOverriddenInConfig_UsesConfigHours()
+    {
+        var config = new ConfigService();
+        config.Set("ghosting.stale_hours", "24");
+        var service = CreateService(config);
+
+        var match = new Match { Status = "Active", LastMessageAt = DateTime.UtcNow.AddHours(-25) };
+        Assert.True(service.IsStale(match));
+        Assert.Equal(TimeSpan.FromHours(24), service.StaleAfter);
+    }
+
+    [Fact]
+    public void StaleAfter_ConfigBelowOneHour_ClampsToOneHour()
+    {
+        var config = new ConfigService();
+        config.Set("ghosting.stale_hours", "0");
+        Assert.Equal(TimeSpan.FromHours(1), CreateService(config).StaleAfter);
     }
 }

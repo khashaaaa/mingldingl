@@ -21,16 +21,17 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         }
     }
 
-    private DailyMaintenanceBackgroundService BuildService(LocalFileStorageService? storage = null)
+    private DailyMaintenanceBackgroundService BuildService(LocalFileStorageService? storage = null, ConfigService? config = null)
     {
-        var config = new ConfigService();
+        config ??= new ConfigService();
         var score = new ScoreService(Db, config);
         var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
         var provider = new ServiceCollection()
             .AddSingleton(Db)
+            .AddSingleton(config)
             .AddSingleton(score)
             .AddSingleton(oaths)
-            .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast()))
+            .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast(), config))
             .AddSingleton(storage ?? BuildTestStorage())
             .BuildServiceProvider();
         return new DailyMaintenanceBackgroundService(
@@ -62,7 +63,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         var userId = Guid.NewGuid();
         var user = NewCompleteUser(userId);
         user.ReferralCode = "ABC123";
-        user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriod - TimeSpan.FromDays(1);
+        user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriodFor(new ConfigService()) - TimeSpan.FromDays(1);
         Db.Users.Add(user);
         await Db.SaveChangesAsync();
 
@@ -111,6 +112,47 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         Db.ChangeTracker.Clear();
         var reloaded = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaverId);
         Assert.Equal("Expired", reloaded.Status);
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_ShipExpiryOverriddenInConfig_ExpiresYoungerPendingShips()
+    {
+        var weaverId = Guid.NewGuid();
+        Db.Users.Add(NewCompleteUser(weaverId));
+        await Db.SaveChangesAsync();
+        Db.Ships.Add(new Ship
+        {
+            ShipperUserId = weaverId,
+            Status = "Pending",
+            CreatedAt = DateTime.UtcNow.AddDays(-2),
+        });
+        await Db.SaveChangesAsync();
+        var config = new ConfigService();
+        config.Set("ships.expiry_days", "1");
+
+        await BuildService(config: config).RunSweepAsync(CancellationToken.None);
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaverId);
+        Assert.Equal("Expired", reloaded.Status);
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_DeletionGraceOverriddenInConfig_AnonymisesSooner()
+    {
+        var userId = Guid.NewGuid();
+        var user = NewCompleteUser(userId);
+        user.DeletionRequestedAt = DateTime.UtcNow.AddDays(-2);
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+        var config = new ConfigService();
+        config.Set("account.deletion_grace_days", "1");
+
+        await BuildService(config: config).RunSweepAsync(CancellationToken.None);
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Users.FindAsync(userId);
+        Assert.True(reloaded!.IsDeleted);
     }
 
     [Fact]
@@ -174,7 +216,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
 
         var user = NewCompleteUser();
         user.PhotoUrls = [url];
-        user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriod - TimeSpan.FromDays(1);
+        user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriodFor(new ConfigService()) - TimeSpan.FromDays(1);
         Db.Users.Add(user);
         await Db.SaveChangesAsync();
 
@@ -189,7 +231,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
     {
         // Verification rows hold the phone number in plaintext; deletion has to reach them too.
         var user = NewCompleteUser();
-        user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriod - TimeSpan.FromDays(1);
+        user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriodFor(new ConfigService()) - TimeSpan.FromDays(1);
         Db.Users.Add(user);
         Db.PhoneVerifications.Add(new PhoneVerification
         {

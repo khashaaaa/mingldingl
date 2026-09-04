@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 [Route("townsquare")]
 [Authorize]
 [Produces("application/json")]
+[ServiceFilter(typeof(TownSquareEnabledFilter))]
 public class TownSquareController : ControllerBase
 {
     private readonly AppDbContext _db;

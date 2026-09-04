@@ -3,11 +3,13 @@ using Microsoft.EntityFrameworkCore;
 public class DailyMaintenanceBackgroundService : BackgroundService
 {
     private static readonly TimeSpan SweepInterval = TimeSpan.FromHours(1);
-    private static readonly TimeSpan DeletionGracePeriod = TimeSpan.FromDays(7);
-    private static readonly TimeSpan ShipExpiryPeriod = TimeSpan.FromDays(14);
     private static readonly TimeSpan VerificationRetention = TimeSpan.FromDays(1);
 
-    public static TimeSpan GracePeriod => DeletionGracePeriod;
+    public static TimeSpan GracePeriodFor(ConfigService config) =>
+        TimeSpan.FromDays(Math.Max(0, config.GetNumber("account.deletion_grace_days", 7)));
+
+    public static TimeSpan ShipExpiryFor(ConfigService config) =>
+        TimeSpan.FromDays(Math.Max(1, config.GetNumber("ships.expiry_days", 14)));
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<DailyMaintenanceBackgroundService> _logger;
@@ -45,16 +47,17 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         var oaths = scope.ServiceProvider.GetRequiredService<OathService>();
         var ghosting = scope.ServiceProvider.GetRequiredService<GhostingService>();
         var storage = scope.ServiceProvider.GetRequiredService<LocalFileStorageService>();
+        var config = scope.ServiceProvider.GetRequiredService<ConfigService>();
 
         // Push the staleness cutoff into SQL — this used to pull the whole active-match table
         // into memory every hour just to filter it on LastMessageAt.
-        var staleCutoff = DateTime.UtcNow - GhostingService.StaleAfter;
+        var staleCutoff = DateTime.UtcNow - ghosting.StaleAfter;
         var staleMatches = await db.Matches
             .Where(m => m.Status == "Active" && m.LastMessageAt != null && m.LastMessageAt < staleCutoff)
             .ToListAsync(ct);
 
         var ghostedMatches = new List<Match>();
-        foreach (var match in staleMatches.Where(GhostingService.IsStale))
+        foreach (var match in staleMatches)
             if (await ghosting.TryGhostAsync(match))
                 ghostedMatches.Add(match);
         if (ghostedMatches.Count > 0)
@@ -79,7 +82,7 @@ public class DailyMaintenanceBackgroundService : BackgroundService
                 s => s.SetProperty(u => u.DailyMatchesUsed, 0).SetProperty(u => u.DailyMatchesResetAt, today),
                 ct);
 
-        var deletionCutoff = DateTime.UtcNow - DeletionGracePeriod;
+        var deletionCutoff = DateTime.UtcNow - GracePeriodFor(config);
         var usersToAnonymize = await db.Users
             .Where(u => u.DeletionRequestedAt != null && u.DeletionRequestedAt < deletionCutoff && !u.IsDeleted)
             .ToListAsync(ct);
@@ -133,7 +136,7 @@ public class DailyMaintenanceBackgroundService : BackgroundService
                 s => s.SetProperty(u => u.MembershipLevel, "Free").SetProperty(u => u.MembershipExpiresAt, (DateTime?)null),
                 ct);
 
-        var shipExpiryCutoff = DateTime.UtcNow - ShipExpiryPeriod;
+        var shipExpiryCutoff = DateTime.UtcNow - ShipExpiryFor(config);
         var expiredShips = await db.Ships
             .Where(s => s.Status == "Pending" && s.CreatedAt < shipExpiryCutoff)
             .ToListAsync(ct);

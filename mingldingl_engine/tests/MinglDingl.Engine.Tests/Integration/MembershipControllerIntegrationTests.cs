@@ -10,7 +10,7 @@ public class MembershipControllerIntegrationTests : IntegrationTestBase
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
-        return new MembershipController(Db)
+        return new MembershipController(Db, new MembershipCatalog(new ConfigService()))
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -89,7 +89,7 @@ public class MembershipControllerIntegrationTests : IntegrationTestBase
         var purchase = await Db.Memberships.SingleAsync(m => m.UserId == userId);
         Assert.Equal("Silver", purchase.Level);
         Assert.Equal(durationMonths, purchase.DurationMonths);
-        var silverMonthly = MembershipController.AllTiers.Single(t => t.Level == "Silver").MonthlyPriceMnt!.Value;
+        var silverMonthly = new MembershipCatalog(new ConfigService()).Find("Silver")!.MonthlyPriceMnt!.Value;
         Assert.Equal(MembershipPricing.PriceOptions(silverMonthly).Single(p => p.DurationMonths == durationMonths).TotalPriceMnt, purchase.PriceMnt);
     }
 

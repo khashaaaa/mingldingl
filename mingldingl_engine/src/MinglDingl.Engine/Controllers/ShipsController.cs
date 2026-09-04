@@ -10,18 +10,24 @@ public class ShipsController : ControllerBase
 {
     private readonly ShipService _ships;
     private readonly AppDbContext _db;
+    private readonly ConfigService _config;
 
-    public ShipsController(ShipService ships, AppDbContext db)
+    public ShipsController(ShipService ships, AppDbContext db, ConfigService config)
     {
         _ships = ships;
         _db = db;
+        _config = config;
     }
 
     [HttpPost]
     [ProducesResponseType(typeof(CreateShipResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Create([FromBody] CreateShipRequest req)
     {
+        if (!_config.GetBool("ships.enabled", true))
+            return this.NotFoundError("Fated Threads are not open", "ship.disabled");
+
         var userId = this.CurrentUserId();
         var (success, error, errorCode, slotACode, slotBCode) = await _ships.CreateAsync(userId, req.SlotAPhoneNumber, req.SlotBPhoneNumber);
         if (!success) return this.BadRequestError(error ?? "Could not weave this thread", errorCode ?? "ship.create_failed");

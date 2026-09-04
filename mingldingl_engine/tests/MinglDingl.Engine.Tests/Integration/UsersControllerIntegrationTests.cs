@@ -17,7 +17,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var referralService = new ReferralService(Db, lootService, NullLogger<ReferralService>.Instance);
         var shipService = new ShipService(Db, lootService, scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
         var oathService = new OathService(Db, new ConfigService(), scoreService, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), lootService);
-        var controller = new UsersController(Db, scoreService, referralService, shipService, oathService, BuildUnconfiguredPhoneVerification(Db), storage ?? BuildTestStorage())
+        var controller = new UsersController(Db, scoreService, referralService, shipService, oathService, BuildUnconfiguredPhoneVerification(Db), storage ?? BuildTestStorage(), new ConfigService())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };

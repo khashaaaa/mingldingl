@@ -38,6 +38,9 @@ public class VideoController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetToken([FromBody] VideoTokenRequestDto req)
     {
+        if (!_config.GetBool("video.enabled", true))
+            return this.NotFoundError("Video calls are not open", "video.disabled");
+
         var userId = this.CurrentUserId();
 
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, req.MatchId, tracked: false, requireActive: true);
@@ -95,7 +98,7 @@ public class VideoController : ControllerBase
 
         await _broadcast.BroadcastAsync("app-nudges", "flame_rite_completed", new { userId, matchId = req.MatchId });
 
-        return Ok(new VideoCompleteResponse(ScoreService.GetDelta("VideoCallDone") + questBonus, drop));
+        return Ok(new VideoCompleteResponse(_score.Delta("VideoCallDone") + questBonus, drop));
     }
 
     [HttpPost("rite/propose")]
@@ -105,6 +108,9 @@ public class VideoController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ProposeRite([FromBody] FlameRiteRequestDto req)
     {
+        if (!_config.GetBool("video.enabled", true))
+            return this.NotFoundError("Video calls are not open", "video.disabled");
+
         var userId = this.CurrentUserId();
 
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, req.MatchId, tracked: false, requireActive: true);
@@ -140,6 +146,9 @@ public class VideoController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AcceptRite([FromBody] FlameRiteRequestDto req)
     {
+        if (!_config.GetBool("video.enabled", true))
+            return this.NotFoundError("Video calls are not open", "video.disabled");
+
         var userId = this.CurrentUserId();
 
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, req.MatchId, tracked: false, requireActive: true);

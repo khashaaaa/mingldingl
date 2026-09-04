@@ -40,6 +40,27 @@ public class TownSquareSchedulerBackgroundService : BackgroundService
 
         var now = DateTime.UtcNow;
 
+        // While the feature is switched off nothing new starts; a session already running is
+        // still advanced below so it ends cleanly instead of sitting InProgress forever.
+        if (townSquare.IsEnabled)
+        {
+            await LockAndStartDueSessionsAsync(db, townSquare, now, ct);
+        }
+
+        var inProgress = await db.TownSquareSessions
+            .Where(s => s.Status == "InProgress")
+            .ToListAsync(ct);
+        foreach (var session in inProgress)
+        {
+            var currentRound = await db.TownSquareRounds
+                .FirstOrDefaultAsync(r => r.SessionId == session.Id && r.RoundNumber == session.CurrentRoundNumber, ct);
+            if (currentRound is not null && currentRound.StartsAt.AddSeconds(currentRound.DurationSeconds) <= now)
+                await RunPerSessionAsync(session.Id, "advance round", () => townSquare.AdvanceRoundAsync(session.Id));
+        }
+    }
+
+    private async Task LockAndStartDueSessionsAsync(AppDbContext db, TownSquareService townSquare, DateTime now, CancellationToken ct)
+    {
         var dueToLock = await db.TownSquareSessions
             .Where(s => s.Status == "Open" && s.RsvpClosesAt <= now)
             .Select(s => s.Id)
@@ -53,17 +74,6 @@ public class TownSquareSchedulerBackgroundService : BackgroundService
             .ToListAsync(ct);
         foreach (var sessionId in dueToStart)
             await RunPerSessionAsync(sessionId, "start session", () => townSquare.StartSessionAsync(sessionId));
-
-        var inProgress = await db.TownSquareSessions
-            .Where(s => s.Status == "InProgress")
-            .ToListAsync(ct);
-        foreach (var session in inProgress)
-        {
-            var currentRound = await db.TownSquareRounds
-                .FirstOrDefaultAsync(r => r.SessionId == session.Id && r.RoundNumber == session.CurrentRoundNumber, ct);
-            if (currentRound is not null && currentRound.StartsAt.AddSeconds(currentRound.DurationSeconds) <= now)
-                await RunPerSessionAsync(session.Id, "advance round", () => townSquare.AdvanceRoundAsync(session.Id));
-        }
     }
 
     /// <summary>

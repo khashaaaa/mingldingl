@@ -22,8 +22,9 @@ public class FlameRiteTokenIntegrationTests : IntegrationTestBase
         var agoraConfig = new ConfigurationBuilder().AddInMemoryCollection(configValues).Build();
         var videoToken = new VideoTokenService(agoraConfig, TestHostEnvironment.Development);
 
-        var score = new ScoreService(Db, new ConfigService());
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
@@ -66,8 +67,9 @@ public class FlameRiteTokenIntegrationTests : IntegrationTestBase
         Db.Icebreakers.Add(icebreaker);
         await Db.SaveChangesAsync();
 
-        var score = new ScoreService(Db, new ConfigService());
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var engagement = new EngagementService(Db, score);

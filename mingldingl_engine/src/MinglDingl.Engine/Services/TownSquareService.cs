@@ -2,21 +2,25 @@ using Microsoft.EntityFrameworkCore;
 
 public class TownSquareService
 {
-    public const int MaxPerSide = 5;
-    public const int RoundDurationSeconds = 240;
-
     private readonly AppDbContext _db;
     private readonly SupabaseBroadcastService _broadcast;
     private readonly PushNotificationService _push;
     private readonly ILogger<TownSquareService> _logger;
+    private readonly ConfigService _config;
 
-    public TownSquareService(AppDbContext db, SupabaseBroadcastService broadcast, PushNotificationService push, ILogger<TownSquareService> logger)
+    public TownSquareService(AppDbContext db, SupabaseBroadcastService broadcast, PushNotificationService push, ILogger<TownSquareService> logger, ConfigService config)
     {
         _db = db;
         _broadcast = broadcast;
         _push = push;
         _logger = logger;
+        _config = config;
     }
+
+    /// <summary>Town Square is live video, so it is closed whenever video is: nothing may mint an Agora token while <c>video.enabled</c> is off.</summary>
+    public bool IsEnabled => _config.GetBool("townsquare.enabled", true) && _config.GetBool("video.enabled", true);
+    public int MaxPerSide => Math.Max(1, (int)_config.GetNumber("townsquare.max_per_side", 5));
+    public int RoundDurationSeconds => Math.Max(30, (int)_config.GetNumber("townsquare.round_seconds", 240));
 
     public async Task RsvpAsync(Guid sessionId, Guid userId)
     {

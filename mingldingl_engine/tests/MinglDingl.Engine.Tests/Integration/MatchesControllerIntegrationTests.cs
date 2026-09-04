@@ -14,10 +14,10 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         var score = new ScoreService(Db, config);
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
-        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast());
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config);
         var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
         var controller = new MatchesController(Db, score, ghosting, quests, milestones, push, config, BuildTestBroadcast())
         {
@@ -488,12 +488,12 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var (broadcast, handler) = BuildCapturingBroadcast();
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
-        var controller = new MatchesController(Db, score, new GhostingService(Db, score, oaths, broadcast), quests, milestones,
+        var controller = new MatchesController(Db, score, new GhostingService(Db, score, oaths, broadcast, config), quests, milestones,
             new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance), config, broadcast)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },

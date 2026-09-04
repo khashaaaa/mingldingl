@@ -13,7 +13,7 @@ public class ActivitiesControllerIntegrationTests : IntegrationTestBase
         httpContext.Items["UserId"] = userId;
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var httpClient = new HttpClient();
         var mockConfig = new Moq.Mock<IConfiguration>();

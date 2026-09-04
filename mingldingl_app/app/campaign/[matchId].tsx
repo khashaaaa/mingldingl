@@ -16,7 +16,6 @@ import { ORNAMENTS } from '../../lib/ornaments';
 
 const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
-const VOICES_MESSAGE_THRESHOLD = 15;
 
 type IconName = React.ComponentProps<typeof Icon>['name'];
 
@@ -43,6 +42,7 @@ export default function CampaignScreen() {
   } = useCampaign(matchId);
 
   const currentRoomId = campaign?.rooms.find((r) => !r.cleared)?.roomId ?? null;
+  const voicesMessageThreshold = campaign?.voicesMessageThreshold ?? 15;
 
   const onClaim = (roomId: string) =>
     claimRoom(roomId, {
@@ -117,7 +117,7 @@ export default function CampaignScreen() {
             <QuestBanner
               icon={ROOM_ICONS[room.roomId] ?? 'help'}
               tint={roomTint}
-              title={i18n.t(`campaign_hint_${room.roomId}`, { count: VOICES_MESSAGE_THRESHOLD })}
+              title={i18n.t(`campaign_hint_${room.roomId}`, { count: voicesMessageThreshold })}
               onPress={() => onHintPress(room.roomId)}
             />
           ) : (

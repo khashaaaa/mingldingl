@@ -29,6 +29,7 @@ const campaign: Campaign = {
   ],
   clearedCount: 2,
   bossCleared: false,
+  voicesMessageThreshold: 15,
 };
 
 function stubCampaign(overrides: Record<string, unknown> = {}) {

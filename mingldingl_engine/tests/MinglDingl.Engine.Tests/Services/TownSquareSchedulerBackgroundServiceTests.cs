@@ -21,11 +21,11 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
         }
     }
 
-    private TownSquareSchedulerBackgroundService BuildService()
+    private TownSquareSchedulerBackgroundService BuildService(ConfigService? config = null)
     {
         var provider = new ServiceCollection()
             .AddSingleton(Db)
-            .AddSingleton(new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance))
+            .AddSingleton(new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, config ?? new ConfigService()))
             .BuildServiceProvider();
         return new TownSquareSchedulerBackgroundService(
             new SingleProviderScopeFactory(provider),
@@ -78,6 +78,25 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
         Assert.Equal("Locked", reloaded!.Status);
     }
 
+    [Theory]
+    [InlineData("townsquare.enabled")]
+    [InlineData("video.enabled")]
+    public async Task RunSweepAsync_FeatureDisabled_DoesNotLockOrStartSessions(string switchKey)
+    {
+        var session = await SeedOpenSessionWithRsvps(
+            rsvpClosesAt: DateTime.UtcNow.AddMinutes(-1),
+            scheduledStartAt: DateTime.UtcNow.AddMinutes(-1));
+        var config = new ConfigService();
+        config.Set(switchKey, "false");
+
+        await BuildService(config).RunSweepAsync(CancellationToken.None);
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.TownSquareSessions.FindAsync(session.Id);
+        Assert.Equal("Open", reloaded!.Status);
+        Assert.False(await Db.TownSquareRounds.AnyAsync(r => r.SessionId == session.Id));
+    }
+
     [Fact]
     public async Task RunSweepAsync_OpenSessionRsvpStillOpen_LeavesUntouched()
     {
@@ -98,7 +117,7 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
         var session = await SeedOpenSessionWithRsvps(
             rsvpClosesAt: DateTime.UtcNow.AddMinutes(-10),
             scheduledStartAt: DateTime.UtcNow.AddMinutes(-1));
-        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance);
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
         await townSquare.LockRosterAsync(session.Id);
 
         await BuildService().RunSweepAsync(CancellationToken.None);
@@ -116,7 +135,7 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
             rsvpClosesAt: DateTime.UtcNow.AddMinutes(-10),
             scheduledStartAt: DateTime.UtcNow.AddMinutes(-10),
             pairs: 2);
-        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance);
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
         await townSquare.LockRosterAsync(session.Id);
         await townSquare.StartSessionAsync(session.Id);
 
@@ -180,7 +199,7 @@ public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
         var healthy = await SeedOpenSessionWithRsvps(
             rsvpClosesAt: DateTime.UtcNow.AddMinutes(-10),
             scheduledStartAt: DateTime.UtcNow.AddMinutes(-1));
-        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance);
+        var townSquare = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
         await townSquare.LockRosterAsync(healthy.Id);
 
         var stuck = await SeedOpenSessionWithRsvps(

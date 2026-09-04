@@ -107,12 +107,12 @@ public class MessagesController : ControllerBase
         if (lastMessage is null)
         {
             await _score.AwardAsync(userId, "FirstMessage");
-            baseAward = ScoreService.GetDelta("FirstMessage");
+            baseAward = _score.Delta("FirstMessage");
         }
         else if (lastMessage.SenderId != userId)
         {
             await _score.AwardAsync(userId, "MatchReply");
-            baseAward = ScoreService.GetDelta("MatchReply");
+            baseAward = _score.Delta("MatchReply");
         }
 
         int questBonus = await _quests.IncrementAsync(userId, "message");

@@ -4,7 +4,7 @@ namespace MinglDingl.Engine.Tests.Integration;
 
 public class AdminAnalyticsControllerIntegrationTests : IntegrationTestBase
 {
-    private AdminAnalyticsController BuildController() => new(Db);
+    private AdminAnalyticsController BuildController() => new(Db, new MembershipCatalog(new ConfigService()));
 
     [Fact]
     public async Task GetOverview_CountsUsersByStatusAndMembership()

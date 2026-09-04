@@ -29,6 +29,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
   const { data: profile } = useProfile();
+  const deletionGraceDays = profile?.deletionGraceDays ?? 7;
   const queryClient = useQueryClient();
 
   const locale = useLocaleStore((s) => s.locale);
@@ -231,7 +232,7 @@ export default function SettingsScreen() {
         visible={confirmDelete}
         tone="warning"
         title={i18n.t('delete_account_confirm_title')}
-        message={i18n.t('delete_account_confirm_body')}
+        message={i18n.t('delete_account_confirm_body', { days: deletionGraceDays })}
         confirmLabel={i18n.t('delete_account')}
         onConfirm={handleDeleteConfirmed}
         isConfirming={deleting}
@@ -241,7 +242,7 @@ export default function SettingsScreen() {
         visible={deletedAlert}
         tone="warning"
         title={i18n.t('delete_account_requested_title')}
-        message={i18n.t('delete_account_requested_body')}
+        message={i18n.t('delete_account_requested_body', { days: deletionGraceDays })}
         onDismiss={handleAcknowledgeDeletion}
       />
       <PhoneChangeModal

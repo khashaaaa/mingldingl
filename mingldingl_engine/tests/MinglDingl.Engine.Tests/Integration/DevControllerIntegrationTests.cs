@@ -30,9 +30,10 @@ public class DevControllerIntegrationTests : IntegrationTestBase
         var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
         var provider = new ServiceCollection()
             .AddSingleton(Db)
+            .AddSingleton(config)
             .AddSingleton(score)
             .AddSingleton(oaths)
-            .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast()))
+            .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast(), config))
             .AddSingleton(BuildTestStorage())
             .BuildServiceProvider();
         var sweep = new DailyMaintenanceBackgroundService(

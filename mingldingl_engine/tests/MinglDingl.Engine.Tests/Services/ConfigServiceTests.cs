@@ -33,6 +33,16 @@ public class ConfigServiceTests
     }
 
     [Fact]
+    public void GetNumber_ParsesWithInvariantCultureAndRejectsNonFinite()
+    {
+        var config = new ConfigService();
+        config.Set("a", "0.1");
+        config.Set("b", "NaN");
+        Assert.Equal(0.1, config.GetNumber("a", 9));
+        Assert.Equal(9, config.GetNumber("b", 9));
+    }
+
+    [Fact]
     public void Set_OverwritesPreviousValue()
     {
         var config = new ConfigService();

@@ -141,7 +141,7 @@ public class MatchesController : ControllerBase
         var me = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
         if (me is null) return this.NotFoundError("User not found", "user.not_found");
 
-        if (me.DailyMatchesUsed >= ScoreService.DailyMatchBudget(me))
+        if (me.DailyMatchesUsed >= _score.DailyMatchBudget(me))
             return this.BadRequestError("Daily match budget exhausted", "match.daily_budget_spent");
 
         var (outcome, matchId) = await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
@@ -308,7 +308,8 @@ public class MatchesController : ControllerBase
             m.FlameRiteAcceptedAt,
             m.FlameRiteCompletedAt,
             (int)_config.GetNumber("dating.flamerite.duration_minutes", 5),
-            _config.GetBool("dating.flamerite.required", true));
+            _config.FlameRiteRequired(),
+            _config.GetBool("video.enabled", true));
     }
 }
 

@@ -9,7 +9,7 @@ namespace MinglDingl.Engine.Tests.Integration;
 
 public class VideoControllerIntegrationTests : IntegrationTestBase
 {
-    private VideoController BuildController(Guid userId)
+    private VideoController BuildController(Guid userId, ConfigService? appConfigOverride = null)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
@@ -22,11 +22,11 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         var config = new ConfigurationBuilder().AddInMemoryCollection(configValues).Build();
         var videoToken = new VideoTokenService(config, TestHostEnvironment.Development);
 
-        var score = new ScoreService(Db, new ConfigService());
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var appConfig = appConfigOverride ?? new ConfigService();
+        var score = new ScoreService(Db, appConfig);
+        var quests = new QuestService(Db, score, appConfig, NullLogger<QuestService>.Instance);
         var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
-        var appConfig = new ConfigService();
         var broadcast = BuildTestBroadcast();
         var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
 
@@ -170,12 +170,13 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         };
         var config = new ConfigurationBuilder().AddInMemoryCollection(configValues).Build();
         var videoToken = new VideoTokenService(config, TestHostEnvironment.Development);
-        var score = new ScoreService(Db, new ConfigService());
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var appConfig = new ConfigService();
+        var score = new ScoreService(Db, appConfig);
+        var quests = new QuestService(Db, score, appConfig, NullLogger<QuestService>.Instance);
         var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
-        return new VideoController(Db, videoToken, score, quests, loot, milestones, new ConfigService(), broadcast, push)
+        return new VideoController(Db, videoToken, score, quests, loot, milestones, appConfig, broadcast, push)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -198,6 +199,40 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         Assert.Contains("\"flame_rite_completed\"", handler.LastRequestBody);
         Assert.Contains($"\"matchId\":\"{match.Id}\"", handler.LastRequestBody);
         Assert.Contains($"\"userId\":\"{initiatorId}\"", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task GetToken_VideoDisabledInConfig_ReturnsNotFoundWithCode()
+    {
+        var initiatorId = Guid.NewGuid();
+        var match = await SeedMatchAsync(initiatorId, Guid.NewGuid());
+        var config = new ConfigService();
+        config.Set("video.enabled", "false");
+        var controller = BuildController(initiatorId, config);
+
+        var result = await controller.GetToken(new VideoTokenRequestDto(match.Id));
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal("video.disabled", Assert.IsType<ErrorResponse>(notFound.Value).Code);
+    }
+
+    [Fact]
+    public async Task ProposeRite_VideoDisabledInConfig_ReturnsNotFoundAndLeavesMatchUntouched()
+    {
+        var initiatorId = Guid.NewGuid();
+        var match = await SeedMatchAsync(initiatorId, Guid.NewGuid(), videoCallUnlocked: false);
+        match.IcebreakerComplete = true;
+        await Db.SaveChangesAsync();
+        var config = new ConfigService();
+        config.Set("video.enabled", "false");
+        var controller = BuildController(initiatorId, config);
+
+        var result = await controller.ProposeRite(new FlameRiteRequestDto(match.Id));
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal("video.disabled", Assert.IsType<ErrorResponse>(notFound.Value).Code);
+        Db.ChangeTracker.Clear();
+        Assert.Null((await Db.Matches.AsNoTracking().SingleAsync(m => m.Id == match.Id)).FlameRiteProposedById);
     }
 
     [Fact]

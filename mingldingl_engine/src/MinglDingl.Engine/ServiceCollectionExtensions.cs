@@ -15,6 +15,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MilestoneService>();
         services.AddScoped<AdminAuditService>();
         services.AddScoped<TownSquareService>();
+        services.AddScoped<TownSquareEnabledFilter>();
         services.AddScoped<OathService>();
         services.AddScoped<PhoneVerificationService>();
         services.AddScoped<CampaignService>();
@@ -22,6 +23,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<PhotoCompressionService>();
         services.AddSingleton<LocalFileStorageService>();
         services.AddSingleton<ConfigService>();
+        services.AddSingleton<MembershipCatalog>();
         services.AddSingleton<LoginThrottleService>();
 
         services.AddHttpClient<PushNotificationService>(client => client.Timeout = TimeSpan.FromSeconds(5));

@@ -72,7 +72,7 @@ public class ActivityService
             .AnyAsync(s => s.Id == activitySuggestionId && s.MatchId == match.Id);
         if (!suggestionBelongsToMatch) return (new ConfirmResult(null, ConfirmRejection.SuggestionNotInMatch), 0);
 
-        bool riteRequired = _config.GetBool("dating.flamerite.required", true);
+        bool riteRequired = _config.FlameRiteRequired();
         if (riteRequired)
         {
             bool riteCompleted = await _db.Matches
@@ -112,7 +112,7 @@ public class ActivityService
             var otherUserId = match.OtherParticipant(userId);
             int myQuestBonus = await _quests.IncrementAsync(userId, "pledge");
             await _quests.IncrementAsync(otherUserId, "pledge");
-            awarded = ScoreService.GetDelta("DateConfirmed") + myQuestBonus;
+            awarded = _score.Delta("DateConfirmed") + myQuestBonus;
             await _milestones.AchieveAsync(match.InitiatorId, "first_pledged_encounter");
             await _milestones.AchieveAsync(match.ReceiverId, "first_pledged_encounter");
 
@@ -136,7 +136,8 @@ public class ActivityService
     {
         var confirmation = await LoadLatestCompletedConfirmationAsync(matchId);
         if (confirmation is null) return (false, null);
-        if (DateTime.UtcNow - confirmation.CompletedAt!.Value < TimeSpan.FromHours(48)) return (false, null);
+        double delayHours = Math.Max(0, _config.GetNumber("dating.attendance_check.delay_hours", 48));
+        if (DateTime.UtcNow - confirmation.CompletedAt!.Value < TimeSpan.FromHours(delayHours)) return (false, null);
 
         var match = await _db.Matches.FindAsync(matchId);
         if (match is null) return (false, null);

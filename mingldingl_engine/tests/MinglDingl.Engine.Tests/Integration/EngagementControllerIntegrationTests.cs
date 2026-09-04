@@ -11,8 +11,9 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
-        var score = new ScoreService(Db, new ConfigService());
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var httpClient = new HttpClient();
@@ -178,7 +179,7 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
         Db.Users.Add(user);
 
         var today = DateTime.UtcNow.Date;
-        foreach (var d in QuestService.QuestsForDate(today))
+        foreach (var d in new QuestService(Db, null!, new ConfigService(), NullLogger<QuestService>.Instance).QuestsForDate(today))
             Db.UserDailyQuests.Add(new UserDailyQuest
             {
                 UserId = userId,

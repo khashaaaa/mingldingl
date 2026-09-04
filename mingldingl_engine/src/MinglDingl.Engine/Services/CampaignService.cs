@@ -12,7 +12,6 @@ public class CampaignService
     public static readonly IReadOnlyList<string> RoomOrder =
         ["gate", "echoes", "runes", "voices", "flame", "bridge", "threshold"];
 
-    public const int VoicesMessageThreshold = 15;
 
     private readonly AppDbContext _db;
     private readonly ScoreService _score;
@@ -30,6 +29,7 @@ public class CampaignService
     public bool IsEnabled => _config.GetBool("campaign.enabled", true);
 
     private int RoomBonus => (int)_config.GetNumber("campaign.room.bonus", 5);
+    private int VoicesMessageThreshold => Math.Max(1, (int)_config.GetNumber("campaign.voices.messages", 15));
     private int BossBonus => (int)_config.GetNumber("campaign.boss.bonus", 25);
 
     public async Task<CampaignResponse> GetStateAsync(Match match, Guid userId)
@@ -48,7 +48,7 @@ public class CampaignService
                 roomId == BossRoomId ? BossBonus : RoomBonus))
             .ToList();
 
-        return new CampaignResponse(rooms, cleared.Count, cleared.Contains(BossRoomId));
+        return new CampaignResponse(rooms, cleared.Count, cleared.Contains(BossRoomId), VoicesMessageThreshold);
     }
 
     public async Task<ClaimCampaignRoomResponse> ClaimAsync(Match match, Guid userId, string roomId)

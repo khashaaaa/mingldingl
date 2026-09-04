@@ -665,7 +665,7 @@ Engine 452 → 456 tests, app 276, `tsc` clean, control builds and lints.
 - **Session lifecycle** — `TownSquareSession.Status`: `Open` → `Locked` → `InProgress` → `Completed`, or `Cancelled`. Timestamps `RsvpOpensAt` / `RsvpClosesAt` / `ScheduledStartAt`; `CurrentRoundNumber` advances during play.
 - **RSVP** — `POST /townsquare/rsvp` and `DELETE /townsquare/rsvp?sessionId=` only while `Open` (400 otherwise); idempotent; unique index on `(SessionId, UserId)`. `GET /townsquare/next-session` returns the earliest non-terminal session plus `isRsvpd`.
 - **Scheduler** — `TownSquareSchedulerBackgroundService` sweeps every 10 s: `Open` past `RsvpClosesAt` → `LockRosterAsync`; `Locked` past `ScheduledStartAt` → `StartSessionAsync`; `InProgress` with the current round elapsed → `AdvanceRoundAsync`. Registered as singleton + hosted service, the same pattern as `DailyMaintenanceBackgroundService`.
-- **Roster lock** — RSVPs ordered by `RsvpAt`, split by `User.Gender` into `Male` / `Female`, each side capped at `MaxPerSide = 5` and truncated to the smaller side. Zero pairs → `Cancelled` + broadcast. Otherwise `GenerateRoundRobin` (circle method) yields n rounds of n pairings; each round is `RoundDurationSeconds = 240`, starts at `ScheduledStartAt + r × 240 s`, and takes the r-th active `Icebreaker`, cycling. Both constants are hardcoded, not `ConfigKeys` entries.
+- **Roster lock** — RSVPs ordered by `RsvpAt`, split by `User.Gender` into `Male` / `Female`, each side capped at `MaxPerSide` (default 5) and truncated to the smaller side. Zero pairs → `Cancelled` + broadcast. Otherwise `GenerateRoundRobin` (circle method) yields n rounds of n pairings; each round is `RoundDurationSeconds` (default 240), starts at `ScheduledStartAt + r × duration`, and takes the r-th active `Icebreaker`, cycling. Since 2026-09-04 both are `ConfigKeys` entries (`townsquare.max_per_side`, `townsquare.round_seconds`).
 - **Rounds** — `GET /townsquare/session/{id}/current-round` (400 unless `InProgress`) returns the caller's pairing, an Agora token whose channel is the pairing id, the icebreaker text, and `roundEndsAt`. `POST /townsquare/pairing/{id}/joined` stamps `UserAJoinedAt` / `UserBJoinedAt`. `POST /townsquare/pairing/{id}/respond` with `{ response: "Yes" | "No" }` writes the caller's slot in one `UPDATE … RETURNING`; when both slots read `Yes` it checks `MatchPairing.IsPairBlockedAsync` (a blocked pair quietly yields no match, so neither side can infer the block) and then `CreateOrReuseMatchAsync` under the shared `MatchPairing.PairLockKey` advisory lock, storing `ResultingMatchId`. The response carries `matchId`, so the round screen shows "it's a match" without a refetch; the hook also invalidates the Matches list. Since 2026-08-31 the mutual-yes path also sends both users a push notification ("New Match!") and a `match_created` broadcast on `app-nudges` (`{ matchId, userIds, source }`), the same shape Fated Threads and `RequestMatch` emit.
 - **Realtime** — topic `townsquare:{sessionId}`, events `session-started`, `session-cancelled`, `round-advanced`, payload `{ sessionId, roundNumber, status }`. Nothing is broadcast on the `Open → Locked` transition. Hooks subscribe through `lib/realtime/subscribeWithRetry.ts` and keep 15 s (session) / 30 s (round) `refetchInterval` safety nets because `SupabaseBroadcastService` is best-effort — see the 2026-08-19 audit above for why those were kept rather than removed.
 - **Admin** — `GET /admin/townsquare/sessions` (paged, with RSVP counts) and `GET /admin/townsquare/sessions/{id}/pairings` (per-round responses, join times, resulting match). Added 2026-08-31: `POST /admin/townsquare/sessions` `{ rsvpOpensAt, rsvpClosesAt, scheduledStartAt }` (201; validates opens < closes ≤ start, start in the future; creates `Open`, audit `CreateTownSquareSession`) and `POST /admin/townsquare/sessions/{id}/cancel` (only `Open` / `Locked`, else 409; routes through `TownSquareService.CancelSessionAsync`, audit `CancelTownSquareSession`), with a Schedule / Cancel UI on the control panel's Town Square page. All under the `AdminBearer` scheme.
@@ -1172,6 +1172,263 @@ adds 4, including a Mongolian-uppercase case), and `npx expo export --platform w
 bundles. Not yet checked on a device — the size changes are at most ±2px per step but
 Mongolian strings are longer than English, so button and tab labels deserve a real
 look before this is called done.
+
+## Admin Control Expansion — Shipped (2026-09-04)
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Move every economy, pacing, pricing, and feature-availability lever that a solo operator would want to tune from live data out of hardcoded constants and into the DB-backed `AdminConfigs` store, with per-key bounds so a typo cannot break the game.
+
+**Architecture:** Every new lever is a `ConfigKeyDefinition` in `ConfigKeys.All` (seeded on boot, cached by `ConfigService`, edited in `mingldingl_control`'s Config page). Services that used `static` constants become instance reads through `ConfigService`; static helpers that callers relied on (`ScoreService.GetDelta`, `DailyMatchBudget`, `GhostingService.IsStale`, `QuestService.QuestsForDate`, `MembershipController.AllTiers`) become instance methods or move to a small injected catalog. `ConfigKeyDefinition` grows optional `Min`/`Max`, enforced by `ConfigValueValidator` and the admin controller; tier thresholds additionally must stay strictly increasing. Config edits never rewrite `ScoreEvents` history: `Delta` is stored per event, so a changed value applies to future awards only.
+
+**Tech Stack:** ASP.NET Core 8, EF Core, xUnit (unit tests are `tests/.../Services/*Tests.cs`; integration tests extend `IntegrationTestBase` and run in a rolled-back transaction on local Postgres).
+
+**Spec:** this section. Design decisions, in order of the previous audit:
+
+| Category | Key | Default | Min | Max | Replaces |
+|---|---|---|---|---|---|
+| Scoring | `score.event.ProfileComplete` | 100 | 0 | 10000 | `ScoreService.GetDelta` table |
+| Scoring | `score.event.DailyLogin` | 5 | 0 | 10000 | " |
+| Scoring | `score.event.FirstMessage` | 10 | 0 | 10000 | " |
+| Scoring | `score.event.IcebreakerDone` | 20 | 0 | 10000 | " |
+| Scoring | `score.event.QuizDone` | 15 | 0 | 10000 | " |
+| Scoring | `score.event.MatchReply` | 10 | 0 | 10000 | " |
+| Scoring | `score.event.DateConfirmed` | 50 | 0 | 10000 | " |
+| Scoring | `score.event.VideoCallDone` | 30 | 0 | 10000 | " |
+| Scoring | `score.event.ShipSparked` | 40 | 0 | 10000 | " |
+| Scoring | `score.event.OathProven` | 40 | 0 | 10000 | " |
+| Scoring | `score.event.GhostPenalty` | -15 | -10000 | 0 | " |
+| Scoring | `score.event.ReportPenalty` | -30 | -10000 | 0 | " (still unreachable, see Follow-ups) |
+| Scoring | `score.streak.weekly_bonus` | 50 | 0 | 10000 | literal in `ScoresController.DailyLogin` |
+| Scoring | `score.quest_chest` | 30 | 0 | 10000 | literal in `EngagementController.ClaimQuestChest` |
+| Scoring | `tier.opal.threshold` / `tier.amethyst.threshold` / `tier.ruby.threshold` / `tier.emerald.threshold` | 100 / 300 / 1000 / 2000 | 1 | 1000000 | `ScoreService.TierDefaults` (Sapphire already existed; Garnet stays 0) |
+| Scoring | `reputation.penalty_dock` | 0.1 | 0 | 1 | two `- 0.1` SQL literals in `ScoreService` |
+| Budget | `budget.base.free` / `.silver` / `.gold` | 5 / 12 / 20 | 0 | 1000 | `ScoreService.DailyMatchBudget` |
+| Budget | `budget.cap.free` / `.silver` / `.gold` | 12 / 25 / 40 | 0 | 1000 | " |
+| Budget | `budget.score_divisor` | 50 | 1 | 100000 | " |
+| Membership | `membership.silver.monthly_mnt` / `membership.gold.monthly_mnt` | 10900 / 21900 | 1 | 10000000 | `MembershipController.Tiers` |
+| Membership | `membership.discount.3mo_pct` / `membership.discount.6mo_pct` | 10 / 20 | 0 | 90 | `MembershipPricing.DiscountByDuration` |
+| Quests | `quest.<id>.xp` ×6 (`q_summons` 15, `q_icebreaker` 20, `q_messages` 15, `q_quiz` 15, `q_video` 20, `q_pledge` 25) | as listed | 0 | 10000 | `QuestService.AllQuests` |
+| Quests | `quest.<id>.target` ×6 (all 1 except `q_messages` 5) | as listed | 1 | 1000 | " (app copy interpolates `%{target}`, so it is safe to tune) |
+| Safety | `ghosting.stale_hours` | 48 | 1 | 8760 | `GhostingService.GhostThreshold` |
+| Safety | `dating.attendance_check.delay_hours` | 48 | 0 | 8760 | literal in `ActivityService.GetAttendanceCheckStatusAsync` |
+| Safety | `account.deletion_grace_days` | 7 | 0 | 365 | `DailyMaintenanceBackgroundService.DeletionGracePeriod` |
+| Growth | `ships.expiry_days` | 14 | 1 | 365 | `DailyMaintenanceBackgroundService.ShipExpiryPeriod` |
+| Growth | `ships.enabled` | true | | | new kill switch: `POST /ships` → 404 `ship.disabled` |
+| Growth | `townsquare.enabled` | true | | | new kill switch: every `/townsquare/*` route → 404 `square.disabled`; scheduler still runs so in-flight sessions finish |
+| Growth | `townsquare.max_per_side` | 5 | 1 | 50 | `TownSquareService.MaxPerSide` |
+| Growth | `townsquare.round_seconds` | 240 | 30 | 3600 | `TownSquareService.RoundDurationSeconds` |
+| Growth | `campaign.voices.messages` | 15 | 1 | 10000 | `CampaignService.VoicesMessageThreshold` |
+| Safety | `video.enabled` | true | | | new kill switch: `POST /video/token` → 404 `video.disabled`; while false the Flame Rite is treated as not required so pledges are not deadlocked |
+
+**Deliberately kept hardcoded:** login throttle, password hashing, phone-verification claim window and retention, photo compression and upload limits, message page sizes, background sweep intervals, the reputation floor of zero, and the streak halving rules.
+
+## Global Constraints
+
+- `ConfigService` is a singleton; every service that reads it takes it via constructor injection and is registered in `ServiceCollectionExtensions.AddApplicationServices` (already true for all touched services).
+- Business rules travel as `DomainException` or the `ApiErrorExtensions` helpers with a stable `code`; every new code (`ship.disabled`, `square.disabled`, `video.disabled`) gets `err_<code>` EN + MN copy in `mingldingl_app/lib/i18n.ts`, and `lib/__tests__/i18nCoverage.test.ts` must stay green.
+- Validation attributes on record DTOs stay on constructor parameters.
+- No new appsettings; no migrations (the `AdminConfigs` table already exists and the seeder inserts missing keys on boot).
+- Run `dotnet test` in `mingldingl_engine` after every task; `npm test` + `npm run typecheck` in `mingldingl_app` after the i18n task.
+
+---
+
+### Task 1: Bounded config keys
+
+**Files:**
+- Modify: `mingldingl_engine/src/MinglDingl.Engine/Services/ConfigKeys.cs`
+- Modify: `mingldingl_engine/src/MinglDingl.Engine/Services/ConfigValueValidator.cs`
+- Modify: `mingldingl_engine/src/MinglDingl.Engine/Controllers/AdminConfigController.cs`
+- Test: `mingldingl_engine/tests/MinglDingl.Engine.Tests/Services/ConfigValueValidatorTests.cs` (new)
+- Test: `mingldingl_engine/tests/MinglDingl.Engine.Tests/Integration/AdminConfigControllerIntegrationTests.cs`
+
+**Interfaces:**
+- Produces: `record ConfigKeyDefinition(string Key, string Category, string ValueType, string DefaultValue, string Description, double? Min = null, double? Max = null)`; `ConfigValueValidator.Validate(ConfigKeyDefinition def, string value)` overload; `ConfigKeys.Find(string key)` returning `ConfigKeyDefinition?`.
+
+- [x] Write `ConfigValueValidatorTests`: a Number key with `Min = 0, Max = 10` rejects `-1` and `11` with a message containing "between 0 and 10", accepts `0`, `10`, `5.5`; the legacy `Validate(string valueType, string value)` still accepts any number.
+- [x] Add integration test `Update_OutOfRange_ReturnsBadRequestAndDoesNotChangeCache` (set `tier.sapphire.threshold` to `-5`) and `Update_TierThresholdBelowLowerTier_ReturnsBadRequest` (set `tier.sapphire.threshold` to `250`, which is below Amethyst's 300).
+- [x] Run: `dotnet test --filter ConfigValueValidator` → fails to compile.
+- [x] Extend `ConfigKeyDefinition` with `double? Min = null, double? Max = null`; add `public static ConfigKeyDefinition? Find(string key) => All.FirstOrDefault(d => d.Key == key);`.
+- [x] Add to `ConfigValueValidator`:
+  ```csharp
+  public static string? Validate(ConfigKeyDefinition def, string value)
+  {
+      var typeError = Validate(def.ValueType, value);
+      if (typeError is not null) return typeError;
+      if (def.ValueType != "Number") return null;
+      double parsed = double.Parse(value, CultureInfo.InvariantCulture);
+      if (def.Min is double min && parsed < min || def.Max is double max && parsed > max)
+          return $"'{value}' is outside the allowed range for {def.Key} (between {def.Min?.ToString(CultureInfo.InvariantCulture) ?? "-∞"} and {def.Max?.ToString(CultureInfo.InvariantCulture) ?? "∞"})";
+      return null;
+  }
+  ```
+  and switch the string overload's `double.TryParse` to `NumberStyles.Float, CultureInfo.InvariantCulture`.
+- [x] In `AdminConfigController.Update` and `Revert`, validate via `ConfigKeys.Find(key) is { } def ? ConfigValueValidator.Validate(def, value) : ConfigValueValidator.Validate(entry.ValueType, value)`. Then for tier keys call `_score.ValidateTierThreshold(key, (int)double.Parse(value))` (Task 2 provides it; in this task add a stub that returns null) and return `BadRequestError(msg, "admin.config_value_invalid")` on non-null.
+- [x] Run `dotnet test --filter "ConfigValueValidator|AdminConfigController"` → green (the monotonic test goes green in Task 2; mark it `Skip` until then only if it blocks the build — it should not, since the stub compiles).
+
+### Task 2: Score deltas, tier thresholds, reputation dock, daily budget
+
+**Files:**
+- Modify: `Services/ScoreService.cs`, `Services/ConfigKeys.cs`
+- Modify callers: `Controllers/ScoresController.cs`, `Controllers/MessagesController.cs`, `Controllers/VideoController.cs`, `Controllers/UsersController.cs`, `Controllers/EngagementController.cs`, `Controllers/MatchesController.cs`, `Services/ActivityService.cs`
+- Test: `tests/.../Services/ScoreServiceTests.cs`, `tests/.../Integration/AdminConfigControllerIntegrationTests.cs`
+
+**Interfaces:**
+- Produces: `int ScoreService.Delta(string eventType)` (instance, replaces static `GetDelta`); `static IReadOnlyDictionary<string,int> ScoreService.DefaultDeltas`; `int ScoreService.DailyMatchBudget(User user)` (instance); `string? ScoreService.ValidateTierThreshold(string key, int value)`; `int ScoreService.WeeklyStreakBonus`; `int ScoreService.QuestChestXp`.
+- `IsTierThresholdKey` unchanged, so recompute-on-update covers the four new tier keys for free.
+
+- [x] Update `ScoreServiceTests`: `GetDelta_KnownEventType_ReturnsExpectedDelta` → `CreateService().Delta(eventType)`; add `Delta_OverriddenInConfig_UsesConfigValue` (`score.event.MatchReply` = 3 → 3); `DailyMatchBudget` tests become instance calls; add `DailyMatchBudget_ConfigOverrides_ChangeBaseAndCap` (`budget.base.free`=8, `budget.cap.free`=9, score 0 → 8; score 500 → 9); add `CalculateTier_RubyThresholdOverridden_UsesConfigValue`; add `ValidateTierThreshold_BelowLowerTier_ReturnsError` and `_AboveUpperTier_ReturnsError` and `_InRange_ReturnsNull`.
+- [x] Run `dotnet test --filter ScoreServiceTests` → compile failure.
+- [x] Implement: `DefaultDeltas` dictionary (the old switch table); `Delta(eventType) => DefaultDeltas.TryGetValue(eventType, out var d) ? (int)_config.GetNumber($"score.event.{eventType}", d) : 0`; `TierDefaults` unchanged but `EffectiveTierTable` reads `tier.{name.ToLowerInvariant()}.threshold` for every tier except index 0; `ValidateTierThreshold(key, value)`: find tier index from key, require `value > table[idx-1].MinScore` and (if not last) `value < table[idx+1].MinScore`, message "`{key}` must be between {lower} and {upper} so tiers stay in order"; `DailyMatchBudget` instance reading the seven budget keys; `WeeklyStreakBonus => (int)_config.GetNumber("score.streak.weekly_bonus", 50)`; `QuestChestXp => (int)_config.GetNumber("score.quest_chest", 30)`; both reputation SQL literals become `{dock}` where `decimal dock = (decimal)_config.GetNumber("reputation.penalty_dock", 0.1)`.
+- [x] Replace every `ScoreService.GetDelta(` with `_score.Delta(` and `ScoreService.DailyMatchBudget(` with `_score.DailyMatchBudget(` in the listed callers; `ScoresController` uses `_score.WeeklyStreakBonus`; `EngagementController.ClaimQuestChest` uses `_score.QuestChestXp` for both the award and the response.
+- [x] Add the keys to `ConfigKeys.All` (table above).
+- [x] Run `dotnet test` → green.
+
+### Task 3: Membership catalog from config
+
+**Files:**
+- Create: `Services/MembershipCatalog.cs`
+- Modify: `Services/MembershipPricing.cs`, `Controllers/MembershipController.cs`, `Controllers/AdminOpsController.cs`, `Controllers/AdminAnalyticsController.cs`, `ServiceCollectionExtensions.cs`, `Services/ConfigKeys.cs`
+- Test: `tests/.../Services/MembershipCatalogTests.cs` (new), `tests/.../Services/MembershipPricingTests.cs`, `tests/.../Integration/MembershipControllerIntegrationTests.cs`, `tests/.../Integration/AdminOpsControllerIntegrationTests.cs`, any `AdminAnalyticsController` construction
+
+**Interfaces:**
+- Produces: `class MembershipCatalog(ConfigService config)` with `IReadOnlyList<MembershipTierResponse> Tiers()` and `MembershipTierResponse? Find(string level)`; `MembershipPricing.PriceOptions(int monthlyPriceMnt, IReadOnlyDictionary<int,double>? discountByDuration = null)`.
+
+- [x] Write `MembershipCatalogTests`: default catalog exposes Free/Silver/Gold with 10900/21900; overriding `membership.gold.monthly_mnt` = 25000 and `membership.discount.6mo_pct` = 30 yields Gold 6-month total `round(25000*6*0.7)` and `DiscountPct` 30.
+- [x] Implement `MembershipCatalog` (register `AddSingleton<MembershipCatalog>()`), make `MembershipController`, `AdminOpsController`, `AdminAnalyticsController` inject it; delete the static `Tiers`/`AllTiers`; `Upgrade` uses `_catalog.Find(level)`.
+- [x] Fix test constructions (`new MembershipController(Db, new MembershipCatalog(new ConfigService()))` etc.).
+- [x] Run `dotnet test` → green.
+
+### Task 4: Quests from config
+
+**Files:**
+- Modify: `Services/QuestService.cs`, `Controllers/EngagementController.cs`, `Services/ConfigKeys.cs`
+- Test: `tests/.../Services/QuestServiceTests.cs`, `tests/.../Integration/EngagementControllerIntegrationTests.cs`, every `new QuestService(` in tests (14 sites, one sed)
+
+**Interfaces:**
+- Produces: `QuestService(AppDbContext db, ScoreService score, ConfigService config, ILogger<QuestService> logger)`; instance `List<QuestDef> QuestsForDate(DateTime)`; static `AllQuests` stays as the defaults; instance `IReadOnlyList<QuestDef> EffectiveQuests()`.
+
+- [x] Update `QuestServiceTests` to construct `new QuestService(null!, null!, config, NullLogger<QuestService>.Instance)`; add `QuestsForDate_XpOverriddenInConfig_UsesConfigValue`.
+- [x] Implement `EffectiveQuests()` mapping each default through `quest.{Id}.xp` / `quest.{Id}.target`; `QuestsForDate` uses it; `IncrementAsync` uses `QuestsForDate`.
+- [x] `EngagementController` calls `_quests.QuestsForDate(today)`; sed test constructions.
+- [x] Add 12 keys; run `dotnet test` → green.
+
+### Task 5: Ghosting, attendance check, deletion grace, ship expiry
+
+**Files:**
+- Modify: `Services/GhostingService.cs`, `Services/ActivityService.cs`, `Services/DailyMaintenanceBackgroundService.cs`, `Controllers/AdminUsersController.cs`, `Services/ConfigKeys.cs`
+- Test: `tests/.../Services/GhostingServiceTests.cs`, `tests/.../Services/DailyMaintenanceBackgroundServiceTests.cs`, every `new GhostingService(` (11 sites) and the `DailyMaintenance` test provider (add `ConfigService` singleton)
+
+**Interfaces:**
+- Produces: `GhostingService(AppDbContext, ScoreService, OathService, SupabaseBroadcastService, ConfigService)`; instance `TimeSpan StaleAfter` and `bool IsStale(Match)`; `DailyMaintenanceBackgroundService` resolves `ConfigService` from the scope and exposes `static TimeSpan GracePeriodFor(ConfigService)`; `AdminUsersController` injects `ConfigService`.
+
+- [x] Update `GhostingServiceTests.IsStale_*` to instance calls plus `IsStale_ThresholdOverridden_UsesConfigHours` (`ghosting.stale_hours`=24, 25h → true).
+- [x] Add `DailyMaintenance` test `RunSweepAsync_ShipExpiryOverridden_ExpiresOlderPendingShips` (`ships.expiry_days`=1, ship created 2 days ago → Expired) — note `ShipExpiryPeriod`/`DeletionGracePeriod` reads move inside `RunSweepAsync`.
+- [x] Implement; `ActivityService` reads `dating.attendance_check.delay_hours`.
+- [x] Run `dotnet test` → green.
+
+### Task 6: Town Square, campaign voices, and kill switches
+
+**Files:**
+- Modify: `Services/TownSquareService.cs`, `Services/CampaignService.cs`, `Controllers/TownSquareController.cs`, `Controllers/ShipsController.cs`, `Controllers/VideoController.cs`, `Controllers/MatchesController.cs` (flamerite required read), `Services/ActivityService.cs` (flamerite required read), `Services/ConfigKeys.cs`
+- Test: `tests/.../Services/TownSquareServiceTests.cs`, all 32 `new TownSquareService(` sites (sed), `tests/.../Integration/ShipsControllerIntegrationTests.cs`, `tests/.../Integration/VideoControllerIntegrationTests.cs`, `tests/.../Integration/TownSquareControllerIntegrationTests.cs`
+
+**Interfaces:**
+- Produces: `TownSquareService(..., ConfigService config)` with instance `int MaxPerSide` and `int RoundDurationSeconds`; `ShipsController(ShipService, AppDbContext, ConfigService)`; `TownSquareController(..., ConfigService)`; a private `bool FlameRiteRequired => _config.GetBool("dating.flamerite.required", true) && _config.GetBool("video.enabled", true)` at both read sites.
+
+- [x] Tests: `LockRosterAsync_MaxPerSideOverridden_TakesOnlyThatMany`; `Create_ShipsDisabled_Returns404WithCode`; `GetToken_VideoDisabled_Returns404`; `GetNextSession_TownSquareDisabled_Returns404`; Flame Rite pledge allowed when `video.enabled=false` even though `dating.flamerite.required=true`.
+- [x] Implement; sed the constructions; add keys.
+- [x] Run `dotnet test` → green.
+
+### Task 7: App error copy, control panel copy, docs
+
+**Files:**
+- Modify: `mingldingl_app/lib/i18n.ts` (EN + MN `err_ship_disabled`, `err_square_disabled`, `err_video_disabled`)
+- Modify: `mingldingl_control/src/pages/Ops.tsx` (pricing blurb no longer says hardcoded), `mingldingl_control/src/pages/Config.tsx` (intro blurb)
+- Modify: `CLAUDE.md` (config bullet mentions bounds + kill switches), this section's Execution Outcome
+
+- [x] Add the six strings; run `npm test -- i18n` and `npm run typecheck` in `mingldingl_app`.
+- [x] Update copy; run `npm run lint && npm run build` in `mingldingl_control`.
+- [x] Regenerate API types in both frontends if the engine is running (no DTO shape changed, so this is optional).
+- [x] Record the Execution Outcome below.
+
+## Execution Outcome (2026-09-04)
+
+All 7 tasks executed inline in one session. Nothing committed (git only on request).
+
+**What shipped:** `ConfigKeys.All` grew from 9 to 61 keys across six categories (Scoring 23,
+Budget 7, Membership 4, Quests 12, Safety 7, Growth 8); `ConfigKeyDefinition` carries optional
+`Min`/`Max` and the seeder/controller enforce them via `ConfigValueValidator.Validate(def, value)`;
+tier thresholds are rejected unless strictly increasing (`ScoreService.ValidateTierThreshold`)
+and any tier key change still backfills `GemTier` for everyone. `ScoreService.GetDelta` /
+`DailyMatchBudget`, `GhostingService.IsStale` / `StaleAfter`, `QuestService.QuestsForDate` and
+`MembershipController.AllTiers` stopped being static; the tier list now lives in a singleton
+`MembershipCatalog` shared by the app, admin pricing and admin analytics. Three kill switches:
+`ships.enabled` (404 `ship.disabled` on weave), `townsquare.enabled` (a `TownSquareEnabledFilter`
+on the whole user controller, 404 `square.disabled`; admin scheduling and the scheduler keep
+running so live sessions finish), `video.enabled` (404 `video.disabled` on token minting, and
+`ConfigService.FlameRiteRequired()` folds it into the pledge gate so a match can never be
+required to complete a rite it cannot start). The app gained EN + MN copy for the three codes and
+the Town Square tab now renders the code's copy instead of the generic load error.
+
+**Verified:** engine 682/682 (was 634; +48 covering bounds, ordering, every new override, both
+kill switches, the filter, the Flame Rite/video coupling, ship-expiry and deletion-grace
+overrides); app 445/445 + typecheck; control lint + build. Live against the dev DB: boot seeded
+all 61 keys; `-5` → range error; `250` for Sapphire → "must be between 300 and 1000 (exclusive)";
+`650` accepted and reverted; Gold `25000` immediately produced `[25000, 67500, 120000]` from
+`/admin/ops/pricing` (10%/20% discounts) and reverted; `maybe` on a Bool → type error. Audit
+rows from that check were removed and `UpdatedBy` reset to `system`. API types regenerated in
+both frontends (only change: the 404 response now declared on `POST /ships`).
+
+**Deviations from the plan:**
+- `ships.enabled` / `townsquare.enabled` descriptions no longer claim the app "hides" the flow;
+  the app shows the localised code copy instead. Hiding the Town Square tab or the weave entry
+  points on a 404 is a follow-up if these switches ever get used in anger.
+- `dating.flamerite.duration_minutes`, `dating.noshow.threshold`, `oath.proven.encounters` and
+  `ships.daily.cap` (pre-existing keys) picked up bounds too.
+- The Town Square kill switch is an action filter rather than a per-action check so a new route
+  cannot forget it; it is tested directly (`TownSquareEnabledFilterIntegrationTests`) because the
+  controller integration tests call actions without the MVC pipeline.
+
+**Left open:** `ConfigField` in `mingldingl_control` still ignores bounds (the server error is
+shown in the toast); surfacing `Min`/`Max` in `AdminConfigDto` for client-side hints is cheap
+but was not needed. `ReportPenalty` remains configurable but unreachable (see Follow-ups).
+
+### Drift & bug pass (2026-09-04, same day, after `/code-review high`)
+
+The review confirmed 14 findings against the diff above; every one was fixed, plus the docs
+drift found by hand. Engine 697/697, app 445/445, control build clean, live re-check done.
+
+- **NaN/Infinity passed the bounds check** (both range comparisons are false for NaN, so
+  `reputation.penalty_dock = NaN` would have thrown in the sweep). Both validator overloads and
+  `ConfigService.GetNumber` now require a finite invariant-culture number.
+- **A stored value is now re-validated on boot.** `AdminConfigSeeder` resets any value outside
+  its registry bounds to the default, and if the tier ladder is not strictly increasing (a
+  Sapphire saved as 250 before the ordering rule existed) it resets every tier key to the design
+  defaults, with a warning either way. An in-order custom ladder is kept.
+- **`score.event.GhostPenalty = 0` no longer switches off the reputation dock** or the
+  `GhostPenalty` row the Oath logic reads: it is the one event that proceeds with a zero delta.
+- **`score.quest_chest` and `score.event.DailyLogin` now have Min 1**, because
+  `TryAwardClaimedAsync` refuses a zero delta and the chest's loot (or the login record) rode on
+  that claim.
+- **`video.enabled=false` now really stops Agora spend:** `TownSquareService.IsEnabled` is
+  `townsquare.enabled && video.enabled`, so the Town Square filter and scheduler close too; the
+  rite propose/accept endpoints return 404 `video.disabled`; `MatchResponse.VideoEnabled` lets
+  the chat hide `FlameRiteCard` instead of leading into a dead end.
+- **`townsquare.enabled=false` no longer locks rosters or starts new sessions** (the scheduler
+  only advances a session already `InProgress`); the app tab shows the closed notice even over a
+  cached session.
+- **Advertised vs enforced daily matches** now share `ScoreService.BaseBudgetFor`, so
+  `/membership/tiers` and the control panel's pricing table follow `budget.base.*`.
+- **Campaign Voices hint** reads `CampaignResponse.VoicesMessageThreshold` instead of a
+  hardcoded 15; **deletion dialogs** interpolate `UserResponse.DeletionGraceDays` instead of
+  "7 days" (EN + MN), and `account.deletion_grace_days` has Min 1; the control panel's
+  deletion page points at the config key.
+- A quest whose target was lowered below progress already made now reads as complete on the
+  board and for the chest; its XP is paid when the action next fires.
+- Removed the sweep's redundant in-memory `IsStale` filter; updated the stale Town Square
+  paragraph above and the verify skill's tier note. API types regenerated (three new optional
+  fields).
 
 ## Outstanding Follow-ups
 

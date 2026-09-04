@@ -11,12 +11,14 @@ public class AdminUsersController : ControllerBase
     private readonly AppDbContext _db;
     private readonly AdminAuditService _audit;
     private readonly ScoreService _score;
+    private readonly ConfigService _config;
 
-    public AdminUsersController(AppDbContext db, AdminAuditService audit, ScoreService score)
+    public AdminUsersController(AppDbContext db, AdminAuditService audit, ScoreService score, ConfigService config)
     {
         _db = db;
         _audit = audit;
         _score = score;
+        _config = config;
     }
 
     [HttpGet]
@@ -127,7 +129,7 @@ public class AdminUsersController : ControllerBase
             .Select(u => new { u.Id, u.DisplayName, u.City, DeletionRequestedAt = u.DeletionRequestedAt!.Value })
             .ToListAsync();
 
-        var graceDays = (int)DailyMaintenanceBackgroundService.GracePeriod.TotalDays;
+        var graceDays = (int)DailyMaintenanceBackgroundService.GracePeriodFor(_config).TotalDays;
         var now = DateTime.UtcNow;
         var result = pending
             .Select(u => new AdminDeletionRequestDto(

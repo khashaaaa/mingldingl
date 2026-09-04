@@ -8,7 +8,7 @@ namespace MinglDingl.Engine.Tests.Integration;
 public class AdminTownSquareControllerIntegrationTests : IntegrationTestBase
 {
     private AdminTownSquareController BuildController() =>
-        new(Db, new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance), new AdminAuditService(Db));
+        new(Db, new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService()), new AdminAuditService(Db));
 
     private static System.Security.Claims.ClaimsPrincipal AdminPrincipal() =>
         new(new System.Security.Claims.ClaimsIdentity(
@@ -17,7 +17,7 @@ public class AdminTownSquareControllerIntegrationTests : IntegrationTestBase
     private AdminTownSquareController BuildControllerWithUser(SupabaseBroadcastService? broadcast = null)
     {
         var controller = new AdminTownSquareController(
-            Db, new TownSquareService(Db, broadcast ?? BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance), new AdminAuditService(Db));
+            Db, new TownSquareService(Db, broadcast ?? BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService()), new AdminAuditService(Db));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = AdminPrincipal() },

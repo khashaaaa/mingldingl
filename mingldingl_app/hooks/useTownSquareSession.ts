@@ -16,7 +16,7 @@ export interface TownSquareNextSession {
 
 export function useTownSquareSession() {
   const qc = useQueryClient();
-  const { data: session, isLoading, isError, refetch } = useQuery<TownSquareNextSession>({
+  const { data: session, isLoading, isError, error, refetch } = useQuery<TownSquareNextSession>({
     queryKey: queryKeys.townSquareNextSession,
     queryFn: async () => {
       const res = await apiClient.townSquare.nextSession();
@@ -78,6 +78,7 @@ export function useTownSquareSession() {
     session,
     isLoading,
     isError,
+    error,
     refetch,
     rsvp: (sessionId: string) => rsvpMutation.mutate(sessionId),
     cancelRsvp: (sessionId: string) => cancelRsvpMutation.mutate(sessionId),

@@ -31,7 +31,8 @@ public record MatchResponse(
     DateTime? FlameRiteAcceptedAt = null,
     DateTime? FlameRiteCompletedAt = null,
     int FlameRiteDurationMinutes = 5,
-    bool FlameRiteRequired = true);
+    bool FlameRiteRequired = true,
+    bool VideoEnabled = true);
 
 public record PartialUserProfile(
     string? DisplayName,

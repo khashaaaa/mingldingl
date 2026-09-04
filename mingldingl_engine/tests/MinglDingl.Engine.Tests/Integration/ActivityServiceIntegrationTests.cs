@@ -10,7 +10,7 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
     {
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var httpClient = new HttpClient();
         var mockConfig = new Moq.Mock<IConfiguration>();
@@ -25,7 +25,7 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
     {
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
         return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths);

@@ -7,6 +7,7 @@ import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { SessionStatusCard } from '../../components/townsquare/SessionStatusCard';
 import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { i18n } from '../../lib/i18n';
+import { getApiErrorMessage, isApiError } from '../../lib/api/errors';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 
@@ -17,8 +18,10 @@ const autoNavigatedSessions = new Set<string>();
 export default function TownSquareScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
-  const { session, isError, refetch, rsvp, cancelRsvp, isRsvping, isCancelling } = useTownSquareSession();
+  const { session, isError, error, refetch, rsvp, cancelRsvp, isRsvping, isCancelling } = useTownSquareSession();
   const [now, setNow] = useState(() => Date.now());
+  // The switch can flip while a session is cached; the closed notice must win over stale data.
+  const closed = isApiError(error, 'square.disabled');
 
   // Tab screens stay mounted, so an unconditional ticker re-rendered this screen every second
   // while the user was elsewhere in the app.
@@ -49,9 +52,9 @@ export default function TownSquareScreen() {
       <TiledBackdrop source={PARCHMENT_ASSET} opacity={0.08} />
       <GameHeader title={i18n.t('town_square_title')} icon="account-group" />
       <View style={styles.content}>
-        {isError && !session ? (
+        {closed || (isError && !session) ? (
           <View style={styles.errorWrap}>
-            <Text style={styles.errorText}>{i18n.t('screen_load_error')}</Text>
+            <Text style={styles.errorText}>{getApiErrorMessage(error, i18n.t('screen_load_error'))}</Text>
             <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
           </View>
         ) : (

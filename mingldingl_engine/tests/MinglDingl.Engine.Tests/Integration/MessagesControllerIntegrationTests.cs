@@ -12,8 +12,9 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
-        var score = new ScoreService(Db, new ConfigService());
-        var quests = new QuestService(Db, score, NullLogger<QuestService>.Instance);
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
         var mockConfig = new Moq.Mock<IConfiguration>();

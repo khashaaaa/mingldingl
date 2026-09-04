@@ -8,20 +8,17 @@ using Microsoft.EntityFrameworkCore;
 [Produces("application/json")]
 public class MembershipController : ControllerBase
 {
-    private static readonly List<MembershipTierResponse> Tiers = [
-        new("Free",   5,  false, null,  ["icebreakers_quizzes", "basic_profile"], []),
-        new("Silver", 12, true,  10900, ["icebreakers_quizzes", "deep_profile_view"], MembershipPricing.PriceOptions(10900).ToArray()),
-        new("Gold",   20, true,  21900, ["icebreakers_quizzes", "deep_profile_view", "priority_matching"], MembershipPricing.PriceOptions(21900).ToArray()),
-    ];
-
-    public static IReadOnlyList<MembershipTierResponse> AllTiers => Tiers;
-
     private readonly AppDbContext _db;
-    public MembershipController(AppDbContext db) => _db = db;
+    private readonly MembershipCatalog _catalog;
+    public MembershipController(AppDbContext db, MembershipCatalog catalog)
+    {
+        _db = db;
+        _catalog = catalog;
+    }
 
     [HttpGet("tiers")]
     [ProducesResponseType(typeof(List<MembershipTierResponse>), StatusCodes.Status200OK)]
-    public IActionResult GetTiers() => Ok(Tiers);
+    public IActionResult GetTiers() => Ok(_catalog.Tiers().ToList());
 
     [HttpGet("me")]
     [ProducesResponseType(typeof(MembershipMeResponse), StatusCodes.Status200OK)]
@@ -66,9 +63,8 @@ public class MembershipController : ControllerBase
         }
         else
         {
-            var tier = Tiers.First(t => t.Level == canonicalLevel);
-            var priceOption = MembershipPricing.PriceOptions(tier.MonthlyPriceMnt!.Value)
-                .First(p => p.DurationMonths == req.DurationMonths);
+            var tier = _catalog.Find(canonicalLevel)!;
+            var priceOption = tier.Prices.First(p => p.DurationMonths == req.DurationMonths);
             var expiresAt = now.AddMonths(req.DurationMonths);
 
             user.MembershipLevel = canonicalLevel;
