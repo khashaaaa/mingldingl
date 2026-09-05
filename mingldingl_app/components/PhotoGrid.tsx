@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useAuthStore } from '../store/authStore';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { Icon } from './ui/Icon';
 import { AlertModal } from './modals/AlertModal';
+import { SheetModal } from './modals/SheetModal';
 import { GameButton } from './ui/GameButton';
 import { i18n } from '../lib/i18n';
 import { COLORS, ICON_SIZES, RADIUS, SPACE, circle, overlay } from '../lib/theme';
@@ -30,7 +31,6 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
   const [failedAlert, setFailedAlert] = useState(false);
   const [pendingLocalUris, setPendingLocalUris] = useState<string[]>([]);
   const [pendingDeleteUrl, setPendingDeleteUrl] = useState<string | null>(null);
-  const pendingSourceActionRef = useRef<(() => void) | null>(null);
 
   // Held in a ref so an inline callback from the parent cannot make these effects re-run (and
   // flap the flag) on every render.
@@ -39,16 +39,6 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
   const hasPendingUploads = pendingLocalUris.length > 0;
   useEffect(() => { uploadingCbRef.current?.(hasPendingUploads); }, [hasPendingUploads]);
   useEffect(() => () => uploadingCbRef.current?.(false), []);
-
-  function closeSourceModalThen(action: () => void) {
-    if (Platform.OS === 'ios') {
-      pendingSourceActionRef.current = action;
-      setSourceModalVisible(false);
-    } else {
-      setSourceModalVisible(false);
-      action();
-    }
-  }
 
   async function addPhotos(localUris: string[]) {
     if (localUris.length === 0) return;
@@ -124,23 +114,13 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
         </TouchableOpacity>
       )}
 
-      <Modal
-        visible={sourceModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSourceModalVisible(false)}
-        onDismiss={() => {
-          const action = pendingSourceActionRef.current;
-          pendingSourceActionRef.current = null;
-          action?.();
-        }}
-      >
-        <View style={styles.overlay}>
-          <View style={styles.sheet}>
+      <SheetModal visible={sourceModalVisible} onClose={() => setSourceModalVisible(false)}>
+        {(closeThen) => (
+          <>
             <GameButton
               variant="ghost"
               icon="image-multiple"
-              onPress={() => closeSourceModalThen(async () => addPhotos(await pickPhoto(maxPhotos - photoUrls.length)))}
+              onPress={() => closeThen(async () => addPhotos(await pickPhoto(maxPhotos - photoUrls.length)))}
             >
               {i18n.t('pick_from_library')}
             </GameButton>
@@ -148,7 +128,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
               <GameButton
                 variant="ghost"
                 icon="camera-plus"
-                onPress={() => closeSourceModalThen(async () => {
+                onPress={() => closeThen(async () => {
                   const uri = await takePhoto();
                   addPhotos(uri ? [uri] : []);
                 })}
@@ -159,9 +139,9 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
             <GameButton variant="ghost" onPress={() => setSourceModalVisible(false)}>
               {i18n.t('back')}
             </GameButton>
-          </View>
-        </View>
-      </Modal>
+          </>
+        )}
+      </SheetModal>
 
       <AlertModal
         visible={failedAlert}
@@ -225,13 +205,5 @@ const styles = StyleSheet.create({
     ...circle(22),
     backgroundColor: overlay(0.75),
     alignItems: 'center', justifyContent: 'center',
-  },
-  overlay: { flex: 1, backgroundColor: overlay(0.88), alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl },
-  sheet: {
-    width: '100%', maxWidth: 360,
-    backgroundColor: COLORS.panel,
-    borderWidth: 1, borderColor: COLORS.bronze,
-    borderRadius: RADIUS.md,
-    padding: SPACE.lg, gap: SPACE.md,
   },
 });

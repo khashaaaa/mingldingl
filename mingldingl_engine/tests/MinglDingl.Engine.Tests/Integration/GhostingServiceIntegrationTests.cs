@@ -220,6 +220,6 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         var reloaded = await Db.Matches.AsNoTracking().SingleAsync(m => m.Id == match.Id);
         Assert.Equal("Ghosted", reloaded.Status);
         Assert.Equal(3, reloaded.RevealLevel);
-        Assert.Equal(3, RevealService.GetRevealLevel(reloaded));
+        Assert.Equal(3, RevealService.GetRevealLevel(new ConfigService(), reloaded));
     }
 }

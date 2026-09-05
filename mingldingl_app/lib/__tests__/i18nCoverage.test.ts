@@ -22,8 +22,9 @@ function sourceFiles(): string[] {
     for (const entry of readdirSync(dir)) {
       const full = join(dir, entry);
       if (statSync(full).isDirectory()) {
-        if (entry !== 'node_modules' && entry !== '__tests__') walk(full);
-      } else if (/\.tsx?$/.test(entry) && !full.endsWith(join('lib', 'i18n.ts'))) {
+        // The translation tables themselves must not count as "a reference" to their own keys.
+        if (entry !== 'node_modules' && entry !== '__tests__' && full !== join(ROOT, 'lib', 'i18n')) walk(full);
+      } else if (/\.tsx?$/.test(entry)) {
         out.push(full);
       }
     }
@@ -38,13 +39,17 @@ const defined = Object.keys(translations.en);
 /** Families built at the call site — i18n.t(`campaign_room_${id}`), or a key assembled first
  *  as in errors.ts's `err_${code}`. Discovered from the source rather than listed here, so a
  *  family that loses its call site shows up as orphaned keys instead of staying whitelisted.
- *  A prefix only counts once some defined key uses it (asserted below). */
+ *
+ *  Matched only where the template literal is actually used as a key — passed to i18n.t()/tKey(),
+ *  or assigned to a `key` variable that then is. Filtering the list by "has at least one defined
+ *  key" instead would make the third test below vacuous: a family whose keys were all renamed away
+ *  would silently drop out of this list rather than fail. */
+const KEY_TEMPLATE_PATTERNS = [
+  /(?:i18n\.t|tKey)\(\s*`([a-z0-9]+_[a-z0-9_]*)\$\{/g,
+  /\b[a-zA-Z]*[kK]ey\s*=\s*`([a-z0-9]+_[a-z0-9_]*)\$\{/g,
+];
 const dynamicPrefixes = [
-  ...new Set(
-    [...blob.matchAll(/`([a-z0-9]+_[a-z0-9_]*)\$\{/g)]
-      .map((m) => m[1])
-      .filter((prefix) => defined.some((key) => key.startsWith(prefix))),
-  ),
+  ...new Set(KEY_TEMPLATE_PATTERNS.flatMap((re) => [...blob.matchAll(re)].map((m) => m[1]))),
 ];
 
 describe('i18n key coverage', () => {

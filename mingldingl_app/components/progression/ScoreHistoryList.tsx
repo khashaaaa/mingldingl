@@ -1,5 +1,5 @@
 import { FlatList, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { i18n } from '../../lib/i18n';
+import { i18n, tKey } from '../../lib/i18n';
 import { Icon } from '../ui/Icon';
 import { formatDate } from '../../lib/formatDate';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
@@ -70,8 +70,7 @@ export const EVENT_TYPE_KEYS: Record<string, string> = {
  * not caught up with must show its raw identifier, not i18n-js's `[missing "en.X" translation]`.
  */
 function eventLabel(eventType: string): string {
-  const key = EVENT_TYPE_KEYS[eventType];
-  return key ? i18n.t(key) : eventType;
+  return tKey(EVENT_TYPE_KEYS[eventType], eventType);
 }
 
 export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Props) {

@@ -89,8 +89,9 @@ public class AdminConfigController : ControllerBase
     }
 
     /// <summary>
-    /// Registry bounds first, then the one cross-key rule: tier thresholds must stay strictly
-    /// increasing, or <see cref="ScoreService.CalculateTier"/> would hand out the wrong gem.
+    /// Registry bounds first, then the cross-key rules: two ladders — gem tiers and profile-reveal
+    /// levels — must each stay strictly increasing, or <see cref="ScoreService.CalculateTier"/> hands
+    /// out the wrong gem and <see cref="RevealService.LevelForMessageCount"/> skips a level.
     /// </summary>
     private string? ValidateValue(AdminConfig entry, string value)
     {
@@ -102,11 +103,16 @@ public class AdminConfigController : ControllerBase
 
         if (IsTierThresholdKey(entry.Key))
             return _score.ValidateTierThreshold(entry.Key, (int)double.Parse(value, System.Globalization.CultureInfo.InvariantCulture));
+        if (IsRevealThresholdKey(entry.Key))
+            return RevealService.ValidateThreshold(_config, entry.Key, (int)double.Parse(value, System.Globalization.CultureInfo.InvariantCulture));
         return null;
     }
 
     internal static bool IsTierThresholdKey(string key) =>
         key.StartsWith("tier.", StringComparison.Ordinal) && key.EndsWith(".threshold", StringComparison.Ordinal);
+
+    internal static bool IsRevealThresholdKey(string key) =>
+        key.StartsWith("reveal.level", StringComparison.Ordinal) && key.EndsWith(".messages", StringComparison.Ordinal);
 
     private static AdminConfigDto ToDto(AdminConfig c) =>
         new(c.Key, c.Category, c.ValueType, c.Value, c.Description, c.UpdatedAt, c.UpdatedBy);

@@ -281,7 +281,7 @@ public class MatchesController : ControllerBase
     private MatchResponse BuildMatchResponse(Match m, Guid viewerId, string membership, IReadOnlyDictionary<Guid, string> weaverNamesByShipId)
     {
         var other = m.InitiatorId == viewerId ? m.Receiver : m.Initiator;
-        int level = RevealService.GetRevealLevel(m);
+        int level = RevealService.GetRevealLevel(_config, m);
 
         return new MatchResponse(
             m.Id, other.Id, m.Status, level, m.MessageCount,

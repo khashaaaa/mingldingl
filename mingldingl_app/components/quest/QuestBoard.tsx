@@ -4,14 +4,14 @@ import { View, Text, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { AlertModal } from '../modals/AlertModal';
-import { ChestModal, type ChestItem } from '../modals/ChestModal';
+import { ChestModal, toChestItem, type ChestItem } from '../modals/ChestModal';
 import { Icon } from '../ui/Icon';
 import { EmberField } from '../vfx/EmberField';
 import { useQuests } from '../../hooks/useQuests';
 import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { useAuthStore } from '../../store/authStore';
 import { activeFestival } from '../../lib/festivals';
-import { i18n } from '../../lib/i18n';
+import { i18n, tKey } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
 
 function ProgressPips({ progress, target }: { progress: number; target: number }) {
@@ -54,7 +54,7 @@ export function QuestBoard() {
 
         const deferredTierUp = useAuthStore.getState().pendingTierUp;
         if (deferredTierUp) setPendingTierUp(null);
-        setChest({ xp: res.awarded ?? 0, item: res.item as ChestItem | null, deferredTierUp });
+        setChest({ xp: res.awarded ?? 0, item: toChestItem(res.item), deferredTierUp });
         setChestVisible(true);
       }
     } catch { setFailAlert(true); }
@@ -81,7 +81,7 @@ export function QuestBoard() {
             </View>
             <View style={styles.questInfo}>
               <Text style={[styles.questName, q.completed && styles.questNameDone]}>
-                {i18n.t(q.nameKey ?? '', { target: q.target })}
+                {tKey(q.nameKey, '', { target: q.target })}
               </Text>
               <ProgressPips progress={q.progress ?? 0} target={q.target ?? 1} />
             </View>

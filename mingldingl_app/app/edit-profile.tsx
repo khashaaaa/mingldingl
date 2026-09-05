@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { useProfile } from '../hooks/useProfile';
+import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { useLocationCapture } from '../hooks/useLocationCapture';
 import { useGeoCities } from '../hooks/useGeoCities';
 import { apiClient } from '../lib/api/apiClient';
@@ -32,6 +32,7 @@ export default function EditProfileScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
   const { data: profile } = useProfile();
+  const updateProfile = useUpdateProfile();
   const queryClient = useQueryClient();
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
@@ -87,8 +88,7 @@ export default function EditProfileScreen() {
     setCity(picked);
     setCityPickerVisible(false);
     try {
-      const updated = await apiClient.users.update({ city: picked });
-      queryClient.setQueryData(queryKeys.userProfile, parseUserProfile(updated));
+      await updateProfile.mutateAsync({ city: picked });
     } catch {
       setCity(previousCity);
       setError(i18n.t('save_error'));
@@ -99,7 +99,7 @@ export default function EditProfileScreen() {
     setSaving(true);
     setError(null);
     try {
-      const updated = await apiClient.users.update({
+      await updateProfile.mutateAsync({
         displayName,
         bio,
         photoUrls,
@@ -109,7 +109,6 @@ export default function EditProfileScreen() {
         religion: religion || null,
         lifestyle: lifestyle || null,
       });
-      queryClient.setQueryData(queryKeys.userProfile, parseUserProfile(updated));
       router.back();
     } catch {
       setError(i18n.t('save_error'));

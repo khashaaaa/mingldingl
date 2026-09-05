@@ -8,6 +8,19 @@ import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 
 export interface ChestItem { nameKey: string; rarity: string; itemType: string; }
+
+/**
+ * The engine types every loot field as optional, so a chest item has to be narrowed before its
+ * `nameKey` can be handed to `i18n.t` — casting the response instead would let a null key through
+ * and render i18n-js's `[missing "en." translation]` marker. Same boundary as `toDroppedItem`.
+ */
+export function toChestItem(
+  item?: { nameKey?: string | null; rarity?: string | null; itemType?: string | null } | null,
+): ChestItem | null {
+  if (!item?.nameKey || !item?.rarity || !item?.itemType) return null;
+  return { nameKey: item.nameKey, rarity: item.rarity, itemType: item.itemType };
+}
+
 interface Props { visible: boolean; xp: number; item?: ChestItem | null; onDismiss: () => void; }
 
 export function ChestModal({ visible, xp, item, onDismiss }: Props) {

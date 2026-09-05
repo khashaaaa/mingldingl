@@ -1,5 +1,5 @@
 import { View as RNView, Text as RNText, Image as RNImage, StyleSheet } from 'react-native';
-import { i18n } from '../lib/i18n';
+import { i18n, tKey } from '../lib/i18n';
 import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, glow } from '../lib/theme';
 import { ORNAMENTS } from '../lib/ornaments';
 import type { Oath } from '../models/user';
@@ -32,14 +32,13 @@ export const OATH_DESC_KEYS: Record<Oath, string> = {
 };
 
 /**
- * Oaths arrive from the engine as English identifiers. Same guard as `tierLabel` in lib/tiers:
- * falling back to the raw value rather than `i18n.t(undefined)` matters, because an unmapped
- * oath would otherwise render as i18n-js's literal `[missing "en." translation]` marker.
+ * Oaths arrive from the engine as English identifiers, so the key is data: `tKey` falls back to
+ * the raw value rather than letting an unmapped oath render as i18n-js's literal
+ * `[missing "en." translation]` marker.
  */
 export function oathLabel(oath: string | null | undefined): string {
   if (!oath) return '';
-  const key = OATH_NAME_KEYS[oath as Oath];
-  return key ? i18n.t(key) : oath;
+  return tKey(OATH_NAME_KEYS[oath as Oath], oath);
 }
 
 const SIZES = {

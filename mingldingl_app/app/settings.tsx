@@ -2,10 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { useProfile } from '../hooks/useProfile';
+import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { useAuth } from '../hooks/useAuth';
 import { apiClient } from '../lib/api/apiClient';
-import { parseUserProfile } from '../models/user';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
@@ -29,6 +28,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
   const { data: profile } = useProfile();
+  const updateProfile = useUpdateProfile();
   const deletionGraceDays = profile?.deletionGraceDays ?? 7;
   const queryClient = useQueryClient();
 
@@ -61,8 +61,7 @@ export default function SettingsScreen() {
 
   async function handleToggleNotifications(next: (typeof NOTIF_OPTIONS)[number]) {
     try {
-      const updated = await apiClient.users.update({ pushEnabled: next === 'on' });
-      queryClient.setQueryData(queryKeys.userProfile, parseUserProfile(updated));
+      await updateProfile.mutateAsync({ pushEnabled: next === 'on' });
     } catch {
       setSaveFailedAlert(true);
     }
@@ -70,8 +69,7 @@ export default function SettingsScreen() {
 
   async function handleTogglePause(next: (typeof PAUSE_OPTIONS)[number]) {
     try {
-      const updated = await apiClient.users.update({ isPaused: next === 'on' });
-      queryClient.setQueryData(queryKeys.userProfile, parseUserProfile(updated));
+      await updateProfile.mutateAsync({ isPaused: next === 'on' });
     } catch {
       setSaveFailedAlert(true);
     }
@@ -96,8 +94,7 @@ export default function SettingsScreen() {
     }
     setAgeRangeMessage(null);
     try {
-      const updated = await apiClient.users.update({ ageMin: min, ageMax: max });
-      queryClient.setQueryData(queryKeys.userProfile, parseUserProfile(updated));
+      await updateProfile.mutateAsync({ ageMin: min, ageMax: max });
       setSavedNotice(true);
     } catch {
       setSaveFailedAlert(true);

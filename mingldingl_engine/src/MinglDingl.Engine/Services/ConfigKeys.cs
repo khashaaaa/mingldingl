@@ -53,6 +53,12 @@ public static class ConfigKeys
         // Quests — daily board
         ..Quests(),
 
+        // Matching — progressive profile reveal
+        ..RevealService.Defaults.Select(d => Number(
+            RevealService.ThresholdKey(d.Level), "Matching", d.DefaultMessages.ToString(),
+            $"Messages a match must exchange before profile reveal level {d.Level} unlocks; the four thresholds must stay strictly increasing",
+            1, 100000)),
+
         // Safety
         Number("dating.noshow.threshold", "Safety", "3", "Distinct-match attendance mismatches before ReputationScore is docked", 1, 100),
         Number("dating.attendance_check.delay_hours", "Safety", "48", "Hours after a confirmed date before each side is asked whether the other showed up", 0, 8760),

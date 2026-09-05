@@ -1,5 +1,5 @@
 import type { GemTier } from '../models/user';
-import { i18n } from './i18n';
+import { tKey } from './i18n';
 import { COLORS, GEM_COLORS, GEM_SHADES } from './theme';
 
 export const TIER_ORDER: GemTier[] = ['Garnet', 'Opal', 'Amethyst', 'Sapphire', 'Ruby', 'Emerald'];
@@ -76,27 +76,24 @@ const MEMBERSHIP_NAME_KEYS: Record<string, string> = {
 };
 
 /**
- * Gem tiers and guild ranks arrive from the engine as English identifiers. Falling back to the
- * raw identifier rather than `i18n.t('')` matters: an unmapped key would otherwise render as
- * i18n-js's literal `[missing "mn." translation]` marker in the UI.
+ * Gem tiers and guild ranks arrive from the engine as English identifiers, so the key is data and
+ * goes through `tKey`: an identifier this map has not caught up with falls back to the raw value
+ * instead of rendering i18n-js's literal `[missing "mn." translation]` marker.
  */
 export function tierLabel(tier: string | null | undefined): string {
   if (!tier) return '';
-  const key = TIER_NAME_KEYS[tier as GemTier];
-  return key ? i18n.t(key) : tier;
+  return tKey(TIER_NAME_KEYS[tier as GemTier], tier);
 }
 
 export function membershipLabel(level: string | null | undefined): string {
   if (!level) return '';
-  const key = MEMBERSHIP_NAME_KEYS[level];
-  return key ? i18n.t(key) : level;
+  return tKey(MEMBERSHIP_NAME_KEYS[level], level);
 }
 
 /** Same guard for loot item names, which are keyed by an engine-side catalogue id. */
 export function itemLabel(itemId: string | null | undefined): string {
   if (!itemId) return '';
-  const key = ITEM_NAME_KEYS[itemId];
-  return key ? i18n.t(key) : itemId;
+  return tKey(ITEM_NAME_KEYS[itemId], itemId);
 }
 
 export const FRAME_COLORS: Record<string, string> = {

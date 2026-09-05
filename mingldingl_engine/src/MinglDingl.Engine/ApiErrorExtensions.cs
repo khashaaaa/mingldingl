@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 /// <summary>
 /// Every error response carries a stable <paramref name="code"/> alongside its English message.
 /// The message is for developers and logs; clients localise from the code, so a new error is not
-/// user-ready until the code has copy in <c>lib/i18n.ts</c> on both locales.
+/// user-ready until the code has copy in <c>lib/i18n/</c> on both locales.
 /// </summary>
 public static class ApiErrorExtensions
 {

@@ -36,7 +36,7 @@ public class GhostingService
 
     public async Task<bool> TryGhostAsync(Match match)
     {
-        int frozenLevel = RevealService.LevelForMessageCount(match.MessageCount);
+        int frozenLevel = RevealService.LevelForMessageCount(_config, match.MessageCount);
         int rowsAffected = await _db.Matches
             .Where(m => m.Id == match.Id && m.Status == "Active")
             .ExecuteUpdateAsync(s => s
