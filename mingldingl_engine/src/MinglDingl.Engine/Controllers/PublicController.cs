@@ -159,12 +159,20 @@ public class PublicController : ControllerBase
               '<p class="sub">This invitation is no longer active — it may have already been used or expired. Ask your friend to weave a new one.</p>';
           }
 
+          function escapeHtml(value) {
+            return String(value)
+              .split('&').join('&amp;')
+              .split('<').join('&lt;')
+              .split('>').join('&gt;')
+              .split('"').join('&quot;');
+          }
+
           function renderValid(code) {
             content.innerHTML =
               '<h1>A Thread Has Been Woven</h1>' +
               '<p class="sub">A friend on MingldIngl thinks you two would hit it off. Open the app and enter this code to find out who.</p>' +
-              '<div class="code-card"><div class="code-label">YOUR CODE</div><div class="code">' + code + '</div></div>' +
-              '<a class="cta" href="mingldingl:
+              '<div class="code-card"><div class="code-label">YOUR CODE</div><div class="code">' + escapeHtml(code) + '</div></div>' +
+              '<a class="cta" href="mingldingl://">Open MingldIngl</a>' +
               '<p class="fallback">Don\'t have the app yet? Ask the friend who sent this, or check back soon.</p>';
           }
 

@@ -1,7 +1,7 @@
 import type { components } from '../lib/api/api.generated';
 import type { Oath } from './user';
 
-export type MatchStatus = 'Pending' | 'Active' | 'Ghosted' | 'Completed';
+export type MatchStatus = 'Pending' | 'Active' | 'Ghosted' | 'Completed' | 'Unmatched';
 
 export interface DeepFields {
   hasKids: boolean | null;

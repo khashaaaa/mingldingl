@@ -270,9 +270,19 @@ describe('destinationFor', () => {
     expect(destinationFor('flame_rite_proposed', 'm1')).toBe('/video/m1');
   });
 
+  it('sends a Flame Rite acceptance to the video screen, where the proposer lights the call', () => {
+    expect(destinationFor('flame_rite_accepted', 'm1')).toBe('/video/m1');
+  });
+
+  it('sends a Town Square start to the Town Square tab', () => {
+    expect(destinationFor('townsquare_started', '')).toBe('/(tabs)/townsquare');
+  });
+
   it('sends every other engine push type to the chat', () => {
     expect(destinationFor('match', 'm1')).toBe('/chat/m1');
     expect(destinationFor('message', 'm1')).toBe('/chat/m1');
+    expect(destinationFor('date_confirmed', 'm1')).toBe('/chat/m1');
+    expect(destinationFor('match_ghosted', 'm1')).toBe('/chat/m1');
   });
 
   // A type this build has never heard of must still land somewhere useful.

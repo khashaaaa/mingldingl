@@ -17,9 +17,11 @@ public class ActivityService
     private readonly SupabaseBroadcastService _broadcast;
     private readonly ConfigService _config;
     private readonly OathService _oaths;
+    private readonly PushNotificationService _push;
 
-    public ActivityService(AppDbContext db, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config, OathService oaths)
+    public ActivityService(AppDbContext db, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config, OathService oaths, PushNotificationService push)
     {
+        _push = push;
         _db = db;
         _score = score;
         _quests = quests;
@@ -118,6 +120,13 @@ public class ActivityService
 
             await _oaths.RefreshAsync(match.InitiatorId);
             await _oaths.RefreshAsync(match.ReceiverId);
+
+            // The caller is looking at the screen that just confirmed; the other side pledged
+            // earlier and is the one who needs telling.
+            await _push.NotifyUserAsync(
+                otherUserId,
+                PushKind.DateConfirmed,
+                new Dictionary<string, object> { ["matchId"] = match.Id.ToString() });
         }
 
         await _broadcast.BroadcastAsync("app-nudges", "date_confirmed",

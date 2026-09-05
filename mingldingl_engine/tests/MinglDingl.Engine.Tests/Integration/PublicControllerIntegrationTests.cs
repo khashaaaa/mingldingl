@@ -150,4 +150,61 @@ public class PublicControllerIntegrationTests : IntegrationTestBase
         Assert.Equal("text/html", result.ContentType);
         Assert.Contains("A Thread Has Been Woven", result.Content);
     }
+
+    [Fact]
+    public void GetShipInvitePage_LinksToTheAppAndEscapesTheCode()
+    {
+        var content = BuildController().GetShipInvitePage().Content;
+
+        // The invite code comes off the query string, so it reaches innerHTML as untrusted text.
+        Assert.Contains("escapeHtml(code)", content);
+        Assert.Contains("mingldingl://", content);
+        Assert.Contains("</a>", content);
+    }
+
+    /// <summary>
+    /// Both landing pages keep all of their behaviour in one inline &lt;script&gt;, where a syntax
+    /// error is silent: the browser discards the entire block and the page sits on its loading text
+    /// forever. A truncated string literal shipped exactly that way, past a test that only asserted
+    /// the HTML contained some of the copy — the copy lives inside the dead script. So the literals
+    /// are checked directly. These scripts use no regex or template literals, which is what lets a
+    /// per-line quote scan stand in for a parser.
+    /// </summary>
+    [Theory]
+    [InlineData("ship")]
+    [InlineData("stats")]
+    public void LandingPageScript_HasNoUnterminatedStringLiteral(string page)
+    {
+        var controller = BuildController();
+        string? html = page == "ship"
+            ? controller.GetShipInvitePage().Content
+            : controller.GetStatsPage().Content;
+        Assert.NotNull(html);
+
+        int start = html.IndexOf("<script>", StringComparison.Ordinal);
+        int end = html.IndexOf("</script>", StringComparison.Ordinal);
+        Assert.True(start >= 0 && end > start, $"the {page} page must carry an inline <script> block");
+
+        var lines = html[(start + "<script>".Length)..end].Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+            Assert.True(
+                StringLiteralsBalanced(lines[i]),
+                $"Unterminated JavaScript string literal on {page} script line {i + 1}: {lines[i].Trim()}");
+    }
+
+    private static bool StringLiteralsBalanced(string line)
+    {
+        char? quote = null;
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+            if (quote is null)
+            {
+                if (c is '\'' or '"') quote = c;
+            }
+            else if (c == '\\') i++;
+            else if (c == quote) quote = null;
+        }
+        return quote is null;
+    }
 }

@@ -45,6 +45,13 @@ public class UsersController : ControllerBase
 
         var user = existing ?? new User { Id = userId };
 
+        if (req.PreferredLocale is not null)
+        {
+            if (!PushCopy.IsSupportedLocale(req.PreferredLocale))
+                return this.BadRequestError("PreferredLocale must be one of: en, mn", "profile.locale_invalid");
+            user.PreferredLocale = req.PreferredLocale;
+        }
+
         user.DisplayName = req.DisplayName;
         user.Age = req.Age;
         user.Gender = req.Gender;
@@ -143,6 +150,12 @@ public class UsersController : ControllerBase
         if (req.AgeMin is not null) user.AgeMin = req.AgeMin.Value;
         if (req.AgeMax is not null) user.AgeMax = req.AgeMax.Value;
         if (req.IsPaused is not null) user.IsPaused = req.IsPaused.Value;
+        if (req.PreferredLocale is not null)
+        {
+            if (!PushCopy.IsSupportedLocale(req.PreferredLocale))
+                return this.BadRequestError("PreferredLocale must be one of: en, mn", "profile.locale_invalid");
+            user.PreferredLocale = req.PreferredLocale;
+        }
         if (req.City is not null)
         {
             user.City = req.City;
@@ -339,5 +352,6 @@ public class UsersController : ControllerBase
         u.ReferralCode,
         Oath: u.Oath,
         OathProven: u.OathProven,
-        DeletionGraceDays: (int)DailyMaintenanceBackgroundService.GracePeriodFor(_config).TotalDays);
+        DeletionGraceDays: (int)DailyMaintenanceBackgroundService.GracePeriodFor(_config).TotalDays,
+        PreferredLocale: u.PreferredLocale);
 }

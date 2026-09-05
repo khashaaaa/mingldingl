@@ -27,7 +27,7 @@ public class FlameRiteTokenIntegrationTests : IntegrationTestBase
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
-        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var push = BuildTestPush();
         var broadcast = BuildTestBroadcast();
 
         var controller = new VideoController(Db, videoToken, score, quests, loot, milestones, appConfig ?? new ConfigService(), broadcast, push)
@@ -79,7 +79,7 @@ public class FlameRiteTokenIntegrationTests : IntegrationTestBase
         {
             var httpContext = new DefaultHttpContext();
             httpContext.Items["UserId"] = userId;
-            return new EngagementController(Db, engagement, score, quests, loot, milestones, broadcast)
+            return new EngagementController(Db, engagement, score, quests, loot, milestones, broadcast, new ConfigService())
             {
                 ControllerContext = new ControllerContext { HttpContext = httpContext },
             };

@@ -7,14 +7,16 @@ public class GhostingService
     private readonly OathService _oaths;
     private readonly SupabaseBroadcastService _broadcast;
     private readonly ConfigService _config;
+    private readonly PushNotificationService _push;
 
-    public GhostingService(AppDbContext db, ScoreService score, OathService oaths, SupabaseBroadcastService broadcast, ConfigService config)
+    public GhostingService(AppDbContext db, ScoreService score, OathService oaths, SupabaseBroadcastService broadcast, ConfigService config, PushNotificationService push)
     {
         _db = db;
         _score = score;
         _oaths = oaths;
         _broadcast = broadcast;
         _config = config;
+        _push = push;
     }
 
     public async Task<bool> CheckAsync(Match match)
@@ -30,13 +32,26 @@ public class GhostingService
         if (atFault.HasValue) await _oaths.RefreshAsync(atFault.Value);
 
         await BroadcastGhostedAsync(match.Id, atFault);
+        await NotifyGhostedAsync(match);
 
         return true;
     }
 
+    /// <summary>Both sides learn the thread closed: the ghosted party that it is over, the ghoster that silence cost them.</summary>
+    public async Task NotifyGhostedAsync(Match match)
+    {
+        var data = new Dictionary<string, object> { ["matchId"] = match.Id.ToString() };
+        await _push.NotifyUserAsync(match.InitiatorId, PushKind.MatchGhosted, data);
+        await _push.NotifyUserAsync(match.ReceiverId, PushKind.MatchGhosted, data);
+    }
+
     public async Task<bool> TryGhostAsync(Match match)
     {
-        int frozenLevel = RevealService.LevelForMessageCount(_config, match.MessageCount);
+        // Freeze at the level the pair had actually reached, never below the floor every match is
+        // created with. Reading message count alone stripped that floor off a short conversation
+        // whenever reveal.level1.messages was tuned above 1, so ghosting *lowered* the reveal.
+        int frozenLevel = Math.Max(
+            match.RevealLevel, RevealService.LevelForMessageCount(_config, match.MessageCount));
         int rowsAffected = await _db.Matches
             .Where(m => m.Id == match.Id && m.Status == "Active")
             .ExecuteUpdateAsync(s => s

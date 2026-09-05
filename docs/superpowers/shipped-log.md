@@ -351,7 +351,7 @@ Engine 452 → 456 tests, app 276, `tsc` clean, control builds and lints.
 - The penalty fires on every mismatch at or above the threshold (3rd, 4th, 5th …), not only "once when crossed".
 - Admin visibility, scoped out in the spec, arrived 2026-08-31: `noShowFlagCount` on the admin `UserDetail`, `POST /admin/users/{id}/reset-noshow` (audited as `ResetNoShow`), and a "No-show flagged" analytics tile.
 
-**Open:** no manual two-account walk has been run (confirm → back-date `CompletedAt` in Postgres → answer both sides → observe `NoShowFlagCount` and `ReputationScore`); the 48 h window is hardcoded rather than a `ConfigKeys` entry; no real date/time scheduling (unchanged from the spec's out-of-scope list).
+**Open:** the mismatch → flag walk RAN and PASSED 2026-09-01 (see the plan's "Manual verification still owed"); the threshold-crossing `RepeatedNoShowPenalty` leg is still integration-test-only. The 48 h window became `dating.attendance_check.delay_hours` on 2026-09-04. No real date/time scheduling (unchanged from the spec's out-of-scope list).
 
 ---
 
@@ -379,7 +379,7 @@ All 11 tasks shipped (Group A — Oath, Tasks 1–6; Group B — Flame Rite, Tas
 
 **Known deferral (from the spec, still true):** `RevealService` still gates the second photo behind 5 messages, so immediately after the rite two people who have seen each other on video may still have a blurred photo between them — incoherent, not broken; milestone-based reveal would fix it and was explicitly deferred, as was un-paywalling `HasKids`.
 
-**Still owed / open:** the Task 11 Step 9 two-account ladder walk (match → icebreaker → propose → accept → 5-minute call → complete → pledge → attendance check, plus flipping `dating.flamerite.required` off and back) has never been run, and the video-screen countdown is decorative — both tracked under Outstanding Follow-ups below.
+**Still owed / open:** the Task 11 Step 9 two-account ladder walk (match → icebreaker → propose → accept → complete → pledge → attendance check, plus flipping `dating.flamerite.required` off and back) RAN and PASSED at the API level 2026-09-01 — see the plan's "Manual verification still owed" for what it did not cover (the 5-minute vs long token TTL, the app screens themselves). The video-screen countdown is still decorative, tracked under Outstanding Follow-ups.
 
 ---
 

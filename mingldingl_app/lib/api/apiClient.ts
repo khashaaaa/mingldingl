@@ -131,6 +131,8 @@ export const apiClient = {
       api.get<Schemas['BusinessReviewResponse'][]>(`/business/${id}/reviews`).then((r) => r.data),
   },
   engagement: {
+    revealThresholds: () =>
+      api.get<Schemas['RevealThresholdsResponse']>('/engagement/reveal-thresholds').then((r) => r.data),
     icebreaker: (matchId: string) =>
       api.get<Schemas['IcebreakerQuestionResponse']>(`/engagement/icebreaker/${matchId}`).then((r) => r.data),
     icebreakerRespond: (matchId: string, body: Schemas['IcebreakerRespondDto']) =>
@@ -171,7 +173,7 @@ export const apiClient = {
       api.post<Schemas['FlameRiteStateResponse']>('/video/rite/decline', { matchId }).then((r) => r.data),
   },
   messages: {
-    list: (matchId: string, opts: { before?: string; limit?: number } = {}) =>
+    list: (matchId: string, opts: { before?: string; beforeId?: string; limit?: number } = {}) =>
       api.get<Schemas['MessageResponse'][]>(`/matches/${matchId}/messages${query(opts)}`).then((r) => r.data),
     send: (matchId: string, content: string) =>
       api.post<Schemas['SendMessageResponse']>(`/matches/${matchId}/messages`, { content }).then((r) => r.data),

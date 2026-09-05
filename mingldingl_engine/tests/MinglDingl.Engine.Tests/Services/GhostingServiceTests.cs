@@ -6,7 +6,7 @@ public class GhostingServiceTests
     private static readonly Guid ReceiverId = Guid.NewGuid();
 
     private static GhostingService CreateService(ConfigService? config = null) =>
-        new(null!, null!, null!, null!, config ?? new ConfigService());
+        new(null!, null!, null!, null!, config ?? new ConfigService(), null!);
 
     [Fact]
     public void GetGhostAtFaultUserId_InitiatorSentLastMessage_BlamesReceiver()

@@ -15,10 +15,21 @@ public class EngagementController : ControllerBase
     private readonly LootService _loot;
     private readonly MilestoneService _milestones;
     private readonly SupabaseBroadcastService _broadcast;
+    private readonly ConfigService _config;
 
-    public EngagementController(AppDbContext db, EngagementService engagement, ScoreService score, QuestService quests, LootService loot, MilestoneService milestones, SupabaseBroadcastService broadcast)
+    public EngagementController(AppDbContext db, EngagementService engagement, ScoreService score, QuestService quests, LootService loot, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config)
     {
-        _db = db; _engagement = engagement; _score = score; _quests = quests; _loot = loot; _milestones = milestones; _broadcast = broadcast;
+        _db = db; _engagement = engagement; _score = score; _quests = quests; _loot = loot; _milestones = milestones; _broadcast = broadcast; _config = config;
+    }
+
+    [HttpGet("reveal-thresholds")]
+    [ProducesResponseType(typeof(RevealThresholdsResponse), StatusCodes.Status200OK)]
+    public IActionResult GetRevealThresholds()
+    {
+        var levels = RevealService.EffectiveThresholds(_config)
+            .Select(t => new RevealThresholdDto(t.Level, t.Messages))
+            .ToList();
+        return Ok(new RevealThresholdsResponse(levels));
     }
 
     [HttpGet("icebreaker/{matchId}")]

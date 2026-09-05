@@ -36,6 +36,8 @@ export interface UserProfile {
   oathEncountersNeeded: number | null;
   /** Days between a deletion request and anonymisation; admin-tunable, quoted in the deletion dialogs. */
   deletionGraceDays: number;
+  /** "en" | "mn" — the language the engine writes this user's push notifications in. */
+  preferredLocale: string;
 }
 
 export type Candidate = UserProfile & { gemTier: GemTier };
@@ -69,5 +71,6 @@ export function parseUserProfile(d: components['schemas']['UserResponse']): User
     oathEncountersHeld:   d.oathEncountersHeld   ?? null,
     oathEncountersNeeded: d.oathEncountersNeeded ?? null,
     deletionGraceDays: d.deletionGraceDays ?? 7,
+    preferredLocale: d.preferredLocale ?? 'en',
   };
 }

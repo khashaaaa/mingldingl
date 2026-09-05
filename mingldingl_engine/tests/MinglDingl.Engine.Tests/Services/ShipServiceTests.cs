@@ -9,7 +9,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
     {
         var scoreService = new ScoreService(Db, new ConfigService());
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
-        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var push = BuildTestPush();
         return new ShipService(Db, new LootService(Db, scoreService, NullLogger<LootService>.Instance), scoreService, new ConfigService(), milestones, push, broadcast ?? BuildTestBroadcast(), NullLogger<ShipService>.Instance);
     }
 
@@ -233,7 +233,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
 
         var scoreService = new ScoreService(Db, new ConfigService());
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
-        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var push = BuildTestPush();
         var service = new ShipService(Db, new FailingLootService(Db, scoreService), scoreService,
             new ConfigService(), milestones, push, BuildTestBroadcast(), NullLogger<ShipService>.Instance);
 

@@ -77,17 +77,28 @@ public class VideoController : ControllerBase
         if (match.FlameRiteAcceptedAt is null)
             return this.ForbiddenError("The Flame Rite has not been accepted for this match", "rite.not_accepted");
 
-        int rowsAffected = await _db.Matches
-            .Where(m => m.Id == req.MatchId && !m.VideoRewardClaimed)
-            .ExecuteUpdateAsync(s => s.SetProperty(m => m.VideoRewardClaimed, true));
+        // The claim is per participant, not per match. Both people completed the same call, and the
+        // quest tick and first_video_call milestone are personal achievements in any case; a single
+        // match-wide flag paid whoever hung up first and left the other side with nothing at all.
+        int rowsAffected = match.InitiatorId == userId
+            ? await _db.Matches
+                .Where(m => m.Id == req.MatchId && !m.InitiatorVideoRewardClaimed)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(m => m.InitiatorVideoRewardClaimed, true)
+                    .SetProperty(m => m.VideoRewardClaimed, true))
+            : await _db.Matches
+                .Where(m => m.Id == req.MatchId && !m.ReceiverVideoRewardClaimed)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(m => m.ReceiverVideoRewardClaimed, true)
+                    .SetProperty(m => m.VideoRewardClaimed, true));
 
         await _db.Matches
             .Where(m => m.Id == req.MatchId && m.FlameRiteCompletedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.FlameRiteCompletedAt, DateTime.UtcNow));
 
-        // The reward is claimed once per match, so whichever participant hangs up second always
-        // lands here. Their call still ended normally — returning 403 made the app show them a
-        // failure alert on every completed rite. Report a zero award instead.
+        // A repeat call from the same participant is a normal outcome — a retry, or a second hang-up
+        // event from the same client. Their call still ended normally, and returning 403 made the app
+        // show them a failure alert on every completed rite. Report a zero award instead.
         if (rowsAffected == 0)
             return Ok(new VideoCompleteResponse(0, null));
 
@@ -131,9 +142,8 @@ public class VideoController : ControllerBase
         var other = match.OtherParticipant(userId);
         await _push.NotifyUserAsync(
             other,
-            "Flame Rite Proposed",
-            "Your match wants to video-screen before pledging to meet.",
-            new Dictionary<string, object> { ["matchId"] = match.Id.ToString(), ["type"] = "flame_rite_proposed" });
+            PushKind.FlameRiteProposed,
+            new Dictionary<string, object> { ["matchId"] = match.Id.ToString() });
 
         await _broadcast.BroadcastAsync("app-nudges", "flame_rite_proposed", new { userId, matchId = match.Id });
 
@@ -165,6 +175,10 @@ public class VideoController : ControllerBase
         if (rowsAffected == 0)
             return this.ForbiddenError("There is no Flame Rite proposal for you to accept", "rite.no_proposal");
 
+        await _push.NotifyUserAsync(
+            match.FlameRiteProposedById.Value,
+            PushKind.FlameRiteAccepted,
+            new Dictionary<string, object> { ["matchId"] = match.Id.ToString() });
         await _broadcast.BroadcastAsync("app-nudges", "flame_rite_accepted", new { userId, matchId = match.Id });
 
         return Ok(BuildRiteState(match.Id, match.FlameRiteProposedById, match.FlameRiteProposedAt, now, match.FlameRiteCompletedAt));

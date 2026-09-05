@@ -1,4 +1,4 @@
-import { translations } from '../i18n';
+import { translations, normalizeLocale, SUPPORTED_LOCALES } from '../i18n';
 
 describe('i18n key parity', () => {
   it('has the same keys in en and mn', () => {
@@ -19,4 +19,17 @@ describe('i18n key parity', () => {
     }
     expect(mismatches).toEqual([]);
   });
+});
+
+describe('normalizeLocale', () => {
+  it.each(SUPPORTED_LOCALES)('keeps the supported locale %s', (locale) => {
+    expect(normalizeLocale(locale)).toBe(locale);
+  });
+
+  // The engine stores only en/mn and 400s on anything else, so a device set to any other
+  // language must not have its raw code sent as preferredLocale.
+  it.each(['ru', 'ko', 'zh', 'en-US', '', null, undefined])(
+    'falls back to en for %p', (locale) => {
+      expect(normalizeLocale(locale)).toBe('en');
+    });
 });

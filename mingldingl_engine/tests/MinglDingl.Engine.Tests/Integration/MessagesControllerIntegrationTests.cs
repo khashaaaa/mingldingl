@@ -10,25 +10,28 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
 {
     private MessagesController BuildController(Guid userId)
     {
+        var db = Db;
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         var config = new ConfigService();
-        var score = new ScoreService(Db, config);
-        var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
-        var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
-        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var score = new ScoreService(db, config);
+        var quests = new QuestService(db, score, config, NullLogger<QuestService>.Instance);
+        var milestones = new MilestoneService(db, NullLogger<MilestoneService>.Instance);
+        var push = BuildTestPush(db);
         var mockConfig = new Moq.Mock<IConfiguration>();
         mockConfig.Setup(c => c["Supabase:ProjectUrl"]).Returns("https://test.supabase.co");
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
         var broadcast = new SupabaseBroadcastService(new HttpClient(), mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
-        var controller = new MessagesController(Db, score, quests, milestones, push, broadcast)
+        var controller = new MessagesController(db, score, quests, milestones, push, broadcast)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
         return controller;
     }
 
-    private async Task<Match> SeedMatchWithMessages(int count)
+    private Task<Match> SeedMatchWithMessages(int count) => SeedMatchWithMessages(count, TimeSpan.FromSeconds(1));
+
+    private async Task<Match> SeedMatchWithMessages(int count, TimeSpan spacing)
     {
         var initiatorId = Guid.NewGuid();
         var receiverId = Guid.NewGuid();
@@ -46,7 +49,7 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
                 MatchId = match.Id,
                 SenderId = initiatorId,
                 Content = $"message {i}",
-                CreatedAt = baseTime.AddSeconds(i),
+                CreatedAt = baseTime + i * spacing,
             });
         }
         await Db.SaveChangesAsync();
@@ -102,6 +105,31 @@ public class MessagesControllerIntegrationTests : IntegrationTestBase
         Assert.Equal("message 0", items[0].Content);
         Assert.Equal("message 5", items[^1].Content);
     }
+
+    /// <summary>
+    /// Two messages can share a `CreatedAt` to the tick. The page order breaks that tie on Id, so
+    /// the cursor has to as well — a `CreatedAt < before` cursor alone skips every message that
+    /// ties with the page boundary, and they are then unreachable by any later page.
+    /// </summary>
+    [Fact]
+    public async Task GetMessages_MessagesSharingAnInstant_ArePagedWithoutLoss()
+    {
+        var match = await SeedMatchWithMessages(4, TimeSpan.Zero);
+        var controller = BuildController(match.InitiatorId);
+
+        var page1 = MessagesFrom(await controller.GetMessages(match.Id, limit: 2));
+        var oldest = page1[0];
+        var page2 = MessagesFrom(await controller.GetMessages(match.Id, before: oldest.CreatedAt, beforeId: oldest.Id, limit: 2));
+
+        Assert.Equal(2, page1.Count);
+        Assert.Equal(2, page2.Count);
+        Assert.Equal(
+            new[] { "message 0", "message 1", "message 2", "message 3" },
+            page2.Concat(page1).Select(m => m.Content).Order().ToArray());
+    }
+
+    private static List<MessageResponse> MessagesFrom(IActionResult result) =>
+        Assert.IsType<List<MessageResponse>>(Assert.IsType<OkObjectResult>(result).Value);
 
     [Fact]
     public async Task GetMessages_LimitClampedAboveMax()

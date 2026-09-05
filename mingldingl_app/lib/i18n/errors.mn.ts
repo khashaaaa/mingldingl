@@ -14,6 +14,7 @@ export const errorsMn = {
   err_user_not_found: 'Тийм аялагч алга.',
   err_user_profile_incomplete: 'Эхлээд баатраа бүтээж дуусгана уу.',
   err_profile_age_range_invalid: 'Хамгийн бага нас нь хамгийн ихээсээ давж болохгүй.',
+  err_profile_locale_invalid: 'Энэ хэлийг одоогоор дэмжихгүй байна.',
   err_profile_location_invalid: 'Тэр байршил газрын зурагт алга.',
   err_oath_invalid: 'Гурван тангаргийн нэгийг сонгоно уу.',
   err_photo_none_provided: 'Хөрөг сонгоогүй байна.',

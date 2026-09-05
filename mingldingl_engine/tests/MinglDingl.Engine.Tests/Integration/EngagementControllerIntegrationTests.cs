@@ -7,11 +7,11 @@ namespace MinglDingl.Engine.Tests.Integration;
 
 public class EngagementControllerIntegrationTests : IntegrationTestBase
 {
-    private EngagementController BuildController(Guid userId)
+    private EngagementController BuildController(Guid userId, ConfigService? configOverride = null)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
-        var config = new ConfigService();
+        var config = configOverride ?? new ConfigService();
         var score = new ScoreService(Db, config);
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
@@ -21,11 +21,25 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
         mockConfig.Setup(c => c["Supabase:ProjectUrl"]).Returns("https://test.supabase.co");
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
         var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
-        var controller = new EngagementController(Db, new EngagementService(Db, score), score, quests, loot, milestones, broadcast)
+        var controller = new EngagementController(Db, new EngagementService(Db, score), score, quests, loot, milestones, broadcast, config)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
         return controller;
+    }
+
+    [Fact]
+    public void GetRevealThresholds_ReturnsTheLadderTheAdminTuned()
+    {
+        var config = new ConfigService();
+        config.Set("reveal.level2.messages", "7");
+        var controller = BuildController(Guid.NewGuid(), config);
+
+        var result = Assert.IsType<OkObjectResult>(controller.GetRevealThresholds());
+        var response = Assert.IsType<RevealThresholdsResponse>(result.Value);
+
+        Assert.Equal([1, 2, 3, 4], response.Levels.Select(l => l.Level));
+        Assert.Equal([1, 7, 15, 30], response.Levels.Select(l => l.Messages));
     }
 
     [Fact]

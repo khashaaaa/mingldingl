@@ -18,17 +18,17 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
         var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
-        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths);
+        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, BuildTestPush());
     }
 
-    private ActivityService BuildService(SupabaseBroadcastService broadcast)
+    private ActivityService BuildService(SupabaseBroadcastService broadcast, PushNotificationService? push = null)
     {
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
-        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths);
+        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, push ?? BuildTestPush());
     }
 
     [Fact]
@@ -45,6 +45,25 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         Assert.Contains("\"date_confirmed\"", handler.LastRequestBody);
         Assert.Contains("\"isComplete\":false", handler.LastRequestBody);
         Assert.Contains($"\"userId\":\"{match.InitiatorId}\"", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_CompletingConfirm_PushesDateConfirmedToTheSideThatPledgedFirst()
+    {
+        var (match, suggestionId) = await SeedMatchWithSuggestionAsync();
+        var initiatorToken = await RegisterPushTokenAsync(match.InitiatorId);
+        var (push, handler) = BuildCapturingPush();
+        var service = BuildService(BuildTestBroadcast(), push);
+
+        await service.ConfirmAsync(match, match.InitiatorId, suggestionId);
+        Assert.Empty(handler.RequestBodies);
+
+        await service.ConfirmAsync(match, match.ReceiverId, suggestionId);
+
+        var body = Assert.Single(handler.RequestBodies);
+        Assert.Contains(initiatorToken, body);
+        Assert.Contains("\"type\":\"date_confirmed\"", body);
+        Assert.Contains($"\"matchId\":\"{match.Id}\"", body);
     }
 
     [Fact]

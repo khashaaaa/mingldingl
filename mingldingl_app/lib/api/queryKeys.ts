@@ -30,6 +30,7 @@ export const queryKeys = {
   scoreHistory: ['scoreHistory'] as const,
   leaderboard: ['leaderboard'] as const,
   tierThresholds: ['tierThresholds'] as const,
+  revealThresholds: ['revealThresholds'] as const,
   geoCities: ['geoCities'] as const,
   blockedUsers: ['blockedUsers'] as const,
   contentPage: (slug: string) => ['contentPage', slug] as const,

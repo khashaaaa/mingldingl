@@ -7,20 +7,6 @@ namespace MinglDingl.Engine.Tests.Services;
 
 public class TownSquareSchedulerBackgroundServiceTests : IntegrationTestBase
 {
-    private class SingleProviderScopeFactory : IServiceScopeFactory
-    {
-        private readonly IServiceProvider _provider;
-        public SingleProviderScopeFactory(IServiceProvider provider) => _provider = provider;
-        public IServiceScope CreateScope() => new NonDisposingScope(_provider);
-
-        private class NonDisposingScope : IServiceScope
-        {
-            public NonDisposingScope(IServiceProvider provider) => ServiceProvider = provider;
-            public IServiceProvider ServiceProvider { get; }
-            public void Dispose() { }
-        }
-    }
-
     private TownSquareSchedulerBackgroundService BuildService(ConfigService? config = null)
     {
         var provider = new ServiceCollection()

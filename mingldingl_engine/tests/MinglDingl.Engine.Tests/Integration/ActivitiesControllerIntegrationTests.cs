@@ -7,11 +7,11 @@ namespace MinglDingl.Engine.Tests.Integration;
 
 public class ActivitiesControllerIntegrationTests : IntegrationTestBase
 {
-    private ActivitiesController BuildController(Guid userId)
+    private ActivitiesController BuildController(Guid userId, ConfigService? configOverride = null)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
-        var config = new ConfigService();
+        var config = configOverride ?? new ConfigService();
         var score = new ScoreService(Db, config);
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
@@ -21,8 +21,8 @@ public class ActivitiesControllerIntegrationTests : IntegrationTestBase
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
         var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
-        var activities = new ActivityService(Db, score, quests, milestones, broadcast, config, oaths);
-        var controller = new ActivitiesController(Db, activities)
+        var activities = new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, BuildTestPush());
+        var controller = new ActivitiesController(Db, activities, config)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -54,6 +54,40 @@ public class ActivitiesControllerIntegrationTests : IntegrationTestBase
 
         var result = Assert.IsType<ObjectResult>(await controller.GetSuggestions(match.Id));
         Assert.Equal(403, result.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetSuggestions_BelowTheConfiguredMessageThreshold_IsLocked()
+    {
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        var match = new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active", MessageCount = 15 };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        var config = new ConfigService();
+        config.Set("activity.suggestions.messages", "20");
+        var result = Assert.IsType<BadRequestObjectResult>(await BuildController(initiator.Id, config).GetSuggestions(match.Id));
+
+        Assert.Equal("activity.locked", Assert.IsType<ErrorResponse>(result.Value).Code);
+    }
+
+    [Fact]
+    public async Task GetSuggestions_ThresholdTunedBelowDefault_UnlocksAtTheTunedCount()
+    {
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        var match = new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active", MessageCount = 3 };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        var config = new ConfigService();
+        config.Set("activity.suggestions.messages", "3");
+        var result = await BuildController(initiator.Id, config).GetSuggestions(match.Id);
+
+        Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]

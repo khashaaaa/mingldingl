@@ -1,44 +1,35 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 public class PushNotificationService
 {
-    private readonly HttpClient _http;
     private readonly AppDbContext _db;
-    private readonly ILogger<PushNotificationService> _logger;
+    private readonly IPushDispatcher _dispatcher;
 
-    public PushNotificationService(HttpClient http, AppDbContext db, ILogger<PushNotificationService> logger)
+    public PushNotificationService(AppDbContext db, IPushDispatcher dispatcher)
     {
-        _http = http;
-        _http.BaseAddress = new Uri("https://exp.host");
         _db = db;
-        _logger = logger;
+        _dispatcher = dispatcher;
     }
 
-    public async Task NotifyUserAsync(Guid userId, string title, string body, Dictionary<string, object>? data = null)
+    /// <summary>
+    /// Resolves one push kind for a user in their own language and hands it to the dispatcher;
+    /// the Expo round-trip happens off the request path. `data` is forwarded to the app and
+    /// always carries the kind's wire `type`, which the app routes on; `args` fill the copy's
+    /// placeholders (a display name, a message body).
+    /// </summary>
+    public async Task NotifyUserAsync(Guid userId, PushKind kind, Dictionary<string, object>? data = null, params string[] args)
     {
-        var tokens = await _db.Users.AsNoTracking()
+        var recipient = await _db.Users.AsNoTracking()
             .Where(u => u.Id == userId && u.PushEnabled)
-            .SelectMany(u => _db.PushTokens.Where(t => t.UserId == userId).Select(t => t.Token))
-            .ToListAsync();
-        if (tokens.Count == 0) return;
+            .Select(u => new { u.PreferredLocale, Tokens = _db.PushTokens.Where(t => t.UserId == userId).Select(t => t.Token).ToList() })
+            .FirstOrDefaultAsync();
+        if (recipient is null || recipient.Tokens.Count == 0) return;
 
-        var messages = tokens.Select(token => new
+        var (title, body) = PushCopy.For(kind, recipient.PreferredLocale, args);
+        var payload = new Dictionary<string, object>(data ?? new Dictionary<string, object>())
         {
-            to = token,
-            title,
-            body,
-            data = data ?? new Dictionary<string, object>(),
-        });
-
-        try
-        {
-            var content = new StringContent(JsonSerializer.Serialize(messages), System.Text.Encoding.UTF8, "application/json");
-            await _http.PostAsync("/--/api/v2/push/send", content);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Push notification send swallowed a failure for user {UserId} ({TokenCount} tokens)", userId, tokens.Count);
-        }
+            ["type"] = PushCopy.WireType(kind),
+        };
+        await _dispatcher.DispatchAsync(new PushEnvelope(recipient.Tokens, title, body, payload));
     }
 }

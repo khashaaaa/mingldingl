@@ -9,7 +9,8 @@ public record CreateUserRequest(
     [MaxLength(FieldLimits.MaxPhotos)] List<string> PhotoUrls,
     [Range(-90, 90)] double? Latitude = null,
     [Range(-180, 180)] double? Longitude = null,
-    [MaxLength(FieldLimits.Code)] string? ReferralCode = null);
+    [MaxLength(FieldLimits.Code)] string? ReferralCode = null,
+    [MaxLength(FieldLimits.Code)] string? PreferredLocale = null);
 
 public record UpdateLocationRequest(double Latitude, double Longitude);
 
@@ -28,7 +29,8 @@ public record UpdateUserRequest(
     [Range(FieldLimits.MinAge, FieldLimits.MaxAge)] int? AgeMin = null,
     [Range(FieldLimits.MinAge, FieldLimits.MaxAge)] int? AgeMax = null,
     bool? IsPaused = null,
-    [MaxLength(FieldLimits.ShortLabel)] string? City = null);
+    [MaxLength(FieldLimits.ShortLabel)] string? City = null,
+    [MaxLength(FieldLimits.Code)] string? PreferredLocale = null);
 
 public record SwearOathRequest(
     [Required, MaxLength(FieldLimits.ShortLabel)] string Oath);
@@ -61,7 +63,8 @@ public record UserResponse(
     bool OathProven = false,
     int? OathEncountersHeld = null,
     int? OathEncountersNeeded = null,
-    int DeletionGraceDays = 7);
+    int DeletionGraceDays = 7,
+    string PreferredLocale = "en");
 
 public record OwnedItemResponse(string ItemId, string NameKey, string Rarity, string ItemType, DateTime AcquiredAt, bool Equipped);
 

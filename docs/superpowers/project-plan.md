@@ -83,7 +83,7 @@ ASP.NET Core API (:5150)  ←→  local PostgreSQL 16
 ### Visual Design — Dark-Fantasy RPG Theme (current, replaces the original "Dark Luxury" direction)
 
 #### Feel
-Warcraft/tower-defense-adjacent dark fantasy, not premium-luxury minimalism as originally spec'd — the app went through a full RPG reskin (2026-07-03; that overhaul's design spec was folded into this section and the code — `lib/theme.ts` is the reference) plus a palette retheme afterward. Cinzel (display) + Alegreya (body) fonts. Single source of truth: `mingldingl_app/lib/theme.ts`.
+Warcraft/tower-defense-adjacent dark fantasy, not premium-luxury minimalism as originally spec'd — the app went through a full RPG reskin (2026-07-03; that overhaul's design spec was folded into this section and the code — `lib/theme.ts` is the reference) plus a palette retheme afterward. Yeseva One (display) + Alegreya (body) + Alegreya SC (small-caps utility labels) fonts — the original Cinzel choice was replaced during the Ulzii pass. Single source of truth: `mingldingl_app/lib/theme.ts`.
 
 #### Color Tokens (`lib/theme.ts` COLORS)
 
@@ -98,16 +98,16 @@ Warcraft/tower-defense-adjacent dark fantasy, not premium-luxury minimalism as o
 
 #### Gem Tier Palette (Garnet → Emerald, renamed from the original Pebble → Diamond)
 
-| Tier | Color | Score threshold |
-|---|---|---|
-| Garnet | `#7B2431` | 0 |
-| Opal | `#B2EBF2` | 100 |
-| Amethyst | `#CE93D8` | 300 |
-| Sapphire | `#1E88E5` | 600 (admin-tunable: `tier.sapphire.threshold`) |
-| Ruby | `#E53935` | 1000 |
-| Emerald | `#50C878` | 2000 |
+| Tier | Gem (`GEM_COLORS`) | Shade (`GEM_SHADES`) | Score threshold |
+|---|---|---|---|
+| Garnet | `#C23B54` | `#5C0F22` | 0 |
+| Opal | `#3DEFDB` | `#0E6E68` | 100 |
+| Amethyst | `#A855F7` | `#4C1D82` | 300 |
+| Sapphire | `#2D6CDF` | `#0A2F6E` | 600 |
+| Ruby | `#E0115F` | `#6E0630` | 1000 |
+| Emerald | `#2ECC71` | `#0B5A32` | 2000 |
 
-Thresholds are `ScoreService.TierDefaults` (`mingldingl_engine/src/MinglDingl.Engine/Services/ScoreService.cs`); the client hydrates them via `useTierThresholds`, see the note under Folder Structure.
+Every threshold above Garnet is admin-tunable (`tier.<name>.threshold`). Thresholds are `ScoreService.TierDefaults` (`mingldingl_engine/src/MinglDingl.Engine/Services/ScoreService.cs`); the client hydrates them via `useTierThresholds`, see the note under Folder Structure.
 
 The age-adaptive theme toggle in the original spec was never built — one theme ships for everyone.
 
@@ -131,7 +131,7 @@ Tier is displayed visually on the user's profile card with a gem icon and animat
 
 #### Profile Fields
 - **Basic (free):** Name, age, gender, city, 3 photos, short bio
-- **Deep (membership-gated):** Kids, habits (smoking/drinking), lifestyle, religion, income range, more photos
+- **Deep (membership-gated):** Kids, habits (smoking/drinking), lifestyle, religion. (Income range and membership-gated extra photos from the original spec were not built: `User` has no income field and `FieldLimits.MaxPhotos` = 6 applies to everyone.)
 
 Full profile completion on signup grants an immediate score bonus (+100 pts).
 
@@ -148,15 +148,23 @@ Full profile completion on signup grants an immediate score bonus (+100 pts).
 | Complete an icebreaker game | +20 |
 | Complete a compatibility quiz | +15 |
 | Match replies back (no ghost) | +10 |
-| Receive a positive fun tag | +25 |
 | Activity date confirmed | +50 |
 | Video call completed | +30 |
+| A Fated Thread you wove sparks | +40 (`ShipSparked`) |
+| Your Oath is proven | +40 (`OathProven`) |
+| Campaign room / boss room claimed | +5 / +25 (`campaign.room.bonus`, `campaign.boss.bonus`) |
+| Daily quest complete / all quests' chest | per quest `quest.<id>.xp` / +30 (`score.quest_chest`) |
+| Seventh consecutive daily login | +50 extra (`score.streak.weekly_bonus`) |
+
+Daily login is `DailyLogin` × the current streak (capped at 7), not a flat +5. Every delta is
+`ScoreService.DefaultDeltas`, overridable per event through `score.event.<Type>`. The original
+"+25 for a positive fun tag" has no counterpart: fun tags were never built (see §6).
 
 #### Losing Points
 | Activity | Penalty |
 |---|---|
 | Ghost a match (no reply 48h) | -15 |
-| Receive a negative report | -30 |
+| Receive a negative report | -30 (`ReportPenalty` — reserved; no report endpoint exists yet, see Outstanding Follow-ups) |
 
 #### Daily Match Budget
 Per `ScoreService.DailyMatchBudget` (`Services/ScoreService.cs`):
@@ -182,32 +190,36 @@ Per `ScoreService.DailyMatchBudget` (`Services/ScoreService.cs`):
 | 15 messages exchanged | 3rd photo, city district |
 | 30 messages exchanged | Deep profile fields (if membership allows) |
 
-If conversation dies (48h no reply), unlock progress freezes.
+The four thresholds are `reveal.levelN.messages` (admin-tunable, strictly increasing); the app
+hydrates them via `GET /engagement/reveal-thresholds` (`lib/reveal.ts`, `useRevealThresholds`) so
+the chat's reveal strip and the deep-profile hint never pin their own counts. If conversation
+dies (`ghosting.stale_hours`, default 48), unlock progress freezes at the level reached.
 
 #### Anti-Ghosting
-- 48h inactivity triggers a soft nudge notification
-- Ghosting applies a score penalty
-- Repeated ghosters get a "Slow Responder" tag visible to future matches
+- Ghosting applies a score penalty and docks reputation; both sides get a `match_ghosted` push
+- **Not built:** the pre-ghost "soft nudge" at 48h and the "Slow Responder" tag on repeat
+  ghosters. Neither has a code counterpart; the ghost record and reputation dock are the only
+  visible consequences today.
 
 ---
 
 ### 4. Engagement Engine
 
 #### Icebreakers
-First interaction in a new match is a prompted question/mini-game — both users answer independently, answers revealed simultaneously. Completing unlocks chat and earns +20 pts each.
+First interaction in a new match is a prompted question/mini-game — both users answer independently, answers revealed simultaneously. Completing earns +20 pts each and unlocks video (`Match.VideoCallUnlocked`). Chat itself is **not** gated on it — messaging is open from match acceptance, the icebreaker banner sits above it; the original "unlocks chat" rule was never enforced on either side and is recorded as a design decision under Outstanding Follow-ups.
 
 #### Compatibility Quizzes
 Short quizzes (5 questions) on values, lifestyle, interests. Results shown as compatibility % with each match. Earns +15 pts.
 
 #### Activity Suggestions
-After 15+ messages, the app surfaces contextual activity suggestions (coffee, hiking, cinema, board game café). Both users tapping "We're doing this" confirms an activity date and earns +50 pts each. Since the Flame Rite shipped, the pledge itself is refused until the rite is complete while `dating.flamerite.required` is on (`ActivityService.ConfirmAsync`).
+After `activity.suggestions.messages` messages (default 15, admin-tunable), the app surfaces contextual activity suggestions (coffee, hiking, cinema, board game café). Both users tapping "We're doing this" confirms an activity date and earns +50 pts each. Since the Flame Rite shipped, the pledge itself is refused until the rite is complete while `dating.flamerite.required` is on (`ActivityService.ConfirmAsync`).
 
 #### Video Calls
 - In-app video via **Agora SDK**
 - `Match.VideoCallUnlocked` flips when the icebreaker completes (`EngagementService.CompleteIcebreakerAsync`), no longer on pledge
 - A token is only minted once the Flame Rite has been accepted (`VideoController`, `POST /video/token`); TTL is `dating.flamerite.duration_minutes` (default 5) until the rite is completed, then the normal long call
-- Max post-rite call duration: 30 minutes
-- Call completion earns +30 pts each
+- No post-rite duration cap is enforced: the long token is 24 h (`VideoTokenService.TokenExpireSeconds`) and the video screen's countdown is decorative (Outstanding Follow-ups). The original spec's 30-minute cap was never implemented.
+- Call completion earns +30 pts each — to both participants, claimed per side
 - Video call history is private, not stored
 
 ---
@@ -236,13 +248,17 @@ After confirmed activity date, both users rate the business (1–5 stars + optio
 
 All monetization is additive — free users have a full experience.
 
-| Feature | Model | Detail |
-|---|---|---|
-| **Fun Tags** | Paid (per tag or pack) | Personality labels gifted to matches, visible on their profile card |
-| **Reputation Repair** | Paid (tiered pricing) | Reset/reduce reputation penalty from ghosting or reports |
-| **Membership Tiers** | Subscription | Unlock deep profile, more daily matches, profile boost, see who liked you |
-| **Score Boosters** | One-time purchase | Extra daily match slots, XP multiplier for 24h |
-| **Profile Boost** | One-time purchase | Featured in discovery for 1–3 hours |
+| Feature | Model | Detail | Status |
+|---|---|---|---|
+| **Membership Tiers** | Subscription | Unlock deep profile, more daily matches | Built (mocked billing; prices/discounts admin-tunable) |
+| **Fun Tags** | Paid (per tag or pack) | Personality labels gifted to matches, visible on their profile card | **Not built** |
+| **Reputation Repair** | Paid (tiered pricing) | Reset/reduce reputation penalty from ghosting or reports | **Not built** |
+| **Score Boosters** | One-time purchase | Extra daily match slots, XP multiplier for 24h | **Not built** |
+| **Profile Boost** | One-time purchase | Featured in discovery for 1–3 hours | **Not built** |
+
+Only membership exists in code. The other four rows are the original design intent, kept here so
+the table stays the reference for what a payments integration would unlock; none has a model,
+endpoint, or screen.
 
 #### Membership Tiers
 | Tier | Benefits |
@@ -260,7 +276,7 @@ Platinum was retired (2026-08-18, migration `RetirePlatinumTier` merged it into 
 | Screen | Route | Key Behavior |
 |---|---|---|
 | Phone input | `(auth)/phone` | +976 prefix, 8-digit Mongolian validation |
-| OTP verify | `(auth)/otp` | 6-digit code, resend option |
+| Prove your number | `(auth)/otp` | verify.mn Mobile-Originated flow: shows the engine-minted code and shortcode `144773` with a one-tap `sms:` link, polls `GET /auth/phone/status/{id}`; nothing is typed in |
 | Onboarding wizard | `(onboarding)/index` | 4 steps: Name/Age/Gender → Bio/City → Photos (min 3) → Oath (`components/onboarding/OathStep.tsx`); POST /users + POST /users/me/oath; +100 pts |
 | Discover | `(tabs)/discover` | Card stack; match/pass; daily budget counter |
 | Matches list | `(tabs)/matches` | Progressive reveal info per message milestone |
@@ -274,6 +290,12 @@ Platinum was retired (2026-08-18, migration `RetirePlatinumTier` merged it into 
 | Town Square | `(tabs)/townsquare` | Next session countdown, RSVP / cancel (see Town Square under Done) |
 | Town Square round | `townsquare-round/[sessionId]` | Agora call + icebreaker prompt + Yes/No; mutual Yes → match |
 | Weave a Thread | `ship/new` | Fated Threads: two phone numbers → double-blind Ship |
+| Campaign | `campaign/[matchId]` | The per-match dungeon map; rooms clear from real progress, claims pay `campaign.room.bonus` |
+| Activities (per match) | `activities/[matchId]` | Suggestions once `activity.suggestions.messages` is reached; pledge + attendance check |
+| Business | `business/[id]` | Partner detail + ratings |
+| Progression / Leaderboard / Date log | `progression`, `leaderboard`, `date-log` | Score history and tier ladder; city leaderboard; confirmed encounters |
+| Edit profile / Settings / Blocked | `edit-profile`, `settings`, `blocked-users` | Deep fields; language, notifications, age range, pause, phone change, deletion; unblock |
+| Guides / Privacy / Terms | `guides`, `privacy`, `terms` | Admin-editable content pages (`GET /content/{slug}`) |
 
 ---
 
@@ -310,9 +332,9 @@ mingldingl_app/
 │   ├── progression.tsx, leaderboard.tsx, date-log.tsx
 │   ├── edit-profile.tsx, settings.tsx, blocked-users.tsx
 │   └── guides.tsx, privacy.tsx, terms.tsx
-├── components/        # one shallow directory per surface, plus loose top-level
-│   │                  # components — GameButton, AppCard, CandidateCard,
-│   │                  # MessageBubble, ChestModal, etc.
+├── components/        # one shallow directory per surface, plus a few loose
+│   │                  # top-level ones — ContentPageScreen, ErrorBoundary,
+│   │                  # NextActionCard, OfflineBanner, PhotoGrid
 │   ├── ui/            # the design system — GameButton, AppCard, CardEyebrow, Icon, ...
 │   ├── modals/        # AlertModal, SheetModal (the shared action sheet), ChestModal, toasts
 │   ├── onboarding/    # NameAgeStep, AboutStep, PhotosStep, OathStep
@@ -329,6 +351,7 @@ mingldingl_app/
 │   ├── theme.ts       # COLORS/FONTS/SPACE/RADIUS — see Visual Design above
 │   ├── tiers.ts        # gem tier colors + fallback thresholds; the live values
 │                      # are hydrated from the engine (see useTierThresholds)
+│   ├── reveal.ts       # reveal ladder, same pattern (useRevealThresholds)
 │   ├── i18n/           # index.ts (i18n-js setup, tKey) + en/mn tables + errors.{en,mn}.ts (err_<code> copy)
 │   ├── realtime/subscribeWithRetry.ts  # Supabase Broadcast subscription with reconnect
 │   ├── appFocus.ts     # foreground/background focus events
@@ -369,6 +392,8 @@ mingldingl_app/
 - AI-powered matching
 - Real payment gateway integration
 - Business partner admin dashboard
+- The paid extras in §6 (Fun Tags, Reputation Repair, Score Boosters, Profile Boost) and the
+  §3 "Slow Responder" tag / pre-ghost soft nudge — designed, never built, not scheduled
 
 Shipped since the original MVP spec (no longer out of scope): push notifications (Expo push, `PushNotificationService`), a full gamification layer (daily quests, streaks, loot drops, milestones), realtime nudges, multi-select photo onboarding, and the dark-fantasy RPG visual overhaul.
 
@@ -413,14 +438,12 @@ three need the `verify` skill (real Supabase JWTs, full stack running):
 
 ## Behavioral
 
-- **`ShipService.RespondAsync` has no lock against two simultaneous responses.**
-  A lost-update race can persist both slots as `Accepted` while `Status` stays
-  `Pending` forever — a stuck thread that never sparks, never rewards, and needs
-  manual DB cleanup. Fails safe (no corruption, no duplicate match, no privacy
-  leak) and the 14-day expiry sweep eventually clears it, which is why it was
-  parked. Note that `MatchPairing.PairLockKey` (added by the 2026-08-19
-  duplication audit) is now exactly the tool this needs — the advisory-lock
-  pattern is already proven on the other match-creation paths.
+- ~~**`ShipService.RespondAsync` has no lock against two simultaneous responses.**~~
+  Closed — found already fixed by the 2026-09-05 bug sweep, the entry was just never
+  retired. `RespondAsync` writes each slot with an atomic `UPDATE … RETURNING` and then
+  claims the thread with a conditional `SET "Status" = … WHERE "Status" = 'Pending'`,
+  so the "both slots Accepted, Status stuck Pending" state can no longer be reached and
+  the spark runs exactly once.
 - **The video-screen countdown is decorative.** It resets on remount, is not
   anchored to token issue time or `FlameRiteAcceptedAt`, and reaching 0:00 does
   nothing. A user can read it as an enforced limit that isn't enforced.
@@ -500,6 +523,105 @@ paths; admin Ships list shows `resultMatchId`; admin Town Square create/cancel
   **Still open here:** the four `admin.*` codes are deliberately English-only (the
   control panel is an internal tool); `mingldingl_control/src/lib/apiError.ts` was
   left reading `error` and has not been moved onto codes.
+
+## Closed 2026-09-05 — bug sweep
+
+An inspection pass over the engine, prompted by nothing failing: the full suite was green
+throughout, and every one of these was latent because of what the tests did not reach.
+Each fix landed with a test that fails on the old code.
+
+- **`/public/ship` never rendered anything for anyone.** The invite landing page's inline
+  `<script>` carried a truncated string literal (`'<a class="cta" href="mingldingl:` with no
+  closing quote), and a top-level `SyntaxError` makes the browser discard the whole block —
+  so every visitor sat on "Reading the thread…" forever, valid code or not. The existing test
+  asserted the HTML *contained* some of the page copy, which it did: inside the dead script.
+  The anchor now points at `mingldingl://`, the code is escaped before it reaches `innerHTML`,
+  and `LandingPageScript_HasNoUnterminatedStringLiteral` scans both pages' literals.
+  Note this is *not* the same defect as the share-link gap closed 2026-08-31 — that fixed link
+  generation in `lib/shipInvite.ts`; the page it linked to was broken independently.
+- **Only one of the two Flame Rite participants was ever paid.** `VideoRewardClaimed` was a
+  single flag on the match, so whoever hung up first took the `VideoCallDone` score, the daily
+  `video` quest tick, the `first_video_call` milestone and the loot roll, and the other side
+  got a zero-award response and nothing else — the quest and milestone denials plainly wrong,
+  both being per-user. Now claimed per participant (`InitiatorVideoRewardClaimed` /
+  `ReceiverVideoRewardClaimed`, migration `AddPerParticipantVideoRewardClaims`), matching the
+  `IcebreakerDone` precedent that pays both. `VideoRewardClaimed` stays as the match-level
+  marker `CampaignService` reads for pre-rite matches; the migration backfills both new flags
+  from it so no historical match pays out a second time. The guarding test had claimed to cover
+  "the other participant hanging up" while calling as the same user twice.
+- **Ghosting could lower a match's reveal level below its creation floor.** `TryGhostAsync`
+  froze `RevealLevel` at the message-count level, discarding the level 1 floor every match is
+  born with. Inert on shipped defaults; live the moment `reveal.level1.messages` is tuned above
+  1, which the admin panel invites. Now clamped with `Math.Max` against the stored floor.
+- **A retried message send could insert the row twice.** Npgsql runs with
+  `EnableRetryOnFailure(3)`, so `SendMessage`'s execution-strategy lambda genuinely re-runs, and
+  a `Message` left `Added` by a failed attempt was inserted alongside the new one — two rows for
+  one send, against a `MessageCount` that moved by one. The lambda now detaches its own stale
+  additions first (not the whole tracker, which holds other callers' work).
+- Message pages now order by `(CreatedAt, Id)` so a same-instant tie cannot vary between the
+  queries either side of a page boundary.
+
+**Left open here:**
+
+- `POST /video/complete` is still a pure client assertion — any participant can claim the score,
+  drop and milestone without a call ever connecting. Corroborating it needs Agora webhooks.
+- Message pagination's `before` cursor is still `CreatedAt`-only. Ordering is deterministic now,
+  but messages sharing an exact timestamp across a page boundary would need a composite cursor,
+  which changes the public API shape.
+- `SendMessage` has no happy-path integration coverage, because `IntegrationTestBase` wraps each
+  test in a rollback transaction and `SendMessage` opens one of its own. The new retry test works
+  around it with `NewUncommittedContext()` and hand-rolled cleanup; the wider gap remains.
+
+## Closed 2026-09-05 — drift/gap audit
+
+A doc-vs-code and code-vs-code sweep across all three projects. Route tables, generated types,
+i18n key parity, error codes, loot/quest catalogues and the EF model were all clean; what
+follows is what was not, each closed with a test that fails on the old code.
+
+- **The app pinned its own reveal ladder.** `RevealStrip` hardcoded `[5, 15, 30]` and the
+  deep-profile hint said "30 messages" in both languages while `reveal.levelN.messages` was
+  admin-tunable — the same divergence tiers had before `useTierThresholds`. Now
+  `GET /engagement/reveal-thresholds` exposes the effective ladder, `lib/reveal.ts` hydrates it
+  (`useRevealThresholds` in the root layout) and the hint interpolates `%{count}`.
+- **Activity suggestions gated on a hardcoded 15.** `ActivitiesController` compared
+  `MessageCount < 15` directly, so tuning `reveal.level3.messages` or `campaign.voices.messages`
+  left the pledge gate behind. It is `activity.suggestions.messages` (Matching, default 15) now.
+- **Push notifications were English-only and sparse.** `User.PreferredLocale` ("en"/"mn",
+  migration `AddUserPreferredLocale`, backfilled "en") is set from `POST /users` at onboarding and
+  kept in step by `useSyncPreferredLocale` whenever the app locale changes; `PushCopy` carries
+  every kind in both languages and `PushNotificationService.NotifyUserAsync` takes a `PushKind`,
+  so no call site can send raw English again. Four kinds were added: `flame_rite_accepted` (to the
+  proposer), `date_confirmed` (to the side that pledged first), `match_ghosted` (both sides, from
+  the sweep and the on-read check), `townsquare_started` (everyone rostered into round one). The
+  app routes acceptance to the video screen and a session start to the Town Square tab.
+  Three token-hygiene gaps closed the same day: the Expo round-trip used to run inline in the
+  request (up to the 5s client timeout on every message send), so `NotifyUserAsync` now only
+  resolves the recipient and queues a `PushEnvelope` on `PushDispatchBackgroundService`; that
+  loop reads Expo's tickets and deletes any token answered `DeviceNotRegistered` (uninstalled
+  devices used to accumulate forever); and the anonymisation sweep purges `PushTokens` alongside
+  `PhoneVerifications`.
+- **Docker deploy could only allow one CORS origin.** `Cors__AllowedOrigins__0` took a single
+  value while `.env.example` already promised a comma-separated list. `CorsOrigins.Parse` accepts
+  both the indexed form and one comma-separated string; compose passes the latter.
+- **Spec drift corrected in this file:** fonts (Yeseva One, not Cinzel), the gem palette hexes,
+  the OTP screen (verify.mn MO flow, nothing typed), twelve routes missing from the screen
+  inventory, the score table (ShipSparked/OathProven/campaign/quest/streak rows, login × streak,
+  no fun-tag award), the never-implemented 30-minute call cap, the icebreaker not gating chat, and
+  the §6 extras / "Slow Responder" / soft-nudge marked as not built. `shipped-log.md`'s No-Show
+  and Flame Rite entries were still calling their manual walks "never run" after the plan had
+  recorded them as passed on 2026-09-01.
+- Cosmetic: `MatchStatus` now includes `Unmatched` (the engine writes and broadcasts it);
+  `lib/fieldLimits.ts` no longer claims to mirror the engine (bio is deliberately 200 vs 1000).
+
+**Design decisions recorded, not changed:**
+
+- **Chat is not gated on the icebreaker.** The spec said completing it "unlocks chat"; neither
+  the engine nor the app ever enforced that, and gating it now would strand every active match
+  that skipped the icebreaker. Left open until the product decides — if it is wanted, it belongs
+  in `MessagesController.SendMessage` behind a config key, with the banner becoming a wall.
+- **The 30-minute post-rite call cap.** Enforcing it needs either a short token (which kicks a
+  live call mid-sentence) or Agora webhooks (the same dependency `/video/complete` needs to stop
+  being a client assertion). Parked with that item.
 
 ## Score-economy gaps left open by the 2026-09-04 bug-fix wave
 

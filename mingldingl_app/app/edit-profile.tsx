@@ -9,6 +9,8 @@ import { apiClient } from '../lib/api/apiClient';
 import { parseUserProfile } from '../models/user';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
+import { deepProfileThreshold } from '../lib/reveal';
+import { useRevealLadder } from '../hooks/useRevealThresholds';
 import { useLocaleStore } from '../store/localeStore';
 import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
 import { FIELD_LIMITS } from '../lib/fieldLimits';
@@ -34,6 +36,7 @@ export default function EditProfileScreen() {
   const { data: profile } = useProfile();
   const updateProfile = useUpdateProfile();
   const queryClient = useQueryClient();
+  const revealLadder = useRevealLadder();
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
   const [photoUrls, setPhotoUrls] = useState<string[]>(profile?.photoUrls ?? []);
@@ -154,7 +157,7 @@ export default function EditProfileScreen() {
           <View style={styles.cardBodyLoose}>
             <View style={styles.titleBlock}>
               <Text style={styles.sectionTitle}>{i18n.t('deep_profile_title')}</Text>
-              <Text style={styles.hint}>{i18n.t('deep_profile_hint')}</Text>
+              <Text style={styles.hint}>{i18n.t('deep_profile_hint', { count: deepProfileThreshold(revealLadder) })}</Text>
             </View>
             <SectionDivider />
             <ChoiceRow

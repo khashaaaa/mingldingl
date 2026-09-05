@@ -14,6 +14,7 @@ export const errorsEn = {
   err_user_not_found: 'No such traveler.',
   err_user_profile_incomplete: 'Finish creating your character first.',
   err_profile_age_range_invalid: 'The lowest age can\'t be above the highest.',
+  err_profile_locale_invalid: 'That language isn\'t one the realm speaks yet.',
   err_profile_location_invalid: 'That location is off the map.',
   err_oath_invalid: 'Choose one of the three Oaths.',
   err_photo_none_provided: 'No portrait was chosen.',

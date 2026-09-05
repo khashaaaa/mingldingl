@@ -121,6 +121,10 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             await db.PhoneVerifications
                 .Where(v => v.ClaimedByUserId != null && anonymizedIds.Contains(v.ClaimedByUserId.Value))
                 .ExecuteDeleteAsync(ct);
+            // A push token is a live handle to the person's device; a deleted account keeps none.
+            await db.PushTokens
+                .Where(t => anonymizedIds.Contains(t.UserId))
+                .ExecuteDeleteAsync(ct);
         }
 
         // Unclaimed verifications are short-lived proof-of-ownership records with no purpose
@@ -151,7 +155,10 @@ public class DailyMaintenanceBackgroundService : BackgroundService
                 "Sweep reset {Reset} daily budgets and expired {Memberships} memberships", usersReset, expiredMemberships);
 
         foreach (var match in ghostedMatches)
+        {
             await ghosting.BroadcastGhostedAsync(match.Id, GhostingService.GetGhostAtFaultUserId(match));
+            await ghosting.NotifyGhostedAsync(match);
+        }
 
         foreach (var userId in ghostOathRefreshIds)
         {

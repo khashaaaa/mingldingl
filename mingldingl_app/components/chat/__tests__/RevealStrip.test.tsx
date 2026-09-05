@@ -1,16 +1,21 @@
 import { render } from '@testing-library/react-native';
-import { RevealStrip, nextRevealThreshold } from '../RevealStrip';
+import { RevealStrip } from '../RevealStrip';
 import type { PartialUser } from '../../../models/match';
-
-describe('nextRevealThreshold', () => {
-  it.each([[0, 5], [4, 5], [5, 15], [14, 15], [15, 30], [29, 30], [30, null], [100, null]])(
-    'messageCount %i → next reveal at %p', (count, expected) => {
-      expect(nextRevealThreshold(count)).toBe(expected);
-    });
-});
+import { hydrateRevealThresholds, resetRevealThresholdsForTests } from '../../../lib/reveal';
 
 describe('RevealStrip', () => {
   const freshMatch: PartialUser = { displayName: 'Riley', firstPhoto: 'https://x/1.jpg' };
+  beforeEach(() => resetRevealThresholdsForTests());
+
+  it('reads the next reveal from the engine ladder once it is hydrated', () => {
+    hydrateRevealThresholds([
+      { level: 1, messages: 1 }, { level: 2, messages: 8 }, { level: 3, messages: 15 }, { level: 4, messages: 30 },
+    ]);
+
+    const { getByText } = render(<RevealStrip otherUser={freshMatch} messageCount={0} />);
+
+    expect(getByText('Next reveal at 8 messages')).toBeTruthy();
+  });
 
   it('shows the first photo and locked placeholders for the rest on a fresh match', () => {
     const { getByTestId, queryByTestId, getByText, getAllByLabelText } = render(

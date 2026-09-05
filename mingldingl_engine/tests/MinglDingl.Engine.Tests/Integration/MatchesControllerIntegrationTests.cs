@@ -17,8 +17,8 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
-        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config);
-        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
+        var push = BuildTestPush();
         var controller = new MatchesController(Db, score, ghosting, quests, milestones, push, config, BuildTestBroadcast())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
@@ -493,8 +493,8 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
-        var controller = new MatchesController(Db, score, new GhostingService(Db, score, oaths, broadcast, config), quests, milestones,
-            new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance), config, broadcast)
+        var controller = new MatchesController(Db, score, new GhostingService(Db, score, oaths, broadcast, config, BuildTestPush()), quests, milestones,
+            BuildTestPush(), config, broadcast)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };

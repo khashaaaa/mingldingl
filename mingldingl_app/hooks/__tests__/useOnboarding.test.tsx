@@ -152,7 +152,7 @@ describe('useOnboarding submit', () => {
     expect(ok).toBe(true);
     expect(mockUpsert).toHaveBeenCalledWith({
       displayName: 'Bat', age: 25, gender: 'Male', city: 'Ulaanbaatar', bio: 'hello there',
-      photoUrls: ['a.jpg', 'b.jpg', 'c.jpg'], latitude: 47.9, longitude: 106.9,
+      photoUrls: ['a.jpg', 'b.jpg', 'c.jpg'], latitude: 47.9, longitude: 106.9, preferredLocale: 'en',
     });
     const cached = queryClient.getQueryData(queryKeys.userProfile) as { id: string; displayName: string };
     expect(cached.id).toBe('u1');
@@ -242,6 +242,19 @@ describe('useOnboarding submit', () => {
     });
 
     expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ referralCode: 'FOX392' }));
+  });
+
+  it('sends the app locale so pushes arrive in the language the user onboarded in', async () => {
+    const { i18n } = jest.requireActual('../../lib/i18n');
+    i18n.locale = 'mn';
+    mockUpsert.mockResolvedValue({ id: 'u1' });
+    const { result } = renderHook(() => useOnboarding(), { wrapper: makeWrapper(new QueryClient()) });
+    fillComplete(result);
+
+    await act(async () => { await result.current.submit(); });
+
+    expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ preferredLocale: 'mn' }));
+    i18n.locale = 'en';
   });
 
   it('omits referralCode from the request when none was entered', async () => {

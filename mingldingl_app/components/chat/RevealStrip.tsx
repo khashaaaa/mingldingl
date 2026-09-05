@@ -5,12 +5,8 @@ import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
 import type { DeepFields, PartialUser } from '../../models/match';
 import { CardEyebrow } from '../ui/CardEyebrow';
-
-export const REVEAL_THRESHOLDS = [5, 15, 30] as const;
-
-export function nextRevealThreshold(messageCount: number): number | null {
-  return REVEAL_THRESHOLDS.find((t) => messageCount < t) ?? null;
-}
+import { nextRevealThreshold } from '../../lib/reveal';
+import { useRevealLadder } from '../../hooks/useRevealThresholds';
 
 interface Chip {
   key: string;
@@ -36,13 +32,14 @@ interface Props {
 }
 
 export function RevealStrip({ otherUser, messageCount }: Props) {
+  const revealLadder = useRevealLadder();
   const photos = [otherUser.firstPhoto, otherUser.secondPhoto, otherUser.thirdPhoto];
   const chips: Chip[] = [
     { key: 'age', label: i18n.t('reveal_age'), value: otherUser.age != null ? String(otherUser.age) : null },
     { key: 'district', label: i18n.t('reveal_district'), value: otherUser.district ?? null },
     ...(otherUser.deep ? deepChips(otherUser.deep) : [{ key: 'deep', label: i18n.t('reveal_deep_profile'), value: null }]),
   ];
-  const nextAt = nextRevealThreshold(messageCount);
+  const nextAt = nextRevealThreshold(messageCount, revealLadder);
 
   return (
     <View style={styles.wrap}>

@@ -26,7 +26,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MembershipCatalog>();
         services.AddSingleton<LoginThrottleService>();
 
-        services.AddHttpClient<PushNotificationService>(client => client.Timeout = TimeSpan.FromSeconds(5));
+        services.AddScoped<PushNotificationService>();
+        services.AddHttpClient(PushDispatchBackgroundService.HttpClientName, client =>
+        {
+            client.BaseAddress = new Uri("https://exp.host");
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
+        services.AddSingleton<PushDispatchBackgroundService>();
+        services.AddSingleton<IPushDispatcher>(sp => sp.GetRequiredService<PushDispatchBackgroundService>());
+        services.AddHostedService<PushDispatchBackgroundService>(sp => sp.GetRequiredService<PushDispatchBackgroundService>());
 
         services.AddHttpClient<SupabaseBroadcastService>(client => client.Timeout = TimeSpan.FromSeconds(5));
 

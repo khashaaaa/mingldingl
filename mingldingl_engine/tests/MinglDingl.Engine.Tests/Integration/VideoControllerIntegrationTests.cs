@@ -28,7 +28,7 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var broadcast = BuildTestBroadcast();
-        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var push = BuildTestPush();
 
         var controller = new VideoController(Db, videoToken, score, quests, loot, milestones, appConfig, broadcast, push)
         {
@@ -106,7 +106,7 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task MarkComplete_CalledTwiceForSameMatch_OnlyFirstCallAwardsScore()
+    public async Task MarkComplete_CalledTwiceBySameParticipant_OnlyFirstCallAwardsScore()
     {
         var initiatorId = Guid.NewGuid();
         var receiverId = Guid.NewGuid();
@@ -118,8 +118,8 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         var firstOk = Assert.IsType<OkObjectResult>(first);
         var firstBody = Assert.IsType<VideoCompleteResponse>(firstOk.Value);
 
-        // A second completion is a normal outcome (the other participant hanging up), so it
-        // reports a zero award rather than an error the app would surface as a failure.
+        // A repeat call from the same participant is a normal outcome (a retry, or a second hang-up
+        // event), so it reports a zero award rather than an error the app would surface as a failure.
         var second = await controller.MarkComplete(new VideoCompleteDto(match.Id));
         var secondBody = Assert.IsType<VideoCompleteResponse>(Assert.IsType<OkObjectResult>(second).Value);
         Assert.Equal(0, secondBody.Awarded);
@@ -138,6 +138,62 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
 
         var reloadedMatch = await Db.Matches.AsNoTracking().FirstAsync(m => m.Id == match.Id);
         Assert.True(reloadedMatch.VideoRewardClaimed);
+    }
+
+    /// <summary>
+    /// Both people were on the same call, so both are paid. The claim used to be one flag on the
+    /// match, which meant whoever hung up first took the score, the quest tick, the milestone and
+    /// the loot roll, and the other participant got a zero-award response and nothing else.
+    /// </summary>
+    [Fact]
+    public async Task MarkComplete_BothParticipants_EachEarnsTheirOwnReward()
+    {
+        var initiatorId = Guid.NewGuid();
+        var receiverId = Guid.NewGuid();
+        var match = await SeedMatchAsync(initiatorId, receiverId);
+
+        var firstBody = Assert.IsType<VideoCompleteResponse>(Assert.IsType<OkObjectResult>(
+            await BuildController(initiatorId).MarkComplete(new VideoCompleteDto(match.Id))).Value);
+        var secondBody = Assert.IsType<VideoCompleteResponse>(Assert.IsType<OkObjectResult>(
+            await BuildController(receiverId).MarkComplete(new VideoCompleteDto(match.Id))).Value);
+
+        Assert.True(firstBody.Awarded > 0);
+        Assert.True(secondBody.Awarded > 0, "the participant who hangs up second earned the same call");
+
+        foreach (var userId in new[] { initiatorId, receiverId })
+        {
+            Assert.Single(await Db.ScoreEvents
+                .Where(e => e.UserId == userId && e.EventType == "VideoCallDone")
+                .ToListAsync());
+            Assert.True(
+                await Db.UserMilestones.AnyAsync(m => m.UserId == userId && m.MilestoneId == "first_video_call"),
+                $"{userId} completed a video call and must hold the milestone");
+        }
+
+        var reloaded = await Db.Matches.AsNoTracking().FirstAsync(m => m.Id == match.Id);
+        Assert.True(reloaded.InitiatorVideoRewardClaimed);
+        Assert.True(reloaded.ReceiverVideoRewardClaimed);
+        Assert.True(reloaded.VideoRewardClaimed);
+    }
+
+    [Fact]
+    public async Task MarkComplete_SecondParticipantCallingTwice_OnlyEarnsOnce()
+    {
+        var initiatorId = Guid.NewGuid();
+        var receiverId = Guid.NewGuid();
+        var match = await SeedMatchAsync(initiatorId, receiverId);
+
+        var receiverController = BuildController(receiverId);
+        await BuildController(initiatorId).MarkComplete(new VideoCompleteDto(match.Id));
+        await receiverController.MarkComplete(new VideoCompleteDto(match.Id));
+        var repeat = Assert.IsType<VideoCompleteResponse>(Assert.IsType<OkObjectResult>(
+            await receiverController.MarkComplete(new VideoCompleteDto(match.Id))).Value);
+
+        Assert.Equal(0, repeat.Awarded);
+        Assert.Null(repeat.DroppedItem);
+        Assert.Single(await Db.ScoreEvents
+            .Where(e => e.UserId == receiverId && e.EventType == "VideoCallDone")
+            .ToListAsync());
     }
 
     [Fact]
@@ -175,7 +231,7 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         var quests = new QuestService(Db, score, appConfig, NullLogger<QuestService>.Instance);
         var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
-        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var push = BuildTestPush();
         return new VideoController(Db, videoToken, score, quests, loot, milestones, appConfig, broadcast, push)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },

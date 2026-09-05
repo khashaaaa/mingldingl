@@ -31,7 +31,7 @@ public class FlameRiteHandshakeIntegrationTests : IntegrationTestBase
         var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var appConfig = config ?? new ConfigService();
-        var pushService = push ?? new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var pushService = push ?? BuildTestPush();
         var broadcastService = broadcast ?? BuildTestBroadcast();
 
         var controller = new VideoController(Db, videoToken, score, quests, loot, milestones, appConfig, broadcastService, pushService)
@@ -133,6 +133,22 @@ public class FlameRiteHandshakeIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Accept_PushesFlameRiteAcceptedToTheProposer()
+    {
+        var (aId, bId, matchId) = await SeedMatchAsync();
+        var proposerToken = await RegisterPushTokenAsync(aId);
+        await BuildVideoController(aId).ProposeRite(new FlameRiteRequestDto(matchId));
+        var (push, handler) = BuildCapturingPush();
+
+        await BuildVideoController(bId, push).AcceptRite(new FlameRiteRequestDto(matchId));
+
+        Assert.NotNull(handler.LastRequestBody);
+        Assert.Contains(proposerToken, handler.LastRequestBody);
+        Assert.Contains("\"type\":\"flame_rite_accepted\"", handler.LastRequestBody);
+        Assert.Contains($"\"matchId\":\"{matchId}\"", handler.LastRequestBody);
+    }
+
+    [Fact]
     public async Task Accept_ByTheProposer_IsForbidden()
     {
         var (aId, _, matchId) = await SeedMatchAsync();
@@ -213,7 +229,7 @@ public class FlameRiteHandshakeIntegrationTests : IntegrationTestBase
         await Db.SaveChangesAsync();
 
         var pushHandler = new CapturingPushHandler();
-        var push = new PushNotificationService(new HttpClient(pushHandler), Db, NullLogger<PushNotificationService>.Instance);
+        var push = BuildTestPush(pushHandler);
         var (broadcast, broadcastHandler) = BuildCapturingBroadcast();
 
         var result = await BuildVideoController(aId, push: push, broadcast: broadcast)

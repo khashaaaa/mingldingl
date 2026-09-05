@@ -177,9 +177,9 @@ public class MatchesController : ControllerBase
 
         await _push.NotifyUserAsync(
             req.TargetUserId,
-            "New Match!",
-            $"{me.DisplayName} sent you a summons.",
-            new Dictionary<string, object> { ["matchId"] = matchId!.Value.ToString(), ["type"] = "match" });
+            PushKind.NewMatch,
+            new Dictionary<string, object> { ["matchId"] = matchId!.Value.ToString() },
+            me.DisplayName);
         await _broadcast.BroadcastAsync("app-nudges", "match_created",
             new { matchId = matchId!.Value, userIds = new[] { userId, req.TargetUserId }, source = "like" });
 

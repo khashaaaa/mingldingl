@@ -14,7 +14,7 @@ public class UserAccountManagementIntegrationTests : IntegrationTestBase
         var scoreService = new ScoreService(Db, new ConfigService());
         var lootService = new LootService(Db, scoreService, NullLogger<LootService>.Instance);
         var oathService = new OathService(Db, new ConfigService(), scoreService, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), lootService);
-        var controller = new UsersController(Db, scoreService, new ReferralService(Db, lootService, NullLogger<ReferralService>.Instance), new ShipService(Db, lootService, scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance), BuildTestBroadcast(), NullLogger<ShipService>.Instance), oathService, BuildUnconfiguredPhoneVerification(Db), BuildTestStorage(), new ConfigService())
+        var controller = new UsersController(Db, scoreService, new ReferralService(Db, lootService, NullLogger<ReferralService>.Instance), new ShipService(Db, lootService, scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), BuildTestPush(), BuildTestBroadcast(), NullLogger<ShipService>.Instance), oathService, BuildUnconfiguredPhoneVerification(Db), BuildTestStorage(), new ConfigService())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };

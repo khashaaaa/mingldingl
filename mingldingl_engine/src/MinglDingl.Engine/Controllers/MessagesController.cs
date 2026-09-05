@@ -33,19 +33,28 @@ public class MessagesController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
 
-    public async Task<IActionResult> GetMessages(Guid matchId, [FromQuery] DateTime? before = null, [FromQuery] int limit = DefaultMessagePageSize)
+    public async Task<IActionResult> GetMessages(Guid matchId, [FromQuery] DateTime? before = null, [FromQuery] Guid? beforeId = null, [FromQuery] int limit = DefaultMessagePageSize)
     {
-        var userId = this.CurrentUserId();
-        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
+        var (_, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
         if (accessError is not null) return accessError;
 
         limit = Math.Clamp(limit <= 0 ? DefaultMessagePageSize : limit, 1, MaxMessagePageSize);
 
         var query = _db.Messages.Where(m => m.MatchId == matchId);
-        if (before is not null) query = query.Where(m => m.CreatedAt < before);
+        // The cursor has to use the same two-part key the page is ordered by. On `CreatedAt` alone
+        // it silently drops every message tying with the boundary instant: they sort after the
+        // cursor on the page it came from, and `CreatedAt < before` excludes them from the next.
+        // `beforeId` is optional so a client on the older one-part cursor still pages.
+        if (before is not null)
+            query = beforeId is not null
+                ? query.Where(m => m.CreatedAt < before || (m.CreatedAt == before && m.Id.CompareTo(beforeId.Value) < 0))
+                : query.Where(m => m.CreatedAt < before);
 
+        // Id breaks ties: CreatedAt alone left messages written in the same instant in an order the
+        // database was free to vary between the two queries either side of a page boundary.
         var messages = await query
             .OrderByDescending(m => m.CreatedAt)
+            .ThenByDescending(m => m.Id)
             .Take(limit)
             .ToListAsync();
         messages.Reverse();
@@ -73,6 +82,14 @@ public class MessagesController : ControllerBase
 
         var (message, newMessageCount) = await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
+            // A retry re-runs this whole lambda, and a Message added by a failed attempt is still in
+            // the change tracker as Added — the next SaveChanges would insert it alongside the new
+            // one, two rows for one send against a counter that moved by one. Only this method's own
+            // additions are dropped; clearing the tracker outright would take unsaved work belonging
+            // to whoever else shares this scoped context.
+            foreach (var stale in _db.ChangeTracker.Entries<Message>().Where(e => e.State == EntityState.Added).ToList())
+                stale.State = EntityState.Detached;
+
             var msg = new Message
             {
                 MatchId = matchId,
@@ -124,9 +141,9 @@ public class MessagesController : ControllerBase
         var recipientId = match.OtherParticipant(userId);
         await _push.NotifyUserAsync(
             recipientId,
-            sender?.DisplayName ?? "New message",
-            req.Content,
-            new Dictionary<string, object> { ["matchId"] = matchId.ToString(), ["type"] = "message" });
+            PushKind.NewMessage,
+            new Dictionary<string, object> { ["matchId"] = matchId.ToString() },
+            sender?.DisplayName ?? "New message", req.Content);
 
         var response = ToResponse(message);
 

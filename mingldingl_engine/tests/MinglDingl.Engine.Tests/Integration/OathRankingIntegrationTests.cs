@@ -16,8 +16,8 @@ public class OathRankingIntegrationTests : IntegrationTestBase
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
-        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config);
-        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
+        var push = BuildTestPush();
         var controller = new MatchesController(Db, score, ghosting, quests, milestones, push, config, BuildTestBroadcast())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },

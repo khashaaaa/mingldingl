@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { i18n } from '../lib/i18n';
+import { i18n, normalizeLocale } from '../lib/i18n';
 import { setStoredLocale } from '../lib/localePreference';
 
 interface LocaleState {
@@ -11,11 +11,13 @@ interface LocaleState {
 
 export const useLocaleStore = create<LocaleState>()((set) => ({
   locale: i18n.locale,
-  hydrate: (locale) => {
+  hydrate: (raw) => {
+    const locale = normalizeLocale(raw);
     i18n.locale = locale;
     set({ locale });
   },
-  setLocale: async (locale) => {
+  setLocale: async (raw) => {
+    const locale = normalizeLocale(raw);
     i18n.locale = locale;
     set({ locale });
     try {

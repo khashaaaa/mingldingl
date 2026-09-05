@@ -21,14 +21,21 @@ Notifications.setNotificationHandler({
 });
 
 /**
- * The engine tags every push with a `type`. Routing every one of them to the chat sent a Flame
- * Rite proposal — whose whole point is the video screen — to the wrong place; unknown types
- * still fall back to the chat, which is where a match or a message belongs.
+ * The engine tags every push with a `type` (see `PushCopy.WireType` on the engine). Routing
+ * every one of them to the chat sent a Flame Rite proposal — whose whole point is the video
+ * screen — to the wrong place; unknown types still fall back to the chat, which is where a
+ * match, a message, a pledged encounter, or a closed thread belongs.
  */
-export function destinationFor(type: string | undefined, matchId: string): `/video/${string}` | `/chat/${string}` {
+export function destinationFor(
+  type: string | undefined,
+  matchId: string,
+): `/video/${string}` | `/chat/${string}` | '/(tabs)/townsquare' {
   switch (type) {
     case 'flame_rite_proposed':
+    case 'flame_rite_accepted':
       return `/video/${matchId}`;
+    case 'townsquare_started':
+      return '/(tabs)/townsquare';
     default:
       return `/chat/${matchId}`;
   }
@@ -65,9 +72,10 @@ export function usePushNotifications() {
 
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
+      const type = data?.type as string | undefined;
       const matchId = data?.matchId as string | undefined;
-      if (!matchId) return;
-      router.push(destinationFor(data?.type as string | undefined, matchId));
+      if (!matchId && type !== 'townsquare_started') return;
+      router.push(destinationFor(type, matchId ?? ''));
     });
 
     return () => {

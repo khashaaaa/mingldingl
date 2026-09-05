@@ -66,7 +66,7 @@ builder.Services.AddAuthentication("Bearer")
     });
 builder.Services.AddAuthorization();
 builder.Services.AddApplicationServices();
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+var allowedOrigins = CorsOrigins.Parse(builder.Configuration);
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
 {
     p.AllowAnyHeader().AllowAnyMethod();

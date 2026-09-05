@@ -60,6 +60,7 @@ export function useOnboarding() {
         city: state.city, bio: state.bio, photoUrls: state.photoUrls,
         latitude: state.latitude ?? undefined, longitude: state.longitude ?? undefined,
         referralCode: state.referralCode || undefined,
+        preferredLocale: i18n.locale,
       });
 
       const swornData = oath ? await apiClient.users.swearOath(oath) : undefined;

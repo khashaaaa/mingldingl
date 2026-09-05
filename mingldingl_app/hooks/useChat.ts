@@ -44,11 +44,18 @@ function parseMessage(m: components['schemas']['MessageResponse']): Message {
   };
 }
 
+/**
+ * The page anchor, matching the engine's `(createdAt desc, id desc)` page order. Two messages can
+ * share a `createdAt`, so the id breaks the tie here exactly as it does there — anchoring on the
+ * wrong one of a tied pair leaves the other unreachable by any later page.
+ */
 export function oldestServerMessage(messages: Message[]): Message | undefined {
   let oldest: Message | undefined;
   for (const m of messages) {
     if (m.status !== 'sent') continue;
-    if (!oldest || m.createdAt < oldest.createdAt) oldest = m;
+    if (!oldest
+      || m.createdAt < oldest.createdAt
+      || (m.createdAt === oldest.createdAt && m.id < oldest.id)) oldest = m;
   }
   return oldest;
 }
@@ -115,7 +122,7 @@ export function useChat(matchId: string) {
     setLoadingEarlier(true);
     setEarlierError(false);
     try {
-      const page = await apiClient.messages.list(matchId, { before: oldest.createdAt, limit: MESSAGE_PAGE_SIZE });
+      const page = await apiClient.messages.list(matchId, { before: oldest.createdAt, beforeId: oldest.id, limit: MESSAGE_PAGE_SIZE });
       if (page.length < MESSAGE_PAGE_SIZE) setEarlierExhausted(true);
       setJustLoadedEarlier(true);
       qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) =>

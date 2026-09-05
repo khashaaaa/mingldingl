@@ -46,3 +46,8 @@ public record LeaderboardResponse(string City, IReadOnlyList<LeaderboardEntryDto
 public record TierThresholdDto(string Tier, int MinScore);
 
 public record TierThresholdsResponse(IReadOnlyList<TierThresholdDto> Tiers);
+
+public record RevealThresholdDto(int Level, int Messages);
+
+/// <summary>The admin-tunable reveal ladder, so the app never pins its own copy of the message counts.</summary>
+public record RevealThresholdsResponse(IReadOnlyList<RevealThresholdDto> Levels);

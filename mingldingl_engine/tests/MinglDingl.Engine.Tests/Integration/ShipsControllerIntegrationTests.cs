@@ -13,7 +13,7 @@ public class ShipsControllerIntegrationTests : IntegrationTestBase
         httpContext.Items["UserId"] = userId;
         var scoreService = new ScoreService(Db, new ConfigService());
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
-        var push = new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+        var push = BuildTestPush();
         var shipService = new ShipService(Db, new LootService(Db, scoreService, NullLogger<LootService>.Instance), scoreService, new ConfigService(), milestones, push, BuildTestBroadcast(), NullLogger<ShipService>.Instance);
         var controller = new ShipsController(shipService, Db, config ?? new ConfigService())
         {

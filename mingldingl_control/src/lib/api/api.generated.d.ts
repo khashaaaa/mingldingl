@@ -2144,6 +2144,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/engagement/reveal-thresholds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RevealThresholdsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/engagement/icebreaker/{matchId}": {
         parameters: {
             query?: never;
@@ -3311,6 +3346,7 @@ export interface paths {
             parameters: {
                 query?: {
                     before?: string;
+                    beforeId?: string;
                     limit?: number;
                 };
                 header?: never;
@@ -5749,6 +5785,7 @@ export interface components {
             /** Format: double */
             longitude?: number | null;
             referralCode?: string | null;
+            preferredLocale?: string | null;
         };
         CurrentRoundResponse: {
             /** Format: uuid */
@@ -6097,6 +6134,15 @@ export interface components {
         RespondToShipResponse: {
             sparked?: boolean;
         };
+        RevealThresholdDto: {
+            /** Format: int32 */
+            level?: number;
+            /** Format: int32 */
+            messages?: number;
+        };
+        RevealThresholdsResponse: {
+            levels?: components["schemas"]["RevealThresholdDto"][] | null;
+        };
         ScoreDetailResponse: {
             /** Format: int32 */
             totalScore?: number;
@@ -6235,6 +6281,7 @@ export interface components {
             ageMax?: number | null;
             isPaused?: boolean | null;
             city?: string | null;
+            preferredLocale?: string | null;
         };
         UpgradeMembershipDto: {
             level?: string | null;
@@ -6284,6 +6331,7 @@ export interface components {
             oathEncountersNeeded?: number | null;
             /** Format: int32 */
             deletionGraceDays?: number;
+            preferredLocale?: string | null;
         };
         VideoCompleteDto: {
             /** Format: uuid */

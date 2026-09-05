@@ -9,20 +9,6 @@ namespace MinglDingl.Engine.Tests.Integration;
 
 public class DevControllerIntegrationTests : IntegrationTestBase
 {
-    private class SingleProviderScopeFactory : IServiceScopeFactory
-    {
-        private readonly IServiceProvider _provider;
-        public SingleProviderScopeFactory(IServiceProvider provider) => _provider = provider;
-        public IServiceScope CreateScope() => new NonDisposingScope(_provider);
-
-        private class NonDisposingScope : IServiceScope
-        {
-            public NonDisposingScope(IServiceProvider provider) => ServiceProvider = provider;
-            public IServiceProvider ServiceProvider { get; }
-            public void Dispose() { }
-        }
-    }
-
     private DevController BuildController(bool isDevelopment)
     {
         var config = new ConfigService();
@@ -33,7 +19,7 @@ public class DevControllerIntegrationTests : IntegrationTestBase
             .AddSingleton(config)
             .AddSingleton(score)
             .AddSingleton(oaths)
-            .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast(), config))
+            .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush()))
             .AddSingleton(BuildTestStorage())
             .BuildServiceProvider();
         var sweep = new DailyMaintenanceBackgroundService(

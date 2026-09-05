@@ -215,16 +215,9 @@ public class ShipService
         await _milestones.AchieveAsync(row.SlotAUserId.Value, "first_match");
         await _milestones.AchieveAsync(row.SlotBUserId.Value, "first_match");
 
-        await _push.NotifyUserAsync(
-            row.SlotAUserId.Value,
-            "Thread Sparked!",
-            "A thread you accepted just became a match.",
-            new Dictionary<string, object> { ["matchId"] = match.Id.ToString(), ["type"] = "match" });
-        await _push.NotifyUserAsync(
-            row.SlotBUserId.Value,
-            "Thread Sparked!",
-            "A thread you accepted just became a match.",
-            new Dictionary<string, object> { ["matchId"] = match.Id.ToString(), ["type"] = "match" });
+        var sparkData = new Dictionary<string, object> { ["matchId"] = match.Id.ToString() };
+        await _push.NotifyUserAsync(row.SlotAUserId.Value, PushKind.ThreadSparked, sparkData);
+        await _push.NotifyUserAsync(row.SlotBUserId.Value, PushKind.ThreadSparked, sparkData);
         await _broadcast.BroadcastAsync("app-nudges", "match_created",
             new { matchId = match.Id, userIds = new[] { match.InitiatorId, match.ReceiverId }, source = "ship" });
 

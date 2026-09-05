@@ -7,20 +7,6 @@ namespace MinglDingl.Engine.Tests.Services;
 
 public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
 {
-    private class SingleProviderScopeFactory : IServiceScopeFactory
-    {
-        private readonly IServiceProvider _provider;
-        public SingleProviderScopeFactory(IServiceProvider provider) => _provider = provider;
-        public IServiceScope CreateScope() => new NonDisposingScope(_provider);
-
-        private class NonDisposingScope : IServiceScope
-        {
-            public NonDisposingScope(IServiceProvider provider) => ServiceProvider = provider;
-            public IServiceProvider ServiceProvider { get; }
-            public void Dispose() { }
-        }
-    }
-
     private DailyMaintenanceBackgroundService BuildService(LocalFileStorageService? storage = null, ConfigService? config = null)
     {
         config ??= new ConfigService();
@@ -31,7 +17,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
             .AddSingleton(config)
             .AddSingleton(score)
             .AddSingleton(oaths)
-            .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast(), config))
+            .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush()))
             .AddSingleton(storage ?? BuildTestStorage())
             .BuildServiceProvider();
         return new DailyMaintenanceBackgroundService(
@@ -250,6 +236,24 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         await BuildService().RunSweepAsync(CancellationToken.None);
 
         Assert.False(await Db.PhoneVerifications.AnyAsync(v => v.ClaimedByUserId == user.Id));
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_AnonymizingAUser_PurgesTheirPushTokens()
+    {
+        var user = NewCompleteUser(Guid.NewGuid());
+        user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriodFor(new ConfigService()) - TimeSpan.FromDays(1);
+        var bystander = NewCompleteUser(Guid.NewGuid());
+        Db.Users.AddRange(user, bystander);
+        await Db.SaveChangesAsync();
+        await RegisterPushTokenAsync(user.Id);
+        var kept = await RegisterPushTokenAsync(bystander.Id);
+
+        await BuildService().RunSweepAsync(CancellationToken.None);
+
+        Db.ChangeTracker.Clear();
+        Assert.False(await Db.PushTokens.AnyAsync(t => t.UserId == user.Id));
+        Assert.True(await Db.PushTokens.AnyAsync(t => t.Token == kept));
     }
 
     [Fact]

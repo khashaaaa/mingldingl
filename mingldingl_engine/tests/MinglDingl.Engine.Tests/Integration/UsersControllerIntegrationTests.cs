@@ -15,7 +15,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var scoreService = new ScoreService(Db, new ConfigService());
         var lootService = new LootService(Db, scoreService, NullLogger<LootService>.Instance);
         var referralService = new ReferralService(Db, lootService, NullLogger<ReferralService>.Instance);
-        var shipService = new ShipService(Db, lootService, scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
+        var shipService = new ShipService(Db, lootService, scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), BuildTestPush(), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
         var oathService = new OathService(Db, new ConfigService(), scoreService, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), lootService);
         var controller = new UsersController(Db, scoreService, referralService, shipService, oathService, BuildUnconfiguredPhoneVerification(Db), storage ?? BuildTestStorage(), new ConfigService())
         {
@@ -208,7 +208,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         Db.Users.Add(NewCompleteUser(weaverId));
         await Db.SaveChangesAsync();
         var scoreService = new ScoreService(Db, new ConfigService());
-        var shipService = new ShipService(Db, new LootService(Db, scoreService, NullLogger<LootService>.Instance), scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new PushNotificationService(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
+        var shipService = new ShipService(Db, new LootService(Db, scoreService, NullLogger<LootService>.Instance), scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), BuildTestPush(), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
         await shipService.CreateAsync(weaverId, "88130001", "88130002");
         Db.ChangeTracker.Clear();
         var ship = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaverId);
@@ -270,6 +270,47 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var events = Db.ScoreEvents.Where(e => e.UserId == userId && e.EventType == "ProfileComplete").ToList();
         Assert.Single(events);
         Assert.Equal(100, Db.Users.Single(u => u.Id == userId).TotalScore);
+    }
+
+    [Fact]
+    public async Task Update_PreferredLocale_PersistsForPushLocalisation()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        await controller.Upsert(new CreateUserRequest("Bat", 26, "Male", "Ulaanbaatar", "Bio", []));
+
+        await controller.Update(new UpdateUserRequest(
+            null, null, null, null, null, null, null, null, null, null, null, null, null, PreferredLocale: "mn"));
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal("mn", Db.Users.Single(u => u.Id == userId).PreferredLocale);
+    }
+
+    [Fact]
+    public async Task Update_UnsupportedLocale_IsRejectedWithACode()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        await controller.Upsert(new CreateUserRequest("Bat", 26, "Male", "Ulaanbaatar", "Bio", []));
+
+        var result = Assert.IsType<BadRequestObjectResult>(await controller.Update(new UpdateUserRequest(
+            null, null, null, null, null, null, null, null, null, null, null, null, null, PreferredLocale: "fr")));
+
+        Assert.Equal("profile.locale_invalid", Assert.IsType<ErrorResponse>(result.Value).Code);
+        Db.ChangeTracker.Clear();
+        Assert.Equal("en", Db.Users.Single(u => u.Id == userId).PreferredLocale);
+    }
+
+    [Fact]
+    public async Task Upsert_PreferredLocale_IsStoredFromTheFirstRequest()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+
+        await controller.Upsert(new CreateUserRequest("Bat", 26, "Male", "Ulaanbaatar", "Bio", [], PreferredLocale: "mn"));
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal("mn", Db.Users.Single(u => u.Id == userId).PreferredLocale);
     }
 
     [Fact]

@@ -141,6 +141,17 @@ public class TownSquareService
         session.CurrentRoundNumber = 1;
         await _db.SaveChangesAsync();
 
+        // The roster is whoever LockRosterAsync paired into round one; RSVPs it turned away are not on it.
+        var rostered = await (
+            from p in _db.TownSquarePairings
+            join r in _db.TownSquareRounds on p.RoundId equals r.Id
+            where r.SessionId == sessionId && r.RoundNumber == 1
+            select new[] { p.UserAId, p.UserBId }
+        ).ToListAsync();
+        var startData = new Dictionary<string, object> { ["sessionId"] = sessionId.ToString() };
+        foreach (var userId in rostered.SelectMany(pair => pair).Distinct())
+            await _push.NotifyUserAsync(userId, PushKind.TownSquareStarting, startData);
+
         await _broadcast.BroadcastAsync($"townsquare:{sessionId}", "session-started", new { sessionId, roundNumber = session.CurrentRoundNumber, status = session.Status });
     }
 
@@ -211,9 +222,9 @@ public class TownSquareService
 
         if (created)
         {
-            var pushData = new Dictionary<string, object> { ["matchId"] = matchId.ToString(), ["type"] = "match" };
-            await _push.NotifyUserAsync(row.UserAId, "New Match!", "You both said yes in the Town Square.", pushData);
-            await _push.NotifyUserAsync(row.UserBId, "New Match!", "You both said yes in the Town Square.", pushData);
+            var pushData = new Dictionary<string, object> { ["matchId"] = matchId.ToString() };
+            await _push.NotifyUserAsync(row.UserAId, PushKind.TownSquareMatch, pushData);
+            await _push.NotifyUserAsync(row.UserBId, PushKind.TownSquareMatch, pushData);
             await _broadcast.BroadcastAsync("app-nudges", "match_created",
                 new { matchId, userIds = new[] { row.UserAId, row.UserBId }, source = "townsquare" });
         }

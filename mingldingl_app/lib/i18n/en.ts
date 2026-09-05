@@ -254,7 +254,7 @@ export const en = {
   save: 'Save',
   save_error: "Your words didn't reach the scribe. Try again.",
   deep_profile_title: 'Deep Profile',
-  deep_profile_hint: 'Only visible to Silver and Gold matches, and only after 30 messages exchanged',
+  deep_profile_hint: 'Only visible to Silver and Gold matches, and only after %{count} messages exchanged',
   has_kids: 'Have kids',
   has_kids_yes: 'Yes',
   has_kids_no: 'No',

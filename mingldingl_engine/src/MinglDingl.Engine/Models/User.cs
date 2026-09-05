@@ -49,6 +49,9 @@ public class User
 
     public bool PushEnabled { get; set; } = true;
 
+    /// <summary>"en" or "mn" — the language push notifications are written in; the app keeps it in step with its own locale.</summary>
+    public string PreferredLocale { get; set; } = "en";
+
     public int AgeMin { get; set; } = 18;
     public int AgeMax { get; set; } = 99;
 

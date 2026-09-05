@@ -13,20 +13,37 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     protected AppDbContext Db { get; private set; } = null!;
     private IDbContextTransaction _transaction = null!;
     private NpgsqlDataSource _dataSource = null!;
+    private readonly List<NpgsqlDataSource> _extraDataSources = [];
+
+    private static NpgsqlDataSource BuildDataSource()
+    {
+        var builder = new NpgsqlDataSourceBuilder(ConnectionString);
+        builder.EnableDynamicJson();
+        return builder.Build();
+    }
+
+    private static AppDbContext BuildContext(NpgsqlDataSource dataSource) =>
+        new(new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql(dataSource)
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.ManyServiceProvidersCreatedWarning))
+            .Options);
+
+    /// <summary>
+    /// A context outside the per-test rollback transaction, for the rare code path that opens a
+    /// transaction of its own and so cannot run nested inside one. Whatever a test writes through it
+    /// is really committed, so the test owns the cleanup.
+    /// </summary>
+    protected AppDbContext NewUncommittedContext()
+    {
+        var dataSource = BuildDataSource();
+        _extraDataSources.Add(dataSource);
+        return BuildContext(dataSource);
+    }
 
     public async Task InitializeAsync()
     {
-        var dataSourceBuilder = new NpgsqlDataSourceBuilder(ConnectionString);
-        dataSourceBuilder.EnableDynamicJson();
-        _dataSource = dataSourceBuilder.Build();
-
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(_dataSource)
-
-            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.ManyServiceProvidersCreatedWarning))
-            .Options;
-
-        Db = new AppDbContext(options);
+        _dataSource = BuildDataSource();
+        Db = BuildContext(_dataSource);
         _transaction = await Db.Database.BeginTransactionAsync();
     }
 
@@ -36,6 +53,8 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         await Db.DisposeAsync();
 
         await _dataSource.DisposeAsync();
+        foreach (var extra in _extraDataSources)
+            await extra.DisposeAsync();
     }
 
     protected static SupabaseBroadcastService BuildTestBroadcast()
@@ -47,17 +66,88 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         return new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
     }
 
-    protected PushNotificationService BuildTestPush() =>
-        new(new HttpClient(), Db, NullLogger<PushNotificationService>.Instance);
+    /// <summary>
+    /// A push service whose delivery runs inline (no background loop) so a test can assert on the
+    /// Expo request the moment <c>NotifyUserAsync</c> returns. By default Expo answers 200 with no
+    /// tickets and nothing leaves the process.
+    /// </summary>
+    protected static PushNotificationService BuildTestPush(AppDbContext db, HttpMessageHandler? handler = null) =>
+        new(db, new InlinePushDispatcher(BuildPushDispatch(db, handler)));
+
+    protected PushNotificationService BuildTestPush() => BuildTestPush(Db);
+
+    protected PushNotificationService BuildTestPush(HttpMessageHandler handler) => BuildTestPush(Db, handler);
+
+    /// <summary>A push service whose Expo POST bodies are captured instead of sent.</summary>
+    protected (PushNotificationService Push, RecordingHandler Handler) BuildCapturingPush()
+    {
+        var handler = new RecordingHandler();
+        return (BuildTestPush(Db, handler), handler);
+    }
+
+    /// <summary>The production dispatcher, with Expo replaced by <paramref name="handler"/> and token pruning aimed at <paramref name="db"/>.</summary>
+    protected static PushDispatchBackgroundService BuildPushDispatch(AppDbContext db, HttpMessageHandler? handler = null)
+    {
+        var provider = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(provider, db);
+        return new PushDispatchBackgroundService(
+            new SingleClientFactory(new HttpClient(handler ?? new RecordingHandler()) { BaseAddress = new Uri("https://exp.host") }),
+            new SingleProviderScopeFactory(Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(provider)),
+            NullLogger<PushDispatchBackgroundService>.Instance);
+    }
+
+    protected sealed class InlinePushDispatcher : IPushDispatcher
+    {
+        private readonly PushDispatchBackgroundService _service;
+        public InlinePushDispatcher(PushDispatchBackgroundService service) => _service = service;
+        public ValueTask DispatchAsync(PushEnvelope envelope, CancellationToken ct = default) =>
+            new(_service.DeliverAsync(envelope, ct));
+    }
+
+    private sealed class SingleClientFactory : IHttpClientFactory
+    {
+        private readonly HttpClient _client;
+        public SingleClientFactory(HttpClient client) => _client = client;
+        public HttpClient CreateClient(string name) => _client;
+    }
+
+    /// <summary>Hands every scope the same provider, so a background service resolves the test's own <c>Db</c>.</summary>
+    protected sealed class SingleProviderScopeFactory : Microsoft.Extensions.DependencyInjection.IServiceScopeFactory
+    {
+        private readonly IServiceProvider _provider;
+        public SingleProviderScopeFactory(IServiceProvider provider) => _provider = provider;
+        public Microsoft.Extensions.DependencyInjection.IServiceScope CreateScope() => new NonDisposingScope(_provider);
+
+        private sealed class NonDisposingScope : Microsoft.Extensions.DependencyInjection.IServiceScope
+        {
+            public NonDisposingScope(IServiceProvider provider) => ServiceProvider = provider;
+            public IServiceProvider ServiceProvider { get; }
+            public void Dispose() { }
+        }
+    }
+
+    protected async Task<string> RegisterPushTokenAsync(Guid userId)
+    {
+        string token = $"ExponentPushToken[{userId:N}]";
+        Db.PushTokens.Add(new PushToken { Id = Guid.NewGuid(), UserId = userId, Token = token, Platform = "ios" });
+        await Db.SaveChangesAsync();
+        return token;
+    }
 
     protected sealed class RecordingHandler : System.Net.Http.HttpMessageHandler
     {
         public string? LastRequestBody { get; private set; }
+        public List<string> RequestBodies { get; } = [];
+        public int RequestCount { get; private set; }
+        /// <summary>Scripted reply; defaults to an empty 200.</summary>
+        public Func<HttpRequestMessage, HttpResponseMessage>? Respond { get; init; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            RequestCount++;
             LastRequestBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
-            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+            if (LastRequestBody is not null) RequestBodies.Add(LastRequestBody);
+            return Respond is null ? new HttpResponseMessage(System.Net.HttpStatusCode.OK) : Respond(request);
         }
     }
 
@@ -111,7 +201,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         var score = new ScoreService(db, new ConfigService());
         var loot = new LootService(db, score, NullLogger<LootService>.Instance);
         var ships = new ShipService(db, loot, score, new ConfigService(),
-            new MilestoneService(db, NullLogger<MilestoneService>.Instance), new PushNotificationService(new HttpClient(), db, NullLogger<PushNotificationService>.Instance), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
+            new MilestoneService(db, NullLogger<MilestoneService>.Instance), BuildTestPush(db), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
         var controller = new UsersController(db, score, new ReferralService(db, loot, NullLogger<ReferralService>.Instance), ships, oaths, BuildUnconfiguredPhoneVerification(db), BuildTestStorage(), new ConfigService());
         controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext { HttpContext = httpContext };
         return controller;

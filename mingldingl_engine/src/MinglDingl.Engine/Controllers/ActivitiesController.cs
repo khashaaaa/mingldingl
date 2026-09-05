@@ -10,12 +10,17 @@ public class ActivitiesController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ActivityService _activities;
+    private readonly ConfigService _config;
 
-    public ActivitiesController(AppDbContext db, ActivityService activities)
+    public ActivitiesController(AppDbContext db, ActivityService activities, ConfigService config)
     {
         _db = db;
         _activities = activities;
+        _config = config;
     }
+
+    public static int SuggestionThreshold(ConfigService config) =>
+        Math.Max(1, (int)config.GetNumber("activity.suggestions.messages", 15));
 
     [HttpGet("{matchId}/suggestions")]
     [ProducesResponseType(typeof(List<ActivitySuggestionResponse>), StatusCodes.Status200OK)]
@@ -27,7 +32,7 @@ public class ActivitiesController : ControllerBase
         var userId = this.CurrentUserId();
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
         if (accessError is not null) return accessError;
-        if (match.MessageCount < 15)
+        if (match.MessageCount < SuggestionThreshold(_config))
             return this.BadRequestError("Keep chatting to unlock activity suggestions", "activity.locked");
 
         var suggestions = await _activities.GetOrCreateSuggestionsAsync(matchId);

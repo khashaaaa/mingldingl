@@ -8,7 +8,7 @@ services:
       - ConnectionStrings__DefaultConnection=${DATABASE_URL}
       - Supabase__ProjectUrl=${SUPABASE_PROJECT_URL}
       - Supabase__SecretKey=${SUPABASE_SECRET_KEY}
-      - Cors__AllowedOrigins__0=${CORS_ALLOWED_ORIGINS}
+      - Cors__AllowedOrigins=${CORS_ALLOWED_ORIGINS}
       - VerifyMn__ApiKey=${VERIFY_MN_API_KEY}
       - VerifyMn__BaseUrl=${VERIFY_MN_BASE_URL}
       - VerifyMn__CallbackBaseUrl=${VERIFY_MN_CALLBACK_BASE_URL}

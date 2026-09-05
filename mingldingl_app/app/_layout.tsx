@@ -33,6 +33,8 @@ import { useRealtimeNudges } from '../hooks/useRealtimeNudges';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { usePeriodicLocationRefresh } from '../hooks/usePeriodicLocationRefresh';
 import { useTierThresholds } from '../hooks/useTierThresholds';
+import { useRevealThresholds } from '../hooks/useRevealThresholds';
+import { useSyncPreferredLocale } from '../hooks/useSyncPreferredLocale';
 import { getStoredLocale } from '../lib/localePreference';
 import { useLocaleStore } from '../store/localeStore';
 
@@ -76,6 +78,7 @@ function AppContent() {
   usePushNotifications();
   usePeriodicLocationRefresh(!!userProfile);
   useTierThresholds();
+  useRevealThresholds();
   const segments = useSegments();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -102,7 +105,8 @@ function AppContent() {
     });
   }, []);
 
-  useLocaleStore((s) => s.locale);
+  const locale = useLocaleStore((s) => s.locale);
+  useSyncPreferredLocale(locale, userProfile?.preferredLocale);
 
   useEffect(() => { setMounted(true); }, []);
 

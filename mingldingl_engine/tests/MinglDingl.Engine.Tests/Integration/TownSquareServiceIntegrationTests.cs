@@ -221,6 +221,27 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task StartSessionAsync_PushesTownSquareStartingToEveryRosteredUser()
+    {
+        var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2);
+        var rostered = await Db.TownSquareRsvps.Where(r => r.SessionId == session.Id).Select(r => r.UserId).ToListAsync();
+        var tokens = new List<string>();
+        foreach (var id in rostered) tokens.Add(await RegisterPushTokenAsync(id));
+        var (push, handler) = BuildCapturingPush();
+        var service = new TownSquareService(Db, BuildTestBroadcast(), push, NullLogger<TownSquareService>.Instance, new ConfigService());
+        await service.LockRosterAsync(session.Id);
+        handler.RequestBodies.Clear();
+
+        await service.StartSessionAsync(session.Id);
+
+        var all = string.Join("\n", handler.RequestBodies);
+        Assert.Equal(4, handler.RequestBodies.Count);
+        foreach (var token in tokens) Assert.Contains(token, all);
+        Assert.Contains("\"type\":\"townsquare_started\"", all);
+        Assert.Contains($"\"sessionId\":\"{session.Id}\"", all);
+    }
+
+    [Fact]
     public async Task AdvanceRoundAsync_BeforeLastRound_IncrementsRoundNumber()
     {
         var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2);

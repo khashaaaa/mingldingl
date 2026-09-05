@@ -17,7 +17,7 @@ public class FlameRitePledgeGateIntegrationTests : IntegrationTestBase
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
         var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
-        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths);
+        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, BuildTestPush());
     }
 
     private async Task<(Match Match, ActivitySuggestion Suggestion, Guid AId, Guid BId)> SeedPledgeableMatchAsync(bool riteComplete)

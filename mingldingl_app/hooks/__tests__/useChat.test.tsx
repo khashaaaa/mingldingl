@@ -326,11 +326,25 @@ describe('useChat', () => {
       mockList.mockResolvedValueOnce(serverPage(45, 5));
       await act(async () => { await result.current.loadEarlier(); });
 
-      expect(mockList).toHaveBeenLastCalledWith(MATCH_ID, { before: '2024-01-01T00:50:00Z', limit: PAGE });
+      expect(mockList).toHaveBeenLastCalledWith(MATCH_ID, { before: '2024-01-01T00:50:00Z', beforeId: 's50', limit: PAGE });
       await waitFor(() => expect(result.current.messages).toHaveLength(55));
       expect(result.current.messages[0].id).toBe('s45');
       expect(result.current.messages[5].id).toBe('s50');
       expect(result.current.hasMore).toBe(false);
+    });
+
+    it('anchors on the lower id when the oldest two messages share a createdAt, so neither is skipped', async () => {
+      const tied = serverPage(50, PAGE);
+      tied[0] = { ...tied[0], id: 's50b' };
+      tied[1] = { ...tied[1], id: 's50a', createdAt: tied[0].createdAt };
+      mockList.mockResolvedValueOnce(tied);
+      const { result } = await setup();
+
+      mockList.mockResolvedValueOnce([]);
+      await act(async () => { await result.current.loadEarlier(); });
+
+      expect(mockList).toHaveBeenLastCalledWith(
+        MATCH_ID, { before: '2024-01-01T00:50:00Z', beforeId: 's50a', limit: PAGE });
     });
 
     it('keeps hasMore=true after a full earlier page and dedupes overlapping ids', async () => {
@@ -355,7 +369,7 @@ describe('useChat', () => {
       mockList.mockResolvedValueOnce([]);
       await act(async () => { await result.current.loadEarlier(); });
 
-      expect(mockList).toHaveBeenLastCalledWith(MATCH_ID, { before: '2024-01-01T00:50:00Z', limit: PAGE });
+      expect(mockList).toHaveBeenLastCalledWith(MATCH_ID, { before: '2024-01-01T00:50:00Z', beforeId: 's50', limit: PAGE });
     });
 
     it('leaves the cache and hasMore untouched when the earlier fetch fails', async () => {

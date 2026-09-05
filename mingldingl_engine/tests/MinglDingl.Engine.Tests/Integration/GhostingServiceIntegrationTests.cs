@@ -6,6 +6,40 @@ namespace MinglDingl.Engine.Tests.Integration;
 public class GhostingServiceIntegrationTests : IntegrationTestBase
 {
     [Fact]
+    public async Task CheckAsync_WhenAMatchGhosts_PushesMatchGhostedToBothParticipants()
+    {
+        var replier = NewCompleteUser();
+        var silent = NewCompleteUser();
+        Db.Users.AddRange(replier, silent);
+        var match = new Match
+        {
+            InitiatorId = replier.Id,
+            ReceiverId = silent.Id,
+            Status = "Active",
+            LastMessageAt = DateTime.UtcNow.AddHours(-49),
+            LastMessageSenderId = replier.Id,
+        };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+        var replierToken = await RegisterPushTokenAsync(replier.Id);
+        var silentToken = await RegisterPushTokenAsync(silent.Id);
+
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
+        var (push, handler) = BuildCapturingPush();
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, push);
+
+        Assert.True(await ghosting.CheckAsync(match));
+
+        var all = string.Join("\n", handler.RequestBodies);
+        Assert.Equal(2, handler.RequestBodies.Count);
+        Assert.Contains(replierToken, all);
+        Assert.Contains(silentToken, all);
+        Assert.Contains("\"type\":\"match_ghosted\"", all);
+    }
+
+    [Fact]
     public async Task CheckAsync_GhostScorePenaltyConfiguredToZero_StillDocksReputationAndRecordsTheGhost()
     {
         var replier = NewCompleteUser();
@@ -28,7 +62,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         config.Set("score.event.GhostPenalty", "0");
         var score = new ScoreService(Db, config);
         var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
-        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config);
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
 
         Assert.True(await ghosting.CheckAsync(match));
 
@@ -61,7 +95,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
         var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
-        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config);
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
         var result = await ghosting.CheckAsync(match);
 
         Assert.True(result);
@@ -98,7 +132,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
         var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
-        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config);
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
         var result = await ghosting.CheckAsync(match);
 
         Assert.True(result);
@@ -135,7 +169,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
         var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
-        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config);
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
         await ghosting.CheckAsync(match);
 
         Db.ChangeTracker.Clear();
@@ -166,7 +200,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
         var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
-        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config);
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
 
         Assert.True(await ghosting.CheckAsync(match));
 
@@ -212,7 +246,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
         var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
-        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config);
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
 
         Assert.True(await ghosting.CheckAsync(match));
 
@@ -221,5 +255,46 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         Assert.Equal("Ghosted", reloaded.Status);
         Assert.Equal(3, reloaded.RevealLevel);
         Assert.Equal(3, RevealService.GetRevealLevel(new ConfigService(), reloaded));
+    }
+
+    /// <summary>
+    /// Every match is created at reveal level 1, and ghosting must not take that back. Freezing on
+    /// message count alone did: raise reveal.level1.messages above 1 — an admin-tunable knob — and a
+    /// short conversation froze at 0, so being ghosted *hid* profile fields the pair already had.
+    /// </summary>
+    [Fact]
+    public async Task CheckAsync_RevealThresholdTunedAboveTheFloor_FreezesAtTheFloorNotBelowIt()
+    {
+        var replier = NewCompleteUser();
+        var silent = NewCompleteUser();
+        Db.Users.AddRange(replier, silent);
+
+        var match = new Match
+        {
+            InitiatorId = replier.Id,
+            ReceiverId = silent.Id,
+            Status = "Active",
+            RevealLevel = 1,
+            MessageCount = 2,
+            LastMessageAt = DateTime.UtcNow.AddHours(-49),
+            LastMessageSenderId = replier.Id,
+        };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        var config = new ConfigService();
+        config.Set("reveal.level1.messages", "3");
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
+
+        Assert.Equal(0, RevealService.LevelForMessageCount(config, match.MessageCount));
+        Assert.True(await ghosting.CheckAsync(match));
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Matches.AsNoTracking().SingleAsync(m => m.Id == match.Id);
+        Assert.Equal("Ghosted", reloaded.Status);
+        Assert.Equal(1, reloaded.RevealLevel);
+        Assert.Equal(1, RevealService.GetRevealLevel(config, reloaded));
     }
 }

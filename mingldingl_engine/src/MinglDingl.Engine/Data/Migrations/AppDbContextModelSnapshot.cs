@@ -418,6 +418,9 @@ namespace MinglDingl.Engine.Data.Migrations
                     b.Property<Guid>("InitiatorId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("InitiatorVideoRewardClaimed")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastMessageAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -429,6 +432,9 @@ namespace MinglDingl.Engine.Data.Migrations
 
                     b.Property<Guid>("ReceiverId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("ReceiverVideoRewardClaimed")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("RevealLevel")
                         .HasColumnType("integer");
@@ -1031,6 +1037,10 @@ namespace MinglDingl.Engine.Data.Migrations
                     b.Property<List<string>>("PhotoUrls")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<string>("PreferredLocale")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<bool>("PushEnabled")
                         .HasColumnType("boolean");
