@@ -60,20 +60,20 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         foreach (var match in staleMatches)
             if (await ghosting.TryGhostAsync(match))
                 ghostedMatches.Add(match);
-        if (ghostedMatches.Count > 0)
-        {
-            await score.AwardManyAsync(ghostedMatches
-                .Select(GhostingService.GetGhostAtFaultUserId)
-                .Where(id => id.HasValue)
-                .Select(id => (id!.Value, "GhostPenalty")));
-        }
 
-        var ghostOathRefreshIds = ghostedMatches
-            .Select(GhostingService.GetGhostAtFaultUserId)
-            .Where(id => id.HasValue)
-            .Select(id => id!.Value)
-            .Distinct()
-            .ToList();
+        // Who actually owes a penalty, resolved through the same rule the on-demand ghost-check
+        // uses: someone who never sent a message into a match they did not ask for has not ghosted
+        // anyone. Reading the static at-fault helper here instead let strangers drain a victim's
+        // score by matching them, sending one message and waiting out the window.
+        var atFaultByMatch = new Dictionary<Guid, Guid>();
+        foreach (var match in ghostedMatches)
+            if (await ghosting.GetPenalisableGhostAsync(match) is Guid atFault)
+                atFaultByMatch[match.Id] = atFault;
+
+        if (atFaultByMatch.Count > 0)
+            await score.AwardManyAsync(atFaultByMatch.Values.Select(id => (id, "GhostPenalty")));
+
+        var ghostOathRefreshIds = atFaultByMatch.Values.Distinct().ToList();
 
         var today = DateTime.UtcNow.Date;
         var usersReset = await db.Users
@@ -164,8 +164,9 @@ public class DailyMaintenanceBackgroundService : BackgroundService
 
         foreach (var match in ghostedMatches)
         {
-            await ghosting.BroadcastGhostedAsync(match.Id, GhostingService.GetGhostAtFaultUserId(match));
-            await ghosting.NotifyGhostedAsync(match);
+            var atFault = atFaultByMatch.TryGetValue(match.Id, out var id) ? id : (Guid?)null;
+            await ghosting.BroadcastGhostedAsync(match.Id, atFault);
+            await ghosting.NotifyGhostedAsync(match, atFault);
         }
 
         foreach (var userId in ghostOathRefreshIds)

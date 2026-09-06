@@ -105,6 +105,9 @@ export const en = {
 
   ...errorsEn,
 
+  oath_reswear_title: 'Trade away a proven oath?',
+  oath_reswear_body: 'You have already proven this oath. Swearing another clears that proof, restarts the count of encounters, and the reward for proving it is never paid twice.',
+  oath_reswear_confirm: 'Swear the new oath',
   action_failed_title: 'The Attempt Faltered',
   action_failed_body: 'Something went wrong — try again in a moment.',
   daily_budget_title: 'The Realm Rests',
@@ -473,11 +476,11 @@ export const en = {
   oath_progress: 'Held through %{held} of %{needed} encounters',
   oath_prompt_banner: 'Swear your Oath so the right people find you.',
   oath_step_heading: 'What are you here for?',
-  oath_step_help: 'This shows on your card. You can swear again later — it just starts your proof over.',
+  oath_step_help: 'This shows on your card. You can change it later, but a different oath starts your proof over.',
   campaign_title: 'The Campaign',
   campaign_banner: 'Campaign Map — %{cleared}/%{total} rooms',
   campaign_progress: '%{cleared} of %{total} rooms cleared',
-  campaign_complete: 'Campaign complete — your legend is written.',
+  campaign_complete: 'The seal is broken — your legend is written.',
   campaign_room_gate: 'The Meeting Gate',
   campaign_room_echoes: 'Hall of Echoes',
   campaign_room_runes: 'The Rune Chamber',

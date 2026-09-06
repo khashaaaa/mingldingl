@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MinglDingl.Engine.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260906092726_PerSideMessageCounts")]
+    partial class PerSideMessageCounts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -348,14 +351,8 @@ namespace MinglDingl.Engine.Data.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
-                    b.Property<List<string>>("OptionsEn")
-                        .HasColumnType("jsonb");
-
                     b.Property<string>("QuestionText")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("QuestionTextEn")
                         .HasColumnType("text");
 
                     b.Property<string>("Type")
@@ -627,9 +624,6 @@ namespace MinglDingl.Engine.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("TitleEn")
-                        .HasColumnType("text");
-
                     b.HasKey("Id");
 
                     b.ToTable("Quizzes");
@@ -645,17 +639,11 @@ namespace MinglDingl.Engine.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text[]");
 
-                    b.Property<List<string>>("OptionsEn")
-                        .HasColumnType("text[]");
-
                     b.Property<Guid>("QuizId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Text")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TextEn")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -740,9 +728,6 @@ namespace MinglDingl.Engine.Data.Migrations
                     b.Property<string>("EventType")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<Guid?>("MatchId")
-                        .HasColumnType("uuid");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");

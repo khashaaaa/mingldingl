@@ -27,14 +27,20 @@ public class EngagementService
         return responses.Count >= 2;
     }
 
-    public async Task CompleteIcebreakerAsync(Guid matchId, Guid userId1, Guid userId2)
+    /// <summary>
+    /// Marks the match's icebreaker done and pays both sides, once. Returns whether it actually
+    /// paid, so the caller can report the real figure: a match only completes its icebreaker once,
+    /// and every later icebreaker on it is worth nothing.
+    /// </summary>
+    public async Task<bool> CompleteIcebreakerAsync(Guid matchId, Guid userId1, Guid userId2)
     {
         var match = await _db.Matches.FindAsync(matchId);
-        if (match is null || match.IcebreakerComplete) return;
+        if (match is null || match.IcebreakerComplete) return false;
         match.IcebreakerComplete = true;
 
         match.VideoCallUnlocked = true;
         await _score.AwardManyAsync([(userId1, "IcebreakerDone"), (userId2, "IcebreakerDone")]);
         await _db.SaveChangesAsync();
+        return true;
     }
 }

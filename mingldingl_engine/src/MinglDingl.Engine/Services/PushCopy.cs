@@ -9,6 +9,7 @@ public enum PushKind
     FlameRiteAccepted,
     DateConfirmed,
     MatchGhosted,
+    MatchGhostedByYou,
     TownSquareStarting,
 }
 
@@ -34,6 +35,7 @@ public static class PushCopy
         PushKind.FlameRiteAccepted => "flame_rite_accepted",
         PushKind.DateConfirmed => "date_confirmed",
         PushKind.MatchGhosted => "match_ghosted",
+        PushKind.MatchGhostedByYou => "match_ghosted",
         PushKind.TownSquareStarting => "townsquare_started",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
@@ -80,6 +82,7 @@ public static class PushCopy
         PushKind.FlameRiteAccepted => ("Flame Rite Accepted", "Your match accepted the Flame Rite. Light the call when you are ready."),
         PushKind.DateConfirmed => ("Encounter Pledged", "You both pledged to meet. Open the activity for the details."),
         PushKind.MatchGhosted => ("A Thread Went Cold", "A match stayed silent too long and has been closed."),
+        PushKind.MatchGhostedByYou => ("A Thread Went Cold", "You left a conversation unanswered. It has closed, and your score and standing have taken the cost."),
         PushKind.TownSquareStarting => ("The Town Square Is Open", "Your session has begun. Step in now."),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
@@ -94,6 +97,7 @@ public static class PushCopy
         PushKind.FlameRiteAccepted => ("Галын ёслолыг хүлээн авлаа", "Таны таарал Галын ёслолыг зөвшөөрлөө. Бэлэн болмогцоо дуудлагаа эхлүүлээрэй."),
         PushKind.DateConfirmed => ("Уулзалт батлагдлаа", "Та хоёр уулзахаа амлалаа. Дэлгэрэнгүйг үйл ажиллагаанаас хараарай."),
         PushKind.MatchGhosted => ("Утас хүйтэрлээ", "Нэг таарал хэт удаан чимээгүй байсан тул хаагдлаа."),
+        PushKind.MatchGhostedByYou => ("Утас хүйтэрлээ", "Та нэг яриаг хариугүй орхилоо. Тэр хаагдаж, оноо болон нэр хүнд чинь буурлаа."),
         PushKind.TownSquareStarting => ("Хотын талбай нээгдлээ", "Таны үе эхэллээ. Одоо ороорой."),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };

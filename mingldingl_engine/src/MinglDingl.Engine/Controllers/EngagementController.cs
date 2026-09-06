@@ -31,6 +31,18 @@ public class EngagementController : ControllerBase
         return Ok(new RevealThresholdsResponse(levels));
     }
 
+    /// <summary>
+    /// The language authored content should be served in for this caller. Read from the stored
+    /// profile, the same source push notifications use, so a user never gets Mongolian prompts
+    /// inside an English app or the reverse.
+    /// </summary>
+    private async Task<string?> CallerLocaleAsync() =>
+        await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == this.CurrentUserId())
+            .Select(u => u.PreferredLocale)
+            .FirstOrDefaultAsync();
+
     [HttpGet("icebreaker/{matchId}")]
     [ProducesResponseType(typeof(IcebreakerQuestionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -43,7 +55,12 @@ public class EngagementController : ControllerBase
         if (icebreakers.Count == 0) return this.NotFoundError("No active icebreaker available", "icebreaker.none_available");
 
         var icebreaker = icebreakers[StableIndex(matchId, icebreakers.Count)];
-        return Ok(new IcebreakerQuestionResponse(icebreaker.Id, icebreaker.QuestionText, icebreaker.Type, icebreaker.Options));
+        var locale = await CallerLocaleAsync();
+        return Ok(new IcebreakerQuestionResponse(
+            icebreaker.Id,
+            LocalisedContent.Pick(locale, icebreaker.QuestionText, icebreaker.QuestionTextEn),
+            icebreaker.Type,
+            LocalisedContent.PickList(locale, icebreaker.Options, icebreaker.OptionsEn)));
     }
 
     [HttpPost("icebreaker/{matchId}/respond")]
@@ -57,6 +74,10 @@ public class EngagementController : ControllerBase
 
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId, requireActive: true);
         if (accessError is not null) return accessError;
+
+        // Any GUID used to be accepted, writing a response row that pointed at nothing.
+        if (!await _db.Icebreakers.AnyAsync(i => i.Id == req.IcebreakerId))
+            return this.NotFoundError("Icebreaker not found", "icebreaker.not_found");
 
         var existing = await _db.IcebreakerResponses.FirstOrDefaultAsync(r =>
             r.MatchId == matchId && r.IcebreakerId == req.IcebreakerId && r.UserId == userId);
@@ -86,8 +107,10 @@ public class EngagementController : ControllerBase
         if (bothDone)
         {
             var otherUserId = match.OtherParticipant(userId);
-            await _engagement.CompleteIcebreakerAsync(matchId, userId, otherUserId);
-            awarded = _score.Delta("IcebreakerDone") + await _quests.IncrementAsync(userId, "icebreaker");
+            // Only the first icebreaker to complete on a match pays. Reporting the config delta
+            // regardless made the app flash "+20" for every later one while the score never moved.
+            bool paid = await _engagement.CompleteIcebreakerAsync(matchId, userId, otherUserId);
+            awarded = (paid ? _score.Delta("IcebreakerDone") : 0) + await _quests.IncrementAsync(userId, "icebreaker");
             await _quests.IncrementAsync(otherUserId, "icebreaker");
             await _milestones.AchieveAsync(userId, "first_icebreaker");
             await _milestones.AchieveAsync(otherUserId, "first_icebreaker");
@@ -147,9 +170,14 @@ public class EngagementController : ControllerBase
             .Where(q => q.QuizId == quiz.Id)
             .ToListAsync();
 
+        var locale = await CallerLocaleAsync();
         return Ok(new QuizDetailsResponse(
-            quiz.Id, quiz.Title,
-            questions.Select(q => new QuizQuestionResponse(q.Id, q.Text, q.Options)).ToList()));
+            quiz.Id,
+            LocalisedContent.Pick(locale, quiz.Title, quiz.TitleEn),
+            questions.Select(q => new QuizQuestionResponse(
+                q.Id,
+                LocalisedContent.Pick(locale, q.Text, q.TextEn),
+                LocalisedContent.PickList(locale, q.Options, q.OptionsEn))).ToList()));
     }
 
     [HttpPost("quiz/{quizId}/respond")]

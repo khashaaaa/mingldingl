@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -478,5 +479,83 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
             Assert.IsType<OkObjectResult>(await BuildController(receiver.Id).GetQuiz(match.Id)).Value);
 
         Assert.Equal(first.Id, second.Id);
+    }
+
+    /// <summary>Two matched users, each with their own controller, plus two live icebreakers.</summary>
+    private async Task<(EngagementController Mine, EngagementController Theirs, Guid MatchId, Guid[] Icebreakers)>
+        SeedRespondingPairAsync()
+    {
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        var match = new Match { Id = Guid.NewGuid(), InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active" };
+        Db.Matches.Add(match);
+        var a = new Icebreaker { Id = Guid.NewGuid(), QuestionText = "First?", Type = "text", IsActive = true };
+        var b = new Icebreaker { Id = Guid.NewGuid(), QuestionText = "Second?", Type = "text", IsActive = true };
+        Db.Icebreakers.AddRange(a, b);
+        await Db.SaveChangesAsync();
+        return (BuildController(initiator.Id), BuildController(receiver.Id), match.Id, [a.Id, b.Id]);
+    }
+
+    [Fact]
+    public async Task RespondIcebreaker_SecondIcebreakerOnTheSameMatch_ReportsTheZeroItActuallyPaid()
+    {
+        // `awarded` drove the reward toast, and it was computed from the config delta rather than
+        // from what CompleteIcebreakerAsync paid — so every extra icebreaker on an already-complete
+        // match flashed "+20" while the score never moved.
+        var (controller, otherController, matchId, first) = await SeedRespondingPairAsync();
+
+        await controller.RespondIcebreaker(matchId, new IcebreakerRespondDto(first[0], "a"));
+        var completing = Assert.IsType<OkObjectResult>(
+            await otherController.RespondIcebreaker(matchId, new IcebreakerRespondDto(first[0], "b")));
+        Assert.True(((IcebreakerRespondResult)completing.Value!).Awarded > 0);
+
+        await controller.RespondIcebreaker(matchId, new IcebreakerRespondDto(first[1], "a"));
+        var second = Assert.IsType<OkObjectResult>(
+            await otherController.RespondIcebreaker(matchId, new IcebreakerRespondDto(first[1], "b")));
+
+        var body = Assert.IsType<IcebreakerRespondResult>(second.Value);
+        Assert.True(body.BothResponded);
+        Assert.Equal(0, body.Awarded);
+    }
+
+    [Fact]
+    public async Task RespondIcebreaker_IcebreakerThatDoesNotExist_IsRejected()
+    {
+        var (controller, _, matchId, _) = await SeedRespondingPairAsync();
+
+        var result = await controller.RespondIcebreaker(matchId, new IcebreakerRespondDto(Guid.NewGuid(), "a"));
+
+        Assert.IsType<NotFoundObjectResult>(result);
+        Assert.False(await Db.IcebreakerResponses.AnyAsync(r => r.MatchId == matchId));
+    }
+
+    [Theory]
+    [InlineData("en", "What last made you laugh for real?")]
+    [InlineData("mn", "Хамгийн сүүлд юунд чин сэтгэлээсээ инээсэн бэ?")]
+    public async Task GetIcebreaker_ServesThePromptInTheReadersOwnLanguage(string locale, string expected)
+    {
+        var initiator = NewCompleteUser();
+        initiator.PreferredLocale = locale;
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        var match = new Match { Id = Guid.NewGuid(), InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active" };
+        Db.Matches.Add(match);
+        // The rotation picks stably from every active icebreaker, and this database is shared with
+        // the seeded content, so park the rest for the life of this (rolled-back) transaction.
+        await Db.Icebreakers.ExecuteUpdateAsync(u => u.SetProperty(i => i.IsActive, false));
+        Db.Icebreakers.Add(new Icebreaker
+        {
+            Id = Guid.NewGuid(),
+            QuestionText = "Хамгийн сүүлд юунд чин сэтгэлээсээ инээсэн бэ?",
+            QuestionTextEn = "What last made you laugh for real?",
+            Type = "OpenText",
+            IsActive = true,
+        });
+        await Db.SaveChangesAsync();
+
+        var result = Assert.IsType<OkObjectResult>(await BuildController(initiator.Id).GetIcebreaker(match.Id));
+
+        Assert.Equal(expected, Assert.IsType<IcebreakerQuestionResponse>(result.Value).QuestionText);
     }
 }

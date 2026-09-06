@@ -32,7 +32,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
 
         var result = await controller.Upsert(new CreateUserRequest(
             "New User", 26, "Male", "Ulaanbaatar", "Fresh signup",
-            ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"]));
+            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"]));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<UserResponse>(ok.Value);
@@ -59,7 +59,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var controller = BuildController(userId);
         var req = new CreateUserRequest(
             "Now Complete", 26, "Male", "Ulaanbaatar", "Filled in",
-            ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"]);
+            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"]);
 
         await controller.Upsert(req);
         await controller.Upsert(req);
@@ -77,7 +77,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
 
         await controller.Upsert(new CreateUserRequest(
             "Phoned User", 26, "Male", "Ulaanbaatar", "Fresh signup",
-            ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"]));
+            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"]));
 
         Db.ChangeTracker.Clear();
         var saved = await Db.Users.FindAsync(userId);
@@ -95,7 +95,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var controller = BuildController(userId, phone: "99009900");
         await controller.Upsert(new CreateUserRequest(
             "Updated", 21, "Male", "Ulaanbaatar", "Edit",
-            ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"]));
+            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"]));
 
         Db.ChangeTracker.Clear();
         var saved = await Db.Users.FindAsync(userId);
@@ -175,7 +175,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var inviteeController = BuildController(inviteeId);
         var result = await inviteeController.Upsert(new CreateUserRequest(
             "New Ally", 24, "Female", "Ulaanbaatar", "Fresh signup",
-            ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"],
+            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"],
             ReferralCode: inviterCode));
 
         Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(result).Value);
@@ -195,7 +195,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
 
         var result = await controller.Upsert(new CreateUserRequest(
             "New Ally", 24, "Female", "Ulaanbaatar", "Fresh signup",
-            ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"],
+            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"],
             ReferralCode: "ZZZZZZ"));
 
         var response = Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(result).Value);
@@ -219,7 +219,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var controller = BuildController(newUserId, phone: "88130001");
         await controller.Upsert(new CreateUserRequest(
             "New Nominee", 24, "Female", "Ulaanbaatar", "Fresh signup",
-            ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"],
+            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"],
             ReferralCode: code));
 
         Db.ChangeTracker.Clear();
@@ -241,7 +241,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var controller = BuildController(inviteeId);
         var req = new CreateUserRequest(
             "New Ally", 24, "Female", "Ulaanbaatar", "Fresh signup",
-            ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"],
+            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"],
             ReferralCode: inviterCode);
 
         await controller.Upsert(req);
@@ -257,7 +257,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var userId = Guid.NewGuid();
         var controller = BuildController(userId);
         var photos = new List<string>
-            { "https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg" };
+            { "/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg" };
         var complete = new CreateUserRequest("Farmer", 26, "Male", "Ulaanbaatar", "Filled in", photos);
         var incomplete = new CreateUserRequest("Farmer", 26, "Male", "Ulaanbaatar", "", photos);
 
@@ -321,13 +321,45 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var controller = BuildController(userId);
         await controller.Upsert(new CreateUserRequest(
             "Complete", 26, "Male", "Ulaanbaatar", "Filled in",
-            ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"]));
+            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"]));
 
         await controller.Update(new UpdateUserRequest(
             null, "", [], null, null, null, null, null, null, null, null, null, null));
 
         Db.ChangeTracker.Clear();
         Assert.False(Db.Users.Single(u => u.Id == userId).IsProfileComplete);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    public async Task Update_BlankOrWhitespaceDisplayName_IsRejectedAndNameUnchanged(string blank)
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        await controller.Upsert(new CreateUserRequest("Bat", 26, "Male", "Ulaanbaatar", "Bio", []));
+
+        var result = Assert.IsType<BadRequestObjectResult>(await controller.Update(new UpdateUserRequest(
+            blank, null, null, null, null, null, null, null, null, null, null, null, null)));
+
+        Assert.Equal("profile.display_name_required", Assert.IsType<ErrorResponse>(result.Value).Code);
+        Db.ChangeTracker.Clear();
+        Assert.Equal("Bat", Db.Users.Single(u => u.Id == userId).DisplayName);
+    }
+
+    [Fact]
+    public async Task Update_DisplayName_IsTrimmedBeforeStoring()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        await controller.Upsert(new CreateUserRequest("Bat", 26, "Male", "Ulaanbaatar", "Bio", []));
+
+        await controller.Update(new UpdateUserRequest(
+            "  Bat Bold  ", null, null, null, null, null, null, null, null, null, null, null, null));
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal("Bat Bold", Db.Users.Single(u => u.Id == userId).DisplayName);
     }
 
     [Fact]
@@ -338,7 +370,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         await controller.Upsert(new CreateUserRequest("Partial", 26, "Male", "Ulaanbaatar", "", []));
 
         var photos = new List<string>
-            { "https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg" };
+            { "/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg" };
         await controller.Update(new UpdateUserRequest(
             null, "Filled in", photos, null, null, null, null, null, null, null, null, null, null));
         await controller.Update(new UpdateUserRequest(
@@ -355,7 +387,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var userId = Guid.NewGuid();
         var controller = BuildController(userId);
         var photos = new List<string>
-            { "https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg" };
+            { "/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg" };
         await controller.Upsert(new CreateUserRequest("Complete", 26, "Male", "Ulaanbaatar", "Filled in", photos));
 
         var deleted = new List<string>();
@@ -363,7 +395,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
 
         // AgeMin > AgeMax is rejected, so the dropped photos must survive: the row still points at them.
         var result = await recordingController.Update(new UpdateUserRequest(
-            null, null, ["https://example.com/1.jpg"], null, null, null, null, null, null,
+            null, null, ["/uploads/photos/1.jpg"], null, null, null, null, null, null,
             AgeMin: 40, AgeMax: 20, null, null));
 
         Assert.IsType<BadRequestObjectResult>(result);
@@ -378,16 +410,16 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var userId = Guid.NewGuid();
         var controller = BuildController(userId);
         var photos = new List<string>
-            { "https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg" };
+            { "/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg" };
         await controller.Upsert(new CreateUserRequest("Complete", 26, "Male", "Ulaanbaatar", "Filled in", photos));
 
         var deleted = new List<string>();
         var recordingController = BuildController(userId, storage: BuildRecordingStorage(deleted));
 
         await recordingController.Update(new UpdateUserRequest(
-            null, null, ["https://example.com/1.jpg"], null, null, null, null, null, null, null, null, null, null));
+            null, null, ["/uploads/photos/1.jpg"], null, null, null, null, null, null, null, null, null, null));
 
-        Assert.Equal(["https://example.com/2.jpg", "https://example.com/3.jpg"], deleted);
+        Assert.Equal(["/uploads/photos/2.jpg", "/uploads/photos/3.jpg"], deleted);
     }
 
     [Fact]
@@ -445,5 +477,139 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var result = await BuildController(userId).EquipItem("title_sealbreaker");
 
         Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    private static List<string> OwnedPhotos() =>
+        ["/uploads/photos/a.jpg", "/uploads/photos/b.jpg", "/uploads/photos/c.jpg"];
+
+    private static CreateUserRequest Profile(
+        string gender = "Male", string city = "Ulaanbaatar", List<string>? photos = null) =>
+        new("New User", 26, gender, city, "A perfectly ordinary bio", photos ?? OwnedPhotos());
+
+    [Theory]
+    [InlineData("Banana")]
+    [InlineData("male")]
+    [InlineData("")]
+    public async Task Upsert_GenderOutsideTheKnownPair_IsRejected(string gender)
+    {
+        // Matching is case-sensitive on "Male"/"Female", so a value outside the pair silently
+        // removed the account from every discovery feed while showing it everyone in return.
+        var controller = BuildController(Guid.NewGuid());
+
+        var result = await controller.Upsert(Profile(gender: gender));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Upsert_CityNotOnTheMongolianMap_IsRejected()
+    {
+        // The leaderboard is scoped by city, so an invented one made the caller rank 1 of 1.
+        var controller = BuildController(Guid.NewGuid());
+
+        var result = await controller.Upsert(Profile(city: "Atlantis"));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Upsert_PhotoHostedSomewhereThisEngineDoesNotOwn_IsRejected()
+    {
+        // Photos must come from POST /photos. An arbitrary origin leaks every viewer's IP to
+        // whoever runs it and can be swapped for something else after moderation has passed it.
+        var controller = BuildController(Guid.NewGuid());
+
+        var result = await controller.Upsert(Profile(
+            photos: ["https://evil.example/x.jpg", "/uploads/photos/b.jpg", "/uploads/photos/c.jpg"]));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+
+    [Fact]
+    public async Task Upsert_OwnedPhotosKnownCityAndAKnownGender_Succeeds()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+
+        var ok = Assert.IsType<OkObjectResult>(await controller.Upsert(Profile()));
+
+        Assert.True(Assert.IsType<UserResponse>(ok.Value).IsProfileComplete);
+    }
+
+    [Theory]
+    [InlineData("Socially")]   // what the seed used; the app has no key for it
+    [InlineData("socially")]
+    [InlineData("Whenever")]
+    public async Task Update_ADrinkingHabitOutsideTheOfferedSet_IsRejected(string habit)
+    {
+        // These were free text, so a value the app has no translation for stuck to the profile and
+        // rendered in chat as [missing "en.habit_socially"] — a raw i18n key shown to a real user.
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        await controller.Upsert(Profile());
+
+        var result = await controller.Update(new UpdateUserRequest(
+            null, null, null, null, null, habit, null, null));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Update_TheHabitsLifestyleAndReligionTheAppOffers_AreAccepted()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        await controller.Upsert(Profile());
+
+        var result = await controller.Update(new UpdateUserRequest(
+            null, null, null, null, "Never", "Occasionally", "Buddhist", "Balanced"));
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Update_PhotosAlreadyOnTheProfile_SurviveAChangeOfPublicBaseUrl()
+    {
+        // The app re-sends the whole photo list on any edit. Storage:PublicBaseUrl legitimately
+        // differs between localhost, the LAN IP used for device testing and production, so
+        // validating every entry against the *current* origin locked every existing user out of
+        // editing their own profile the moment that setting changed.
+        var userId = Guid.NewGuid();
+        var stored = new List<string>
+        {
+            "http://an-older-origin.example/uploads/photos/a.jpg",
+            "http://an-older-origin.example/uploads/photos/b.jpg",
+        };
+        Db.Users.Add(new User
+        {
+            Id = userId, DisplayName = "Kept", Age = 30, Gender = "Male", City = "Ulaanbaatar",
+            Bio = "Photos stored under an origin this engine no longer advertises",
+            PhotoUrls = stored,
+        });
+        await Db.SaveChangesAsync();
+
+        var result = await BuildController(userId).Update(new UpdateUserRequest(
+            null, "Just editing my bio", stored, null, null, null, null, null));
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Update_ANewForeignPhoto_IsStillRejectedEvenAlongsideKeptOnes()
+    {
+        var userId = Guid.NewGuid();
+        var stored = new List<string> { "http://an-older-origin.example/uploads/photos/a.jpg" };
+        Db.Users.Add(new User
+        {
+            Id = userId, DisplayName = "Kept", Age = 30, Gender = "Male", City = "Ulaanbaatar",
+            Bio = "Grandfathering must not become a way in", PhotoUrls = stored,
+        });
+        await Db.SaveChangesAsync();
+
+        var result = await BuildController(userId).Update(new UpdateUserRequest(
+            null, null, [.. stored, "https://evil.example/x.jpg"], null, null, null, null, null));
+
+        Assert.IsType<BadRequestObjectResult>(result);
     }
 }

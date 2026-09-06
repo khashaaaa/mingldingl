@@ -42,6 +42,39 @@ public static class MongoliaGeo
 
     public static readonly IReadOnlyList<CityPoint> Cities = [.. Provinces, .. UlaanbaatarDistricts];
 
+    /// <summary>
+    /// Every city label a profile may carry. This is deliberately wider than <see cref="Cities"/>,
+    /// which exists to answer "which point is nearest" and therefore lists Ulaanbaatar as its nine
+    /// districts rather than as itself. Onboarding writes the capital's own name, so it has to be
+    /// accepted here or a perfectly ordinary Ulaanbaatar profile is rejected.
+    /// </summary>
+    public const string Capital = "Ulaanbaatar";
+
+    public static readonly IReadOnlySet<string> AcceptedCityNames =
+        new HashSet<string>(Cities.Select(c => c.Name).Append(Capital), StringComparer.Ordinal);
+
+    // The capital's nine districts plus its own name. NearestCity resolves an Ulaanbaatar
+    // coordinate to whichever district is closest, and the district picker lets a profile carry a
+    // district too — so these are the City values that all mean "Ulaanbaatar" for grouping.
+    private static readonly IReadOnlySet<string> UlaanbaatarNames =
+        new HashSet<string>(UlaanbaatarDistricts.Select(d => d.Name).Append(Capital), StringComparer.Ordinal);
+
+    /// <summary>
+    /// The city a leaderboard groups under: every Ulaanbaatar district collapses to the capital so
+    /// the city of ~1.6M shares one board instead of nine near-empty ones; every province stands
+    /// for itself. Null or empty stays empty.
+    /// </summary>
+    public static string CanonicalCity(string? city) =>
+        city is not null && UlaanbaatarNames.Contains(city) ? Capital : city ?? string.Empty;
+
+    /// <summary>
+    /// Every stored City value that shares <paramref name="city"/>'s leaderboard cohort, for a
+    /// `City IN (...)` filter: the capital's cohort is all nine districts plus "Ulaanbaatar"; a
+    /// province's cohort is itself alone.
+    /// </summary>
+    public static IReadOnlyList<string> CohortCityNames(string? city) =>
+        CanonicalCity(city) == Capital ? UlaanbaatarNames.ToList() : [city ?? string.Empty];
+
     public static string NearestCity(double latitude, double longitude) =>
         Cities
             .OrderBy(c => DistanceKm(latitude, longitude, c.Latitude, c.Longitude))

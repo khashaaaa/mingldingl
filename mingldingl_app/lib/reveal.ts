@@ -45,7 +45,16 @@ export function nextRevealThreshold(messageCount: number, from: number[] = ladde
   return from.slice(1).find((t) => messageCount < t) ?? null;
 }
 
-/** Messages a match needs before deep-profile fields (level 4) show. */
+/**
+ * The top rung of the ladder — the one that carries the deep-profile fields. Derived from the
+ * ladder rather than written as a literal so the app and `LEVELS` cannot fall out of step if a
+ * rung is ever added or removed.
+ */
+export function deepRevealLevel(from: number[] = ladder): number {
+  return from.length;
+}
+
+/** Messages a match needs before deep-profile fields show. */
 export function deepProfileThreshold(from: number[] = ladder): number {
   return from[from.length - 1];
 }

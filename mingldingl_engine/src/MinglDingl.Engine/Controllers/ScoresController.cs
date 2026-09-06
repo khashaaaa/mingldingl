@@ -166,8 +166,13 @@ public class ScoresController : ControllerBase
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
         if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
+        // Group by cohort, not by the raw City string: Ulaanbaatar's districts (which is what GPS
+        // resolves to, and what the district picker can store) all belong on the one capital board,
+        // or every district that isn't the seed's bare "Ulaanbaatar" gets a lonely board of one.
+        var cohort = MongoliaGeo.CohortCityNames(user.City);
+
         var top = await _db.Users.AsNoTracking()
-            .Where(u => u.City == user.City)
+            .Where(u => cohort.Contains(u.City))
             .OrderByDescending(u => u.TotalScore)
             .ThenBy(u => u.Id)
             .Take(50)
@@ -185,11 +190,11 @@ public class ScoresController : ControllerBase
         }
         else
         {
-            myRank = 1 + await _db.Users.CountAsync(u => u.City == user.City && u.TotalScore > user.TotalScore);
+            myRank = 1 + await _db.Users.CountAsync(u => cohort.Contains(u.City) && u.TotalScore > user.TotalScore);
             entries.Add(new LeaderboardEntryDto(myRank, user.GemTier, user.TotalScore, true));
         }
 
-        return Ok(new LeaderboardResponse(user.City, entries, myRank));
+        return Ok(new LeaderboardResponse(MongoliaGeo.CanonicalCity(user.City), entries, myRank));
     }
 
     [HttpPost("daily-login")]

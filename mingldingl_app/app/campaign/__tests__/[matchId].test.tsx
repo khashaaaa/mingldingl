@@ -94,4 +94,15 @@ describe('CampaignScreen', () => {
 
     getByText('The campaign is closed for now.');
   });
+
+  it('names the boss rather than the whole campaign when rooms are still uncleared', () => {
+    // bossCleared is only "the boss room fell", and the other rooms unlock on their own terms — so
+    // "Campaign complete" sat directly under "2 of 7 rooms cleared", contradicting it on screen.
+    stubCampaign({ campaign: { ...campaign, bossCleared: true } });
+    const { getByText } = render(<WithSafeArea><CampaignScreen /></WithSafeArea>);
+
+    getByText('2 of 7 rooms cleared');
+    getByText('The seal is broken — your legend is written.');
+  });
+
 });

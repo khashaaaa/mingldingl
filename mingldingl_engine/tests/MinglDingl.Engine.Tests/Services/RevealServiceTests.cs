@@ -13,7 +13,13 @@ public class RevealServiceTests
     [InlineData(30, 4)]
     public void GetRevealLevel_ByMessageCount_ReturnsCorrectLevel(int messages, int expected)
     {
-        var match = new Match { MessageCount = messages, Status = "Active" };
+        // Split evenly: these cases describe a balanced conversation of `messages` total, which is
+        // what the ladder has always been documented to measure.
+        var match = new Match
+        {
+            MessageCount = messages, Status = "Active",
+            InitiatorMessageCount = messages - messages / 2, ReceiverMessageCount = messages / 2,
+        };
         Assert.Equal(expected, RevealService.GetRevealLevel(Config, match));
     }
 
@@ -38,7 +44,11 @@ public class RevealServiceTests
     [Fact]
     public void GetRevealLevel_MessageVolumeRaisesTheLevelAboveTheStoredFloor()
     {
-        var match = new Match { Status = "Active", RevealLevel = 1, MessageCount = 20 };
+        var match = new Match
+        {
+            Status = "Active", RevealLevel = 1, MessageCount = 20,
+            InitiatorMessageCount = 10, ReceiverMessageCount = 10,
+        };
 
         Assert.Equal(3, RevealService.GetRevealLevel(Config, match));
     }
@@ -112,4 +122,68 @@ public class RevealServiceTests
             Assert.Equal(defaultMessages.ToString(), def!.DefaultValue);
         }
     }
+
+    /// <summary>
+    /// The ladder is meant to be "earned by how much the two have actually said to each other".
+    /// Reading the combined count alone let one person spend 30 messages into silence and unlock a
+    /// stranger's age, district and both locked photos, which is the whole mechanic defeated.
+    /// A conversation counts only as far as the quieter side has matched it.
+    /// </summary>
+    [Fact]
+    public void GetRevealLevel_OnlyOneSideHasEverSpoken_StaysAtTheFloor()
+    {
+        var config = new ConfigService();
+        var match = new Match
+        {
+            Status = "Active",
+            RevealLevel = 1,
+            InitiatorMessageCount = 30,
+            ReceiverMessageCount = 0,
+            MessageCount = 30,
+        };
+
+        Assert.Equal(1, RevealService.GetRevealLevel(config, match));
+    }
+
+    [Fact]
+    public void GetRevealLevel_BalancedConversation_ReachesTheSameLevelAsBefore()
+    {
+        var config = new ConfigService();
+        var match = new Match
+        {
+            Status = "Active",
+            RevealLevel = 1,
+            InitiatorMessageCount = 15,
+            ReceiverMessageCount = 15,
+            MessageCount = 30,
+        };
+
+        Assert.Equal(4, RevealService.GetRevealLevel(config, match));
+    }
+
+    [Fact]
+    public void GetRevealLevel_LopsidedConversation_CountsOnlyAsFarAsTheQuieterSide()
+    {
+        var config = new ConfigService();
+        // 25 and 5: the pair have genuinely exchanged 5 each, so the ladder sees 10, not 30.
+        var match = new Match
+        {
+            Status = "Active",
+            RevealLevel = 1,
+            InitiatorMessageCount = 25,
+            ReceiverMessageCount = 5,
+            MessageCount = 30,
+        };
+
+        Assert.Equal(2, RevealService.GetRevealLevel(config, match));
+    }
+
+    [Theory]
+    [InlineData(15, 15, 30, 30)]  // balanced: the whole conversation counts
+    [InlineData(3, 2, 5, 5)]      // one ahead is still a conversation
+    [InlineData(25, 5, 30, 11)]   // lopsided: capped just past the quieter side
+    [InlineData(30, 0, 30, 1)]    // a monologue never counts as more than its first message
+    public void MutualMessageCount_LetsYouLeadByOneMessageAndNoMore(int a, int b, int total, int expected) =>
+        Assert.Equal(expected, RevealService.MutualMessageCount(
+            new Match { InitiatorMessageCount = a, ReceiverMessageCount = b, MessageCount = total }));
 }

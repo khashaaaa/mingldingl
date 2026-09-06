@@ -60,6 +60,10 @@ public class TownSquareController : ControllerBase
         if (pairing is null) return this.NotFoundError("You are not paired in this round", "square.not_paired");
 
         var icebreaker = await _db.Icebreakers.FindAsync(round.IcebreakerId);
+        var locale = await _db.Users.AsNoTracking()
+            .Where(u => u.Id == this.CurrentUserId())
+            .Select(u => u.PreferredLocale)
+            .FirstOrDefaultAsync();
 
         string token = _videoToken.GenerateToken(pairing.Id);
         string channelName = pairing.Id.ToString("N");
@@ -67,7 +71,8 @@ public class TownSquareController : ControllerBase
 
         return Ok(new CurrentRoundResponse(
             pairing.Id, token, channelName, _videoToken.AppId,
-            icebreaker?.QuestionText ?? "", round.RoundNumber, roundEndsAt));
+            icebreaker is null ? "" : LocalisedContent.Pick(locale, icebreaker.QuestionText, icebreaker.QuestionTextEn),
+            round.RoundNumber, roundEndsAt));
     }
 
     [HttpPost("pairing/{pairingId}/joined")]

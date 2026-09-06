@@ -1,5 +1,11 @@
 /** Server error copy, keyed by the engine's stable error code (see lib/api/errors.ts). */
 export const errorsEn = {
+  err_request_invalid: 'Something in that form isn\'t right — check it over and try again.',
+  err_profile_gender_invalid: 'Choose one of the paths offered.',
+  err_profile_city_invalid: 'Choose a place on the map of Mongolia.',
+  err_profile_photo_not_owned: 'Portraits must be uploaded here, not linked from elsewhere.',
+  err_match_self: 'You cannot summon yourself.',
+  err_icebreaker_not_found: 'That question is no longer in the deck.',
   err_phone_verification_required: 'Prove your number before you enter the realm.',
   err_phone_not_verified: 'That number hasn\'t been proven yet.',
   err_phone_new_not_verified: 'Prove the new number before switching to it.',
@@ -14,6 +20,7 @@ export const errorsEn = {
   err_auth_token_required: 'You need to sign in again.',
   err_user_not_found: 'No such traveler.',
   err_user_profile_incomplete: 'Finish creating your character first.',
+  err_profile_display_name_required: 'Give your character a name.',
   err_profile_age_range_invalid: 'The lowest age can\'t be above the highest.',
   err_profile_locale_invalid: 'That language isn\'t one the realm speaks yet.',
   err_profile_location_invalid: 'That location is off the map.',

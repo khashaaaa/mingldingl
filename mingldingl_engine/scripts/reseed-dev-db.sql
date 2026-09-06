@@ -107,10 +107,10 @@ SELECT
     :'api_host' || '/uploads/photos/seed/' || slug || '-3.jpg'),
   true,
   (i % 5 = 0),
-  (ARRAY['Never','Socially','Regularly'])[1 + (i % 3)],
-  (ARRAY['Never','Socially','Regularly'])[1 + ((i+1) % 3)],
-  (ARRAY['Buddhist','None','Spiritual'])[1 + (i % 3)],
-  (ARRAY['Active','Balanced','Homebody'])[1 + ((i+2) % 3)],
+  (ARRAY['Never','Occasionally','Regularly'])[1 + (i % 3)],
+  (ARRAY['Never','Occasionally','Regularly'])[1 + ((i+1) % 3)],
+  (ARRAY['Buddhist','None','Other'])[1 + (i % 3)],
+  (ARRAY['Active','Balanced','Relaxed'])[1 + ((i+2) % 3)],
   score,
   -- Must match ScoreService.TierDefaults exactly, or a user's stored tier disagrees with
   -- what the engine would compute from their score.
@@ -172,7 +172,7 @@ SELECT
   name || ' B.', 34 + (i % 22), gender, 'Ulaanbaatar', bio,
   jsonb_build_array(:'api_host' || '/uploads/photos/seed/alt-' || i || '-1.jpg'),
   (i % 7 <> 0),
-  (i % 3 = 0), 'Never', 'Socially', 'Buddhist', 'Homebody',
+  (i % 3 = 0), 'Never', 'Occasionally', 'Buddhist', 'Relaxed',
   (i * 53) % 900,
   CASE WHEN (i * 53) % 900 >= 600 THEN 'Sapphire' WHEN (i * 53) % 900 >= 300 THEN 'Amethyst'
        WHEN (i * 53) % 900 >= 100 THEN 'Opal' ELSE 'Garnet' END,

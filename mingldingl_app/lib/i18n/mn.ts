@@ -105,6 +105,9 @@ export const mn = {
 
   ...errorsMn,
 
+  oath_reswear_title: 'Баталсан тангаргаа солих уу?',
+  oath_reswear_body: 'Та энэ тангаргаа аль хэдийн баталсан. Өөр тангараг өргөвөл тэр баталгаа арилж, уулзалтын тоо шинээр эхэлнэ. Баталсны шагналыг дахин олгохгүй.',
+  oath_reswear_confirm: 'Шинэ тангараг өргөх',
   action_failed_title: 'Оролдлого замхарлаа',
   action_failed_body: 'Ямар нэг зүйл буруу боллоо — дахин оролдоно уу.',
   daily_budget_title: 'Хаант улс амарч байна',
@@ -473,11 +476,11 @@ export const mn = {
   oath_progress: '%{needed} уулзалтаас %{held}-г нь даван туулсан',
   oath_prompt_banner: 'Зөв хүмүүс таныг олохын тулд тангаргаа өргө.',
   oath_step_heading: 'Та юуны төлөө энд байна вэ?',
-  oath_step_help: 'Энэ таны картан дээр харагдана. Дараа дахин тангараглаж болно — зүгээр л баталгаа шинээр эхэлнэ.',
+  oath_step_help: 'Энэ таны картан дээр харагдана. Дараа өөрчилж болно, гэхдээ өөр тангараг өргөвөл баталгаа шинээр эхэлнэ.',
   campaign_title: 'Аян',
   campaign_banner: 'Аяны газрын зураг — %{cleared}/%{total} өрөө',
   campaign_progress: 'Нийт %{total} өрөөнөөс %{cleared}-г давлаа',
-  campaign_complete: 'Аян дууслаа — та хоёрын домог бичигдлээ.',
+  campaign_complete: 'Лац хагарлаа — та хоёрын домог бичигдлээ.',
   campaign_room_gate: 'Учралын дааман хаалга',
   campaign_room_echoes: 'Цуурайн танхим',
   campaign_room_runes: 'Рүнийн өргөө',

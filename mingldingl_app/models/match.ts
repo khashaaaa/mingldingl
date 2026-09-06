@@ -19,6 +19,8 @@ export interface PartialUser {
   secondPhoto?: string;
   thirdPhoto?: string;
   district?: string;
+  /** How many photos they have at all, revealed or not — see PartialUserProfile.PhotoCount. */
+  photoCount?: number;
   deep?: DeepFields | null;
 
   isDeleted?: boolean;

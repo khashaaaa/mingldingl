@@ -7,6 +7,13 @@ public class Match
     public User Receiver { get; set; } = null!;
     public string Status { get; set; } = "Active";
     public int MessageCount { get; set; }
+
+    /// <summary>
+    /// Per-side totals, because the reveal ladder must not be climbable alone. <see cref="MessageCount"/>
+    /// stays the combined figure every other feature (quests, campaign, activity suggestions) reads.
+    /// </summary>
+    public int InitiatorMessageCount { get; set; }
+    public int ReceiverMessageCount { get; set; }
     public int RevealLevel { get; set; }
     public bool IcebreakerComplete { get; set; }
     public bool VideoCallUnlocked { get; set; }

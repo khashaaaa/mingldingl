@@ -19,6 +19,47 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Leaderboard_UlaanbaatarDistrictUser_SharesTheCapitalCohort()
+    {
+        var capitalUser = NewCompleteUser();
+        capitalUser.City = "Ulaanbaatar";
+        capitalUser.TotalScore = 999_998;
+        var districtUser = NewCompleteUser();
+        districtUser.City = "Khan-Uul"; // a UB district — before the fix this was its own lonely board
+        districtUser.TotalScore = 999_999;
+        Db.Users.AddRange(capitalUser, districtUser);
+        await Db.SaveChangesAsync();
+
+        var result = await BuildController(districtUser.Id).GetLeaderboard();
+        var board = Assert.IsType<LeaderboardResponse>(Assert.IsType<OkObjectResult>(result).Value);
+
+        Assert.Equal("Ulaanbaatar", board.City);
+        // Both the district user and the capital user share one board; the district user tops it.
+        Assert.Equal(999_999, board.Entries[0].Score);
+        Assert.True(board.Entries[0].IsCurrentUser);
+        Assert.Contains(board.Entries, e => e.Score == 999_998 && !e.IsCurrentUser);
+    }
+
+    [Fact]
+    public async Task Leaderboard_ProvinceUser_DoesNotSeeTheCapitalCohort()
+    {
+        var capitalUser = NewCompleteUser();
+        capitalUser.City = "Ulaanbaatar";
+        capitalUser.TotalScore = 999_996;
+        var provinceUser = NewCompleteUser();
+        provinceUser.City = "Erdenet";
+        provinceUser.TotalScore = 999_997;
+        Db.Users.AddRange(capitalUser, provinceUser);
+        await Db.SaveChangesAsync();
+
+        var result = await BuildController(provinceUser.Id).GetLeaderboard();
+        var board = Assert.IsType<LeaderboardResponse>(Assert.IsType<OkObjectResult>(result).Value);
+
+        Assert.Equal("Erdenet", board.City);
+        Assert.DoesNotContain(board.Entries, e => e.Score == 999_996);
+    }
+
+    [Fact]
     public async Task DailyLogin_CalledTwiceSameDay_OnlyFirstCallAwardsXp()
     {
         var userId = Guid.NewGuid();

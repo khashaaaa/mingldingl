@@ -55,4 +55,45 @@ public class MongoliaGeoTests
     {
         Assert.Equal(expected, MongoliaGeo.IsValidCoordinate(lat, lon));
     }
+
+    [Fact]
+    public void CanonicalCity_UlaanbaatarDistricts_CollapseToTheCapital()
+    {
+        Assert.Equal("Ulaanbaatar", MongoliaGeo.CanonicalCity("Ulaanbaatar"));
+        foreach (var district in MongoliaGeo.UlaanbaatarDistricts)
+            Assert.Equal("Ulaanbaatar", MongoliaGeo.CanonicalCity(district.Name));
+    }
+
+    [Fact]
+    public void CanonicalCity_Provinces_StandForThemselves()
+    {
+        Assert.Equal("Erdenet", MongoliaGeo.CanonicalCity("Erdenet"));
+        Assert.Equal("Darkhan", MongoliaGeo.CanonicalCity("Darkhan"));
+    }
+
+    [Fact]
+    public void CanonicalCity_NullOrEmpty_IsEmpty()
+    {
+        Assert.Equal("", MongoliaGeo.CanonicalCity(null));
+        Assert.Equal("", MongoliaGeo.CanonicalCity(""));
+    }
+
+    [Fact]
+    public void CohortCityNames_ForTheCapital_GathersEveryDistrictAndTheBareName()
+    {
+        var cohort = MongoliaGeo.CohortCityNames("Khan-Uul");
+        Assert.Contains("Ulaanbaatar", cohort);
+        foreach (var district in MongoliaGeo.UlaanbaatarDistricts)
+            Assert.Contains(district.Name, cohort);
+        // The same set whether asked by district or by the capital's own name.
+        Assert.Equal(
+            new HashSet<string>(cohort),
+            new HashSet<string>(MongoliaGeo.CohortCityNames("Ulaanbaatar")));
+    }
+
+    [Fact]
+    public void CohortCityNames_ForAProvince_IsThatProvinceAlone()
+    {
+        Assert.Equal(["Erdenet"], MongoliaGeo.CohortCityNames("Erdenet"));
+    }
 }

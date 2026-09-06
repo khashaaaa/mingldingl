@@ -513,11 +513,16 @@ All need the `verify` skill (real Supabase JWTs, full stack running).
   `MessagesController.SendMessage` behind a config key, banner becomes a wall.
 - **The video-screen countdown is decorative** — resets on remount, not anchored to token issue
   or `FlameRiteAcceptedAt`, and 0:00 does nothing. Reads as an enforced limit that isn't.
-- **`MatchReply` (+10) has no cap.** Two accounts alternating one-character messages farm score
-  without limit — 200 messages to Emerald. Options: per-match/per-day cap, minimum length, decay.
+- **`MatchReply` (+10) is capped but still farmable at a slower rate.** The per-match/per-day cap
+  (`score.match_reply.daily_cap_per_match`, default 10) landed 2026-09-06, so one conversation is
+  worth at most +100/day instead of being unbounded. Two colluding accounts can still spread the
+  farm across their daily match budget — roughly 500/day, so Emerald in ~4 days rather than two
+  minutes. Whether to tighten further (minimum length, decay) is a tuning call, not a bug.
 - **A match where nobody ever messages can never be ghosted** — both the sweep and
   `GhostingService.IsStale` require `LastMessageAt != null`. Falling back to `CreatedAt` closes it
-  but leaves no single party to penalise (`LastMessageSenderId` is also null).
+  but leaves no single party to penalise (`LastMessageSenderId` is also null). Related and now
+  fixed: a *recipient* who never sent anything is no longer penalised either
+  (`GhostingService.GetPenalisableGhostAsync`) — see the QA pass below.
 - **`ReportPenalty` (−30) has no award path** — no report endpoint exists. Closing it means a
   report flow: endpoint, moderation surface in `mingldingl_control`, award call site.
   `ScoreHistoryList.ENGINE_EVENT_TYPES` deliberately omits it.
@@ -525,6 +530,89 @@ All need the `verify` skill (real Supabase JWTs, full stack running).
   repeat recruit deserves acknowledgement is a product call.
 - **Kill switches show copy rather than hiding entry points** (`ships.enabled`,
   `townsquare.enabled`). Hiding the tab / weave CTA on a 404 is a follow-up if used in anger.
+
+## QA pass, 2026-09-06 — mechanics testing and fix wave
+
+Drove the live engine with real Supabase JWTs (signup → match → icebreaker → chat → reveal →
+ghosting sweep), then fixed everything found. Engine 816 → 844 tests, app 641 → 648.
+
+**Fixed — behaviour**
+
+- **Reputation griefing.** `POST /matches` needs no consent and `GhostingService` penalised whoever
+  did not reply, so three strangers could take a victim from Opal/100/rep 1.0 to Garnet/55/rep 0.7
+  without that victim ever opening the app. A recipient who never sent a message into the match is
+  no longer at fault. The batched copy of this rule in `DailyMaintenanceBackgroundService` — the
+  path that actually runs hourly in production — had to be fixed separately; fixing only
+  `GhostingService.CheckAsync` left the exploit fully open, which the live re-test caught.
+- **`MatchEligibility`** now holds the one rule discovery and the summon endpoint share (consumed as
+  SQL by `GetCandidates`, compiled for the single-target check). `POST /matches` previously ignored
+  every filter: self-match returned 200 and created a real row, a missing target surfaced as a 500,
+  and paused, pending-deletion, out-of-age-range and same-gender targets were all reachable.
+- **The reveal ladder was climbable alone.** It read `Match.MessageCount`, the combined figure, so
+  30 messages into silence unlocked a stranger's age, district and both locked photos.
+  `RevealService.MutualMessageCount` now allows a lead of one message and no more; `Match` carries
+  per-side counters, backfilled from `messages` so no live match dropped a rung.
+- **`awarded` lied.** Every icebreaker after the first on a match reported the config delta while
+  paying nothing, and `useIcebreaker` fed that straight into the reward toast.
+- **Unvalidated profile fields.** `Gender` (a lowercase `"male"` silently removed the account from
+  every discovery feed), `City` (an invented one gave a leaderboard of one), photo URLs (any origin,
+  bypassing uploads), and the habit/religion/lifestyle enums. All now validated against a closed set
+  in `ProfileValidation`; `MongoliaGeo.AcceptedCityNames` exists because the canonical list holds
+  Ulaanbaatar's nine districts but not the capital's own name, which is what onboarding writes.
+- **Oath re-swear** was destructive twice over: re-swearing the *same* oath reset the vow for
+  nothing (now a no-op), and switching oaths clears `OathProven` for a reward that is never paid
+  twice (now behind a confirmation).
+- Icebreaker responses accepted any GUID; `GetCandidates` loaded every match participant in the
+  database into memory for one tie-break.
+- **A regression introduced by this same pass, caught on review.** The photo-origin check was
+  origin-strict against the *current* `Storage:PublicBaseUrl`, and the app re-sends the whole photo
+  list on any edit — so changing that setting (localhost → LAN → production domain) returned
+  `profile.photo_not_owned` for photos the user never touched, locking every existing account out
+  of profile editing. Photos already on the row are now grandfathered; only genuinely new entries
+  have to prove they came from this service.
+
+**Fixed — design detail**
+
+- **The ghost penalty was invisible.** Both parties got the same neutral push while one silently
+  lost 15 points and 0.1 reputation. `PushKind.MatchGhostedByYou` now tells the at-fault party what
+  it cost, in both languages.
+- **Icebreakers and quizzes were Mongolian-only** — one text column each, so an `en` user read
+  Cyrillic prompts inside an otherwise translated app. `LocalisedContent` picks by
+  `PreferredLocale` with a Mongolian fallback; English overlays added for all seeded content.
+- **DataAnnotations failures escaped the `DomainException` contract** — raw .NET prose, no code,
+  English only. `ModelValidationResponse` gives them `request.invalid`.
+- **A padlock on a photo that does not exist.** `PartialUserProfile.PhotoCount` lets the reveal
+  strip render only slots that can ever fill; a two-photo profile no longer shows "2 of 3" forever.
+- **`habit_socially` / `lifestyle_homebody` rendered as raw missing-key text in chat** — found only
+  by looking at a real device. The seed used a vocabulary the app had no keys for; seed corrected,
+  engine now validates, and `i18nCoverage` asserts every offered option has a label.
+
+**Found later in the same pass, by looking at real screens**
+
+- **Switching language left authored content in the old one.** Locale now drives icebreaker and quiz
+  text server-side, but the app never dropped the cached copies — a reader who switched to Mongolian
+  kept getting English questions inside an otherwise Mongolian app. `useSyncPreferredLocale` now
+  invalidates the icebreaker, quiz and Town Square round caches. This was a consequence of the
+  localisation fix itself: before it, content was Mongolian regardless of locale, so nothing could
+  go stale.
+- **"Campaign complete" contradicted the room counter.** `bossCleared` means only that the boss room
+  fell, and the other rooms unlock on their own terms, so the line sat directly under "5 of 7 rooms
+  cleared". Reworded to name the boss ("The seal is broken"), which is what the flag reports. Copy
+  judgement — change it if the intent was that beating the boss ends the campaign outright.
+- **The admin panel enforces config Min/Max client-side**, so the "ConfigField ignores Min/Max" note
+  under Known gaps is stale — out-of-range values are refused with an inline message and Save disabled.
+
+**Deliberately not done**
+
+- **More than two genders.** Validation was tightened to the pair the app offers, which closes the
+  invisibility bug. Supporting a third is a feature with matching semantics to design — it would
+  also need `MatchEligibility.OppositeGenderOf` and Town Square's `Male × Female` pairing rethought.
+- **Leaderboard anonymity** (rank/tier/score, no names) — flagged, nothing broken, left alone.
+- **Candidate discovery still materialises every eligible user** to sort on compatibility and
+  distance, which SQL cannot express. Fine at 41 users; a real wall before launch.
+- `DEEP_REVEAL_LEVEL` in `RevealStrip` was reported as drift but `lib/reveal.ts` pins `LEVELS` at
+  four, so it could not actually desynchronise. Derived from the ladder anyway; it was duplication,
+  not a live bug.
 
 ## Known gaps, deliberately not built
 

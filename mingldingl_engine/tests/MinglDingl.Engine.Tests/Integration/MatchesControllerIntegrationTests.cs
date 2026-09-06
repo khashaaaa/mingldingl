@@ -45,7 +45,10 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
             InitiatorId = viewerId,
             ReceiverId = otherId,
             Status = "Active",
+            // A balanced exchange: the deep rung is only reachable by a real two-way conversation.
             MessageCount = 30,
+            InitiatorMessageCount = 15,
+            ReceiverMessageCount = 15,
         });
         await Db.SaveChangesAsync();
 
@@ -642,4 +645,174 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         Assert.Null(response.Items[0].WeaverDisplayName);
     }
 
+    /// <summary>
+    /// A summon must be limited to someone discovery would actually have offered. These guards all
+    /// lived only in GetCandidates, so a direct POST reached paused accounts, accounts pending
+    /// deletion, people outside the caller's stated age range, and the caller themselves.
+    /// </summary>
+    private async Task<(MatchesController Controller, Guid MeId)> SeedSuitor(Action<User>? tweak = null)
+    {
+        var meId = Guid.NewGuid();
+        var me = NewCompleteUser(meId);
+        me.Gender = "Male";
+        me.Age = 30;
+        me.AgeMin = 25;
+        me.AgeMax = 35;
+        tweak?.Invoke(me);
+        Db.Users.Add(me);
+        await Db.SaveChangesAsync();
+        return (BuildController(meId), meId);
+    }
+
+    [Fact]
+    public async Task RequestMatch_TargetIsSelf_IsRejected()
+    {
+        var (controller, meId) = await SeedSuitor();
+
+        var result = await controller.RequestMatch(new RequestMatchDto(meId));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.False(await Db.Matches.AnyAsync(m => m.InitiatorId == meId && m.ReceiverId == meId));
+    }
+
+    [Fact]
+    public async Task RequestMatch_TargetDoesNotExist_IsNotFoundRatherThanAnUnhandledFailure()
+    {
+        var (controller, _) = await SeedSuitor();
+
+        var result = await controller.RequestMatch(new RequestMatchDto(Guid.NewGuid()));
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task RequestMatch_TargetHasRequestedDeletion_IsRejected()
+    {
+        var (controller, meId) = await SeedSuitor();
+        var target = NewCompleteUser();
+        target.Gender = "Female";
+        target.Age = 30;
+        target.DeletionRequestedAt = DateTime.UtcNow;
+        Db.Users.Add(target);
+        await Db.SaveChangesAsync();
+
+        var result = await controller.RequestMatch(new RequestMatchDto(target.Id));
+
+        Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, ((ObjectResult)result).StatusCode);
+        Assert.False(await Db.Matches.AnyAsync(m => m.ReceiverId == target.Id));
+    }
+
+    [Fact]
+    public async Task RequestMatch_TargetIsPaused_IsRejected()
+    {
+        var (controller, _) = await SeedSuitor();
+        var target = NewCompleteUser();
+        target.Gender = "Female";
+        target.Age = 30;
+        target.IsPaused = true;
+        Db.Users.Add(target);
+        await Db.SaveChangesAsync();
+
+        var result = await controller.RequestMatch(new RequestMatchDto(target.Id));
+
+        Assert.Equal(StatusCodes.Status403Forbidden, Assert.IsType<ObjectResult>(result).StatusCode);
+        Assert.False(await Db.Matches.AnyAsync(m => m.ReceiverId == target.Id));
+    }
+
+    [Fact]
+    public async Task RequestMatch_TargetOutsideMyStatedAgeRange_IsRejected()
+    {
+        var (controller, _) = await SeedSuitor();
+        var target = NewCompleteUser();
+        target.Gender = "Female";
+        target.Age = 55;
+        Db.Users.Add(target);
+        await Db.SaveChangesAsync();
+
+        var result = await controller.RequestMatch(new RequestMatchDto(target.Id));
+
+        Assert.Equal(StatusCodes.Status403Forbidden, Assert.IsType<ObjectResult>(result).StatusCode);
+        Assert.False(await Db.Matches.AnyAsync(m => m.ReceiverId == target.Id));
+    }
+
+    [Fact]
+    public async Task RequestMatch_TargetSharesMyGender_IsRejectedBecauseDiscoveryWouldNeverOfferThem()
+    {
+        var (controller, _) = await SeedSuitor();
+        var target = NewCompleteUser();
+        target.Gender = "Male";
+        target.Age = 30;
+        Db.Users.Add(target);
+        await Db.SaveChangesAsync();
+
+        var result = await controller.RequestMatch(new RequestMatchDto(target.Id));
+
+        Assert.Equal(StatusCodes.Status403Forbidden, Assert.IsType<ObjectResult>(result).StatusCode);
+    }
+
+    [Fact]
+    public async Task GetCandidates_AllElseEqual_ShowsSomeoneNobodyHasMatchedYetFirst()
+    {
+        // The new-user boost. Untested until now, and the next change replaces how it is computed
+        // (it loaded every match participant in the database into memory to answer it).
+        var meId = Guid.NewGuid();
+        var me = NewCompleteUser(meId);
+        me.Gender = "Male";
+        me.Age = 30;
+        me.Latitude = 47.92;
+        me.Longitude = 106.92;
+        me.Oath = null;
+
+        var untouched = NewCompleteUser();
+        var spokenFor = NewCompleteUser();
+        var thirdParty = NewCompleteUser();
+        foreach (var u in new[] { untouched, spokenFor, thirdParty })
+        {
+            u.Gender = "Female";
+            u.Age = 30;
+            u.Latitude = 47.92;
+            u.Longitude = 106.92;
+            u.Oath = null;
+            u.TotalScore = me.TotalScore;
+        }
+        thirdParty.Gender = "Male";
+
+        Db.Users.AddRange(me, untouched, spokenFor, thirdParty);
+        Db.Matches.Add(new Match
+        {
+            Id = Guid.NewGuid(), InitiatorId = thirdParty.Id, ReceiverId = spokenFor.Id, Status = "Active",
+        });
+        await Db.SaveChangesAsync();
+
+        var result = Assert.IsType<OkObjectResult>(await BuildController(meId).GetCandidates());
+        var items = Assert.IsType<PagedResponse<CandidateResponse>>(result.Value).Items;
+
+        var ranked = items.Where(i => i.Id == untouched.Id || i.Id == spokenFor.Id).ToList();
+        Assert.Equal(2, ranked.Count);
+        Assert.Equal(untouched.Id, ranked[0].Id);
+    }
+
+    [Fact]
+    public async Task GetMyMatches_ReportsHowManyPhotosTheOtherPersonActuallyHas()
+    {
+        // Without this the app cannot tell "not revealed yet" from "there is no third photo", so a
+        // two-photo profile showed a padlock on the third slot that no conversation could ever open.
+        var viewerId = Guid.NewGuid();
+        var viewer = NewCompleteUser(viewerId);
+        var other = NewCompleteUser();
+        other.PhotoUrls = ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg"];
+
+        Db.Users.AddRange(viewer, other);
+        Db.Matches.Add(new Match
+        {
+            Id = Guid.NewGuid(), InitiatorId = viewerId, ReceiverId = other.Id, Status = "Active",
+        });
+        await Db.SaveChangesAsync();
+
+        var result = Assert.IsType<OkObjectResult>(await BuildController(viewerId).GetMyMatches());
+        var body = Assert.IsType<PagedResponse<MatchResponse>>(result.Value);
+
+        Assert.Equal(2, Assert.Single(body.Items).OtherUser.PhotoCount);
+    }
 }

@@ -195,7 +195,7 @@ public class ScoreService
     /// </summary>
     private static bool ProceedsWithZeroDelta(string eventType) => eventType == "GhostPenalty";
 
-    public async Task AwardAsync(Guid userId, string eventType)
+    public async Task AwardAsync(Guid userId, string eventType, Guid? matchId = null)
     {
         int delta = Delta(eventType);
         if (delta == 0 && !ProceedsWithZeroDelta(eventType)) return;
@@ -203,9 +203,24 @@ public class ScoreService
         int? newScore = await ApplyScoreDeltaAsync(userId, delta, isGhostPenalty: eventType == "GhostPenalty");
         if (newScore is null) return;
 
-        _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta });
+        _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta, MatchId = matchId });
         await _db.SaveChangesAsync();
     }
+
+    /// <summary>
+    /// How many replies in this conversation have already paid today. <c>MatchReply</c> had no cap
+    /// at all: two accounts alternating one-character messages climbed the whole ladder unopposed.
+    /// </summary>
+    public Task<int> CountMatchReplyAwardsTodayAsync(Guid userId, Guid matchId)
+    {
+        var since = DateTime.UtcNow.Date;
+        return _db.ScoreEvents.CountAsync(e =>
+            e.UserId == userId && e.MatchId == matchId && e.EventType == "MatchReply" && e.CreatedAt >= since);
+    }
+
+    /// <summary>Replies worth score per conversation per UTC day; beyond it the thread still works, it just stops paying.</summary>
+    public int MatchReplyDailyCapPerMatch =>
+        Math.Max(0, (int)_config.GetNumber("score.match_reply.daily_cap_per_match", 10));
 
     /// <summary>
     /// Awards an event whose ScoreEvent row is guarded by one of the partial unique indexes

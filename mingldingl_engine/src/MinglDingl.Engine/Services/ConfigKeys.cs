@@ -27,6 +27,8 @@ public static class ConfigKeys
         // Scoring — the economy
         ..ScoreEvents(),
         Number("score.streak.weekly_bonus", "Scoring", "50", "Extra score on every seventh consecutive daily login", 0, 10000),
+        Number("score.match_reply.daily_cap_per_match", "Scoring", "10",
+            "Replies worth score per conversation per day; beyond it the chat still works, it just stops paying", 0, 500),
         Number("score.quest_chest", "Scoring", "30", "Score for opening the bounty chest once all of the day's quests are done (at least 1: the chest's loot is granted with its score)", 1, 10000),
         Number("tier.opal.threshold", "Scoring", "100", "Minimum total score for the Opal gem tier (must stay between Garnet and Amethyst)", 1, 1000000),
         Number("tier.amethyst.threshold", "Scoring", "300", "Minimum total score for the Amethyst gem tier (must stay between Opal and Sapphire)", 1, 1000000),

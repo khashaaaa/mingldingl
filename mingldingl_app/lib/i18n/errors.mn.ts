@@ -1,5 +1,11 @@
 /** Server error copy, keyed by the engine's stable error code (see lib/api/errors.ts). */
 export const errorsMn = {
+  err_request_invalid: 'Маягтад алдаа байна — шалгаад дахин оролдоно уу.',
+  err_profile_gender_invalid: 'Санал болгосон замуудаас сонгоно уу.',
+  err_profile_city_invalid: 'Монголын газрын зургаас сонгоно уу.',
+  err_profile_photo_not_owned: 'Хөрөг зургийг эндээс байршуулна, өөр газраас холбож болохгүй.',
+  err_match_self: 'Та өөрийгөө дуудаж болохгүй.',
+  err_icebreaker_not_found: 'Энэ асуулт багцад алга байна.',
   err_phone_verification_required: 'Ертөнцөд орохын өмнө дугаараа баталгаажуулна уу.',
   err_phone_not_verified: 'Тэр дугаар хараахан баталгаажаагүй байна.',
   err_phone_new_not_verified: 'Шинэ дугаараа солихын өмнө баталгаажуулна уу.',
@@ -14,6 +20,7 @@ export const errorsMn = {
   err_auth_token_required: 'Дахин нэвтэрнэ үү.',
   err_user_not_found: 'Тийм аялагч алга.',
   err_user_profile_incomplete: 'Эхлээд баатраа бүтээж дуусгана уу.',
+  err_profile_display_name_required: 'Дүрдээ нэр өгнө үү.',
   err_profile_age_range_invalid: 'Хамгийн бага нас нь хамгийн ихээсээ давж болохгүй.',
   err_profile_locale_invalid: 'Энэ хэлийг одоогоор дэмжихгүй байна.',
   err_profile_location_invalid: 'Тэр байршил газрын зурагт алга.',

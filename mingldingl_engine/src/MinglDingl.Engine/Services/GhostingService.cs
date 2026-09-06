@@ -25,24 +25,31 @@ public class GhostingService
 
         if (!await TryGhostAsync(match)) return false;
 
-        var atFault = GetGhostAtFaultUserId(match);
+        var atFault = await GetPenalisableGhostAsync(match);
         if (atFault.HasValue)
             await _score.AwardManyAsync([(atFault.Value, "GhostPenalty")]);
 
         if (atFault.HasValue) await _oaths.RefreshAsync(atFault.Value);
 
         await BroadcastGhostedAsync(match.Id, atFault);
-        await NotifyGhostedAsync(match);
+        await NotifyGhostedAsync(match, atFault);
 
         return true;
     }
 
-    /// <summary>Both sides learn the thread closed: the ghosted party that it is over, the ghoster that silence cost them.</summary>
-    public async Task NotifyGhostedAsync(Match match)
+    /// <summary>
+    /// Both sides learn the thread closed, but not in the same words: the ghosted party that it is
+    /// over, the ghoster that their silence cost them score and standing. They used to get the
+    /// identical neutral line, so the penalty landed with no explanation attached to it anywhere.
+    /// </summary>
+    public async Task NotifyGhostedAsync(Match match, Guid? atFaultUserId = null)
     {
         var data = new Dictionary<string, object> { ["matchId"] = match.Id.ToString() };
-        await _push.NotifyUserAsync(match.InitiatorId, PushKind.MatchGhosted, data);
-        await _push.NotifyUserAsync(match.ReceiverId, PushKind.MatchGhosted, data);
+        foreach (var participant in new[] { match.InitiatorId, match.ReceiverId })
+        {
+            var kind = participant == atFaultUserId ? PushKind.MatchGhostedByYou : PushKind.MatchGhosted;
+            await _push.NotifyUserAsync(participant, kind, data);
+        }
     }
 
     public async Task<bool> TryGhostAsync(Match match)
@@ -78,4 +85,21 @@ public class GhostingService
     public static Guid? GetGhostAtFaultUserId(Match match) =>
         match.LastMessageSenderId is null ? null :
         match.LastMessageSenderId == match.InitiatorId ? match.ReceiverId : match.InitiatorId;
+
+    /// <summary>
+    /// The party who owes a penalty for the silence, or null when nobody does. A match is created
+    /// without the target's consent, so a recipient who never sent a single message never entered
+    /// the conversation — their silence is disinterest, not ghosting. Docking it let a stranger
+    /// drain a victim's score by matching them, sending one message and waiting out the window.
+    /// Only someone who spoke and then stopped has abandoned anything.
+    /// </summary>
+    public async Task<Guid?> GetPenalisableGhostAsync(Match match)
+    {
+        var atFault = GetGhostAtFaultUserId(match);
+        if (atFault is null) return null;
+
+        bool everSpoke = await _db.Messages
+            .AnyAsync(m => m.MatchId == match.Id && m.SenderId == atFault.Value);
+        return everSpoke ? atFault : null;
+    }
 }

@@ -12,11 +12,11 @@ jest.mock('../../../hooks/useOath', () => ({
   useSwearOath: () => ({ swear: mockSwear, isSwearing: mockIsSwearing, swearError: mockSwearError }),
 }));
 
-function renderCard(oath: (typeof OATH_VALUES)[number] | null = null) {
+function renderCard(oath: (typeof OATH_VALUES)[number] | null = null, oathProven = false) {
   return render(
     <OathCard
       oath={oath}
-      oathProven={false}
+      oathProven={oathProven}
       encountersHeld={null}
       encountersNeeded={null}
       gemTier="Garnet"
@@ -80,5 +80,47 @@ describe('OathCard', () => {
     const { getByText } = renderCard();
 
     expect(getByText(i18n.t('action_failed_title'))).toBeTruthy();
+  });
+
+  it('warns before a proven oath is traded away, and does not swear until confirmed', () => {
+    // Swearing a different oath clears OathProven and restarts the vow, and the +40 is never paid
+    // twice — so an unconfirmed tap here permanently costs the badge.
+    const { getAllByText, getByText, queryByText } = renderCard('Bond', true);
+
+    // CardEyebrow uppercases its label.
+    fireEvent.press(getByText(i18n.t('oath_title').toUpperCase()));
+    // 'Fate' also labels the sigil on the card behind the sheet; the picker row is last.
+    fireEvent.press(getAllByText(i18n.t(OATH_NAME_KEYS.Fate)).at(-1)!);
+
+    expect(mockSwear).not.toHaveBeenCalled();
+    expect(queryByText(i18n.t('oath_reswear_title'))).toBeTruthy();
+
+    // GameButton uppercases its label.
+    fireEvent.press(getByText(i18n.t('oath_reswear_confirm').toUpperCase()));
+    expect(mockSwear).toHaveBeenCalledWith('Fate');
+  });
+
+  it('lets the warning be backed out of without changing the oath', () => {
+    const { getAllByText, getByText } = renderCard('Bond', true);
+
+    // CardEyebrow uppercases its label.
+    fireEvent.press(getByText(i18n.t('oath_title').toUpperCase()));
+    // 'Fate' also labels the sigil on the card behind the sheet; the picker row is last.
+    fireEvent.press(getAllByText(i18n.t(OATH_NAME_KEYS.Fate)).at(-1)!);
+    // GameButton uppercases its label.
+    fireEvent.press(getByText(i18n.t('alert_cancel').toUpperCase()));
+
+    expect(mockSwear).not.toHaveBeenCalled();
+  });
+
+  it('does not warn when there is no proven vow to lose', () => {
+    const { getAllByText, getByText } = renderCard('Bond', false);
+
+    // CardEyebrow uppercases its label.
+    fireEvent.press(getByText(i18n.t('oath_title').toUpperCase()));
+    // 'Fate' also labels the sigil on the card behind the sheet; the picker row is last.
+    fireEvent.press(getAllByText(i18n.t(OATH_NAME_KEYS.Fate)).at(-1)!);
+
+    expect(mockSwear).toHaveBeenCalledWith('Fate');
   });
 });

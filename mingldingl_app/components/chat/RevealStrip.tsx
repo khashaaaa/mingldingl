@@ -7,7 +7,7 @@ import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE } from '../../lib/theme';
 import type { DeepFields, PartialUser } from '../../models/match';
 import { CardEyebrow } from '../ui/CardEyebrow';
-import { nextRevealThreshold } from '../../lib/reveal';
+import { deepRevealLevel, nextRevealThreshold } from '../../lib/reveal';
 import { useRevealLadder } from '../../hooks/useRevealThresholds';
 
 interface Chip {
@@ -44,14 +44,18 @@ export function RevealStrip({ otherUser, messageCount, revealLevel, defaultExpan
   const [expanded, setExpanded] = useState(defaultExpanded);
   const revealLadder = useRevealLadder();
   const router = useRouter();
-  const photos = [otherUser.firstPhoto, otherUser.secondPhoto, otherUser.thirdPhoto];
+  // Only as many slots as they actually have. A padlock on a photo that does not exist reads as
+  // "keep talking and this opens", and it never does.
+  const allSlots = [otherUser.firstPhoto, otherUser.secondPhoto, otherUser.thirdPhoto];
+  const slotCount = Math.min(otherUser.photoCount ?? allSlots.length, allSlots.length);
+  const photos = allSlots.slice(0, Math.max(slotCount, 1));
   const nextAt = nextRevealThreshold(messageCount, revealLadder);
-  const photosShown = [otherUser.firstPhoto, otherUser.secondPhoto, otherUser.thirdPhoto].filter(Boolean).length;
+  const photosShown = photos.filter(Boolean).length;
   // The engine hands out deep fields at the top rung *and* only to Silver/Gold. Once the
   // conversation has earned that rung, an absent `deep` can only be the membership gate — showing
   // it under the same padlock as an unearned field reads as a bug rather than as a paywall.
   const deepGatedByMembership =
-    revealLevel != null && revealLevel >= DEEP_REVEAL_LEVEL && !otherUser.deep;
+    revealLevel != null && revealLevel >= deepRevealLevel(revealLadder) && !otherUser.deep;
   const chips: Chip[] = [
     { key: 'age', label: i18n.t('reveal_age'), value: otherUser.age != null ? String(otherUser.age) : null },
     { key: 'district', label: i18n.t('reveal_district'), value: otherUser.district ?? null },
@@ -76,7 +80,7 @@ export function RevealStrip({ otherUser, messageCount, revealLevel, defaultExpan
       >
         {expanded
           ? <CardEyebrow style={styles.title}>{i18n.t('reveal_title')}</CardEyebrow>
-          : <Text style={styles.summary}>{i18n.t('reveal_summary', { shown: photosShown, total: 3 })}</Text>}
+          : <Text style={styles.summary}>{i18n.t('reveal_summary', { shown: photosShown, total: photos.length })}</Text>}
         <View style={styles.progressRow}>
           <Text style={styles.next}>{progress}</Text>
           <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size={ICON_SIZES.sm} color={COLORS.textDim} />
@@ -123,9 +127,6 @@ export function RevealStrip({ otherUser, messageCount, revealLevel, defaultExpan
 }
 
 const PHOTO = 36;
-
-/** The top rung of the ladder — `RevealService.Defaults` ends at level 4. */
-const DEEP_REVEAL_LEVEL = 4;
 
 const styles = StyleSheet.create({
   wrap: {

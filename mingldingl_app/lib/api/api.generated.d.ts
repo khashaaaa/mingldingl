@@ -5749,6 +5749,8 @@ export interface components {
             equippedTitleId?: string | null;
             oath?: string | null;
             oathProven?: boolean;
+            /** Format: int32 */
+            photoCount?: number;
         };
         CandidateResponsePagedResponse: {
             items?: components["schemas"]["CandidateResponse"][] | null;
@@ -6080,6 +6082,8 @@ export interface components {
             isDeleted?: boolean;
             oath?: string | null;
             oathProven?: boolean;
+            /** Format: int32 */
+            photoCount?: number;
         };
         PendingShipResponse: {
             /** Format: uuid */

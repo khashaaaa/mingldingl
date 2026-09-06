@@ -101,10 +101,14 @@ public class MessagesController : ControllerBase
             _db.Messages.Add(msg);
             await _db.SaveChangesAsync();
 
+            // The per-side counters feed the reveal ladder, which must not be climbable alone.
+            // Incremented in the same statement as the total so the two can never disagree.
             var updateResult = await _db.Database.SqlQuery<int>(
                 $"""
                 UPDATE "Matches" SET
                     "MessageCount" = "MessageCount" + 1,
+                    "InitiatorMessageCount" = "InitiatorMessageCount" + CASE WHEN "InitiatorId" = {userId} THEN 1 ELSE 0 END,
+                    "ReceiverMessageCount" = "ReceiverMessageCount" + CASE WHEN "ReceiverId" = {userId} THEN 1 ELSE 0 END,
                     "LastMessageAt" = {msg.CreatedAt},
                     "LastMessageSenderId" = {userId}
                 WHERE "Id" = {matchId}
@@ -117,19 +121,27 @@ public class MessagesController : ControllerBase
         });
 
         match.MessageCount = newMessageCount;
+        if (match.InitiatorId == userId) match.InitiatorMessageCount++;
+        else match.ReceiverMessageCount++;
         match.LastMessageAt = message.CreatedAt;
         match.LastMessageSenderId = userId;
 
         int baseAward = 0;
         if (lastMessage is null)
         {
-            await _score.AwardAsync(userId, "FirstMessage");
+            await _score.AwardAsync(userId, "FirstMessage", matchId);
             baseAward = _score.Delta("FirstMessage");
         }
         else if (lastMessage.SenderId != userId)
         {
-            await _score.AwardAsync(userId, "MatchReply");
-            baseAward = _score.Delta("MatchReply");
+            // Bounded per conversation per day. Uncapped, two accounts alternating one-character
+            // messages walked the whole tier ladder in minutes; past the cap the thread carries on
+            // working, it just stops paying.
+            if (await _score.CountMatchReplyAwardsTodayAsync(userId, matchId) < _score.MatchReplyDailyCapPerMatch)
+            {
+                await _score.AwardAsync(userId, "MatchReply", matchId);
+                baseAward = _score.Delta("MatchReply");
+            }
         }
 
         int questBonus = await _quests.IncrementAsync(userId, "message");

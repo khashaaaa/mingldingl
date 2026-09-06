@@ -29,6 +29,54 @@ public class UsersController : ControllerBase
         _phones = phones;
     }
 
+    /// <summary>
+    /// The set-membership rules the DataAnnotations on the DTO cannot express. Returns an error
+    /// result to hand straight back, or null when the fields are acceptable.
+    /// </summary>
+    private IActionResult? ValidateProfileFields(
+        string? gender, string? city, List<string>? photoUrls,
+        string? smoking = null, string? drinking = null, string? religion = null, string? lifestyle = null,
+        IReadOnlyCollection<string>? alreadyStoredPhotos = null)
+    {
+        foreach (var (value, allowed, field) in new (string?, IReadOnlySet<string>, string)[]
+                 {
+                     (smoking,   ProfileValidation.ValidHabits,     "SmokingHabit"),
+                     (drinking,  ProfileValidation.ValidHabits,     "DrinkingHabit"),
+                     (religion,  ProfileValidation.ValidReligions,  "Religion"),
+                     (lifestyle, ProfileValidation.ValidLifestyles, "Lifestyle"),
+                 })
+        {
+            if (value is not null && !allowed.Contains(value))
+                return this.BadRequestError(
+                    $"{field} must be one of: {string.Join(", ", allowed)}", "profile.option_invalid");
+        }
+
+        if (gender is not null && !ProfileValidation.IsKnownGender(gender))
+            return this.BadRequestError("Gender must be one of: Male, Female", "profile.gender_invalid");
+
+        if (city is not null && !ProfileValidation.IsKnownCity(city))
+            return this.BadRequestError("City must be a Mongolian province or Ulaanbaatar district", "profile.city_invalid");
+
+        // Only where a photo is *hosted* is validated here. How many there are is not an error:
+        // this endpoint is an upsert that deliberately supports a half-finished profile, and
+        // `IsProfileComplete` is the derived flag that reports it.
+        //
+        // Photos already on the row are grandfathered. The app re-sends the whole list on any edit,
+        // and Storage:PublicBaseUrl legitimately differs between localhost, the LAN IP used for
+        // device testing and production — so checking every entry against the current origin locked
+        // every existing user out of editing their own profile the moment that setting changed.
+        // Only what is genuinely new has to prove it came from this service.
+        if (photoUrls is not null)
+        {
+            var kept = alreadyStoredPhotos as ISet<string>
+                ?? new HashSet<string>(alreadyStoredPhotos ?? [], StringComparer.Ordinal);
+            if (photoUrls.Any(url => !kept.Contains(url) && !_storage.IsOwnedPublicUrl(url)))
+                return this.BadRequestError("Photos must be uploaded through this service", "profile.photo_not_owned");
+        }
+
+        return null;
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
@@ -36,6 +84,11 @@ public class UsersController : ControllerBase
     {
         var userId = this.CurrentUserId();
         var existing = await _db.Users.FindAsync(userId);
+
+        if (ValidateProfileFields(
+                req.Gender, req.City, req.PhotoUrls,
+                alreadyStoredPhotos: existing?.PhotoUrls) is { } invalid)
+            return invalid;
 
         // A new account requires a phone this engine verified via verify.mn. The JWT's phone claim
         // is set by the client and is not evidence of ownership, so it is never trusted here.
@@ -52,7 +105,7 @@ public class UsersController : ControllerBase
             user.PreferredLocale = req.PreferredLocale;
         }
 
-        user.DisplayName = req.DisplayName;
+        user.DisplayName = req.DisplayName.Trim();
         user.Age = req.Age;
         user.Gender = req.Gender;
         user.City = req.City;
@@ -127,9 +180,26 @@ public class UsersController : ControllerBase
         var user = await _db.Users.FindAsync(userId);
         if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
+        // Checked before any assignment: a later rejection would otherwise leave the tracked entity
+        // half-updated, and the photo unlink below would run against a list that was never saved.
+        if (ValidateProfileFields(
+                gender: null, req.City, req.PhotoUrls,
+                req.SmokingHabit, req.DrinkingHabit, req.Religion, req.Lifestyle,
+                alreadyStoredPhotos: user.PhotoUrls) is { } invalid)
+            return invalid;
+
         var droppedPhotos = new List<string>();
 
-        if (req.DisplayName is not null) user.DisplayName = req.DisplayName;
+        if (req.DisplayName is not null)
+        {
+            // [Required] guards the create path, but the update DTO's DisplayName is optional, so a
+            // blank or whitespace-only value would otherwise persist and render as an empty name
+            // across matches, chat and the leaderboard. Reject it and trim what we do keep.
+            var displayName = req.DisplayName.Trim();
+            if (displayName.Length == 0)
+                return this.BadRequestError("Display name cannot be empty", "profile.display_name_required");
+            user.DisplayName = displayName;
+        }
         if (req.Bio is not null) user.Bio = req.Bio;
         if (req.PhotoUrls is not null)
         {

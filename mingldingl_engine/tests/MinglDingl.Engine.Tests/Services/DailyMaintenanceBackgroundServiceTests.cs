@@ -174,6 +174,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
 
         var match = new Match
         {
+            Id = Guid.NewGuid(),
             InitiatorId = replier.Id,
             ReceiverId = silent.Id,
             Status = "Active",
@@ -181,6 +182,11 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
             LastMessageSenderId = replier.Id,
         };
         Db.Matches.Add(match);
+        // `silent` answered once and then stopped, which is what makes them the ghost. Without the
+        // rows this is a one-sided approach and carries no penalty at all.
+        Db.Messages.AddRange(
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "hi" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = silent.Id, Content = "hello" });
         await Db.SaveChangesAsync();
 
         await BuildService().RunSweepAsync(CancellationToken.None);
@@ -305,5 +311,76 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
 
         Assert.False(await Db.PhoneVerifications.AnyAsync(v => v.Id == stale.Id));
         Assert.True(await Db.PhoneVerifications.AnyAsync(v => v.Id == recent.Id));
+    }
+
+    /// <summary>
+    /// The hourly sweep is the path that actually ghosts matches in production; the on-demand
+    /// ghost-check is the rare one. It had its own batched copy of the at-fault rule, so fixing
+    /// only GhostingService.CheckAsync left the exploit fully open here.
+    /// </summary>
+    [Fact]
+    public async Task RunSweepAsync_RecipientNeverSentAMessage_GhostsWithoutPenalisingThem()
+    {
+        var approacher = NewCompleteUser();
+        var recipient = NewCompleteUser();
+        recipient.TotalScore = 100;
+        recipient.ReputationScore = 1.0m;
+        Db.Users.AddRange(approacher, recipient);
+        var match = new Match
+        {
+            Id = Guid.NewGuid(),
+            InitiatorId = approacher.Id,
+            ReceiverId = recipient.Id,
+            Status = "Active",
+            MessageCount = 1,
+            InitiatorMessageCount = 1,
+            LastMessageAt = DateTime.UtcNow.AddHours(-49),
+            LastMessageSenderId = approacher.Id,
+        };
+        Db.Matches.Add(match);
+        Db.Messages.Add(new Message
+        {
+            Id = Guid.NewGuid(), MatchId = match.Id, SenderId = approacher.Id, Content = "hey",
+        });
+        await Db.SaveChangesAsync();
+
+        await BuildService().RunSweepAsync(CancellationToken.None);
+
+        Db.ChangeTracker.Clear();
+        var after = await Db.Users.AsNoTracking().SingleAsync(u => u.Id == recipient.Id);
+        Assert.Equal("Ghosted", (await Db.Matches.AsNoTracking().SingleAsync(m => m.Id == match.Id)).Status);
+        Assert.Equal(100, after.TotalScore);
+        Assert.Equal(1.0m, after.ReputationScore);
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_SomeoneWhoSpokeThenStopped_IsStillPenalised()
+    {
+        var replier = NewCompleteUser();
+        var abandoner = NewCompleteUser();
+        abandoner.TotalScore = 100;
+        Db.Users.AddRange(replier, abandoner);
+        var match = new Match
+        {
+            Id = Guid.NewGuid(),
+            InitiatorId = replier.Id,
+            ReceiverId = abandoner.Id,
+            Status = "Active",
+            MessageCount = 2,
+            InitiatorMessageCount = 1,
+            ReceiverMessageCount = 1,
+            LastMessageAt = DateTime.UtcNow.AddHours(-49),
+            LastMessageSenderId = replier.Id,
+        };
+        Db.Matches.Add(match);
+        Db.Messages.AddRange(
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "hi" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = abandoner.Id, Content = "hello" });
+        await Db.SaveChangesAsync();
+
+        await BuildService().RunSweepAsync(CancellationToken.None);
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal(85, (await Db.Users.AsNoTracking().SingleAsync(u => u.Id == abandoner.Id)).TotalScore);
     }
 }

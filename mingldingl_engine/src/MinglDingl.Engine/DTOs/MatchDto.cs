@@ -10,7 +10,13 @@ public record CandidateResponse(
     string? EquippedFrameId = null,
     string? EquippedTitleId = null,
     string? Oath = null,
-    bool OathProven = false);
+    bool OathProven = false,
+    /// <summary>
+    /// How many photos this person has at all, independent of how many are revealed. Without it the
+    /// app cannot tell an unearned slot from one that will never be filled, and a two-photo profile
+    /// shows a padlock on the third that no amount of conversation opens.
+    /// </summary>
+    int PhotoCount = 0);
 
 public record CreateMatchResponse(Guid MatchId, int Awarded = 0);
 
@@ -47,7 +53,13 @@ public record PartialUserProfile(
     string? EquippedTitleId = null,
     bool IsDeleted = false,
     string? Oath = null,
-    bool OathProven = false);
+    bool OathProven = false,
+    /// <summary>
+    /// How many photos this person has at all, independent of how many are revealed. Without it the
+    /// app cannot tell an unearned slot from one that will never be filled, and a two-photo profile
+    /// shows a padlock on the third that no amount of conversation opens.
+    /// </summary>
+    int PhotoCount = 0);
 
 public record UserDeepFields(
     bool? HasKids,

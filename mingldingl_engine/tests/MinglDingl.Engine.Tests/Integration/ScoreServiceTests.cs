@@ -39,6 +39,35 @@ public class ScoreServiceIntegrationTests : IntegrationTestBase
 
         Assert.Equal(0m, newReputation);
     }
+    [Fact]
+    public async Task CountMatchReplyAwardsTodayAsync_CountsOnlyThisMatchAndOnlyToday()
+    {
+        var user = NewCompleteUser();
+        var other = NewCompleteUser();
+        Db.Users.AddRange(user, other);
+        var mine = new Match { Id = Guid.NewGuid(), InitiatorId = user.Id, ReceiverId = other.Id };
+        var elsewhere = new Match { Id = Guid.NewGuid(), InitiatorId = user.Id, ReceiverId = other.Id };
+        Db.Matches.AddRange(mine, elsewhere);
+        Db.ScoreEvents.AddRange(
+            new ScoreEvent { Id = Guid.NewGuid(), UserId = user.Id, EventType = "MatchReply", Delta = 10, MatchId = mine.Id, CreatedAt = DateTime.UtcNow },
+            new ScoreEvent { Id = Guid.NewGuid(), UserId = user.Id, EventType = "MatchReply", Delta = 10, MatchId = mine.Id, CreatedAt = DateTime.UtcNow },
+            new ScoreEvent { Id = Guid.NewGuid(), UserId = user.Id, EventType = "MatchReply", Delta = 10, MatchId = mine.Id, CreatedAt = DateTime.UtcNow.AddDays(-1) },
+            new ScoreEvent { Id = Guid.NewGuid(), UserId = user.Id, EventType = "MatchReply", Delta = 10, MatchId = elsewhere.Id, CreatedAt = DateTime.UtcNow });
+        await Db.SaveChangesAsync();
+
+        var score = new ScoreService(Db, new ConfigService());
+
+        Assert.Equal(2, await score.CountMatchReplyAwardsTodayAsync(user.Id, mine.Id));
+    }
+
+    [Fact]
+    public void MatchReplyDailyCapPerMatch_IsConfigurable()
+    {
+        var config = new ConfigService();
+        config.Set("score.match_reply.daily_cap_per_match", "3");
+
+        Assert.Equal(3, new ScoreService(Db, config).MatchReplyDailyCapPerMatch);
+    }
 }
 
 public class ScoreServiceTests

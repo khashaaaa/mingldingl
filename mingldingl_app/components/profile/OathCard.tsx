@@ -26,6 +26,9 @@ interface Props {
 export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, gemTier, style }: Props) {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [showError, setShowError] = useState(false);
+  // Swearing a different oath clears OathProven and restarts the vow, and the reward for proving it
+  // is never paid a second time — so a proven oath is only traded away on purpose.
+  const [pendingOath, setPendingOath] = useState<Oath | null>(null);
   const { swear, isSwearing, swearError } = useSwearOath();
 
   useEffect(() => {
@@ -35,7 +38,7 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
   // Routed through closeThen so the error alert can never try to present over the sheet
   // while it is still dismissing.
   function handleSwear(closeThen: CloseThen, next: Oath) {
-    closeThen(() => swear(next));
+    closeThen(() => (oathProven ? setPendingOath(next) : swear(next)));
   }
 
   return (
@@ -94,6 +97,21 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
           </>
         )}
       </SheetModal>
+
+      <AlertModal
+        visible={pendingOath !== null}
+        tone="warning"
+        destructive
+        title={i18n.t('oath_reswear_title')}
+        message={i18n.t('oath_reswear_body')}
+        confirmLabel={i18n.t('oath_reswear_confirm')}
+        isConfirming={isSwearing}
+        onConfirm={() => {
+          if (pendingOath) swear(pendingOath);
+          setPendingOath(null);
+        }}
+        onDismiss={() => setPendingOath(null)}
+      />
 
       <AlertModal
         visible={showError}

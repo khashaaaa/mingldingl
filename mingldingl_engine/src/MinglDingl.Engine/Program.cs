@@ -20,13 +20,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.Configure<ApiBehaviorOptions>(opt =>
 {
-    opt.InvalidModelStateResponseFactory = context =>
-    {
-        var message = context.ModelState
-            .SelectMany(kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage) ?? [])
-            .FirstOrDefault() ?? "Invalid request";
-        return new BadRequestObjectResult(new { error = message });
-    };
+    opt.InvalidModelStateResponseFactory = context => ModelValidationResponse.For(context.ModelState);
 });
 
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("DefaultConnection"));

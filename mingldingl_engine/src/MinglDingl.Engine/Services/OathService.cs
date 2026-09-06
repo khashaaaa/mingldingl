@@ -37,6 +37,10 @@ public class OathService
         var user = await _db.Users.FindAsync(userId);
         if (user is null) return null;
 
+        // Swearing the oath you already hold is not a new vow. Treating it as one reset the clock
+        // and cleared OathProven, so tapping your own oath again quietly discarded the progress.
+        if (string.Equals(user.Oath, oath, StringComparison.Ordinal)) return user;
+
         user.Oath = oath;
         user.OathSwornAt = DateTime.UtcNow;
         user.OathProven = false;

@@ -150,4 +150,47 @@ describe('RevealStrip', () => {
       expect(queryByTestId('reveal-photo-0')).toBeNull();
     });
   });
+
+  it('does not padlock a photo slot the other person will never fill', () => {
+    // photoCount is what the engine says they actually have. Without it a two-photo profile shows
+    // a locked third slot and "2 of 3" that no amount of conversation can ever resolve.
+    const { queryByTestId, getByTestId, getByText } = render(
+      <RevealStrip
+        otherUser={{ ...freshMatch, secondPhoto: 'https://x/2.jpg', photoCount: 2 }}
+        messageCount={7}
+      />,
+    );
+
+    expect(getByTestId('reveal-photo-1')).toBeTruthy();
+    expect(queryByTestId('reveal-photo-locked-2')).toBeNull();
+    fireEvent.press(getByTestId('reveal-toggle'));
+    expect(getByText('Revealed: 2 of 2 photos')).toBeTruthy();
+  });
+
+  it('still padlocks a slot that exists but has not been earned yet', () => {
+    const { getByTestId } = render(
+      <RevealStrip otherUser={{ ...freshMatch, photoCount: 3 }} messageCount={0} />,
+    );
+
+    expect(getByTestId('reveal-photo-locked-1')).toBeTruthy();
+    expect(getByTestId('reveal-photo-locked-2')).toBeTruthy();
+  });
+
+  it('treats the top of the hydrated ladder as the deep rung, not a hardcoded 4', () => {
+    // The ladder is admin-tunable and served by the engine; pinning the deep level in the app meant
+    // a shortened ladder would never show the membership upsell at its own top rung.
+    hydrateRevealThresholds([
+      { level: 1, messages: 1 }, { level: 2, messages: 5 }, { level: 3, messages: 9 }, { level: 4, messages: 12 },
+    ]);
+
+    const { getByTestId } = render(
+      <RevealStrip
+        otherUser={{ ...freshMatch, photoCount: 3, age: 27, district: 'Sükhbaatar' }}
+        messageCount={12}
+        revealLevel={4}
+      />,
+    );
+
+    expect(getByTestId('reveal-deep-upgrade')).toBeTruthy();
+  });
 });

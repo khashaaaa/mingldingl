@@ -68,6 +68,7 @@ public class AppDbContext : DbContext
         b.Entity<Quiz>().Ignore(q => q.Questions);
         b.Entity<QuizResponse>().Property(r => r.Answers).HasColumnType("jsonb");
         b.Entity<Icebreaker>().Property(i => i.Options).HasColumnType("jsonb");
+        b.Entity<Icebreaker>().Property(i => i.OptionsEn).HasColumnType("jsonb");
         b.Entity<UserDailyQuest>().HasIndex(q => new { q.UserId, q.QuestDate, q.QuestId }).IsUnique();
         b.Entity<UserItem>().HasIndex(i => new { i.UserId, i.ItemId }).IsUnique();
         b.Entity<Referral>().HasIndex(r => r.InviteeUserId).IsUnique();

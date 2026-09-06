@@ -40,21 +40,10 @@ public class MatchesController : ControllerBase
 
         var (safePage, safePageSize, skip) = PagingDefaults.Normalize(page, pageSize);
 
-        string? oppositeGender = me.Gender switch
-        {
-            "Male" => "Female",
-            "Female" => "Male",
-            _ => null,
-        };
-
         var unmatched = await _db.Users
             .AsNoTracking()
-            .Where(u => u.Id != userId
-                && u.DeletionRequestedAt == null
-                && !u.IsPaused
-                && u.Age >= me.AgeMin && u.Age <= me.AgeMax
-                && (oppositeGender == null || u.Gender == oppositeGender)
-                && !_db.Matches.Any(m =>
+            .Where(MatchEligibility.IsEligibleFor(me))
+            .Where(u => !_db.Matches.Any(m =>
                     (m.InitiatorId == userId && m.ReceiverId == u.Id) ||
                     (m.InitiatorId == u.Id && m.ReceiverId == userId))
                 && !_db.BlockedUsers.Any(bl =>
@@ -71,8 +60,18 @@ public class MatchesController : ControllerBase
         bool myLocationKnown = me.Latitude.HasValue && me.Longitude.HasValue;
         var totalCount = unmatched.Count;
 
+        // Only the people actually on this page's shortlist can affect the new-user boost, so ask
+        // about them. Unioning both columns of the whole Matches table pulled every participant in
+        // the database into memory to answer a single tie-break.
+        var candidateIds = unmatched.Select(u => u.Id).ToList();
         var matchedUserIds = new HashSet<Guid>(
-            await _db.Matches.Select(m => m.InitiatorId).Union(_db.Matches.Select(m => m.ReceiverId)).ToListAsync());
+            await _db.Matches
+                .Where(m => candidateIds.Contains(m.InitiatorId))
+                .Select(m => m.InitiatorId)
+                .Union(_db.Matches
+                    .Where(m => candidateIds.Contains(m.ReceiverId))
+                    .Select(m => m.ReceiverId))
+                .ToListAsync());
 
         var projected = unmatched
             .Select(u => new
@@ -143,6 +142,19 @@ public class MatchesController : ControllerBase
 
         if (me.DailyMatchesUsed >= _score.DailyMatchBudget(me))
             return this.BadRequestError("Daily match budget exhausted", "match.daily_budget_spent");
+
+        if (req.TargetUserId == userId)
+            return this.BadRequestError("You cannot summon yourself", "match.self");
+
+        // Checked before the transaction so an ineligible target costs neither an advisory lock nor
+        // a budget slot. A missing row used to reach the insert and surface as an FK 500.
+        var target = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == req.TargetUserId);
+        if (target is null) return this.NotFoundError("User not found", "user.not_found");
+
+        // The same rule discovery applies. Paused, pending-deletion, out-of-range and same-gender
+        // targets were all reachable here because this endpoint never consulted it.
+        if (!MatchEligibility.IsEligibleFor(me).Compile()(target))
+            return this.ForbiddenError("Cannot match with this user", "match.not_allowed");
 
         var (outcome, matchId) = await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
@@ -301,7 +313,8 @@ public class MatchesController : ControllerBase
                 EquippedTitleId: level >= 1 ? other.EquippedTitleId : null,
                 IsDeleted: other.IsDeleted,
                 Oath: level >= 1 ? other.Oath : null,
-                OathProven: level >= 1 && other.OathProven),
+                OathProven: level >= 1 && other.OathProven,
+                PhotoCount: other.PhotoUrls.Count),
             m.ShipId.HasValue ? weaverNamesByShipId.GetValueOrDefault(m.ShipId.Value) : null,
             m.FlameRiteProposedById,
             m.FlameRiteProposedAt,

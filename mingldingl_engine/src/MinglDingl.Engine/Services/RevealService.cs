@@ -26,8 +26,21 @@ public static class RevealService
     public static int GetRevealLevel(ConfigService config, Match match)
     {
         if (match.Status == "Ghosted") return match.RevealLevel;
-        return Math.Max(match.RevealLevel, LevelForMessageCount(config, match.MessageCount));
+        return Math.Max(match.RevealLevel, LevelForMessageCount(config, MutualMessageCount(match)));
     }
+
+    /// <summary>
+    /// How far the conversation counts for reveal. You may always be one message ahead of the other
+    /// person, never more: <c>2 × quieter + 1</c>, capped at what was really said. A balanced
+    /// exchange therefore scores its full combined total, while a monologue never climbs past the
+    /// first rung no matter how long it runs. Reading <see cref="Match.MessageCount"/> here let one
+    /// person send 30 messages into silence and unlock a stranger's age, district and both locked
+    /// photos without that stranger ever replying.
+    /// </summary>
+    public static int MutualMessageCount(Match match) =>
+        Math.Min(
+            match.MessageCount,
+            2 * Math.Min(match.InitiatorMessageCount, match.ReceiverMessageCount) + 1);
 
     /// <summary>
     /// Level earned purely by conversation volume, independent of the floor a match starts with.

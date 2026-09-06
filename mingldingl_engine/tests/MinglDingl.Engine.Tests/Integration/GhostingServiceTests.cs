@@ -13,6 +13,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         Db.Users.AddRange(replier, silent);
         var match = new Match
         {
+            Id = Guid.NewGuid(),
             InitiatorId = replier.Id,
             ReceiverId = silent.Id,
             Status = "Active",
@@ -49,6 +50,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         Db.Users.AddRange(replier, silent);
         var match = new Match
         {
+            Id = Guid.NewGuid(),
             InitiatorId = replier.Id,
             ReceiverId = silent.Id,
             Status = "Active",
@@ -56,6 +58,12 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
             LastMessageSenderId = replier.Id,
         };
         Db.Matches.Add(match);
+        // The pair really did talk: `silent` answered once and then stopped, which is what makes
+        // them the ghost. Without the rows the match is a one-sided approach and carries no penalty.
+        Db.Messages.AddRange(
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "hi" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = silent.Id, Content = "hello" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "still there?" });
         await Db.SaveChangesAsync();
 
         var config = new ConfigService();
@@ -83,6 +91,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
 
         var match = new Match
         {
+            Id = Guid.NewGuid(),
             InitiatorId = replier.Id,
             ReceiverId = silent.Id,
             Status = "Active",
@@ -90,6 +99,12 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
             LastMessageSenderId = replier.Id,
         };
         Db.Matches.Add(match);
+        // The pair really did talk: `silent` answered once and then stopped, which is what makes
+        // them the ghost. Without the rows the match is a one-sided approach and carries no penalty.
+        Db.Messages.AddRange(
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "hi" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = silent.Id, Content = "hello" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "still there?" });
         await Db.SaveChangesAsync();
 
         var config = new ConfigService();
@@ -157,6 +172,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
 
         var match = new Match
         {
+            Id = Guid.NewGuid(),
             InitiatorId = replier.Id,
             ReceiverId = silent.Id,
             Status = "Active",
@@ -164,6 +180,12 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
             LastMessageSenderId = replier.Id,
         };
         Db.Matches.Add(match);
+        // The pair really did talk: `silent` answered once and then stopped, which is what makes
+        // them the ghost. Without the rows the match is a one-sided approach and carries no penalty.
+        Db.Messages.AddRange(
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "hi" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = silent.Id, Content = "hello" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "still there?" });
         await Db.SaveChangesAsync();
 
         var config = new ConfigService();
@@ -187,6 +209,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
 
         var match = new Match
         {
+            Id = Guid.NewGuid(),
             InitiatorId = replier.Id,
             ReceiverId = silent.Id,
             Status = "Active",
@@ -195,6 +218,12 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
             LastMessageSenderId = replier.Id,
         };
         Db.Matches.Add(match);
+        // The pair really did talk: `silent` answered once and then stopped, which is what makes
+        // them the ghost. Without the rows the match is a one-sided approach and carries no penalty.
+        Db.Messages.AddRange(
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "hi" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = silent.Id, Content = "hello" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "still there?" });
         await Db.SaveChangesAsync();
 
         var config = new ConfigService();
@@ -232,6 +261,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
 
         var match = new Match
         {
+            Id = Guid.NewGuid(),
             InitiatorId = replier.Id,
             ReceiverId = silent.Id,
             Status = "Active",
@@ -271,6 +301,7 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
 
         var match = new Match
         {
+            Id = Guid.NewGuid(),
             InitiatorId = replier.Id,
             ReceiverId = silent.Id,
             Status = "Active",
@@ -296,6 +327,81 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
         Assert.Equal("Ghosted", reloaded.Status);
         Assert.Equal(1, reloaded.RevealLevel);
         Assert.Equal(1, RevealService.GetRevealLevel(config, reloaded));
+    }
+    [Fact]
+    public async Task CheckAsync_RecipientNeverSentAMessage_GhostsTheThreadButDoesNotPenaliseThem()
+    {
+        // A match is created without the target's consent, so silence from someone who never
+        // engaged is not ghosting — it is disinterest. Penalising it let strangers drain a
+        // victim's score by matching, sending one message and waiting.
+        var approacher = NewCompleteUser();
+        var recipient = NewCompleteUser();
+        recipient.TotalScore = 100;
+        recipient.ReputationScore = 1.0m;
+        Db.Users.AddRange(approacher, recipient);
+        var match = new Match
+        {
+            Id = Guid.NewGuid(),
+            InitiatorId = approacher.Id,
+            ReceiverId = recipient.Id,
+            Status = "Active",
+            MessageCount = 1,
+            LastMessageAt = DateTime.UtcNow.AddHours(-49),
+            LastMessageSenderId = approacher.Id,
+        };
+        Db.Matches.Add(match);
+        Db.Messages.Add(new Message
+        {
+            Id = Guid.NewGuid(), MatchId = match.Id, SenderId = approacher.Id, Content = "hey",
+        });
+        await Db.SaveChangesAsync();
+
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new HonourService(Db, NullLogger<HonourService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
+
+        Assert.True(await ghosting.CheckAsync(match));
+
+        Assert.Equal("Ghosted", match.Status);
+        var after = await Db.Users.AsNoTracking().FirstAsync(u => u.Id == recipient.Id);
+        Assert.Equal(100, after.TotalScore);
+        Assert.Equal(1.0m, after.ReputationScore);
+        Assert.False(await Db.ScoreEvents.AnyAsync(e => e.UserId == recipient.Id && e.EventType == "GhostPenalty"));
+    }
+
+    [Fact]
+    public async Task CheckAsync_BothSpokeThenOneStopped_PenalisesTheOneWhoStopped()
+    {
+        var replier = NewCompleteUser();
+        var abandoner = NewCompleteUser();
+        abandoner.TotalScore = 100;
+        Db.Users.AddRange(replier, abandoner);
+        var match = new Match
+        {
+            Id = Guid.NewGuid(),
+            InitiatorId = replier.Id,
+            ReceiverId = abandoner.Id,
+            Status = "Active",
+            MessageCount = 3,
+            LastMessageAt = DateTime.UtcNow.AddHours(-49),
+            LastMessageSenderId = replier.Id,
+        };
+        Db.Matches.Add(match);
+        Db.Messages.AddRange(
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "hi" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = abandoner.Id, Content = "hello" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "still there?" });
+        await Db.SaveChangesAsync();
+
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new HonourService(Db, NullLogger<HonourService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
+
+        Assert.True(await ghosting.CheckAsync(match));
+
+        Assert.True(await Db.ScoreEvents.AnyAsync(e => e.UserId == abandoner.Id && e.EventType == "GhostPenalty"));
     }
 }
 

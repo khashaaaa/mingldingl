@@ -40,6 +40,54 @@ public class LocalFileStorageService
     /// Returns false for URLs this service did not issue. Never throws: deletion runs from the
     /// maintenance sweep, where one bad row must not abort the rest of the pass.
     /// </summary>
+    /// <summary>
+    /// True when <paramref name="url"/> addresses a file this engine issued — the only place a
+    /// profile photo may live. Anything else is someone else's origin: it leaks every viewer's IP
+    /// to whoever runs it, and its contents can be swapped after moderation has passed them.
+    /// <para>
+    /// Unlike <see cref="DeleteByPublicUrl"/>, which is deliberately origin-agnostic so an orphaned
+    /// file stored under an older origin still gets cleaned up, this is origin-<em>strict</em>:
+    /// accepting any host that happens to serve a matching path would defeat the whole check.
+    /// A relative path is accepted because that is how the app stores what
+    /// <see cref="UploadAsync"/> returned; an absolute URL must carry this engine's own origin,
+    /// which is what <c>Storage:PublicBaseUrl</c> exists to declare per environment.
+    /// </para>
+    /// </summary>
+    public virtual bool IsOwnedPublicUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return false;
+
+        var basePath = Uri.TryCreate(_publicBaseUrl, UriKind.Absolute, out var parsedBase)
+            ? parsedBase.AbsolutePath
+            : _publicBaseUrl;
+
+        string path;
+        // A leading slash is a site-relative path. It is checked before Uri.TryCreate because on
+        // Unix that call happily parses "/uploads/a.jpg" as a file: URI, which would then be
+        // rejected as a foreign scheme.
+        if (url.StartsWith('/'))
+        {
+            path = url;
+        }
+        else
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var absolute)) return false;
+            if (absolute.Scheme != Uri.UriSchemeHttp && absolute.Scheme != Uri.UriSchemeHttps) return false;
+            if (parsedBase is null || !string.Equals(absolute.Authority, parsedBase.Authority, StringComparison.OrdinalIgnoreCase))
+                return false;
+            path = absolute.AbsolutePath;
+        }
+
+        var marker = '/' + basePath.Trim('/') + '/';
+        if (!path.StartsWith(marker, StringComparison.Ordinal)) return false;
+
+        var relative = Uri.UnescapeDataString(path[marker.Length..]).TrimStart('/');
+        // Must name a bucket and a file within it, and must not climb out of the uploads root.
+        var separator = relative.IndexOf('/');
+        if (separator <= 0 || separator == relative.Length - 1) return false;
+        return ResolveWithinRoot(relative[..separator], relative[(separator + 1)..]) is not null;
+    }
+
     public virtual bool DeleteByPublicUrl(string? url)
     {
         if (string.IsNullOrWhiteSpace(url)) return false;

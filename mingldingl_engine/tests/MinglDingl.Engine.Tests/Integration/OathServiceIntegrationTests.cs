@@ -165,8 +165,14 @@ public class OathServiceIntegrationTests : IntegrationTestBase
         Assert.True(updated.OathSwornAt > DateTime.UtcNow.AddMinutes(-1));
     }
 
+    /// <summary>
+    /// Was <c>Swear_SameOathAgain_StillResetsTheWindow</c>, which asserted that re-swearing the oath
+    /// you already hold cleared OathProven and restarted the clock. That is the behaviour this
+    /// change reverses: nothing about the vow has changed, the app offers no reason to re-swear the
+    /// same oath, and the reset silently destroyed progress on a misfired tap.
+    /// </summary>
     [Fact]
-    public async Task Swear_SameOathAgain_StillResetsTheWindow()
+    public async Task Swear_SameOathAgain_KeepsTheVowIntact()
     {
         var user = await SeedSwornUserAsync(DateTime.UtcNow.AddDays(-10));
         user.OathProven = true;
@@ -175,7 +181,7 @@ public class OathServiceIntegrationTests : IntegrationTestBase
         var updated = await BuildService().SwearAsync(user.Id, "Bond");
 
         Assert.Equal("Bond", updated!.Oath);
-        Assert.False(updated.OathProven);
+        Assert.True(updated.OathProven);
     }
 
     [Fact]
@@ -333,5 +339,53 @@ public class OathServiceIntegrationTests : IntegrationTestBase
         var (_, needed) = await BuildService(config).GetProgressAsync(user.Id);
 
         Assert.Equal(3, needed);
+    }
+
+    [Fact]
+    public async Task SwearAsync_TheSameOathAgain_ChangesNothing()
+    {
+        // Re-swearing what you already swore is not a new vow. It used to reset OathSwornAt and
+        // clear OathProven, so tapping your own oath a second time silently threw the progress away.
+        var user = NewCompleteUser();
+        user.Oath = "Bond";
+        user.OathSwornAt = DateTime.UtcNow.AddDays(-10);
+        user.OathProven = true;
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+        var sworn = user.OathSwornAt;
+
+        var service = new OathService(Db, new ConfigService(), new ScoreService(Db, new ConfigService()),
+            new MilestoneService(Db, NullLogger<MilestoneService>.Instance),
+            new HonourService(Db, NullLogger<HonourService>.Instance));
+
+        await service.SwearAsync(user.Id, "Bond");
+
+        Db.ChangeTracker.Clear();
+        var after = await Db.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.True(after.OathProven);
+        Assert.True((after.OathSwornAt!.Value - sworn!.Value).Duration() < TimeSpan.FromSeconds(1),
+            "the vow's clock must not restart");
+    }
+
+    [Fact]
+    public async Task SwearAsync_ADifferentOath_RestartsTheVow()
+    {
+        var user = NewCompleteUser();
+        user.Oath = "Bond";
+        user.OathSwornAt = DateTime.UtcNow.AddDays(-10);
+        user.OathProven = true;
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        var service = new OathService(Db, new ConfigService(), new ScoreService(Db, new ConfigService()),
+            new MilestoneService(Db, NullLogger<MilestoneService>.Instance),
+            new HonourService(Db, NullLogger<HonourService>.Instance));
+
+        await service.SwearAsync(user.Id, "Fate");
+
+        Db.ChangeTracker.Clear();
+        var after = await Db.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id);
+        Assert.Equal("Fate", after.Oath);
+        Assert.False(after.OathProven);
     }
 }

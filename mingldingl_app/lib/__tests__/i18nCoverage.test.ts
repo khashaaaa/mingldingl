@@ -77,4 +77,25 @@ describe('i18n key coverage', () => {
     const empty = dynamicPrefixes.filter((p) => !defined.some((k) => k.startsWith(p)));
     expect(empty).toEqual([]);
   });
+
+  it('has a label for every option the profile editor can actually store', () => {
+    // "at least one key behind the prefix" is not enough: habit_never and habit_regularly existed
+    // while the stored value was "Socially", so a real profile rendered
+    // [missing "en.habit_socially"] in the chat reveal strip. Each offered value needs its own key.
+    const source = readFileSync(join(ROOT, 'app/edit-profile.tsx'), 'utf8');
+    const optionList = (name: string): string[] => {
+      const match = source.match(new RegExp(`const ${name} = \\[([^\\]]*)\\]`));
+      if (!match) throw new Error(`${name} not found in edit-profile.tsx`);
+      return [...match[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+    };
+
+    const expected = [
+      ...optionList('SMOKING_DRINKING_OPTIONS').map((v) => `habit_${v.toLowerCase()}`),
+      ...optionList('RELIGION_OPTIONS').map((v) => `religion_${v.toLowerCase()}`),
+      ...optionList('LIFESTYLE_OPTIONS').map((v) => `lifestyle_${v.toLowerCase()}`),
+    ];
+
+    expect(expected.length).toBeGreaterThan(0);
+    expect(expected.filter((k) => !defined.includes(k))).toEqual([]);
+  });
 });
