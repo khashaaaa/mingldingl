@@ -2,6 +2,7 @@ import { render } from '@testing-library/react-native';
 import ActivitiesScreen from '../[matchId]';
 import { useActivitySuggestions } from '../../../hooks/useActivitySuggestions';
 import { useMatches } from '../../../hooks/useMatches';
+import { WithSafeArea } from '../../../lib/testing/safeArea';
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ matchId: 'm1' }),
@@ -58,7 +59,7 @@ describe('ActivitiesScreen pledge lock', () => {
     stubSuggestions();
     mockUseMatches.mockReturnValue({ data: [{ matchId: 'm1', flameRiteRequired: true, flameRiteCompletedAt: null }] });
 
-    const { getByText } = render(<ActivitiesScreen />);
+    const { getByText } = render(<WithSafeArea><ActivitiesScreen /></WithSafeArea>);
 
     expect(getByText('Complete the Flame Rite before pledging to meet')).toBeTruthy();
   });
@@ -67,7 +68,7 @@ describe('ActivitiesScreen pledge lock', () => {
     stubSuggestions();
     mockUseMatches.mockReturnValue({ data: [{ matchId: 'm1', flameRiteRequired: false, flameRiteCompletedAt: null }] });
 
-    const { queryByText } = render(<ActivitiesScreen />);
+    const { queryByText } = render(<WithSafeArea><ActivitiesScreen /></WithSafeArea>);
 
     expect(queryByText('Complete the Flame Rite before pledging to meet')).toBeNull();
   });
@@ -76,7 +77,7 @@ describe('ActivitiesScreen pledge lock', () => {
     stubSuggestions();
     mockUseMatches.mockReturnValue({ data: [{ matchId: 'm1', flameRiteRequired: true, flameRiteCompletedAt: '2026-08-19T10:09:00Z' }] });
 
-    const { queryByText } = render(<ActivitiesScreen />);
+    const { queryByText } = render(<WithSafeArea><ActivitiesScreen /></WithSafeArea>);
 
     expect(queryByText('Complete the Flame Rite before pledging to meet')).toBeNull();
   });
@@ -90,7 +91,7 @@ describe('ActivitiesScreen pledge states', () => {
   it('shows the "your turn" banner when the partner has pledged and I have not', () => {
     stubSuggestions({ partnerPledged: true });
 
-    const { getByText } = render(<ActivitiesScreen />);
+    const { getByText } = render(<WithSafeArea><ActivitiesScreen /></WithSafeArea>);
 
     expect(getByText('Your match has pledged — your turn to seal it.')).toBeTruthy();
   });
@@ -98,7 +99,7 @@ describe('ActivitiesScreen pledge states', () => {
   it('hides the "your turn" banner when nobody has pledged yet', () => {
     stubSuggestions({ partnerPledged: false });
 
-    const { queryByText } = render(<ActivitiesScreen />);
+    const { queryByText } = render(<WithSafeArea><ActivitiesScreen /></WithSafeArea>);
 
     expect(queryByText('Your match has pledged — your turn to seal it.')).toBeNull();
   });
@@ -106,7 +107,7 @@ describe('ActivitiesScreen pledge states', () => {
   it('shows the waiting-on-partner status once I have pledged but the pair is not complete', () => {
     stubSuggestions({ suggestions: [{ ...suggestion, myConfirmed: true, isComplete: false }], partnerPledged: false });
 
-    const { getByText, queryByText } = render(<ActivitiesScreen />);
+    const { getByText, queryByText } = render(<WithSafeArea><ActivitiesScreen /></WithSafeArea>);
 
     expect(getByText('Pledged. Waiting on your match to confirm.')).toBeTruthy();
     expect(queryByText('Your match has pledged — your turn to seal it.')).toBeNull();

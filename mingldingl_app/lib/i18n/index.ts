@@ -7,6 +7,19 @@ import { mn } from './mn';
 export const translations = { en, mn };
 
 export const SUPPORTED_LOCALES = ['en', 'mn'] as const;
+
+/**
+ * Keys deliberately shipped English-only until a native Mongolian speaker reviews them. The house
+ * rule is no AI-guessed Mongolian, and `enableFallback` renders these in English for an `mn` user
+ * anyway — so an entry here is a visible gap rather than a wrong translation sitting in front of
+ * someone. The parity test enforces both directions: these keys must be missing from `mn`, and
+ * every other key must be present. Empty this list; never grow it.
+ */
+export const AWAITING_MN_TRANSLATION = [
+  'hold_title', 'hold_open', 'hold_close',
+  'room_gate', 'room_road', 'room_tavern', 'room_hearth', 'room_forge', 'room_hall', 'room_deep',
+  'sound',
+] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 /**

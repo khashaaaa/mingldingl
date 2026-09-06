@@ -3,7 +3,7 @@ import { Animated, View, Text, StyleSheet, TouchableOpacity } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
-import { RARITY_COLORS } from '../../lib/tiers';
+import { METAL_COLORS } from '../../lib/tiers';
 import { Icon } from '../ui/Icon';
 
 interface Props {
@@ -75,7 +75,7 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
           <Text style={styles.title}>{title}</Text>
           {points > 0 && <Text style={styles.points}>{i18n.t('xp_earned', { points })}</Text>}
           {item && (
-            <Text style={[styles.itemLine, { color: RARITY_COLORS[item.rarity] ?? COLORS.gold }]}>
+            <Text style={[styles.itemLine, { color: METAL_COLORS[item.rarity] ?? COLORS.gold }]}>
               ✦ {i18n.t(item.nameKey)}
             </Text>
           )}

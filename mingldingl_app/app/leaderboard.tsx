@@ -4,17 +4,17 @@ import { useLeaderboard } from '../hooks/useLeaderboard';
 import { GameHeader } from '../components/ui/GameHeader';
 import { GameButton } from '../components/ui/GameButton';
 import { GemTierBadge } from '../components/progression/GemTierBadge';
-import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
 import type { GemTier } from '../models/user';
+import { useScrollTail } from '../hooks/useScrollTail';
 
-const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
 const TOP_SLICE_SIZE = 50;
 
 export default function LeaderboardScreen() {
+  const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const router = useRouter();
   const { data, isLoading, error, isRefetching, refetch } = useLeaderboard();
@@ -42,10 +42,9 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={styles.screen}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <GameHeader title={i18n.t('leaderboard_title', { city: data.city ?? '' })} icon="podium-gold" showBack />
       <FlatList
-        contentContainerStyle={entries.length === 0 ? styles.listEmpty : styles.list}
+        contentContainerStyle={[entries.length === 0 ? styles.listEmpty : styles.list, { paddingBottom: tail }]}
         data={entries}
         keyExtractor={(item, i) => `${item.rank ?? i}`}
         ListEmptyComponent={<Text style={styles.empty}>{i18n.t('leaderboard_empty')}</Text>}
@@ -77,8 +76,8 @@ export default function LeaderboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
-  centered: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
+  screen: { flex: 1, backgroundColor: 'transparent' },
+  centered: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
   errorTitle: { color: COLORS.text, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, textAlign: 'center' },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },

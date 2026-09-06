@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, LINE, RADIUS, SPACE, overlay } from '../../lib/theme';
 
 interface Props {
   visible: boolean;
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   sheet: {
     backgroundColor: COLORS.panel,
     borderTopWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
     borderTopLeftRadius: RADIUS.md,
     borderTopRightRadius: RADIUS.md,
     maxHeight: '70%',

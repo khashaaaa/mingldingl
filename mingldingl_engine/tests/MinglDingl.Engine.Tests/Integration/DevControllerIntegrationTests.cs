@@ -13,7 +13,7 @@ public class DevControllerIntegrationTests : IntegrationTestBase
     {
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
-        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new HonourService(Db, NullLogger<HonourService>.Instance));
         var provider = new ServiceCollection()
             .AddSingleton(Db)
             .AddSingleton(config)

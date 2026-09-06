@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
 import { TextInput, StyleSheet, type TextInputProps } from 'react-native';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, LINE, RADIUS, SPACE } from '../../lib/theme';
 
 interface Props extends TextInputProps {
   // A single-line field is 52px tall. multiline fields grow between the two bounds.
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   field: {
     backgroundColor: COLORS.panel,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACE.lg,
     color: COLORS.text,

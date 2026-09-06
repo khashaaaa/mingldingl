@@ -1,11 +1,11 @@
 import { View, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, SPACE, metalGradient } from '../../lib/theme';
+import { COLORS, INK, SPACE, metalGradient } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 
 interface Props { tint?: string; }
 
-export function SectionDivider({ tint = COLORS.bronze }: Props) {
+export function SectionDivider({ tint = INK.muted }: Props) {
   const [bright, , dark] = metalGradient(tint);
   return (
     <View style={styles.row}>

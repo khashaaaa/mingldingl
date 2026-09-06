@@ -10,11 +10,13 @@ public class ScoresController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ScoreService _score;
+    private readonly HonourService _honours;
 
-    public ScoresController(AppDbContext db, ScoreService score)
+    public ScoresController(AppDbContext db, ScoreService score, HonourService honours)
     {
         _db = db;
         _score = score;
+        _honours = honours;
     }
 
     [HttpGet("me")]
@@ -52,26 +54,14 @@ public class ScoresController : ControllerBase
             .OrderBy(r => r.CreatedAt)
             .FirstOrDefaultAsync();
 
-        DroppedItem? pendingReward = null;
-        if (pendingReferral is not null)
-        {
-            var item = LootService.Catalog.FirstOrDefault(c => c.Id == pendingReferral.InviterRewardItemId);
-            if (item is not null)
-                pendingReward = new DroppedItem(item.Id, item.NameKey, item.Rarity, item.ItemType);
-        }
+        var pendingReward = HonourService.ToDropped(pendingReferral?.InviterRewardItemId);
 
         var pendingShip = await _db.Ships
             .Where(s => s.ShipperUserId == userId && s.Status == "Sparked" && s.ShipperNotifiedAt == null)
             .OrderBy(s => s.CreatedAt)
             .FirstOrDefaultAsync();
 
-        DroppedItem? pendingShipReward = null;
-        if (pendingShip is not null)
-        {
-            var item = LootService.Catalog.FirstOrDefault(c => c.Id == pendingShip.ShipperRewardItemId);
-            if (item is not null)
-                pendingShipReward = new DroppedItem(item.Id, item.NameKey, item.Rarity, item.ItemType);
-        }
+        var pendingShipReward = HonourService.ToDropped(pendingShip?.ShipperRewardItemId);
 
         return Ok(new ScoreDetailResponse(
             user.TotalScore,
@@ -243,6 +233,8 @@ public class ScoresController : ControllerBase
 
         if (!await _score.TryAwardClaimedAsync(userId, "DailyLogin", award))
             return Ok(new DailyLoginResponse(0, "Already logged in today", user.CurrentStreak, user.LongestStreak));
+
+        if (bonus) await _honours.GrantAsync(userId, "title_sevendawns", "daily_login");
 
         return Ok(new DailyLoginResponse(award, null, streak, user.LongestStreak, bonus));
     }

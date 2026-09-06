@@ -22,7 +22,8 @@ describe('RewardToastHost pending server rewards', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockAck.mockResolvedValue({});
-    useAuthStore.setState({ pendingDrop: null, pendingTierUp: null, streakBonusPending: false });
+    // useScoreDetail is session-gated, so the host only reads rewards for a signed-in user.
+    useAuthStore.setState({ pendingDrop: null, pendingTierUp: null, streakBonusPending: false, session: { access_token: 't' } as never });
   });
 
   it('sets pendingDrop and acks when scoreDetail carries a pendingReferralReward', async () => {

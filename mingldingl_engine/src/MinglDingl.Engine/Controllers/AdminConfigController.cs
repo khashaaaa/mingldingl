@@ -114,8 +114,12 @@ public class AdminConfigController : ControllerBase
     internal static bool IsRevealThresholdKey(string key) =>
         key.StartsWith("reveal.level", StringComparison.Ordinal) && key.EndsWith(".messages", StringComparison.Ordinal);
 
-    private static AdminConfigDto ToDto(AdminConfig c) =>
-        new(c.Key, c.Category, c.ValueType, c.Value, c.Description, c.UpdatedAt, c.UpdatedBy);
+    private static AdminConfigDto ToDto(AdminConfig c)
+    {
+        var def = ConfigKeys.Find(c.Key);
+        return new(c.Key, c.Category, c.ValueType, c.Value, c.Description, c.UpdatedAt, c.UpdatedBy,
+            def?.Min, def?.Max);
+    }
 
     private record ConfigChangeDetails(string OldValue, string NewValue);
 }

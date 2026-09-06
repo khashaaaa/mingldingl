@@ -15,22 +15,24 @@ import { GameButton } from '../../components/ui/GameButton';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { QuestBoard } from '../../components/quest/QuestBoard';
 import { FatedThreadsSection } from '../../components/quest/FatedThreadsSection';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 
-const PARCHMENT_ASSET = require('../../assets/textures/parchment.png');
 
 type CategoryGlyph = React.ComponentProps<typeof Icon>['name'];
 
+// Must stay in step with mingldingl_control's BusinessForm CATEGORIES — the venues the engine
+// actually holds are these six; the old list (Cinema/Hiking/BoardGameCafe) matched nothing, so
+// every restaurant, bar and outdoor venue fell through to the generic pin.
 const CATEGORY_ICONS: Record<string, CategoryGlyph> = {
   Cafe: 'coffee',
-  Cinema: 'movie-open',
-  Hiking: 'hiking',
-  BoardGameCafe: 'dice-multiple',
-  Other: 'map-marker-star',
+  Restaurant: 'silverware-fork-knife',
+  Bar: 'glass-cocktail',
+  Entertainment: 'movie-open',
+  Outdoor: 'hiking',
+  Culture: 'bank',
 };
 
 function missionIcon(category: string): CategoryGlyph {
@@ -51,7 +53,6 @@ export default function ActivityScreen() {
 
   return (
     <View style={styles.screen}>
-      <TiledBackdrop source={PARCHMENT_ASSET} opacity={0.2} />
       <GameHeader title={i18n.t('mission_board')} icon="anvil" />
       <ScrollView
         contentContainerStyle={styles.list}
@@ -81,7 +82,7 @@ export default function ActivityScreen() {
           </View>
         ) : isError ? (
           <View style={styles.center}>
-            <Icon name="alert-circle-outline" size={ICON_SIZES.huge} color={COLORS.bronze} />
+            <Icon name="alert-circle-outline" size={ICON_SIZES.huge} color={INK.muted} />
             <Text style={styles.emptyText}>{i18n.t('screen_load_error')}</Text>
             <GameButton size="compact" onPress={() => refetch()} style={styles.retryButton}>
               {i18n.t('retry')}
@@ -140,7 +141,7 @@ export default function ActivityScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.giant, gap: SPACE.sm },
   retryButton: { marginTop: SPACE.sm },
   emptyText: { color: COLORS.textDim, fontSize: FONT_SIZES.lg, fontFamily: FONTS.body },

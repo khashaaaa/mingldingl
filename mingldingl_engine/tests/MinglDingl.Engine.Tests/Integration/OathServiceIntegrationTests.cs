@@ -9,7 +9,7 @@ public class OathServiceIntegrationTests : IntegrationTestBase
     {
         var cfg = config ?? new ConfigService();
         var score = new ScoreService(Db, cfg);
-        return new OathService(Db, cfg, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
+        return new OathService(Db, cfg, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new HonourService(Db, NullLogger<HonourService>.Instance));
     }
 
     private async Task<Guid> SeedCompletedEncountersAsync(Guid userId, int count, DateTime completedAt)

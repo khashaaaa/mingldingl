@@ -6,10 +6,8 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 
-const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 /**
  * verify.mn is Mobile-Originated: the user sends our code to the shortcode rather than receiving
@@ -98,7 +96,6 @@ export default function OtpScreen() {
     // The provider's instruction copy is variable-length and this screen has no other escape
     // hatch, so it has to be able to scroll rather than clip on a short phone.
     <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <Text style={styles.title}>{i18n.t('verify_title')}</Text>
       <Text style={styles.phone}>+976 {phone}</Text>
 
@@ -147,7 +144,7 @@ export default function OtpScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.xxxl, paddingVertical: SPACE.xxl, gap: SPACE.lg },
   title: {
     fontSize: FONT_SIZES.display,
@@ -160,7 +157,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.panel,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
     borderRadius: RADIUS.md,
     padding: SPACE.lg,
     gap: SPACE.md,

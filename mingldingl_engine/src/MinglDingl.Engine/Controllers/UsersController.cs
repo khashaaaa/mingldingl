@@ -69,18 +69,17 @@ public class UsersController : ControllerBase
         else _db.Users.Update(user);
         await _db.SaveChangesAsync();
 
-        DroppedItem? referralReward = null;
         if (user.IsProfileComplete && !wasComplete)
         {
             // Once ever, not once per transition: the flag flips back to false whenever a required
             // field is cleared, so paying on every rising edge let a profile be emptied and refilled
             // for +100 a round. The partial unique index is what actually settles it.
             await _score.TryAwardClaimedAsync(userId, "ProfileComplete", _score.Delta("ProfileComplete"));
-            referralReward = await _referral.TryCompleteReferralAsync(userId, req.ReferralCode);
+            await _referral.TryCompleteReferralAsync(userId, req.ReferralCode);
             await _ships.TryResolveInviteCodeAsync(userId, req.ReferralCode);
         }
 
-        return Ok(ToResponse(user) with { ReferralRewardItem = referralReward });
+        return Ok(ToResponse(user));
     }
 
     [HttpGet("me")]
@@ -211,15 +210,18 @@ public class UsersController : ControllerBase
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
         if (user is null) return this.NotFoundError("User not found", "user.not_found");
         var owned = await _db.UserItems.AsNoTracking().Where(i => i.UserId == userId).ToListAsync();
-        var result = owned
-            .Select(i => (Row: i, Def: LootService.Catalog.FirstOrDefault(c => c.Id == i.ItemId)))
+        var honours = owned
+            .Select(i => (Row: i, Def: HonourService.Find(i.ItemId)))
             .Where(x => x.Def is not null)
             .Select(x => new OwnedItemResponse(
                 x.Def!.Id, x.Def.NameKey, x.Def.Rarity, x.Def.ItemType, x.Row.AcquiredAt,
-                x.Def.Id == user.EquippedFrameId || x.Def.Id == user.EquippedTitleId))
-            .OrderByDescending(r => r.AcquiredAt)
-            .ToList();
-        return Ok(result);
+                x.Def.Id == user.EquippedTitleId))
+            .OrderByDescending(r => r.AcquiredAt);
+        // Frames come with the tier rather than being stored, so the list is derived on every read
+        // and a tier that fell takes its frames with it.
+        var frames = HonourService.FramesUnlockedFor(user.GemTier)
+            .Select(f => new OwnedItemResponse(f.Id, f.NameKey, f.Rarity, f.ItemType, user.CreatedAt, f.Id == user.EquippedFrameId));
+        return Ok(honours.Concat(frames).ToList());
     }
 
     [HttpPost("me/items/{itemId}/equip")]
@@ -231,16 +233,18 @@ public class UsersController : ControllerBase
         var userId = this.CurrentUserId();
         var user = await _db.Users.FindAsync(userId);
         if (user is null) return this.NotFoundError("User not found", "user.not_found");
-        var def = LootService.Catalog.FirstOrDefault(c => c.Id == itemId);
+        var def = HonourService.Find(itemId);
         if (def is null) return this.NotFoundError("Unknown item", "item.unknown");
-        bool owned = await _db.UserItems.AnyAsync(i => i.UserId == userId && i.ItemId == itemId);
-        if (!owned) return this.NotFoundError("Item not in your trophies", "item.not_owned");
+        bool owned = def.ItemType == "Frame"
+            ? HonourService.FrameUnlocked(itemId, user.GemTier)
+            : await _db.UserItems.AnyAsync(i => i.UserId == userId && i.ItemId == itemId);
+        if (!owned) return this.NotFoundError("Item not in your honours", "item.not_owned");
 
         switch (def.ItemType)
         {
             case "Frame": user.EquippedFrameId = user.EquippedFrameId == itemId ? null : itemId; break;
             case "Title": user.EquippedTitleId = user.EquippedTitleId == itemId ? null : itemId; break;
-            default: return this.BadRequestError("Emblems are collection-only", "item.emblem_not_equippable");
+            default: return this.BadRequestError("This item cannot be worn", "item.not_equippable");
         }
         await _db.SaveChangesAsync();
         return Ok(ToResponse(user));

@@ -5,6 +5,7 @@ import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { SectionDivider } from './SectionDivider';
 import { Icon } from './Icon';
+import { AtlasSigil } from '../world/AtlasSigil';
 
 interface Props {
   title: string;
@@ -46,7 +47,10 @@ export function HeaderBar({ title, showBack = true, onBack, icon, right, childre
             {title}
           </Text>
         </View>
-        {right}
+        <View style={styles.tail}>
+          <AtlasSigil />
+          {right}
+        </View>
       </View>
       <SectionDivider tint={COLORS.gold} />
       {children}
@@ -58,6 +62,7 @@ const styles = StyleSheet.create({
   wrap: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.md, gap: SPACE.md },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, flexShrink: 1 },
+  tail: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
   titleIcon: { marginTop: SPACE.hair },
   backBtn: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
   title: {

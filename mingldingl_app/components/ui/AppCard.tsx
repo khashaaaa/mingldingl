@@ -2,7 +2,7 @@ import { View, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { colorForTier } from '../../lib/tiers';
-import { COLORS, FILL, RADIUS, glow, overlay } from '../../lib/theme';
+import { COLORS, FILL, LINE, RADIUS, glow, overlay } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 
 interface Props {
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
   },
   fill: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS.md },
   texture: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS.md, overflow: 'hidden', opacity: 0.06 },

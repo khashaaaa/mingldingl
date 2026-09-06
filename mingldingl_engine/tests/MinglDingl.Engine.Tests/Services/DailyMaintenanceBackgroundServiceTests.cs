@@ -11,7 +11,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
     {
         config ??= new ConfigService();
         var score = new ScoreService(Db, config);
-        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new HonourService(Db, NullLogger<HonourService>.Instance));
         var provider = new ServiceCollection()
             .AddSingleton(Db)
             .AddSingleton(config)
@@ -236,6 +236,35 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         await BuildService().RunSweepAsync(CancellationToken.None);
 
         Assert.False(await Db.PhoneVerifications.AnyAsync(v => v.ClaimedByUserId == user.Id));
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_AnonymizingAUser_PurgesVerificationsTheirOtherIdentitiesClaimed()
+    {
+        // A returning user's proof is claimed by the anonymous auth identity they signed in with,
+        // not by the account id, so a purge keyed on ClaimedByUserId alone left the number behind.
+        var phone = Random.Shared.Next(10_000_000, 100_000_000).ToString();
+        var user = NewCompleteUser();
+        user.PhoneNumber = phone;
+        user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriodFor(new ConfigService()) - TimeSpan.FromDays(1);
+        Db.Users.Add(user);
+        Db.PhoneVerifications.Add(new PhoneVerification
+        {
+            Id = Guid.NewGuid(),
+            Phone = phone,
+            Code = "123456",
+            ProviderSessionId = "sess-alias",
+            Status = PhoneVerificationStatus.Verified,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+            VerifiedAt = DateTime.UtcNow,
+            ClaimedByUserId = Guid.NewGuid(),
+            ClaimedAt = DateTime.UtcNow,
+        });
+        await Db.SaveChangesAsync();
+
+        await BuildService().RunSweepAsync(CancellationToken.None);
+
+        Assert.False(await Db.PhoneVerifications.AnyAsync(v => v.Phone == phone));
     }
 
     [Fact]

@@ -28,6 +28,11 @@ public class TownSquareService
         if (session is null || session.Status != "Open")
             throw new DomainException("Session is not open for RSVP", "square.rsvp_closed");
 
+        // A session is created Open, so without this the admin's RSVP-opens date did nothing at
+        // all and the roster could fill days before the window it advertises.
+        if (session.RsvpOpensAt > DateTime.UtcNow)
+            throw new DomainException("RSVP has not opened for this session yet", "square.rsvp_not_open");
+
         bool exists = await _db.TownSquareRsvps.AnyAsync(r => r.SessionId == sessionId && r.UserId == userId);
         if (exists) return;
 

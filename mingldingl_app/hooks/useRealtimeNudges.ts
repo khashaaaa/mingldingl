@@ -6,6 +6,7 @@ import { queryClient } from '../lib/api/queryClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
 import type { Match } from '../models/match';
+import { useMyUserId } from './useMyUserId';
 
 type MatchSource = 'like' | 'ship' | 'townsquare';
 
@@ -22,7 +23,7 @@ function otherUserName(matchId: string): string {
 }
 
 export function useRealtimeNudges() {
-  const myId = useAuthStore((s) => s.session?.user.id);
+  const myId = useMyUserId();
   const setPendingNudge = useAuthStore((s) => s.setPendingNudge);
 
   useEffect(() => {
@@ -113,6 +114,9 @@ export function useRealtimeNudges() {
       .on('broadcast', { event: 'match_status_changed' }, (msg) => {
         const { matchId, status } = msg.payload as { matchId: string; status: string };
         queryClient.invalidateQueries({ queryKey: queryKeys.matches });
+        // An ended match drops straight out of the matches list, so anyone standing in that chat
+        // would otherwise lose the match object without ever being told what happened.
+        queryClient.setQueryData(queryKeys.matchStatus(matchId), status);
 
         if (status === 'Ghosted' || status === 'Completed') {
           queryClient.invalidateQueries({ queryKey: queryKeys.messages(matchId) });

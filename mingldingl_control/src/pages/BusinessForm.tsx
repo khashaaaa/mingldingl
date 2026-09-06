@@ -12,7 +12,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { serverError } from '@/lib/apiError';
 
-const CATEGORIES = ['Cafe', 'Cinema', 'Hiking', 'BoardGameCafe', 'Other'];
+// The vocabulary the venues actually use, and the one the app's Mission Board maps to icons
+// (mingldingl_app/app/(tabs)/activity.tsx). The old list shared only 'Cafe' with the real data, so
+// editing any other venue opened this form with an empty category select.
+const CATEGORIES = ['Cafe', 'Restaurant', 'Bar', 'Entertainment', 'Outdoor', 'Culture'];
 
 type BusinessDetail = Awaited<ReturnType<typeof apiClient.business.detail>>;
 

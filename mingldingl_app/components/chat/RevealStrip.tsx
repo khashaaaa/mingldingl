@@ -1,8 +1,10 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE } from '../../lib/theme';
 import type { DeepFields, PartialUser } from '../../models/match';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { nextRevealThreshold } from '../../lib/reveal';
@@ -29,26 +31,58 @@ function deepChips(deep: DeepFields | null | undefined): Chip[] {
 interface Props {
   otherUser: PartialUser;
   messageCount: number;
+  /** The engine's effective level for this match; the last rung is the deep-profile one. */
+  revealLevel?: number;
+  /**
+   * Chat opens this collapsed: the strip plus four action banners pushed the conversation itself off
+   * the first screen. The progress line — the part that motivates — stays visible either way.
+   */
+  defaultExpanded?: boolean;
 }
 
-export function RevealStrip({ otherUser, messageCount }: Props) {
+export function RevealStrip({ otherUser, messageCount, revealLevel, defaultExpanded = true }: Props) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const revealLadder = useRevealLadder();
+  const router = useRouter();
   const photos = [otherUser.firstPhoto, otherUser.secondPhoto, otherUser.thirdPhoto];
+  const nextAt = nextRevealThreshold(messageCount, revealLadder);
+  const photosShown = [otherUser.firstPhoto, otherUser.secondPhoto, otherUser.thirdPhoto].filter(Boolean).length;
+  // The engine hands out deep fields at the top rung *and* only to Silver/Gold. Once the
+  // conversation has earned that rung, an absent `deep` can only be the membership gate — showing
+  // it under the same padlock as an unearned field reads as a bug rather than as a paywall.
+  const deepGatedByMembership =
+    revealLevel != null && revealLevel >= DEEP_REVEAL_LEVEL && !otherUser.deep;
   const chips: Chip[] = [
     { key: 'age', label: i18n.t('reveal_age'), value: otherUser.age != null ? String(otherUser.age) : null },
     { key: 'district', label: i18n.t('reveal_district'), value: otherUser.district ?? null },
-    ...(otherUser.deep ? deepChips(otherUser.deep) : [{ key: 'deep', label: i18n.t('reveal_deep_profile'), value: null }]),
+    ...(otherUser.deep || deepGatedByMembership
+      ? deepChips(otherUser.deep)
+      : [{ key: 'deep', label: i18n.t('reveal_deep_profile'), value: null }]),
   ];
-  const nextAt = nextRevealThreshold(messageCount, revealLadder);
+
+  const progress = nextAt !== null
+    ? i18n.t('reveal_next_at', { count: nextAt })
+    : i18n.t('reveal_complete');
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.titleRow}>
-        <CardEyebrow style={styles.title}>{i18n.t('reveal_title')}</CardEyebrow>
-        <Text style={styles.next}>
-          {nextAt !== null ? i18n.t('reveal_next_at', { count: nextAt }) : i18n.t('reveal_complete')}
-        </Text>
-      </View>
+      <Pressable
+        onPress={() => setExpanded((v) => !v)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        accessibilityLabel={i18n.t('reveal_title')}
+        style={styles.titleRow}
+        testID="reveal-toggle"
+      >
+        {expanded
+          ? <CardEyebrow style={styles.title}>{i18n.t('reveal_title')}</CardEyebrow>
+          : <Text style={styles.summary}>{i18n.t('reveal_summary', { shown: photosShown, total: 3 })}</Text>}
+        <View style={styles.progressRow}>
+          <Text style={styles.next}>{progress}</Text>
+          <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size={ICON_SIZES.sm} color={COLORS.textDim} />
+        </View>
+      </Pressable>
+      {!expanded ? null : (
       <View style={styles.row}>
         {photos.map((uri, i) => (
           uri ? (
@@ -60,6 +94,19 @@ export function RevealStrip({ otherUser, messageCount }: Props) {
           )
         ))}
         <View style={styles.chips}>
+          {deepGatedByMembership && (
+            <Pressable
+              onPress={() => router.push('/membership')}
+              accessibilityRole="button"
+              style={[styles.chip, styles.chipUpgrade]}
+              testID="reveal-deep-upgrade"
+            >
+              <Icon name="crown" size={ICON_SIZES.xs} color={COLORS.gold} />
+              <Text style={[styles.chipText, styles.chipTextUpgrade]} numberOfLines={1}>
+                {i18n.t('reveal_deep_membership')}
+              </Text>
+            </Pressable>
+          )}
           {chips.map((c) => (
             <View key={c.key} style={[styles.chip, c.value === null && styles.chipLocked]}>
               {c.value === null && <Icon name="lock" size={ICON_SIZES.xs} color={COLORS.textDim} />}
@@ -70,11 +117,15 @@ export function RevealStrip({ otherUser, messageCount }: Props) {
           ))}
         </View>
       </View>
+      )}
     </View>
   );
 }
 
 const PHOTO = 36;
+
+/** The top rung of the ladder — `RevealService.Defaults` ends at level 4. */
+const DEEP_REVEAL_LEVEL = 4;
 
 const styles = StyleSheet.create({
   wrap: {
@@ -85,10 +136,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
   },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: SPACE.sm },
   title: { marginBottom: 0 },
+  summary: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: COLORS.text, flexShrink: 1 },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
   next: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.gold },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   photo: {
@@ -99,7 +152,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.brass,
     backgroundColor: COLORS.panelRaised,
   },
-  locked: { borderColor: COLORS.bronze, alignItems: 'center', justifyContent: 'center' },
+  locked: { borderColor: LINE.edge, alignItems: 'center', justifyContent: 'center' },
   chips: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs },
   chip: {
     flexDirection: 'row',
@@ -113,7 +166,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panelRaised,
     maxWidth: '100%',
   },
-  chipLocked: { borderColor: COLORS.bronze },
+  chipLocked: { borderColor: LINE.edge },
+  chipUpgrade: { borderColor: COLORS.gold },
+  chipTextUpgrade: { color: COLORS.gold },
   chipText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.text, flexShrink: 1 },
   chipTextLocked: { color: COLORS.textDim },
 });

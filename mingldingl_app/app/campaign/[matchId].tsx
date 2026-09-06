@@ -7,14 +7,14 @@ import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { QuestBanner } from '../../components/quest/QuestBanner';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
+import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
 import { toDroppedItem } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE, circle } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
+import { useScrollTail } from '../../hooks/useScrollTail';
 
-const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 
 type IconName = React.ComponentProps<typeof Icon>['name'];
@@ -32,6 +32,7 @@ const ROOM_ICONS: Record<string, IconName> = {
 const BOSS_ROOM_ID = 'threshold';
 
 export default function CampaignScreen() {
+  const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const router = useRouter();
@@ -47,6 +48,7 @@ export default function CampaignScreen() {
   const onClaim = (roomId: string) =>
     claimRoom(roomId, {
       onSuccess: (data) => {
+        if (roomId === BOSS_ROOM_ID) signal('sealBreak');
         const item = toDroppedItem(data.droppedItem);
         if (item) setPendingDrop(item);
       },
@@ -133,7 +135,6 @@ export default function CampaignScreen() {
 
   return (
     <View style={styles.screen}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={i18n.t('campaign_title')} />
 
       {isLoading ? (
@@ -150,7 +151,7 @@ export default function CampaignScreen() {
           <Text style={styles.emptyText}>{i18n.t('campaign_load_error')}</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tail }]}>
           <Text style={styles.progress}>
             {i18n.t('campaign_progress', { cleared: campaign.clearedCount, total: campaign.rooms.length })}
           </Text>
@@ -167,7 +168,7 @@ export default function CampaignScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.md, padding: SPACE.xxl },
   emptyText: {
     fontFamily: FONTS.body,
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
   },
   roomKnot: { width: 38, height: 38 },
   bossKnot: { width: 44, height: 44 },
-  pathLine: { flex: 1, width: 2, backgroundColor: COLORS.bronze, marginVertical: SPACE.xs, minHeight: 16 },
+  pathLine: { flex: 1, width: 2, backgroundColor: LINE.edge, marginVertical: SPACE.xs, minHeight: 16 },
   roomBody: {
     flex: 1,
     paddingLeft: SPACE.sm,

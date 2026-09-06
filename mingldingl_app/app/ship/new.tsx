@@ -3,7 +3,6 @@ import { View, Text, Share, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { GameButton } from '../../components/ui/GameButton';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { TextField } from '../../components/ui/TextField';
 import { apiClient } from '../../lib/api/apiClient';
 import { getApiErrorMessage } from '../../lib/api/errors';
@@ -12,7 +11,6 @@ import { shipInviteMessage } from '../../lib/shipInvite';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 
-const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 const PHONE_REGEX = /^\d{8}$/;
 
 export default function NewShipScreen() {
@@ -52,7 +50,6 @@ export default function NewShipScreen() {
   if (sent) {
     return (
       <View style={styles.container}>
-        <TiledBackdrop source={DUNGEON_WALL_ASSET} opacity={0.08} />
         <ScreenHeader title={i18n.t('weave_thread_title')} onBack={() => router.back()} />
         <View style={styles.confirmWrap}>
           <Text style={styles.confirmText}>{i18n.t('ship_sent_confirmation')}</Text>
@@ -76,7 +73,6 @@ export default function NewShipScreen() {
 
   return (
     <View style={styles.container}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} opacity={0.08} />
       <ScreenHeader title={i18n.t('weave_thread_title')} onBack={() => router.back()} />
       <View style={styles.form}>
         <Text style={styles.hint}>{i18n.t('weave_thread_hint')}</Text>
@@ -112,7 +108,7 @@ export default function NewShipScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   form: { padding: SPACE.xl, gap: SPACE.md },
   hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
   label: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: COLORS.gold, letterSpacing: 1, marginTop: SPACE.sm },

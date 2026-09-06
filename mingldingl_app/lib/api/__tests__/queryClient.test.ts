@@ -1,5 +1,6 @@
 import { Alert } from 'react-native';
 import { createAppQueryClient } from '../queryClient';
+import { useAuthStore } from '../../../store/authStore';
 
 // Spy rather than mock the module: react-native is pulled in transitively by i18n and the
 // theme, and replacing it wholesale breaks those imports.
@@ -21,7 +22,21 @@ async function failingQuery(qc: ReturnType<typeof client>, meta?: Record<string,
 }
 
 describe('query error handling', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useAuthStore.setState({ session: { access_token: 't' } as never });
+  });
+
+  // Signing out clears the token and the cache mid-flight, so whatever was in the air 401s. That
+  // is teardown noise, not something the user needs an alert about — and every read this handler
+  // can see is session-gated, so with no session there is no genuine failure left to report.
+  it('stays quiet once the user is signed out', async () => {
+    useAuthStore.setState({ session: null });
+
+    await failingQuery(client());
+
+    expect(mockAlert).not.toHaveBeenCalled();
+  });
 
   it('tells the user when a read fails, so a failure is not mistaken for an empty screen', async () => {
     await failingQuery(client());

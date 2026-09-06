@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
-import { toDroppedItem } from '../lib/tiers';
 import { queryKeys } from '../lib/api/queryKeys';
 
 export interface QuizQuestion {
@@ -96,7 +95,6 @@ export function useQuiz(matchId: string) {
     allAnswered: hasResponded,
     isWaitingForPartner,
     compatibility,
-    droppedItem: toDroppedItem(submit.data?.droppedItem),
     awarded: submit.data?.awarded ?? 0,
     submitError: submit.isError,
     clearSubmitError: submit.reset,

@@ -13,16 +13,14 @@ import { LootToast } from '../../components/modals/LootToast';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
 import { GameHeader } from '../../components/ui/GameHeader';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { PanelReveal } from '../../components/modals/PanelReveal';
 import { EmberField } from '../../components/vfx/EmberField';
 import { FogDrift } from '../../components/vfx/FogDrift';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 
-const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function DiscoverScreen() {
   useLocaleStore((s) => s.locale);
@@ -51,16 +49,14 @@ export default function DiscoverScreen() {
 
   if (isLoading) return (
     <View style={styles.center}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ActivityIndicator color={COLORS.gold} size="large" />
     </View>
   );
 
   if (isError) return (
     <View style={styles.center}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <View style={styles.emptyCard}>
-        <Icon name="wifi-off" size={ICON_SIZES.hero} color={COLORS.bronze} />
+        <Icon name="wifi-off" size={ICON_SIZES.hero} color={INK.muted} />
         <RNText style={styles.emptyTitle}>{i18n.t('discover_load_error')}</RNText>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
       </View>
@@ -71,10 +67,9 @@ export default function DiscoverScreen() {
 
   if (!candidate) return (
     <View style={styles.center}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <View style={styles.emptyCard} onLayout={onEmptyLayout}>
         {emptySize.w > 0 && <FogDrift width={emptySize.w} height={emptySize.h} />}
-        <Icon name="weather-night" size={ICON_SIZES.hero} color={COLORS.bronze} />
+        <Icon name="weather-night" size={ICON_SIZES.hero} color={INK.muted} />
         <RNText style={styles.emptyTitle}>{i18n.t('empty_seek_title')}</RNText>
         <RNText style={styles.emptySub}>{i18n.t('empty_seek_sub')}</RNText>
         <GameButton variant="ghost" size="compact" icon="refresh" onPress={() => refetch()}>
@@ -88,7 +83,6 @@ export default function DiscoverScreen() {
 
   return (
     <View style={styles.screen}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <GameHeader title={i18n.t('seek_title')} icon="sword-cross" showScore />
       <GettingStartedCard
         isProfileComplete={profile?.isProfileComplete ?? false}
@@ -151,14 +145,14 @@ export default function DiscoverScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
-  center: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  screen: { flex: 1, backgroundColor: 'transparent' },
+  center: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
   cardArea: { flex: 1, paddingHorizontal: SPACE.gutter, paddingBottom: SPACE.lg },
   emptyCard: {
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
     padding: SPACE.giant,
     alignItems: 'center',
     gap: SPACE.md,

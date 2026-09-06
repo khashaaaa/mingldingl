@@ -7,9 +7,12 @@ import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
 import OathSigil from '../OathSigil';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE, overlay, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, overlay, tint } from '../../lib/theme';
 import { itemLabel } from '../../lib/tiers';
 import type { Candidate } from '../../models/user';
+
+// Clearance the placeholder figure keeps from the photo dots above and the plaque below.
+const PLACEHOLDER_INSET = SPACE.xxl;
 
 interface Props {
   candidate: Candidate;
@@ -30,12 +33,29 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showPhoto = photo && photo !== failedUrl;
 
+  // The info plaque is absolutely positioned over the photo, so the placeholder silhouette has to
+  // be told how much room it leaves — a fixed percentage put the figure straight through the name
+  // on a short card, and a full-size figure in the sliver that is left just peeks out from behind
+  // the photo dots. Measure both and shrink the figure to whatever actually fits, or drop it.
+  const [cardHeight, setCardHeight] = useState(0);
+  const [infoHeight, setInfoHeight] = useState(0);
+  const placeholderIcon = Math.min(
+    ICON_SIZES.splash,
+    Math.max(0, cardHeight - infoHeight - PLACEHOLDER_INSET * 2),
+  );
+
+  // The scrim has to start above the plaque, not at a fixed fraction of the card: a bright photo
+  // behind a two-line name and an oath badge left the text sitting on near-white.
+  const plaqueTop = cardHeight > 0
+    ? Math.max(0.05, Math.min(0.9, 1 - (infoHeight + SPACE.giant) / cardHeight))
+    : 0.45;
+
   function advancePhoto(direction: 1 | -1) {
     setPhotoIndex((i) => (i + direction + photos.length) % photos.length);
   }
 
   return (
-    <View style={styles.card}>
+    <View style={styles.card} onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}>
       {showPhoto ? (
         <Image
           source={{ uri: photo }}
@@ -44,8 +64,10 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
           onError={() => setFailedUrl(photo)}
         />
       ) : (
-        <View style={styles.photoPlaceholder}>
-          <Icon name="account" size={ICON_SIZES.splash} color={COLORS.bronze} />
+        <View style={[styles.photoPlaceholder, { paddingBottom: infoHeight }]}>
+          {placeholderIcon >= ICON_SIZES.xl && (
+            <Icon name="account" size={placeholderIcon} color={INK.muted} />
+          )}
         </View>
       )}
 
@@ -72,13 +94,13 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
       )}
 
       <LinearGradient
-        colors={['transparent', overlay(0.6), overlay(0.97)]}
+        colors={['transparent', overlay(0.72), overlay(0.97)]}
         style={StyleSheet.absoluteFill}
-        locations={[0.35, 0.65, 1]}
+        locations={[Math.max(0, plaqueTop - 0.18), plaqueTop, 1]}
         pointerEvents="none"
       />
 
-      <View style={styles.info}>
+      <View style={styles.info} onLayout={(e) => setInfoHeight(e.nativeEvent.layout.height)}>
         <View style={styles.plaqueRule} />
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>{candidate.displayName}, {candidate.age}</Text>
@@ -114,7 +136,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: COLORS.panel,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
   },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
   photo: { ...StyleSheet.absoluteFillObject },
@@ -123,7 +145,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panelRaised,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: '32%',
   },
   photoDots: {
     position: 'absolute',

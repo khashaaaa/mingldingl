@@ -54,6 +54,14 @@ function makeWrapper(queryClient: QueryClient) {
 
 const MATCH_ID = 'match-1';
 
+/** Shaped like the axios error the engine's `match.inactive` DomainException produces. */
+function matchInactiveError() {
+  return Object.assign(new Error('Request failed with status code 403'), {
+    isAxiosError: true,
+    response: { status: 403, data: { error: 'This match is no longer active', code: 'match.inactive' } },
+  });
+}
+
 describe('useChat', () => {
   let fakeChannel: ReturnType<typeof makeFakeChannel>;
 
@@ -126,6 +134,30 @@ describe('useChat', () => {
     await waitFor(() => expect(result.current.messages).toHaveLength(1));
     expect(result.current.messages[0]).toMatchObject({ content: 'will fail', status: 'failed' });
     expect(result.current.messages[0].id).toMatch(/^local-/);
+  });
+
+  it('records the match as ended when a send is refused with 403 match.inactive', async () => {
+    // The partner unmatched or blocked while this screen was open. Without this the bubble just
+    // says "tap to retry" forever and the screen never explains why nothing will ever send.
+    mockSend.mockRejectedValue(matchInactiveError());
+    const { result, queryClient } = await setup();
+
+    await act(async () => { await result.current.sendMessage('into the void'); });
+
+    // Wait on the rendered value, not the cache: getQueryData reads through synchronously and can
+    // satisfy waitFor a render before the hook has re-rendered, leaving messages[0] undefined.
+    await waitFor(() => expect(result.current.messages[0]).toMatchObject({ status: 'failed' }));
+    expect(queryClient.getQueryData(queryKeys.matchStatus(MATCH_ID))).toBe('Unmatched');
+  });
+
+  it('leaves the match status alone when a send fails for an ordinary network reason', async () => {
+    mockSend.mockRejectedValue(new Error('offline'));
+    const { result, queryClient } = await setup();
+
+    await act(async () => { await result.current.sendMessage('retry me later'); });
+
+    await waitFor(() => expect(result.current.messages[0]).toMatchObject({ status: 'failed' }));
+    expect(queryClient.getQueryData(queryKeys.matchStatus(MATCH_ID))).toBeUndefined();
   });
 
   it('retryMessage resends a failed message and flips it back to sent on success', async () => {

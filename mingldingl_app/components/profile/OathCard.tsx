@@ -9,7 +9,7 @@ import { GameButton } from '../ui/GameButton';
 import OathSigil, { OATH_VALUES, OATH_SIGILS, OATH_NAME_KEYS, OATH_DESC_KEYS } from '../OathSigil';
 import { useSwearOath } from '../../hooks/useOath';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import type { CloseThen } from '../modals/SheetModal';
 import type { GemTier, Oath } from '../../models/user';
 
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     padding: SPACE.md,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
     backgroundColor: COLORS.panelRaised,
   },
   optionCurrent: { borderColor: COLORS.gold, borderWidth: 2 },

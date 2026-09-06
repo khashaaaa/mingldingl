@@ -6,7 +6,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<ScoreService>();
         services.AddScoped<QuestService>();
-        services.AddScoped<LootService>();
+        services.AddScoped<HonourService>();
         services.AddScoped<ReferralService>();
         services.AddScoped<ShipService>();
         services.AddScoped<EngagementService>();

@@ -1,3 +1,4 @@
+import { AxiosError } from 'axios';
 import { renderHook, act } from '@testing-library/react-native';
 import { useAuth, isPhoneValid } from '../useAuth';
 import { supabase } from '../../lib/supabase';
@@ -111,6 +112,40 @@ describe('useAuth — starting verification', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('resumes the session a number was last given instead of opening a second one', async () => {
+    mockStart.mockResolvedValue({ verificationId: 'v-first', smsUri: 'sms:144773?body=1', displayInstruction: 'x' });
+    const { result } = renderHook(() => useAuth());
+
+    await act(async () => {
+      await result.current.startPhoneVerification('88118811');
+    });
+    expect(mockStart).toHaveBeenLastCalledWith('88118811', undefined);
+
+    await act(async () => {
+      await result.current.startPhoneVerification('88118811');
+    });
+    expect(mockStart).toHaveBeenLastCalledWith('88118811', 'v-first');
+
+    // A different number never inherits another number's session.
+    await act(async () => {
+      await result.current.startPhoneVerification('88118822');
+    });
+    expect(mockStart).toHaveBeenLastCalledWith('88118822', undefined);
+  });
+
+  it('shows the localised copy for an engine error code when a session cannot be opened', async () => {
+    const tooMany = new AxiosError('429');
+    tooMany.response = { status: 429, data: { error: 'too many', code: 'phone.too_many_attempts' } } as AxiosError['response'];
+    mockStart.mockRejectedValue(tooMany);
+    const { result } = renderHook(() => useAuth());
+
+    await act(async () => {
+      await result.current.startPhoneVerification('88118833');
+    });
+
+    expect(result.current.error).toBe('Too many attempts for this number. Wait a few minutes before trying again.');
+  });
+
   it('surfaces an error when the engine cannot open a session', async () => {
     mockStart.mockRejectedValue(new Error('503'));
     const { result } = renderHook(() => useAuth());
@@ -192,7 +227,34 @@ describe('useAuth — completing sign-in', () => {
     });
 
     expect(ok).toBe(true);
-    expect(mockClaim).toHaveBeenCalledWith('v1');
+    expect(mockClaim).toHaveBeenCalledWith('v1', 'refreshed-token');
+    expect(useAuthStore.getState().session?.access_token).toBe('refreshed-token');
+  });
+
+  // The engine only resolves this anonymous identity onto the real account once the claim binds
+  // it. Handing the session to the app first let every session-gated query fire against an
+  // account the engine could not see yet: /users/me 404'd, and the returning user was routed
+  // into onboarding behind a "No such traveler" alert.
+  it('claims the phone before any session reaches the app', async () => {
+    const original = fakeSession('original-token');
+    const refreshed = fakeSession('refreshed-token');
+    mockFetchRoutes({
+      '/auth/v1/signup': { status: 200, body: original },
+      '/auth/v1/user': { status: 200, body: {} },
+      '/auth/v1/token': { status: 200, body: refreshed },
+    });
+    const order: string[] = [];
+    mockClaim.mockImplementation(async () => {
+      order.push('claim');
+      expect(useAuthStore.getState().session).toBeNull();
+      return { phone: '99119911' };
+    });
+    mockSetSession.mockImplementation(async () => { order.push('setSession'); return { data: {}, error: null }; });
+    const { result } = renderHook(() => useAuth());
+
+    await act(async () => { await result.current.completeSignIn('v1', '99119911'); });
+
+    expect(order).toEqual(['claim', 'setSession']);
     expect(useAuthStore.getState().session?.access_token).toBe('refreshed-token');
   });
 
@@ -210,7 +272,7 @@ describe('useAuth — completing sign-in', () => {
     expect(useAuthStore.getState().session).toBeNull();
   });
 
-  it('signs back out and reports an error when the claim is rejected', async () => {
+  it('never hands over the session when the claim is rejected', async () => {
     const original = fakeSession('original-token');
     mockFetchRoutes({
       '/auth/v1/signup': { status: 200, body: original },
@@ -226,7 +288,7 @@ describe('useAuth — completing sign-in', () => {
     });
 
     expect(ok).toBe(false);
-    expect(supabase.auth.signOut).toHaveBeenCalled();
+    expect(mockSetSession).not.toHaveBeenCalled();
     expect(result.current.error).toBe("We couldn't finish signing you in. Please try again.");
     expect(useAuthStore.getState().session).toBeNull();
   });

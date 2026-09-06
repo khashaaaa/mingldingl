@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
-        var controller = new ScoresController(Db, new ScoreService(Db, new ConfigService()))
+        var controller = new ScoresController(Db, new ScoreService(Db, new ConfigService()), new HonourService(Db, NullLogger<HonourService>.Instance))
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -161,15 +162,15 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
         {
             InviterUserId = inviterId,
             InviteeUserId = inviteeId,
-            InviterRewardItemId = LootService.Catalog[0].Id,
-            InviteeRewardItemId = LootService.Catalog[1].Id,
+            InviterRewardItemId = HonourService.Catalog[0].Id,
+            InviteeRewardItemId = HonourService.Catalog[1].Id,
         });
         await Db.SaveChangesAsync();
         var controller = BuildController(inviterId);
 
         var first = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
         Assert.NotNull(first.PendingReferralReward);
-        Assert.Equal(LootService.Catalog[0].Id, first.PendingReferralReward!.Id);
+        Assert.Equal(HonourService.Catalog[0].Id, first.PendingReferralReward!.Id);
 
         var second = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
         Assert.NotNull(second.PendingReferralReward);
@@ -207,14 +208,14 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
             Status = "Sparked",
             SlotAUserId = Guid.NewGuid(),
             SlotBUserId = Guid.NewGuid(),
-            ShipperRewardItemId = LootService.Catalog[0].Id,
+            ShipperRewardItemId = HonourService.Catalog[0].Id,
         });
         await Db.SaveChangesAsync();
         var controller = BuildController(weaverId);
 
         var first = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
         Assert.NotNull(first.PendingShipReward);
-        Assert.Equal(LootService.Catalog[0].Id, first.PendingShipReward!.Id);
+        Assert.Equal(HonourService.Catalog[0].Id, first.PendingShipReward!.Id);
 
         var second = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
         Assert.NotNull(second.PendingShipReward);
@@ -272,5 +273,38 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
         Db.ChangeTracker.Clear();
         var reloaded = await Db.Users.AsNoTracking().FirstAsync(u => u.Id == userId);
         Assert.Equal(30, reloaded.CurrentStreak);
+    }
+
+    [Fact]
+    public async Task DailyLogin_SeventhConsecutiveDay_GrantsSevenDawns()
+    {
+        var userId = Guid.NewGuid();
+        var user = NewCompleteUser(userId);
+        user.CurrentStreak = 6;
+        user.LastLoginDate = DateTime.UtcNow.Date.AddDays(-1);
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        var body = Assert.IsType<DailyLoginResponse>(Assert.IsType<OkObjectResult>(await BuildController(userId).DailyLogin()).Value);
+
+        Assert.True(body.StreakBonusAwarded);
+        Db.ChangeTracker.Clear();
+        Assert.Single(Db.UserItems.Where(i => i.UserId == userId && i.ItemId == "title_sevendawns"));
+    }
+
+    [Fact]
+    public async Task DailyLogin_OrdinaryDay_GrantsNoHonour()
+    {
+        var userId = Guid.NewGuid();
+        var user = NewCompleteUser(userId);
+        user.CurrentStreak = 2;
+        user.LastLoginDate = DateTime.UtcNow.Date.AddDays(-1);
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        await BuildController(userId).DailyLogin();
+
+        Db.ChangeTracker.Clear();
+        Assert.Empty(Db.UserItems.Where(i => i.UserId == userId));
     }
 }

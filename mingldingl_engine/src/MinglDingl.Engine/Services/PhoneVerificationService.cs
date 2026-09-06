@@ -11,6 +11,13 @@ public class PhoneVerificationService
     /// <summary>A verification must be bound to an auth identity within this window of being verified.</summary>
     public static readonly TimeSpan ClaimWindow = TimeSpan.FromMinutes(30);
 
+    /// <summary>
+    /// Pending sessions one number may hold at once. Start is anonymous and every call opens a
+    /// provider session, so without a ceiling a script could open them without limit against a
+    /// number it does not own.
+    /// </summary>
+    public const int MaxPendingPerPhone = 5;
+
     public PhoneVerificationService(
         AppDbContext db, VerifyMnClient verify, IConfiguration config, ILogger<PhoneVerificationService> logger)
     {
@@ -32,13 +39,31 @@ public class PhoneVerificationService
     }
 
     /// <summary>
-    /// Starts (or resumes) a verification. An in-flight session for the same phone is reused so a
-    /// user who backgrounds the app isn't charged twice — every SMS to the shortcode costs them 150₮.
+    /// Starts a verification, or resumes the caller's own in-flight one. A pending session is only
+    /// ever handed back to a caller who can name its id. Start is anonymous, so returning "the
+    /// pending session for this number" to whoever asked handed an attacker the very session the
+    /// real owner was about to prove — both saw VERIFIED at the same moment and the claim went to
+    /// whichever polled faster. The app passes back the id it was last given for the number, so
+    /// backgrounding or re-entering the number still resumes instead of issuing a second code
+    /// (each SMS to the shortcode costs the user 150₮).
     /// </summary>
-    public async Task<PhoneVerification?> StartAsync(string phone, CancellationToken ct = default)
+    public async Task<PhoneVerification?> StartAsync(string phone, Guid? resumeVerificationId = null, CancellationToken ct = default)
     {
-        var existing = await FindActiveAsync(phone, ct);
-        if (existing is not null) return existing;
+        var now = DateTime.UtcNow;
+        if (resumeVerificationId is Guid resumeId)
+        {
+            var own = await _db.PhoneVerifications.FirstOrDefaultAsync(
+                v => v.Id == resumeId && v.Phone == phone
+                    && v.Status == PhoneVerificationStatus.Pending && v.ExpiresAt > now, ct);
+            if (own is not null) return own;
+        }
+
+        int pending = await _db.PhoneVerifications.CountAsync(
+            v => v.Phone == phone && v.Status == PhoneVerificationStatus.Pending && v.ExpiresAt > now, ct);
+        if (pending >= MaxPendingPerPhone)
+            throw new DomainException(
+                "Too many verification sessions are open for this number; wait for one to expire",
+                "phone.too_many_attempts", StatusCodes.Status429TooManyRequests);
 
         var code = NewCode();
         var id = Guid.NewGuid();
@@ -46,56 +71,20 @@ public class PhoneVerificationService
         var session = await _verify.CreateSessionAsync(phone, code, BuildCallbackUrl(id), ct);
         if (session is null) return null;
 
-        // Serialise on the phone number so two racing starts cannot both open a provider session.
-        // Whoever loses the race discards its session and returns the winner's, so the user is
-        // never left holding two codes (only one of which the app is polling for).
-        async Task<PhoneVerification?> InsertGuarded()
+        var verification = new PhoneVerification
         {
-            await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock({PhoneLockKey(phone)})", ct);
-
-            var raced = await FindActiveAsync(phone, ct);
-            if (raced is not null) return raced;
-
-            var verification = new PhoneVerification
-            {
-                Id = id,
-                Phone = phone,
-                Code = code,
-                ProviderSessionId = session.SessionId,
-                DisplayInstruction = session.DisplayInstruction,
-                SmsUri = session.SmsUri,
-                Status = PhoneVerificationStatus.Pending,
-                ExpiresAt = session.ExpiresAt.ToUniversalTime(),
-            };
-            _db.PhoneVerifications.Add(verification);
-            await _db.SaveChangesAsync(ct);
-            return verification;
-        }
-
-        // The lock is transaction-scoped, so join an ambient transaction rather than nesting one.
-        if (_db.Database.CurrentTransaction is not null) return await InsertGuarded();
-
-        return await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
-        {
-            await using var tx = await _db.Database.BeginTransactionAsync(ct);
-            var result = await InsertGuarded();
-            await tx.CommitAsync(ct);
-            return result;
-        });
-    }
-
-    private Task<PhoneVerification?> FindActiveAsync(string phone, CancellationToken ct) =>
-        _db.PhoneVerifications
-            .Where(v => v.Phone == phone && v.Status == PhoneVerificationStatus.Pending && v.ExpiresAt > DateTime.UtcNow)
-            .OrderByDescending(v => v.CreatedAt)
-            .FirstOrDefaultAsync(ct);
-
-    /// <summary>Stable advisory-lock key for a phone number, mirroring MatchPairing.PairLockKey.</summary>
-    private static long PhoneLockKey(string phone)
-    {
-        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"phone:{phone}"));
-        return BitConverter.ToInt64(hash, 0);
+            Id = id,
+            Phone = phone,
+            Code = code,
+            ProviderSessionId = session.SessionId,
+            DisplayInstruction = session.DisplayInstruction,
+            SmsUri = session.SmsUri,
+            Status = PhoneVerificationStatus.Pending,
+            ExpiresAt = session.ExpiresAt.ToUniversalTime(),
+        };
+        _db.PhoneVerifications.Add(verification);
+        await _db.SaveChangesAsync(ct);
+        return verification;
     }
 
     private string? BuildCallbackUrl(Guid verificationId)
@@ -160,10 +149,18 @@ public class PhoneVerificationService
         if (verification.VerifiedAt is DateTime at && DateTime.UtcNow - at > ClaimWindow)
             return PhoneClaimResult.Expired;
 
-        // The same phone must not end up on two accounts.
-        var takenByOther = await _db.Users
-            .AnyAsync(u => u.PhoneNumber == verification.Phone && u.Id != userId, ct);
-        if (takenByOther) return PhoneClaimResult.PhoneInUse;
+        // The same phone must not end up on two accounts. A caller who already has an account is
+        // moving a number that belongs to someone else, which is refused. A caller with no account
+        // is the number's owner signing in again through a fresh anonymous identity — proving the
+        // number is exactly what entitles them to it, and CurrentUserMiddleware then aliases the
+        // new identity onto the existing account (see ResolveAliasAsync).
+        bool claimantHasAccount = await _db.Users.AnyAsync(u => u.Id == userId, ct);
+        if (claimantHasAccount)
+        {
+            var takenByOther = await _db.Users
+                .AnyAsync(u => u.PhoneNumber == verification.Phone && u.Id != userId, ct);
+            if (takenByOther) return PhoneClaimResult.PhoneInUse;
+        }
 
         // Single writer wins: the WHERE clause is the guard, so a concurrent claim from another
         // identity affects zero rows rather than silently overwriting the first one.
@@ -194,6 +191,27 @@ public class PhoneVerificationService
             .OrderByDescending(v => v.ClaimedAt)
             .Select(v => v.Phone)
             .FirstOrDefaultAsync(ct);
+
+    /// <summary>
+    /// The account an auth identity with no user row of its own stands for: the user whose number
+    /// this identity has proven through a claimed verification. Null when it has proven nothing, or
+    /// when the number has no account yet (a genuinely new user mid-onboarding). Static so the
+    /// middleware can call it with only a <see cref="AppDbContext"/> in hand.
+    /// </summary>
+    public static async Task<Guid?> ResolveAliasAsync(AppDbContext db, Guid authId, CancellationToken ct = default)
+    {
+        var phone = await db.PhoneVerifications.AsNoTracking()
+            .Where(v => v.ClaimedByUserId == authId && v.Status == PhoneVerificationStatus.Verified)
+            .OrderByDescending(v => v.ClaimedAt)
+            .Select(v => v.Phone)
+            .FirstOrDefaultAsync(ct);
+        if (phone is null) return null;
+
+        return await db.Users.AsNoTracking()
+            .Where(u => u.PhoneNumber == phone)
+            .Select(u => (Guid?)u.Id)
+            .FirstOrDefaultAsync(ct);
+    }
 }
 
 public enum PhoneClaimResult

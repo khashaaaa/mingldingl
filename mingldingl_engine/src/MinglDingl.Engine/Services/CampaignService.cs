@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 /// <summary>
 /// The per-match campaign (dungeon map). Room state is derived entirely from existing match
 /// progression — there is no campaign state machine to advance, so the map can never desync
-/// from the ladder and never gates any existing flow. The only writes are per-user loot claims.
+/// from the ladder and never gates any existing flow. The only writes are per-user honours claims.
 /// </summary>
 public class CampaignService
 {
@@ -15,14 +15,14 @@ public class CampaignService
 
     private readonly AppDbContext _db;
     private readonly ScoreService _score;
-    private readonly LootService _loot;
+    private readonly HonourService _honours;
     private readonly ConfigService _config;
 
-    public CampaignService(AppDbContext db, ScoreService score, LootService loot, ConfigService config)
+    public CampaignService(AppDbContext db, ScoreService score, HonourService honours, ConfigService config)
     {
         _db = db;
         _score = score;
-        _loot = loot;
+        _honours = honours;
         _config = config;
     }
 
@@ -73,9 +73,7 @@ public class CampaignService
         bool isBoss = roomId == BossRoomId;
         int bonus = isBoss ? BossBonus : RoomBonus;
         await _score.AwardWithDeltaAsync(userId, isBoss ? "CampaignBossBonus" : "CampaignRoomBonus", bonus);
-        var drop = isBoss
-            ? await _loot.GrantGuaranteedAsync(userId, "campaign")
-            : await _loot.RollDropAsync(userId, "campaign");
+        var drop = isBoss ? await _honours.GrantAsync(userId, "title_sealbreaker", "campaign_boss") : null;
 
         return new ClaimCampaignRoomResponse(bonus, drop);
     }

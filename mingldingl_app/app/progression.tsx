@@ -9,15 +9,13 @@ import { TierPerkCard } from '../components/progression/TierPerkCard';
 import { StreakSummary } from '../components/progression/StreakSummary';
 import { ScoreHistoryList } from '../components/progression/ScoreHistoryList';
 import { GameButton } from '../components/ui/GameButton';
-import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
 import type { GemTier } from '../models/user';
 import { Icon } from '../components/ui/Icon';
 import { CardEyebrow } from '../components/ui/CardEyebrow';
 
-const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
 export default function ProgressionScreen() {
   useLocaleStore((s) => s.locale);
@@ -36,7 +34,7 @@ export default function ProgressionScreen() {
   if (error || !detail) {
     return (
       <View style={styles.centered}>
-        <Icon name="trending-down" size={ICON_SIZES.huge} color={COLORS.bronze} />
+        <Icon name="trending-down" size={ICON_SIZES.huge} color={INK.muted} />
         <Text style={styles.errorTitle}>{i18n.t('progression_load_error')}</Text>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
         <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
@@ -49,7 +47,6 @@ export default function ProgressionScreen() {
 
   return (
     <View style={styles.screen}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <GameHeader title={i18n.t('progression_title')} icon="chart-line" showBack />
       <View style={styles.headerRow}>
         <GemTierBadge tier={gemTier} size={44} glow />
@@ -84,8 +81,8 @@ export default function ProgressionScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
-  centered: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
+  screen: { flex: 1, backgroundColor: 'transparent' },
+  centered: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
   errorTitle: { color: COLORS.text, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, textAlign: 'center' },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   xpBarWrap: { flex: 1 },

@@ -1,6 +1,8 @@
 import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { VIDEO_CONTROLS_BOTTOM, VIDEO_CONTROLS_SIZE } from '../video/VideoControls';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
 
 interface Props {
   icebreakerText: string;
@@ -20,8 +22,12 @@ function formatClock(seconds: number): string {
 }
 
 export function RoundPrompt({ icebreakerText, roundNumber, secondsLeft, hasResponded, matchId, isResponding, onRespond }: Props) {
+  // The call controls are laid out from the safe-area bottom; a fixed 100 here put this card
+  // underneath them on any device with a navigation bar, so Yes/No sat behind the hang-up button.
+  const insets = useSafeAreaInsets();
+  const bottom = insets.bottom + VIDEO_CONTROLS_BOTTOM + VIDEO_CONTROLS_SIZE + SPACE.lg;
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, { bottom }]}>
       <View style={styles.header}>
         <Text style={styles.roundLabel}>{i18n.t('town_square_round_label', { round: roundNumber })}</Text>
         <Text style={styles.clock}>{formatClock(secondsLeft)}</Text>
@@ -62,13 +68,12 @@ export function RoundPrompt({ icebreakerText, roundNumber, secondsLeft, hasRespo
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    bottom: 100,
     left: 16,
     right: 16,
     backgroundColor: tint(COLORS.panel, 0.92),
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
     padding: SPACE.lg,
     gap: SPACE.sm,
   },
@@ -82,7 +87,7 @@ const styles = StyleSheet.create({
   button: { flex: 1, borderRadius: RADIUS.sm, paddingVertical: SPACE.md, alignItems: 'center', borderWidth: 1 },
   buttonBusy: { opacity: 0.5 },
   yesButton: { backgroundColor: COLORS.gold, borderColor: COLORS.goldBright },
-  noButton: { backgroundColor: COLORS.panelRaised, borderColor: COLORS.bronze },
+  noButton: { backgroundColor: COLORS.panelRaised, borderColor: LINE.edge },
   buttonText: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, letterSpacing: 1 },
   // Light-on-gold reads at 2.4:1; the rest of the app puts a dark label on this slab (as GameButton does).
   yesButtonText: { color: COLORS.panelDeep },

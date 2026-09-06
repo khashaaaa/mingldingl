@@ -7,7 +7,7 @@ import { AlertModal } from './modals/AlertModal';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
-import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../lib/theme';
 import { Icon } from './ui/Icon';
 
 export interface FlameRiteState {
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   btn: { paddingVertical: SPACE.md, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
   proposeBtn: { borderColor: COLORS.gold, backgroundColor: FILL.gold, marginTop: SPACE.xs },
   proposeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
-  declineBtn: { flex: 1, borderColor: COLORS.bronze, backgroundColor: COLORS.panelRaised },
+  declineBtn: { flex: 1, borderColor: LINE.edge, backgroundColor: COLORS.panelRaised },
   declineText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.textDim },
   acceptBtn: { flex: 1, borderColor: COLORS.gold, backgroundColor: FILL.gold },
   acceptText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },

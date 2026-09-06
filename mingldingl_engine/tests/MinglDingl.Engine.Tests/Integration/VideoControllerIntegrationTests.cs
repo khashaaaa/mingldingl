@@ -25,7 +25,7 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         var appConfig = appConfigOverride ?? new ConfigService();
         var score = new ScoreService(Db, appConfig);
         var quests = new QuestService(Db, score, appConfig, NullLogger<QuestService>.Instance);
-        var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
+        var loot = new HonourService(Db, NullLogger<HonourService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var broadcast = BuildTestBroadcast();
         var push = BuildTestPush();
@@ -229,7 +229,7 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         var appConfig = new ConfigService();
         var score = new ScoreService(Db, appConfig);
         var quests = new QuestService(Db, score, appConfig, NullLogger<QuestService>.Instance);
-        var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
+        var loot = new HonourService(Db, NullLogger<HonourService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var push = BuildTestPush();
         return new VideoController(Db, videoToken, score, quests, loot, milestones, appConfig, broadcast, push)
@@ -320,5 +320,29 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         Assert.Equal(403, Assert.IsType<ObjectResult>(result).StatusCode);
         var reloaded = await Db.Matches.AsNoTracking().FirstAsync(m => m.Id == match.Id);
         Assert.False(reloaded.VideoRewardClaimed);
+    }
+
+    [Fact]
+    public async Task MarkComplete_FirstCompletedRite_GrantsFlamekeeperOnce()
+    {
+        var initiatorId = Guid.NewGuid();
+        var firstMatch = await SeedMatchAsync(initiatorId, Guid.NewGuid());
+        var otherReceiver = NewCompleteUser();
+        var secondMatch = new Match { InitiatorId = initiatorId, ReceiverId = otherReceiver.Id, Status = "Active", VideoCallUnlocked = true, FlameRiteAcceptedAt = DateTime.UtcNow };
+        Db.Users.Add(otherReceiver);
+        Db.Matches.Add(secondMatch);
+        await Db.SaveChangesAsync();
+        var controller = BuildController(initiatorId);
+
+        var first = Assert.IsType<VideoCompleteResponse>(Assert.IsType<OkObjectResult>(
+            await controller.MarkComplete(new VideoCompleteDto(firstMatch.Id))).Value);
+        var second = Assert.IsType<VideoCompleteResponse>(Assert.IsType<OkObjectResult>(
+            await controller.MarkComplete(new VideoCompleteDto(secondMatch.Id))).Value);
+
+        Assert.Equal("title_flamekeeper", first.DroppedItem?.Id);
+        Assert.Null(second.DroppedItem);
+        Assert.True(second.Awarded > 0);
+        Db.ChangeTracker.Clear();
+        Assert.Single(Db.UserItems.Where(i => i.UserId == initiatorId && i.ItemId == "title_flamekeeper"));
     }
 }

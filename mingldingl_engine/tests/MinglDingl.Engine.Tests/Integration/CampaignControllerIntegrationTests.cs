@@ -12,7 +12,7 @@ public class CampaignControllerIntegrationTests : IntegrationTestBase
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         var score = new ScoreService(Db, config);
-        var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
+        var loot = new HonourService(Db, NullLogger<HonourService>.Instance);
         return new CampaignController(Db, new CampaignService(Db, score, loot, config))
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },

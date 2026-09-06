@@ -99,16 +99,60 @@ public class PhoneVerificationIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Start_reuses_an_in_flight_session_so_the_user_is_not_charged_twice()
+    public async Task Start_never_hands_an_in_flight_session_to_a_caller_who_cannot_name_it()
+    {
+        // Start is anonymous. Returning "the pending session for this number" to whoever asked gave
+        // an attacker the same id and code the real owner was about to prove, and the single-use
+        // claim then went to whichever of them polled faster.
+        var phone = NewPhone();
+        var (service, _) = BuildService();
+
+        var owner = await service.StartAsync(phone);
+        var attacker = await service.StartAsync(phone);
+
+        Assert.NotEqual(owner!.Id, attacker!.Id);
+        Assert.Equal(2, await Db.PhoneVerifications.CountAsync(v => v.Phone == phone));
+    }
+
+    [Fact]
+    public async Task Start_resumes_the_callers_own_session_so_the_user_is_not_charged_twice()
     {
         var phone = NewPhone();
         var (service, _) = BuildService();
 
         var first = await service.StartAsync(phone);
-        var second = await service.StartAsync(phone);
+        var resumed = await service.StartAsync(phone, first!.Id);
 
-        Assert.Equal(first!.Id, second!.Id);
+        Assert.Equal(first.Id, resumed!.Id);
         Assert.Equal(1, await Db.PhoneVerifications.CountAsync(v => v.Phone == phone));
+    }
+
+    [Fact]
+    public async Task Start_ignores_a_resume_id_issued_for_a_different_number()
+    {
+        var (service, _) = BuildService();
+        var other = await service.StartAsync(NewPhone());
+
+        var phone = NewPhone();
+        var started = await service.StartAsync(phone, other!.Id);
+
+        Assert.NotEqual(other.Id, started!.Id);
+        Assert.Equal(phone, started.Phone);
+    }
+
+    [Fact]
+    public async Task Start_caps_the_pending_sessions_one_number_can_hold()
+    {
+        var phone = NewPhone();
+        var (service, _) = BuildService();
+        for (int i = 0; i < PhoneVerificationService.MaxPendingPerPhone; i++)
+            Assert.NotNull(await service.StartAsync(phone));
+
+        var ex = await Assert.ThrowsAsync<DomainException>(() => service.StartAsync(phone));
+
+        Assert.Equal(429, ex.StatusCode);
+        Assert.Equal("phone.too_many_attempts", ex.Code);
+        Assert.Equal(PhoneVerificationService.MaxPendingPerPhone, await Db.PhoneVerifications.CountAsync(v => v.Phone == phone));
     }
 
     [Fact]
@@ -206,8 +250,29 @@ public class PhoneVerificationIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Claim_is_refused_when_the_number_already_belongs_to_someone_else()
+    public async Task Claim_is_refused_when_an_existing_account_proves_a_number_that_belongs_to_someone_else()
     {
+        var phone = NewPhone();
+        var (service, handler) = BuildService();
+        var owner = NewCompleteUser();
+        owner.PhoneNumber = phone;
+        var claimant = NewCompleteUser();
+        claimant.PhoneNumber = NewPhone();
+        Db.Users.AddRange(owner, claimant);
+        await Db.SaveChangesAsync();
+
+        var verification = await service.StartAsync(phone);
+        handler.SessionStatus = "VERIFIED";
+
+        Assert.Equal(PhoneClaimResult.PhoneInUse, await service.ClaimAsync(verification!.Id, claimant.Id));
+    }
+
+    [Fact]
+    public async Task Claim_lets_the_owner_sign_back_in_from_a_fresh_identity()
+    {
+        // A returning user gets a new anonymous Supabase identity on every sign-in. Proving the
+        // number is what entitles them to the account that holds it; CurrentUserMiddleware then
+        // aliases the new identity onto that account through ResolveAliasAsync.
         var phone = NewPhone();
         var (service, handler) = BuildService();
         var owner = NewCompleteUser();
@@ -217,8 +282,24 @@ public class PhoneVerificationIntegrationTests : IntegrationTestBase
 
         var verification = await service.StartAsync(phone);
         handler.SessionStatus = "VERIFIED";
+        var freshAuthId = Guid.NewGuid();
 
-        Assert.Equal(PhoneClaimResult.PhoneInUse, await service.ClaimAsync(verification!.Id, Guid.NewGuid()));
+        Assert.Equal(PhoneClaimResult.Ok, await service.ClaimAsync(verification!.Id, freshAuthId));
+        Assert.Equal(owner.Id, await PhoneVerificationService.ResolveAliasAsync(Db, freshAuthId));
+    }
+
+    [Fact]
+    public async Task ResolveAlias_is_null_for_an_identity_that_proved_nothing_or_a_number_with_no_account()
+    {
+        var (service, handler) = BuildService();
+        Assert.Null(await PhoneVerificationService.ResolveAliasAsync(Db, Guid.NewGuid()));
+
+        var verification = await service.StartAsync(NewPhone());
+        handler.SessionStatus = "VERIFIED";
+        var newcomer = Guid.NewGuid();
+        Assert.Equal(PhoneClaimResult.Ok, await service.ClaimAsync(verification!.Id, newcomer));
+
+        Assert.Null(await PhoneVerificationService.ResolveAliasAsync(Db, newcomer));
     }
 
     [Fact]

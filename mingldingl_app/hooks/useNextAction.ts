@@ -2,6 +2,7 @@ import { useProfile } from './useProfile';
 import { useMatches } from './useMatches';
 import { useQuests } from './useQuests';
 import { useScoreDetail } from './useScoreDetail';
+import { i18n } from '../lib/i18n';
 
 export type NextAction =
   | { kind: 'finish_profile' }
@@ -27,7 +28,12 @@ export function useNextAction(): NextAction | null {
     return {
       kind: 'icebreaker',
       matchId: pendingIcebreaker.matchId,
-      name: pendingIcebreaker.otherUser.displayName ?? '',
+      // The engine hands over the name from reveal level 1, but the quest log and the chat header
+      // both keep a match nameless until level 2. Naming them here undid that on the one card the
+      // character sheet opens with.
+      name: pendingIcebreaker.revealLevel >= 2
+        ? (pendingIcebreaker.otherUser.displayName ?? i18n.t('mystery_match_name'))
+        : i18n.t('mystery_match_name'),
     };
   }
 

@@ -8,10 +8,10 @@ public class OathRewardIntegrationTests : IntegrationTestBase
     [Fact]
     public void Catalog_ContainsTheOathkeeperTitle()
     {
-        var item = LootService.Catalog.SingleOrDefault(c => c.Id == "title_oathkeeper");
+        var item = HonourService.Catalog.SingleOrDefault(c => c.Id == "title_oathkeeper");
         Assert.NotNull(item);
         Assert.Equal("Title", item!.ItemType);
-        Assert.Equal("Rare", item.Rarity);
+        Assert.Equal(HonourService.MetalEmber, item.Rarity);
         Assert.Equal("item_title_oathkeeper", item.NameKey);
     }
 
@@ -29,7 +29,7 @@ public class OathRewardIntegrationTests : IntegrationTestBase
     {
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
-        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new LootService(Db, score, NullLogger<LootService>.Instance));
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new HonourService(Db, NullLogger<HonourService>.Instance));
 
         var user = NewCompleteUser();
         user.Oath = "Bond";

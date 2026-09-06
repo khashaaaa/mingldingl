@@ -3,6 +3,8 @@ import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-nativ
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
+import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 
 import { YesevaOne_400Regular } from '@expo-google-fonts/yeseva-one/400Regular';
@@ -23,6 +25,13 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { installGlobalErrorHandlers } from '../lib/globalErrorHandler';
 import { NudgeToast } from '../components/modals/NudgeToast';
+import { WorldProvider } from '../components/world/WorldProvider';
+import { animationFor } from '../lib/world/travel';
+import { getStoredSound } from '../lib/world/soundPreference';
+import { useSoundStore } from '../store/soundStore';
+import { useVfxLevel } from '../lib/vfx';
+import { WorldFloor } from '../components/world/WorldFloor';
+import { WorldCanopy } from '../components/world/WorldCanopy';
 import { RewardToastHost } from '../components/RewardToastHost';
 import { AlertModal } from '../components/modals/AlertModal';
 import { GameButton } from '../components/ui/GameButton';
@@ -40,6 +49,17 @@ import { useLocaleStore } from '../store/localeStore';
 
 installGlobalErrorHandlers();
 
+/**
+ * React Navigation paints `theme.colors.background` (#F2F2F2 by default) behind every navigator,
+ * and `card` behind every screen. Both used to be invisible under each screen's own opaque ground;
+ * with the screens transparent they sit on top of the world floor and turn the hold white. Setting
+ * them transparent is what lets the floor reach the screen at all.
+ */
+const HOLD_THEME = {
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, background: 'transparent', card: 'transparent' },
+};
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.bg },
   splash: {
@@ -52,6 +72,7 @@ const styles = StyleSheet.create({
   },
   splashTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: COLORS.text, textAlign: 'center' },
   splashBody: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center' },
+  transparent: { backgroundColor: 'transparent' },
   webFrame: Platform.OS === 'web'
     ? { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' }
     : { flex: 1 },
@@ -74,6 +95,7 @@ function AppContent() {
   const { data: userProfile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useProfile();
   const bumpScore = useOptimisticScoreBump();
   const isOnline = useNetworkStatus();
+  const vfxLevel = useVfxLevel();
   useRealtimeNudges();
   usePushNotifications();
   usePeriodicLocationRefresh(!!userProfile);
@@ -110,6 +132,11 @@ function AppContent() {
 
   useEffect(() => { setMounted(true); }, []);
 
+  // Sound is off until someone turns it on, so this only ever restores a deliberate choice.
+  useEffect(() => {
+    getStoredSound().then((on) => useSoundStore.getState().hydrate(on));
+  }, []);
+
   useEffect(() => wireFocusToAppState(), []);
 
   const [storeHydrated, setStoreHydrated] = useState(() => useAuthStore.persist.hasHydrated());
@@ -137,9 +164,13 @@ function AppContent() {
         if ((daily.awarded ?? 0) > 0) bumpScore(daily.awarded ?? 0);
         setStreakBonusPending(!!daily.streakBonusAwarded);
         queryClient.invalidateQueries({ queryKey: queryKeys.scoreDetail });
-      } catch {
+      } catch (err) {
         // Don't lose the daily award to one bad request — retry once the profile query settles.
         queryClient.invalidateQueries({ queryKey: queryKeys.scoreDetail });
+        // A 404 here is the normal shape of a first sign-in: the number is claimed but the
+        // account row is created by onboarding, so there is no score to award yet. Alerting on
+        // it put "The Attempt Faltered" over the onboarding screen of every new user.
+        if (isAxiosError(err) && err.response?.status === 404) return;
         setDailyLoginFailed(true);
       }
     });
@@ -184,11 +215,26 @@ function AppContent() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.root} edges={['top']}>
+        <WorldProvider>
         <View style={styles.webFrame}>
           {!isOnline && <OfflineBanner />}
+          {/* Floor behind the navigator, canopy above it: screens still painting their own opaque
+              background hide the floor but never the canopy, so the hold is lit either way. */}
+          <WorldFloor />
           <ErrorBoundary>
-            <Stack screenOptions={{ headerShown: false }} />
+            <ThemeProvider value={HOLD_THEME}>
+            <Stack
+              screenOptions={({ route }) => ({
+                headerShown: false,
+                animation: animationFor(route.name, vfxLevel !== 'full'),
+                // Native stack screens take their ground from `contentStyle` rather than the
+                // theme, so both are needed — see HOLD_THEME.
+                contentStyle: styles.transparent,
+              })}
+            />
+            </ThemeProvider>
           </ErrorBoundary>
+          <WorldCanopy />
           <RewardToastHost />
           <AlertModal
             visible={dailyLoginFailed}
@@ -213,6 +259,7 @@ function AppContent() {
             />
           )}
         </View>
+        </WorldProvider>
       </SafeAreaView>
     </SafeAreaProvider>
   );

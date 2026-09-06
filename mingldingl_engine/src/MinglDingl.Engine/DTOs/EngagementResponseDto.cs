@@ -1,6 +1,6 @@
 public record IcebreakerQuestionResponse(Guid Id, string QuestionText, string Type, List<string> Options);
 
-public record IcebreakerRespondResult(bool BothResponded, int Awarded = 0, DroppedItem? DroppedItem = null);
+public record IcebreakerRespondResult(bool BothResponded, int Awarded = 0);
 
 public record IcebreakerRevealEntry(Guid UserId, string Answer);
 
@@ -10,7 +10,7 @@ public record QuizQuestionResponse(Guid Id, string Text, List<string> Options);
 
 public record QuizDetailsResponse(Guid Id, string Title, List<QuizQuestionResponse> Questions);
 
-public record QuizCompatibilityResponse(int? Compatibility, int Awarded = 0, DroppedItem? DroppedItem = null);
+public record QuizCompatibilityResponse(int? Compatibility, int Awarded = 0);
 
 public record QuizStatusResponse(bool HasResponded, int? Compatibility);
 

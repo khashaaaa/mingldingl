@@ -22,12 +22,6 @@ jest.mock('../../../hooks/usePhotoUpload', () => ({
   }),
 }));
 
-// The torch glow renders through Skia, which jest-expo does not transform; nothing in these
-// tests depends on it drawing.
-jest.mock('../../vfx/TorchGlow', () => ({
-  TorchGlow: ({ children }: { children: React.ReactNode }) => children,
-}));
-
 jest.mock('../../../lib/api/apiClient', () => ({
   apiClient: { users: { update: jest.fn() } },
 }));

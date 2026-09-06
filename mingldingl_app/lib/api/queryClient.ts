@@ -66,6 +66,10 @@ function createQueryCache(): QueryCache {
   return new QueryCache({
     onError: (error, query) => {
       if (query.meta?.silentError === true) return;
+      // Signing out clears the token and the cache under whatever was in flight, so those reads
+      // fail on the way down. Every query this handler can see is session-gated, so with no
+      // session there is no real failure left to report — only teardown noise.
+      if (!useAuthStore.getState().session) return;
       // A dropped connection fails every mounted query at once — only speak up once.
       const now = Date.now();
       if (now - lastNoticeAt < NOTICE_COOLDOWN_MS) return;

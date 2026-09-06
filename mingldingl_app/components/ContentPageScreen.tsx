@@ -1,7 +1,6 @@
 import { ActivityIndicator, ScrollView, Text, View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenHeader } from './ui/ScreenHeader';
-import { TiledBackdrop } from './ui/TiledBackdrop';
 import { GameButton } from './ui/GameButton';
 import { useContentPage } from '../hooks/useContentPage';
 import { selectContentPageLocale } from '../models/content';
@@ -9,14 +8,15 @@ import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
 import { COLORS, FONTS, FONT_SIZES, LINE_HEIGHTS, SPACE } from '../lib/theme';
+import { useScrollTail } from '../hooks/useScrollTail';
 
-const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
 interface Props {
   slug: string;
 }
 
 export function ContentPageScreen({ slug }: Props) {
+  const tail = useScrollTail();
   const locale = useLocaleStore((s) => s.locale);
   const router = useRouter();
   const { data: page, isLoading, isError, refetch } = useContentPage(slug);
@@ -24,9 +24,8 @@ export function ContentPageScreen({ slug }: Props) {
 
   return (
     <View style={styles.container}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={localized?.title ?? ''} onBack={() => router.back()} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
         {isLoading && <ActivityIndicator color={COLORS.gold} />}
         {isError && (
           <View style={styles.errorWrap}>
@@ -49,7 +48,7 @@ export function ContentPageScreen({ slug }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: SPACE.xl, paddingBottom: SPACE.scrollTail },
   updatedAt: {
     color: COLORS.textDim,

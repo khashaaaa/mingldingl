@@ -1,18 +1,19 @@
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
+import { useBusiness } from '../../hooks/useBusiness';
 import { useBusinessReviews } from '../../hooks/useBusinessReviews';
 import { AppCard } from '../../components/ui/AppCard';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
+import { useScrollTail } from '../../hooks/useScrollTail';
 
-const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function BusinessDetailScreen() {
+  const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const params = useLocalSearchParams<{
     id: string;
@@ -26,28 +27,45 @@ export default function BusinessDetailScreen() {
     operatingHours?: string;
   }>();
   const { reviews, isLoading } = useBusinessReviews(params.id);
+  const { business } = useBusiness(params.id);
+
+  // The Mission Board hands the whole venue over in params, so the screen paints instantly with
+  // no spinner. Every other way in — deep link, shared URL, reload, restored session — arrives
+  // with nothing but the id, and the fetch is what fills the screen.
+  const name = params.name ?? business?.name ?? '';
+  const category = params.category ?? business?.category ?? '';
+  const district = params.district ?? business?.district ?? '';
+  const description = params.description ?? business?.description ?? '';
+  const photo = params.photo || business?.photoUrl || '';
+  const operatingHours = params.operatingHours ?? business?.operatingHours ?? '';
+  const averageRating = Number(params.averageRating ?? business?.averageRating ?? 0);
+  const ratingCount = Number(params.ratingCount ?? business?.ratingCount ?? 0);
+  const hasMeta = !!category || !!district;
 
   return (
     <View style={styles.screen}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <ScreenHeader title={params.name ?? ''} />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        {params.photo ? (
-          <Image source={{ uri: params.photo }} style={styles.hero} contentFit="cover" />
+      <ScreenHeader title={name} />
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
+        {photo ? (
+          <Image source={{ uri: photo }} style={styles.hero} contentFit="cover" />
         ) : (
-          <View style={[styles.hero, styles.heroPlaceholder]} />
+          <View style={[styles.hero, styles.heroPlaceholder]}>
+            <Icon name="map-marker-star" size={ICON_SIZES.splash} color={INK.muted} />
+          </View>
         )}
 
         <View style={styles.metaRow}>
-          <Text style={styles.meta}>{params.category} · {params.district}</Text>
+          <Text style={styles.meta} numberOfLines={1}>
+            {hasMeta ? [category, district].filter(Boolean).join(' · ') : ''}
+          </Text>
           <Icon name="star" size={ICON_SIZES.sm} color={COLORS.gold} />
-          <Text style={styles.rating}>{Number(params.averageRating ?? 0).toFixed(1)} ({params.ratingCount ?? 0})</Text>
+          <Text style={styles.rating}>{averageRating.toFixed(1)} ({ratingCount})</Text>
         </View>
 
-        {params.description ? <Text style={styles.description}>{params.description}</Text> : null}
+        {description ? <Text style={styles.description}>{description}</Text> : null}
 
-        {params.operatingHours ? (
-          <Text style={styles.hours}>{i18n.t('operating_hours')}: {params.operatingHours}</Text>
+        {operatingHours ? (
+          <Text style={styles.hours}>{i18n.t('operating_hours')}: {operatingHours}</Text>
         ) : null}
 
         <Text style={styles.sectionTitle}>{i18n.t('memorable_moments')}</Text>
@@ -79,11 +97,12 @@ export default function BusinessDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   scroll: { flex: 1 },
   content: { paddingBottom: SPACE.scrollTail },
   hero: { width: '100%', height: 200 },
-  heroPlaceholder: { backgroundColor: COLORS.panelRaised },
+  // Venues routinely have no photo — a bare 200px slab read as a broken image.
+  heroPlaceholder: { backgroundColor: COLORS.panelRaised, alignItems: 'center', justifyContent: 'center' },
   metaRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: SPACE.gutter, marginTop: SPACE.md,

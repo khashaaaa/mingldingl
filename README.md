@@ -12,7 +12,7 @@ A gamified dating app for the Mongolian market — a score-based economy, gemsto
 
 Both frontends talk to `mingldingl_engine` over REST and generate their TypeScript API types from the engine's live Swagger doc — there is no hand-maintained shared types package.
 
-Full domain model, design background, and every feature's design docs + implementation plans live in [`docs/superpowers/project-plan.md`](docs/superpowers/project-plan.md).
+The domain model, design background and live backlog are in [`docs/superpowers/project-plan.md`](docs/superpowers/project-plan.md); everything that has shipped is summarised in [`docs/superpowers/shipped-log.md`](docs/superpowers/shipped-log.md). Working notes for agents are in `CLAUDE.md`.
 
 ## Getting started
 
@@ -49,10 +49,22 @@ npm run typecheck                  # tsc --noEmit (plain `npx tsc` resolves to t
 
 ```bash
 cd mingldingl_control
-npm run dev
-npm run build
-npm run lint
+npm run dev                        # http://localhost:5173
+npm run build                      # tsc -b && vite build
+npm run lint                       # oxlint
 ```
+
+`VITE_API_URL` (in `.env`, copied from `.env.example`) points at the engine. The panel signs in
+with its own `AdminBearer` JWT scheme (`POST /admin/auth/login`, single admin, 12h token, no
+refresh), entirely separate from the Supabase JWTs app users hold.
+
+### API types are generated, not written
+
+```bash
+npm run generate:api   # in mingldingl_app or mingldingl_control; engine must be running on :5150
+```
+
+Regenerates `api.generated.d.ts` from the engine's live Swagger doc. Never hand-edit it.
 
 ## Checks
 

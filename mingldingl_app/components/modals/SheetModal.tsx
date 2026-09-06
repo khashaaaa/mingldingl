@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from 'react';
 import { Modal, Platform, StyleSheet, View } from 'react-native';
-import { COLORS, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { COLORS, LINE, RADIUS, SPACE, overlay } from '../../lib/theme';
 
 /**
  * Runs `action` once the sheet has finished dismissing. On iOS a native picker cannot be
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     maxWidth: 360,
     backgroundColor: COLORS.panel,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
     borderRadius: RADIUS.md,
     padding: SPACE.lg,
     gap: SPACE.md,

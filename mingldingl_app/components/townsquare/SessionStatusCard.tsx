@@ -3,7 +3,7 @@ import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { formatCountdown } from '../../lib/townSquareTime';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
 import type { TownSquareNextSession } from '../../hooks/useTownSquareSession';
 import { Icon } from '../ui/Icon';
 
@@ -22,7 +22,7 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
     return (
       <View style={styles.emptyWrap}>
         <View style={styles.emptyCard}>
-          <Icon name="bank" size={ICON_SIZES.xxl} color={COLORS.bronze} />
+          <Icon name="bank" size={ICON_SIZES.xxl} color={INK.muted} />
           <Text style={styles.emptyTitle}>{i18n.t('town_square_empty_title')}</Text>
           <Text style={styles.emptySub}>{i18n.t('town_square_empty_sub')}</Text>
         </View>
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
     padding: SPACE.giant,
     alignItems: 'center',
     gap: SPACE.md,

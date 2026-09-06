@@ -13,24 +13,23 @@ import { ChoiceRow } from '../components/ui/ChoiceRow';
 import { GameButton } from '../components/ui/GameButton';
 import { GemTierBadge } from '../components/progression/GemTierBadge';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
-import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { useMembership } from '../hooks/useMembership';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
 import { membershipLabel } from '../lib/tiers';
 import type { GemTier } from '../models/user';
 import type { MembershipPriceOption } from '../models/membership';
+import { useScrollTail } from '../hooks/useScrollTail';
 
-const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
 const BADGE_TIER: Record<string, GemTier> = {
   Free: 'Garnet', Silver: 'Opal', Gold: 'Emerald',
 };
 
 const BADGE_COLOR: Record<string, { color: string; shade: string }> = {
-  Free: { color: COLORS.bronze, shade: COLORS.bronzeDark },
+  Free: { color: INK.muted, shade: COLORS.bronzeDark },
   Silver: { color: COLORS.silver, shade: COLORS.silverDark },
   Gold: { color: COLORS.goldBright, shade: COLORS.gold },
 };
@@ -41,6 +40,7 @@ const DURATION_LABEL_KEY: Record<(typeof DURATIONS)[number], string> = {
 };
 
 export default function MembershipScreen() {
+  const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { currentLevel, expiresAt, isLoading: membershipLoading, tiers, tiersLoading, upgrade, isUpgrading, upgradeError } = useMembership();
   const [selectedTier, setSelectedTier] = useState<string>(currentLevel ?? 'Free');
@@ -61,9 +61,8 @@ export default function MembershipScreen() {
 
   return (
     <View style={styles.container}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={i18n.t('guild_ranks')} />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tail }]}>
         <Text style={styles.subtitle}>
           {i18n.t('guild_ranks_sub')}
         </Text>
@@ -177,7 +176,7 @@ export default function MembershipScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     paddingHorizontal: SPACE.gutter,

@@ -5,7 +5,7 @@ namespace MinglDingl.Engine.Tests.Services;
 
 public class ReferralServiceTests : Integration.IntegrationTestBase
 {
-    private ReferralService BuildService() => new(Db, new LootService(Db, new ScoreService(Db, new ConfigService()), NullLogger<LootService>.Instance), NullLogger<ReferralService>.Instance);
+    private ReferralService BuildService() => new(Db, new HonourService(Db, NullLogger<HonourService>.Instance), NullLogger<ReferralService>.Instance);
 
     [Fact]
     public async Task GetOrCreateCodeAsync_FirstCall_GeneratesAndPersistsASixCharCode()
@@ -38,7 +38,7 @@ public class ReferralServiceTests : Integration.IntegrationTestBase
     }
 
     [Fact]
-    public async Task TryCompleteReferralAsync_ValidCode_GrantsBothSidesAndRecordsReferral()
+    public async Task TryCompleteReferralAsync_ValidCode_HonoursInviterAndRecordsReferral()
     {
         var inviterId = Guid.NewGuid();
         var inviteeId = Guid.NewGuid();
@@ -48,15 +48,15 @@ public class ReferralServiceTests : Integration.IntegrationTestBase
         var service = BuildService();
         var code = await service.GetOrCreateCodeAsync(inviterId);
 
-        var inviteeReward = await service.TryCompleteReferralAsync(inviteeId, code);
+        var completed = await service.TryCompleteReferralAsync(inviteeId, code);
 
-        Assert.NotNull(inviteeReward);
+        Assert.True(completed);
         Db.ChangeTracker.Clear();
         var referral = await Db.Referrals.FirstOrDefaultAsync(r => r.InviteeUserId == inviteeId);
         Assert.NotNull(referral);
         Assert.Equal(inviterId, referral!.InviterUserId);
-        Assert.NotNull(referral.InviterRewardItemId);
-        Assert.NotNull(referral.InviteeRewardItemId);
+        Assert.Equal("title_allycaller", referral.InviterRewardItemId);
+        Assert.Null(referral.InviteeRewardItemId);
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class ReferralServiceTests : Integration.IntegrationTestBase
 
         var result = await BuildService().TryCompleteReferralAsync(inviteeId, "ZZZZZZ");
 
-        Assert.Null(result);
+        Assert.False(result);
         Db.ChangeTracker.Clear();
         Assert.Empty(Db.Referrals.Where(r => r.InviteeUserId == inviteeId));
     }
@@ -80,8 +80,8 @@ public class ReferralServiceTests : Integration.IntegrationTestBase
         Db.Users.Add(Integration.IntegrationTestBase.NewCompleteUser(inviteeId));
         await Db.SaveChangesAsync();
 
-        Assert.Null(await BuildService().TryCompleteReferralAsync(inviteeId, null));
-        Assert.Null(await BuildService().TryCompleteReferralAsync(inviteeId, ""));
+        Assert.False(await BuildService().TryCompleteReferralAsync(inviteeId, null));
+        Assert.False(await BuildService().TryCompleteReferralAsync(inviteeId, ""));
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class ReferralServiceTests : Integration.IntegrationTestBase
 
         var result = await service.TryCompleteReferralAsync(userId, code);
 
-        Assert.Null(result);
+        Assert.False(result);
         Db.ChangeTracker.Clear();
         Assert.Empty(Db.Referrals);
     }
@@ -117,7 +117,7 @@ public class ReferralServiceTests : Integration.IntegrationTestBase
 
         var second = await service.TryCompleteReferralAsync(inviteeId, otherCode);
 
-        Assert.Null(second);
+        Assert.False(second);
         Db.ChangeTracker.Clear();
         Assert.Single(Db.Referrals.Where(r => r.InviteeUserId == inviteeId));
     }
@@ -139,7 +139,7 @@ public class ReferralServiceTests : Integration.IntegrationTestBase
 
         var result = await service.TryCompleteReferralAsync(inviteeId, code);
 
-        Assert.Null(result);
+        Assert.False(result);
         Db.ChangeTracker.Clear();
         Assert.Empty(Db.Referrals.Where(r => r.InviteeUserId == inviteeId));
     }
@@ -157,7 +157,7 @@ public class ReferralServiceTests : Integration.IntegrationTestBase
 
         var result = await service.TryCompleteReferralAsync(inviteeId, code.ToLowerInvariant());
 
-        Assert.NotNull(result);
+        Assert.True(result);
     }
 
     [Fact]

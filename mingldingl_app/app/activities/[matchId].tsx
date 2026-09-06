@@ -11,14 +11,15 @@ import { AppCard } from '../../components/ui/AppCard';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
+import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
+import { useScrollTail } from '../../hooks/useScrollTail';
 
-const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function ActivitiesScreen() {
+  const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const router = useRouter();
@@ -81,7 +82,7 @@ export default function ActivitiesScreen() {
 
   if (error || !suggestions || suggestions.length === 0) return (
     <View style={styles.centered}>
-      <Icon name="calendar" size={ICON_SIZES.huge} color={COLORS.bronze} />
+      <Icon name="calendar" size={ICON_SIZES.huge} color={INK.muted} />
       <Text style={styles.title}>{i18n.t('no_date_ideas')}</Text>
       <Text style={styles.subtitle}>{i18n.t('keep_chatting')}</Text>
       <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
@@ -158,10 +159,9 @@ export default function ActivitiesScreen() {
 
   return (
     <View style={styles.screen}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={i18n.t('plan_encounter')} />
 
-      <ScrollView contentContainerStyle={styles.list}>
+      <ScrollView contentContainerStyle={[styles.list, { paddingBottom: tail }]}>
         {partnerPledged && !suggestions.some((s) => s.myConfirmed) && (
           <View style={styles.partnerPledgedBanner}>
             <Icon name="hand-heart" size={ICON_SIZES.md} color={COLORS.gold} />
@@ -184,7 +184,7 @@ export default function ActivitiesScreen() {
                 variant="ghost"
                 loading={confirmingId === s.id}
                 disabled={s.myConfirmed || riteLocked || isConfirming}
-                onPress={() => confirmDate(s.id)}
+                onPress={() => { signal('pledgeKept'); confirmDate(s.id); }}
               >
                 {s.myConfirmed ? i18n.t('pledge_waiting') : i18n.t('pledge_encounter')}
               </GameButton>
@@ -203,10 +203,10 @@ export default function ActivitiesScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   centered: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACE.xxl,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   rateRow: { alignItems: 'center', gap: SPACE.md },
   momentPhoto: {
     width: 72, height: 72, borderRadius: RADIUS.md,
-    backgroundColor: COLORS.panelRaised, borderWidth: 1, borderColor: COLORS.bronze,
+    backgroundColor: COLORS.panelRaised, borderWidth: 1, borderColor: LINE.edge,
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
   momentPhotoImage: { width: '100%', height: '100%' },

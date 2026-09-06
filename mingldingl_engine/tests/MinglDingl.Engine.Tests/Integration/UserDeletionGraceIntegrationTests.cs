@@ -11,7 +11,7 @@ public class UserDeletionGraceIntegrationTests : IntegrationTestBase
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         var score = new ScoreService(Db, config);
-        var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
+        var loot = new HonourService(Db, NullLogger<HonourService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, loot);
         var ships = new ShipService(Db, loot, score, config, milestones, BuildTestPush(), BuildTestBroadcast(), NullLogger<ShipService>.Instance);

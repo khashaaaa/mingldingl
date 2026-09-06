@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, LINE_HEIGHTS, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
@@ -26,7 +26,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: [styles.tabBar, { height: 68 + insets.bottom, paddingBottom: SPACE.sm + insets.bottom }],
+        tabBarStyle: [styles.tabBar, { height: 74 + insets.bottom, paddingBottom: SPACE.md + insets.bottom }],
         tabBarActiveTintColor: COLORS.goldBright,
         tabBarInactiveTintColor: COLORS.textDim,
         // Without this the label is laid out beside the icon on wide viewports and the two
@@ -34,14 +34,17 @@ export default function TabsLayout() {
         tabBarLabelPosition: 'below-icon',
         tabBarLabelStyle: styles.label,
         tabBarItemStyle: styles.item,
+        // Same reason as the Stack's contentStyle: the tab scene has its own opaque ground that
+        // would sit on top of the world floor.
+        sceneStyle: styles.scene,
       }}
     >
       <Tabs.Screen name="discover"
-        options={{ title: i18n.t('tab_seek'), tabBarIcon: tabIcon('sword') }} />
+        options={{ title: i18n.t('tab_seek'), tabBarIcon: tabIcon('compass-rose') }} />
       <Tabs.Screen name="matches"
-        options={{ title: i18n.t('tab_quest_log'), tabBarIcon: tabIcon('script-text') }} />
+        options={{ title: i18n.t('tab_quest_log'), tabBarIcon: tabIcon('message-text') }} />
       <Tabs.Screen name="townsquare"
-        options={{ title: i18n.t('tab_town_square'), tabBarIcon: tabIcon('bank') }} />
+        options={{ title: i18n.t('tab_town_square'), tabBarIcon: tabIcon('account-group') }} />
       <Tabs.Screen name="activity"
         options={{ title: i18n.t('tab_missions'), tabBarIcon: tabIcon('sword-cross') }} />
       <Tabs.Screen name="profile"
@@ -54,16 +57,22 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: COLORS.panelDeep,
     borderTopWidth: 1,
-    borderTopColor: COLORS.bronze,
+    borderTopColor: LINE.edge,
     paddingTop: SPACE.sm,
   },
+  scene: { backgroundColor: 'transparent' },
   item: { paddingHorizontal: SPACE.hair },
   glyph: { textAlign: 'center' },
   label: {
     fontFamily: FONTS.display,
-    fontSize: FONT_SIZES.sm,
-    lineHeight: LINE_HEIGHTS.xs,
-    letterSpacing: 0.5,
+    // xs, not sm: the display face's small caps are wide, and at sm a nine-character Mongolian
+    // label ("Тэмдэглэл", "Даалгавар") overran a 78dp tab and rendered as "ТЭМДЭГЛ…".
+    fontSize: FONT_SIZES.xs,
+    // Full leading, not the snug `xs` step: the display face has a descending `Q` and `g`, and
+    // "Quest Log" had both of them sheared flat against the bottom of the bar.
+    lineHeight: LINE_HEIGHTS.sm,
+    // 0.5 pushed the widest label ("Character", "Тохиргоо") to the screen edge inside an 86px tab.
+    letterSpacing: 0.2,
     textAlign: 'center',
   },
 });

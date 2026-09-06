@@ -20,6 +20,7 @@ public class LoginThrottleService
 
     private static readonly TimeSpan PruneInterval = TimeSpan.FromMinutes(5);
     private const int MaxTrackedKeys = 10_000;
+    private const int EvictBatch = MaxTrackedKeys / 100;
 
     private readonly ConcurrentDictionary<string, Entry> _entries = new(StringComparer.OrdinalIgnoreCase);
     private long _nextPruneAtTicks = DateTime.UtcNow.Add(PruneInterval).Ticks;
@@ -55,7 +56,7 @@ public class LoginThrottleService
         Prune();
 
         var key = Key(username, ip);
-        if (_entries.Count >= MaxTrackedKeys && !_entries.ContainsKey(key)) return;
+        if (_entries.Count >= MaxTrackedKeys && !_entries.ContainsKey(key)) EvictStalest();
 
         var entry = _entries.GetOrAdd(key, _ => new Entry { FirstFailureAt = DateTime.UtcNow });
 
@@ -74,6 +75,42 @@ public class LoginThrottleService
     }
 
     public void RecordSuccess(string? username, string? ip) => _entries.TryRemove(Key(username, ip), out _);
+
+    /// <summary>
+    /// Makes room once the table is full. Refusing the newcomer instead failed open: an attacker
+    /// who filled the table with throwaway usernames then had every further attempt — including
+    /// the real one against the real username — go uncounted for the rest of the window. What goes
+    /// is a batch of the stalest entries that are not locked out, so a lockout already earned is
+    /// never lost; only when every entry is locked does the one expiring soonest go.
+    /// </summary>
+    private void EvictStalest()
+    {
+        var unlocked = new List<(string Key, DateTime FirstFailureAt)>();
+        string? soonestLocked = null;
+        DateTime soonestLockedUntil = DateTime.MaxValue;
+
+        foreach (var (key, entry) in _entries)
+        {
+            lock (entry)
+            {
+                if (entry.LockedUntil is DateTime until)
+                {
+                    if (until < soonestLockedUntil) { soonestLockedUntil = until; soonestLocked = key; }
+                }
+                else unlocked.Add((key, entry.FirstFailureAt));
+            }
+        }
+
+        if (unlocked.Count == 0)
+        {
+            if (soonestLocked is not null) _entries.TryRemove(soonestLocked, out _);
+            return;
+        }
+
+        unlocked.Sort((a, b) => a.FirstFailureAt.CompareTo(b.FirstFailureAt));
+        foreach (var (key, _) in unlocked.Take(EvictBatch))
+            _entries.TryRemove(key, out _);
+    }
 
     /// <summary>
     /// Drops entries that can no longer affect a decision: not locked out, and last touched

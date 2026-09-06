@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../../lib/i18n';
-import { COLORS, SPACE } from '../../lib/theme';
+import { COLORS, LINE, SPACE } from '../../lib/theme';
 import { GameButton } from '../ui/GameButton';
 import { TextField } from '../ui/TextField';
 
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: SPACE.sm,
     backgroundColor: COLORS.panel,
-    borderTopColor: COLORS.bronze,
+    borderTopColor: LINE.edge,
     borderTopWidth: 1,
   },
   field: { flex: 1, paddingVertical: SPACE.sm, backgroundColor: COLORS.panelRaised },

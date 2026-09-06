@@ -4,8 +4,6 @@ import { apiClient } from '../lib/api/apiClient';
 import { parseUserProfile, type Oath } from '../models/user';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
-import { useAuthStore } from '../store/authStore';
-import { toDroppedItem } from '../lib/tiers';
 
 interface OnboardingState {
   displayName: string;
@@ -65,10 +63,6 @@ export function useOnboarding() {
 
       const swornData = oath ? await apiClient.users.swearOath(oath) : undefined;
       queryClient.setQueryData(queryKeys.userProfile, parseUserProfile(swornData ?? data));
-      const referralDrop = toDroppedItem(data.referralRewardItem);
-      if (referralDrop) {
-        useAuthStore.getState().setPendingDrop(referralDrop);
-      }
       return true;
     } catch {
       setState((s) => ({ ...s, error: i18n.t('save_error') }));

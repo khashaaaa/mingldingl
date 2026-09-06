@@ -17,8 +17,8 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         mockConfig.Setup(c => c["Supabase:ProjectUrl"]).Returns("https://test.supabase.co");
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
         var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
-        var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
-        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, BuildTestPush());
+        var oaths = new OathService(Db, config, score, milestones, new HonourService(Db, NullLogger<HonourService>.Instance));
+        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, BuildTestPush(), new HonourService(Db, NullLogger<HonourService>.Instance));
     }
 
     private ActivityService BuildService(SupabaseBroadcastService broadcast, PushNotificationService? push = null)
@@ -27,8 +27,8 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         var score = new ScoreService(Db, config);
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
-        var oaths = new OathService(Db, config, score, milestones, new LootService(Db, score, NullLogger<LootService>.Instance));
-        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, push ?? BuildTestPush());
+        var oaths = new OathService(Db, config, score, milestones, new HonourService(Db, NullLogger<HonourService>.Instance));
+        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, push ?? BuildTestPush(), new HonourService(Db, NullLogger<HonourService>.Instance));
     }
 
     [Fact]
@@ -474,5 +474,35 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
 
         var confirmationBReloaded = await Db.DateConfirmations.FirstAsync(c => c.Id == confirmationB.Id);
         Assert.False(confirmationBReloaded.PenaltyApplied);
+    }
+
+    [Fact]
+    public async Task SubmitAttendanceAsync_BothSayYes_HonoursBothSidesWithTrueWord()
+    {
+        var (match, _) = await SeedCompletedDateAsync(hoursAgo: 49);
+        var service = BuildService();
+
+        await service.SubmitAttendanceAsync(match.Id, match.InitiatorId, attended: true);
+        Db.ChangeTracker.Clear();
+        Assert.Empty(Db.UserItems.Where(i => i.ItemId == "title_trueword" && (i.UserId == match.InitiatorId || i.UserId == match.ReceiverId)));
+
+        await service.SubmitAttendanceAsync(match.Id, match.ReceiverId, attended: true);
+
+        Db.ChangeTracker.Clear();
+        Assert.Single(Db.UserItems.Where(i => i.UserId == match.InitiatorId && i.ItemId == "title_trueword"));
+        Assert.Single(Db.UserItems.Where(i => i.UserId == match.ReceiverId && i.ItemId == "title_trueword"));
+    }
+
+    [Fact]
+    public async Task SubmitAttendanceAsync_Mismatch_HonoursNoOne()
+    {
+        var (match, _) = await SeedCompletedDateAsync(hoursAgo: 49);
+        var service = BuildService();
+
+        await service.SubmitAttendanceAsync(match.Id, match.InitiatorId, attended: true);
+        await service.SubmitAttendanceAsync(match.Id, match.ReceiverId, attended: false);
+
+        Db.ChangeTracker.Clear();
+        Assert.Empty(Db.UserItems.Where(i => i.ItemId == "title_trueword" && (i.UserId == match.InitiatorId || i.UserId == match.ReceiverId)));
     }
 }

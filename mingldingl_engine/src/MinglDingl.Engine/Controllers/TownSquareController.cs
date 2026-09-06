@@ -25,8 +25,12 @@ public class TownSquareController : ControllerBase
     public async Task<IActionResult> GetNextSession()
     {
         var userId = this.CurrentUserId();
+        // An Open session whose RSVP window has not opened yet is not announced: the app's only
+        // copy for it is "RSVP closes in ...", which would be a lie, and RsvpAsync refuses it.
+        var now = DateTime.UtcNow;
         var session = await _db.TownSquareSessions
-            .Where(s => s.Status == "Open" || s.Status == "Locked" || s.Status == "InProgress")
+            .Where(s => (s.Status == "Open" && s.RsvpOpensAt <= now)
+                     || s.Status == "Locked" || s.Status == "InProgress")
             .OrderBy(s => s.ScheduledStartAt)
             .FirstOrDefaultAsync();
 

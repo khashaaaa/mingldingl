@@ -5,12 +5,10 @@ import { NameAgeStep } from '../../components/onboarding/NameAgeStep';
 import { AboutStep } from '../../components/onboarding/AboutStep';
 import { PhotosStep } from '../../components/onboarding/PhotosStep';
 import { OathStep } from '../../components/onboarding/OathStep';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
-import { COLORS, FONTS, FONT_SIZES, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, LINE, SPACE, circle } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 
-const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 const STEP_COUNT = 4;
 
@@ -21,7 +19,6 @@ export default function OnboardingScreen() {
 
   return (
     <View style={styles.container}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} opacity={0.08} />
       <Text
         style={{
           fontFamily: FONTS.display,
@@ -100,7 +97,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'transparent',
   },
   header: {
     paddingHorizontal: SPACE.gutter,
@@ -130,7 +127,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gold,
   },
   dotInactive: {
-    backgroundColor: COLORS.bronze,
+    backgroundColor: LINE.edge,
   },
   stepLabel: {
     fontSize: FONT_SIZES.sm,

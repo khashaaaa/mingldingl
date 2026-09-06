@@ -12,20 +12,20 @@ public class VideoController : ControllerBase
     private readonly VideoTokenService _videoToken;
     private readonly ScoreService _score;
     private readonly QuestService _quests;
-    private readonly LootService _loot;
+    private readonly HonourService _honours;
     private readonly MilestoneService _milestones;
     private readonly ConfigService _config;
     private readonly SupabaseBroadcastService _broadcast;
     private readonly PushNotificationService _push;
 
-    public VideoController(AppDbContext db, VideoTokenService videoToken, ScoreService score, QuestService quests, LootService loot, MilestoneService milestones,
+    public VideoController(AppDbContext db, VideoTokenService videoToken, ScoreService score, QuestService quests, HonourService honours, MilestoneService milestones,
         ConfigService config, SupabaseBroadcastService broadcast, PushNotificationService push)
     {
         _db = db;
         _videoToken = videoToken;
         _score = score;
         _quests = quests;
-        _loot = loot;
+        _honours = honours;
         _milestones = milestones;
         _config = config;
         _broadcast = broadcast;
@@ -105,7 +105,7 @@ public class VideoController : ControllerBase
         await _score.AwardAsync(userId, "VideoCallDone");
         int questBonus = await _quests.IncrementAsync(userId, "video");
         await _milestones.AchieveAsync(userId, "first_video_call");
-        var drop = await _loot.RollDropAsync(userId, "drop");
+        var drop = await _honours.GrantAsync(userId, "title_flamekeeper", "flame_rite");
 
         await _broadcast.BroadcastAsync("app-nudges", "flame_rite_completed", new { userId, matchId = req.MatchId });
 

@@ -270,23 +270,7 @@ describe('useOnboarding submit', () => {
     expect(mockUpsert).toHaveBeenCalledWith(expect.objectContaining({ referralCode: undefined }));
   });
 
-  it('on success, sets pendingDrop when the response carries a referralRewardItem', async () => {
-    mockUpsert.mockResolvedValue({
-      id: 'u1',
-      referralRewardItem: { nameKey: 'item_title_wanderer', rarity: 'Common' },
-    });
-    const queryClient = new QueryClient();
-    const { result } = renderHook(() => useOnboarding(), { wrapper: makeWrapper(queryClient) });
-    fillComplete(result);
-
-    await act(async () => {
-      await result.current.submit();
-    });
-
-    expect(useAuthStore.getState().pendingDrop).toEqual({ nameKey: 'item_title_wanderer', rarity: 'Common' });
-  });
-
-  it('on success, leaves pendingDrop untouched when no referralRewardItem is present', async () => {
+  it('on success, never touches pendingDrop — the recruit reward belongs to the inviter, not the newcomer', async () => {
     useAuthStore.setState({ pendingDrop: null });
     mockUpsert.mockResolvedValue({ id: 'u1' });
     const queryClient = new QueryClient();

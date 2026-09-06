@@ -7,12 +7,20 @@ import { apiClient } from '../lib/api/apiClient';
 import { queryClient } from '../lib/api/queryClient';
 import { useAuthStore } from '../store/authStore';
 import { i18n } from '../lib/i18n';
+import { getApiErrorMessage } from '../lib/api/errors';
 
 export function isPhoneValid(phone: string): boolean {
   return /^\d{8}$/.test(phone);
 }
 
 const AUTH_CALL_TIMEOUT_MS = 10000;
+
+/**
+ * The verification id each number was last given, so re-entering the same number (back from the
+ * OTP screen, a backgrounded app) resumes that session rather than opening a second one — the
+ * engine only hands a pending session back to the caller who can name it.
+ */
+const lastVerificationIdByPhone = new Map<string, string>();
 
 /** verify.mn's own guidance: never poll faster than 3s — SMS delivery is not sub-second. */
 export const VERIFICATION_POLL_MS = 3000;
@@ -85,7 +93,8 @@ export function useAuth() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.auth.startPhoneVerification(phone);
+      const res = await apiClient.auth.startPhoneVerification(phone, lastVerificationIdByPhone.get(phone));
+      if (res.verificationId) lastVerificationIdByPhone.set(phone, res.verificationId);
       return {
         verificationId: res.verificationId ?? '',
         displayInstruction: res.displayInstruction ?? '',
@@ -94,8 +103,8 @@ export function useAuth() {
         shortcode: res.shortcode ?? '144773',
         expiresAt: res.expiresAt ?? new Date().toISOString(),
       };
-    } catch {
-      setError(i18n.t('verification_start_failed'));
+    } catch (err) {
+      setError(getApiErrorMessage(err, i18n.t('verification_start_failed')));
       return null;
     } finally {
       setLoading(false);
@@ -145,11 +154,14 @@ export function useAuth() {
       // Non-fatal: the phone the engine trusts comes from the claim below, not this metadata.
     }
 
+    // Must succeed before ANY session is published — the engine refuses to create the account
+    // without it, and for a returning user the claim is also what lets the engine resolve this
+    // fresh anonymous identity onto their existing account. Publishing the session first let
+    // every session-gated query fire against an identity the engine could not see yet: /users/me
+    // 404'd, the profile cached as null, and the returning user landed in onboarding behind a
+    // "No such traveler" alert.
     try {
-      await withTimeout(
-        supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token }),
-        'setSession',
-      );
+      await apiClient.auth.claimPhoneVerification(verificationId, session.access_token);
     } catch {
       setLoading(false);
       inFlight.current = false;
@@ -157,16 +169,15 @@ export function useAuth() {
       return false;
     }
 
-    // Must succeed before the session is accepted — without it the engine will refuse to create
-    // the account, which would strand the user in onboarding.
     try {
-      await apiClient.auth.claimPhoneVerification(verificationId);
+      await withTimeout(
+        supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token }),
+        'setSession',
+      );
     } catch {
-      await supabase.auth.signOut().catch(() => {});
-      setLoading(false);
-      inFlight.current = false;
-      setError(i18n.t('verification_claim_failed'));
-      return false;
+      // The claim is single use and already bound to this identity, so signing out here would
+      // strand it. The store session below is what the API client actually reads; Supabase's own
+      // client only loses realtime and background refresh, which recover on the next launch.
     }
 
     setLoading(false);

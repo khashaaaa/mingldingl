@@ -12,14 +12,13 @@ public class EngagementController : ControllerBase
     private readonly EngagementService _engagement;
     private readonly ScoreService _score;
     private readonly QuestService _quests;
-    private readonly LootService _loot;
     private readonly MilestoneService _milestones;
     private readonly SupabaseBroadcastService _broadcast;
     private readonly ConfigService _config;
 
-    public EngagementController(AppDbContext db, EngagementService engagement, ScoreService score, QuestService quests, LootService loot, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config)
+    public EngagementController(AppDbContext db, EngagementService engagement, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config)
     {
-        _db = db; _engagement = engagement; _score = score; _quests = quests; _loot = loot; _milestones = milestones; _broadcast = broadcast; _config = config;
+        _db = db; _engagement = engagement; _score = score; _quests = quests; _milestones = milestones; _broadcast = broadcast; _config = config;
     }
 
     [HttpGet("reveal-thresholds")]
@@ -83,7 +82,6 @@ public class EngagementController : ControllerBase
         await _broadcast.BroadcastAsync("app-nudges", "icebreaker", new { userId, matchId });
 
         bool bothDone = await _engagement.BothRespondedAsync(matchId, req.IcebreakerId);
-        DroppedItem? drop = null;
         int awarded = 0;
         if (bothDone)
         {
@@ -91,12 +89,11 @@ public class EngagementController : ControllerBase
             await _engagement.CompleteIcebreakerAsync(matchId, userId, otherUserId);
             awarded = _score.Delta("IcebreakerDone") + await _quests.IncrementAsync(userId, "icebreaker");
             await _quests.IncrementAsync(otherUserId, "icebreaker");
-            drop = await _loot.RollDropAsync(userId, "drop");
             await _milestones.AchieveAsync(userId, "first_icebreaker");
             await _milestones.AchieveAsync(otherUserId, "first_icebreaker");
         }
 
-        return Ok(new IcebreakerRespondResult(bothDone, awarded, drop));
+        return Ok(new IcebreakerRespondResult(bothDone, awarded));
     }
 
     [HttpGet("icebreaker/{matchId}/reveal")]
@@ -199,13 +196,11 @@ public class EngagementController : ControllerBase
             isFirstResponse = false;
         }
 
-        DroppedItem? drop = null;
         int awarded = 0;
         if (isFirstResponse)
         {
             await _score.AwardAsync(userId, "QuizDone");
             awarded = _score.Delta("QuizDone") + await _quests.IncrementAsync(userId, "quiz");
-            drop = await _loot.RollDropAsync(userId, "drop");
             await _milestones.AchieveAsync(userId, "first_quiz");
             if (req.MatchId.HasValue)
                 await _broadcast.BroadcastAsync("app-nudges", "quiz", new { userId, matchId = req.MatchId });
@@ -215,7 +210,7 @@ public class EngagementController : ControllerBase
             ? await FindCompatibilityAsync(quizId, userId, req.MatchId.Value, req.Answers)
             : null;
 
-        return Ok(new QuizCompatibilityResponse(compatibility, awarded, drop));
+        return Ok(new QuizCompatibilityResponse(compatibility, awarded));
     }
 
     [HttpGet("quiz/{quizId}/status")]
@@ -293,8 +288,7 @@ public class EngagementController : ControllerBase
         if (!await _score.TryAwardClaimedAsync(userId, "QuestChest", chestXp))
             return Ok(new ClaimChestResponse(0, true));
 
-        var item = await _loot.GrantGuaranteedAsync(userId, "quest_chest");
-        return Ok(new ClaimChestResponse(chestXp, false, item));
+        return Ok(new ClaimChestResponse(chestXp, false));
     }
 
     [HttpGet("milestones")]
@@ -328,8 +322,7 @@ public class EngagementController : ControllerBase
         if (rowsAffected == 0) return Ok(new OpenMilestoneResponse(0, null, true));
 
         await _score.AwardWithDeltaAsync(userId, "MilestoneChest", def.Xp);
-        var item = await _loot.GrantGuaranteedAsync(userId, "milestone");
-        return Ok(new OpenMilestoneResponse(def.Xp, item, false));
+        return Ok(new OpenMilestoneResponse(def.Xp, null, false));
     }
 
     /// <summary>

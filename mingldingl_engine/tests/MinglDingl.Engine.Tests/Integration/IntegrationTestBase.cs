@@ -199,7 +199,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         AppDbContext db, OathService oaths, Microsoft.AspNetCore.Http.HttpContext httpContext)
     {
         var score = new ScoreService(db, new ConfigService());
-        var loot = new LootService(db, score, NullLogger<LootService>.Instance);
+        var loot = new HonourService(db, NullLogger<HonourService>.Instance);
         var ships = new ShipService(db, loot, score, new ConfigService(),
             new MilestoneService(db, NullLogger<MilestoneService>.Instance), BuildTestPush(db), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
         var controller = new UsersController(db, score, new ReferralService(db, loot, NullLogger<ReferralService>.Instance), ships, oaths, BuildUnconfiguredPhoneVerification(db), BuildTestStorage(), new ConfigService());

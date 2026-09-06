@@ -3,13 +3,13 @@ using Microsoft.EntityFrameworkCore;
 public class ReferralService
 {
     private readonly AppDbContext _db;
-    private readonly LootService _loot;
+    private readonly HonourService _honours;
     private readonly ILogger<ReferralService> _logger;
 
-    public ReferralService(AppDbContext db, LootService loot, ILogger<ReferralService> logger)
+    public ReferralService(AppDbContext db, HonourService honours, ILogger<ReferralService> logger)
     {
         _db = db;
-        _loot = loot;
+        _honours = honours;
         _logger = logger;
     }
 
@@ -39,35 +39,33 @@ public class ReferralService
         return new string(chars);
     }
 
-    public async Task<DroppedItem?> TryCompleteReferralAsync(Guid inviteeId, string? code)
+    public async Task<bool> TryCompleteReferralAsync(Guid inviteeId, string? code)
     {
-        if (string.IsNullOrWhiteSpace(code)) return null;
+        if (string.IsNullOrWhiteSpace(code)) return false;
         Referral? added = null;
         try
         {
             var normalized = code.ToUpperInvariant();
             var inviter = await _db.Users.FirstOrDefaultAsync(u => u.ReferralCode == normalized);
-            if (inviter is null) return null;
-            if (inviter.IsDeleted) return null;
-            if (inviter.Id == inviteeId) return null;
+            if (inviter is null) return false;
+            if (inviter.IsDeleted) return false;
+            if (inviter.Id == inviteeId) return false;
 
             bool alreadyReferred = await _db.Referrals.AnyAsync(r => r.InviteeUserId == inviteeId);
-            if (alreadyReferred) return null;
+            if (alreadyReferred) return false;
 
-            var inviterReward = await _loot.GrantGuaranteedAsync(inviter.Id, "ReferralReward");
-            var inviteeReward = await _loot.GrantGuaranteedAsync(inviteeId, "ReferralReward");
+            var inviterHonour = await _honours.GrantAsync(inviter.Id, "title_allycaller", "ReferralReward");
 
             added = new Referral
             {
                 InviterUserId = inviter.Id,
                 InviteeUserId = inviteeId,
-                InviterRewardItemId = inviterReward?.Id,
-                InviteeRewardItemId = inviteeReward?.Id,
+                InviterRewardItemId = inviterHonour?.Id,
             };
             _db.Referrals.Add(added);
             await _db.SaveChangesAsync();
 
-            return inviteeReward;
+            return true;
         }
         catch (Exception ex)
         {
@@ -76,7 +74,7 @@ public class ReferralService
             // Detach only what this method added. Clearing the whole tracker would silently throw
             // away unsaved work belonging to whoever else is sharing this scoped context.
             if (added is not null) _db.Entry(added).State = EntityState.Detached;
-            return null;
+            return false;
         }
     }
 }

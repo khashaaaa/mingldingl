@@ -9,7 +9,7 @@ public class CampaignServiceIntegrationTests : IntegrationTestBase
     {
         config ??= new ConfigService();
         var score = new ScoreService(Db, config);
-        var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
+        var loot = new HonourService(Db, NullLogger<HonourService>.Instance);
         return new CampaignService(Db, score, loot, config);
     }
 
@@ -168,7 +168,7 @@ public class CampaignServiceIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Claim_BossRoom_PaysBossBonusAndGrantsGuaranteedLoot()
+    public async Task Claim_BossRoom_PaysBossBonusAndGrantsSealBreaker()
     {
         var (match, initiator, _) = await NewMatchAsync();
         Db.DateConfirmations.Add(new DateConfirmation
@@ -186,12 +186,12 @@ public class CampaignServiceIntegrationTests : IntegrationTestBase
         var result = await BuildService().ClaimAsync(match, initiator.Id, "threshold");
 
         Assert.Equal(25, result.Awarded);
-        Assert.NotNull(result.DroppedItem);
+        Assert.Equal("title_sealbreaker", result.DroppedItem?.Id);
         Db.ChangeTracker.Clear();
         var events = Db.ScoreEvents.Where(e => e.UserId == initiator.Id && e.EventType == "CampaignBossBonus").ToList();
         Assert.Single(events);
         Assert.Equal(25, events[0].Delta);
-        Assert.Single(Db.UserItems.Where(i => i.UserId == initiator.Id && i.Source == "campaign"));
+        Assert.Single(Db.UserItems.Where(i => i.UserId == initiator.Id && i.ItemId == "title_sealbreaker"));
     }
 
     [Fact]

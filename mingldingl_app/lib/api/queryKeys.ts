@@ -19,10 +19,14 @@ export const queryKeys = {
   attendanceCheck: (matchId: string) => ['attendanceCheck', matchId] as const,
   activity: ['activity'] as const,
   myTrophies: ['myTrophies'] as const,
+  business: (businessId: string) => ['business', businessId] as const,
   businessReviews: (businessId: string) => ['businessReviews', businessId] as const,
   quests: ['quests'] as const,
   questsToday: ['quests', 'today'] as const,
   matches: ['matches'] as const,
+  // Per-match lifecycle, kept apart from the matches list: an ended match leaves that list
+  // entirely, and the open chat screen still needs to know why it went away.
+  matchStatus: (matchId: string) => ['matchStatus', matchId] as const,
   userProfile: ['userProfile'] as const,
   scoreDetail: ['scoreDetail'] as const,
   score: ['score', 'me'] as const,

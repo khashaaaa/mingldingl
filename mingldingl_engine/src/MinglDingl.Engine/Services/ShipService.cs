@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 public class ShipService
 {
     private readonly AppDbContext _db;
-    private readonly LootService _loot;
+    private readonly HonourService _honours;
     private readonly ScoreService _score;
     private readonly ConfigService _config;
     private readonly MilestoneService _milestones;
@@ -11,10 +11,10 @@ public class ShipService
     private readonly SupabaseBroadcastService _broadcast;
     private readonly ILogger<ShipService> _logger;
 
-    public ShipService(AppDbContext db, LootService loot, ScoreService score, ConfigService config, MilestoneService milestones, PushNotificationService push, SupabaseBroadcastService broadcast, ILogger<ShipService> logger)
+    public ShipService(AppDbContext db, HonourService honours, ScoreService score, ConfigService config, MilestoneService milestones, PushNotificationService push, SupabaseBroadcastService broadcast, ILogger<ShipService> logger)
     {
         _db = db;
-        _loot = loot;
+        _honours = honours;
         _score = score;
         _config = config;
         _milestones = milestones;
@@ -202,15 +202,13 @@ public class ShipService
         ship.ResultMatchId = match.Id;
         await _db.SaveChangesAsync();
 
-        var shipperReward = await _loot.GrantGuaranteedAsync(ship.ShipperUserId, "ShipSparked");
-        if (shipperReward is not null)
+        await _score.AwardAsync(ship.ShipperUserId, "ShipSparked");
+        var shipperHonour = await GrantMilestoneTitleIfEarnedAsync(ship.ShipperUserId);
+        if (shipperHonour is not null)
         {
-            ship.ShipperRewardItemId = shipperReward.Id;
+            ship.ShipperRewardItemId = shipperHonour.Id;
             await _db.SaveChangesAsync();
         }
-
-        await _score.AwardAsync(ship.ShipperUserId, "ShipSparked");
-        await GrantMilestoneTitleIfEarnedAsync(ship.ShipperUserId);
 
         await _milestones.AchieveAsync(row.SlotAUserId.Value, "first_match");
         await _milestones.AchieveAsync(row.SlotBUserId.Value, "first_match");
@@ -232,7 +230,7 @@ public class ShipService
         public Guid? SlotBUserId { get; set; }
     }
 
-    private async Task GrantMilestoneTitleIfEarnedAsync(Guid shipperId)
+    private async Task<DroppedItem?> GrantMilestoneTitleIfEarnedAsync(Guid shipperId)
     {
         int sparkedCount = await _db.Ships.CountAsync(s => s.ShipperUserId == shipperId && s.Status == "Sparked");
         string? itemId = sparkedCount switch
@@ -242,7 +240,6 @@ public class ShipService
             10 => "title_bondkeeper",
             _ => null,
         };
-        if (itemId is not null)
-            await _loot.GrantSpecificAsync(shipperId, itemId, "ShipMilestone");
+        return itemId is null ? null : await _honours.GrantAsync(shipperId, itemId, "ShipMilestone");
     }
 }

@@ -14,7 +14,7 @@ public class ShipsControllerIntegrationTests : IntegrationTestBase
         var scoreService = new ScoreService(Db, new ConfigService());
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var push = BuildTestPush();
-        var shipService = new ShipService(Db, new LootService(Db, scoreService, NullLogger<LootService>.Instance), scoreService, new ConfigService(), milestones, push, BuildTestBroadcast(), NullLogger<ShipService>.Instance);
+        var shipService = new ShipService(Db, new HonourService(Db, NullLogger<HonourService>.Instance), scoreService, new ConfigService(), milestones, push, BuildTestBroadcast(), NullLogger<ShipService>.Instance);
         var controller = new ShipsController(shipService, Db, config ?? new ConfigService())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },

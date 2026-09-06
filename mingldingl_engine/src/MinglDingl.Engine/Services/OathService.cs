@@ -20,16 +20,16 @@ public class OathService
     private readonly ConfigService _config;
     private readonly ScoreService _score;
     private readonly MilestoneService _milestones;
-    private readonly LootService _loot;
+    private readonly HonourService _honours;
 
     public OathService(AppDbContext db, ConfigService config, ScoreService score,
-                       MilestoneService milestones, LootService loot)
+                       MilestoneService milestones, HonourService honours)
     {
         _db = db;
         _config = config;
         _score = score;
         _milestones = milestones;
-        _loot = loot;
+        _honours = honours;
     }
 
     public async Task<User?> SwearAsync(Guid userId, string oath)
@@ -73,7 +73,7 @@ public class OathService
         {
             await _milestones.AchieveAsync(userId, "oath_proven");
             await _score.AwardAsync(userId, "OathProven");
-            await _loot.GrantSpecificAsync(userId, "title_oathkeeper", "oath_proven");
+            await _honours.GrantAsync(userId, "title_oathkeeper", "oath_proven");
         }
 
         return true;

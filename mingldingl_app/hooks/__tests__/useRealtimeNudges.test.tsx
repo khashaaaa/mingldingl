@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react-native';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { useRealtimeNudges } from '../useRealtimeNudges';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
@@ -52,23 +53,41 @@ function matchFixture(overrides: Partial<Match> = {}): Match {
   };
 }
 
+function wrapper({ children }: { children: React.ReactNode }) {
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
+
 describe('useRealtimeNudges', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useAuthStore.setState({ pendingNudge: null, activeChatMatchId: null, session: { user: { id: 'me1' } } as any });
     queryClient.removeQueries();
+    queryClient.setQueryData(queryKeys.userProfile, { id: 'me1' });
   });
 
   function mount() {
     const { channel, handlers } = makeFakeChannel();
     mockChannelFn.mockReturnValue(channel);
-    const view = renderHook(() => useRealtimeNudges());
+    const view = renderHook(() => useRealtimeNudges(), { wrapper });
     return { ...view, channel, handlers };
   }
 
+  // The engine stamps broadcasts with the account id, while the JWT sub is a throwaway anonymous
+  // identity for every returning user. Filtering on the sub meant your own actions nudged you.
+  it('treats a broadcast as mine by engine account id, not by the Supabase sub', () => {
+    useAuthStore.setState({ session: { user: { id: 'throwaway-sub' } } as never });
+    queryClient.setQueryData(queryKeys.userProfile, { id: 'engine-id' });
+    const { handlers } = mount();
+
+    handlers.icebreaker({ payload: { userId: 'engine-id', matchId: 'm1' } });
+
+    expect(useAuthStore.getState().pendingNudge).toBeNull();
+  });
+
   it('does not subscribe to a channel when there is no signed-in user', () => {
     useAuthStore.setState({ session: null });
-    renderHook(() => useRealtimeNudges());
+    queryClient.removeQueries();
+    renderHook(() => useRealtimeNudges(), { wrapper });
     expect(mockChannelFn).not.toHaveBeenCalled();
   });
 
@@ -254,6 +273,19 @@ describe('useRealtimeNudges', () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.messages('m1') });
     });
+
+    it.each([['Unmatched'], ['Ghosted'], ['Active']])(
+      'records the new status (%s) so an open chat screen can react to it',
+      (status) => {
+        // An ended match drops out of the matches list, so the chat screen has nothing left to read
+        // the reason from — this cache entry is the only thing that reaches it.
+        const { handlers } = mount();
+
+        handlers.match_status_changed({ payload: { matchId: 'm1', status, userId: 'other-user' } });
+
+        expect(queryClient.getQueryData(queryKeys.matchStatus('m1'))).toBe(status);
+      },
+    );
   });
 
   describe('message event', () => {

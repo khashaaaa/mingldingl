@@ -13,7 +13,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         httpContext.Items["UserId"] = userId;
         httpContext.Items["PhoneNumber"] = phone;
         var scoreService = new ScoreService(Db, new ConfigService());
-        var lootService = new LootService(Db, scoreService, NullLogger<LootService>.Instance);
+        var lootService = new HonourService(Db, NullLogger<HonourService>.Instance);
         var referralService = new ReferralService(Db, lootService, NullLogger<ReferralService>.Instance);
         var shipService = new ShipService(Db, lootService, scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), BuildTestPush(), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
         var oathService = new OathService(Db, new ConfigService(), scoreService, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), lootService);
@@ -162,7 +162,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Upsert_WithValidReferralCode_GrantsRewardToBothAndSurfacesInviteeReward()
+    public async Task Upsert_WithValidReferralCode_RecordsReferralAndHonoursTheInviter()
     {
         var inviterId = Guid.NewGuid();
         Db.Users.Add(NewCompleteUser(inviterId));
@@ -178,11 +178,13 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
             ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"],
             ReferralCode: inviterCode));
 
-        var response = Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(result).Value);
-        Assert.NotNull(response.ReferralRewardItem);
+        Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(result).Value);
 
         Db.ChangeTracker.Clear();
-        Assert.Single(Db.Referrals.Where(r => r.InviterUserId == inviterId && r.InviteeUserId == inviteeId));
+        var referral = Assert.Single(Db.Referrals.Where(r => r.InviterUserId == inviterId && r.InviteeUserId == inviteeId));
+        Assert.Equal("title_allycaller", referral.InviterRewardItemId);
+        Assert.Single(Db.UserItems.Where(i => i.UserId == inviterId && i.ItemId == "title_allycaller"));
+        Assert.Empty(Db.UserItems.Where(i => i.UserId == inviteeId));
     }
 
     [Fact]
@@ -198,7 +200,6 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
 
         var response = Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(result).Value);
         Assert.True(response.IsProfileComplete);
-        Assert.Null(response.ReferralRewardItem);
     }
 
     [Fact]
@@ -208,7 +209,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         Db.Users.Add(NewCompleteUser(weaverId));
         await Db.SaveChangesAsync();
         var scoreService = new ScoreService(Db, new ConfigService());
-        var shipService = new ShipService(Db, new LootService(Db, scoreService, NullLogger<LootService>.Instance), scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), BuildTestPush(), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
+        var shipService = new ShipService(Db, new HonourService(Db, NullLogger<HonourService>.Instance), scoreService, new ConfigService(), new MilestoneService(Db, NullLogger<MilestoneService>.Instance), BuildTestPush(), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
         await shipService.CreateAsync(weaverId, "88130001", "88130002");
         Db.ChangeTracker.Clear();
         var ship = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaverId);
@@ -387,5 +388,62 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
             null, null, ["https://example.com/1.jpg"], null, null, null, null, null, null, null, null, null, null));
 
         Assert.Equal(["https://example.com/2.jpg", "https://example.com/3.jpg"], deleted);
+    }
+
+    [Fact]
+    public async Task GetMyItems_ListsHeldHonoursAndTheFramesOfEveryTierReached()
+    {
+        var userId = Guid.NewGuid();
+        var user = NewCompleteUser(userId);
+        user.TotalScore = 350;
+        user.GemTier = "Amethyst";
+        user.EquippedFrameId = "frame_opal";
+        Db.Users.Add(user);
+        Db.UserItems.Add(new UserItem { UserId = userId, ItemId = "title_oathkeeper", Source = "oath_proven" });
+        Db.UserItems.Add(new UserItem { UserId = userId, ItemId = "title_wanderer", Source = "legacy" });
+        await Db.SaveChangesAsync();
+
+        var items = Assert.IsType<List<OwnedItemResponse>>(Assert.IsType<OkObjectResult>(await BuildController(userId).GetMyItems()).Value);
+
+        Assert.Equal(["title_oathkeeper", "frame_garnet", "frame_opal", "frame_amethyst"], items.Select(i => i.ItemId));
+        Assert.True(items.Single(i => i.ItemId == "frame_opal").Equipped);
+        Assert.False(items.Single(i => i.ItemId == "frame_garnet").Equipped);
+        Assert.All(items.Where(i => i.ItemType == "Frame"), f => Assert.Equal(HonourService.MetalGold, f.Rarity));
+    }
+
+    [Fact]
+    public async Task EquipItem_FrameAtOrBelowTier_Equips_FrameAboveTier_IsNotOwned()
+    {
+        var userId = Guid.NewGuid();
+        var user = NewCompleteUser(userId);
+        user.TotalScore = 350;
+        user.GemTier = "Amethyst";
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+        var controller = BuildController(userId);
+
+        var equipped = Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(await controller.EquipItem("frame_amethyst")).Value);
+        Assert.Equal("frame_amethyst", equipped.EquippedFrameId);
+
+        var above = await controller.EquipItem("frame_sapphire");
+        Assert.IsType<NotFoundObjectResult>(above);
+
+        var retired = await controller.EquipItem("frame_gold_crown");
+        Assert.IsType<NotFoundObjectResult>(retired);
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal("frame_amethyst", (await Db.Users.FindAsync(userId))!.EquippedFrameId);
+    }
+
+    [Fact]
+    public async Task EquipItem_TitleNotHeld_IsNotOwned()
+    {
+        var userId = Guid.NewGuid();
+        Db.Users.Add(NewCompleteUser(userId));
+        await Db.SaveChangesAsync();
+
+        var result = await BuildController(userId).EquipItem("title_sealbreaker");
+
+        Assert.IsType<NotFoundObjectResult>(result);
     }
 }

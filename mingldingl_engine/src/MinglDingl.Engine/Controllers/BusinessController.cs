@@ -31,6 +31,20 @@ public class BusinessController : ControllerBase
         return Ok(new PagedResponse<BusinessResponse>(items, safePage, safePageSize, totalCount, skip + items.Count < totalCount));
     }
 
+    /// A venue by id, so a screen reached by deep link, a reload or a restored session can render
+    /// itself. The list is paged and filtered, so it is not a substitute for this.
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(BusinessResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Get(Guid id)
+    {
+        var business = await _db.BusinessPartners.AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == id && b.IsVerified);
+        if (business is null) return this.NotFoundError("Business not found", "business.not_found");
+
+        return Ok(ToResponse(business));
+    }
+
     [HttpPost("{id}/rate")]
     [ProducesResponseType(typeof(RateBusinessResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]

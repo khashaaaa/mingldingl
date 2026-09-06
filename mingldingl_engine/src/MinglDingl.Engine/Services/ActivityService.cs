@@ -18,8 +18,9 @@ public class ActivityService
     private readonly ConfigService _config;
     private readonly OathService _oaths;
     private readonly PushNotificationService _push;
+    private readonly HonourService _honours;
 
-    public ActivityService(AppDbContext db, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config, OathService oaths, PushNotificationService push)
+    public ActivityService(AppDbContext db, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config, OathService oaths, PushNotificationService push, HonourService honours)
     {
         _push = push;
         _db = db;
@@ -29,6 +30,7 @@ public class ActivityService
         _broadcast = broadcast;
         _config = config;
         _oaths = oaths;
+        _honours = honours;
     }
 
     public async Task<List<ActivitySuggestion>> GetOrCreateSuggestionsAsync(Guid matchId)
@@ -173,6 +175,12 @@ public class ActivityService
         if (isInitiator) confirmation.InitiatorAttended = attended;
         else confirmation.ReceiverAttended = attended;
         await _db.SaveChangesAsync();
+
+        if (confirmation.InitiatorAttended == true && confirmation.ReceiverAttended == true)
+        {
+            await _honours.GrantAsync(match.InitiatorId, "title_trueword", "encounter_kept");
+            await _honours.GrantAsync(match.ReceiverId, "title_trueword", "encounter_kept");
+        }
 
         if (confirmation.InitiatorAttended.HasValue && confirmation.ReceiverAttended.HasValue
             && confirmation.InitiatorAttended != confirmation.ReceiverAttended)

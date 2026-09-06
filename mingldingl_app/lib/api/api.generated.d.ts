@@ -1612,6 +1612,15 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
                 /** @description Service Unavailable */
                 503: {
                     headers: {
@@ -1806,6 +1815,52 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["BusinessResponsePagedResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/business/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BusinessResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -5357,6 +5412,10 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
             updatedBy?: string | null;
+            /** Format: double */
+            min?: number | null;
+            /** Format: double */
+            max?: number | null;
         };
         AdminCreateBusinessRequest: {
             name?: string | null;
@@ -5870,7 +5929,6 @@ export interface components {
             bothResponded?: boolean;
             /** Format: int32 */
             awarded?: number;
-            droppedItem?: components["schemas"]["DroppedItem"];
         };
         IcebreakerRevealEntry: {
             /** Format: uuid */
@@ -6082,7 +6140,6 @@ export interface components {
             compatibility?: number | null;
             /** Format: int32 */
             awarded?: number;
-            droppedItem?: components["schemas"]["DroppedItem"];
         };
         QuizDetailsResponse: {
             /** Format: uuid */
@@ -6204,6 +6261,8 @@ export interface components {
         };
         StartPhoneVerificationRequest: {
             phone?: string | null;
+            /** Format: uuid */
+            resumeVerificationId?: string | null;
         };
         StartPhoneVerificationResponse: {
             /** Format: uuid */
@@ -6322,7 +6381,6 @@ export interface components {
             isPaused?: boolean;
             phoneNumber?: string | null;
             referralCode?: string | null;
-            referralRewardItem?: components["schemas"]["DroppedItem"];
             oath?: string | null;
             oathProven?: boolean;
             /** Format: int32 */

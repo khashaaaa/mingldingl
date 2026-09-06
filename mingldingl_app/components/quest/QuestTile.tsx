@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE, circle } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import OathSigil from '../OathSigil';
 import type { Match } from '../../models/match';
@@ -99,14 +99,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
     padding: SPACE.md,
     marginBottom: SPACE.md,
     overflow: 'hidden',
   },
   runeStrip: {
-    alignSelf: 'stretch',
+    // Sized to the avatar beside it rather than stretched to the card: a card with an Oath sigil
+    // is taller than one without, and `stretch` made the same tablet two different heights down
+    // a single list.
+    alignSelf: 'center',
     width: 30,
+    height: 56,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
     alignItems: 'center',

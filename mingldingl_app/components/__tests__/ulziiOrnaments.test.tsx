@@ -59,4 +59,5 @@ describe('ulzii ornament layer', () => {
     const kin = render(<OathSigil oath="Kinship" proven={false} />);
     expect(kin.getByTestId('oath-sigil-Kinship')).toBeTruthy();
   });
+
 });

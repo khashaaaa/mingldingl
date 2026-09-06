@@ -12,26 +12,24 @@ import { useLocaleStore } from '../../store/localeStore';
 import { useProfile } from '../../hooks/useProfile';
 import { useScoreDetail } from '../../hooks/useScoreDetail';
 import { useInventory } from '../../hooks/useInventory';
-import { colorForTier, itemLabel, membershipLabel, FRAME_COLORS } from '../../lib/tiers';
+import { colorForTier, frameColorFor, itemLabel, membershipLabel } from '../../lib/tiers';
 import { AppCard } from '../../components/ui/AppCard';
 import { CardEyebrow } from '../../components/ui/CardEyebrow';
 import { GameButton } from '../../components/ui/GameButton';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { SectionDivider } from '../../components/ui/SectionDivider';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { XPBar } from '../../components/progression/XPBar';
 import { GemTierBadge } from '../../components/progression/GemTierBadge';
 import { InviteAllyCard } from '../../components/progression/InviteAllyCard';
 import { ThreadLog } from '../../components/progression/ThreadLog';
-import { TrophyCase } from '../../components/progression/TrophyCase';
+import { HonourCase } from '../../components/progression/HonourCase';
 import { NextActionCard } from '../../components/NextActionCard';
 import { ShareCharacterButton } from '../../components/cards/ShareCharacterButton';
 import { ProfileAvatar } from '../../components/profile/ProfileAvatar';
 import { OathCard } from '../../components/profile/OathCard';
-import { COLORS, FONTS, FONT_SIZES, LINE_HEIGHTS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, SPACE } from '../../lib/theme';
 import type { GemTier } from '../../models/user';
 
-const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function ProfileScreen() {
   useLocaleStore((s) => s.locale);
@@ -43,7 +41,6 @@ export default function ProfileScreen() {
   if (!profile || !scoreDetail) {
     return (
       <View style={styles.loadingScreen}>
-        <TiledBackdrop source={DUNGEON_WALL_ASSET} />
         <ActivityIndicator color={COLORS.gold} />
       </View>
     );
@@ -53,11 +50,11 @@ export default function ProfileScreen() {
   const nextTier = scoreDetail.nextTier as GemTier | null;
   const firstPhoto = profile.photoUrls?.[0];
   const tierColor = colorForTier(gemTier);
-  const frameColor = (profile.equippedFrameId && FRAME_COLORS[profile.equippedFrameId]) ?? tierColor;
+  // A bare ring is bronze; wearing a tier's colour is a choice made in the Honours card below.
+  const frameColor = frameColorFor(profile.equippedFrameId) ?? INK.muted;
 
   return (
     <View style={styles.screen}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <GameHeader title={i18n.t('character_sheet')} icon="shield-sword" />
 
@@ -118,7 +115,7 @@ export default function ProfileScreen() {
 
         <ThreadLog ownedItemIds={items.map((i) => i.itemId ?? '')} />
 
-        <TrophyCase />
+        <HonourCase gemTier={gemTier} />
 
         <View style={styles.editButtonWrapper}>
           <GameButton variant="brass" size="compact" icon="book-heart" onPress={() => router.push('/date-log')}>
@@ -153,8 +150,8 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
-  loadingScreen: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  screen: { flex: 1, backgroundColor: 'transparent' },
+  loadingScreen: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
   scroll: { flex: 1 },
   content: { paddingBottom: SPACE.scrollTail },
   nameRow: {
@@ -181,8 +178,16 @@ const styles = StyleSheet.create({
     color: COLORS.gold,
   },
   membershipRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-  membershipValue: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text },
-  membershipArrow: { fontSize: FONT_SIZES.md, color: COLORS.gold, fontFamily: FONTS.body },
+  // Both halves carry the same size and leading, or `alignItems: center` centres two line boxes
+  // of different heights and the arrow reads as having slipped below the word.
+  membershipValue: {
+    fontSize: FONT_SIZES.lg, lineHeight: LINE_HEIGHTS.lg,
+    fontFamily: FONTS.bodyBold, color: COLORS.text,
+  },
+  membershipArrow: {
+    fontSize: FONT_SIZES.lg, lineHeight: LINE_HEIGHTS.lg,
+    color: COLORS.gold, fontFamily: FONTS.body,
+  },
   bioText: { fontSize: FONT_SIZES.md, color: COLORS.textDim, lineHeight: LINE_HEIGHTS.md, fontFamily: FONTS.body },
   editButtonWrapper: { marginHorizontal: SPACE.gutter, marginTop: SPACE.sm },
   signOutWrapper: { marginHorizontal: SPACE.gutter, marginTop: SPACE.md },

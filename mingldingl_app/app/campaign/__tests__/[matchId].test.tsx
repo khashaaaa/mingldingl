@@ -2,6 +2,7 @@ import { render, fireEvent } from '@testing-library/react-native';
 import CampaignScreen from '../[matchId]';
 import { useCampaign } from '../../../hooks/useCampaign';
 import type { Campaign } from '../../../hooks/useCampaign';
+import { WithSafeArea } from '../../../lib/testing/safeArea';
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ matchId: 'm1' }),
@@ -51,7 +52,7 @@ describe('CampaignScreen', () => {
 
   it('renders every room by name', () => {
     stubCampaign();
-    const { getByText } = render(<CampaignScreen />);
+    const { getByText } = render(<WithSafeArea><CampaignScreen /></WithSafeArea>);
 
     getByText('The Meeting Gate');
     getByText('Hall of Echoes');
@@ -65,7 +66,7 @@ describe('CampaignScreen', () => {
   it('offers a claim button for a cleared, unclaimed room and claims it', () => {
     const claimRoom = jest.fn();
     stubCampaign({ claimRoom });
-    const { getByText } = render(<CampaignScreen />);
+    const { getByText } = render(<WithSafeArea><CampaignScreen /></WithSafeArea>);
 
     fireEvent.press(getByText(/claim spoils/i));
 
@@ -74,7 +75,7 @@ describe('CampaignScreen', () => {
 
   it('marks sealed rooms and claimed rooms', () => {
     stubCampaign();
-    const { getAllByText, getByText } = render(<CampaignScreen />);
+    const { getAllByText, getByText } = render(<WithSafeArea><CampaignScreen /></WithSafeArea>);
 
     expect(getAllByText('Sealed').length).toBeGreaterThan(0);
     getByText('Spoils claimed');
@@ -82,14 +83,14 @@ describe('CampaignScreen', () => {
 
   it('shows the current-room hint for the first uncleared room', () => {
     stubCampaign();
-    const { getByText } = render(<CampaignScreen />);
+    const { getByText } = render(<WithSafeArea><CampaignScreen /></WithSafeArea>);
 
     getByText('Both face the Trial of Compatibility');
   });
 
   it('shows the closed state when the campaign is disabled', () => {
     stubCampaign({ campaign: null, unavailable: true });
-    const { getByText } = render(<CampaignScreen />);
+    const { getByText } = render(<WithSafeArea><CampaignScreen /></WithSafeArea>);
 
     getByText('The campaign is closed for now.');
   });

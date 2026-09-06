@@ -88,15 +88,23 @@ describe('useNextAction priority order', () => {
   });
 
   it('returns icebreaker for an Active match with an incomplete icebreaker', () => {
-    setAllSources({ matches: [match({ matchId: 'm42', icebreakerComplete: false, otherUser: { displayName: 'Sam' } })] });
+    setAllSources({ matches: [match({ matchId: 'm42', icebreakerComplete: false, revealLevel: 2, otherUser: { displayName: 'Sam' } })] });
     const { result } = renderHook(() => useNextAction());
     expect(result.current).toEqual({ kind: 'icebreaker', matchId: 'm42', name: 'Sam' });
   });
 
-  it('falls back to an empty name if the pending match has no displayName', () => {
-    setAllSources({ matches: [match({ icebreakerComplete: false, otherUser: {} })] });
+  // The engine hands over the name from reveal level 1, but the quest log and chat header keep a
+  // match nameless until level 2 — this card has to agree with them.
+  it('keeps the match nameless below reveal level 2, even when the engine sent a name', () => {
+    setAllSources({ matches: [match({ matchId: 'm42', icebreakerComplete: false, revealLevel: 1, otherUser: { displayName: 'Sam' } })] });
     const { result } = renderHook(() => useNextAction());
-    expect(result.current).toEqual({ kind: 'icebreaker', matchId: 'm1', name: '' });
+    expect(result.current).toEqual({ kind: 'icebreaker', matchId: 'm42', name: '??? • Mystery' });
+  });
+
+  it('falls back to the mystery name if the pending match has no displayName', () => {
+    setAllSources({ matches: [match({ icebreakerComplete: false, revealLevel: 2, otherUser: {} })] });
+    const { result } = renderHook(() => useNextAction());
+    expect(result.current).toEqual({ kind: 'icebreaker', matchId: 'm1', name: '??? • Mystery' });
   });
 
   it('ignores a Pending/Ghosted/Completed match even with an incomplete icebreaker', () => {

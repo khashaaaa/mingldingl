@@ -395,260 +395,195 @@ mingldingl_app/
 - The paid extras in §6 (Fun Tags, Reputation Repair, Score Boosters, Profile Boost) and the
   §3 "Slow Responder" tag / pre-ghost soft nudge — designed, never built, not scheduled
 
-Shipped since the original MVP spec (no longer out of scope): push notifications (Expo push, `PushNotificationService`), a full gamification layer (daily quests, streaks, loot drops, milestones), realtime nudges, multi-select photo onboarding, and the dark-fantasy RPG visual overhaul.
+Shipped since the original MVP spec (no longer out of scope): push notifications (Expo push, `PushNotificationService`), a full gamification layer (daily quests, streaks, milestones, and named honours — the random loot drops that preceded them were retired 2026-09-05, see the shipped log), realtime nudges, multi-select photo onboarding, and the dark-fantasy RPG visual overhaul.
 
 ---
 
 # Outstanding Follow-ups
 
-Salvaged from the per-feature SDD execution ledgers before those were pruned
-(2026-08-19). These are the items that were consciously deferred during
-execution rather than fixed, and that no Shipped record above captures. Purely
-cosmetic and test-quality minors were dropped with the ledgers; what follows is
-what still has a real consequence.
+The live backlog: items consciously deferred that still have a real consequence. Closed items
+are not struck through here — their record moves to [`shipped-log.md`](shipped-log.md).
+
+## Found on the first real-device run (2026-09-06, Redmi/Expo Go SDK 54)
+
+Three bugs found here were fixed the same session (see `shipped-log.md`). These are what the run
+turned up and left open:
+
+- **`AtlasOverlay` setState-during-render.** LogBox, every time Discover mounts: "Cannot update a
+  component (`AtlasOverlay`) while rendering a different component (`DiscoverScreen`)". React
+  tolerates it today; it is a real violation and the fix belongs in whichever Discover render path
+  writes atlas state.
+- **World-layer strings are still English for `mn` users.** The eleven keys in
+  `AWAITING_MN_TRANSLATION` — the Hold/atlas overlay, the seven room names, and the Settings
+  `sound` label — render in English on a Mongolian device. They need a native speaker, not a
+  guess; `sound` in particular sits between two translated rows in The War Room.
+- **Seeded profile photos are missing on this machine**, so every candidate card, thread avatar and
+  the character sheet shows a placeholder. Not a code bug: `python3
+  mingldingl_engine/scripts/gen-seed-photos.py` has not been run since the last reseed.
+- **The seeded phone numbers (`810000xx`) cannot reach verify.mn** — `POST /auth/phone/start`
+  answers 503 because `81` is not a valid Mongolian mobile prefix. Any device sign-in test needs a
+  real prefix; the dev DB currently has Undram (`091eadb0…`) pointed at the test SIM `88583269`
+  (and the throwaway `Khashaa` row's number nulled) so a rich character can be signed into.
+
+## Found on the second real-device sweep (2026-09-06, Galaxy A51/Expo Go SDK 54)
+
+A pass over Town Square, the Mission Board, venues, the character sheet and the per-match
+activities. Eleven fixes from it shipped the same session (see `shipped-log.md`); these are what
+it turned up and left open:
+
+- **The chat composer never returns to the bottom once the keyboard has been open.** Open a
+  thread, focus the message box, dismiss the keyboard (Back or by tapping the list) — the composer
+  stays lifted ~70dp with dead world-floor showing under it for the rest of that screen's life;
+  re-entering the thread clears it. Ruled out: it is not the `KeyboardAvoidingView` `behavior`
+  value (`height`, `padding` and `undefined` all reproduce), and screens with a text input but no
+  `KeyboardAvoidingView` (the icebreaker's answer box) do not show it. Next suspect is the
+  interaction between Expo SDK 54's edge-to-edge Android window and `adjustResize`.
+- **Icebreaker and quiz content is single-language by schema.** `Icebreakers.QuestionText` and the
+  quiz tables hold one string, seeded in Mongolian, so an English-locale user reads the Town Square
+  round prompt and every icebreaker in Mongolian. Localising it means a column per locale (or a
+  translations table), not an i18n key.
+- **A modal turns the Android navigation bar white.** Every `Modal` (the leave-the-square confirm,
+  the activities sheet, the chest) renders its own window and the system navigation bar reverts to
+  the light default under a dark app.
+- **`icebreakerComplete` gates the video button and nothing else.** Neither the app nor the engine
+  stops you messaging before the icebreaker, so the character sheet's `next_action_icebreaker`
+  ("Break the ice with X to unlock chat") promises a lock that does not exist. Either gate
+  `POST /matches/{id}/messages` on it or reword the card.
+- **A thread with no messages yet renders as an empty screen** — no prompt, no empty state, just
+  the reveal strip and the activities row above a blank scroll area.
+- **The leaderboard is anonymous by design** (`LeaderboardEntryDto` carries rank/tier/score only),
+  so every row reads `#N ◆ 3,724 pts` with nothing to recognise. Worth confirming that is still
+  the intent — it is currently a ranking of strangers.
+- **Seeded venues have no photos** (`PhotoUrls` is `'[]'::jsonb` for every `BusinessPartner`), so
+  the venue hero and the Encounter Log thumbnail always fall back to the placeholder. The
+  placeholders now carry a glyph, but `gen-seed-photos.py` never has venue URLs to fill.
 
 ## Manual verification still owed
 
-Three features shipped without the manual pass their own plans called for. All
-three need the `verify` skill (real Supabase JWTs, full stack running):
+All need the `verify` skill (real Supabase JWTs, full stack running).
 
-- ~~**The Flame Rite — Task 11, Step 9: the two-account ladder walk.**~~ RUN and
-  PASSED 2026-09-01, API-level with two real Supabase users (`e2e-rite-c/d`):
-  token before any proposal 403 → pledge before rite 403 (`FlameRiteIncomplete`) →
-  propose → decline clears the proposal and re-propose succeeds → duplicate propose
-  while open 409 → self-accept 403 → token before acceptance 403, after acceptance
-  200 → `/video/complete` → pledge 200 → attendance mismatch (see No-Show below).
-  Flag retreat also verified with a second pair (`e2e-rite-e/f`):
-  `dating.flamerite.required=false` (DB value + restart) let a rite-less pledge
-  through 200; restoring the flag re-engaged the 403 on the same match. Not
-  verified: the 5-minute vs long token TTL difference (the Agora token is opaque —
-  would need decoding its privilege expiry) and the app UI screens themselves
-  (jest-covered only); the decorative video countdown remains open below.
-- **Fated Threads — the full 12-step pass**, summarised under "Still owed" in the
-  Fated Threads entry above, including the five rechecks added after fix wave 1.
-- **No-Show Tracking — a two-account attendance walk.** Mismatch → flag path RUN and
-  PASSED 2026-09-01 (same `e2e-rite-c/d` pair): initiator answered attended=true,
-  receiver attended=false → the denier's `NoShowFlagCount` went 0→1, `PenaltyApplied`
-  latched on the confirmation, and `ReputationScore` correctly untouched below the
-  threshold of 3. The threshold-crossing `RepeatedNoShowPenalty` leg was not walked
-  live (needs three distinct-match mismatches) — that remains integration-test-only.
-- **Membership billing cycles — the duration ChoiceRow's rendered layout** (MN
-  label length, chip wrapping) and one real end-to-end upgrade call. Never
-  visually verified; only `tsc` + bundle build + reading the JSX.
+- **Fated Threads — the full pass, never run.** Weaver A weaves B + C → B's `GET /ships/pending`
+  names A and nothing about C → B accepts, nothing sparks → C accepts: match exists, chat shows
+  "Woven by A", neither `DailyMatchesUsed` moved → A's honour toast fires once and does not replay
+  → the weave past `ships.daily.cap` is rejected → a brand-new number resolves via the onboarding
+  code field; plus two distinct codes on the confirmation screen, the blocked-Weaver silent no-op,
+  same-number rejection, push + list refresh on spark, and the Missions-tab CTA.
+- **Town Square — no two-browser end-to-end run** (a scheduled session, real Agora tokens,
+  a full round-robin).
+- **Flame Rite — the app screens** (jest-covered only) and the 5-minute vs long token TTL (the
+  Agora token is opaque; would need decoding its privilege expiry). The API-level ladder passed
+  2026-09-01.
+- **No-Show — the threshold-crossing `RepeatedNoShowPenalty` leg** is integration-test-only
+  (needs three distinct-match mismatches). The mismatch → flag walk passed 2026-09-01.
+- **Membership — the duration `ChoiceRow`'s rendered layout** (MN label length, chip wrapping)
+  and one real end-to-end upgrade call.
+- **The world pass below the Gate — never seen.** Only `(auth)` renders without a backend, so the
+  Long Road, Tavern, Hearth, Forge, Hall and Deep have had their light judged by nobody: the six
+  signatures, the per-room state ramps, the floor showing through each migrated screen, the atlas
+  over a real profile, and the descend/rise transitions. Needs the `verify` skill.
+- **The six sounds have never been heard, and no haptic has fired on hardware.** Both were written
+  and unit-tested against mocks. The WAVs are synthesised, so their voicing is a guess until
+  somebody plays them on a phone speaker; the silent-switch behaviour is likewise untested on a
+  real device.
+- **A device pass for the design-token snap and the Ulzii ornaments** — sizes moved at most
+  ±2 px per step, but Mongolian labels are longer than English; knot density/brightness looked
+  right on web only.
 
-## Behavioral
+## Security & identity
 
-- ~~**`ShipService.RespondAsync` has no lock against two simultaneous responses.**~~
-  Closed — found already fixed by the 2026-09-05 bug sweep, the entry was just never
-  retired. `RespondAsync` writes each slot with an atomic `UPDATE … RETURNING` and then
-  claims the thread with a conditional `SET "Status" = … WHERE "Status" = 'Pending'`,
-  so the "both slots Accepted, Status stuck Pending" state can no longer be reached and
-  the spark runs exactly once.
-- **The video-screen countdown is decorative.** It resets on remount, is not
-  anchored to token issue time or `FlameRiteAcceptedAt`, and reaching 0:00 does
-  nothing. A user can read it as an enforced limit that isn't enforced.
-- ~~**`Memberships.UserId` has no index.**~~ Closed 2026-09-01 — folded into the
-  `AddCampaignRoomClaims` migration as planned.
-- ~~**`AdminConfigControllerIntegrationTests.Update_TierThreshold_BackfillsStoredGemTiers`
-  deadlocks intermittently under the parallel test run**~~ Closed 2026-09-03 after it
-  turned CI red on an unchanged engine — the class now runs in the parallel-disabled
-  `SerialCollection` (`tests/.../Integration/SerialCollection.cs`). Any future test
-  that runs table-wide statements should join that collection.
-- **Phone-verification account recovery + start-endpoint rate limiting.** See the
-  "Open" list under the verify.mn entry above. Recovery-on-reinstall is the one with a
-  real user-facing consequence.
-- **`LoginThrottleService` is per-instance.** Fine for the current single-container
-  deploy; a second instance halves the effective lockout. Needs shared state if the
-  engine is ever scaled out.
-- **`Cors:AllowedOrigins` must be set before any non-Development deploy** — the engine
-  now throws at startup without it. Deliberate (fail closed), but it will stop a deploy
-  that has not been updated.
+- **A production deploy without `VerifyMn:ApiKey` is wide open** — the gate, the metadata-phone
+  alias and `POST /users`'s metadata fallback are all inert/live together, and nothing refuses to
+  boot in that state the way `Cors:AllowedOrigins` does.
+- **The returning-user alias is keyed on the phone the identity proved.** If an aliased user
+  later changes their number from that device, the alias stops resolving and the device behaves as
+  a fresh identity. An `AuthAliases (Sub → UserId)` table would remove the dependency and save a
+  query per request; needs a schema change.
+- **No per-IP limit on `POST /auth/phone/start`** and no general API rate limiting. The
+  per-number cap bounds abuse against one target, not provider-quota burn across many numbers.
+- **`LoginThrottleService` is per-instance** — a second engine instance halves the effective
+  lockout. Needs shared state if the engine is ever scaled out.
+- **`POST /video/complete` is a client assertion** — any participant can claim the score,
+  honour and milestone without a call connecting. Corroborating it needs Agora webhooks; the
+  never-built 30-minute post-rite call cap is parked with the same dependency.
+
+## Product decisions pending
+
+- **Chat is not gated on the icebreaker.** The spec says completing it "unlocks chat"; nothing
+  ever enforced it, and gating now would strand every active match that skipped it. If wanted:
+  `MessagesController.SendMessage` behind a config key, banner becomes a wall.
+- **The video-screen countdown is decorative** — resets on remount, not anchored to token issue
+  or `FlameRiteAcceptedAt`, and 0:00 does nothing. Reads as an enforced limit that isn't.
+- **`MatchReply` (+10) has no cap.** Two accounts alternating one-character messages farm score
+  without limit — 200 messages to Emerald. Options: per-match/per-day cap, minimum length, decay.
+- **A match where nobody ever messages can never be ghosted** — both the sweep and
+  `GhostingService.IsStale` require `LastMessageAt != null`. Falling back to `CreatedAt` closes it
+  but leaves no single party to penalise (`LastMessageSenderId` is also null).
+- **`ReportPenalty` (−30) has no award path** — no report endpoint exists. Closing it means a
+  report flow: endpoint, moderation surface in `mingldingl_control`, award call site.
+  `ScoreHistoryList.ENGINE_EVENT_TYPES` deliberately omits it.
+- **Second and later recruits produce no toast** since Ally-Caller is earned once. Whether a
+  repeat recruit deserves acknowledgement is a product call.
+- **Kill switches show copy rather than hiding entry points** (`ships.enabled`,
+  `townsquare.enabled`). Hiding the tab / weave CTA on a 404 is a follow-up if used in anger.
 
 ## Known gaps, deliberately not built
 
-- **Fated Threads' Pass-side blocking flow.** The design spec describes it; no
-  task brief's reference code ever included it. Only the `BlockedUsers` *check*
-  on `POST /ships` was implemented, never the secondary-checkbox UI.
-- **`CreateAsync`'s "already matched" path** — as of 2026-08-31 it returns the same
-  success + two-codes shape as every other outcome (no row written), so the
-  earlier concern that it was distinguishable from ordinary success appears
-  closed; the only residual signal is that neither nominee ever sees a prompt,
-  identical to the blocked-Weaver case. Confirm during the manual pass.
-- **Fated Threads' `/public/ship` landing page was unreachable until 2026-08-31** —
-  the share text never carried the URL, so every invite before that date was
-  code-only. Fixed in `lib/shipInvite.ts`; anyone holding an old share message
-  still has a working code, just no link.
-- ~~**No-Show Tracking's 48 h window and Fated Threads' 14-day expiry are hardcoded**~~
-  Closed by the 2026-09-04 admin-config expansion: both are `ConfigKeys` entries now
-  (`dating.attendance_check.delay_hours`, `ships.expiry_days`), read through
-  `ActivityService` and `DailyMaintenanceBackgroundService.ShipExpiryFor(config)`.
-- **Same-ship invite-code collision inside a single `CreateAsync`** would
-  silently misroute slot B. Vanishingly unlikely, unguarded.
+- **Fated Threads' Pass-side blocking** (`BlockWeaver`) — only the `BlockedUsers` check on
+  `POST /ships` exists. A same-ship invite-code collision inside one `CreateAsync` would silently
+  misroute slot B (vanishingly unlikely, unguarded).
+- **Town Square** pairs strictly `Male × Female` (other genders RSVP but are never rostered),
+  drops overflow RSVPs silently at lock time, and attaches no score, quest or honour to attending.
+- **Reveal after the rite** — the second photo still unblurs at 5 messages; milestone-based
+  reveal and un-paywalling `HasKids` were deferred.
+- **The world lights only what some screen has already fetched.** `useWorldState` subscribes to
+  the query cache and never fetches, on purpose — so a room whose data nobody has asked for yet
+  sits at its base light rather than its true one (the Tavern is unlit until the Town Square tab
+  has been opened once this session). Correct by the "no data is not darkness" rule, but it means
+  first-run light is systematically dimmer than steady-state light.
+- **`WORLD_ENABLED` is a build-time constant, not admin config.** Flipping the world off is a
+  release. The app has no generic config-read path — tier and reveal thresholds each got their own
+  endpoint — and a cosmetic layer did not justify inventing one.
+- **The atlas ships English-only.** `AWAITING_MN_TRANSLATION` lists the eleven keys (the hold
+  title, seven room names, the two map labels, the Sound row); `enableFallback` renders them in
+  English for an `mn` user, which is a visible gap rather than a wrong translation. The parity
+  test fails if one is translated and left on the list.
+- **Ulzii deferrals** — Skia shimmer on the Oath sigil / boss seal, unlit empty-state knots,
+  festival-tinted ornament variants.
+- **Admin panel** — `ConfigField` ignores `Min`/`Max` (server error shows in the toast);
+  `admin.*` error codes are English-only on purpose; `lib/apiError.ts` reads `error`, not `code`.
+- **Mongolian copy is unproofread by a native speaker**, and `en`/`mn` diverge in voice where
+  the 2026-07-28 rewrite deliberately left `mn` alone.
+- **§6 paid extras** (Fun Tags, Reputation Repair, Score Boosters, Profile Boost) and the
+  "Slow Responder" tag / pre-ghost nudge — designed, never built, not scheduled.
 
-## Closed 2026-08-31 — audit fixes
+## Code health
 
-One pass across the shipped features above, recorded here rather than
-scattered: `date_confirmed` broadcast now carries `userId` alongside `matchId` /
-`isComplete`; chat history pages via `GET /matches/{id}/messages?before=&limit=`
-with a "load earlier" control in `app/chat/[matchId].tsx` (`useChat.loadEarlier`);
-progressive-reveal fields and the daily-match-budget counter are now actually
-rendered (Matches list reveal-level gating, `DailyBudgetMeter` on Discover);
-admin `UserDetail` shows Oath / Oath sworn / Oath proven, `noShowFlagCount`,
-ban state and membership expiry, with a `POST /admin/users/{id}/reset-noshow`
-action; admin analytics gained Oath sworn / Oath proven / No-show flagged /
-Flame Rites completed / Ships sparked / Town Square sessions tiles; `match_created`
-broadcast + push on both the Fated Threads spark and the Town Square mutual-yes
-paths; admin Ships list shows `resultMatchId`; admin Town Square create/cancel
-(see the Town Square entry).
+- **Colour system, stage 2 of 3 (2026-09-06).** `lib/theme.ts` now carries a semantic role layer
+  (`SURFACE`/`INK`/`ACCENT`/`LINE`/`STATUS`/`STATUS_SOFT`) over the raw `COLORS` pigments, and
+  `COLORS.bronze` is fully migrated off (36 borders → `LINE.edge`, 12 empty-state icons and the
+  locked/inactive states → `INK.muted`, 5 structural fills → `LINE.edge`). Stage 3 — migrating the
+  remaining raw-pigment call sites (`COLORS.gold` 178, `textDim` 123, `text` 94) and widening the
+  `palette.test.ts` guard from "no `COLORS.bronze`" to "no raw `COLORS` outside the theme" — is
+  **not done**. The guard only covers `bronze` today, so `gold` can still be reached for directly.
+- Two palette seams are known and documented in `lib/theme.ts` rather than solved: `STATUS.warning`
+  sits 15.9° from `ACCENT.base` in hue (unavoidable while the accent is orange — it separates on
+  lightness and must always render as a filled banner with an icon), and `STATUS.success` is
+  deliberately the same value as the Emerald jewel. Both are resolved by moving the accent off
+  orange, which is the deferred "approach B" repalette.
+- `TIER_PRESENCE` (ring weight + glow per tier) is defined and tested as the new carrier of rank,
+  but **no component reads it yet** — the gem badges still render without the ramp, so rank is
+  currently not visually encoded anywhere now that the jewels are luminance-matched.
 
-## Codebase-wide, larger than any one feature
-
-- ~~**`getApiErrorMessage` surfaces raw English server error strings.**~~ CLOSED
-  2026-09-01. Every error response now carries a stable `code` beside its English
-  `message` (`ErrorResponse(Error, Code)`); `DomainException` and the
-  `ApiErrorExtensions` helpers all require one, so the compiler refuses a new error
-  without a code. The app maps `code` -> `err_<code>` i18n keys (75 codes, EN + MN)
-  and, crucially, an *unmapped* code now falls back to the caller's localised message
-  rather than the server's English. The two stopgap tables keyed on English prose
-  (`SHIP_ERROR_I18N_KEYS` in `app/ship/new.tsx`, `VIDEO_ERROR_I18N_KEYS` in
-  `hooks/useVideoCall.ts`) are deleted — the latter was already stale, keyed on two
-  messages the engine had stopped returning. Verified live: a duplicate-nominee weave
-  in Mongolian renders "Хоёр өөр хүнийг сонгоно уу." with no English leak.
-  Covered by `lib/api/__tests__/errors.test.ts`.
-- ~~**Swagger `ProducesResponseType(ErrorResponse)` doesn't match the actual
-  `{ error }` shape**~~ CLOSED 2026-09-01 — fixed by the same change; `ErrorResponse`
-  is now the type actually returned on every error path, so the generated client
-  types are correct. Both frontends' `api.generated.d.ts` regenerated.
-
-  **Still open here:** the four `admin.*` codes are deliberately English-only (the
-  control panel is an internal tool); `mingldingl_control/src/lib/apiError.ts` was
-  left reading `error` and has not been moved onto codes.
-
-## Closed 2026-09-05 — bug sweep
-
-An inspection pass over the engine, prompted by nothing failing: the full suite was green
-throughout, and every one of these was latent because of what the tests did not reach.
-Each fix landed with a test that fails on the old code.
-
-- **`/public/ship` never rendered anything for anyone.** The invite landing page's inline
-  `<script>` carried a truncated string literal (`'<a class="cta" href="mingldingl:` with no
-  closing quote), and a top-level `SyntaxError` makes the browser discard the whole block —
-  so every visitor sat on "Reading the thread…" forever, valid code or not. The existing test
-  asserted the HTML *contained* some of the page copy, which it did: inside the dead script.
-  The anchor now points at `mingldingl://`, the code is escaped before it reaches `innerHTML`,
-  and `LandingPageScript_HasNoUnterminatedStringLiteral` scans both pages' literals.
-  Note this is *not* the same defect as the share-link gap closed 2026-08-31 — that fixed link
-  generation in `lib/shipInvite.ts`; the page it linked to was broken independently.
-- **Only one of the two Flame Rite participants was ever paid.** `VideoRewardClaimed` was a
-  single flag on the match, so whoever hung up first took the `VideoCallDone` score, the daily
-  `video` quest tick, the `first_video_call` milestone and the loot roll, and the other side
-  got a zero-award response and nothing else — the quest and milestone denials plainly wrong,
-  both being per-user. Now claimed per participant (`InitiatorVideoRewardClaimed` /
-  `ReceiverVideoRewardClaimed`, migration `AddPerParticipantVideoRewardClaims`), matching the
-  `IcebreakerDone` precedent that pays both. `VideoRewardClaimed` stays as the match-level
-  marker `CampaignService` reads for pre-rite matches; the migration backfills both new flags
-  from it so no historical match pays out a second time. The guarding test had claimed to cover
-  "the other participant hanging up" while calling as the same user twice.
-- **Ghosting could lower a match's reveal level below its creation floor.** `TryGhostAsync`
-  froze `RevealLevel` at the message-count level, discarding the level 1 floor every match is
-  born with. Inert on shipped defaults; live the moment `reveal.level1.messages` is tuned above
-  1, which the admin panel invites. Now clamped with `Math.Max` against the stored floor.
-- **A retried message send could insert the row twice.** Npgsql runs with
-  `EnableRetryOnFailure(3)`, so `SendMessage`'s execution-strategy lambda genuinely re-runs, and
-  a `Message` left `Added` by a failed attempt was inserted alongside the new one — two rows for
-  one send, against a `MessageCount` that moved by one. The lambda now detaches its own stale
-  additions first (not the whole tracker, which holds other callers' work).
-- Message pages now order by `(CreatedAt, Id)` so a same-instant tie cannot vary between the
-  queries either side of a page boundary.
-
-**Left open here:**
-
-- `POST /video/complete` is still a pure client assertion — any participant can claim the score,
-  drop and milestone without a call ever connecting. Corroborating it needs Agora webhooks.
-- Message pagination's `before` cursor is still `CreatedAt`-only. Ordering is deterministic now,
-  but messages sharing an exact timestamp across a page boundary would need a composite cursor,
-  which changes the public API shape.
-- `SendMessage` has no happy-path integration coverage, because `IntegrationTestBase` wraps each
-  test in a rollback transaction and `SendMessage` opens one of its own. The new retry test works
-  around it with `NewUncommittedContext()` and hand-rolled cleanup; the wider gap remains.
-
-## Closed 2026-09-05 — drift/gap audit
-
-A doc-vs-code and code-vs-code sweep across all three projects. Route tables, generated types,
-i18n key parity, error codes, loot/quest catalogues and the EF model were all clean; what
-follows is what was not, each closed with a test that fails on the old code.
-
-- **The app pinned its own reveal ladder.** `RevealStrip` hardcoded `[5, 15, 30]` and the
-  deep-profile hint said "30 messages" in both languages while `reveal.levelN.messages` was
-  admin-tunable — the same divergence tiers had before `useTierThresholds`. Now
-  `GET /engagement/reveal-thresholds` exposes the effective ladder, `lib/reveal.ts` hydrates it
-  (`useRevealThresholds` in the root layout) and the hint interpolates `%{count}`.
-- **Activity suggestions gated on a hardcoded 15.** `ActivitiesController` compared
-  `MessageCount < 15` directly, so tuning `reveal.level3.messages` or `campaign.voices.messages`
-  left the pledge gate behind. It is `activity.suggestions.messages` (Matching, default 15) now.
-- **Push notifications were English-only and sparse.** `User.PreferredLocale` ("en"/"mn",
-  migration `AddUserPreferredLocale`, backfilled "en") is set from `POST /users` at onboarding and
-  kept in step by `useSyncPreferredLocale` whenever the app locale changes; `PushCopy` carries
-  every kind in both languages and `PushNotificationService.NotifyUserAsync` takes a `PushKind`,
-  so no call site can send raw English again. Four kinds were added: `flame_rite_accepted` (to the
-  proposer), `date_confirmed` (to the side that pledged first), `match_ghosted` (both sides, from
-  the sweep and the on-read check), `townsquare_started` (everyone rostered into round one). The
-  app routes acceptance to the video screen and a session start to the Town Square tab.
-  Three token-hygiene gaps closed the same day: the Expo round-trip used to run inline in the
-  request (up to the 5s client timeout on every message send), so `NotifyUserAsync` now only
-  resolves the recipient and queues a `PushEnvelope` on `PushDispatchBackgroundService`; that
-  loop reads Expo's tickets and deletes any token answered `DeviceNotRegistered` (uninstalled
-  devices used to accumulate forever); and the anonymisation sweep purges `PushTokens` alongside
-  `PhoneVerifications`.
-- **Docker deploy could only allow one CORS origin.** `Cors__AllowedOrigins__0` took a single
-  value while `.env.example` already promised a comma-separated list. `CorsOrigins.Parse` accepts
-  both the indexed form and one comma-separated string; compose passes the latter.
-- **Spec drift corrected in this file:** fonts (Yeseva One, not Cinzel), the gem palette hexes,
-  the OTP screen (verify.mn MO flow, nothing typed), twelve routes missing from the screen
-  inventory, the score table (ShipSparked/OathProven/campaign/quest/streak rows, login × streak,
-  no fun-tag award), the never-implemented 30-minute call cap, the icebreaker not gating chat, and
-  the §6 extras / "Slow Responder" / soft-nudge marked as not built. `shipped-log.md`'s No-Show
-  and Flame Rite entries were still calling their manual walks "never run" after the plan had
-  recorded them as passed on 2026-09-01.
-- Cosmetic: `MatchStatus` now includes `Unmatched` (the engine writes and broadcasts it);
-  `lib/fieldLimits.ts` no longer claims to mirror the engine (bio is deliberately 200 vs 1000).
-
-**Design decisions recorded, not changed:**
-
-- **Chat is not gated on the icebreaker.** The spec said completing it "unlocks chat"; neither
-  the engine nor the app ever enforced that, and gating it now would strand every active match
-  that skipped the icebreaker. Left open until the product decides — if it is wanted, it belongs
-  in `MessagesController.SendMessage` behind a config key, with the banner becoming a wall.
-- **The 30-minute post-rite call cap.** Enforcing it needs either a short token (which kicks a
-  live call mid-sentence) or Agora webhooks (the same dependency `/video/complete` needs to stop
-  being a client assertion). Parked with that item.
-
-## Score-economy gaps left open by the 2026-09-04 bug-fix wave
-
-Two findings from the same audit were judged design questions rather than defects
-and were deliberately not changed. Both are score-economy holes:
-
-- **`MatchReply` (+10) has no cap.** `MessagesController.SendMessage` awards it every
-  time the sender is not the previous sender, so two accounts can alternate
-  one-character messages and farm score without limit. The daily quest counter caps
-  its own bonus; the base award does not. The tier ladder tops out at 2000, so this is
-  200 alternating messages to Emerald. Options: a per-match or per-day cap on
-  `MatchReply`, a minimum content length, or a decay after the first few replies.
-- **A match where nobody ever messages can never be ghosted.** Both the sweep's SQL
-  filter in `DailyMaintenanceBackgroundService` and `GhostingService.IsStale` require
-  `LastMessageAt != null`, so the "matched and then total silence" case — arguably the
-  purest form of ghosting — stays `Active` forever and costs the silent party nothing.
-  Falling back to `Match.CreatedAt` when `LastMessageAt` is null would close it, but it
-  changes who is at fault: `GetGhostAtFaultUserId` reads `LastMessageSenderId`, which is
-  also null, so a no-message ghost has no single party to penalise.
-
-## Left open by the 2026-09-04 missing-link audit
-
-- **`ReportPenalty` (-30) has no award path.** The scoring table above specifies it for a
-  negative report, and `ScoreService.GetDelta` carries the value, but no reporting endpoint
-  exists — nothing can ever write the event. The value and its app-side label/icon were kept
-  (a report feature is specified, and the app map is designed to carry types it may not yet
-  see) and `GetDelta` now says so in a comment. Closing this means building the report flow:
-  an endpoint, a moderation surface in `mingldingl_control`, and the award call site.
-  `ScoreHistoryList.ENGINE_EVENT_TYPES` deliberately omits it, so the coverage test stays
-  honest about what the engine can actually emit.
+- `OathService.RefreshAsync` flips `OathProven` and saves before paying the milestone; if the
+  award throws the reward is never paid (the `alreadyPaid` guard makes the reverse order safe).
+- Message pagination's `before` cursor is `CreatedAt`-only; a same-instant tie across a page
+  boundary would need a composite cursor (public API change). `SendMessage` has no happy-path
+  integration test because it opens its own transaction inside `IntegrationTestBase`'s rollback.
+- No test exercises the admin config write → `ScoreService` read path in one process; a
+  regression of `ConfigService` to `AddScoped` would go unnoticed.
+- `components/profile/__tests__/ProfileAvatar.test.tsx` still logs "update not wrapped in act"
+  under the full parallel run. The Skia/reanimated `transformIgnorePatterns` half of this item was
+  closed by the world pass (`jest.setup.js` registers Skia's own mock and an `expo-audio` mock
+  once, and the hand-written `TorchGlow` mock is gone).
+- Historic `DuplicateLoot` score rows keep their label (`event_duplicate_loot`) so old chronicle
+  entries render; the event is no longer emitted.

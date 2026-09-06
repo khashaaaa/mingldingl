@@ -23,14 +23,14 @@ import { PhotoGrid } from '../components/PhotoGrid';
 import { SectionDivider } from '../components/ui/SectionDivider';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { TextField } from '../components/ui/TextField';
-import { TiledBackdrop } from '../components/ui/TiledBackdrop';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SMOKING_DRINKING_OPTIONS = ['Never', 'Occasionally', 'Regularly'] as const;
 const RELIGION_OPTIONS = ['Buddhist', 'Christian', 'Muslim', 'None', 'Other'] as const;
 const LIFESTYLE_OPTIONS = ['Active', 'Balanced', 'Relaxed'] as const;
-const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
 export default function EditProfileScreen() {
+  const insets = useSafeAreaInsets();
   useLocaleStore((s) => s.locale);
   const router = useRouter();
   const { data: profile } = useProfile();
@@ -123,7 +123,6 @@ export default function EditProfileScreen() {
   return (
     <DismissKeyboardView>
       <View style={styles.screen}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={i18n.t('edit_profile')} onBack={() => router.back()} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: SPACE.gutter, paddingVertical: SPACE.xxl, gap: SPACE.lg }}>
         <AppCard textured style={{ padding: SPACE.lg }}>
@@ -138,17 +137,26 @@ export default function EditProfileScreen() {
 
         <AppCard textured style={{ padding: SPACE.lg }}>
           <View style={styles.cardBodyLoose}>
-            <TextField
-              value={displayName} onChangeText={setDisplayName}
-              placeholder={i18n.t('display_name_placeholder')}
-              maxLength={FIELD_LIMITS.displayName}
-              returnKeyType="next" onSubmitEditing={() => bioRef.current?.focus()} blurOnSubmit={false}
-            />
-            <TextField
-              ref={bioRef} value={bio} onChangeText={setBio}
-              placeholder={i18n.t('bio_placeholder')} maxLength={200} multiline numberOfLines={4}
-              returnKeyType="done" onSubmitEditing={Keyboard.dismiss} blurOnSubmit
-            />
+            {/* Labelled like every field in the deep-profile card below. These two carried only a
+                placeholder, which a filled-in field does not show — so a returning user saw two
+                unnamed boxes. */}
+            <View style={styles.fieldBlock}>
+              <Text style={styles.fieldLabel}>{i18n.t('field_display_name')}</Text>
+              <TextField
+                value={displayName} onChangeText={setDisplayName}
+                placeholder={i18n.t('display_name_placeholder')}
+                maxLength={FIELD_LIMITS.displayName}
+                returnKeyType="next" onSubmitEditing={() => bioRef.current?.focus()} blurOnSubmit={false}
+              />
+            </View>
+            <View style={styles.fieldBlock}>
+              <Text style={styles.fieldLabel}>{i18n.t('field_bio')}</Text>
+              <TextField
+                ref={bioRef} value={bio} onChangeText={setBio}
+                placeholder={i18n.t('bio_placeholder')} maxLength={200} multiline numberOfLines={4}
+                returnKeyType="done" onSubmitEditing={Keyboard.dismiss} blurOnSubmit
+              />
+            </View>
             {error && <Text style={styles.error}>{error}</Text>}
           </View>
         </AppCard>
@@ -242,7 +250,7 @@ export default function EditProfileScreen() {
         onDismiss={() => setCityPickerVisible(false)}
       />
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: SPACE.huge + insets.bottom }]}>
         <GameButton variant="brass" size="compact" flex={1} onPress={() => { Keyboard.dismiss(); router.back(); }}>
           {i18n.t('back')}
         </GameButton>
@@ -260,7 +268,10 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
+  fieldBlock: { gap: SPACE.sm },
+  // Same treatment ChoiceRow gives its own label, so the two cards read as one form.
+  fieldLabel: { color: COLORS.textDim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   cardBody: { gap: SPACE.md, zIndex: 1 },
   cardBodyLoose: { gap: SPACE.lg, zIndex: 1 },
   titleBlock: { gap: SPACE.hair },

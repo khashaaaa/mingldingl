@@ -28,7 +28,7 @@ public class FlameRiteHandshakeIntegrationTests : IntegrationTestBase
 
         var score = new ScoreService(Db, new ConfigService());
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
-        var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
+        var loot = new HonourService(Db, NullLogger<HonourService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var appConfig = config ?? new ConfigService();
         var pushService = push ?? BuildTestPush();

@@ -86,6 +86,13 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         var usersToAnonymize = await db.Users
             .Where(u => u.DeletionRequestedAt != null && u.DeletionRequestedAt < deletionCutoff && !u.IsDeleted)
             .ToListAsync(ct);
+        // Captured before the loop clears the column: a returning user's proofs are claimed by the
+        // anonymous auth identity they signed in with, not by the account id, so the purge below
+        // has to reach verification rows by number as well.
+        var anonymizedPhones = usersToAnonymize
+            .Where(u => u.PhoneNumber is not null)
+            .Select(u => u.PhoneNumber!)
+            .ToList();
         foreach (var user in usersToAnonymize)
         {
             // Clearing the column is not deletion: /uploads is public and unauthenticated, so the
@@ -119,7 +126,8 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             // Verification rows hold the phone number in plaintext; deletion has to reach them too.
             var anonymizedIds = usersToAnonymize.Select(u => u.Id).ToList();
             await db.PhoneVerifications
-                .Where(v => v.ClaimedByUserId != null && anonymizedIds.Contains(v.ClaimedByUserId.Value))
+                .Where(v => (v.ClaimedByUserId != null && anonymizedIds.Contains(v.ClaimedByUserId.Value))
+                    || anonymizedPhones.Contains(v.Phone))
                 .ExecuteDeleteAsync(ct);
             // A push token is a live handle to the person's device; a deleted account keeps none.
             await db.PushTokens

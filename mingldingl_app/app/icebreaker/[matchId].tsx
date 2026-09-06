@@ -8,27 +8,26 @@ import { GameButton } from '../../components/ui/GameButton';
 import { TextField } from '../../components/ui/TextField';
 import { LootToast } from '../../components/modals/LootToast';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
+import { useScrollTail } from '../../hooks/useScrollTail';
 
-const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function IcebreakerScreen() {
   useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const {
     question, isLoading, submitAnswer,
-    hasResponded, isWaitingForPartner, isComplete, myAnswer, partnerAnswer, droppedItem,
+    hasResponded, isWaitingForPartner, isComplete, myAnswer, partnerAnswer,
     submitError, clearSubmitError,
   } = useIcebreaker(matchId);
   const router = useRouter();
+  const tail = useScrollTail();
   const [selected, setSelected] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
-  const [dropToastVisible, setDropToastVisible] = useState(true);
   const [failedAlert, setFailedAlert] = useState(false);
 
   useEffect(() => {
@@ -40,15 +39,13 @@ export default function IcebreakerScreen() {
 
   if (isLoading) return (
     <View style={styles.centered}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ActivityIndicator color={COLORS.gold} />
     </View>
   );
 
   if (!question) return (
     <View style={styles.centered}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <Icon name="help-circle-outline" size={ICON_SIZES.huge} color={COLORS.bronze} />
+      <Icon name="help-circle-outline" size={ICON_SIZES.huge} color={INK.muted} />
       <Text style={styles.completionTitle}>{i18n.t('no_icebreaker')}</Text>
       <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
     </View>
@@ -58,7 +55,6 @@ export default function IcebreakerScreen() {
     const isMatch = myAnswer === partnerAnswer;
     return (
       <View style={styles.centered}>
-        <TiledBackdrop source={DUNGEON_WALL_ASSET} />
         <Icon name={isMatch ? 'party-popper' : 'message-text'} size={ICON_SIZES.huge} color={COLORS.gold} />
         <AppCard style={styles.completionCard}>
           <Text style={styles.completionTitle}>{i18n.t('icebreaker_revealed')}</Text>
@@ -68,15 +64,6 @@ export default function IcebreakerScreen() {
           {isMatch && <Text style={styles.ptsEarned}>{i18n.t('you_matched')}</Text>}
         </AppCard>
         <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
-        {droppedItem && dropToastVisible && (
-          <LootToast
-            title={i18n.t('loot_found')}
-            points={0}
-            item={droppedItem}
-            visible
-            onDismiss={() => setDropToastVisible(false)}
-          />
-        )}
       </View>
     );
   }
@@ -84,7 +71,6 @@ export default function IcebreakerScreen() {
   if (hasResponded || isWaitingForPartner) {
     return (
       <View style={styles.centered}>
-        <TiledBackdrop source={DUNGEON_WALL_ASSET} />
         <ActivityIndicator color={COLORS.gold} />
         <Text style={styles.completionTitle}>{i18n.t('waiting_partner')}</Text>
         <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
@@ -106,10 +92,11 @@ export default function IcebreakerScreen() {
 
   return (
     <View style={styles.screen}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={i18n.t('break_ice')} />
 
-      <View style={styles.body}>
+      {/* The submit button sits at the bottom of a non-scrolling body, so it owns the navigation
+          bar inset itself — a bare SPACE.xxl left it half-swallowed by a three-button bar. */}
+      <View style={[styles.body, { paddingBottom: tail }]}>
         <AppCard style={styles.questionCard}>
           <Text style={styles.questionText}>{question.questionText}</Text>
         </AppCard>
@@ -174,22 +161,24 @@ export default function IcebreakerScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'transparent',
   },
   body: {
     flex: 1,
     paddingHorizontal: SPACE.gutter,
-    paddingBottom: SPACE.xxl,
   },
   centered: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACE.xxl,
     gap: SPACE.lg,
   },
   questionCard: {
+    // AppCard carries no padding of its own, and the ulzii corner knots sit on its border — a
+    // long Mongolian question ran flush into both.
+    padding: SPACE.lg,
     marginBottom: SPACE.xxl,
   },
   questionText: {
@@ -217,9 +206,9 @@ const styles = StyleSheet.create({
   },
   optionDefault: {
     backgroundColor: COLORS.panelRaised,
-    borderLeftColor: COLORS.bronze,
-    borderRightColor: COLORS.bronze,
-    borderBottomColor: COLORS.bronze,
+    borderLeftColor: LINE.edge,
+    borderRightColor: LINE.edge,
+    borderBottomColor: LINE.edge,
   },
   optionSelected: {
     backgroundColor: FILL.gold,
@@ -239,6 +228,7 @@ const styles = StyleSheet.create({
     color: COLORS.goldBright,
   },
   completionCard: {
+    padding: SPACE.lg,
     alignItems: 'center',
     gap: SPACE.md,
     marginVertical: SPACE.lg,

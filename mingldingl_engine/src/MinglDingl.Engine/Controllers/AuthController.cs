@@ -22,6 +22,7 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     [ProducesResponseType(typeof(StartPhoneVerificationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> Start([FromBody] StartPhoneVerificationRequest req, CancellationToken ct)
     {
@@ -32,7 +33,7 @@ public class AuthController : ControllerBase
         if (!_verification.IsConfigured)
             return StatusCode(503, new { error = "Phone verification is not configured" });
 
-        var verification = await _verification.StartAsync(phone, ct);
+        var verification = await _verification.StartAsync(phone, req.ResumeVerificationId, ct);
         if (verification is null)
             return StatusCode(503, new { error = "Could not start phone verification" });
 

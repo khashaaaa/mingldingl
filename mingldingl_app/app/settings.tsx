@@ -12,19 +12,22 @@ import { COLORS, FONTS, FONT_SIZES, LINE_HEIGHTS, SPACE } from '../lib/theme';
 import { AlertModal } from '../components/modals/AlertModal';
 import { PhoneChangeModal } from '../components/settings/PhoneChangeModal';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
+import { useSoundStore } from '../store/soundStore';
 import { GameButton } from '../components/ui/GameButton';
-import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { SectionDivider } from '../components/ui/SectionDivider';
 import { TextField } from '../components/ui/TextField';
+import { useScrollTail } from '../hooks/useScrollTail';
 
-const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
 const LANGUAGE_OPTIONS = ['en', 'mn'] as const;
 const NOTIF_OPTIONS = ['on', 'off'] as const;
 const PAUSE_OPTIONS = ['off', 'on'] as const;
 
 export default function SettingsScreen() {
+  const tail = useScrollTail();
+  const soundEnabled = useSoundStore((st) => st.enabled);
+  const setSoundEnabled = useSoundStore((st) => st.set);
   const router = useRouter();
   const { signOut } = useAuth();
   const { data: profile } = useProfile();
@@ -128,9 +131,8 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={i18n.t('settings_title')} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
         <ChoiceRow
           label={i18n.t('language')}
           value={(locale === 'mn' ? 'mn' : 'en') as (typeof LANGUAGE_OPTIONS)[number]}
@@ -145,6 +147,14 @@ export default function SettingsScreen() {
           options={NOTIF_OPTIONS}
           optionLabel={(opt) => i18n.t(opt === 'on' ? 'notif_on' : 'notif_off')}
           onChange={handleToggleNotifications}
+          size="compact"
+        />
+        <ChoiceRow
+          label={i18n.t('sound')}
+          value={soundEnabled ? 'on' : 'off'}
+          options={NOTIF_OPTIONS}
+          optionLabel={(opt) => i18n.t(opt === 'on' ? 'sound_on' : 'sound_off')}
+          onChange={(opt) => setSoundEnabled(opt === 'on')}
           size="compact"
         />
 
@@ -264,7 +274,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: SPACE.xl, gap: SPACE.xxl },
   section: { gap: SPACE.sm },
   ageRow: { flexDirection: 'row', gap: SPACE.md, alignItems: 'center' },

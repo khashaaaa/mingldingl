@@ -10,7 +10,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         var scoreService = new ScoreService(Db, new ConfigService());
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var push = BuildTestPush();
-        return new ShipService(Db, new LootService(Db, scoreService, NullLogger<LootService>.Instance), scoreService, new ConfigService(), milestones, push, broadcast ?? BuildTestBroadcast(), NullLogger<ShipService>.Instance);
+        return new ShipService(Db, new HonourService(Db, NullLogger<HonourService>.Instance), scoreService, new ConfigService(), milestones, push, broadcast ?? BuildTestBroadcast(), NullLogger<ShipService>.Instance);
     }
 
     private User AddUser(string phone)
@@ -210,13 +210,13 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         Assert.True(weaverAfter!.TotalScore >= 40);
     }
 
-    private sealed class FailingLootService : LootService
+    private sealed class FailingHonourService : HonourService
     {
         private readonly AppDbContext _db;
-        public FailingLootService(AppDbContext db, ScoreService score)
-            : base(db, score, NullLogger<LootService>.Instance) => _db = db;
+        public FailingHonourService(AppDbContext db)
+            : base(db, NullLogger<HonourService>.Instance) => _db = db;
 
-        public override Task<DroppedItem?> GrantGuaranteedAsync(Guid userId, string source)
+        public override Task<DroppedItem?> GrantAsync(Guid userId, string honourId, string source)
         {
             _db.ChangeTracker.Clear();
             return Task.FromResult<DroppedItem?>(null);
@@ -224,7 +224,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
     }
 
     [Fact]
-    public async Task RespondAsync_LootGrantFails_ResultMatchIdStillPersisted()
+    public async Task RespondAsync_HonourGrantFails_ResultMatchIdStillPersisted()
     {
         var weaver = AddUser("88110001");
         var a = AddUser("88110002");
@@ -234,7 +234,7 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         var scoreService = new ScoreService(Db, new ConfigService());
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var push = BuildTestPush();
-        var service = new ShipService(Db, new FailingLootService(Db, scoreService), scoreService,
+        var service = new ShipService(Db, new FailingHonourService(Db), scoreService,
             new ConfigService(), milestones, push, BuildTestBroadcast(), NullLogger<ShipService>.Instance);
 
         await service.CreateAsync(weaver.Id, "88110002", "88110003");

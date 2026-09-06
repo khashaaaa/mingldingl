@@ -2,22 +2,21 @@ import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-nativ
 import { Image } from 'expo-image';
 import { useBlockedUsers } from '../hooks/useBlockedUsers';
 import { GameButton } from '../components/ui/GameButton';
-import { TiledBackdrop } from '../components/ui/TiledBackdrop';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, circle } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, LINE, RADIUS, SPACE, circle } from '../lib/theme';
 import type { BlockedUser } from '../models/blockedUser';
+import { useScrollTail } from '../hooks/useScrollTail';
 
-const DUNGEON_WALL_ASSET = require('../assets/textures/dungeon_wall.png');
 
 export default function BlockedUsersScreen() {
+  const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { blockedUsers, isLoading, isError, refetch, unblock, unblockingUserId } = useBlockedUsers();
 
   return (
     <View style={styles.screen}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={i18n.t('blocked_users_title')} />
       {isLoading ? (
         <View style={styles.centered}>
@@ -30,7 +29,7 @@ export default function BlockedUsersScreen() {
         </View>
       ) : (
         <FlatList
-          contentContainerStyle={blockedUsers.length === 0 ? styles.listEmpty : styles.list}
+          contentContainerStyle={[blockedUsers.length === 0 ? styles.listEmpty : styles.list, { paddingBottom: tail }]}
           data={blockedUsers}
           keyExtractor={(u: BlockedUser) => u.userId}
           ListEmptyComponent={<Text style={styles.empty}>{i18n.t('blocked_users_empty')}</Text>}
@@ -60,7 +59,7 @@ export default function BlockedUsersScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.md },
   errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
@@ -76,7 +75,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.panel,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
     marginBottom: SPACE.md,
   },
   photo: circle(44),

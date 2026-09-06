@@ -7,6 +7,7 @@ import { apiClient } from '../lib/api/apiClient';
 import { i18n } from '../lib/i18n';
 import { queryKeys } from '../lib/api/queryKeys';
 import { toDroppedItem, tierLabel } from '../lib/tiers';
+import { signal } from '../lib/world/feedback';
 import type { components } from '../lib/api/api.generated';
 
 type ScoreDetailResponse = components['schemas']['ScoreDetailResponse'];
@@ -41,6 +42,11 @@ export function RewardToastHost() {
     apiClient.scores.ackNotification(kind).catch(() => {});
   }, [scoreDetail?.pendingReferralReward, scoreDetail?.pendingShipReward, pendingDrop, setPendingDrop, queryClient]);
 
+  // The two moments the hold answers to from here. Both are edge-triggered off the pending flag,
+  // so a toast that stays up while the user reads it does not keep striking the anvil.
+  useEffect(() => { if (pendingTierUp) signal('tierUp'); }, [pendingTierUp]);
+  useEffect(() => { if (pendingDrop) signal('honour'); }, [pendingDrop]);
+
   if (pendingTierUp) {
     return (
       <LootToast
@@ -69,7 +75,7 @@ export function RewardToastHost() {
     return (
       <LootToast
         key={`drop-${pendingDrop.nameKey}`}
-        title={i18n.t('loot_found')}
+        title={i18n.t('honour_earned')}
         points={0}
         item={pendingDrop}
         visible

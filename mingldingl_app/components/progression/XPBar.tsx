@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { tierLabel } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { GemTierBadge } from './GemTierBadge';
 import type { GemTier } from '../../models/user';
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panelDeep,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
-    borderColor: COLORS.bronze,
+    borderColor: LINE.edge,
     overflow: 'hidden',
   },
   fill: { height: '100%', borderRadius: FILL_BORDER_RADIUS, overflow: 'hidden' },
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     backgroundColor: tint(COLORS.text, 0.25),
     transform: [{ skewX: '-20deg' }],
   },
-  tick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: tint(COLORS.bronze, 0.6) },
+  tick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: tint(LINE.edge, 0.6) },
   flash: { backgroundColor: COLORS.goldBright },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   nextThreshold: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, flexShrink: 1 },

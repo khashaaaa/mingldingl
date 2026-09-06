@@ -14,14 +14,14 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
         var config = configOverride ?? new ConfigService();
         var score = new ScoreService(Db, config);
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
-        var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
+        var loot = new HonourService(Db, NullLogger<HonourService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var httpClient = new HttpClient();
         var mockConfig = new Moq.Mock<IConfiguration>();
         mockConfig.Setup(c => c["Supabase:ProjectUrl"]).Returns("https://test.supabase.co");
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
         var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
-        var controller = new EngagementController(Db, new EngagementService(Db, score), score, quests, loot, milestones, broadcast, config)
+        var controller = new EngagementController(Db, new EngagementService(Db, score), score, quests, milestones, broadcast, config)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };

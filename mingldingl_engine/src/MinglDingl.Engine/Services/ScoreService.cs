@@ -315,6 +315,20 @@ public class ScoreService
                 $"""UPDATE "Users" SET "GemTier" = {newTier} WHERE "Id" = {userId}""");
         }
 
+        // Frames come with the tier. A tier can only fall on a penalty, so only then is an equipped
+        // frame re-checked against the new tier and taken off if it now sits above it.
+        if (delta < 0)
+        {
+            var lockedFrames = HonourService.FrameIdsAbove(newTier);
+            if (lockedFrames.Count > 0)
+            {
+                await _db.Database.ExecuteSqlInterpolatedAsync(
+                    $"""UPDATE "Users" SET "EquippedFrameId" = NULL WHERE "Id" = {userId} AND "EquippedFrameId" = ANY({lockedFrames.ToArray()})""");
+                var tracked = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == userId)?.Entity;
+                if (tracked?.EquippedFrameId is not null && lockedFrames.Contains(tracked.EquippedFrameId)) tracked.EquippedFrameId = null;
+            }
+        }
+
         SyncTrackedUser(userId, newScore, newTier, newReputation);
         return newScore;
     }

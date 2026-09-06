@@ -1,1083 +1,641 @@
 # MingldIngl — Shipped Log
 
-Archive of everything that has shipped, pruned to outcome summaries — the original
-step-by-step plans and full spec detail are dropped now that the code exists and is the
-authoritative reference. What's kept here is what a future reader actually needs: what
-shipped, what deviated, what was found and fixed in review, what was deliberately left open.
+Archive of everything that has shipped, pruned to outcome summaries. The step-by-step plans,
+task ledgers and review narration are gone now that the code exists and is the authoritative
+reference. What is kept is what a future reader needs: what shipped, the mechanics that are not
+obvious from a file listing, what deviated from the design, and the decisions worth not
+re-deriving. Open items live in [`project-plan.md`](project-plan.md) under Outstanding
+Follow-ups, not here.
 
-Check this file before assuming a feature doesn't exist yet. Live specs, the domain model,
-and the current backlog are in [`project-plan.md`](project-plan.md).
+Check this file before assuming a feature doesn't exist yet.
+
+---
+
+## Second real-device sweep — 11 fixes (2026-09-06)
+
+A pass over the parts nothing had driven end to end: Town Square (a real session RSVP'd, locked,
+started, answered and left), the Mission Board and venue detail, the character sheet and its
+sub-screens, the per-match activity sheet, and a chat thread. What it changed:
+
+**Layout collisions that only a device shows.** The Town Square round card sat at a fixed
+`bottom: 100` while the call controls are laid out from the safe-area bottom, so on any device
+with a navigation bar the mic and hang-up buttons covered the Yes/No row and the waiting text —
+`RoundPrompt` now clears them off shared `VIDEO_CONTROLS_BOTTOM`/`VIDEO_CONTROLS_SIZE` constants,
+with a test that asserts it. `AppCard` carries no padding of its own, and the icebreaker and quiz
+question/completion cards never supplied any, so a long Mongolian question ran into the ulzii
+corner knots; the icebreaker's submit button was also half-swallowed by the navigation bar
+(`useScrollTail`, the hook written for exactly that, was not applied there). The candidate card's
+photo placeholder was centred with a fixed `paddingBottom: '32%'` guess and drew a silhouette
+straight through the name; it now measures the plaque and scales the figure to what is left, and
+the scrim starts above the measured plaque instead of at a fixed 0.35 so a bright photo can't
+leave the name on near-white.
+
+**A chat thread that never reached its own bottom.** Message rows are variable height, so the
+single `scrollToEnd` on layout ran against a still-settling content height and landed a few
+bubbles short — which then latched `nearBottomRef` false, after which the thread never followed a
+new message again, including one you had just sent. `scrollToEndSoon` does a second pass on the
+next frame, and sending re-arms the flag.
+
+**Vocabulary drift between the three repos.** The venues the engine actually holds are
+`Cafe/Restaurant/Bar/Entertainment/Outdoor/Culture`; the app's Mission Board icon map and
+`mingldingl_control`'s BusinessForm both used `Cafe/Cinema/Hiking/BoardGameCafe/Other`, which
+shared exactly one value with reality — so every restaurant, bar and museum drew the generic pin,
+and editing any of them in the admin panel opened a category select with nothing selected. Both
+lists now name the real six.
+
+**Reveal masking that disagreed with itself.** The engine sends `DisplayName` from reveal level 1;
+the quest log and chat header keep a match nameless until level 2. The character sheet's What's
+Next card followed the engine, so it named a match the rest of the app was calling "??? • Mystery".
+It masks on the same threshold now.
+
+**`RsvpOpensAt` did nothing.** Sessions are created `Open`, and neither `RsvpAsync` nor
+`GetNextSession` ever looked at the RSVP-opens date, so a gathering scheduled with a window opening
+next week took RSVPs immediately and the app announced "RSVP closes in …" for it. The service now
+refuses an early RSVP (`square.rsvp_not_open`, translated both ways) and `next-session` only
+surfaces an Open session whose window has opened.
+
+**Dev seed.** `reseed-dev-db.sql` wrote Town Square sessions with `Status = 'Scheduled'` — a status
+the engine neither creates nor reads, so the seeded gathering was invisible and nothing ever opened
+it, and the Town Square tab read "the square stands quiet" forever. It also hardcoded
+`http://localhost:5150` into every seeded `PhotoUrls`, which resolves to the phone on a real
+device, so every candidate photo 404'd; the host is now `API_HOST`, defaulting to localhost for the
+web build. Venue detail and the Encounter Log now draw a glyph where a venue has no photo instead
+of a blank slab.
+
+---
+
+## The World Pass — Shipped (2026-09-06)
+
+**What it is.** The app stopped being screens wearing a theme and became one place. Every screen
+is a room in a hold; the room it is in decides its light, its floor, what drifts through it, and
+what your body feels crossing into it. Nothing gates on it, no screen was renamed, and the map is
+never on the way to anything.
+
+**One table is the whole hold.** `lib/world/rooms.ts` holds seven rooms — Gate, Long Road, Tavern,
+Hearth, Forge, Hall, Deep — and each row carries its route prefixes, light signature, floor
+texture, vfx, depth, atlas coordinate and i18n key. The atlas and the lighting both read that one
+row, which is the point: a map and a light that read the same fact cannot disagree. `matchRoom` is
+strict (longest prefix wins, no fallback) and `roomFor` adds `DEFAULT_ROOM`; the route-coverage
+test walks the real files under `app/` through the *strict* one, so a new screen either has a place
+in the hold or has said out loud that it does not. `video/*` is the one `UNLIT` route — Agora
+composites onto black.
+
+**Light means something.** Six signatures in `lib/world/light.ts` (`cold`/`neutral`/`warm`/`soft`/
+`dark`/`hot`), picked the way a button picks a metal from `BUTTON_METALS`; a room's own state then
+moves it inside that range — the Road by unspent daily budget, the Hearth a lamp per live match to
+a crowd of three, the Tavern by session then RSVP, the Deep a torch per campaign room cleared, the
+Forge by profile completeness, the Hall a sconce per honour. Light functions are pure
+`(WorldState) => number | null` and unit-tested with no renderer. Three rules stop it reading as
+jitter: **no data is not darkness** (null holds at base), light never eases down for a refetch
+(only for a value that genuinely fell), and one speed everywhere (600 ms). A room change is a cut,
+not a fade, and a change into a room with nothing to say resets to base rather than inheriting the
+last room's brightness.
+
+**Floor and canopy, deliberately split.** `WorldFloor` sits behind the navigator and needs each
+screen to have given up its own opaque ground; `WorldCanopy` sits above it with `pointerEvents:
+none` and needs nothing from anybody. That is what let the migration land screen by screen —
+a half-migrated screen keeps its own wall and still gets its light. 37 hand-placed
+`<TiledBackdrop>` calls across 23 files were deleted; the Tavern's parchment floor survived as
+`RoomTexture` rather than being flattened into one wall.
+
+**`useWorldState` reads caches and never fetches.** It subscribes to the query cache through
+`useSyncExternalStore` rather than mounting `useQuery` observers, because the world is a passenger:
+it must never be the reason the app makes a request, and a second observer on keys whose refetch
+behaviour is tuned per screen would be exactly that.
+
+**The atlas is a view of the hold, never a hallway through it.** A ⟡ sigil drawn by `HeaderBar`
+itself (not its `right` slot, which several screens already occupy) opens a `Modal` — not a route,
+so it never enters the back stack and dismissing always returns you where you were. Medallions
+reuse the existing `knotDim`/`knotGold`/`knotEmber` ornaments as the unlit/lit/stakes ladder, so
+the map needed no new art. The Deep is not one room but N delves: it carries a count and routes to
+the Hearth. Every room on it is reachable without it.
+
+**Feedback: haptics always, sound opt-in.** `lib/world/feedback.ts` maps six moments —
+`enterDeep`, `ascend`, `tierUp`, `sealBreak`, `honour`, `pledgeKept` — to a haptic and a sound, the
+way `PushCopy` maps a push kind to its copy. Haptics fire regardless (the OS owns the user's
+system preference); sound stays off until Settings turns it on, loads nothing until then,
+releases its players when switched back off, and sets `playsInSilentMode: false` because a dating
+app that speaks while the phone is silenced is a bug no setting excuses. Muted for the duration of
+a call — the same fact as the video route being unlit. `scripts/gen-sounds.js` synthesises the six
+WAVs from description (additive synthesis plus a one-pole lowpass over deterministic noise, pure
+Node, 156 kB total), the same doctrine as `gen-ornaments.js`.
+
+**Travel encodes depth**, not identity: entering a delve opens from below and thuds, coming back up
+rises, and a tab switch between rooms at the same depth says and does nothing. Stock React
+Navigation animations only; reduce motion collapses every transition to a fade and makes light jump
+rather than ease.
+
+**The bug that only a screenshot could find.** React Navigation paints `theme.colors.background`
+(#F2F2F2) behind every navigator and `card` behind every screen. Both had been invisible for the
+life of the app because every screen covered them with an opaque ground of its own — the moment
+the screens went transparent, the hold rendered **white**. Fixed with a `HOLD_THEME` whose
+`background` and `card` are transparent, plus `contentStyle` on the Stack (native screens take
+their ground from `contentStyle`, not the theme) and `sceneStyle` on the Tabs. Typecheck and 612
+tests were green while the app was unusable; the export-and-look pass is what caught it.
+
+**Cleared on the way:** the `transformIgnorePatterns` Skia gap is fixed properly — `jest.setup.js`
+registers Skia's own `jestSetup` and an `expo-audio` mock once, and `ProfileAvatar`'s hand-written
+`TorchGlow` mock is gone. `AWAITING_MN_TRANSLATION` in `lib/i18n/index.ts` now carries the eleven
+English-only keys, and the parity test enforces the list in both directions so a key that gets
+translated has to leave it.
+
+**Verified 2026-09-06:** web export bundles all six WAVs and the ornaments; the Gate renders with
+its stone floor, vignette and gold wordmark and throws no page errors. Only the Gate is reachable
+without a running backend — everything below it is owed a pass.
 
 ---
 
 ## Membership Billing Cycles — Shipped
 
-**Status: shipped**, confirmed directly against the live engine code (no formal Execution Outcome was recorded when this was built, so this is a brief honest note rather than a fabricated detailed history).
-
-What shipped, per the original plan's goals: duration-based membership pricing (1/3/6 months, 10%/20% discount for longer commitments), computed from each tier's existing monthly price with no separate pricing table to maintain; `User.MembershipExpiresAt` tracks live expiry; the pre-existing but previously-unused `Membership` table became the append-only purchase log; `DailyMaintenanceBackgroundService` gained an auto-downgrade sweep pass for lapsed memberships (confirmed live in `DailyMaintenanceBackgroundService.cs`, alongside ghosting/reset/anonymization). App-side: a duration `ChoiceRow` on the membership screen, `duration_1_month`/`duration_3_months`/`duration_6_months`/`save_percent`/`membership_active_until`/`billing_cycle` i18n keys all present and wired.
-
-No real payment gateway — upgrades are mocked, not wired to real billing (a known, separately-tracked gap, see Payment Provider Research memory).
+Duration-based pricing (1/3/6 months at 0/10/20 % off) computed from each tier's monthly price,
+no separate pricing table. `User.MembershipExpiresAt` tracks expiry, the `Membership` table is the
+append-only purchase log, and `DailyMaintenanceBackgroundService` downgrades lapsed memberships.
+App: a duration `ChoiceRow` on the membership screen. No payment gateway — upgrades are mocked
+(see the Payment Provider Research memory). Prices and discounts became admin config on
+2026-09-04.
 
 ---
 
 ## RPG Atmosphere Consistency Pass — Shipped (2026-07-28)
 
-## Execution Outcome
+Eleven screens moved onto the shared `ScreenHeader` / `GameHeader` / dungeon-wall backdrop
+pattern, with eight i18n keys rewritten into the game voice. Live-verified on the seven screens
+reachable without seeded match data.
 
-Executed via superpowers:subagent-driven-development, adapted for this repo's no-git policy: no worktree/commits, review packages built from before/after file snapshots + plain `diff -u` instead of `git diff`. Scratch workspace (task briefs, reports, review packages, ledger) has been pruned after completion — this section is the retained record.
-
-**All 11 tasks completed, review-clean, 3 fix rounds total:**
-- Task 1 (`components/ScreenHeader.tsx`): 1 fix round — added test coverage for the default `router.back()` path.
-- Task 3 (`app/blocked-users.tsx`): 1 fix round — removed dead `router`/`useRouter` left over after the header swap.
-- Tasks 2, 4–11: clean on first review.
-- Tasks 4 and 5 also risked the same dead-`router` mistake as Task 3; the controller pre-checked each remaining file with `grep` before dispatch and warned the implementer explicitly, avoiding a repeat.
-
-**Final whole-branch review (opus) found real cross-screen issues no single task-scoped review could see, all fixed in one wave:**
-- `ScreenHeader`'s `paddingTop: 56` double-counted the app's global `SafeAreaView` inset (~100pt of dead space on 5 screens) and its tokens didn't match `GameHeader` (the established reference). Fixed: aligned to `GameHeader` exactly (`paddingTop:16`, `paddingHorizontal:20`, title `fontSize:24`/`letterSpacing:1.5`, divider `tint: COLORS.gold`); added `accessibilityLabel="Go back"` to the back button while in there.
-- `app/business/[id].tsx` and `app/edit-profile.tsx` had `<ScreenHeader />` rendered *inside* their `ScrollView`, so it scrolled away with content — defeating Task 8's point (edit-profile's new back button would vanish exactly when scrolled to the form). Fixed: moved to a fixed sibling before `ScrollView` in both.
-- `app/business/[id].tsx` had also lost `flex: 1` on its `ScrollView` and had broken indentation from the Task 5 restructure. Both fixed.
-- `app/chat/[matchId].tsx` had a dead `Platform` import left over from Task 6. Removed.
-
-Re-review of the fix wave: all 4 findings ADDRESSED, no new breakage. `npx tsc --noEmit` clean and the full jest suite (4 suites/12 tests) green throughout every round.
-
-**Deliberately not done — surfaced to the user, not fixed unilaterally:**
-- Copy consistency *within* a screen was never checked — e.g. `unblock: 'Lift the Ban'` now sits under Blocked Users' unchanged plain title/empty-state. The 8-key rewrite list (see Task 10) was scoped key-by-key, not screen-by-screen; whether siblings should match is a product call.
-- `translations.mn` was never touched (correct per this plan's Global Constraints — no AI-guessed Mongolian), so `en`/`mn` now diverge in voice. Known, intentional gap pending a human Mongolian speaker.
-- No live e2e visual pass was run (would require booting the engine + local Postgres + seeded match data to reach chat/quiz/icebreaker/activities/business-detail). Verification rested on 3 layers of diff-level code review + `tsc` + the jest suite instead. Settings, Blocked Users, Membership, Leaderboard, Progression, Date Log, and Onboarding are reachable without seeded data if a cheap real screenshot pass is ever wanted.
-- `DUNGEON_WALL_ASSET = require(...)` is now duplicated across 15 files (grew from the pre-existing 3). Flagged as a good candidate for a shared module or a `ScreenBackdrop` wrapper, not forced into this pass.
-
-### Follow-up: copy-consistency pass + live visual verification (2026-07-28, same day)
-
-Closed the two gaps flagged above as "surfaced to the user, not fixed unilaterally":
-
-**Copy consistency:** Audited every i18n key used on the 8 retheme'd screens for sibling strings still reading generic next to the Task 10 rewrites. Most were already fine or deliberately left plain (form field labels, demographic fields like religion/smoking/drinking — flavoring those risks reading tone-deaf; account-security fields per the original policy). Chat's "Block" menu item sitting next to "Cast Them Out?" was judged consistent with this app's pre-existing convention (plain trigger, flavorful confirm — same pattern as the untouched `unmatch`/`unmatch_confirm_title`), not a new inconsistency, so left alone. Two genuine clashes fixed (`en` only, `mn` still deliberately deferred to a human speaker):
-- `delete_account_requested_title`: `'Deletion Scheduled'` → `'Character Abandoned'` (now reads as one coherent moment with the `'Abandon This Character?'` confirm that precedes it).
-- `blocked_users_empty`: `"You haven't blocked anyone"` → `'No one banished yet'` (matches `unblock: 'Lift the Ban'` vocabulary; screen title `'Blocked Users'` deliberately left plain — moderation/safety UI needs unambiguous identification, same reasoning as leaving `phone_number` plain).
-
-`mn` still diverges from `en` in voice — unresolved, same as before.
-
-**Live visual pass:** Booted the engine + local Postgres + Expo web per this repo's `verify` skill, created two real Supabase test users, and screenshotted all 7 screens reachable without seeded match data (Settings, Blocked Users, Membership, Leaderboard, Progression, Date Log, Onboarding). All confirmed genuinely clean: backdrop renders as intended, header alignment/weight is now consistent across `ScreenHeader` and `GameHeader` screens (confirming the final-review padding/token fix actually worked visually, not just on paper), no double padding, no illegible text, no truncation. Onboarding's `opacity={0.08}` backdrop is real but very faint — text inputs stay perfectly legible, but it's closer to "no visible texture" than "subtle texture," which is a defensible but worth-knowing tradeoff for that one screen.
-
-Chat, Quiz, Icebreaker, Activities, and Business Detail still weren't visually verified (need a seeded match/partner to reach) — that gap remains open if a full pass is ever wanted.
-
-Incidental, unrelated finding from the live pass (not investigated, not part of this plan's scope): the Character tab's avatar placeholder renders a bare numeral (e.g. "1") instead of the expected camera icon when a user has no photos — looks like an icon-font glyph fallback issue, pre-existing and unrelated to this plan's changes.
-
-### Follow-up: avatar upload UX fixes (2026-07-28, same day)
-
-User asked whether profile avatar replace/upload was "simple and comfortable." Assessment: the flow itself (tap → picker → native crop → optimistic preview → background upload → clear error/loading states) was already solid, but two real gaps existed at the entry point:
-
-1. **Broken placeholder icon** — the empty-avatar camera icon (`app/(tabs)/profile.tsx`, `Icon name="camera"`) intermittently rendered as a bare "1" instead of the icon glyph on web. Root-caused via a live Playwright diagnostic (not guessed): `app/_layout.tsx`'s `useFonts()` gate only waited for the Cinzel/Alegreya text fonts before allowing first paint — it never included the MaterialCommunityIcons web font that `components/Icon.tsx` depends on, which `@expo/vector-icons` loads separately and asynchronously. On a fast/cold load, icon-using components could paint before that font arrived, showing the browser's PUA-codepoint fallback glyph instead. **Fix:** `app/_layout.tsx` now spreads `MaterialCommunityIcons.font` (the standard `@expo/vector-icons` + `expo-font` pattern) into the same `useFonts()` call, so the existing `fontsReady` gate blocks first paint on the icon font too — closing the race structurally rather than papering over one symptom. Re-verified live with a screenshot taken 300ms after navigation (deliberately tight timing to try to reproduce the race) — camera icon rendered correctly.
-2. **Weak discoverability + library-only** — tapping the avatar went straight to the OS library picker with no camera option and no visual cue that the avatar was even tappable. **Fix:** reused `components/PhotoGrid.tsx`'s existing choose-source `Modal` pattern (already used by onboarding/edit-profile) instead of inventing a new one — tapping the avatar now opens a "Choose from Library" / "Take a Photo" (native only, matching `PhotoGrid`'s `Platform.OS !== 'web'` gate) / "Back" sheet, and a small gold pencil badge now sits permanently on the avatar ring as a persistent edit affordance. Added one new i18n key (`change_avatar`, accessibility label) in both `en` and `mn` — plain functional copy, not fantasy voice, so translated directly rather than deferred.
-
-Both re-verified live (not just by diff): icon renders correctly under tight timing, avatar tap opens the sheet, edit badge is visible in both empty and (by construction, same code path) populated avatar states. `npx tsc --noEmit` clean, full suite (4 suites/12 tests) green throughout.
-
-### Follow-up: interaction-comfort audit + fixes (2026-07-28, same day)
-
-User asked where else the app "lacks comfort" (same lens as the avatar fixes above). Audited the whole app for silent failures, dead ends, and missing feedback — 9 real findings, all fixed:
-
-1. **Icebreaker/Quiz answer submission** (`hooks/useIcebreaker.ts`, `hooks/useQuiz.ts`, both screens) — the tapped option locked in optimistically before the network call resolved; on failure it stayed locked forever with no error. Added `submitError`/`clearSubmitError` to both hooks, reset selection + show a failure alert on error. **Caught in my own review, not the implementer's**: for quiz specifically, the local `answers` record wasn't cleared on failure, so `answeredCount` stayed at the "complete" count and `currentQuestion` stayed `undefined` — the screen fell through to `if (!q) return null`, a blank screen, *before* ever reaching the new alert. Fixed by reverting the failed answer out of local state in `useQuiz.ts`'s `submitAnswer` via the mutation's per-call `onError`.
-2. **Onboarding AboutStep** (`components/AboutStep.tsx`) — a `nearestCity` failure after GPS succeeded left the screen blank with no fallback. Now shares the existing permission-denied recovery UI (manual city picker) for both cases.
-3. **Discover match request** (`app/(tabs)/discover.tsx`) — success toast fired before the mutation resolved. Now gated on `onSuccess`/`onError` per-call callbacks.
-4. **Chat unmatch/block** (`app/chat/[matchId].tsx`) — failure looked identical to cancel. Now shows a distinct failure alert. Also added `accessibilityLabel` to the options and video-call header buttons.
-5. **Settings/Edit-profile saves** — notifications toggle, pause toggle, age range save (`app/settings.tsx`) and location refresh/manual city pick (`app/edit-profile.tsx`) had no try/catch at all. Edit-profile's city picker also updated the displayed city *before* the save confirmed, so a failed save left a phantom city — fixed by reverting on failure. Also widened the error message's visibility: it was only rendered in the bio card, invisible if the failure came from the location section further down — now shown in both.
-6. **PhotoGrid delete** (`components/PhotoGrid.tsx`) — deleted on a single tap, unlike every other destructive action in the app (Unmatch/Block/Delete Account all confirm). Added the same confirm-modal pattern.
-7. **Activities "memorable moment" photo** (`app/activities/[matchId].tsx`) — same upload hook `profile.tsx` already wraps in a failure alert, just wasn't wrapped here. Now reuses the identical existing `photo_upload_failed_title/body` pattern.
-8. **Blocked-users unblock spinner** (`hooks/useBlockedUsers.ts`, `app/blocked-users.tsx`) — one shared `isPending` flag lit up every row's spinner. Now scoped per-row via the mutation's `.variables`.
-
-New i18n keys added (en + mn, parity verified): `action_failed_title`/`action_failed_body` (generic reusable failure alert), `delete_photo_confirm_title`/`delete_photo_confirm_body`, `start_video_call`. All functional/generic copy, not deep fantasy flavor — mn translated directly rather than deferred.
-
-Executed as 8 parallel background subagents (independent, non-overlapping file sets — verified upfront) plus one small manual correction (the quiz retry bug above) found during my own consolidated review of all 8 diffs, not a separate reviewer dispatch. `npx tsc --noEmit` clean and the full suite (4 suites/12 tests) green throughout, both before and after the manual correction. Not live-tested against real induced failures (would require deliberately breaking the backend mid-request) — verification for this batch rests on code-level review, not a browser pass.
-
-### Follow-up: live-verified the comfort fixes, found and fixed a systemic gap (2026-07-28, same day)
-
-Actually booted the app and induced real failures (Playwright route interception returning 500s) against the fixes from the previous entry, instead of trusting code review alone.
-
-**Settings toggle failure**: confirmed live — induced a 500 on `PUT /users/me`, tapped the notification toggle, "The Attempt Faltered" alert appeared correctly.
-
-**Discover match-request failure**: induced a 500 on `POST /matches`, tapped "Send Summons" — got the success toast ("Match Requested! +15 XP") instead of the failure alert. Traced it to `lib/api.ts`'s axios response interceptor: it has an "offline mock-fallback" (`lib/mockData.ts`'s `getMockResponse`) that catches **every** error indiscriminately — network failure or real HTTP error response alike — and silently swaps in fake mock success data whenever the URL+method has mock coverage. `POST /matches` is one of the mocked endpoints (returns `{ matchId: 'mock-...' }`), so a genuine backend 500 was being invisibly converted into a fake success before ever reaching the mutation's `onError`.
-
-Cross-referenced which of today's 9 comfort fixes target endpoints with mock coverage: **Discover match-request, Icebreaker respond, and Quiz respond** all do (`lib/mockData.ts` lines ~281-287) — meaning those 3 fixes' error-handling code, while individually correct, would never actually fire against a real backend failure; only Settings/Edit-profile/Chat/PhotoGrid/Activities/Blocked-users (endpoints with no mock coverage) would.
-
-**Fix**: `lib/api.ts`'s interceptor now only falls back to mock data when `!error.response` (a true network-level failure — offline, DNS, timeout, CORS) — matching its own stated intent ("offline mock-fallback," per the existing code comment). A real HTTP error response now always rejects and reaches the caller, regardless of mock coverage. Re-ran the induced Discover failure after this fix — "The Attempt Faltered" now appears correctly.
-
-This is a one-line, narrowly-scoped condition change (`if (error.response) return Promise.reject(error);` before the existing mock lookup) that makes the interceptor's behavior match what its own comment already claimed it did. `npx tsc --noEmit` clean, full suite green, and both the Settings and Discover failure paths independently confirmed live afterward.
-
-Not further live-tested: Icebreaker/Quiz respond failures (same interceptor fix should apply equally, same mechanism just confirmed for Discover, but not independently re-verified against those two specific endpoints — would need a seeded match to reach); PhotoGrid/Blocked-users/Activities/Chat unmatch-block failure paths (client-side-only or need seeded state to reach).
+**Decisions and fixes worth keeping:**
+- `mn` was deliberately not touched by the voice rewrite — no AI-guessed Mongolian; `en`/`mn`
+  diverge in voice pending a native speaker.
+- House convention for destructive actions: plain trigger label, flavourful confirm
+  ("Block" → "Cast Them Out?"). Moderation/safety and account-security labels stay plain.
+- `app/_layout.tsx`'s `useFonts()` gate includes `MaterialCommunityIcons.font`; before that,
+  icon-using components could paint before the icon font arrived and show a bare glyph numeral.
+- Avatar tap opens the shared choose-source sheet (library / camera / back) with a permanent
+  pencil badge; `PhotoGrid` deletes confirm like every other destructive action.
+- Every optimistic mutation reverts on failure and surfaces a failure alert (icebreaker and quiz
+  answers, settings toggles, edit-profile city, chat unmatch/block, activity photo); the
+  blocked-users unblock spinner is per row.
+- `lib/api.ts`'s offline mock fallback only fires on a true network failure (`!error.response`).
+  It used to swallow real HTTP errors on mocked endpoints and hand back fake success, which hid
+  three of the failure-handling fixes above until a live induced-500 pass caught it.
 
 ---
 
-## Admin Config Foundation — Shipped (sub-project 1 of 9)
+## Admin Config Foundation — Shipped (2026-07-29)
 
-**What it is:** sub-project 1 of a 9-part "dashboard control expansion" roadmap to move hardcoded engine values (membership pricing, score/XP deltas, tier thresholds, quest definitions, matching weights, festivals, feature flags) into dashboard-editable config instead of requiring a deploy to change. This sub-project built the **generic foundation** the other sub-projects plug into — one typed, admin-editable config store (`AdminConfigs` table + `ConfigService` in-memory cache + `AdminConfigController` list/update/revert, audit-logged), proven end-to-end by migrating exactly one value (the Sapphire tier threshold, `tier.sapphire.threshold`) off its hardcoded constant.
-
-**Full outcome below.** The remaining 8 sub-projects — membership pricing (now separately shipped, see Membership Billing Cycles above), the rest of the score/XP tier thresholds, quest definitions, matching weights, festivals/seasonal events, a rich-text content editor, analytics expansion, and a reusable-component cleanup pass — are **not started**; they plug into this foundation when picked up, no separate config storage needed for them.
-
-## Execution Outcome (2026-07-29)
-
-All 6 tasks shipped via subagent-driven development (fresh implementer + independent reviewer per task, then a final whole-plan review). No git in this repo — no worktree, no commits; task reviews used file snapshots instead of diffs.
-
-**What shipped:** `ConfigService` (singleton in-memory cache), `AdminConfig` DB model + migration, `ConfigKeys` registry + startup seed/load, `AdminConfigController` (list/update/revert with validation + audit logging), the Sapphire gem-tier threshold migrated off its hardcoded constant as the proof, and the dashboard's new Config page. Full engine suite: 221/222 (one pre-existing, unrelated failure — see below). Frontend: `tsc`/build clean.
-
-**Deviations from the plan (all verified reasonable, not scope creep):**
-- Task 4: brief's test file was missing 2 `using` lines — added.
-- Task 5: the constructor signature change rippled into 17 test files that constructed `ScoreService` directly (`new ScoreService(Db)` → `new ScoreService(Db, new ConfigService())`) — necessary for the project to compile, behavior-preserving (empty `ConfigService` falls back to the same hardcoded defaults).
-- Task 6: regenerated `AdminConfigDto` fields are nullable/optional (Swashbuckle convention, matches existing `AuditLog.tsx` pattern) rather than the plain strings the brief assumed — handled with the same `?? ''` fallback style already used elsewhere.
-
-**Bugs found and fixed by the final whole-plan review** (would not have surfaced from any single task's review):
-1. `Revert_NoPriorChange_ReturnsConflict` had gone permanently red — Task 6's manual curl smoke test left committed `AdminAuditLog` rows in the shared dev DB that the test's rolled-back transaction couldn't see past. Fixed by deleting those rows within the test's own transaction before asserting.
-2. `Revert` was a toggle, not idempotent — it matched the most recent audit row regardless of whether that row was itself a prior revert, so a second click un-reverted the first. Fixed by filtering to `Action == "UpdateConfig"` only. Added `Revert_CalledTwice_StaysAtOriginalValue` to cover it.
-
-**Deferred, not fixed (parked with rulings, non-blocking):**
-- No committed test exercises the controller-write → `ScoreService`-read path in one process (each half is tested separately). A regression of `ConfigService` from `AddSingleton` to `AddScoped` would go undetected by the current suite. Worth a follow-up test if this area gets touched again.
-- Minor culture-sensitive `double.TryParse` (no `InvariantCulture`), no range/monotonicity validation on tier thresholds, `ConfigField` ignores `valueType` (always renders a number input — fine while only one Number-typed key exists), non-atomic write+audit (matches existing house pattern elsewhere).
-
-**Found, out of scope, needs its own ticket:** `EngagementControllerIntegrationTests.RespondQuiz_SubmittedTwiceWithSameAnswers_DoesNotDuplicateRowOrDoubleAwardScore` fails deterministically — `RespondQuiz` appears to insert no `QuizResponse` row at all on the duplicate-submission path (`EngagementController.RespondQuiz`'s unique-violation catch, `ChangeTracker.Clear()`). Confirmed zero coupling to this plan's changes.
-
-**Next in the roadmap** (per the original sequencing agreed with the user): membership pricing & tiers, score/XP values & tier thresholds (the rest of them), quest definitions, matching weights, festivals/events — each plugs into this foundation. Then rich text editor for content pages and analytics expansion, which don't depend on it.
+The generic store the later config work plugs into: `AdminConfigs` table, `ConfigService`
+singleton in-memory cache, `ConfigKeys` registry seeded on boot, `AdminConfigController`
+list/update/revert with validation and audit logging, and the control panel's Config page. Proven
+by migrating the Sapphire tier threshold off its constant. `Revert` filters to
+`Action == "UpdateConfig"` rows so a second revert does not un-revert the first. The rest of the
+roadmap (all deltas, thresholds, quests, pricing, kill switches) landed 2026-09-04.
 
 ---
 
 ## Recruit an Ally — Shipped (2026-08-14)
 
-## Execution Outcome (2026-08-14)
-
-Implemented via Subagent-Driven Development, adapted for this repo's no-`.git` environment (no
-worktree, no commits — every "Commit" step in the plan was skipped; review packages were built from
-direct file reads instead of diffs). All 7 tasks complete, each independently task-reviewed and
-approved, followed by a final whole-branch review and one fix wave.
-
-**Shipped as designed** — data model, code generation/uniqueness, the `Upsert`/`GetMe` wiring, the
-async reward surfacing via `GET /scores/me/detail`, and the frontend (onboarding field, profile card,
-`GameHeader` toast) all match the spec's locked-in decisions (mutual chest, onboarding-submit trigger,
-manual code sharing, no daily cap).
-
-**Two pre-flight rulings** (made before implementation, based on gaps the plan text itself missed):
-1. Task 2's `UsersController` constructor change (2→3 params) would have broken the whole engine test
-   project — two more test files (`AccountDeletionIntegrationTests.cs`, `UserAccountManagementIntegrationTests.cs`)
-   construct it directly and weren't in the plan's file list. Fixed as part of Task 2, same pattern as
-   the file the plan did name.
-2. (Implementer-initiated during Task 5, independently verified by that task's reviewer.) The plan's
-   literal code for surfacing a reward via `setPendingDrop(x.someReward)` doesn't type-check — the
-   generated `DroppedItem` type has nullable fields, `setPendingDrop` requires non-null. Fixed by
-   routing through the pre-existing `toDroppedItem` helper (`lib/tiers.ts`), already used identically
-   elsewhere in the app. The same fix recurred in Task 7 for the same reason.
-
-**Bugs found and fixed during implementation** (all independently verified by that task's reviewer,
-several re-verified empirically — reverted, reproduced the failure, restored):
-- Task 1: two test-code compile fixes (missing `using`, an ambiguous xUnit assertion overload).
-- Task 6 (the largest cluster): the plan's i18n interpolation syntax was wrong (`{code}` vs. the
-  project's actual `%{code}` convention); a `jest.mock('react-native', ...)` spread crashed via eager
-  evaluation of RN's lazy-getter module exports; a plain assignment to a getter-only mocked property
-  silently no-op'd (needed `Object.defineProperty`); a reused i18n key made two RNTL queries
-  ambiguous; and a TypeScript generic-inference gap in `i18n.t()` feeding a discriminated union.
-- Task 7: a pre-existing Jest infra gap (`@shopify/react-native-skia`/`react-native-reanimated` not in
-  `transformIgnorePatterns`) that no test had ever exercised before this was the first test to render
-  `GameHeader`. Worked around locally in the new test file; **not fixed at the config level** — see
-  Follow-ups below.
-
-**Fixed in the final whole-branch review's one fix wave** (both genuinely cross-task — invisible to
-any single task's review since neither task's file list included the other side of the interaction):
-1. `GameHeader`'s referral-reward toast could replay from the React Query cache after dismissal
-   (server-side read-once wasn't mirrored client-side; `GameHeader` mounts fresh on 7 screens within
-   the cache's `staleTime` window). Fixed by clearing the cached field the moment the effect consumes
-   it, mirroring the existing cache-mutation pattern in `useOptimisticScoreBump.ts`.
-2. Account anonymization (`DailyMaintenanceBackgroundService`) scrubbed `PhoneNumber` on deletion but
-   not `ReferralCode`, leaving a deleted user's invite code live and redeemable forever. Fixed by
-   nulling the field during anonymization and rejecting redemption when the resolved inviter is
-   already `IsDeleted`.
-
-**Final state**: engine 239/239 tests passing, app 182/182 tests passing (23 suites), `tsc --noEmit`
-clean. Manual verification (above) was not run in this session — do that before considering this
-launch-ready.
-
-**Follow-ups deliberately left open, not part of this plan's scope:**
-- The Skia/Reanimated Jest transform gap (found in Task 7) is real, pre-existing infra debt separate
-  from this feature — wire `@shopify/react-native-skia`'s `jestSetup.js` into `package.json`'s
-  `setupFiles` and extend `transformIgnorePatterns` for `react-native-reanimated`.
-- Mongolian copy across all new i18n keys is unproofread by a native speaker.
-- A completionist inviter (owns the full loot catalog) currently gets zero toast feedback on a
-  successful referral (silently receives +10 XP instead of an item) — low-priority, they are still
-  compensated.
-- `CreateUserRequest.ReferralCode`'s field name is feature-specific even though **Fated Threads**
-  (shipped, see below) reuses it for ship invite codes too. Fated Threads wired into the field as-is,
-  so the name is now settled: cosmetic only, the value is an opaque string the server disambiguates.
+Referral codes: generated on `GET /users/me`, redeemed through the onboarding `ReferralCode`
+field on profile completion (`UsersController.Upsert`), inviter reward surfaced asynchronously via
+`GET /scores/me/detail` and cleared client-side the moment the header toast consumes it (the
+server's read-once was not mirrored in the React Query cache, so the toast replayed on every
+screen that mounted `GameHeader`). Anonymisation nulls `ReferralCode` and redemption is refused
+when the inviter is `IsDeleted`. `CreateUserRequest.ReferralCode` is shared with Fated Threads'
+invite codes; the server disambiguates, the field name is settled. The inviter's reward was a
+random item until 2026-09-05; it is now the Ally-Caller honour, once, on the first recruit.
 
 ---
 
 ## Fated Threads — Shipped (2026-08-14)
 
-**What it is.** A double-blind mutual opt-in for friends who want to set two people up. A "Weaver" privately nominates two people by phone number; each nominee gets a low-pressure prompt without knowing whether the other has answered; only if both accept does anything connect — as an ordinary `Match` tagged `ShipId`, so the existing progressive reveal takes over. Neither nominee ever sees a visible rejection and the Weaver never learns who passed. Internal naming is plain (`Ship`, `ShipService`); user-facing copy is Fated Threads / Weaver / "loose an arrow" / "the thread frayed". The original spec and 14-task plan lived here until 2026-08-31; the code is now the authority.
+**What it is.** A double-blind mutual opt-in for friends who want to set two people up. A
+"Weaver" nominates two people by phone number; each nominee gets a low-pressure prompt without
+knowing whether the other has answered; only if both accept does an ordinary `Match` tagged
+`ShipId` appear. Neither nominee ever sees a rejection and the Weaver never learns who passed.
+Internal naming is `Ship`/`ShipService`; user copy is Fated Threads / Weaver / "the thread frayed".
 
-**Shipped:** engine `Services/ShipService.cs`, `Controllers/ShipsController.cs`, `Controllers/AdminShipsController.cs`, the `/public/ship` + `/public/ship-invite` pair in `PublicController.cs`, model `Ship`, `Match.ShipId`, migration `20260814143217_AddShipsAndMatchShipId`, `Services/InviteCode.cs` (shared code alphabet, from the 2026-08-19 audit). App: `app/ship/new.tsx`, `components/quest/FatedThreadsSection.tsx` + `hooks/usePendingShips.ts` on the Missions/Activity tab with the "Weave a New Thread" CTA, `components/progression/ThreadLog.tsx` on the profile, `lib/shipInvite.ts`, the "Woven by" banner in `app/chat/[matchId].tsx` and on `(tabs)/matches`. Admin: `mingldingl_control/src/pages/Ships.tsx` (status-filtered list). Tests: `ShipServiceTests`, `LootServiceGrantSpecificTests`, `ShipsController` / `AdminShipsController` / `ScoresController` / `UsersController` integration tests; app `FatedThreadsSection.test.tsx`, `ThreadLog.test.tsx`, `shipInvite.test.ts`.
+**Shipped:** engine `ShipService`, `ShipsController`, `AdminShipsController`, the `/public/ship`
+landing page + `/public/ship-invite` check in `PublicController`, model `Ship`, `Match.ShipId`,
+migration `AddShipsAndMatchShipId`, `InviteCode` (shared alphabet). App: `app/ship/new.tsx`,
+`FatedThreadsSection` + `usePendingShips` on the Missions tab, the honours on the profile,
+`lib/shipInvite.ts`, "Woven by" banners in chat and on Matches. Admin: `pages/Ships.tsx`.
 
 **Mechanics (code is authoritative — `ShipService.cs`):**
-- `POST /ships` `{ slotAPhoneNumber, slotBPhoneNumber }` — 8-digit validation, rejects the same number twice and self-nomination, enforces `ships.daily.cap` (`ConfigKeys`, default 3, counted by `CreatedAt >= today UTC`). Each slot resolves by `PhoneNumber` to an existing user (`PendingOptIn`) or to a fresh 6-char invite code (`AwaitingUser`); a code is generated and returned for **both** branches, so the response never reveals whether the number matched an account. If either resolved nominee has blocked the Weaver, or the two are already matched, the response is the identical success shape and no `Ship` row is written.
-- `GET /ships/pending` → `[{ shipId, weaverDisplayName }]` — nothing about the other slot, ever.
-- `POST /ships/{id}/respond` `{ accept }` → `{ sparked }`. The caller's slot is written with `UPDATE … RETURNING`; any `Declined` closes the thread as `Declined`; both `Accepted` re-checks `MatchPairing.PairAlreadyMatchedAsync` / `IsPairBlockedAsync` (either → quiet `Expired`), then `MatchPairing.NewMatch(a, b, shipId)` — `RevealLevel 1`, no `DailyMatchesUsed` increment — sets `Status = Sparked` and `ResultMatchId`.
-- Spark payout: the Weaver gets `LootService.GrantGuaranteedAsync(…, "ShipSparked")` (item id kept in `Ship.ShipperRewardItemId`), `ShipSparked` +40, and milestone titles at 1/5/10 sparks (`title_threadweaver` Common / `title_fateseer` Rare / `title_bondkeeper` Epic via `GrantSpecificAsync`). Both nominees get `first_match`, a push notification ("Thread Sparked!"), and a `match_created` broadcast on `app-nudges` (`{ matchId, userIds, source: "ship" }`, added 2026-08-31 so the Matches list refreshes without a pull).
-- The Weaver's async reward rides `GET /scores/me/detail` as `pendingShipReward` (first `Sparked` ship with `ShipperNotifiedAt == null`) and is cleared by `POST /scores/me/notifications/ack { kind: "ship" }`.
-- Invite codes: `UsersController.Upsert` calls `ShipService.TryResolveInviteCodeAsync(userId, req.ReferralCode)` on profile completion — one onboarding field shared with Recruit an Ally, disambiguated server-side; `CodeExistsAsync` checks `Users.ReferralCode` plus both `Ships` code columns (and `ReferralService` checks `Ships` too). `/public/ship?code=` serves a static landing page that validates the code via `/public/ship-invite` and deep-links `mingldingl://`.
-- Expiry: `DailyMaintenanceBackgroundService` flips `Pending` ships older than `ShipExpiryPeriod` (14 days, hardcoded) to `Expired`.
-- `MatchResponse.weaverDisplayName` drives "Woven by %{name}". Admin: `GET /admin/ships?status=&page=&pageSize=` — Weaver + slot names, opt-in states, `resultMatchId` (rendered as a copyable id in the control panel since 2026-08-31).
+- `POST /ships { slotAPhoneNumber, slotBPhoneNumber }` — 8-digit validation, rejects the same
+  number twice and self-nomination, enforces `ships.daily.cap` (default 3, UTC day). Each slot
+  resolves by `PhoneNumber` to an existing user or to a fresh 6-char invite code; a code is
+  returned for **both** branches so the response never reveals whether the number has an account.
+  If a nominee has blocked the Weaver, or the two are already matched, the response is the same
+  success shape and no row is written.
+- `GET /ships/pending` → `[{ shipId, weaverDisplayName }]`, nothing about the other slot.
+- `POST /ships/{id}/respond { accept }` → `{ sparked }`. The caller's slot is written with
+  `UPDATE … RETURNING`; any decline closes the thread `Declined`; both accepted re-checks
+  `MatchPairing.PairAlreadyMatchedAsync` / `IsPairBlockedAsync` (either → quiet `Expired`), then
+  `MatchPairing.NewMatch(a, b, shipId)` — reveal level 1, no `DailyMatchesUsed` increment — and
+  claims the thread with a conditional `SET "Status" = 'Sparked' WHERE "Status" = 'Pending'`, so
+  the spark runs exactly once under concurrent responses.
+- Spark payout: Weaver gets `ShipSparked` +40 and the Thread-Weaver / Fate-Seer / Bond-Keeper
+  honours at 1 / 5 / 10 sparks (surfaced through `pendingShipReward` on `GET /scores/me/detail`,
+  acked by `POST /scores/me/notifications/ack { kind: "ship" }`); both nominees get `first_match`,
+  a push and a `match_created` broadcast. `ships.enabled=false` makes `POST /ships` a 404.
+- Invite codes resolve through the onboarding `ReferralCode` field; `CodeExistsAsync` checks
+  `Users.ReferralCode` plus both `Ships` code columns. `/public/ship?code=` validates the code and
+  deep-links `mingldingl://`. `Pending` threads expire after `ships.expiry_days` (default 14).
 
-**Deviations from the spec/plan:**
-- **`BlockWeaver` on Pass was never built** — `RespondToShipRequest` is `{ accept }` only; the only block logic is the check on `POST /ships`. Still open (Follow-ups).
-- The armory shrank to titles: `item_frame_fletched`, `item_emblem_quiver`, `item_emblem_drawn_bow` are not in `LootService.Catalog`.
-- The opt-in prompt lives only on the Missions/Activity tab (`FatedThreadsSection`); Thread Log shows the milestone titles owned, not pending/sparked/frayed counts.
-- Reward surfacing uses an explicit ack endpoint and two extra `Ship` columns (`ShipperRewardItemId`, `ShipperNotifiedAt`) rather than the spec's read-once-and-clear field.
-- Same number in both slots is a hard 400 (spec was silent); "already matched" returns the silent success shape instead of the spec's error.
-- Server error strings are mapped client-side in `app/ship/new.tsx` to `ship_error_*` i18n keys as a stopgap for `getApiErrorMessage`.
-
-**Fix wave 1 (after the final whole-plan review, 2026-08-14):** two separate share buttons carrying *different* codes on the confirmation screen; the blocked-Weaver path returns the same success + two-codes shape with no row; same phone in both slots rejected; push notifications + list refresh on spark; "Weave a New Thread" CTA on the Missions tab (previously reachable only by typing the URL).
-
-**Later fixes:** 2026-08-19 audit — nominees were checked against the Weaver but never against each other; `RespondAsync` now routes through `MatchPairing.IsPairBlockedAsync` and closes quietly as `Expired`; invite-code alphabet single-sourced. 2026-08-31 — the share text gained the `/public/ship?code=` URL (`lib/shipInvite.ts`); until then the landing page existed but nothing pointed at it; `match_created` broadcast on spark; admin list shows `resultMatchId`.
-
-**Still owed — the manual pass (never run):** Weaver A weaves B+C → B's `GET /ships/pending` names A and nothing about C → B accepts, nothing sparks → C accepts: match exists, chat shows "Woven by A", neither `DailyMatchesUsed` moved → A's loot toast fires once and does not replay → repeated cycles grant `title_threadweaver` on the first spark and the weave past `ships.daily.cap` is rejected → a brand-new number resolves via the onboarding code field; plus the fix-wave rechecks (two distinct codes, blocked-Weaver silent no-op, same-number rejection, push + list refresh on spark, Missions-tab CTA). Tracked under Outstanding Follow-ups.
-
----
-
-## Duplication & Round-Trip Audit — Shipped (2026-08-19)
-
-A sweep for duplicated logic, overlapping payloads, and redundant round-trips
-across all three repos. Findings and what was done:
-
-**Fixed — a real defect.** Only one of the three code paths that can create a
-`Match` checked `BlockedUsers`. `MatchesController.RequestMatch` did;
-`ShipService.SparkAsync` checked each nominee against the *Weaver* but never
-the two nominees against each other; `TownSquareService` had no block check at
-all. Two people who had blocked each other could therefore be woven together by
-a Weaver, or auto-paired into a Town Square round-robin — where pairing is
-assigned by the circle method, so a blocked pair on opposite sides of the
-roster would meet with certainty, not by chance. New `Services/MatchPairing.cs`
-owns `IsPairBlockedAsync` / `PairAlreadyMatchedAsync` / `PairLockKey` /
-`NewMatch`, and all three paths route through it. Both new paths fail the
-pairing quietly (Ships closes as `Expired`, Town Square returns no match) so
-neither side can infer a block exists. Four regression tests.
-
-**Fixed — duplication.**
-- The load-match-then-check-participant guard was character-identical at 20
-  action sites across 6 controllers. Extracted to
-  `MatchAccessExtensions.LoadParticipantMatchAsync`, mirroring the earlier
-  `CurrentUserExtensions` extraction. Participation is still checked before any
-  feature-specific state, so an error can't fingerprint a match for a
-  non-participant.
-- `PairLockKey` was byte-identical in `MatchesController` and
-  `TownSquareService`, where the two copies staying identical was load-bearing
-  (same advisory-lock namespace) but unenforced. Now single-sourced.
-- The invite-code alphabet was duplicated between `ReferralService` and
-  `ShipService`, which share one keyspace. Now `Services/InviteCode.cs`.
-- Three `new Match { … }` sites with drifting field sets → `MatchPairing.NewMatch`.
-- `TotalScore` / `GemTier` / `ReputationScore` were on **both** `UserResponse`
-  and `ScoreDetailResponse`, and the app's `applyScoreBump` only ever refreshes
-  `scoreDetail` — so `/users/me` served a second copy that no mutation
-  invalidated. Removed from `UserResponse` and from the app's `UserProfile`.
-  Admin surfaces keep theirs via `AdminUserDetailDto`. Discover candidates need
-  the *other* user's tier, so they got their own `Candidate` type.
-- `ScreenHeader` and `GameHeader` each carried their own copy of the
-  back-arrow/title/divider bar and its styles, drifted 4px apart on the gap
-  between arrow and title. Extracted `components/ui/HeaderBar.tsx`; both now
-  compose it. They were **not** merged — `GameHeader` also owns the score HUD
-  and reward-toast stack, which the ~11 sub-screens using `ScreenHeader` should
-  not have to mount.
-
-**Investigated, deliberately not changed.** The four `refetchInterval` sites
-(`useIcebreaker` 15s, `useQuiz` 15s, `useTownSquareSession` 15s,
-`useTownSquareRound` 30s) initially looked like an unfinished polling→Broadcast
-migration. They are not. `SupabaseBroadcastService` is explicitly best-effort
-(its POST failure is swallowed), so each interval is a documented safety net
-behind the broadcast, already slowed from the original 3–5s to 15–30s, and each
-stops once its terminal state arrives. `useTownSquareSession` has no broadcast
-covering it at all (nothing is pushed on the Locked/InProgress transitions).
-Removing them would strand a user on a waiting screen whenever a broadcast POST
-drops.
-
-**Verified clean, no action.** Query keys are fully centralized in
-`lib/api/queryKeys.ts`. i18n is at 389/389 EN/MN parity. App styles route
-through `COLORS` (5 hex literals total remain, in `GameButton` and
-`membership.tsx`). All 6 config keys are registered in `ConfigKeys.All` with
-inline fallbacks matching declared defaults exactly. Engine DTO mapping has a
-single construction site per response type; tier calculation lives only in
-`ScoreService`. `mingldingl_control` is proportionately factored for its 2.1k
-lines.
-
-Engine 452 → 456 tests, app 276, `tsc` clean, control builds and lints.
-
----
-
-## Town Square — Shipped (2026-08-14)
-
-**What it is.** Scheduled speed-dating sessions over video. Users RSVP to an upcoming session; at the RSVP deadline the roster is locked and turned into a round-robin of short one-to-one Agora calls, each seeded with an icebreaker question; after each round both people privately answer Yes/No, and a mutual Yes creates an ordinary `Match`. No design spec or plan was ever recorded in this document (it shipped alongside Recruit an Ally / Fated Threads in the 2026-08-14 wave), so this summary was written from the code on 2026-08-31 and the code remains the authority.
-
-## Execution Outcome (recorded retroactively, 2026-08-31)
-
-**Shipped:** engine `Services/TownSquareService.cs`, `Services/TownSquareSchedulerBackgroundService.cs`, `Controllers/TownSquareController.cs`, `Controllers/AdminTownSquareController.cs`, models `TownSquareSession` / `TownSquareRsvp` / `TownSquareRound` / `TownSquarePairing`, migration `20260814094851_AddTownSquare`. App: the fifth (middle) tab `app/(tabs)/townsquare.tsx` (`components/townsquare/SessionStatusCard.tsx` — countdowns, RSVP / cancel), `app/townsquare-round/[sessionId].tsx` (`AgoraVideoCall` + `components/townsquare/RoundPrompt.tsx` + `VideoControls`), hooks `useTownSquareSession` / `useTownSquareRound`, `lib/townSquareTime.ts`. Admin: `mingldingl_control/src/pages/TownSquare.tsx` (read-only sessions list with expandable pairings). Tests: `TownSquareServiceTests`, `TownSquareSchedulerBackgroundServiceTests`, `TownSquareService` / `TownSquareController` / `AdminTownSquareController` integration tests; app hook tests under `components/townsquare/__tests__/`.
-
-**Mechanics (code is authoritative):**
-- **Session lifecycle** — `TownSquareSession.Status`: `Open` → `Locked` → `InProgress` → `Completed`, or `Cancelled`. Timestamps `RsvpOpensAt` / `RsvpClosesAt` / `ScheduledStartAt`; `CurrentRoundNumber` advances during play.
-- **RSVP** — `POST /townsquare/rsvp` and `DELETE /townsquare/rsvp?sessionId=` only while `Open` (400 otherwise); idempotent; unique index on `(SessionId, UserId)`. `GET /townsquare/next-session` returns the earliest non-terminal session plus `isRsvpd`.
-- **Scheduler** — `TownSquareSchedulerBackgroundService` sweeps every 10 s: `Open` past `RsvpClosesAt` → `LockRosterAsync`; `Locked` past `ScheduledStartAt` → `StartSessionAsync`; `InProgress` with the current round elapsed → `AdvanceRoundAsync`. Registered as singleton + hosted service, the same pattern as `DailyMaintenanceBackgroundService`.
-- **Roster lock** — RSVPs ordered by `RsvpAt`, split by `User.Gender` into `Male` / `Female`, each side capped at `MaxPerSide` (default 5) and truncated to the smaller side. Zero pairs → `Cancelled` + broadcast. Otherwise `GenerateRoundRobin` (circle method) yields n rounds of n pairings; each round is `RoundDurationSeconds` (default 240), starts at `ScheduledStartAt + r × duration`, and takes the r-th active `Icebreaker`, cycling. Since 2026-09-04 both are `ConfigKeys` entries (`townsquare.max_per_side`, `townsquare.round_seconds`).
-- **Rounds** — `GET /townsquare/session/{id}/current-round` (400 unless `InProgress`) returns the caller's pairing, an Agora token whose channel is the pairing id, the icebreaker text, and `roundEndsAt`. `POST /townsquare/pairing/{id}/joined` stamps `UserAJoinedAt` / `UserBJoinedAt`. `POST /townsquare/pairing/{id}/respond` with `{ response: "Yes" | "No" }` writes the caller's slot in one `UPDATE … RETURNING`; when both slots read `Yes` it checks `MatchPairing.IsPairBlockedAsync` (a blocked pair quietly yields no match, so neither side can infer the block) and then `CreateOrReuseMatchAsync` under the shared `MatchPairing.PairLockKey` advisory lock, storing `ResultingMatchId`. The response carries `matchId`, so the round screen shows "it's a match" without a refetch; the hook also invalidates the Matches list. Since 2026-08-31 the mutual-yes path also sends both users a push notification ("New Match!") and a `match_created` broadcast on `app-nudges` (`{ matchId, userIds, source }`), the same shape Fated Threads and `RequestMatch` emit.
-- **Realtime** — topic `townsquare:{sessionId}`, events `session-started`, `session-cancelled`, `round-advanced`, payload `{ sessionId, roundNumber, status }`. Nothing is broadcast on the `Open → Locked` transition. Hooks subscribe through `lib/realtime/subscribeWithRetry.ts` and keep 15 s (session) / 30 s (round) `refetchInterval` safety nets because `SupabaseBroadcastService` is best-effort — see the 2026-08-19 audit above for why those were kept rather than removed.
-- **Admin** — `GET /admin/townsquare/sessions` (paged, with RSVP counts) and `GET /admin/townsquare/sessions/{id}/pairings` (per-round responses, join times, resulting match). Added 2026-08-31: `POST /admin/townsquare/sessions` `{ rsvpOpensAt, rsvpClosesAt, scheduledStartAt }` (201; validates opens < closes ≤ start, start in the future; creates `Open`, audit `CreateTownSquareSession`) and `POST /admin/townsquare/sessions/{id}/cancel` (only `Open` / `Locked`, else 409; routes through `TownSquareService.CancelSessionAsync`, audit `CancelTownSquareSession`), with a Schedule / Cancel UI on the control panel's Town Square page. All under the `AdminBearer` scheme.
-
-**Found and fixed in later audits:** the 2026-08-19 duplication audit added the missing `BlockedUsers` check to the pairing path (the circle method makes a blocked pair on opposite sides of the roster meet with certainty, not by chance) and single-sourced `PairLockKey`, which had been byte-identical in `MatchesController` and `TownSquareService` with nothing enforcing that.
-
-**Closed 2026-08-31:** the session-creation gap. Until then nothing but the integration tests wrote `TownSquareSessions` rows and the admin page was read-only; the admin create/cancel endpoints and Schedule/Cancel UI above close it. No scheduler rule or recurring seed exists — sessions are scheduled one at a time by an admin.
-
-**Known gaps — not built, recorded here so nobody assumes otherwise:**
-- Pairing is strictly `Male` × `Female`; any other `Gender` value RSVPs successfully but is silently never rostered. Overflow RSVPs beyond 5-a-side, or on the larger side, are likewise dropped at lock time with no notification.
-- No score event, quest hook, or loot is attached to attending or matching in a round. The icebreaker is a conversation prompt shown during the call and is never answered in the app; the `TownSquareIcebreakerResponses` table that was scaffolded for answers, along with the `icebreakerId` / `icebreakerType` / `icebreakerOptions` fields on `CurrentRoundResponse` that fed it, were dropped on 2026-09-04 (migration `DropUnusedTownSquareResponsesAndConfigSchema`) after an audit found nothing had ever read or written any of them.
-- No manual end-to-end pass has been run (two browsers, a hand-inserted session, real Agora tokens through a full round-robin).
+**Deviations from the spec:** `BlockWeaver` on Pass was never built (only the check on
+`POST /ships`); the armory shrank to the three honours; the opt-in prompt lives only on the
+Missions tab; reward surfacing uses an ack endpoint and two `Ship` columns rather than a
+read-once field; same number in both slots is a hard 400; "already matched" returns the silent
+success shape.
 
 ---
 
 ## No-Show Tracking — Shipped (2026-08-18)
 
-**What it is.** Objective attendance accountability for pledged encounters. 48 h after both sides confirm a date, each is privately asked "Did you meet up for [activity]?"; a single mismatch is recorded but inert, and only a pattern of mismatches across distinct matches docks `ReputationScore`. Deliberately *not* a conduct-rating system — subjective ratings are a retaliation vector, and the project's standing decision is "block + unmatch is sufficient, no Report flow". The original spec lived here until 2026-08-31; the code is the authority.
+**What it is.** Objective attendance accountability. `dating.attendance_check.delay_hours` (48)
+after both sides confirm a date, each is privately asked whether they met; a single mismatch is
+recorded but inert, and only a pattern of mismatches across distinct matches docks
+`ReputationScore`. Deliberately *not* a conduct rating — subjective ratings are a retaliation
+vector; the standing decision is "block + unmatch is sufficient, no Report flow".
 
-**Shipped:** engine `ActivityService.GetAttendanceCheckStatusAsync` / `SubmitAttendanceAsync`, `ActivitiesController` `GET|POST /activities/{matchId}/attendance-check`, `ScoreService.ApplyReputationPenaltyAsync`, migration `20260818070722_AddNoShowTracking` (`DateConfirmation.CompletedAt` / `InitiatorAttended` / `ReceiverAttended` / `PenaltyApplied`, `User.NoShowFlagCount`), config key `dating.noshow.threshold` (Safety, default 3). App: `hooks/useAttendanceCheck.ts`, `components/modals/AttendanceCheckModal.tsx` mounted in `app/chat/[matchId].tsx`, `date_log_unconfirmed` marker in `app/date-log.tsx`. Tests: `ActivityServiceIntegrationTests`, `ActivitiesControllerIntegrationTests`, `ScoreServiceIntegrationTests`; app `AttendanceCheckModal.test.tsx`, `useAttendanceCheck.test.tsx`.
+**Mechanics (code is authoritative — `ActivityService.cs`):** `ConfirmAsync` stamps
+`CompletedAt`; `GET /activities/{matchId}/attendance-check` → `{ due, activityTitle }`;
+`POST … { attended }` is participant-only and idempotent. When both slots are set and differ, the
+`false` side's `NoShowFlagCount` increments once per confirmation (`PenaltyApplied` guard); at
+`>= dating.noshow.threshold` (3) `ApplyReputationPenaltyAsync` docks `reputation.penalty_dock`
+(0.1, floor 0) and writes a `Delta = 0` `RepeatedNoShowPenalty` event for the audit trail. Neither
+answer is shown to the other party; the Date Log renders a mismatched trophy as "Unconfirmed".
+Both sides answering yes grants the True to Word honour. The prompt is a modal on the chat screen,
+not a "What's Next" card; the penalty fires on every mismatch at or above the threshold, not once.
+Admin: `noShowFlagCount` on `UserDetail`, `POST /admin/users/{id}/reset-noshow`, an analytics tile.
 
-**Mechanics (code is authoritative — `ActivityService.cs`):**
-- `ConfirmAsync` stamps `CompletedAt = now` inside its existing `justCompleted` branch (next to the `DateConfirmed` awards, pledge quest, `first_pledged_encounter`, Oath refresh).
-- `GET …/attendance-check` → `{ due, activityTitle }`: due when the match's latest completed confirmation is ≥ 48 h old (hardcoded) and the caller's slot is still null.
-- `POST …/attendance-check { attended }` → `{ attended }`: participant-only; idempotent — an already-answered slot returns the stored answer, no re-answering. When both slots are set and differ, the `false` side's `NoShowFlagCount` is incremented via `UPDATE … RETURNING`, guarded by `DateConfirmation.PenaltyApplied` so one match pair contributes at most once; at `>= dating.noshow.threshold` it calls `ApplyReputationPenaltyAsync(user, "RepeatedNoShowPenalty")` — `ReputationScore = GREATEST(0, rep − 0.1)` plus a `Delta = 0` `ScoreEvent` row for the audit trail. Both-yes and both-no are no-ops.
-- Neither answer is ever sent to the other party; `GET /activities/mine` exposes only a boolean `mismatched` per trophy, which the Date Log renders as "Unconfirmed" in place of stars.
-- Nothing is pushed or broadcast for the check — it surfaces when the chat screen mounts and `due` is true.
-
-**Deviations from the spec:**
-- The prompt is a modal on the match's chat screen, not a card in the "What's Next" (`next_action_heading`) section.
-- Per-match once-only accounting uses a `PenaltyApplied` column (not in the spec) rather than counting distinct `MatchId`s at threshold time; same effect — repeat mismatches with the same partner do not stack.
-- The penalty fires on every mismatch at or above the threshold (3rd, 4th, 5th …), not only "once when crossed".
-- Admin visibility, scoped out in the spec, arrived 2026-08-31: `noShowFlagCount` on the admin `UserDetail`, `POST /admin/users/{id}/reset-noshow` (audited as `ResetNoShow`), and a "No-show flagged" analytics tile.
-
-**Open:** the mismatch → flag walk RAN and PASSED 2026-09-01 (see the plan's "Manual verification still owed"); the threshold-crossing `RepeatedNoShowPenalty` leg is still integration-test-only. The 48 h window became `dating.attendance_check.delay_hours` on 2026-09-04. No real date/time scheduling (unchanged from the spec's out-of-scope list).
+**Verified live 2026-09-01:** mismatch → flag walk with two real users (count 0→1,
+`PenaltyApplied` latched, reputation untouched below threshold).
 
 ---
 
 ## The Oath & The Flame Rite — Shipped (2026-08-19)
 
-**What it is.** Two independent subsystems from the 2026-08-19 strategy pass that re-aimed the app at the 25–33, high-intent, time-poor Ulaanbaatar user. **The Oath** is a public, behavior-backed statement of intent — *Sworn* on selection, *Proven* only after real encounters with no ghosting — that outranks proximity in city-scale matching. **The Flame Rite** moves the video call from *after* the date pledge to a required, mutually-consented five-minute call *before* it, so screening a stranger is something everyone does rather than an accusation one person has to make. The original spec and 11-task plan lived here until 2026-08-31; they were pruned once the code became the authority.
+**What it is.** **The Oath** is a public, behaviour-backed statement of intent — *Sworn* on
+selection, *Proven* only after real encounters with no ghosting — that outranks proximity in
+matching. **The Flame Rite** moves the video call from after the date pledge to a required,
+mutually-consented five-minute call before it, so screening a stranger is something everyone does.
 
-## Execution Outcome (2026-08-19)
+**Mechanics (code is authoritative — `OathService.cs`, `MatchesController.cs`,
+`VideoController.cs`, `ActivityService.cs`):**
+- Oath ∈ `Bond` / `Fate` / `Kinship`; null = never sworn, sorts last but is never excluded.
+  Re-swearing resets `OathSwornAt` and costs Proven status — that is the entire stake.
+- Proven (`RefreshAsync`, event-driven from encounter completion and ghosting, no sweep):
+  `oath.proven.encounters` (2) distinct matches with a completed `DateConfirmation` since sworn,
+  and zero `GhostPenalty` events in that window. A ghost demotes Proven → Sworn. First Proven pays
+  `OathProven` +40, milestone `oath_proven` and the Oath-Keeper honour; the milestone row is the
+  once-per-user guard. `OathProven` is server-owned.
+- Matching: `Affinity` — same 2, adjacent 1, opposite 0, null → null — leads the candidate sort
+  inside a 25 km band for every membership level, then both-Proven, then the prior chain.
+- Rite: `propose` / `accept` / `decline` require `IcebreakerComplete`; `propose` 409s while one
+  is open and pushes; `decline` clears with no penalty. `POST /video/token` requires
+  `FlameRiteAcceptedAt`; TTL is `dating.flamerite.duration_minutes` (5) until `FlameRiteCompletedAt`
+  is set by `POST /video/complete`, the long TTL afterwards. `ConfirmAsync` refuses a pledge with
+  `FlameRiteIncomplete` while `dating.flamerite.required` is on — flipping it is the retreat, and
+  `video.enabled=false` also lifts it so pledges cannot deadlock. The completer earns the
+  Flamekeeper honour on the first rite; both participants are paid `VideoCallDone`.
+- Realtime: four events on `app-nudges` (`flame_rite_proposed|accepted|declined|completed`), not
+  the spec's single one. The locked pledge CTA is on the per-match activity screen.
 
-All 11 tasks shipped (Group A — Oath, Tasks 1–6; Group B — Flame Rite, Tasks 7–11). Engine: `Services/OathService.cs`, `UsersController` `POST /users/me/oath`, `VideoController` `POST /video/rite/propose|accept|decline`, migrations `20260818191351_AddOath` and `20260818210254_AddFlameRite` (the latter backfills `FlameRiteCompletedAt` for matches that already had a completed `DateConfirmation` or `VideoRewardClaimed`, so in-flight couples were not locked out of pledging on deploy). App: `components/onboarding/OathStep.tsx` (onboarding step 4 of 4), `components/OathSigil.tsx`, `components/FlameRiteCard.tsx`, `hooks/useOath.ts`, Oath card + re-swear sheet on `(tabs)/profile.tsx`, sigils on Discover and Matches. Tests: `OathAffinityTests`, `OathServiceIntegrationTests`, `OathPersistence`/`OathEndpoint`/`OathRanking`/`OathReward` integration tests, `FlameRitePersistence`/`FlameRiteHandshake`/`FlameRiteToken`/`FlameRitePledgeGate` integration tests; app `OathSigil.test.tsx`, `FlameRiteCard.test.tsx`.
+**Known deferral:** the second photo still unblurs at 5 messages, so a pair who just met on
+video may still have a blurred photo between them; milestone-based reveal and un-paywalling
+`HasKids` were explicitly deferred.
 
-**Mechanics a future reader needs** (code is authoritative — `OathService.cs`, `MatchesController.cs`, `VideoController.cs`, `ActivityService.cs`, `EngagementService.cs`):
-- Oath values are exactly `Bond` / `Fate` / `Kinship` (`OathService.ValidOaths`); `null` = never sworn, sorts last in ranking but is never excluded. `SwearAsync` sets `OathSwornAt = now` and `OathProven = false` — **re-swearing costs Proven status and that is the entire stake**: no cooldown, no penalty, no visible "changed their oath", and swearing itself pays nothing.
-- **Proven rule** (`RefreshAsync`, event-driven from encounter completion and from the ghosting path — no sweep): at least `oath.proven.encounters` (default 2) distinct matches with a `DateConfirmation.CompletedAt` since `OathSwornAt`, **and** zero `GhostPenalty` score events in that window. One ghost demotes Proven → Sworn and makes the current window unprovable; only re-swearing opens a fresh one. The first Proven ever pays `OathProven` +40, milestone `oath_proven`, and the Rare title `title_oathkeeper`; the milestone row is the once-per-user idempotency guard, so a demoted-then-re-proven user is not paid twice. `OathProven` is server-owned, never read from a request body.
-- **Matching**: `OathService.Affinity` — same oath 2, adjacent (Bond↔Fate, Fate↔Kinship) 1, opposite (Bond↔Kinship) 0, either side null → null. In `MatchesController.GetCandidates` it sits ahead of the pre-existing chain inside a 25 km band (`OathAffinityBandKm`) that applies to **every** membership level: affinity desc, then both-Proven, then Gold's `PriorityCompatibilityBandKm` / compatibility / distance / score chain unchanged. The single largest behavioral change of the pass.
-- **Rite handshake**: all three endpoints require match participation and `IcebreakerComplete`; `propose` returns 409 while a proposal is open and sends a push notification; `accept` sets `FlameRiteAcceptedAt`; `decline` clears the proposal and does nothing else — no score event, no penalty, and either side may propose again. `Match.VideoCallUnlocked` is now set when the icebreaker completes (`EngagementService.CompleteIcebreakerAsync`), not on pledge.
-- **Video token**: `POST /video/token` requires `FlameRiteAcceptedAt`; TTL is `dating.flamerite.duration_minutes` (default 5) while `FlameRiteCompletedAt` is null, the normal long-call token afterwards — one endpoint, two TTLs, chosen by state. `POST /video/complete` sets `FlameRiteCompletedAt` once; `VideoRewardClaimed` remains the one-shot payout gate.
-- **Pledge gate**: `ActivityService.ConfirmAsync` returns `ConfirmRejection.FlameRiteIncomplete` while `dating.flamerite.required` (default `true`) is on and the rite is not complete. Flipping the key in the admin Config page restores the pre-rite pledge flow with no deploy and no migration — the retreat shipped with the advance.
-- Config keys (`ConfigKeys.cs`): `oath.proven.encounters`, `dating.flamerite.duration_minutes`, `dating.flamerite.required`. DTOs: `oath` / `oathProven` on user, candidate and match-profile payloads (public, so visible from reveal level 1); `oathEncountersHeld` / `oathEncountersNeeded` on `GET /users/me`; the four rite timestamps plus `flameRiteRequired` / `flameRiteDurationMinutes` on `MatchResponse`.
-
-**Deviations from the plan:**
-- `OathStep` lives in `components/onboarding/OathStep.tsx` beside `NameAgeStep`/`AboutStep`/`PhotosStep`; the plan pointed at `app/(onboarding)/OathStep.tsx`, but that directory only holds expo-router route files.
-- Realtime: the plan described a single `flame_rite` event on the match channel. The engine emits four distinct events on the shared `app-nudges` topic — `flame_rite_proposed` / `flame_rite_accepted` / `flame_rite_declined` / `flame_rite_completed` — and `hooks/useRealtimeNudges.ts` subscribes to each.
-- The locked pledge CTA (`pledge_locked`) is on `app/activities/[matchId].tsx`, the per-match activity screen, not the `(tabs)/activity` tab, and honours `flameRiteRequired` from the server rather than assuming the rite is always on.
-
-**Known deferral (from the spec, still true):** `RevealService` still gates the second photo behind 5 messages, so immediately after the rite two people who have seen each other on video may still have a blurred photo between them — incoherent, not broken; milestone-based reveal would fix it and was explicitly deferred, as was un-paywalling `HasKids`.
-
-**Still owed / open:** the Task 11 Step 9 two-account ladder walk (match → icebreaker → propose → accept → complete → pledge → attendance check, plus flipping `dating.flamerite.required` off and back) RAN and PASSED at the API level 2026-09-01 — see the plan's "Manual verification still owed" for what it did not cover (the 5-minute vs long token TTL, the app screens themselves). The video-screen countdown is still decorative, tracked under Outstanding Follow-ups.
+**Verified live 2026-09-01:** the full two-account ladder at the API level, including the
+`dating.flamerite.required` retreat and return.
 
 ---
 
-## Phone Verification via verify.mn — Shipped (2026-08-31)
+## Duplication & Round-Trip Audit — Shipped (2026-08-19)
 
-### What shipped
+- **Real defect:** only `RequestMatch` checked `BlockedUsers`; Ships checked nominees against
+  the Weaver but not each other, Town Square not at all — and the circle method makes a blocked
+  pair on opposite sides of a roster meet with certainty. `Services/MatchPairing.cs` now owns
+  `IsPairBlockedAsync` / `PairAlreadyMatchedAsync` / `PairLockKey` / `NewMatch` and all three
+  creation paths route through it, failing quietly so a block cannot be inferred.
+- Extracted `MatchAccessExtensions.LoadParticipantMatchAsync` (was 20 identical guards),
+  `InviteCode` (shared alphabet), `components/ui/HeaderBar.tsx` (composed by both headers, which
+  were not merged because `GameHeader` also owns the HUD and toast stack).
+- `TotalScore` / `GemTier` / `ReputationScore` left `UserResponse`; only `ScoreDetailResponse`
+  carries them, since only `scoreDetail` is refreshed by `applyScoreBump`. Discover candidates got
+  their own `Candidate` type for the other user's tier.
+- The 15–30 s `refetchInterval` safety nets behind broadcasts were kept on purpose:
+  `SupabaseBroadcastService` is best-effort and nothing is broadcast on Town Square's
+  `Open → Locked` transition.
 
-Replaced the stubbed OTP flow (`sendOtp` was a no-op returning `true`, `verifyOtp`
-accepted any 6 digits and did an anonymous Supabase signup — i.e. anyone could claim
-any number) with real phone-ownership proof via **verify.mn**.
+---
 
-verify.mn is **Mobile-Originated**: the user texts *our* code *to* shortcode 144773.
-There is no outbound SMS and no code to type in, which reshaped the second auth screen
-entirely — it now shows verify.mn's Mongolian `displayInstruction` verbatim, a one-tap
-`sms:` button, a live TTL countdown, and a 3s poll, with an explicit expired state.
+## Town Square — Shipped (2026-08-14; recorded from the code 2026-08-31)
 
-**Engine** — `VerifyMnClient` (HTTP), `PhoneVerificationService` (session lifecycle +
-single-use claim), `AuthController` (`/auth/phone/start|status|callback|claim`),
-`PhoneVerification` entity + `AddPhoneVerifications` migration.
-**App** — `useAuth` rewritten around start/poll/complete, `(auth)/otp.tsx` rewritten,
-`PhoneChangeModal` for the settings phone-change path.
+**What it is.** Scheduled speed-dating over video: RSVP, roster locked at the deadline into a
+round-robin of short Agora calls seeded with an icebreaker question, private Yes/No after each
+round, mutual Yes creates an ordinary `Match`.
 
-### Decisions worth keeping
+**Mechanics (code is authoritative — `TownSquareService.cs`):**
+- `TownSquareSession.Status`: `Open → Locked → InProgress → Completed`, or `Cancelled`.
+  `POST|DELETE /townsquare/rsvp` only while `Open`; `GET /townsquare/next-session`.
+- `TownSquareSchedulerBackgroundService` sweeps every 10 s (singleton + hosted): locks rosters
+  past `RsvpClosesAt`, starts past `ScheduledStartAt`, advances rounds as they elapse. While
+  `townsquare.enabled` (or `video.enabled`) is false it only advances sessions already in
+  progress; the user controller returns 404 `square.disabled` via `TownSquareEnabledFilter`.
+- Roster lock: RSVPs by `RsvpAt`, split `Male`/`Female`, each side capped at
+  `townsquare.max_per_side` (5) and truncated to the smaller side; zero pairs → `Cancelled`.
+  `GenerateRoundRobin` yields n rounds of `townsquare.round_seconds` (240), each with the r-th
+  active icebreaker as a conversation prompt.
+- `GET /townsquare/session/{id}/current-round` returns the pairing, an Agora token on the pairing
+  id, the prompt and `roundEndsAt`. `POST /townsquare/pairing/{id}/respond { Yes|No }` writes the
+  caller's slot atomically; both Yes → block check → `CreateOrReuseMatchAsync` under the shared
+  advisory lock, returning `matchId`, pushing both users and broadcasting `match_created`.
+- Realtime topic `townsquare:{sessionId}`: `session-started`, `session-cancelled`,
+  `round-advanced`. Admin: paged sessions with RSVP counts, per-round pairings, and (since
+  2026-08-31) create + cancel — sessions are scheduled one at a time by an admin; no recurrence.
 
-- **The engine owns the proof, not the client.** `POST /users` refuses to create a new
-  account without a claimed verification and reads `PhoneNumber` from it. The JWT's
-  phone claim is client-set (`user_metadata.phone`) and is no longer trusted anywhere.
-  `PUT /users/me/phone` requires the same proof, so a number can't be swapped freely.
-- **A claim is single-use and cannot be replayed** onto a second account, has a 30-minute
-  window after verification, and is refused if the number already belongs to someone else
-  (`Users.PhoneNumber` is uniquely indexed, so this is belt-and-braces).
-- **Session reuse is deliberate.** Each SMS costs the *user* 150₮, so `StartAsync` returns
-  the in-flight session for the same number instead of minting a second code.
+**Not built:** pairing is strictly `Male × Female` and any other `Gender` RSVPs but is never
+rostered; overflow RSVPs are dropped at lock time with no notice; no score, quest or honour is
+attached to attending; the icebreaker is never answered (the scaffolded response table was
+dropped 2026-09-04).
+
+---
+
+## Phone Verification via verify.mn — Shipped (2026-08-31; hardened 2026-09-06)
+
+Replaced the stubbed OTP flow (any 6 digits accepted; anyone could claim any number) with real
+ownership proof via **verify.mn**, a Mongolia-only **Mobile-Originated** SMS API: the user texts
+*our* code *to* shortcode 144773. No outbound SMS, nothing to type — the auth screen shows
+verify.mn's Mongolian `displayInstruction` verbatim, a one-tap `sms:` button, a TTL countdown and
+a 3 s poll.
+
+**Shipped:** `VerifyMnClient`, `PhoneVerificationService`, `AuthController`
+(`/auth/phone/start|status|callback|claim`), `PhoneVerification` + `AddPhoneVerifications`
+migration; app `useAuth` rewritten around start / poll / complete, `(auth)/otp.tsx`,
+`PhoneChangeModal` for the settings phone change.
+
+**Decisions worth keeping:**
+- **The engine owns the proof.** `POST /users` refuses a new account without a claimed
+  verification and takes `PhoneNumber` from it; `PUT /users/me/phone` requires the same proof.
+  The JWT's `user_metadata.phone` is client-written and, since 2026-09-06, consulted nowhere
+  while verification is configured (it had still been driving the returning-user alias — see the
+  2026-09-06 entry).
+- **A claim is single-use** (conditional `UPDATE … WHERE "ClaimedByUserId" IS NULL`), has a
+  30-minute window, and is refused when an *existing account* proves a number that belongs to
+  someone else. An account-less identity proving such a number is sign-in: the middleware aliases
+  it onto the owning account (`PhoneVerificationService.ResolveAliasAsync`).
+- **Sessions are per caller.** `start` is anonymous, so a pending session is only resumed for a
+  caller presenting its id (`ResumeVerificationId`, which the app remembers per number so
+  re-entering it costs one SMS, not two — each SMS costs the user 150₮). One number holds at most
+  five pending sessions (`429 phone.too_many_attempts`). Until 2026-09-06 the in-flight session
+  was returned to anyone who asked, which let an attacker race the owner's claim.
 - **Unset key = inert enforcement.** With no `VerifyMn:ApiKey`, `IsConfigured` is false and
-  the old behaviour stands. That is what lets the pre-existing engine tests pass unchanged,
-  and it is also the deploy hazard: **production must set the key or the gate is off.**
-- **The callback is a hint, never evidence.** No body, no signature; it only triggers a
-  re-read of `GET /sessions/{id}`. `CallbackBaseUrl` is left empty unless the engine is
-  publicly reachable, because verify.mn retries failed callbacks.
+  the pre-verify.mn behaviour stands (tests rely on it). **Production must set the key or the gate
+  is off.**
+- **The callback is a hint, never evidence.** No body, no signature; it only triggers a re-read
+  of `GET /sessions/{id}`. `CallbackBaseUrl` stays empty unless the engine is publicly reachable,
+  because verify.mn retries failed callbacks.
 
-### Verified
-
-560 engine tests (19 new), 379 app tests, app typecheck, control build. Live smoke test
-against the real API: session created, Mongolian instruction returned, status polled,
-duplicate start reused the same session and code, 7-digit/letters rejected 400,
-`claim` and `POST /users` return 401 unauthenticated, callback answered 200 in 144ms.
-
-### Open
-
-- **Account recovery on reinstall is not built.** A reinstall yields a new Supabase
-  anonymous identity; claiming the same number then hits `PhoneInUse` and the user is
-  stuck rather than being returned to their account. This is the main gap — it needs a
-  deliberate "this number already has an account, sign back into it" path.
-- **No rate limit on `POST /auth/phone/start`.** It is anonymous and creates provider
-  sessions. Sessions are free and reuse caps per-number growth, but a wide spray across
-  many numbers is currently uncapped.
-- The old `verify_button` / `otp_invalid_code` i18n keys were removed; `verify_title` was
-  repurposed from "Enter the code" to "Prove your number".
+---
 
 ## Security & Data-Hygiene Hardening — Shipped (2026-08-31)
 
-Found by an engine-focused audit after the verify.mn work; three of the items were
-introduced by that work and are self-corrections.
-
-### What changed
-
-- **Admin login brute-force protection.** `POST /admin/auth/login` guards the only admin
-  account and was anonymous and unlimited. `LoginThrottleService` locks a
-  username+IP pair for 15 minutes after 5 failures in a 15-minute window and returns
-  429 with `Retry-After`. In-memory and per-instance — **a multi-instance deploy needs
-  this moved to shared state.**
-- **Deletion now deletes.** Anonymisation cleared `PhotoUrls` but `/uploads` is public
-  and unauthenticated and `LocalFileStorageService` had no delete method at all, so every
-  photo stayed fetchable forever by anyone holding an old URL. Added
-  `DeleteByPublicUrl`, called from the anonymisation sweep and when `PUT /users/me`
-  drops a photo. Also purges `PhoneVerifications` rows for anonymised users (they hold
-  the number in plaintext) and stale unclaimed rows after 24h.
-- **Input length caps.** There was not one `[MaxLength]` in the codebase: every string
-  was bounded only by Kestrel's 30MB default. `DTOs/FieldLimits.cs` now centralises the
-  caps and every free-text request field carries one. The app's composer caps at the
-  same 2000 chars so a long message is stopped locally rather than by a 400.
-- **CORS allowlist.** `SetIsOriginAllowed(_ => true) + AllowCredentials()` reflected any
-  origin with credentials, unconditionally including Production. Now `Cors:AllowedOrigins`
-  from config; Development without it stays permissive **but drops credentials**, and
-  Production **refuses to boot** without it rather than failing open.
-- **Phone-verification races (self-correction).** `ClaimAsync` was read-then-write, so
-  the "single use" guarantee did not survive concurrency — now a conditional
-  `UPDATE … WHERE "ClaimedByUserId" IS NULL`. `StartAsync` could open two provider
-  sessions for one number, leaving the user holding two codes — now serialised on a
-  `pg_advisory_xact_lock` keyed by phone, joining an ambient transaction rather than
-  nesting one.
-- **Sweep no longer loads whole tables.** The hourly pass pulled every active match,
-  every user (daily), and every paid user into memory to filter in C#. Staleness now
-  goes into SQL via `GhostingService.StaleAfter`, and the budget reset and membership
-  expiry are single `ExecuteUpdateAsync` statements.
-- **Reveal level on a fresh match.** `NewMatch` stored `RevealLevel = 1` but
-  `GetRevealLevel` recomputed from `MessageCount`, where 0 messages meant level 0 — so a
-  just-accepted match returned a nameless, photoless, bio-less profile, contradicting
-  "Match accepted → first name, 1 photo, short bio". The stored column is now the floor
-  (`Math.Max`), which also makes the Ghosted freeze a case of one rule instead of a
-  second source of truth.
-- **Path-traversal guard** on `LocalFileStorageService` (latent — no caller passed user
-  input, but the service accepted arbitrary strings).
-
-### Worth knowing
-
-- Validation attributes on record primary-constructor parameters must **not** use the
-  `[property: ...]` target — ASP.NET throws `InvalidOperationException` at model-binding
-  time. Caught by a live smoke test, not by the unit tests, which never exercise binding.
-- Verified: 582 engine tests (22 new), 379 app tests, app typecheck, control build. Live:
-  oversized phone → 400, five bad admin logins → 401 then 429 with `Retry-After: 900`,
-  hostile origin gets `Allow-Origin` but no `Allow-Credentials`.
-
-### Deliberately not done
-
-- **No general API rate limiting.** Only the admin login is throttled. `POST
-  /auth/phone/start` is still anonymous and uncapped across distinct numbers (per-number
-  growth is capped by session reuse).
-
-## Error-Handling Consolidation — Shipped (2026-08-31)
-
-Prompted by an audit of how centralized error handling actually was. The mutation and
-crash paths were already solid; reads and domain-vs-fault classification were not.
-
-- **`DomainException`** now carries business rules (status code + caller-facing message)
-  and `ExceptionHandlingMiddleware` maps it centrally. Previously `TownSquareService`
-  threw `InvalidOperationException`/`ArgumentException` and `TownSquareController` caught
-  those types and echoed `ex.Message` — so an EF-thrown `InvalidOperationException` would
-  have been reported as a **400 containing internal text** instead of a logged 500. Four
-  try/catch blocks deleted from the controller. Internal preconditions
-  (`GenerateRoundRobin`'s count check, missing config) stay as framework exceptions and
-  correctly become 500s.
-- **`QueryCache.onError` in the app.** There was no global handler for reads at all, and
-  12 of 27 query-consuming screens had no error state — so a failed read fell through to
-  the screen's *empty* state and looked like "no matches"/"no quests". The handler
-  surfaces the server's message via `getApiErrorMessage`, with a 10s cooldown so one
-  dropped connection does not fire an alert per mounted query. Screens that already
-  render their own error + retry opt out with `meta.silentError` (8 hooks).
-- **`serverError` promoted** from a private function inside `TownSquare.tsx` to
-  `control/src/lib/apiError.ts` and wired into every page's `onError`. The admin panel
-  now shows what the engine actually said rather than "Save failed - try again."
-- **`notifyUser()` throttled** — an error loop used to stack one modal per rejection.
-
-**Verified:** 588 engine tests (6 new), 383 app tests (4 new), typecheck, control build.
-Live: a domain rule returns its own status with the message verbatim; the fault path is
-covered by unit tests asserting the internal text does *not* appear in the body.
-
-## Dev Database Reseed + Behavioural Pass — 2026-08-31
-
-Wiped and reseeded the local dev database (`mingldingl_engine/scripts/reseed-dev-db.sql`,
-now the standard way to do this) and drove the API with real Supabase JWTs. The old
-database held 511 mostly load-test users, **zero icebreakers and zero quizzes**, which was
-hiding two real bugs.
-
-### Bugs found and fixed
-
-- **P0 — the icebreaker could almost never complete.** `GET /engagement/icebreaker/{matchId}`
-  drew a *random* active question per request, but `BothRespondedAsync` requires both users to
-  answer the **same** `IcebreakerId`. With 7 active questions the two participants got the same
-  one ~14% of the time; otherwise both answered, `bothResponded` stayed false, `IcebreakerComplete`
-  never flipped, neither saw the reveal, and no score was awarded — the core loop dead-ended.
-  Invisible before the reseed because there were no icebreakers at all (the endpoint just 404'd).
-  The quiz had the identical bug (`FindCompatibilityAsync` matches on `quizId`).
-  Both now pick deterministically from the match id (`StableIndex`, SHA-256 over the Guid — not
-  `GetHashCode`, which is per-process randomised and would differ between the two users).
-  `GET /engagement/quiz` gained an optional `matchId`; the app passes it and its cache key is
-  now scoped per match.
-- **Photo deletion silently skipped most files.** `DeleteByPublicUrl` prefix-matched the whole
-  configured `Storage:PublicBaseUrl`. That value is the LAN IP for on-device testing while stored
-  URLs said `localhost`, so nothing matched and the files survived account deletion — the exact
-  bug the delete was added to fix. Now matches on the path beneath the uploads root, so a photo
-  stored under any earlier origin (localhost / LAN IP / prod domain) is still deletable.
-- **Seven tests only passed on an empty database.** `Assert.Single(page.Items)` /
-  `Assert.Empty(Db.Ships)` / a global `first_icebreaker` milestone check, all unscoped. The
-  integration suite shares this database, so realistic data broke them. Scoped to their own
-  fixtures.
-
-### Verified against the reseeded data
-
-Reveal ladder walks exactly per the design table (0 msgs → name+photo+bio, 5 → +age+photo2,
-15 → +photo3+district, 30 → deep fields, and deep stays null on Free). Phone-verification gate
-returns 403 without a claim. Ghosting sweep, deletion sweep and photo deletion all fire.
-598 engine tests, 383 app tests, control build.
-
-### Note
-
-The first reseed replaced `ContentPages` with placeholders, destroying the real authored guides
-copy (2.5k chars). Restored from a pre-reseed `pg_dump`; the script no longer truncates that
-table, on the same reasoning that already exempted `AdminConfigs`.
-
-## The Campaign (Dungeon Crawl) — Spec (2026-09-01)
-
-**What it is.** A per-match "dungeon map" that renders the existing engagement ladder
-(match → icebreaker → quiz → 15 messages → Flame Rite → date pledge → real date) as seven
-rooms a pair clears together. The June 2026 dungeon-crawler design did not survive the
-ledger prune; this is a fresh, smaller design with one governing rule:
-
-**The anti-annoyance rule (structural, not aspirational).** The campaign is a *lens over
-the ladder, never a gate on it*. Room state is **purely derived** from existing match
-state — there is no campaign progression state machine, nothing to advance, nothing that
-can desync. No existing flow gains a new precondition; chat is untouched except one added
-entry banner. The only interaction is optional loot claiming; ignoring the feature
-entirely costs a dater nothing. No new push notifications or nudges.
-
-### Rooms (ids are wire-stable string constants, in order)
-
-| # | RoomId | Name | Cleared when (derived) |
-|---|---|---|---|
-| 1 | `gate` | The Meeting Gate | always (the match exists) |
-| 2 | `echoes` | Hall of Echoes | `Match.IcebreakerComplete` |
-| 3 | `runes` | The Rune Chamber | two distinct `QuizResponses.UserId` rows share this `MatchId` + `QuizId` |
-| 4 | `voices` | Gate of Voices | `Match.MessageCount >= 15` |
-| 5 | `flame` | The Flame Altar | `FlameRiteCompletedAt != null \|\| VideoRewardClaimed` (same equivalence the `AddFlameRite` backfill used) |
-| 6 | `bridge` | The Pledge Bridge | any `DateConfirmation` for the match with `CompletedAt != null` |
-| 7 | `threshold` | The Dragon's Threshold (boss) | a completed `DateConfirmation` with `InitiatorAttended == true && ReceiverAttended == true` |
-
-Rooms are independent (no sequential lock): a pair that skips the quiz still clears
-`voices` by chatting. "Current room" in the UI is simply the first uncleared room.
-
-### Engine
-
-- **Entity `CampaignRoomClaim`** — `Id, MatchId, UserId, RoomId (string), ClaimedAt`.
-  Unique index `(MatchId, UserId, RoomId)`; claims are per-user (each partner opens their
-  own chest). Migration `AddCampaignRoomClaims` also adds the deferred `Memberships.UserId`
-  index (Outstanding Follow-ups said to fold it into the next migration).
-- **`CampaignService`** (registered in `AddApplicationServices`): room definitions,
-  `GetStateAsync(match)` derivation, `ClaimAsync(match, userId, roomId)`. Claim of an
-  uncleared room → `DomainException.Conflict`; double claim → unique-index catch → 409.
-  Rewards via `AwardWithDeltaAsync` (event types `CampaignRoomBonus` / `CampaignBossBonus`
-  — not in `GetDelta`, so no economy-table edit), plus `LootService.RollDropAsync(userId,
-  "campaign")` on normal rooms (daily 3-drop cap applies) and `GrantGuaranteedAsync` on
-  the boss. Reward machinery keeps its never-fail-the-request convention.
-- **`CampaignController`** — `[Route("matches/{matchId}/campaign")]`, `LoadParticipantMatchAsync`
-  (requireActive: false — a ghosted match shows its frozen map, claims still allowed for
-  already-cleared rooms), `GET` → `CampaignResponse(Rooms[], ClearedCount, BossCleared)`
-  with per-room `RoomId, Cleared, Claimed, BonusScore`; `POST rooms/{roomId}/claim` →
-  `ClaimCampaignRoomResponse(Awarded, DroppedItem?)`.
-- **Config keys**: `campaign.enabled` (Bool, true, Growth), `campaign.room.bonus`
-  (Number, 5, Scoring), `campaign.boss.bonus` (Number, 25, Scoring). Disabled ⇒ both
-  endpoints 404, app hides its entry banner on 404.
-- **No new broadcast events.** Every room-clearing action already broadcasts
-  (`icebreaker`, `quiz`, `message`, `flame_rite_completed`, `date_confirmed`); the app
-  adds `queryKeys.campaign(matchId)` invalidation to those existing handlers.
-
-### App
-
-- `app/campaign/[matchId].tsx` — vertical dungeon path: `TiledBackdrop` + `ScreenHeader`,
-  room nodes (medallion icon, name, state) joined by a path line; cleared-unclaimed rooms
-  show a chest CTA; the first uncleared room is highlighted with a `QuestBanner` deep link
-  to the screen that clears it (icebreaker/quiz/chat/video/activities); boss room
-  ember-tinted. Claim feedback via inline `LootToast` + `awardedSelector` score bump +
-  `setPendingDrop` for items.
-- `hooks/useCampaign.ts` (house style: parse function, `enabled: !!matchId`,
-  `meta.invalidates` + `awardedSelector` on the claim mutation), `queryKeys.campaign`,
-  `apiClient.matches.campaign/claimCampaignRoom`.
-- Entry point: one `QuestBanner icon="map"` in `chat/[matchId].tsx` above the existing
-  ladder banners, hidden while the campaign query 404s.
-- i18n `campaign_*` keys, EN + MN, `%{}` interpolation; locale-store subscription line.
-
-### Testing
-
-Engine integration tests (real Postgres, `IntegrationTestBase`): per-room derivation,
-claim pays once (asserted through the `ScoreEvents` ledger), uncleared claim 409, double
-claim 409 with no double award, disabled-config 404, boss guaranteed loot. App: hook test
-with `createAppQueryClient`, screen test with mocked hooks asserting literal EN copy.
-
-### Deliberately out of scope
-
-Milestone-based reveal (the known Flame Rite deferral), campaign push notifications,
-partner-visible claim state, admin analytics tiles, QuestTile progress pips.
-
-### Execution Outcome (2026-09-01)
-
-Shipped as specced, TDD throughout (tests written and watched fail before each unit).
-**Engine**: `Models/CampaignRoomClaim.cs`, `Services/CampaignService.cs`,
-`Controllers/CampaignController.cs`, `DTOs/CampaignDto.cs`, migration
-`20260831163301_AddCampaignRoomClaims` (includes the deferred `Memberships.UserId`
-index — that follow-up is closed), three `campaign.*` config keys. 17 new integration
-tests (`CampaignServiceIntegrationTests`, `CampaignControllerIntegrationTests`); full
-suite 615/615. **App**: `hooks/useCampaign.ts`, `app/campaign/[matchId].tsx` (vertical
-dungeon path, chest claims via `GameButton` + `setPendingDrop`, current-room
-`QuestBanner` deep links), entry banner in `chat/[matchId].tsx` (hidden while the
-campaign GET 404s), `campaign(matchId)`/`campaignAll` query keys, `campaign_*` i18n
-EN+MN, campaign invalidation added to the five relevant realtime handlers (after the
-self-guards — own actions invalidate via their mutations' `meta.invalidates`, which
-gained `campaignAll` in useIcebreaker/useQuiz/useChat/useActivitySuggestions and a
-direct invalidate in the video screen). 8 new app tests; 403/403, typecheck clean.
-Control types regenerated; lint + build pass.
-
-**Notes for a future reader:**
-- The claim endpoint intentionally works on ghosted matches (`requireActive: false`) —
-  already-cleared rooms stay claimable; a frozen map punishes nothing beyond what
-  ghosting already did.
-- `flame_rite_completed`'s realtime handler has no self-guard (the completer's own
-  screen invalidates directly, and the payload's `userId` is the completer) — the
-  campaign invalidation there fires for both participants, which is harmless.
-- Room claim loot uses source `"campaign"`; boss claims use `GrantGuaranteedAsync`, so
-  `Assert.NotNull(DroppedItem)` in the boss test is safe only because the test user owns
-  no items (a fully-collected user gets `DuplicateLoot` +10 and null instead).
-
-**Manual two-account walk — RUN and PASSED (2026-09-01, same day).** API-level against the
-real stack (two `e2e-campaign-*@mingldingl.test` Supabase users, real JWTs, live engine,
-local Postgres): fresh match showed gate-only cleared; double gate claim 409; sealed-room
-claim 409; unknown room 404; icebreaker both-responded cleared `echoes`; quiz
-both-responded cleared `runes` (compatibility 100 returned to the second responder); 16
-alternating messages cleared `voices`; rite propose→accept→`/video/complete` cleared
-`flame` (self-accept correctly 403); both-confirm pledge cleared `bridge`; after
-backdating `CompletedAt` 49 h, both attendance submissions cleared `threshold` with
-`bossCleared: true`. Ledger verified in Postgres: user A had exactly 6×`CampaignRoomBonus`
-(+30) + 1×`CampaignBossBonus` (+25), two `UserItems` with source `campaign` (boss claim
-paid its guaranteed drop), 8 `CampaignRoomClaims` rows total. Kill-switch verified by
-flipping the `AdminConfigs` row + engine restart: both endpoints 404 while off, full state
-intact when re-enabled. Not exercised: the admin Config *page* path for the flip
-(`PUT /admin/config/{key}` + in-process `Set`) — the dev admin password is only stored
-hashed; the DB-value + seeder path is what was proven. The two e2e users and their match
-remain in the dev DB under the `e2e-campaign-` prefix.
-
-## Ulzii Design Language — Spec (2026-09-01)
-
-**What it is.** Replaces the app's generic-fantasy ornament layer (L-bracket corners,
-rivets, plain dividers) with Mongolian ornament rendered from geometry: **өлзий** (the
-endless knot, a billiard-path interlace woven over/under by crossing parity) and
-**алхан хээ** (the walking fret, an integer-lattice meander). Approved from the live
-design probe published as the "Ulzii Design Language" artifact, which is the visual
-reference for this work; its "doctrine" section is normative:
-
-1. **Edges and thresholds only** — corners, frames, dividers, seals, meter fills; never
-   behind text, never over photos, never as background texture.
-2. **Three metals, three meanings** — gold default; ember for stakes (boss, Rite, Oath);
-   brass for utility. No fourth metal.
-3. **Density ladder** — 2×2 knots at corners, 3×4-ish for sigils, 5×5 only for set
-   pieces; at most one grand knot per screen.
-4. **Static by default** — PNG assets everywhere (works at vfx=off); Skia motion only
-   where a moment earns it, only at vfx=full (deferred, see below).
-
-**Generator, not illustration.** `mingldingl_app/scripts/gen-ornaments.js` — pure Node
-(zlib PNG encoder, same pattern as `gen-parchment.js`; no node-canvas): traces knot
-strands, flattens the boundary-loop beziers, rasterizes capsule strokes with analytic
-AA in the app's palette (5-layer gild: shadow/dark/main/bright + crossing punch-outs
-rendered as alpha erase so assets sit on any ground), writes `assets/ornaments/*.png`
-at 3x. Rerunnable any time; assets are checked in.
-
-**Assets**: `knot_gold` / `knot_dim` / `knot_ember` (2×2), `knot_boss_ember` (5×5),
-`sigil_bond` (3×3 gold) / `sigil_fate` (3×4 ember) / `sigil_kinship` (4×3 brass),
-`fret_gold` + `fret_dark` (long meander strips).
-
-**Component changes** (shared components carry the spread):
-- `AppCard` — corner brackets + rivets → one knot asset in 4 flip orientations.
-- `SectionDivider` — center ◆ → mini knot; gradient lines stay.
-- `XPBar` — dim gold fret on the empty track; dark fret engraved over the tier-gradient
-  fill; shimmer/ticks/flash untouched.
-- `QuestBanner` — optional `medallion="knot"` (default stays the meaningful icon);
-  the campaign entry banner in chat uses it.
-- `CharacterCard` — woven frame: fret strips on four edges (two rotated) + knot-locked
-  corners, inside the tier-colored border; tier still controls the light.
-- `OathSigil` — glyph char → per-oath sigil image (gold/ember/brass), text unchanged.
-- `app/campaign/[matchId].tsx` — room medallions become knots: gold cleared, dim
-  sealed, ember 5×5 for the boss; current-room glow ring stays.
-- Type: `Alegreya SC` added as `FONTS.utility` for small-caps labels in the changed
-  components (app-wide small-label sweep is a follow-up).
-
-**Deferred**: Skia shimmer tracing the Oath sigil / boss seal (vfx=full set piece);
-empty-state unlit knots; festival-tinted ornament variants.
-
-### Execution Outcome (2026-09-01)
-
-Shipped as specced, tests-first. **Generator**: `scripts/gen-ornaments.js` — billiard
-trace + bezier-flattened wall loops + analytic-AA capsule rasterizer + RGBA PNG encoder,
-~250 lines, no dependencies; wrote all 9 assets to `assets/ornaments/` (checked in;
-2×2 knots 127px, boss 169px, fret strips 1610×50 — sizes are 3× display points).
-**Components**: `AppCard` (4 knot corners via one asset + flips; brackets and rivets
-gone), `SectionDivider` (knot replaces ◆), `XPBar` (fret at 0.15 on the track,
-`fret_dark` engraved at 0.5 on the fill; `pointerEvents` note: RN `Image` takes it in
-style, not as a prop), `QuestBanner` (`medallion="knot"` opt-in; default icon behavior
-covered by a test), `CharacterCard` (fret frame: two horizontal strips + two 452-long
-strips rotated about their centers, 4 corner knots), `OathSigil` + `OathStep` + the
-profile re-swear sheet (glyph chars → `OATH_SIGILS` images; `OATH_GLYPHS` still exported
-but unused), campaign screen (knot medallions: gold cleared/current, dim sealed, ember
-5×5 boss). `lib/ornaments.ts` is the asset registry; `FONTS.utility` =
-`AlegreyaSC_700Bold` (new dep `@expo-google-fonts/alegreya-sc`), applied in the campaign
-screen labels.
-
-**Verified**: 7 new jest tests (`ulziiOrnaments.test.tsx`), suites 51/51 (410 tests),
-typecheck clean — and a **live Playwright walk of the real web app against the real
-engine** (real Supabase session for `e2e-campaign-a`; engine phone endpoints
-route-stubbed: `verificationId` is the field `useAuth` needs, not `id`): screenshots
-confirmed knot corners + divider knots on the Character Sheet, the fret walking through
-the XP bar, the knot campaign banner in chat, and the full campaign map — six gold rooms
-and the ember boss seal. RN-web + Playwright gotchas worth keeping: `fill()` and
-`pressSequentially` do NOT reach RN's controlled TextInput (focus + `page.keyboard.type`
-works), and RN-web `button` presses need `element.click()` in `evaluate` — added here to
-supplement the verify skill's list.
-
-**Follow-ups**: the deferred items above, plus a device pass for density/brightness
-tuning (web pass looked right at first review). The app-wide `FONTS.utility` sweep that
-was open here is done — see "Design Token Consolidation" below.
-
-## Design Token Consolidation — Shipped (2026-09-01)
-
-An aesthetics audit of `mingldingl_app` (113 screens/components) found colour well
-tokenised (647 `COLORS.*` references, zero raw `fontFamily` strings) but the type and
-space scales declared in `lib/theme.ts` almost entirely unused: `FONT_SIZES` was exported
-and imported by **nothing** while 241 raw `fontSize` literals spread across 19 distinct
-values, and `SPACE` had 11 references against 453 spacing literals. The visible symptom
-was on `app/progression.tsx`, where four stacked cards rendered eyebrow labels at 10/11/12
-and body copy at 13/14, and two adjacent stat cards showed their headline numeral at 18
-and 20.
-
-**What changed**
-
-- `lib/theme.ts` is now the single source of every colour, size and space value.
-  `FONT_SIZES` gained a `wordmark` step (the CloisterBlack logo, a real role, not drift);
-  `SPACE` became a strict 4px grid with `hair`/`gutter`/`scrollTail` named for the layout
-  roles they always play; `RADIUS` gained `pill`. New: `FILL` (one alpha per affordance
-  role), `circle(size)`, and `BUTTON_METALS` — GameButton's hand-tuned variant table,
-  hoisted out of the component unchanged so no button shifted a pixel.
-- Every `fontSize`, spacing and `borderRadius` literal in `app/` and `components/` was
-  snapped to those scales by codemod (nearest step; 13→14, 15→16, 17→18, 20→22). Ten
-  geometric radii became `circle()` calls. All 25 raw `rgba()` literals now route through
-  `tint()`/`overlay()`/`FILL`, which also collapsed the gold "selected" fill from four
-  drifting alphas (0.1/0.15/0.2/0.22) to one.
-- New `components/ui/CardEyebrow.tsx` replaces the tracked card/section label that had
-  been copy-pasted ten times with drifting size, tracking and margin. It uppercases its
-  own label (six call sites were doing `.toUpperCase()` by hand) and sets it in
-  `FONTS.utility` — closing the Ulzii follow-up. Verified `AlegreyaSC_700Bold` carries
-  Cyrillic including Ө/Ү/ө/ү before adopting it for Mongolian copy.
-- `FatedThreadsSection` was re-implementing AppCard's exact shell (panel + bronze +
-  `RADIUS.md`) minus the corner knots, gold hairline and texture, so it read flatter than
-  its neighbours on the quest screen; it now uses `AppCard`. `DailyBudgetMeter` is an
-  inline pill, not a card — it just took `RADIUS.pill`.
-- `lib/tiers.ts` had restated five palette hexes verbatim in `RARITY_COLORS` and
-  `FRAME_COLORS`, so a palette edit would not have reached rarity or frame colours; those
-  now reference `COLORS`. Membership's Silver badge hexes moved into the palette. The gem
-  and gem-shade tables in `tiers.ts` stay literal — they are a deliberate second palette.
-
-**Remaining literals, by design**: the twelve gem/shade hexes in `lib/tiers.ts`, and
-`'#00000000'` in `TorchGlow.tsx` (a transparent Skia gradient stop, not a colour).
-
-**Verification**: `npm run typecheck` clean, 54 suites / 427 tests pass (`CardEyebrow`
-adds 4, including a Mongolian-uppercase case), and `npx expo export --platform web`
-bundles. Not yet checked on a device — the size changes are at most ±2px per step but
-Mongolian strings are longer than English, so button and tab labels deserve a real
-look before this is called done.
-
-## Admin Control Expansion — Shipped (2026-09-04)
-
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
-**Goal:** Move every economy, pacing, pricing, and feature-availability lever that a solo operator would want to tune from live data out of hardcoded constants and into the DB-backed `AdminConfigs` store, with per-key bounds so a typo cannot break the game.
-
-**Architecture:** Every new lever is a `ConfigKeyDefinition` in `ConfigKeys.All` (seeded on boot, cached by `ConfigService`, edited in `mingldingl_control`'s Config page). Services that used `static` constants become instance reads through `ConfigService`; static helpers that callers relied on (`ScoreService.GetDelta`, `DailyMatchBudget`, `GhostingService.IsStale`, `QuestService.QuestsForDate`, `MembershipController.AllTiers`) become instance methods or move to a small injected catalog. `ConfigKeyDefinition` grows optional `Min`/`Max`, enforced by `ConfigValueValidator` and the admin controller; tier thresholds additionally must stay strictly increasing. Config edits never rewrite `ScoreEvents` history: `Delta` is stored per event, so a changed value applies to future awards only.
-
-**Tech Stack:** ASP.NET Core 8, EF Core, xUnit (unit tests are `tests/.../Services/*Tests.cs`; integration tests extend `IntegrationTestBase` and run in a rolled-back transaction on local Postgres).
-
-**Spec:** this section. Design decisions, in order of the previous audit:
-
-| Category | Key | Default | Min | Max | Replaces |
-|---|---|---|---|---|---|
-| Scoring | `score.event.ProfileComplete` | 100 | 0 | 10000 | `ScoreService.GetDelta` table |
-| Scoring | `score.event.DailyLogin` | 5 | 0 | 10000 | " |
-| Scoring | `score.event.FirstMessage` | 10 | 0 | 10000 | " |
-| Scoring | `score.event.IcebreakerDone` | 20 | 0 | 10000 | " |
-| Scoring | `score.event.QuizDone` | 15 | 0 | 10000 | " |
-| Scoring | `score.event.MatchReply` | 10 | 0 | 10000 | " |
-| Scoring | `score.event.DateConfirmed` | 50 | 0 | 10000 | " |
-| Scoring | `score.event.VideoCallDone` | 30 | 0 | 10000 | " |
-| Scoring | `score.event.ShipSparked` | 40 | 0 | 10000 | " |
-| Scoring | `score.event.OathProven` | 40 | 0 | 10000 | " |
-| Scoring | `score.event.GhostPenalty` | -15 | -10000 | 0 | " |
-| Scoring | `score.event.ReportPenalty` | -30 | -10000 | 0 | " (still unreachable, see Follow-ups) |
-| Scoring | `score.streak.weekly_bonus` | 50 | 0 | 10000 | literal in `ScoresController.DailyLogin` |
-| Scoring | `score.quest_chest` | 30 | 0 | 10000 | literal in `EngagementController.ClaimQuestChest` |
-| Scoring | `tier.opal.threshold` / `tier.amethyst.threshold` / `tier.ruby.threshold` / `tier.emerald.threshold` | 100 / 300 / 1000 / 2000 | 1 | 1000000 | `ScoreService.TierDefaults` (Sapphire already existed; Garnet stays 0) |
-| Scoring | `reputation.penalty_dock` | 0.1 | 0 | 1 | two `- 0.1` SQL literals in `ScoreService` |
-| Budget | `budget.base.free` / `.silver` / `.gold` | 5 / 12 / 20 | 0 | 1000 | `ScoreService.DailyMatchBudget` |
-| Budget | `budget.cap.free` / `.silver` / `.gold` | 12 / 25 / 40 | 0 | 1000 | " |
-| Budget | `budget.score_divisor` | 50 | 1 | 100000 | " |
-| Membership | `membership.silver.monthly_mnt` / `membership.gold.monthly_mnt` | 10900 / 21900 | 1 | 10000000 | `MembershipController.Tiers` |
-| Membership | `membership.discount.3mo_pct` / `membership.discount.6mo_pct` | 10 / 20 | 0 | 90 | `MembershipPricing.DiscountByDuration` |
-| Quests | `quest.<id>.xp` ×6 (`q_summons` 15, `q_icebreaker` 20, `q_messages` 15, `q_quiz` 15, `q_video` 20, `q_pledge` 25) | as listed | 0 | 10000 | `QuestService.AllQuests` |
-| Quests | `quest.<id>.target` ×6 (all 1 except `q_messages` 5) | as listed | 1 | 1000 | " (app copy interpolates `%{target}`, so it is safe to tune) |
-| Safety | `ghosting.stale_hours` | 48 | 1 | 8760 | `GhostingService.GhostThreshold` |
-| Safety | `dating.attendance_check.delay_hours` | 48 | 0 | 8760 | literal in `ActivityService.GetAttendanceCheckStatusAsync` |
-| Safety | `account.deletion_grace_days` | 7 | 0 | 365 | `DailyMaintenanceBackgroundService.DeletionGracePeriod` |
-| Growth | `ships.expiry_days` | 14 | 1 | 365 | `DailyMaintenanceBackgroundService.ShipExpiryPeriod` |
-| Growth | `ships.enabled` | true | | | new kill switch: `POST /ships` → 404 `ship.disabled` |
-| Growth | `townsquare.enabled` | true | | | new kill switch: every `/townsquare/*` route → 404 `square.disabled`; scheduler still runs so in-flight sessions finish |
-| Growth | `townsquare.max_per_side` | 5 | 1 | 50 | `TownSquareService.MaxPerSide` |
-| Growth | `townsquare.round_seconds` | 240 | 30 | 3600 | `TownSquareService.RoundDurationSeconds` |
-| Growth | `campaign.voices.messages` | 15 | 1 | 10000 | `CampaignService.VoicesMessageThreshold` |
-| Safety | `video.enabled` | true | | | new kill switch: `POST /video/token` → 404 `video.disabled`; while false the Flame Rite is treated as not required so pledges are not deadlocked |
-
-**Deliberately kept hardcoded:** login throttle, password hashing, phone-verification claim window and retention, photo compression and upload limits, message page sizes, background sweep intervals, the reputation floor of zero, and the streak halving rules.
-
-### Global Constraints
-
-- `ConfigService` is a singleton; every service that reads it takes it via constructor injection and is registered in `ServiceCollectionExtensions.AddApplicationServices` (already true for all touched services).
-- Business rules travel as `DomainException` or the `ApiErrorExtensions` helpers with a stable `code`; every new code (`ship.disabled`, `square.disabled`, `video.disabled`) gets `err_<code>` EN + MN copy in `mingldingl_app/lib/i18n/`, and `lib/__tests__/i18nCoverage.test.ts` must stay green.
-- Validation attributes on record DTOs stay on constructor parameters.
-- No new appsettings; no migrations (the `AdminConfigs` table already exists and the seeder inserts missing keys on boot).
-- Run `dotnet test` in `mingldingl_engine` after every task; `npm test` + `npm run typecheck` in `mingldingl_app` after the i18n task.
+- **Admin login lockout.** `LoginThrottleService` locks a username+IP pair for 15 minutes after
+  5 failures in 15 minutes, 429 with `Retry-After`. In-memory, per-instance.
+- **Deletion deletes.** `/uploads` is public, so anonymisation and `PUT /users/me` call
+  `LocalFileStorageService.DeleteByPublicUrl` (matching on the path beneath the uploads root, since
+  `Storage:PublicBaseUrl` legitimately differs per environment); `PhoneVerifications` rows are
+  purged for anonymised users and stale unclaimed rows after 24 h; the service refuses paths that
+  escape the root.
+- **Input length caps** centralised in `DTOs/FieldLimits.cs`; the app composer caps at the same
+  2000 chars. Validation attributes on record DTOs must sit on the constructor parameter —
+  `[property: …]` throws at model-binding time, which only a live smoke test caught.
+- **CORS allowlist.** `Cors:AllowedOrigins` from config; Development without it is permissive
+  but drops credentials; Production refuses to boot without it.
+- **Sweep no longer loads whole tables:** staleness in SQL via `GhostingService.StaleAfter`,
+  budget reset and membership expiry as single `ExecuteUpdateAsync` statements.
+- **Reveal floor.** The stored `RevealLevel` is a floor (`Math.Max`) over the message-count
+  level, so a fresh match shows name + photo + bio instead of nothing.
+- Not done: general API rate limiting beyond the admin login.
 
 ---
 
-### Task 1: Bounded config keys
+## Error-Handling Consolidation — Shipped (2026-08-31; codes 2026-09-01)
 
-**Files:**
-- Modify: `mingldingl_engine/src/MinglDingl.Engine/Services/ConfigKeys.cs`
-- Modify: `mingldingl_engine/src/MinglDingl.Engine/Services/ConfigValueValidator.cs`
-- Modify: `mingldingl_engine/src/MinglDingl.Engine/Controllers/AdminConfigController.cs`
-- Test: `mingldingl_engine/tests/MinglDingl.Engine.Tests/Services/ConfigValueValidatorTests.cs` (new)
-- Test: `mingldingl_engine/tests/MinglDingl.Engine.Tests/Integration/AdminConfigControllerIntegrationTests.cs`
+`DomainException` carries business rules and `ExceptionHandlingMiddleware` maps it centrally;
+services no longer signal rules with framework exception types (which EF also throws, so a
+controller catching them could echo internal text as a 400). Every error response carries a
+stable `code` beside its English `error` (`ErrorResponse(Error, Code)`); the app maps `code` →
+`err_<code>` i18n keys (EN + MN) and an unmapped code falls back to the caller's localised copy,
+never the server's English. App: a global `QueryCache.onError` with a 10 s cooldown for reads
+(screens with their own error state opt out with `meta.silentError`), `notifyUser()` throttled.
+Control: `lib/apiError.ts`'s `serverError` on every page's `onError`, still keyed on the English
+`error` (internal tool; `admin.*` codes are English-only on purpose).
 
-**Interfaces:**
-- Produces: `record ConfigKeyDefinition(string Key, string Category, string ValueType, string DefaultValue, string Description, double? Min = null, double? Max = null)`; `ConfigValueValidator.Validate(ConfigKeyDefinition def, string value)` overload; `ConfigKeys.Find(string key)` returning `ConfigKeyDefinition?`.
+---
 
-- [x] Write `ConfigValueValidatorTests`: a Number key with `Min = 0, Max = 10` rejects `-1` and `11` with a message containing "between 0 and 10", accepts `0`, `10`, `5.5`; the legacy `Validate(string valueType, string value)` still accepts any number.
-- [x] Add integration test `Update_OutOfRange_ReturnsBadRequestAndDoesNotChangeCache` (set `tier.sapphire.threshold` to `-5`) and `Update_TierThresholdBelowLowerTier_ReturnsBadRequest` (set `tier.sapphire.threshold` to `250`, which is below Amethyst's 300).
-- [x] Run: `dotnet test --filter ConfigValueValidator` → fails to compile.
-- [x] Extend `ConfigKeyDefinition` with `double? Min = null, double? Max = null`; add `public static ConfigKeyDefinition? Find(string key) => All.FirstOrDefault(d => d.Key == key);`.
-- [x] Add to `ConfigValueValidator`:
-  ```csharp
-  public static string? Validate(ConfigKeyDefinition def, string value)
-  {
-      var typeError = Validate(def.ValueType, value);
-      if (typeError is not null) return typeError;
-      if (def.ValueType != "Number") return null;
-      double parsed = double.Parse(value, CultureInfo.InvariantCulture);
-      if (def.Min is double min && parsed < min || def.Max is double max && parsed > max)
-          return $"'{value}' is outside the allowed range for {def.Key} (between {def.Min?.ToString(CultureInfo.InvariantCulture) ?? "-∞"} and {def.Max?.ToString(CultureInfo.InvariantCulture) ?? "∞"})";
-      return null;
-  }
-  ```
-  and switch the string overload's `double.TryParse` to `NumberStyles.Float, CultureInfo.InvariantCulture`.
-- [x] In `AdminConfigController.Update` and `Revert`, validate via `ConfigKeys.Find(key) is { } def ? ConfigValueValidator.Validate(def, value) : ConfigValueValidator.Validate(entry.ValueType, value)`. Then for tier keys call `_score.ValidateTierThreshold(key, (int)double.Parse(value))` (Task 2 provides it; in this task add a stub that returns null) and return `BadRequestError(msg, "admin.config_value_invalid")` on non-null.
-- [x] Run `dotnet test --filter "ConfigValueValidator|AdminConfigController"` → green (the monotonic test goes green in Task 2; mark it `Skip` until then only if it blocks the build — it should not, since the stub compiles).
+## Dev Database Reseed + Behavioural Pass — 2026-08-31
 
-### Task 2: Score deltas, tier thresholds, reputation dock, daily budget
+`mingldingl_engine/scripts/reseed-dev-db.sql` is the standard reseed (it exempts `AdminConfigs`
+and `ContentPages` — the first run destroyed the authored guides copy, restored from a `pg_dump`).
+The old database had zero icebreakers and quizzes, which hid a **P0**: `GET /engagement/icebreaker`
+drew a random question per request while completion required both users to answer the *same* one,
+so the icebreaker completed ~14 % of the time and the quiz had the identical bug. Both now pick
+deterministically from the match id (`StableIndex`, SHA-256 — not `GetHashCode`, which is
+per-process randomised). Seven tests that only passed on an empty database were scoped to their
+own fixtures. The reveal ladder was walked against real data exactly per the design table.
 
-**Files:**
-- Modify: `Services/ScoreService.cs`, `Services/ConfigKeys.cs`
-- Modify callers: `Controllers/ScoresController.cs`, `Controllers/MessagesController.cs`, `Controllers/VideoController.cs`, `Controllers/UsersController.cs`, `Controllers/EngagementController.cs`, `Controllers/MatchesController.cs`, `Services/ActivityService.cs`
-- Test: `tests/.../Services/ScoreServiceTests.cs`, `tests/.../Integration/AdminConfigControllerIntegrationTests.cs`
+---
 
-**Interfaces:**
-- Produces: `int ScoreService.Delta(string eventType)` (instance, replaces static `GetDelta`); `static IReadOnlyDictionary<string,int> ScoreService.DefaultDeltas`; `int ScoreService.DailyMatchBudget(User user)` (instance); `string? ScoreService.ValidateTierThreshold(string key, int value)`; `int ScoreService.WeeklyStreakBonus`; `int ScoreService.QuestChestXp`.
-- `IsTierThresholdKey` unchanged, so recompute-on-update covers the four new tier keys for free.
+## The Campaign (Dungeon Crawl) — Shipped (2026-09-01)
 
-- [x] Update `ScoreServiceTests`: `GetDelta_KnownEventType_ReturnsExpectedDelta` → `CreateService().Delta(eventType)`; add `Delta_OverriddenInConfig_UsesConfigValue` (`score.event.MatchReply` = 3 → 3); `DailyMatchBudget` tests become instance calls; add `DailyMatchBudget_ConfigOverrides_ChangeBaseAndCap` (`budget.base.free`=8, `budget.cap.free`=9, score 0 → 8; score 500 → 9); add `CalculateTier_RubyThresholdOverridden_UsesConfigValue`; add `ValidateTierThreshold_BelowLowerTier_ReturnsError` and `_AboveUpperTier_ReturnsError` and `_InRange_ReturnsNull`.
-- [x] Run `dotnet test --filter ScoreServiceTests` → compile failure.
-- [x] Implement: `DefaultDeltas` dictionary (the old switch table); `Delta(eventType) => DefaultDeltas.TryGetValue(eventType, out var d) ? (int)_config.GetNumber($"score.event.{eventType}", d) : 0`; `TierDefaults` unchanged but `EffectiveTierTable` reads `tier.{name.ToLowerInvariant()}.threshold` for every tier except index 0; `ValidateTierThreshold(key, value)`: find tier index from key, require `value > table[idx-1].MinScore` and (if not last) `value < table[idx+1].MinScore`, message "`{key}` must be between {lower} and {upper} so tiers stay in order"; `DailyMatchBudget` instance reading the seven budget keys; `WeeklyStreakBonus => (int)_config.GetNumber("score.streak.weekly_bonus", 50)`; `QuestChestXp => (int)_config.GetNumber("score.quest_chest", 30)`; both reputation SQL literals become `{dock}` where `decimal dock = (decimal)_config.GetNumber("reputation.penalty_dock", 0.1)`.
-- [x] Replace every `ScoreService.GetDelta(` with `_score.Delta(` and `ScoreService.DailyMatchBudget(` with `_score.DailyMatchBudget(` in the listed callers; `ScoresController` uses `_score.WeeklyStreakBonus`; `EngagementController.ClaimQuestChest` uses `_score.QuestChestXp` for both the award and the response.
-- [x] Add the keys to `ConfigKeys.All` (table above).
-- [x] Run `dotnet test` → green.
+**What it is.** A per-match "dungeon map" rendering the existing engagement ladder as seven
+rooms a pair clears together. **The anti-annoyance rule is structural:** the campaign is a lens
+over the ladder, never a gate on it. Room state is purely derived from match state — no
+progression state machine, nothing to desync, no new preconditions on any flow, no new pushes.
+The only interaction is optional chest claiming; ignoring it costs nothing.
 
-### Task 3: Membership catalog from config
+| RoomId | Name | Cleared when (derived) |
+|---|---|---|
+| `gate` | The Meeting Gate | always |
+| `echoes` | Hall of Echoes | `Match.IcebreakerComplete` |
+| `runes` | The Rune Chamber | both users have a `QuizResponse` for the match's quiz |
+| `voices` | Gate of Voices | `Match.MessageCount >= campaign.voices.messages` (15) |
+| `flame` | The Flame Altar | `FlameRiteCompletedAt != null \|\| VideoRewardClaimed` |
+| `bridge` | The Pledge Bridge | a completed `DateConfirmation` |
+| `threshold` | The Dragon's Threshold (boss) | both sides answered attended = true |
 
-**Files:**
-- Create: `Services/MembershipCatalog.cs`
-- Modify: `Services/MembershipPricing.cs`, `Controllers/MembershipController.cs`, `Controllers/AdminOpsController.cs`, `Controllers/AdminAnalyticsController.cs`, `ServiceCollectionExtensions.cs`, `Services/ConfigKeys.cs`
-- Test: `tests/.../Services/MembershipCatalogTests.cs` (new), `tests/.../Services/MembershipPricingTests.cs`, `tests/.../Integration/MembershipControllerIntegrationTests.cs`, `tests/.../Integration/AdminOpsControllerIntegrationTests.cs`, any `AdminAnalyticsController` construction
+Rooms are independent; "current room" is the first uncleared one. `CampaignRoomClaim`
+(unique `(MatchId, UserId, RoomId)`) records per-user chest claims; `CampaignService.ClaimAsync`
+409s an uncleared or already-claimed room and pays `campaign.room.bonus` (5) / `campaign.boss.bonus`
+(25) as `CampaignRoomBonus` / `CampaignBossBonus` events; the boss grants the Seal-Breaker honour.
+`campaign.enabled=false` makes both endpoints 404 and the app hides its chat entry banner. The
+claim endpoint works on ghosted matches on purpose (already-cleared rooms stay claimable). App:
+`app/campaign/[matchId].tsx` (vertical path, knot medallions, current-room `QuestBanner` deep
+link), `useCampaign`, invalidation added to the five realtime handlers that clear rooms.
 
-**Interfaces:**
-- Produces: `class MembershipCatalog(ConfigService config)` with `IReadOnlyList<MembershipTierResponse> Tiers()` and `MembershipTierResponse? Find(string level)`; `MembershipPricing.PriceOptions(int monthlyPriceMnt, IReadOnlyDictionary<int,double>? discountByDuration = null)`.
+**Verified live 2026-09-01:** the full seven-room two-account walk, the ledger, and the kill
+switch (via the `AdminConfigs` row + restart; the admin Config page path was not exercised).
 
-- [x] Write `MembershipCatalogTests`: default catalog exposes Free/Silver/Gold with 10900/21900; overriding `membership.gold.monthly_mnt` = 25000 and `membership.discount.6mo_pct` = 30 yields Gold 6-month total `round(25000*6*0.7)` and `DiscountPct` 30.
-- [x] Implement `MembershipCatalog` (register `AddSingleton<MembershipCatalog>()`), make `MembershipController`, `AdminOpsController`, `AdminAnalyticsController` inject it; delete the static `Tiers`/`AllTiers`; `Upgrade` uses `_catalog.Find(level)`.
-- [x] Fix test constructions (`new MembershipController(Db, new MembershipCatalog(new ConfigService()))` etc.).
-- [x] Run `dotnet test` → green.
+---
 
-### Task 4: Quests from config
+## Ulzii Design Language — Shipped (2026-09-01)
 
-**Files:**
-- Modify: `Services/QuestService.cs`, `Controllers/EngagementController.cs`, `Services/ConfigKeys.cs`
-- Test: `tests/.../Services/QuestServiceTests.cs`, `tests/.../Integration/EngagementControllerIntegrationTests.cs`, every `new QuestService(` in tests (14 sites, one sed)
+Mongolian ornament rendered from geometry replaces the generic-fantasy corners, rivets and
+dividers: **өлзий** (the endless knot, a billiard-path interlace) and **алхан хээ** (the walking
+fret). Doctrine: edges and thresholds only, never behind text or over photos; three metals with
+three meanings (gold default, ember for stakes — boss, Rite, Oath — brass for utility, no fourth);
+a density ladder (2×2 corners, 3×4-ish sigils, 5×5 set pieces, at most one grand knot per
+screen); static PNG by default.
 
-**Interfaces:**
-- Produces: `QuestService(AppDbContext db, ScoreService score, ConfigService config, ILogger<QuestService> logger)`; instance `List<QuestDef> QuestsForDate(DateTime)`; static `AllQuests` stays as the defaults; instance `IReadOnlyList<QuestDef> EffectiveQuests()`.
+`mingldingl_app/scripts/gen-ornaments.js` (pure Node, no dependencies) rasterises the nine
+assets in `assets/ornaments/` at 3×; `lib/ornaments.ts` is the registry. Carriers: `AppCard`
+corners, `SectionDivider`, `XPBar` fret, `QuestBanner medallion="knot"`, `CharacterCard`'s woven
+frame, `OathSigil` (per-oath sigil images), campaign room medallions. `Alegreya SC` is
+`FONTS.utility` for small-caps labels. Deferred: Skia shimmer on the Oath sigil / boss seal,
+unlit empty-state knots, festival-tinted variants. Playwright note for RN-web: `fill()` does not
+reach a controlled `TextInput` (focus + `page.keyboard.type` does) and button presses need
+`element.click()` in `evaluate`.
 
-- [x] Update `QuestServiceTests` to construct `new QuestService(null!, null!, config, NullLogger<QuestService>.Instance)`; add `QuestsForDate_XpOverriddenInConfig_UsesConfigValue`.
-- [x] Implement `EffectiveQuests()` mapping each default through `quest.{Id}.xp` / `quest.{Id}.target`; `QuestsForDate` uses it; `IncrementAsync` uses `QuestsForDate`.
-- [x] `EngagementController` calls `_quests.QuestsForDate(today)`; sed test constructions.
-- [x] Add 12 keys; run `dotnet test` → green.
+---
 
-### Task 5: Ghosting, attendance check, deletion grace, ship expiry
+## Design Token Consolidation — Shipped (2026-09-01)
 
-**Files:**
-- Modify: `Services/GhostingService.cs`, `Services/ActivityService.cs`, `Services/DailyMaintenanceBackgroundService.cs`, `Controllers/AdminUsersController.cs`, `Services/ConfigKeys.cs`
-- Test: `tests/.../Services/GhostingServiceTests.cs`, `tests/.../Services/DailyMaintenanceBackgroundServiceTests.cs`, every `new GhostingService(` (11 sites) and the `DailyMaintenance` test provider (add `ConfigService` singleton)
+`lib/theme.ts` is the single source of every colour, size and space value. `FONT_SIZES` had been
+imported by nothing while 241 raw `fontSize` literals spread across 19 values; every size, spacing
+and radius literal in `app/` and `components/` was snapped to the scales by codemod, `SPACE` is a
+strict 4 px grid, `RADIUS.pill` and `circle(size)` exist, all raw `rgba()` route through
+`tint()`/`overlay()`/`FILL`, and `BUTTON_METALS` holds GameButton's variant table unchanged.
+`components/ui/CardEyebrow.tsx` replaces ten hand-copied eyebrow labels and sets them in
+`FONTS.utility` (verified `AlegreyaSC_700Bold` carries Cyrillic Ө/Ү). `lib/tiers.ts` references
+`COLORS` instead of restating hexes; the twelve gem/shade hexes there are a deliberate second
+palette. Not checked on a device — Mongolian labels are longer than English.
 
-**Interfaces:**
-- Produces: `GhostingService(AppDbContext, ScoreService, OathService, SupabaseBroadcastService, ConfigService)`; instance `TimeSpan StaleAfter` and `bool IsStale(Match)`; `DailyMaintenanceBackgroundService` resolves `ConfigService` from the scope and exposes `static TimeSpan GracePeriodFor(ConfigService)`; `AdminUsersController` injects `ConfigService`.
+---
 
-- [x] Update `GhostingServiceTests.IsStale_*` to instance calls plus `IsStale_ThresholdOverridden_UsesConfigHours` (`ghosting.stale_hours`=24, 25h → true).
-- [x] Add `DailyMaintenance` test `RunSweepAsync_ShipExpiryOverridden_ExpiresOlderPendingShips` (`ships.expiry_days`=1, ship created 2 days ago → Expired) — note `ShipExpiryPeriod`/`DeletionGracePeriod` reads move inside `RunSweepAsync`.
-- [x] Implement; `ActivityService` reads `dating.attendance_check.delay_hours`.
-- [x] Run `dotnet test` → green.
+## Admin Control Expansion — Shipped (2026-09-04)
 
-### Task 6: Town Square, campaign voices, and kill switches
+`ConfigKeys.All` grew from 9 to 61 keys (Scoring 23, Budget 7, Membership 4, Quests 12, Safety 7,
+Growth 8): every score delta, the four remaining tier thresholds, the reputation dock, daily-match
+base/cap/divisor per membership, membership prices and discounts, quest XP and targets, ghosting
+staleness, attendance-check delay, deletion grace, ship expiry, Town Square sizing, the campaign
+Voices threshold, and three kill switches — `ships.enabled`, `townsquare.enabled`,
+`video.enabled`. `ConfigKeyDefinition` carries optional `Min`/`Max` enforced on write and re-checked
+on boot (`AdminConfigSeeder` resets an out-of-bounds value, and a tier ladder that is not strictly
+increasing, to defaults with a warning). `ScoreService.GetDelta` / `DailyMatchBudget`,
+`GhostingService.IsStale`, `QuestService.QuestsForDate` and the membership tier list stopped
+being static; `MembershipCatalog` serves the app, admin pricing and analytics from the same keys,
+and `ScoreService.BaseBudgetFor` keeps advertised and enforced daily matches identical. Config
+edits never rewrite `ScoreEvents` history — `Delta` is stored per event.
 
-**Files:**
-- Modify: `Services/TownSquareService.cs`, `Services/CampaignService.cs`, `Controllers/TownSquareController.cs`, `Controllers/ShipsController.cs`, `Controllers/VideoController.cs`, `Controllers/MatchesController.cs` (flamerite required read), `Services/ActivityService.cs` (flamerite required read), `Services/ConfigKeys.cs`
-- Test: `tests/.../Services/TownSquareServiceTests.cs`, all 32 `new TownSquareService(` sites (sed), `tests/.../Integration/ShipsControllerIntegrationTests.cs`, `tests/.../Integration/VideoControllerIntegrationTests.cs`, `tests/.../Integration/TownSquareControllerIntegrationTests.cs`
+**Kill-switch semantics:** `townsquare.enabled=false` (or `video.enabled=false`) is a 404
+`square.disabled` on every user route via `TownSquareEnabledFilter`, and the scheduler only
+advances sessions already in progress; `video.enabled=false` also 404s token minting and the rite
+endpoints, and `ConfigService.FlameRiteRequired` folds it into the pledge gate so no match is
+required to complete a rite it cannot start; the chat hides `FlameRiteCard` via
+`MatchResponse.VideoEnabled`. The app shows the localised code copy rather than hiding entry
+points. `score.event.GhostPenalty = 0` still writes the event the Oath logic reads;
+`score.quest_chest` and `score.event.DailyLogin` have Min 1 because a zero claimed award is refused.
 
-**Interfaces:**
-- Produces: `TownSquareService(..., ConfigService config)` with instance `int MaxPerSide` and `int RoundDurationSeconds`; `ShipsController(ShipService, AppDbContext, ConfigService)`; `TownSquareController(..., ConfigService)`; a private `bool FlameRiteRequired => _config.GetBool("dating.flamerite.required", true) && _config.GetBool("video.enabled", true)` at both read sites.
+**Deliberately kept hardcoded:** login throttle, password hashing, phone-verification windows,
+photo compression and upload limits, page sizes, sweep intervals, the reputation floor, streak
+halving. `ConfigField` in the control panel still ignores bounds (the server error shows in the
+toast).
 
-- [x] Tests: `LockRosterAsync_MaxPerSideOverridden_TakesOnlyThatMany`; `Create_ShipsDisabled_Returns404WithCode`; `GetToken_VideoDisabled_Returns404`; `GetNextSession_TownSquareDisabled_Returns404`; Flame Rite pledge allowed when `video.enabled=false` even though `dating.flamerite.required=true`.
-- [x] Implement; sed the constructions; add keys.
-- [x] Run `dotnet test` → green.
+---
 
-### Task 7: App error copy, control panel copy, docs
+## Honours Replace Loot — Shipped (2026-09-05)
 
-**Files:**
-- Modify: `mingldingl_app/lib/i18n/` (EN + MN `err_ship_disabled`, `err_square_disabled`, `err_video_disabled`)
-- Modify: `mingldingl_control/src/pages/Ops.tsx` (pricing blurb no longer says hardcoded), `mingldingl_control/src/pages/Config.tsx` (intro blurb)
-- Modify: `CLAUDE.md` (config bullet mentions bounds + kill switches), this section's Execution Outcome
+Random loot drops (`LootService`, catalogue of frames/emblems/titles, daily 3-drop cap,
+`DuplicateLoot` +10) were retired for nine **named honours granted for a deed, once**
+(`HonourService.GrantAsync(userId, itemId, deed)`; a second grant is a no-op). The wire field
+`rarity` survives carrying the Ulzii metal — `Ember` for honours with stakes, `Gold` for the rest.
 
-- [x] Add the six strings; run `npm test -- i18n` and `npm run typecheck` in `mingldingl_app`.
-- [x] Update copy; run `npm run lint && npm run build` in `mingldingl_control`.
-- [x] Regenerate API types in both frontends if the engine is running (no DTO shape changed, so this is optional).
-- [x] Record the Execution Outcome below.
+| Honour | Deed | Hook |
+|---|---|---|
+| Oath-Keeper | Oath proven | `OathService` |
+| Flamekeeper | first completed Flame Rite | `VideoController.MarkComplete` |
+| Seal-Breaker | campaign boss claimed | `CampaignService.ClaimAsync` |
+| Thread-Weaver / Fate-Seer / Bond-Keeper | threads sparked 1 / 5 / 10 | `ShipService` |
+| Ally-Caller | first completed recruit | `ReferralService` (inviter only) |
+| True to Word | an encounter both sides confirmed attended | `ActivityService.SubmitAttendanceAsync` |
+| Seven Dawns | seventh consecutive daily login | `ScoresController.DailyLogin` |
 
-## Execution Outcome (2026-09-04)
+Icebreaker/quiz responses lost `droppedItem`; the quest chest and milestone open pay XP only;
+`POST /users` no longer returns a referral item. **Tier frames are derived, never stored:**
+`GET /users/me/items` lists honours plus `HonourService.FramesUnlockedFor(user.GemTier)`; equip
+validates against the tier; a negative score delta clears a frame that now sits above the tier.
+Migration `RetireLootForHonours` is data-only (hand-written; applied with `dotnet ef database
+update` — `Program.cs` does not auto-migrate). App: `HonourCase` (honours grid + six-tier ring
+ladder), `METAL_COLORS` / `frameIdForTier` in `lib/tiers.ts`, "Honour earned" toast. A
+traditional-Mongolian-script seal layer was built and removed the same evening at the user's
+request; do not propose it again.
 
-All 7 tasks executed inline in one session. Nothing committed (git only on request).
+---
 
-**What shipped:** `ConfigKeys.All` grew from 9 to 61 keys across six categories (Scoring 23,
-Budget 7, Membership 4, Quests 12, Safety 7, Growth 8); `ConfigKeyDefinition` carries optional
-`Min`/`Max` and the seeder/controller enforce them via `ConfigValueValidator.Validate(def, value)`;
-tier thresholds are rejected unless strictly increasing (`ScoreService.ValidateTierThreshold`)
-and any tier key change still backfills `GemTier` for everyone. `ScoreService.GetDelta` /
-`DailyMatchBudget`, `GhostingService.IsStale` / `StaleAfter`, `QuestService.QuestsForDate` and
-`MembershipController.AllTiers` stopped being static; the tier list now lives in a singleton
-`MembershipCatalog` shared by the app, admin pricing and admin analytics. Three kill switches:
-`ships.enabled` (404 `ship.disabled` on weave), `townsquare.enabled` (a `TownSquareEnabledFilter`
-on the whole user controller, 404 `square.disabled`; admin scheduling and the scheduler keep
-running so live sessions finish), `video.enabled` (404 `video.disabled` on token minting, and
-`ConfigService.FlameRiteRequired()` folds it into the pledge gate so a match can never be
-required to complete a rite it cannot start). The app gained EN + MN copy for the three codes and
-the Town Square tab now renders the code's copy instead of the generic load error.
+## Audit Fixes — 2026-08-31
 
-**Verified:** engine 682/682 (was 634; +48 covering bounds, ordering, every new override, both
-kill switches, the filter, the Flame Rite/video coupling, ship-expiry and deletion-grace
-overrides); app 445/445 + typecheck; control lint + build. Live against the dev DB: boot seeded
-all 61 keys; `-5` → range error; `250` for Sapphire → "must be between 300 and 1000 (exclusive)";
-`650` accepted and reverted; Gold `25000` immediately produced `[25000, 67500, 120000]` from
-`/admin/ops/pricing` (10%/20% discounts) and reverted; `maybe` on a Bool → type error. Audit
-rows from that check were removed and `UpdatedBy` reset to `system`. API types regenerated in
-both frontends (only change: the 404 response now declared on `POST /ships`).
+`date_confirmed` broadcast carries `userId`; chat history pages via
+`GET /matches/{id}/messages?before=&limit=` with a "load earlier" control; reveal fields and the
+daily-match budget are actually rendered (Matches list gating, `DailyBudgetMeter` on Discover);
+admin `UserDetail` shows Oath state, `noShowFlagCount`, ban and membership expiry with
+`reset-noshow`; analytics tiles for Oath / No-show / Flame Rites / Ships / Town Square;
+`match_created` broadcast + push on the Fated Threads spark and Town Square mutual-yes; the ship
+share text finally carries the `/public/ship?code=` URL.
 
-**Deviations from the plan:**
-- `ships.enabled` / `townsquare.enabled` descriptions no longer claim the app "hides" the flow;
-  the app shows the localised code copy instead. Hiding the Town Square tab or the weave entry
-  points on a 404 is a follow-up if these switches ever get used in anger.
-- `dating.flamerite.duration_minutes`, `dating.noshow.threshold`, `oath.proven.encounters` and
-  `ships.daily.cap` (pre-existing keys) picked up bounds too.
-- The Town Square kill switch is an action filter rather than a per-action check so a new route
-  cannot forget it; it is tested directly (`TownSquareEnabledFilterIntegrationTests`) because the
-  controller integration tests call actions without the MVC pipeline.
+---
 
-**Left open:** `ConfigField` in `mingldingl_control` still ignores bounds (the server error is
-shown in the toast); surfacing `Min`/`Max` in `AdminConfigDto` for client-side hints is cheap
-but was not needed. `ReportPenalty` remains configurable but unreachable (see Follow-ups).
+## Bug Sweep — 2026-09-05
 
-### Drift & bug pass (2026-09-04, same day, after `/code-review high`)
+Latent defects found by inspection while the whole suite was green, each closed with a test that
+fails on the old code:
+- **`/public/ship` never rendered.** Its inline script had an unterminated string literal, so the
+  browser discarded the block and every visitor sat on "Reading the thread…". The existing test
+  found the copy — inside the dead script. `LandingPageScript_HasNoUnterminatedStringLiteral`
+  now scans both public pages.
+- **Only one Flame Rite participant was ever paid.** `VideoRewardClaimed` was one flag per match;
+  now per participant (`Initiator|ReceiverVideoRewardClaimed`, migration
+  `AddPerParticipantVideoRewardClaims`, backfilled so no historical match pays twice).
+- Ghosting clamped `RevealLevel` against the stored floor; `SendMessage`'s retry lambda detaches
+  its own stale `Added` message so a retried send cannot insert twice; message pages order by
+  `(CreatedAt, Id)`.
 
-The review confirmed 14 findings against the diff above; every one was fixed, plus the docs
-drift found by hand. Engine 697/697, app 445/445, control build clean, live re-check done.
+---
 
-- **NaN/Infinity passed the bounds check** (both range comparisons are false for NaN, so
-  `reputation.penalty_dock = NaN` would have thrown in the sweep). Both validator overloads and
-  `ConfigService.GetNumber` now require a finite invariant-culture number.
-- **A stored value is now re-validated on boot.** `AdminConfigSeeder` resets any value outside
-  its registry bounds to the default, and if the tier ladder is not strictly increasing (a
-  Sapphire saved as 250 before the ordering rule existed) it resets every tier key to the design
-  defaults, with a warning either way. An in-order custom ladder is kept.
-- **`score.event.GhostPenalty = 0` no longer switches off the reputation dock** or the
-  `GhostPenalty` row the Oath logic reads: it is the one event that proceeds with a zero delta.
-- **`score.quest_chest` and `score.event.DailyLogin` now have Min 1**, because
-  `TryAwardClaimedAsync` refuses a zero delta and the chest's loot (or the login record) rode on
-  that claim.
-- **`video.enabled=false` now really stops Agora spend:** `TownSquareService.IsEnabled` is
-  `townsquare.enabled && video.enabled`, so the Town Square filter and scheduler close too; the
-  rite propose/accept endpoints return 404 `video.disabled`; `MatchResponse.VideoEnabled` lets
-  the chat hide `FlameRiteCard` instead of leading into a dead end.
-- **`townsquare.enabled=false` no longer locks rosters or starts new sessions** (the scheduler
-  only advances a session already `InProgress`); the app tab shows the closed notice even over a
-  cached session.
-- **Advertised vs enforced daily matches** now share `ScoreService.BaseBudgetFor`, so
-  `/membership/tiers` and the control panel's pricing table follow `budget.base.*`.
-- **Campaign Voices hint** reads `CampaignResponse.VoicesMessageThreshold` instead of a
-  hardcoded 15; **deletion dialogs** interpolate `UserResponse.DeletionGraceDays` instead of
-  "7 days" (EN + MN), and `account.deletion_grace_days` has Min 1; the control panel's
-  deletion page points at the config key.
-- A quest whose target was lowered below progress already made now reads as complete on the
-  board and for the chest; its XP is paid when the action next fires.
-- Removed the sweep's redundant in-memory `IsStale` filter; updated the stale Town Square
-  paragraph above and the verify skill's tier note. API types regenerated (three new optional
-  fields).
+## Drift & Gap Audit — 2026-09-05
 
+- The app pinned its own reveal ladder (`[5, 15, 30]`); `GET /engagement/reveal-thresholds` now
+  serves the effective ladder and `lib/reveal.ts` hydrates it. Activity suggestions gate on
+  `activity.suggestions.messages` instead of a literal 15.
+- **Push notifications localised per recipient.** `User.PreferredLocale` (set at `POST /users`,
+  synced by `useSyncPreferredLocale`), `PushCopy` carries every kind in EN + MN, `NotifyUserAsync`
+  takes a `PushKind`. Four kinds added (`flame_rite_accepted`, `date_confirmed`, `match_ghosted`,
+  `townsquare_started`). The Expo round-trip moved off the request path into
+  `PushDispatchBackgroundService`, which also deletes tokens Expo reports `DeviceNotRegistered`;
+  anonymisation purges `PushTokens`.
+- `CorsOrigins.Parse` accepts a comma-separated list, which docker-compose passes.
+- Spec drift in the plan corrected (fonts, gem hexes, OTP screen, route inventory, score table,
+  the never-built call cap, chat not gated on the icebreaker).
+
+---
+
+## Untouched-Code Bug Hunt — 2026-09-06
+
+Every file with one or two commits since the repo began was read end to end. Two serious findings
+sat in the phone-identity path, unrevisited since verify.mn replaced Supabase OTP; each fix landed
+with a test that fails on the old code.
+- **Anyone could become any user by typing their number.** `CurrentUserMiddleware` aliased an
+  account-less `sub` onto whichever account owned the phone in the JWT's `user_metadata.phone` —
+  a field the app writes with the anon key, so an attacker could write a victim's number after an
+  anonymous sign-up and run as them. The alias now goes only through a claimed verify.mn proof
+  (`ResolveAliasAsync`); the metadata alias survives only while `VerifyMn:ApiKey` is unset.
+  `ClaimAsync` lets an account-less identity prove a number that already has an account (that is
+  sign-in) while an existing account still cannot take another's number.
+- **A pending verification could be hijacked.** `StartAsync` returned the in-flight session for
+  a number to whoever asked, so an attacker polling `start` for a target saw the same id and code
+  and won the single-use claim by polling faster. Sessions are now resumed only with
+  `ResumeVerificationId`, capped at five pending per number; the advisory lock that serialised
+  starts per phone went with the sharing.
+- Anonymisation purges verification rows by number as well as claimant (an aliased identity's
+  rows are claimed by the `sub`, not the account id); the admin login throttle evicts stale
+  unlocked entries instead of failing open when full; a malformed `Admin:PasswordHash` is a 401,
+  not a 500.

@@ -6,11 +6,17 @@
 -- NOT truncated: AdminConfigs (AdminConfigSeeder owns it and re-syncs on boot) and
 -- ContentPages (authored product copy — terms, privacy, and the guides text — not fixtures).
 
+-- Photo URLs are absolute, so the host has to be one the *client* can reach: `localhost` works
+-- for the web build but resolves to the phone itself on a real device, leaving every seeded
+-- candidate photo broken. Override with the LAN IP the app is pointed at:
+--   API_HOST=http://192.168.1.32:5150 psql ... -f reseed-dev-db.sql
+\set api_host `echo "${API_HOST:-http://localhost:5150}"`
+
 BEGIN;
 
 TRUNCATE TABLE
-  "TownSquareIcebreakerResponses", "TownSquarePairings", "TownSquareRounds",
-  "TownSquareRsvps", "TownSquareSessions",
+  "TownSquarePairings", "TownSquareRounds",
+  "TownSquareRsvps", "TownSquareSessions", "CampaignRoomClaims",
   "IcebreakerResponses", "QuizResponses", "QuizQuestions", "Quizzes", "Icebreakers",
   "DateConfirmations", "ActivitySuggestions", "BusinessRatings", "BusinessPartners",
   "messages", "Matches", "BlockedUsers", "Ships", "Referrals",
@@ -96,9 +102,9 @@ SELECT
   gen_random_uuid(),
   name, age, gender, 'Ulaanbaatar', bio,
   jsonb_build_array(
-    'http://localhost:5150/uploads/photos/seed/' || slug || '-1.jpg',
-    'http://localhost:5150/uploads/photos/seed/' || slug || '-2.jpg',
-    'http://localhost:5150/uploads/photos/seed/' || slug || '-3.jpg'),
+    :'api_host' || '/uploads/photos/seed/' || slug || '-1.jpg',
+    :'api_host' || '/uploads/photos/seed/' || slug || '-2.jpg',
+    :'api_host' || '/uploads/photos/seed/' || slug || '-3.jpg'),
   true,
   (i % 5 = 0),
   (ARRAY['Never','Socially','Regularly'])[1 + (i % 3)],
@@ -164,7 +170,7 @@ UNION ALL
 SELECT
   gen_random_uuid(),
   name || ' B.', 34 + (i % 22), gender, 'Ulaanbaatar', bio,
-  jsonb_build_array('http://localhost:5150/uploads/photos/seed/alt-' || i || '-1.jpg'),
+  jsonb_build_array(:'api_host' || '/uploads/photos/seed/alt-' || i || '-1.jpg'),
   (i % 7 <> 0),
   (i % 3 = 0), 'Never', 'Socially', 'Buddhist', 'Homebody',
   (i * 53) % 900,
@@ -281,18 +287,59 @@ JOIN pool w ON w.rn = s.wn JOIN pool a ON a.rn = s.an JOIN pool b ON b.rn = s.bn
 INSERT INTO "TownSquareSessions"
   ("Id","ScheduledStartAt","RsvpOpensAt","RsvpClosesAt","Status","CurrentRoundNumber","CreatedAt")
 VALUES
+  -- 'Open' is the only live status the engine creates or reads: GetNextSession filters
+  -- Open/Locked/InProgress and the scheduler only moves Open -> Locked -> InProgress. A seeded
+  -- 'Scheduled' row was invisible to the app and nothing ever opened it, so the Town Square tab
+  -- read "the square stands quiet" forever in dev.
   (gen_random_uuid(), now() + interval '2 days', now() - interval '1 day',
-   now() + interval '2 days' - interval '1 hour', 'Scheduled', 0, now() - interval '3 days'),
+   now() + interval '2 days' - interval '1 hour', 'Open', 0, now() - interval '3 days'),
   (gen_random_uuid(), now() + interval '9 days', now() + interval '7 days',
-   now() + interval '9 days' - interval '1 hour', 'Scheduled', 0, now() - interval '1 day'),
+   now() + interval '9 days' - interval '1 hour', 'Open', 0, now() - interval '1 day'),
   (gen_random_uuid(), now() - interval '7 days', now() - interval '9 days',
    now() - interval '7 days' - interval '1 hour', 'Completed', 5, now() - interval '10 days');
 
 INSERT INTO "TownSquareRsvps" ("Id","SessionId","UserId","RsvpAt")
 SELECT gen_random_uuid(), s."Id", u."Id", now() - interval '6 hours'
-FROM (SELECT "Id" FROM "TownSquareSessions" WHERE "Status" = 'Scheduled'
+FROM (SELECT "Id" FROM "TownSquareSessions" WHERE "Status" = 'Open'
       ORDER BY "ScheduledStartAt" LIMIT 1) s
 CROSS JOIN (SELECT "Id" FROM "Users" WHERE "IsProfileComplete" ORDER BY "CreatedAt" LIMIT 8) u;
+
+-- ---------------------------------------------------------------- milestones
+
+-- The seed writes matches, icebreaker completions and messages straight into the tables, so the
+-- controllers that would normally call MilestoneService.AchieveAsync never run. Without these
+-- rows GettingStartedCard keys off an empty milestone set and tells a 3,700-point Emerald with
+-- three bonds to go forge their first bond.
+INSERT INTO "UserMilestones" ("Id","UserId","MilestoneId","AchievedAt","OpenedAt")
+SELECT gen_random_uuid(), p."UserId", p."MilestoneId", now() - interval '5 days', now() - interval '5 days'
+FROM (
+  -- first_match: anyone on either side of a match.
+  SELECT DISTINCT "InitiatorId" AS "UserId", 'first_match' AS "MilestoneId" FROM "Matches"
+  UNION
+  SELECT DISTINCT "ReceiverId", 'first_match' FROM "Matches"
+  -- first_icebreaker: both sides of a match whose icebreaker is done.
+  UNION
+  SELECT DISTINCT "InitiatorId", 'first_icebreaker' FROM "Matches" WHERE "IcebreakerComplete"
+  UNION
+  SELECT DISTINCT "ReceiverId", 'first_icebreaker' FROM "Matches" WHERE "IcebreakerComplete"
+  -- ten_messages_one_match: a single match that carried ten or more.
+  UNION
+  SELECT DISTINCT "InitiatorId", 'ten_messages_one_match' FROM "Matches" WHERE "MessageCount" >= 10
+  UNION
+  SELECT DISTINCT "ReceiverId", 'ten_messages_one_match' FROM "Matches" WHERE "MessageCount" >= 10
+  -- first_quiz: whoever actually answered one.
+  UNION
+  SELECT DISTINCT "UserId", 'first_quiz' FROM "QuizResponses"
+  -- first_video_call: the video gate is only lifted on matches that reached it.
+  UNION
+  SELECT DISTINCT "InitiatorId", 'first_video_call' FROM "Matches" WHERE "VideoCallUnlocked"
+  UNION
+  SELECT DISTINCT "ReceiverId", 'first_video_call' FROM "Matches" WHERE "VideoCallUnlocked"
+  -- oath_proven: the flag already on the user row.
+  UNION
+  SELECT "Id", 'oath_proven' FROM "Users" WHERE "OathProven"
+) p
+ON CONFLICT ("UserId","MilestoneId") DO NOTHING;
 
 -- ---------------------------------------------------------------- blocks & deletion states
 

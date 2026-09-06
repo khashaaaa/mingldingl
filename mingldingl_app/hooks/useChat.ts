@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import { supabase } from '../lib/supabase';
 import { subscribeWithRetry } from '../lib/realtime/subscribeWithRetry';
 import { apiClient } from '../lib/api/apiClient';
 import { useAuthStore } from '../store/authStore';
 import type { components } from '../lib/api/api.generated';
 import { queryKeys } from '../lib/api/queryKeys';
+import { useMyUserId } from './useMyUserId';
 
 export interface Message {
   id: string;
@@ -32,6 +34,12 @@ export function mergeMessages(serverOrBase: Message[], extras: Message[]): Messa
 export const MESSAGE_PAGE_SIZE = 50;
 
 let tempIdCounter = 0;
+
+/** The engine's `match.inactive` rule: unmatched, blocked, ghosted or completed. */
+function isMatchInactiveError(err: unknown): boolean {
+  if (!isAxiosError(err) || err.response?.status !== 403) return false;
+  return (err.response.data as { code?: string } | undefined)?.code === 'match.inactive';
+}
 
 function parseMessage(m: components['schemas']['MessageResponse']): Message {
   return {
@@ -63,7 +71,7 @@ export function oldestServerMessage(messages: Message[]): Message | undefined {
 export function useChat(matchId: string) {
   const qc = useQueryClient();
 
-  const myId = useAuthStore((s) => s.session?.user.id);
+  const myId = useMyUserId();
   const [earlierExhausted, setEarlierExhausted] = useState(false);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [earlierError, setEarlierError] = useState(false);
@@ -154,7 +162,13 @@ export function useChat(matchId: string) {
       const sent = parseMessage(res.message ?? {});
       qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) =>
         mergeMessages((old ?? []).filter((m) => m.id !== tempId), [sent]));
-    } catch {
+    } catch (err) {
+      // A send refused because the match itself ended is not a retryable network blip. Recording it
+      // against the match's status is what turns "tap to retry" forever into an explanation, and it
+      // is the only signal that arrives when the realtime socket is down.
+      if (isMatchInactiveError(err)) {
+        qc.setQueryData(queryKeys.matchStatus(matchId), 'Unmatched');
+      }
       qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) =>
         (old ?? []).map((m) => (m.id === tempId ? { ...m, status: 'failed' } : m)));
     }

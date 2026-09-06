@@ -2,7 +2,11 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, ICON_SIZES, SPACE, circle } from '../../lib/theme';
+import { COLORS, ICON_SIZES, LINE, SPACE, circle } from '../../lib/theme';
+
+/** Geometry the round prompt above these controls has to clear. */
+export const VIDEO_CONTROLS_BOTTOM = 24;
+export const VIDEO_CONTROLS_SIZE = 60;
 
 interface Props {
   muted: boolean;
@@ -16,7 +20,7 @@ interface Props {
 export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, onEnd, endDisabled = false }: Props) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.bar, { bottom: 24 + insets.bottom }]}>
+    <View style={[styles.bar, { bottom: VIDEO_CONTROLS_BOTTOM + insets.bottom }]}>
       <TouchableOpacity
         style={[styles.button, muted ? styles.buttonActive : styles.buttonIdle]}
         onPress={onToggleMute}
@@ -52,12 +56,12 @@ export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, 
 const styles = StyleSheet.create({
   bar: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: SPACE.xl },
   button: {
-    ...circle(60),
+    ...circle(VIDEO_CONTROLS_SIZE),
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonIdle: { borderColor: COLORS.bronze, backgroundColor: COLORS.panelRaised },
+  buttonIdle: { borderColor: LINE.edge, backgroundColor: COLORS.panelRaised },
   buttonActive: { borderColor: COLORS.goldBright, backgroundColor: COLORS.gold },
   buttonEnd: { borderColor: COLORS.emberDark, backgroundColor: COLORS.ember },
   buttonBusy: { opacity: 0.5 },

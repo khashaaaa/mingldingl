@@ -58,7 +58,6 @@ public record UserResponse(
     bool IsPaused = false,
     string? PhoneNumber = null,
     string? ReferralCode = null,
-    DroppedItem? ReferralRewardItem = null,
     string? Oath = null,
     bool OathProven = false,
     int? OathEncountersHeld = null,

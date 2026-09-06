@@ -49,14 +49,24 @@ export const apiClient = {
     },
   },
   auth: {
-    /** Starts verify.mn phone verification. Anonymous — runs before the user has a session. */
-    startPhoneVerification: (phone: string) =>
-      api.post<Schemas['StartPhoneVerificationResponse']>('/auth/phone/start', { phone }).then((r) => r.data),
+    /**
+     * Starts verify.mn phone verification. Anonymous — runs before the user has a session. Passing
+     * the id this number was last given resumes that session instead of opening a second one; the
+     * engine hands a pending session back only to a caller who can name it.
+     */
+    startPhoneVerification: (phone: string, resumeVerificationId?: string) =>
+      api.post<Schemas['StartPhoneVerificationResponse']>('/auth/phone/start', { phone, resumeVerificationId }).then((r) => r.data),
     phoneVerificationStatus: (verificationId: string) =>
       api.get<Schemas['PhoneVerificationStatusResponse']>(`/auth/phone/status/${verificationId}`).then((r) => r.data),
-    /** Binds a verified number to the signed-in identity. Requires the Supabase JWT. */
-    claimPhoneVerification: (verificationId: string) =>
-      api.post<Schemas['ClaimPhoneVerificationResponse']>('/auth/phone/claim', { verificationId }).then((r) => r.data),
+    /**
+     * Binds a verified number to the signed-in identity. Requires the Supabase JWT — passed
+     * explicitly, because the claim deliberately runs before the session reaches the store that
+     * the request interceptor reads.
+     */
+    claimPhoneVerification: (verificationId: string, accessToken?: string) =>
+      api.post<Schemas['ClaimPhoneVerificationResponse']>('/auth/phone/claim', { verificationId },
+        accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined,
+      ).then((r) => r.data),
   },
   users: {
     upsert: (body: Schemas['CreateUserRequest']) =>
@@ -127,6 +137,8 @@ export const apiClient = {
       api.get<Schemas['BusinessResponsePagedResponse']>(`/business${query({ ...params })}`).then((r) => r.data),
     rate: (id: string, matchId: string, body: Schemas['RateBusinessRequest']) =>
       api.post<Schemas['RateBusinessResponse']>(`/business/${id}/rate${query({ matchId })}`, body).then((r) => r.data),
+    get: (id: string) =>
+      api.get<Schemas['BusinessResponse']>(`/business/${id}`).then((r) => r.data),
     reviews: (id: string) =>
       api.get<Schemas['BusinessReviewResponse'][]>(`/business/${id}/reviews`).then((r) => r.data),
   },

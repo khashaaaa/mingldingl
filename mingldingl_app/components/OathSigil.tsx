@@ -1,6 +1,6 @@
 import { View as RNView, Text as RNText, Image as RNImage, StyleSheet } from 'react-native';
 import { i18n, tKey } from '../lib/i18n';
-import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, glow } from '../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, glow } from '../lib/theme';
 import { ORNAMENTS } from '../lib/ornaments';
 import type { Oath } from '../models/user';
 
@@ -49,7 +49,7 @@ const SIZES = {
 export default function OathSigil({ oath, proven, size = 'md', progress }: Props) {
   if (!oath) return null;
   const sz = SIZES[size];
-  const tint = proven ? COLORS.goldBright : COLORS.bronze;
+  const tint = proven ? COLORS.goldBright : INK.muted;
 
   return (
     <RNView

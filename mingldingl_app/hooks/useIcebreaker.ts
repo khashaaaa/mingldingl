@@ -2,8 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { apiClient } from '../lib/api/apiClient';
 import { useAuthStore } from '../store/authStore';
-import { toDroppedItem } from '../lib/tiers';
 import { queryKeys } from '../lib/api/queryKeys';
+import { useMyUserId } from './useMyUserId';
 
 export interface IcebreakerQuestion {
   id: string;
@@ -19,7 +19,7 @@ export interface IcebreakerRevealEntry {
 
 export function useIcebreaker(matchId: string) {
   const qc = useQueryClient();
-  const myId = useAuthStore((s) => s.session?.user.id);
+  const myId = useMyUserId();
 
   const { data: question, isLoading } = useQuery<IcebreakerQuestion>({
     queryKey: queryKeys.icebreaker(matchId),
@@ -96,7 +96,6 @@ export function useIcebreaker(matchId: string) {
     isComplete,
     myAnswer,
     partnerAnswer,
-    droppedItem: toDroppedItem(respond.data?.droppedItem),
     awarded: respond.data?.awarded ?? 0,
     submitError: respond.isError,
     clearSubmitError: respond.reset,

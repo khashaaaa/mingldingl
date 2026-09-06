@@ -7,26 +7,38 @@ import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
 import { LootToast } from '../../components/modals/LootToast';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
+import {
+  ACCENT,
+  COLORS,
+  FILL,
+  FONTS,
+  FONT_SIZES,
+  ICON_SIZES,
+  INK,
+  LINE,
+  LINE_HEIGHTS,
+  RADIUS,
+  SPACE,
+  tint,
+} from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
+import { useScrollTail } from '../../hooks/useScrollTail';
 
-const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function QuizScreen() {
+  const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const {
     quiz, isLoading, isLoadError, refetchQuiz, currentQuestion, answeredCount,
-    submitAnswer, allAnswered, isWaitingForPartner, compatibility, droppedItem, awarded,
+    submitAnswer, allAnswered, isWaitingForPartner, compatibility, awarded,
     submitError, clearSubmitError,
   } = useQuiz(matchId);
   const router = useRouter();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
-  const [dropToastVisible, setDropToastVisible] = useState(true);
   const [failedAlert, setFailedAlert] = useState(false);
 
   useEffect(() => {
@@ -42,15 +54,13 @@ export default function QuizScreen() {
 
   if (isLoading) return (
     <View style={styles.centered}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ActivityIndicator color={COLORS.gold} />
     </View>
   );
 
   if (isLoadError) return (
     <View style={styles.centered}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <Icon name="wifi-off" size={ICON_SIZES.huge} color={COLORS.bronze} />
+      <Icon name="wifi-off" size={ICON_SIZES.huge} color={INK.muted} />
       <Text style={styles.completionTitle}>{i18n.t('quiz_load_error')}</Text>
       <GameButton variant="primary" onPress={() => refetchQuiz()}>{i18n.t('retry')}</GameButton>
       <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
@@ -59,8 +69,7 @@ export default function QuizScreen() {
 
   if (!quiz) return (
     <View style={styles.centered}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
-      <Icon name="help-circle-outline" size={ICON_SIZES.huge} color={COLORS.bronze} />
+      <Icon name="help-circle-outline" size={ICON_SIZES.huge} color={INK.muted} />
       <Text style={styles.completionTitle}>{i18n.t('no_quiz')}</Text>
       <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
     </View>
@@ -69,7 +78,6 @@ export default function QuizScreen() {
   if (allAnswered) {
     return (
       <View style={styles.centered}>
-        <TiledBackdrop source={DUNGEON_WALL_ASSET} />
         <Icon name={isWaitingForPartner ? 'brain' : 'trophy'} size={ICON_SIZES.huge} color={COLORS.gold} />
         <AppCard style={styles.completionCard}>
           <Text style={styles.completionTitle}>
@@ -82,15 +90,6 @@ export default function QuizScreen() {
         </AppCard>
         {isWaitingForPartner && <ActivityIndicator color={COLORS.gold} />}
         <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
-        {droppedItem && dropToastVisible && (
-          <LootToast
-            title={i18n.t('loot_found')}
-            points={0}
-            item={droppedItem}
-            visible
-            onDismiss={() => setDropToastVisible(false)}
-          />
-        )}
       </View>
     );
   }
@@ -112,7 +111,6 @@ export default function QuizScreen() {
 
   return (
     <View style={styles.screen}>
-      <TiledBackdrop source={DUNGEON_WALL_ASSET} />
       <ScreenHeader title={quiz.title} />
 
       <View style={styles.body}>
@@ -120,14 +118,14 @@ export default function QuizScreen() {
           {quiz.questions.map((_, i) => (
             <View
               key={i}
-              style={[styles.progressSegment, { backgroundColor: i < answeredCount ? COLORS.gold : COLORS.bronze }]}
+              style={[styles.progressSegment, { backgroundColor: i < answeredCount ? ACCENT.base : LINE.edge }]}
             />
           ))}
         </View>
 
         {/* Long questions and long Mongolian options overflowed a fixed-height body with no
             way to reach the answers below the fold. */}
-        <ScrollView contentContainerStyle={styles.bodyScroll} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.bodyScroll, { paddingBottom: tail }]} keyboardShouldPersistTaps="handled">
         <AppCard style={styles.questionCard}>
           <Text style={styles.questionMeta}>{i18n.t('question_of', { n: answeredCount + 1, total: quiz.questions.length })}</Text>
           <Text style={styles.questionText}>{q.text}</Text>
@@ -174,7 +172,7 @@ export default function QuizScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'transparent',
   },
   body: {
     flex: 1,
@@ -183,7 +181,7 @@ const styles = StyleSheet.create({
   bodyScroll: { paddingBottom: SPACE.xxl, flexGrow: 1 },
   centered: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACE.xxl,
@@ -200,6 +198,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
   },
   questionCard: {
+    padding: SPACE.lg,
     marginBottom: SPACE.xxl,
   },
   questionMeta: {
@@ -229,9 +228,9 @@ const styles = StyleSheet.create({
   },
   optionDefault: {
     backgroundColor: COLORS.panelRaised,
-    borderLeftColor: COLORS.bronze,
-    borderRightColor: COLORS.bronze,
-    borderBottomColor: COLORS.bronze,
+    borderLeftColor: LINE.edge,
+    borderRightColor: LINE.edge,
+    borderBottomColor: LINE.edge,
   },
   optionSelected: {
     backgroundColor: FILL.gold,
@@ -251,6 +250,7 @@ const styles = StyleSheet.create({
     color: COLORS.goldBright,
   },
   completionCard: {
+    padding: SPACE.lg,
     alignItems: 'center',
     gap: SPACE.md,
     marginVertical: SPACE.lg,

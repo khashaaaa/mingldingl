@@ -18,11 +18,9 @@ import { TextField } from '../../components/ui/TextField';
 import { DismissKeyboardView } from '../../components/ui/DismissKeyboardView';
 import { GlowText } from '../../components/vfx/GlowText';
 import { EmberField } from '../../components/vfx/EmberField';
-import { TiledBackdrop } from '../../components/ui/TiledBackdrop';
 import { SectionDivider } from '../../components/ui/SectionDivider';
 import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
 
-const DUNGEON_WALL_ASSET = require('../../assets/textures/dungeon_wall.png');
 
 export default function PhoneScreen() {
   useLocaleStore((s) => s.locale);
@@ -66,7 +64,6 @@ export default function PhoneScreen() {
         // the root SafeAreaView's top edge.
         keyboardVerticalOffset={insets.top}
       >
-        <TiledBackdrop source={DUNGEON_WALL_ASSET} />
         {screenSize.w > 0 && <EmberField width={screenSize.w} height={screenSize.h} density={10} />}
         <View style={styles.inner}>
           <GlowText style={styles.logo}>MINGLDINGL</GlowText>
@@ -109,7 +106,7 @@ export default function PhoneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'transparent',
   },
   inner: {
     flex: 1,

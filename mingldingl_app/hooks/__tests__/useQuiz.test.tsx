@@ -101,7 +101,7 @@ describe('useQuiz answer state machine', () => {
   });
 
   it('submits once the last question is answered, and on success stores compatibility + marks hasResponded', async () => {
-    mockApi.engagement.quizRespond.mockResolvedValue({ compatibility: 0.75, droppedItem: null });
+    mockApi.engagement.quizRespond.mockResolvedValue({ compatibility: 0.75 });
     const queryClient = makeQueryClient();
     const { result } = renderHook(() => useQuiz('m1'), { wrapper: makeWrapper(queryClient) });
 
@@ -184,7 +184,7 @@ describe('useQuiz answer state machine', () => {
     };
 
     it('bumps the score by the server-reported award on first submission', async () => {
-      mockApi.engagement.quizRespond.mockResolvedValue({ compatibility: 0.75, awarded: 15, droppedItem: null });
+      mockApi.engagement.quizRespond.mockResolvedValue({ compatibility: 0.75, awarded: 15 });
       const queryClient = makeQueryClient();
       queryClient.setQueryData(queryKeys.scoreDetail, baseScoreDetail);
       const { result } = renderHook(() => useQuiz('m1'), { wrapper: makeWrapper(queryClient) });
@@ -200,7 +200,7 @@ describe('useQuiz answer state machine', () => {
     });
 
     it('does NOT bump the score on a repeat submission (server reports awarded: 0)', async () => {
-      mockApi.engagement.quizRespond.mockResolvedValue({ compatibility: 0.75, awarded: 0, droppedItem: null });
+      mockApi.engagement.quizRespond.mockResolvedValue({ compatibility: 0.75, awarded: 0 });
       const queryClient = makeQueryClient();
       queryClient.setQueryData(queryKeys.scoreDetail, baseScoreDetail);
       const { result } = renderHook(() => useQuiz('m1'), { wrapper: makeWrapper(queryClient) });

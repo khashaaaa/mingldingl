@@ -25,7 +25,7 @@ public class FlameRiteTokenIntegrationTests : IntegrationTestBase
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
-        var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
+        var loot = new HonourService(Db, NullLogger<HonourService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var push = BuildTestPush();
         var broadcast = BuildTestBroadcast();
@@ -70,7 +70,7 @@ public class FlameRiteTokenIntegrationTests : IntegrationTestBase
         var config = new ConfigService();
         var score = new ScoreService(Db, config);
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
-        var loot = new LootService(Db, score, NullLogger<LootService>.Instance);
+        var loot = new HonourService(Db, NullLogger<HonourService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var engagement = new EngagementService(Db, score);
         var broadcast = BuildTestBroadcast();
@@ -79,7 +79,7 @@ public class FlameRiteTokenIntegrationTests : IntegrationTestBase
         {
             var httpContext = new DefaultHttpContext();
             httpContext.Items["UserId"] = userId;
-            return new EngagementController(Db, engagement, score, quests, loot, milestones, broadcast, new ConfigService())
+            return new EngagementController(Db, engagement, score, quests, milestones, broadcast, new ConfigService())
             {
                 ControllerContext = new ControllerContext { HttpContext = httpContext },
             };

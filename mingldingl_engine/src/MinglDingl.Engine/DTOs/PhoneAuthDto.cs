@@ -1,7 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 
+/// <summary>
+/// ResumeVerificationId is the id the caller was last given for this number. Only its holder
+/// can resume a pending session; anyone else starting the same number gets a fresh one.
+/// </summary>
 public record StartPhoneVerificationRequest(
-    [Required, MaxLength(FieldLimits.Phone)] string Phone);
+    [Required, MaxLength(FieldLimits.Phone)] string Phone,
+    Guid? ResumeVerificationId = null);
 
 /// <summary>
 /// DisplayInstruction is verify.mn's Mongolian copy and must be shown verbatim — it names the

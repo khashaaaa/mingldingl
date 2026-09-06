@@ -8,7 +8,7 @@ import { AlertModal } from './modals/AlertModal';
 import { SheetModal } from './modals/SheetModal';
 import { GameButton } from './ui/GameButton';
 import { i18n } from '../lib/i18n';
-import { COLORS, ICON_SIZES, RADIUS, SPACE, circle, overlay } from '../lib/theme';
+import { COLORS, ICON_SIZES, LINE, RADIUS, SPACE, circle, overlay } from '../lib/theme';
 
 interface Props {
   photoUrls: string[];
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: '100%' },
   addTile: {
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: COLORS.bronze,
+    borderWidth: 1, borderColor: LINE.edge,
   },
   uploadOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -200,8 +200,11 @@ const styles = StyleSheet.create({
     backgroundColor: overlay(0.75),
     alignItems: 'center', justifyContent: 'center',
   },
+  // Same corner as primaryBadge: exactly one of the two renders per tile (badge when it already
+  // is the primary, button when it isn't), so the star means "primary" in one fixed place instead
+  // of jumping from the top-left of the first tile to the bottom-right of the others.
   primaryButton: {
-    position: 'absolute', bottom: 4, right: 4,
+    position: 'absolute', top: 4, left: 4,
     ...circle(22),
     backgroundColor: overlay(0.75),
     alignItems: 'center', justifyContent: 'center',

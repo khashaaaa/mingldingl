@@ -72,6 +72,21 @@ public class LoginThrottleServiceTests
     }
 
     [Fact]
+    public void A_full_table_still_counts_failures_for_a_newcomer()
+    {
+        // Refusing to track new keys once full failed open: fill the table with junk usernames and
+        // every further attempt against the real one went uncounted for the rest of the window.
+        var throttle = new LoginThrottleService();
+        for (var i = 0; i < 10_000; i++) throttle.RecordFailure($"attacker-{i}", Ip);
+        Assert.Equal(10_000, throttle.TrackedKeyCount);
+
+        for (var i = 0; i < 5; i++) throttle.RecordFailure(User, Ip);
+
+        Assert.NotNull(throttle.RetryAfter(User, Ip));
+        Assert.InRange(throttle.TrackedKeyCount, 0, 10_000);
+    }
+
+    [Fact]
     public void A_flood_of_distinct_usernames_does_not_unlock_an_already_locked_caller()
     {
         var throttle = new LoginThrottleService();
