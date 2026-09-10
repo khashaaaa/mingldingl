@@ -44,4 +44,22 @@ public class LocalisedContentTests
     [Fact]
     public void AnOptionListOfTheWrongLength_IsRejectedWholesale() =>
         Assert.Equal(["Уул", "Далай"], LocalisedContent.PickList("en", ["Уул", "Далай"], ["Mountain"]));
+
+    /// <summary>
+    /// BusinessPartners is the mirror image of icebreakers/quizzes: it was seeded in English before
+    /// this scheme existed, so English is the stored fallback there and Mongolian is the overlay.
+    /// <paramref name="overlayLocale"/> lets <c>Pick</c> serve that direction too, without a second
+    /// mechanism. These fixtures use placeholder ASCII, not real Mongolian — this test exercises the
+    /// mechanism, it is not translated venue copy.
+    /// </summary>
+    [Fact]
+    public void AReversedFallback_ServesTheOverlayOnlyForItsOwnLocale()
+    {
+        const string english = "Outdoor";
+        const string overlay = "mn-overlay-placeholder";
+
+        Assert.Equal(overlay, LocalisedContent.Pick("mn", english, overlay, LocalisedContent.MarketLocale));
+        Assert.Equal(english, LocalisedContent.Pick("en", english, overlay, LocalisedContent.MarketLocale));
+        Assert.Equal(english, LocalisedContent.Pick("mn", english, null, LocalisedContent.MarketLocale));
+    }
 }

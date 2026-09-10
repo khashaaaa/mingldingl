@@ -32,6 +32,31 @@ public class BusinessControllerIntegrationTests : IntegrationTestBase
         return business;
     }
 
+    /// <summary>
+    /// A venue with a Mongolian overlay set on all four fields, plus one left null so the fallback
+    /// path is exercised too. The overlay values are placeholder ASCII, not real translations — this
+    /// venue's actual Mongolian copy is owed to a native speaker (see BusinessPartner.NameMn).
+    /// </summary>
+    private async Task<BusinessPartner> SeedLocalisedBusinessAsync()
+    {
+        var business = new BusinessPartner
+        {
+            Name = "Sunset Point",
+            NameMn = "mn-overlay-name",
+            Category = "Outdoor",
+            CategoryMn = "mn-overlay-category",
+            City = "Ulaanbaatar",
+            District = "Khan-Uul",
+            DistrictMn = "mn-overlay-district",
+            Description = "City viewpoint — best at sunset.",
+            DescriptionMn = null,
+            IsVerified = true,
+        };
+        Db.BusinessPartners.Add(business);
+        await Db.SaveChangesAsync();
+        return business;
+    }
+
     private async Task<Match> SeedMatchAsync(Guid initiatorId, Guid receiverId)
     {
         var initiator = NewCompleteUser(initiatorId);
@@ -42,6 +67,49 @@ public class BusinessControllerIntegrationTests : IntegrationTestBase
         Db.Matches.Add(match);
         await Db.SaveChangesAsync();
         return match;
+    }
+
+    [Theory]
+    [InlineData("en", "Sunset Point", "Outdoor", "Khan-Uul", "City viewpoint — best at sunset.")]
+    [InlineData("mn", "mn-overlay-name", "mn-overlay-category", "mn-overlay-district", "City viewpoint — best at sunset.")]
+    public async Task Get_ServesTheVenueInTheReadersOwnLanguage(
+        string locale, string name, string category, string district, string description)
+    {
+        var reader = NewCompleteUser();
+        reader.PreferredLocale = locale;
+        Db.Users.Add(reader);
+        var business = await SeedLocalisedBusinessAsync();
+
+        var controller = BuildController(reader.Id);
+        var result = await controller.Get(business.Id);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var body = Assert.IsType<BusinessResponse>(ok.Value);
+
+        Assert.Equal(name, body.Name);
+        Assert.Equal(category, body.Category);
+        Assert.Equal(district, body.District);
+        // Description has no overlay seeded (DescriptionMn is null), so both locales fall back to
+        // the same English string — this is the visible-gap behaviour the house rule prefers over a
+        // guessed translation.
+        Assert.Equal(description, body.Description);
+    }
+
+    [Fact]
+    public async Task List_ServesTheVenueInTheReadersOwnLanguage()
+    {
+        var reader = NewCompleteUser();
+        reader.PreferredLocale = LocalisedContent.MarketLocale;
+        Db.Users.Add(reader);
+        await SeedLocalisedBusinessAsync();
+
+        var controller = BuildController(reader.Id);
+        var result = await controller.List(city: null, category: null);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var body = Assert.IsType<PagedResponse<BusinessResponse>>(ok.Value);
+
+        Assert.Contains(body.Items, b => b.Name == "mn-overlay-name" && b.Category == "mn-overlay-category");
     }
 
     [Fact]

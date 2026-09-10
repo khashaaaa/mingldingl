@@ -12,6 +12,17 @@ public class BusinessController : ControllerBase
 
     public BusinessController(AppDbContext db) => _db = db;
 
+    /// <summary>
+    /// The language venue content should be served in for this caller. Same source as
+    /// <c>EngagementController.CallerLocaleAsync</c> — the stored profile, not the JWT.
+    /// </summary>
+    private async Task<string?> CallerLocaleAsync() =>
+        await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == this.CurrentUserId())
+            .Select(u => u.PreferredLocale)
+            .FirstOrDefaultAsync();
+
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<BusinessResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(
@@ -27,7 +38,8 @@ public class BusinessController : ControllerBase
         var totalCount = await query.CountAsync();
         var results = await query.Skip(skip).Take(safePageSize).ToListAsync();
 
-        var items = results.Select(ToResponse).ToList();
+        var locale = await CallerLocaleAsync();
+        var items = results.Select(b => ToResponse(b, locale)).ToList();
         return Ok(new PagedResponse<BusinessResponse>(items, safePage, safePageSize, totalCount, skip + items.Count < totalCount));
     }
 
@@ -42,7 +54,8 @@ public class BusinessController : ControllerBase
             .FirstOrDefaultAsync(b => b.Id == id && b.IsVerified);
         if (business is null) return this.NotFoundError("Business not found", "business.not_found");
 
-        return Ok(ToResponse(business));
+        var locale = await CallerLocaleAsync();
+        return Ok(ToResponse(business, locale));
     }
 
     [HttpPost("{id}/rate")]
@@ -114,8 +127,16 @@ public class BusinessController : ControllerBase
         return Ok(reviews);
     }
 
-    private static BusinessResponse ToResponse(BusinessPartner b) => new(
-        b.Id, b.Name, b.Category, b.City, b.District, b.Description,
+    /// Name/Category/District/Description are served through <see cref="LocalisedContent"/> —
+    /// English is this table's stored fallback (it was seeded before the scheme existed), and the
+    /// *Mn columns are the Mongolian overlay, so the direction is reversed from icebreakers/quizzes.
+    private static BusinessResponse ToResponse(BusinessPartner b, string? locale) => new(
+        b.Id,
+        LocalisedContent.Pick(locale, b.Name, b.NameMn, LocalisedContent.MarketLocale),
+        LocalisedContent.Pick(locale, b.Category, b.CategoryMn, LocalisedContent.MarketLocale),
+        b.City,
+        LocalisedContent.Pick(locale, b.District, b.DistrictMn, LocalisedContent.MarketLocale),
+        LocalisedContent.Pick(locale, b.Description, b.DescriptionMn, LocalisedContent.MarketLocale),
         b.PhotoUrls, b.OperatingHours, b.IsVerified, b.IsFeatured,
         b.AverageRating, b.RatingCount);
 }
