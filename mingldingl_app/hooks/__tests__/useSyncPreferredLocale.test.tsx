@@ -60,6 +60,19 @@ describe('useSyncPreferredLocale', () => {
     expect(invalidated).toEqual(expect.arrayContaining(['icebreaker', 'quiz', 'townSquareCurrentRound']));
   });
 
+  it('drops cached venue content too, for the same reason', async () => {
+    // BusinessController now picks Name/Category/District/Description by PreferredLocale as well
+    // (LocalisedContent), so a venue read in one language and cached must not survive a switch —
+    // same bug as the icebreaker/quiz case above, just for the Mission Board and venue detail screens.
+    renderHook(() => useSyncPreferredLocale('mn', 'en'));
+    await act(async () => {});
+
+    const invalidated = mockInvalidate.mock.calls.map((c) => c[0]?.queryKey?.[0]);
+    expect(invalidated).toEqual(expect.arrayContaining(['business', 'activity']));
+    // Review text is user-written, not authored/localised server content, so it is not dropped.
+    expect(invalidated).not.toContain('businessReviews');
+  });
+
   it('leaves the cache alone when there was nothing to sync', async () => {
     renderHook(() => useSyncPreferredLocale('mn', 'mn'));
     await act(async () => {});
