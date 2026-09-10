@@ -1,9 +1,11 @@
 import { Tabs } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, LINE_HEIGHTS, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 import { i18n } from '../../lib/i18n';
+import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { useLocaleStore } from '../../store/localeStore';
 
 type TabGlyph = React.ComponentProps<typeof Icon>['name'];
@@ -13,8 +15,34 @@ type TabGlyph = React.ComponentProps<typeof Icon>['name'];
  * `tabBarIcon`. The icon slot is sized to the glyph (~31px against an 84px tab), so a label
  * nested in it resolved `width: '100%'` against 31px and clipped every tab to "Se…"/"Ха…".
  */
-const tabIcon = (glyph: TabGlyph) => ({ color }: { color: string }) => (
-  <Icon name={glyph} size={ICON_SIZES.xl} color={color} style={styles.glyph} />
+const TabGlyphIcon = ({ glyph, color, focused }: { glyph: TabGlyph; color: string; focused: boolean }) => {
+  const animate = motionAllowed(useVfxLevel());
+  const lit = useRef(new Animated.Value(focused ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (!animate) {
+      lit.setValue(focused ? 1 : 0);
+      return;
+    }
+    Animated.timing(lit, {
+      toValue: focused ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [focused, animate, lit]);
+
+  const scale = lit.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Icon name={glyph} size={ICON_SIZES.xl} color={color} style={styles.glyph} />
+    </Animated.View>
+  );
+};
+
+const tabIcon = (glyph: TabGlyph) => ({ color, focused }: { color: string; focused: boolean }) => (
+  <TabGlyphIcon glyph={glyph} color={color} focused={focused} />
 );
 
 export default function TabsLayout() {
