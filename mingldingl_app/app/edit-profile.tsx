@@ -12,7 +12,7 @@ import { i18n } from '../lib/i18n';
 import { deepProfileThreshold } from '../lib/reveal';
 import { useRevealLadder } from '../hooks/useRevealThresholds';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
 import { FIELD_LIMITS } from '../lib/fieldLimits';
 import { DismissKeyboardView } from '../components/ui/DismissKeyboardView';
 import { AppCard } from '../components/ui/AppCard';
@@ -130,7 +130,7 @@ export default function EditProfileScreen() {
           <View style={styles.cardBody}>
             <Text style={styles.sectionTitle}>{i18n.t('your_photos')}</Text>
             <PhotoGrid photoUrls={photoUrls} onChange={setPhotoUrls} onUploadingChange={setPhotosUploading} />
-            <Text style={[styles.hint, { color: photoUrls.length >= 3 ? COLORS.goldBright : COLORS.gold }]}>
+            <Text style={[styles.hint, { color: photoUrls.length >= 3 ? ACCENT.bright : COLORS.gold }]}>
               {i18n.t('photos_minimum', { n: photoUrls.length })}
             </Text>
           </View>

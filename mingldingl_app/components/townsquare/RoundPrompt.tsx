@@ -2,7 +2,7 @@ import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VIDEO_CONTROLS_BOTTOM, VIDEO_CONTROLS_SIZE } from '../video/VideoControls';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
 interface Props {
   icebreakerText: string;
   roundNumber: number;
@@ -86,14 +86,14 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   roundLabel: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: INK.dim, letterSpacing: 1 },
-  clock: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.lg, color: COLORS.goldBright },
+  clock: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.lg, color: ACCENT.bright },
   question: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary },
   waitingText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
-  matchText: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, color: COLORS.goldBright },
+  matchText: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, color: ACCENT.bright },
   buttonRow: { flexDirection: 'row', gap: SPACE.md },
   button: { flex: 1, borderRadius: RADIUS.sm, paddingVertical: SPACE.md, alignItems: 'center', borderWidth: 1 },
   buttonBusy: { opacity: 0.5 },
-  yesButton: { backgroundColor: COLORS.gold, borderColor: COLORS.goldBright },
+  yesButton: { backgroundColor: COLORS.gold, borderColor: ACCENT.bright },
   noButton: { backgroundColor: COLORS.panelRaised, borderColor: LINE.edge },
   buttonText: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, letterSpacing: 1 },
   // Light-on-gold reads at 2.4:1; the rest of the app puts a dark label on this slab (as GameButton does).

@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { tierLabel } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { GemTierBadge } from './GemTierBadge';
 import { CountText } from '../ui/CountText';
@@ -65,7 +65,7 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
         ))}
         <Animated.View style={[styles.fill, { width: fillWidth }]}>
           <LinearGradient
-            colors={[color, COLORS.goldBright]}
+            colors={[color, ACCENT.bright]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={StyleSheet.absoluteFill}
           />
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     transform: [{ skewX: '-20deg' }],
   },
   tick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: tint(LINE.edge, 0.6) },
-  flash: { backgroundColor: COLORS.goldBright },
+  flash: { backgroundColor: ACCENT.bright },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   nextThreshold: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, flexShrink: 1 },
   scoreText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'right', letterSpacing: 1, marginLeft: 'auto' },

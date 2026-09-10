@@ -8,7 +8,7 @@ import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { Entering } from '../components/ui/Entering';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
 import type { GemTier } from '../models/user';
 import { useScrollTail } from '../hooks/useScrollTail';
 
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.lg,
   },
   score: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.primary, flexShrink: 1 },
-  scoreSelf: { fontFamily: FONTS.bodyBold, color: COLORS.goldBright },
+  scoreSelf: { fontFamily: FONTS.bodyBold, color: ACCENT.bright },
   youTag: {
     marginLeft: 'auto',
     fontFamily: FONTS.display,

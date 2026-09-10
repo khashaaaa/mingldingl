@@ -4,7 +4,7 @@ import type { LayoutChangeEvent } from 'react-native';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
-import { COLORS, FILL, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, METAL, RADIUS, SPACE, glow, tint } from '../../lib/theme';
+import { ACCENT, COLORS, FILL, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, METAL, RADIUS, SPACE, glow, tint } from '../../lib/theme';
 export type GateState = 'closed' | 'opening' | 'barred';
 
 interface Props {
@@ -126,8 +126,8 @@ const styles = StyleSheet.create({
     width: HEIGHT * 0.8,
     height: HEIGHT * 0.8,
     borderRadius: HEIGHT * 0.4,
-    backgroundColor: tint(COLORS.goldBright, 0.55),
-    ...glow(COLORS.goldBright, 0.9, 28, 0),
+    backgroundColor: tint(ACCENT.bright, 0.55),
+    ...glow(ACCENT.bright, 0.9, 28, 0),
   },
   seam: {
     position: 'absolute',
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 2,
-    backgroundColor: tint(COLORS.goldBright, 0.35),
+    backgroundColor: tint(ACCENT.bright, 0.35),
   },
   half: {
     position: 'absolute',

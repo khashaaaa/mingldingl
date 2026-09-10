@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { Icon } from '../ui/Icon';
 import { TorchGlow } from '../vfx/TorchGlow';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, INK, METAL, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, METAL, RADIUS, SPACE } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
 interface Props {
@@ -135,7 +135,7 @@ export function Lantern({ days }: Props) {
                 testID="flame-lit"
                 style={[styles.slot, { opacity: Animated.multiply(value, flicker) }]}
               >
-                <Icon name="fire" size={GLYPH} color={i === LANTERN_SLOTS - 1 ? COLORS.goldBright : COLORS.gold} />
+                <Icon name="fire" size={GLYPH} color={i === LANTERN_SLOTS - 1 ? ACCENT.bright : COLORS.gold} />
               </Animated.View>
             ) : (
               <View key={i} testID="flame-unlit" style={styles.slot}>

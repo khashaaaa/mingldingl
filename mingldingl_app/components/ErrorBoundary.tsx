@@ -2,7 +2,7 @@ import { Component, type ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { GameButton } from './ui/GameButton';
 import { i18n } from '../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
 interface Props {
   children: ReactNode;
 }
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.title,
-    color: COLORS.goldBright,
+    color: ACCENT.bright,
     textAlign: 'center',
     marginBottom: SPACE.md,
   },

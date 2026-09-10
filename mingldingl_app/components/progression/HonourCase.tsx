@@ -24,7 +24,7 @@ import { formatDate } from '../../lib/formatDate';
 import { i18n, tKey } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { signal } from '../../lib/world/feedback';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE, circle, tint } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE, circle, tint } from '../../lib/theme';
 interface HeldHonour {
   itemId?: string | null;
   rarity?: string | null;
@@ -311,7 +311,7 @@ function HonourSlot({ id, held, ignited, progress, animate, onPress, onLongPress
               style={[styles.sweep, { transform: [{ translateX: sweep.interpolate({ inputRange: [0, 1], outputRange: [-CHIP, CHIP] }) }, { rotate: '20deg' }] }]}
             >
               <LinearGradient
-                colors={['transparent', tint(COLORS.goldBright, 0.55), 'transparent']}
+                colors={['transparent', tint(ACCENT.bright, 0.55), 'transparent']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={StyleSheet.absoluteFill}

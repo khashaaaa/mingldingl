@@ -11,7 +11,7 @@ import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
+import { ACCENT, COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 import { useScrollTail } from '../../hooks/useScrollTail';
 
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   },
   option: {
     borderWidth: 1,
-    borderTopColor: tint(COLORS.goldBright, 0.35),
+    borderTopColor: tint(ACCENT.bright, 0.35),
     borderRadius: RADIUS.sm,
     paddingVertical: SPACE.lg,
     paddingHorizontal: SPACE.gutter,
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     color: INK.primary,
   },
   optionTextSelected: {
-    color: COLORS.goldBright,
+    color: ACCENT.bright,
   },
   completionCard: {
     padding: SPACE.lg,

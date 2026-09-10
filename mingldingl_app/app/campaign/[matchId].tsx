@@ -12,7 +12,7 @@ import { i18n } from '../../lib/i18n';
 import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
 import { toDroppedItem } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { useScrollTail } from '../../hooks/useScrollTail';
 
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   progress: {
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.lg,
-    color: COLORS.goldBright,
+    color: ACCENT.bright,
     textAlign: 'center',
     marginBottom: SPACE.xs,
   },
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   medallionCurrent: {
-    shadowColor: COLORS.goldBright,
+    shadowColor: ACCENT.bright,
     shadowOpacity: 0.6,
     shadowRadius: 10,
     elevation: 6,

@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   },
   option: {
     borderWidth: 1,
-    borderTopColor: tint(COLORS.goldBright, 0.35),
+    borderTopColor: tint(ACCENT.bright, 0.35),
     borderRadius: RADIUS.sm,
     paddingVertical: SPACE.lg,
     paddingHorizontal: SPACE.gutter,
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     color: INK.primary,
   },
   optionTextSelected: {
-    color: COLORS.goldBright,
+    color: ACCENT.bright,
   },
   completionCard: {
     padding: SPACE.lg,

@@ -2,7 +2,7 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, ICON_SIZES, INK, LINE, METAL, SPACE, circle } from '../../lib/theme';
+import { ACCENT, COLORS, ICON_SIZES, INK, LINE, METAL, SPACE, circle } from '../../lib/theme';
 /** Geometry the round prompt above these controls has to clear. */
 export const VIDEO_CONTROLS_BOTTOM = 24;
 export const VIDEO_CONTROLS_SIZE = 60;
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonIdle: { borderColor: LINE.edge, backgroundColor: COLORS.panelRaised },
-  buttonActive: { borderColor: COLORS.goldBright, backgroundColor: COLORS.gold },
+  buttonActive: { borderColor: ACCENT.bright, backgroundColor: COLORS.gold },
   buttonEnd: { borderColor: COLORS.emberDark, backgroundColor: METAL.ember },
   buttonBusy: { opacity: 0.5 },
 });

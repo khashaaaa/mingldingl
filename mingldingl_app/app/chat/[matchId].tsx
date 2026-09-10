@@ -27,7 +27,7 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
 import { useActivityGate, useRevealLadder } from '../../hooks/useRevealThresholds';
 import { messagesUntilActivities, nextRevealThreshold } from '../../lib/reveal';
@@ -387,7 +387,7 @@ export default function ChatScreen() {
             <Text style={styles.optionsTitle}>{i18n.t('match_activities')}</Text>
             <ScrollView style={styles.activitiesScroll} contentContainerStyle={styles.activitiesScrollContent}>
               {campaign && (
-                <QuestBanner icon="map" tint={COLORS.goldBright} medallion="knot"
+                <QuestBanner icon="map" tint={ACCENT.bright} medallion="knot"
                   title={i18n.t('campaign_banner', { cleared: campaign.clearedCount, total: campaign.rooms.length })}
                   onPress={() => { setActivitiesVisible(false); router.push(`/campaign/${matchId}`); }} />
               )}

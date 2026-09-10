@@ -7,7 +7,7 @@ import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
 import OathSigil from '../OathSigil';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, overlay, tint } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, overlay, tint } from '../../lib/theme';
 import { itemLabel } from '../../lib/tiers';
 import type { Candidate } from '../../models/user';
 
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   // COLORS.gold measured at ~3.05:1 against the scrim's own worst case — barely past the 3:1
   // floor and, backwards, *less* legible than the inactive dots' 3.1:1 (see the comment above).
   // goldBright clears the same worst case at ~4.6:1.
-  photoDotActive: { backgroundColor: COLORS.goldBright },
+  photoDotActive: { backgroundColor: ACCENT.bright },
   photoTapLeft: { position: 'absolute', top: 0, bottom: 0, left: 0, width: '35%' },
   photoTapRight: { position: 'absolute', top: 0, bottom: 0, right: 0, width: '65%' },
   info: {

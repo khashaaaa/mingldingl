@@ -17,7 +17,7 @@ import { useMembership } from '../hooks/useMembership';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
 import { membershipLabel } from '../lib/tiers';
 import type { GemTier } from '../models/user';
 import type { MembershipPriceOption } from '../models/membership';
@@ -31,7 +31,7 @@ const BADGE_TIER: Record<string, GemTier> = {
 const BADGE_COLOR: Record<string, { color: string; shade: string }> = {
   Free: { color: INK.muted, shade: COLORS.bronzeDark },
   Silver: { color: COLORS.silver, shade: COLORS.silverDark },
-  Gold: { color: COLORS.goldBright, shade: COLORS.gold },
+  Gold: { color: ACCENT.bright, shade: COLORS.gold },
 };
 
 const DURATIONS = ['1', '3', '6'] as const;
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyBold,
   },
   saveBadge: {
-    color: COLORS.goldBright,
+    color: ACCENT.bright,
     fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.bodyMedium,
     marginTop: SPACE.hair,
