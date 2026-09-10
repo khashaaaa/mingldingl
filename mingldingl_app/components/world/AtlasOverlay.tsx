@@ -9,21 +9,7 @@ import { useWorldState } from '../../hooks/useWorldState';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { AppModal } from '../modals/AppModal';
-import {
-  COLORS,
-  FONTS,
-  FONT_SIZES,
-  ICON_SIZES,
-  LINE,
-  LINE_HEIGHTS,
-  RADIUS,
-  SPACE,
-  circle,
-  glow,
-  overlay,
-  tint,
-} from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, circle, glow, overlay, tint } from '../../lib/theme';
 const COLS = 3;
 const ROWS = 5;
 const MEDALLION = 46;
@@ -173,5 +159,5 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, lineHeight: LINE_HEIGHTS.xs,
     color: COLORS.text, textAlign: 'center', width: '100%',
   },
-  labelDim: { color: COLORS.textDim },
+  labelDim: { color: INK.dim },
 });

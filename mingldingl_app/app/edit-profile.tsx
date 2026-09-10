@@ -12,7 +12,7 @@ import { i18n } from '../lib/i18n';
 import { deepProfileThreshold } from '../lib/reveal';
 import { useRevealLadder } from '../hooks/useRevealThresholds';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
 import { FIELD_LIMITS } from '../lib/fieldLimits';
 import { DismissKeyboardView } from '../components/ui/DismissKeyboardView';
 import { AppCard } from '../components/ui/AppCard';
@@ -271,7 +271,7 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   fieldBlock: { gap: SPACE.sm },
   // Same treatment ChoiceRow gives its own label, so the two cards read as one form.
-  fieldLabel: { color: COLORS.textDim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
+  fieldLabel: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   screen: { flex: 1, backgroundColor: 'transparent' },
   cardBody: { gap: SPACE.md, zIndex: 1 },
   cardBodyLoose: { gap: SPACE.lg, zIndex: 1 },
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   deniedBlock: { gap: SPACE.sm },
   footer: { flexDirection: 'row', gap: SPACE.md, padding: SPACE.huge, paddingTop: SPACE.md },
   sectionTitle: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
-  hint: { color: COLORS.textDim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
+  hint: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   error: { color: COLORS.emberLight, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   city: { color: COLORS.text, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },
 });

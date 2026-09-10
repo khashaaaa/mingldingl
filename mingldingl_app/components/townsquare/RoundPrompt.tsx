@@ -2,8 +2,7 @@ import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VIDEO_CONTROLS_BOTTOM, VIDEO_CONTROLS_SIZE } from '../video/VideoControls';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
 interface Props {
   icebreakerText: string;
   roundNumber: number;
@@ -86,10 +85,10 @@ const styles = StyleSheet.create({
     gap: SPACE.sm,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  roundLabel: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: COLORS.textDim, letterSpacing: 1 },
+  roundLabel: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: INK.dim, letterSpacing: 1 },
   clock: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.lg, color: COLORS.goldBright },
   question: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.text },
-  waitingText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  waitingText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   matchText: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, color: COLORS.goldBright },
   buttonRow: { flexDirection: 'row', gap: SPACE.md },
   button: { flex: 1, borderRadius: RADIUS.sm, paddingVertical: SPACE.md, alignItems: 'center', borderWidth: 1 },

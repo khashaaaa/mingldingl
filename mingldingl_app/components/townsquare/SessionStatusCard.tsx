@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   festivalRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
   festivalText: { marginBottom: 0 },
   title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, letterSpacing: 1 },
-  hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   countdown: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.title, color: COLORS.text },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.gutter },
   emptyCard: {
@@ -104,5 +104,5 @@ const styles = StyleSheet.create({
     gap: SPACE.md,
   },
   emptyTitle: { fontSize: FONT_SIZES.title, fontFamily: FONTS.display, color: COLORS.text },
-  emptySub: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: COLORS.textDim, textAlign: 'center' },
+  emptySub: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: INK.dim, textAlign: 'center' },
 });

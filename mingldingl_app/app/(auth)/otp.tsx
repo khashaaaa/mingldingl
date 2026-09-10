@@ -9,9 +9,7 @@ import { Icon } from '../../components/ui/Icon';
 import { LongWait } from '../../components/ui/LongWait';
 import { GateScene, type GateState } from '../../components/onboarding/GateScene';
 import { signal } from '../../lib/world/feedback';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
-
-
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 /**
  * verify.mn is Mobile-Originated: the user sends our code to the shortcode rather than receiving
  * one. So this screen shows the provider's instruction, offers a one-tap pre-filled SMS, and
@@ -175,7 +173,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     fontFamily: FONTS.display,
   },
-  phone: { fontSize: FONT_SIZES.lg, color: COLORS.textDim, textAlign: 'center', fontFamily: FONTS.body },
+  phone: { fontSize: FONT_SIZES.lg, color: INK.dim, textAlign: 'center', fontFamily: FONTS.body },
   card: {
     backgroundColor: COLORS.panel,
     borderWidth: 1,
@@ -193,8 +191,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: LINE_HEIGHTS.lg,
   },
-  manual: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
-  waiting: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
-  meta: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
+  manual: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center' },
+  waiting: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
+  meta: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center' },
   error: { color: COLORS.emberLight, fontSize: FONT_SIZES.md, textAlign: 'center', fontFamily: FONTS.body },
 });

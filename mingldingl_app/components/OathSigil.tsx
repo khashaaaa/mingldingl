@@ -99,5 +99,5 @@ const styles = StyleSheet.create({
   },
   name: { fontFamily: FONTS.bodyBold, color: COLORS.text, letterSpacing: 0.3 },
   state: { fontFamily: FONTS.utility, letterSpacing: 0.5, textTransform: 'uppercase' },
-  progress: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textDim, marginTop: SPACE.hair },
+  progress: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, marginTop: SPACE.hair },
 });

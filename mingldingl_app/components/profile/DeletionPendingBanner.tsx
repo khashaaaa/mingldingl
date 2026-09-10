@@ -2,8 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 interface Props {
   graceDays: number;
   onCancel: () => void;
@@ -46,5 +45,5 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   title: { flex: 1, color: COLORS.text, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.lg },
-  body: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, lineHeight: LINE_HEIGHTS.md },
+  body: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, lineHeight: LINE_HEIGHTS.md },
 });

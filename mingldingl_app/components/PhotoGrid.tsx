@@ -9,8 +9,7 @@ import { SheetModal } from './modals/SheetModal';
 import { GameButton } from './ui/GameButton';
 import { Waiting } from './ui/Waiting';
 import { i18n } from '../lib/i18n';
-import { COLORS, ICON_SIZES, LINE, RADIUS, SPACE, circle, overlay } from '../lib/theme';
-
+import { COLORS, ICON_SIZES, INK, LINE, RADIUS, SPACE, circle, overlay } from '../lib/theme';
 interface Props {
   photoUrls: string[];
   maxPhotos?: number;
@@ -136,7 +135,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
           disabled={uploading}
           onPress={() => setSourceModalVisible(true)}
         >
-          {uploading ? <Waiting size={ICON_SIZES.md} /> : <Icon name="image-plus" size={ICON_SIZES.xxl} color={COLORS.textDim} />}
+          {uploading ? <Waiting size={ICON_SIZES.md} /> : <Icon name="image-plus" size={ICON_SIZES.xxl} color={INK.dim} />}
         </TouchableOpacity>
       )}
 

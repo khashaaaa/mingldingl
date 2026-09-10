@@ -4,10 +4,7 @@ import { Icon } from '../ui/Icon';
 import { signal } from '../../lib/world/feedback';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { i18n } from '../../lib/i18n';
-import {
-  COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE, tint,
-} from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
 interface Props {
   /** Called once the wax has broken and the card has unfolded; the real bubble takes over. */
   onOpen: () => void;
@@ -138,7 +135,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.utility,
     fontSize: FONT_SIZES.sm,
     lineHeight: LINE_HEIGHTS.sm,
-    color: COLORS.textDim,
+    color: INK.dim,
     textAlign: 'center',
   },
 });

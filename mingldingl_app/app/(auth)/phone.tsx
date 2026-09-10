@@ -19,9 +19,7 @@ import { DismissKeyboardView } from '../../components/ui/DismissKeyboardView';
 import { GlowText } from '../../components/vfx/GlowText';
 import { EmberField } from '../../components/vfx/EmberField';
 import { SectionDivider } from '../../components/ui/SectionDivider';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
-
-
+import { COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
 export default function PhoneScreen() {
   useLocaleStore((s) => s.locale);
   const [phone, setPhone] = useState('');
@@ -123,7 +121,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: FONT_SIZES.lg,
-    color: COLORS.textDim,
+    color: INK.dim,
     textAlign: 'center',
     letterSpacing: 0.5,
     fontFamily: FONTS.body,
@@ -134,7 +132,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: FONT_SIZES.md,
-    color: COLORS.textDim,
+    color: INK.dim,
     letterSpacing: 0.3,
     marginBottom: SPACE.xs,
     fontFamily: FONTS.body,

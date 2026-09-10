@@ -4,8 +4,7 @@ import { Icon } from '../ui/Icon';
 import { formatDate } from '../../lib/formatDate';
 import { Waiting } from '../ui/Waiting';
 import { Entering } from '../ui/Entering';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../../lib/theme';
 interface ScoreEventItem {
   eventType: string;
   delta: number;
@@ -138,7 +137,7 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
         return (
           <Entering index={index}>
             <View style={styles.row}>
-              <Icon name={icon} size={ICON_SIZES.md} color={COLORS.textDim} style={styles.icon} />
+              <Icon name={icon} size={ICON_SIZES.md} color={INK.dim} style={styles.icon} />
               <View style={styles.body}>
                 <Text style={styles.line}>{eventLine(item.eventType, item.delta)}</Text>
                 <Text style={styles.dateline}>{date}</Text>
@@ -162,11 +161,11 @@ const styles = StyleSheet.create({
   body: { flex: 1, gap: SPACE.xs },
   line: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.text },
   dateline: {
-    fontSize: FONT_SIZES.xs, fontFamily: FONTS.utility, color: COLORS.textDim,
+    fontSize: FONT_SIZES.xs, fontFamily: FONTS.utility, color: INK.dim,
     letterSpacing: 0.8, textTransform: 'uppercase',
   },
   delta: { fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   footer: { alignItems: 'center', paddingVertical: SPACE.lg },
   empty: { alignItems: 'center', padding: SPACE.huge },
-  emptyText: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.textDim, textAlign: 'center' },
+  emptyText: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.dim, textAlign: 'center' },
 });

@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.xs,
   },
   equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: COLORS.gold, letterSpacing: 1, marginTop: SPACE.hair },
-  subText: { fontSize: FONT_SIZES.md, color: COLORS.textDim, fontFamily: FONTS.body },
+  subText: { fontSize: FONT_SIZES.md, color: INK.dim, fontFamily: FONTS.body },
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   cardPadding: { padding: SPACE.lg },
   scoreValue: {
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg, lineHeight: LINE_HEIGHTS.lg,
     color: COLORS.gold, fontFamily: FONTS.body,
   },
-  bioText: { fontSize: FONT_SIZES.md, color: COLORS.textDim, lineHeight: LINE_HEIGHTS.md, fontFamily: FONTS.body },
+  bioText: { fontSize: FONT_SIZES.md, color: INK.dim, lineHeight: LINE_HEIGHTS.md, fontFamily: FONTS.body },
   editButtonWrapper: { marginHorizontal: SPACE.gutter, marginTop: SPACE.sm },
   signOutWrapper: { marginHorizontal: SPACE.gutter, marginTop: SPACE.md },
 });

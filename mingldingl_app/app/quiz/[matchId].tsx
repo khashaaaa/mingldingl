@@ -11,20 +11,7 @@ import { LongWait } from '../../components/ui/LongWait';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import {
-  ACCENT,
-  COLORS,
-  FILL,
-  FONTS,
-  FONT_SIZES,
-  ICON_SIZES,
-  INK,
-  LINE,
-  LINE_HEIGHTS,
-  RADIUS,
-  SPACE,
-  tint,
-} from '../../lib/theme';
+import { ACCENT, COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 import { useScrollTail } from '../../hooks/useScrollTail';
 
@@ -219,7 +206,7 @@ const styles = StyleSheet.create({
   },
   loadingPrompt: { alignSelf: 'center' },
   questionMeta: {
-    color: COLORS.textDim,
+    color: INK.dim,
     fontSize: FONT_SIZES.md,
     fontFamily: FONTS.body,
     marginBottom: SPACE.md,
@@ -286,7 +273,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   completionSub: {
-    color: COLORS.textDim,
+    color: INK.dim,
     fontSize: FONT_SIZES.md,
     fontFamily: FONTS.body,
     textAlign: 'center',

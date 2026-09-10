@@ -24,10 +24,7 @@ import { formatDate } from '../../lib/formatDate';
 import { i18n, tKey } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { signal } from '../../lib/world/feedback';
-import {
-  COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE, circle, tint,
-} from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE, circle, tint } from '../../lib/theme';
 interface HeldHonour {
   itemId?: string | null;
   rarity?: string | null;
@@ -353,7 +350,7 @@ const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   count: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: COLORS.gold },
-  hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textDim, marginBottom: SPACE.md },
+  hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, marginBottom: SPACE.md },
   hall: { gap: SPACE.md },
   row: { flexDirection: 'row', gap: SPACE.md, alignItems: 'stretch' },
   triptych: { gap: 0, alignItems: 'center' },
@@ -374,19 +371,19 @@ const styles = StyleSheet.create({
   chipCentre: { alignItems: 'center', justifyContent: 'center' },
   sweep: { position: 'absolute', top: -CHIP / 2, left: 0, width: CHIP * 0.5, height: CHIP * 2 },
   slotName: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.xs, color: COLORS.text, textAlign: 'center' },
-  slotNameDark: { color: COLORS.textDim },
+  slotNameDark: { color: INK.dim },
   equippedTag: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: COLORS.gold, letterSpacing: 1 },
-  dateTag: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textDim, textAlign: 'center' },
-  deedTag: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: COLORS.textDim, textAlign: 'center' },
+  dateTag: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, textAlign: 'center' },
+  deedTag: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, textAlign: 'center' },
   progress: { alignSelf: 'stretch', alignItems: 'center', gap: SPACE.hair, marginTop: SPACE.hair },
   progressTrack: { alignSelf: 'stretch', height: 3, borderRadius: 2, backgroundColor: tint(COLORS.text, 0.1), overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: COLORS.gold },
-  progressText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: COLORS.textDim },
+  progressText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: INK.dim },
   story: { alignItems: 'center', gap: SPACE.md },
   storyChip: { ...circle(72), borderWidth: 2, backgroundColor: COLORS.panelDeep, alignItems: 'center', justifyContent: 'center' },
   storyName: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.text, textAlign: 'center' },
   storyLore: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, lineHeight: LINE_HEIGHTS.md, color: COLORS.text, textAlign: 'center' },
-  storyMeta: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
+  storyMeta: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center' },
   milestoneRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm },
   milestoneName: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.text },
   milestoneXp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: COLORS.gold },

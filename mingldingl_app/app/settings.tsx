@@ -9,7 +9,7 @@ import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, LINE_HEIGHTS, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, SPACE } from '../lib/theme';
 import { AlertModal } from '../components/modals/AlertModal';
 import { PhoneChangeModal } from '../components/settings/PhoneChangeModal';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
@@ -315,8 +315,8 @@ const styles = StyleSheet.create({
   ageRow: { flexDirection: 'row', gap: SPACE.md, alignItems: 'center' },
   ageField: { gap: SPACE.hair, flex: 1 },
   sectionLabel: { color: COLORS.gold, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
-  sectionHint: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: LINE_HEIGHTS.sm },
-  fieldLabel: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
+  sectionHint: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: LINE_HEIGHTS.sm },
+  fieldLabel: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
   errorText: { color: COLORS.emberLight, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
   dangerWrap: { marginTop: SPACE.lg },
   signOutWrap: { marginTop: SPACE.xs },

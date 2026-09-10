@@ -126,7 +126,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
         <OathSigil oath={candidate.oath} proven={candidate.oathProven} size="sm" />
         {candidate.city && (
           <View style={styles.locationRow}>
-            <Icon name="map-marker" size={ICON_SIZES.sm} color={COLORS.textDim} />
+            <Icon name="map-marker" size={ICON_SIZES.sm} color={INK.dim} />
             <Text style={styles.location}>{candidate.city}</Text>
           </View>
         )}
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACE.xs,
   },
-  photoDot: { flex: 1, height: 3, borderRadius: RADIUS.pill, backgroundColor: COLORS.textDim },
+  photoDot: { flex: 1, height: 3, borderRadius: RADIUS.pill, backgroundColor: INK.dim },
   // COLORS.gold measured at ~3.05:1 against the scrim's own worst case — barely past the 3:1
   // floor and, backwards, *less* legible than the inactive dots' 3.1:1 (see the comment above).
   // goldBright clears the same worst case at ~4.6:1.
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: COLORS.gold, letterSpacing: 1 },
-  location: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.textDim },
+  location: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.dim },
   bio: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: COLORS.text, lineHeight: LINE_HEIGHTS.lg },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.sm },
 });

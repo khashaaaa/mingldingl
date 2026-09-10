@@ -5,7 +5,7 @@ import { NameAgeStep } from '../../components/onboarding/NameAgeStep';
 import { AboutStep } from '../../components/onboarding/AboutStep';
 import { PhotosStep } from '../../components/onboarding/PhotosStep';
 import { OathStep } from '../../components/onboarding/OathStep';
-import { COLORS, FONTS, FONT_SIZES, LINE, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, LINE, SPACE, circle } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   signOutLink: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.textDim,
+    color: INK.dim,
     letterSpacing: 0.3,
     fontFamily: FONTS.body,
     textDecorationLine: 'underline',
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.textDim,
+    color: INK.dim,
     letterSpacing: 0.3,
     fontFamily: FONTS.body,
   },

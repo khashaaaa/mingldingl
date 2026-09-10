@@ -6,7 +6,7 @@ import { HeaderBar } from '../components/ui/HeaderBar';
 import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, LINE, RADIUS, SPACE, circle } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, circle } from '../lib/theme';
 import type { BlockedUser } from '../models/blockedUser';
 import { useScrollTail } from '../hooks/useScrollTail';
 
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
-  empty: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
+  empty: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

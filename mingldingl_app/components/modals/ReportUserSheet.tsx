@@ -4,7 +4,7 @@ import { apiClient } from '../../lib/api/apiClient';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { i18n } from '../../lib/i18n';
 import { REPORT_REASONS, reportReasonKey, type ReportReason } from '../../models/report';
-import { COLORS, FONT_SIZES, FONTS, ICON_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
 import { SheetModal } from './SheetModal';
@@ -78,7 +78,7 @@ export function ReportUserSheet({ visible, reportedUserId, matchId, onClose, onR
                 <Icon
                   name={selected ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
                   size={ICON_SIZES.sm}
-                  color={selected ? COLORS.gold : COLORS.textDim}
+                  color={selected ? COLORS.gold : INK.dim}
                 />
                 <Text style={[styles.reasonLabel, selected && styles.reasonLabelSelected]}>
                   {i18n.t(reportReasonKey(option))}
@@ -94,7 +94,7 @@ export function ReportUserSheet({ visible, reportedUserId, matchId, onClose, onR
           value={details}
           onChangeText={setDetails}
           placeholder={i18n.t('report_details_placeholder')}
-          placeholderTextColor={COLORS.textDim}
+          placeholderTextColor={INK.dim}
           multiline
           maxLength={MAX_DETAILS}
           accessibilityLabel={i18n.t('report_details_label')}
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     textAlign: 'center', marginBottom: SPACE.xs,
   },
   intro: {
-    fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim,
+    fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim,
     lineHeight: LINE_HEIGHTS.md, textAlign: 'center', marginBottom: SPACE.md,
   },
   reasons: { maxHeight: 260, alignSelf: 'stretch' },
@@ -155,12 +155,12 @@ const styles = StyleSheet.create({
   reasonSelected: { borderColor: LINE.edge, backgroundColor: COLORS.panel },
   reasonLabel: {
     fontFamily: FONTS.body, fontSize: FONT_SIZES.md, lineHeight: LINE_HEIGHTS.md,
-    color: COLORS.textDim, flexShrink: 1,
+    color: INK.dim, flexShrink: 1,
   },
   reasonLabelSelected: { color: COLORS.text },
   detailsLabel: {
     fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, lineHeight: LINE_HEIGHTS.xs,
-    color: COLORS.textDim, alignSelf: 'flex-start', marginTop: SPACE.md,
+    color: INK.dim, alignSelf: 'flex-start', marginTop: SPACE.md,
   },
   details: {
     alignSelf: 'stretch',

@@ -3,8 +3,7 @@ import { CardEyebrow } from '../ui/CardEyebrow';
 import { AppCard } from '../ui/AppCard';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE } from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
 interface Props {
   isProfileComplete: boolean;
 
@@ -25,7 +24,7 @@ function StepRow({ step }: { step: Step }) {
       <Icon
         name={step.done ? 'check-circle' : 'circle-outline'}
         size={ICON_SIZES.lg}
-        color={step.done ? COLORS.gold : COLORS.textDim}
+        color={step.done ? COLORS.gold : INK.dim}
       />
       <Text style={[styles.label, step.done && styles.labelDone]}>{i18n.t(step.labelKey)}</Text>
     </View>
@@ -83,7 +82,7 @@ const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg, gap: SPACE.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm },
   label: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.text },
-  labelDone: { color: COLORS.textDim, textDecorationLine: 'line-through' },
+  labelDone: { color: INK.dim, textDecorationLine: 'line-through' },
   compactCard: {
     marginHorizontal: SPACE.gutter,
     marginBottom: SPACE.lg,

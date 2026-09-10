@@ -1,7 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { GameButton } from './GameButton';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
-
+import { FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 interface Props<T extends string> {
   label: string;
   value: T | null | undefined;
@@ -37,6 +36,6 @@ export function ChoiceRow<T extends string>({
 
 const styles = StyleSheet.create({
   container: { gap: SPACE.sm },
-  label: { color: COLORS.textDim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
+  label: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   options: { flexDirection: 'row', gap: SPACE.sm, flexWrap: 'wrap' },
 });

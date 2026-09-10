@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACE.scrollTail,
   },
   subtitle: {
-    color: COLORS.textDim,
+    color: INK.dim,
     fontSize: FONT_SIZES.md,
     fontFamily: FONTS.body,
     marginBottom: SPACE.xs,
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     marginTop: SPACE.hair,
   },
   totalPriceLabel: {
-    color: COLORS.textDim,
+    color: INK.dim,
     fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.body,
     marginTop: SPACE.hair,

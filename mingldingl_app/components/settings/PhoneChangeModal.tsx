@@ -7,8 +7,7 @@ import { Waiting } from '../ui/Waiting';
 import { apiClient } from '../../lib/api/apiClient';
 import { isPhoneValid, useAuth, VERIFICATION_POLL_MS } from '../../hooks/useAuth';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, SPACE } from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, SPACE } from '../../lib/theme';
 interface Props {
   visible: boolean;
   onDismiss: () => void;
@@ -142,6 +141,6 @@ export function PhoneChangeModal({ visible, onDismiss, onChanged }: Props) {
 const styles = StyleSheet.create({
   stack: { gap: SPACE.md },
   instruction: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.text, textAlign: 'center', lineHeight: LINE_HEIGHTS.md },
-  hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
+  hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center' },
   waitingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.sm },
 });

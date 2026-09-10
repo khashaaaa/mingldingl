@@ -8,7 +8,7 @@ import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { Entering } from '../components/ui/Entering';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
 import type { GemTier } from '../models/user';
 import { useScrollTail } from '../hooks/useScrollTail';
 
@@ -97,8 +97,8 @@ const styles = StyleSheet.create({
   errorTitle: { color: COLORS.text, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, textAlign: 'center' },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
-  empty: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
-  gap: { color: COLORS.textDim, textAlign: 'center', fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, marginVertical: SPACE.xs },
+  empty: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
+  gap: { color: INK.dim, textAlign: 'center', fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, marginVertical: SPACE.xs },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.gold,
   },
-  rank: { width: 40, fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.textDim },
+  rank: { width: 40, fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: INK.dim },
   rankSelf: { color: COLORS.gold },
   rowShape: {
     flexDirection: 'row',

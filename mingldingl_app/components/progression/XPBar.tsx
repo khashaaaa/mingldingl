@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { tierLabel } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { GemTierBadge } from './GemTierBadge';
 import { CountText } from '../ui/CountText';
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   labels: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   tierRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   tier: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: 0.5 },
-  next: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  next: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   track: {
     height: 14,
     backgroundColor: COLORS.panelDeep,
@@ -120,6 +120,6 @@ const styles = StyleSheet.create({
   tick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: tint(LINE.edge, 0.6) },
   flash: { backgroundColor: COLORS.goldBright },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  nextThreshold: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, flexShrink: 1 },
-  scoreText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'right', letterSpacing: 1, marginLeft: 'auto' },
+  nextThreshold: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, flexShrink: 1 },
+  scoreText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'right', letterSpacing: 1, marginLeft: 'auto' },
 });

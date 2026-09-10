@@ -115,7 +115,7 @@ export default function ActivitiesScreen() {
               {localPhotoUri ? (
                 <Image source={{ uri: localPhotoUri }} style={styles.momentPhotoImage} />
               ) : (
-                <Icon name="image-plus" size={ICON_SIZES.xl} color={COLORS.textDim} />
+                <Icon name="image-plus" size={ICON_SIZES.xl} color={INK.dim} />
               )}
               {uploading && (
                 <View style={styles.momentPhotoOverlay}>
@@ -223,9 +223,9 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   cardTitle: { color: COLORS.text, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },
-  cardMeta: { color: COLORS.textDim, fontSize: FONT_SIZES.md, marginBottom: SPACE.md, fontFamily: FONTS.body },
+  cardMeta: { color: INK.dim, fontSize: FONT_SIZES.md, marginBottom: SPACE.md, fontFamily: FONTS.body },
   confirmWrap: { marginTop: SPACE.xs, gap: SPACE.sm },
-  pledgeLockedText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
+  pledgeLockedText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center' },
   partnerPledgedBanner: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
   partnerPledgedText: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
   title: { color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display, textAlign: 'center' },
-  subtitle: { color: COLORS.textDim, fontSize: FONT_SIZES.md, textAlign: 'center', fontFamily: FONTS.body },
+  subtitle: { color: INK.dim, fontSize: FONT_SIZES.md, textAlign: 'center', fontFamily: FONTS.body },
   completionCard: { alignItems: 'center', gap: SPACE.sm, width: '100%' },
   rateRow: { alignItems: 'center', gap: SPACE.md },
   momentPhoto: {
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: overlay(0.55), alignItems: 'center', justifyContent: 'center',
   },
-  momentHint: { color: COLORS.textDim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, textAlign: 'center', maxWidth: 220 },
+  momentHint: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, textAlign: 'center', maxWidth: 220 },
   rateLabel: { color: COLORS.gold, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyMedium, marginTop: SPACE.sm },
   stars: { flexDirection: 'row', gap: SPACE.xs },
   starTouchable: { padding: SPACE.sm },

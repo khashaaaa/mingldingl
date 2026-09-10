@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
 import type { DeepFields, PartialUser } from '../../models/match';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { deepRevealLevel, nextRevealThreshold } from '../../lib/reveal';
@@ -84,7 +84,7 @@ export function RevealStrip({ otherUser, messageCount, revealLevel, defaultExpan
           : <Text style={styles.summary}>{i18n.t('reveal_summary', { shown: photosShown, total: photos.length })}</Text>}
         <View style={styles.progressRow}>
           <Text style={styles.next}>{progress}</Text>
-          <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size={ICON_SIZES.sm} color={COLORS.textDim} />
+          <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size={ICON_SIZES.sm} color={INK.dim} />
         </View>
       </Pressable>
       {!expanded ? null : (
@@ -94,7 +94,7 @@ export function RevealStrip({ otherUser, messageCount, revealLevel, defaultExpan
             <Image key={i} source={{ uri }} style={styles.photo} contentFit="cover" testID={`reveal-photo-${i}`} />
           ) : (
             <View key={i} style={[styles.photo, styles.locked]} accessibilityLabel={i18n.t('reveal_locked')} testID={`reveal-photo-locked-${i}`}>
-              <Icon name="lock" size={ICON_SIZES.sm} color={COLORS.textDim} />
+              <Icon name="lock" size={ICON_SIZES.sm} color={INK.dim} />
             </View>
           )
         ))}
@@ -114,7 +114,7 @@ export function RevealStrip({ otherUser, messageCount, revealLevel, defaultExpan
           )}
           {chips.map((c) => (
             <View key={c.key} style={[styles.chip, c.value === null && styles.chipLocked]}>
-              {c.value === null && <Icon name="lock" size={ICON_SIZES.xs} color={COLORS.textDim} />}
+              {c.value === null && <Icon name="lock" size={ICON_SIZES.xs} color={INK.dim} />}
               <Text style={[styles.chipText, c.value === null && styles.chipTextLocked]} numberOfLines={1}>
                 {c.value === null ? c.label : `${c.label}: ${c.value}`}
               </Text>
@@ -172,5 +172,5 @@ const styles = StyleSheet.create({
   chipUpgrade: { borderColor: COLORS.gold },
   chipTextUpgrade: { color: COLORS.gold },
   chipText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.text, flexShrink: 1 },
-  chipTextLocked: { color: COLORS.textDim },
+  chipTextLocked: { color: INK.dim },
 });

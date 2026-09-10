@@ -12,7 +12,7 @@ import { i18n } from '../../lib/i18n';
 import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
 import { toDroppedItem } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, circle } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { useScrollTail } from '../../hooks/useScrollTail';
 
@@ -87,7 +87,7 @@ export default function CampaignScreen() {
 
         <View style={[styles.roomBody, dimmed && styles.roomBodyDimmed]}>
           <View style={styles.roomTitleRow}>
-            <Text style={[styles.roomName, { color: room.cleared || isCurrent ? roomTint : COLORS.textDim }]}>
+            <Text style={[styles.roomName, { color: room.cleared || isCurrent ? roomTint : INK.dim }]}>
               {i18n.t(`campaign_room_${room.roomId}`)}
             </Text>
             {isBoss && (
@@ -100,7 +100,7 @@ export default function CampaignScreen() {
           {room.cleared ? (
             room.claimed ? (
               <View style={styles.statusRow}>
-                <Icon name="check-decagram" size={ICON_SIZES.sm} color={COLORS.textDim} />
+                <Icon name="check-decagram" size={ICON_SIZES.sm} color={INK.dim} />
                 <Text style={styles.statusText}>{i18n.t('campaign_claimed')}</Text>
               </View>
             ) : (
@@ -125,7 +125,7 @@ export default function CampaignScreen() {
             />
           ) : (
             <View style={styles.statusRow}>
-              <Icon name="lock" size={ICON_SIZES.sm} color={COLORS.textDim} />
+              <Icon name="lock" size={ICON_SIZES.sm} color={INK.dim} />
               <Text style={styles.statusText}>{i18n.t('campaign_room_sealed')}</Text>
             </View>
           )}
@@ -144,7 +144,7 @@ export default function CampaignScreen() {
         </View>
       ) : unavailable ? (
         <View style={styles.centered}>
-          <Icon name="door-closed-lock" size={ICON_SIZES.hero} color={COLORS.textDim} />
+          <Icon name="door-closed-lock" size={ICON_SIZES.hero} color={INK.dim} />
           <Text style={styles.emptyText}>{i18n.t('campaign_unavailable')}</Text>
         </View>
       ) : error || !campaign ? (
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
-    color: COLORS.textDim,
+    color: INK.dim,
     textAlign: 'center',
   },
   scrollContent: { padding: SPACE.lg, paddingBottom: SPACE.scrollTail },
@@ -226,6 +226,6 @@ const styles = StyleSheet.create({
   },
   bossChipText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, letterSpacing: 1, color: COLORS.emberLight },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, marginTop: SPACE.hair },
-  statusText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, letterSpacing: 1, color: COLORS.textDim },
+  statusText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, letterSpacing: 1, color: INK.dim },
   claimButton: { alignSelf: 'flex-start', marginTop: SPACE.xs },
 });

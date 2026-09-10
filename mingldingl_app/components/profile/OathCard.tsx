@@ -9,7 +9,7 @@ import { GameButton } from '../ui/GameButton';
 import OathSigil, { OATH_VALUES, OATH_SIGILS, OATH_NAME_KEYS, OATH_DESC_KEYS } from '../OathSigil';
 import { useSwearOath } from '../../hooks/useOath';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import type { CloseThen } from '../modals/SheetModal';
 import type { GemTier, Oath } from '../../models/user';
 
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   oathRow: { marginTop: SPACE.hair },
   oathPrompt: { fontSize: FONT_SIZES.md, color: COLORS.gold, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
   sheetTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, color: COLORS.text, marginBottom: SPACE.hair },
-  sheetHelp: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.sm },
+  sheetHelp: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.sm },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -144,5 +144,5 @@ const styles = StyleSheet.create({
   optionSigilDim: { opacity: 0.5 },
   optionText: { flex: 1, gap: SPACE.hair },
   optionName: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text },
-  optionDesc: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, color: COLORS.textDim, lineHeight: LINE_HEIGHTS.sm },
+  optionDesc: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, color: INK.dim, lineHeight: LINE_HEIGHTS.sm },
 });

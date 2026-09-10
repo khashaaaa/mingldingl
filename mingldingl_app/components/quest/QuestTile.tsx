@@ -3,7 +3,7 @@ import { Animated, TouchableOpacity, View, Text, Image, StyleSheet } from 'react
 import { colorForTier } from '../../lib/tiers';
 import { useRevealLadder } from '../../hooks/useRevealThresholds';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, circle } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import OathSigil from '../OathSigil';
 import type { Match } from '../../models/match';
@@ -73,7 +73,7 @@ export function QuestTile({ match, onPress }: Props) {
             </>
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Icon name="account" size={ICON_SIZES.xl} color={COLORS.textDim} />
+              <Icon name="account" size={ICON_SIZES.xl} color={INK.dim} />
             </View>
           )}
         </View>

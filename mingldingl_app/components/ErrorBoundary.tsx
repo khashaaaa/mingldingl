@@ -2,8 +2,7 @@ import { Component, type ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { GameButton } from './ui/GameButton';
 import { i18n } from '../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
 interface Props {
   children: ReactNode;
 }
@@ -57,7 +56,7 @@ const styles = StyleSheet.create({
   message: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
-    color: COLORS.textDim,
+    color: INK.dim,
     textAlign: 'center',
     marginBottom: SPACE.xl,
   },

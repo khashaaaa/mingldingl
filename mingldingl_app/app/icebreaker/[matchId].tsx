@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   ptsEarned: {
-    color: COLORS.textDim,
+    color: INK.dim,
     fontSize: FONT_SIZES.md,
     fontFamily: FONTS.body,
     textAlign: 'center',

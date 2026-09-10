@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Keyboard, TextInput, View, Text, StyleSheet } from 'react-native';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 import { StepScaffold } from './StepScaffold';
 import { FIELD_LIMITS } from '../../lib/fieldLimits';
 import { GameButton } from '../ui/GameButton';
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   heading: { color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
   error: { color: COLORS.emberLight, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   genderGroup: { gap: SPACE.sm },
-  label: { color: COLORS.textDim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
+  label: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   genderRow: { flexDirection: 'row', gap: SPACE.sm },
   actions: { marginTop: 'auto' },
 });

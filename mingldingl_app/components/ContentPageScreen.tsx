@@ -8,7 +8,7 @@ import { selectContentPageLocale } from '../models/content';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { COLORS, FONTS, FONT_SIZES, LINE_HEIGHTS, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, SPACE } from '../lib/theme';
 import { useScrollTail } from '../hooks/useScrollTail';
 
 
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: SPACE.xl, paddingBottom: SPACE.scrollTail },
   updatedAt: {
-    color: COLORS.textDim,
+    color: INK.dim,
     fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.body,
     marginBottom: SPACE.md,
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.displayBlack,
   },
   errorMessage: {
-    color: COLORS.textDim,
+    color: INK.dim,
     fontSize: FONT_SIZES.md,
     lineHeight: LINE_HEIGHTS.md,
     fontFamily: FONTS.body,

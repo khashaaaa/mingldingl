@@ -1,7 +1,7 @@
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { usePendingShips } from '../../hooks/usePendingShips';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import { AppCard } from '../ui/AppCard';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { Icon } from '../ui/Icon';
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: SPACE.md },
   btn: { flex: 1, paddingVertical: SPACE.md, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
   pass: { borderColor: LINE.edge, backgroundColor: COLORS.panelRaised },
-  passText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  passText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.dim },
   accept: { borderColor: COLORS.gold, backgroundColor: FILL.gold },
   acceptText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
 });

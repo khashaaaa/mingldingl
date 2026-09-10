@@ -12,8 +12,7 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { useAuthStore } from '../../store/authStore';
 import { activeFestival } from '../../lib/festivals';
 import { i18n, tKey } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE } from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
 function ProgressPips({ progress, target }: { progress: number; target: number }) {
   if (target === 1) return null;
   return (
@@ -92,7 +91,7 @@ export function QuestBoard() {
           <Icon
             name={board.chestClaimed ? 'treasure-chest' : 'treasure-chest-outline'}
             size={ICON_SIZES.xl}
-            color={board.chestClaimed ? COLORS.textDim : accent}
+            color={board.chestClaimed ? INK.dim : accent}
           />
           {board.chestClaimed ? (
             <Text style={styles.chestHint}>{i18n.t('chest_claimed')}</Text>
@@ -139,10 +138,10 @@ const styles = StyleSheet.create({
   },
   runeDone: { borderColor: LINE.edge, backgroundColor: COLORS.panelDeep },
   runeText: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.display },
-  runeTextDone: { color: COLORS.textDim },
+  runeTextDone: { color: INK.dim },
   questInfo: { flex: 1, gap: SPACE.xs },
   questName: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.text },
-  questNameDone: { color: COLORS.textDim, textDecorationLine: 'line-through' },
+  questNameDone: { color: INK.dim, textDecorationLine: 'line-through' },
   questXp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: COLORS.gold },
   pips: { flexDirection: 'row', gap: SPACE.xs },
   pip: { width: 14, height: 4, borderRadius: RADIUS.pill, backgroundColor: COLORS.panelRaised },
@@ -151,6 +150,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginTop: SPACE.md, paddingTop: SPACE.md,
     borderTopWidth: 1, borderTopColor: LINE.edge,
   },
-  chestHint: { flex: 1, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim },
+  chestHint: { flex: 1, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim },
   chestBtn: { flex: 1 },
 });

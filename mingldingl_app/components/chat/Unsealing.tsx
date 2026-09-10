@@ -6,9 +6,7 @@ import { ORNAMENTS } from '../../lib/ornaments';
 import { signal } from '../../lib/world/feedback';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { i18n } from '../../lib/i18n';
-import {
-  COLORS, FONTS, FONT_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE, overlay,
-} from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { AppModal } from '../modals/AppModal';
 
 interface Props {
@@ -196,7 +194,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.utility,
     fontSize: FONT_SIZES.sm,
     lineHeight: LINE_HEIGHTS.sm,
-    color: COLORS.textDim,
+    color: INK.dim,
     textAlign: 'center',
   },
 });

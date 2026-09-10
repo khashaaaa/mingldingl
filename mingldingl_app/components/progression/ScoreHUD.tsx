@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, Text, Animated, Easing, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, metalGradient, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, metalGradient, tint } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { GemTierBadge } from './GemTierBadge';
 import { CountText } from '../ui/CountText';
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   },
   topHighlight: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: tint(COLORS.text, 0.14) },
   score: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: 0.5 },
-  pts: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: COLORS.textDim, letterSpacing: 1 },
+  pts: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: INK.dim, letterSpacing: 1 },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginLeft: SPACE.xs },
   streak: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: COLORS.emberLight, letterSpacing: 1 },
   delta: {

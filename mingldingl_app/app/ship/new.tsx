@@ -9,8 +9,7 @@ import { getApiErrorMessage } from '../../lib/api/errors';
 import { i18n } from '../../lib/i18n';
 import { shipInviteMessage } from '../../lib/shipInvite';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 const PHONE_REGEX = /^\d{8}$/;
 
 export default function NewShipScreen() {
@@ -110,7 +109,7 @@ export default function NewShipScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
   form: { padding: SPACE.xl, gap: SPACE.md },
-  hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
+  hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   label: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: COLORS.gold, letterSpacing: 1, marginTop: SPACE.sm },
   error: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.emberLight },
   confirmWrap: { padding: SPACE.xl, gap: SPACE.lg, alignItems: 'center' },

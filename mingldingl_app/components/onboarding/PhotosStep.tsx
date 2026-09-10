@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 import { PhotoGrid } from '../PhotoGrid';
 import { StepScaffold } from './StepScaffold';
 import { GameButton } from '../ui/GameButton';
@@ -58,8 +58,8 @@ export function PhotosStep({ photoUrls, onPhotosChange, referralCode, onReferral
 const styles = StyleSheet.create({
   container: { flex: 1, padding: SPACE.huge, gap: SPACE.lg },
   heading: { color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
-  hint: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
+  hint: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
   count: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
-  label: { color: COLORS.textDim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
+  label: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: 'auto' },
 });

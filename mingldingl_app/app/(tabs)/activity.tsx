@@ -21,8 +21,6 @@ import { i18n } from '../../lib/i18n';
 import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
-
-
 type CategoryGlyph = React.ComponentProps<typeof Icon>['name'];
 
 // Must stay in step with mingldingl_control's BusinessForm CATEGORIES — the venues the engine
@@ -147,7 +145,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.giant, gap: SPACE.sm },
   retryButton: { marginTop: SPACE.sm },
-  emptyText: { color: COLORS.textDim, fontSize: FONT_SIZES.lg, fontFamily: FONTS.body },
+  emptyText: { color: INK.dim, fontSize: FONT_SIZES.lg, fontFamily: FONTS.body },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail, flexGrow: 1 },
   weaveButton: { marginBottom: SPACE.lg },
   missionCard: { marginBottom: SPACE.lg, padding: SPACE.lg },
@@ -163,8 +161,8 @@ const styles = StyleSheet.create({
   missionIcon: { width: 26, textAlign: 'center' },
   info: { flex: 1 },
   missionTitle: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text, marginBottom: SPACE.xs },
-  missionDesc: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, lineHeight: LINE_HEIGHTS.sm, marginBottom: SPACE.xs, fontFamily: FONTS.body },
-  meta: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, fontFamily: FONTS.body },
+  missionDesc: { fontSize: FONT_SIZES.sm, color: INK.dim, lineHeight: LINE_HEIGHTS.sm, marginBottom: SPACE.xs, fontFamily: FONTS.body },
+  meta: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body },
   pointsBadge: {
     backgroundColor: FILL.gold,
     borderWidth: 1,

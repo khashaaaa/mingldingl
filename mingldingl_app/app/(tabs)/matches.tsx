@@ -13,8 +13,6 @@ import { FogDrift } from '../../components/vfx/FogDrift';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
-
-
 export default function MatchesScreen() {
   useLocaleStore((s) => s.locale);
   const { data: matches, isLoading, isError, isRefetching, refetch } = useMatches();
@@ -104,6 +102,6 @@ const styles = StyleSheet.create({
   rowLines: { flex: 1, gap: SPACE.xs },
   emptyIcon: { opacity: 0.6, marginBottom: SPACE.xs },
   emptyTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.bodyBold, color: COLORS.text },
-  emptySub: { fontSize: FONT_SIZES.md, color: COLORS.textDim, fontFamily: FONTS.body },
+  emptySub: { fontSize: FONT_SIZES.md, color: INK.dim, fontFamily: FONTS.body },
   emptyCta: { marginTop: SPACE.lg },
 });

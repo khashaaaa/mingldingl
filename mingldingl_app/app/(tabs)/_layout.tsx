@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, LINE_HEIGHTS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
@@ -56,7 +56,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: [styles.tabBar, { height: 74 + insets.bottom, paddingBottom: SPACE.md + insets.bottom }],
         tabBarActiveTintColor: COLORS.goldBright,
-        tabBarInactiveTintColor: COLORS.textDim,
+        tabBarInactiveTintColor: INK.dim,
         // Without this the label is laid out beside the icon on wide viewports and the two
         // collide inside a 84px tab.
         tabBarLabelPosition: 'below-icon',

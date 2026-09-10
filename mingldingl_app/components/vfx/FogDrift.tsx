@@ -3,7 +3,7 @@ import { Animated, StyleSheet, View } from 'react-native';
 import { Canvas, Circle, Blur, Group } from '@shopify/react-native-skia';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSharedValue, withRepeat, withTiming, useDerivedValue, Easing } from 'react-native-reanimated';
-import { COLORS, tint } from '../../lib/theme';
+import { INK, tint } from '../../lib/theme';
 import { useVfxLevel } from '../../lib/vfx';
 
 interface Props { width: number; height: number; }
@@ -34,10 +34,10 @@ function SkiaFogDrift({ width, height }: Props) {
     <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
       <Canvas style={{ width, height }}>
         <Group opacity={HAZE}>
-          <Circle cx={cx1} cy={height * 0.4} r={width * 0.3} color={COLORS.textDim}>
+          <Circle cx={cx1} cy={height * 0.4} r={width * 0.3} color={INK.dim}>
             <Blur blur={40} />
           </Circle>
-          <Circle cx={cx2} cy={height * 0.65} r={width * 0.25} color={COLORS.textDim}>
+          <Circle cx={cx2} cy={height * 0.65} r={width * 0.25} color={INK.dim}>
             <Blur blur={40} />
           </Circle>
         </Group>
@@ -82,7 +82,7 @@ function PlainFogDrift({ width, height, animate }: Props & { animate: boolean })
       {/* expo-linear-gradient has no radial mode, so the falloff is a vertical fade inside a
           circular clip — soft enough at 7% opacity that the difference is not visible. */}
       <LinearGradient
-        colors={[tint(COLORS.textDim, 0.9), tint(COLORS.textDim, 0.35), tint(COLORS.textDim, 0)]}
+        colors={[tint(INK.dim, 0.9), tint(INK.dim, 0.35), tint(INK.dim, 0)]}
         style={StyleSheet.absoluteFill}
       />
     </Animated.View>

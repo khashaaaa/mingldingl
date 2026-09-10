@@ -5,8 +5,7 @@ import { TIER_ORDER, colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { AppCard } from '../ui/AppCard';
 import { GemTierBadge } from './GemTierBadge';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 interface Props {
   gemTier: GemTier;
   tierBonus: number;
@@ -43,5 +42,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
   bonus: { fontSize: FONT_SIZES.title, fontFamily: FONTS.displayBlack },
   budget: { fontSize: FONT_SIZES.md, color: COLORS.text, fontFamily: FONTS.bodyMedium, marginTop: SPACE.sm },
-  preview: { fontSize: FONT_SIZES.sm, color: COLORS.textDim, fontFamily: FONTS.body, marginTop: SPACE.sm },
+  preview: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body, marginTop: SPACE.sm },
 });

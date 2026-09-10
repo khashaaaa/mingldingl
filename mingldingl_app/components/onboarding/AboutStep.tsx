@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, TextInput, View, Text, StyleSheet } from 'react-native';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 import { StepScaffold } from './StepScaffold';
 import { GameButton } from '../ui/GameButton';
 import { TextField } from '../ui/TextField';
@@ -63,7 +63,7 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
 
         {city ? (
           <View>
-            <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, marginBottom: SPACE.xs }}>
+            <Text style={{ color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, marginBottom: SPACE.xs }}>
               {i18n.t('your_area')}
             </Text>
             <Text style={{ color: COLORS.gold, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xl }}>{city}</Text>
@@ -71,13 +71,13 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
         ) : isCapturing ? (
           <View style={styles.detecting}>
             <Waiting />
-            <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md }}>
+            <Text style={{ color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md }}>
               {i18n.t('detecting_location')}
             </Text>
           </View>
         ) : (permissionDenied || geocodeFailed) ? (
           <View style={styles.fallback}>
-            <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md }}>
+            <Text style={{ color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md }}>
               {i18n.t('location_permission_denied')}
             </Text>
             <GameButton variant="ghost" onPress={() => setPickerVisible(true)}>

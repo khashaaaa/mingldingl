@@ -170,7 +170,7 @@ export default function ChatScreen() {
           right={
             <>
               <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.unmatchBtn} accessibilityLabel={i18n.t('chat_options_title')}>
-                <Icon name="dots-vertical" size={ICON_SIZES.lg} color={COLORS.textDim} />
+                <Icon name="dots-vertical" size={ICON_SIZES.lg} color={INK.dim} />
               </TouchableOpacity>
               {!endedReason && (
                 <TouchableOpacity onPress={() => router.push(`/video/${matchId}`)} style={styles.videoBtn} accessibilityLabel={i18n.t('start_video_call')}>
@@ -312,7 +312,7 @@ export default function ChatScreen() {
         )}
         {endedReason ? (
           <View style={styles.endedNotice}>
-            <Icon name="link-variant-off" size={ICON_SIZES.sm} color={COLORS.textDim} />
+            <Icon name="link-variant-off" size={ICON_SIZES.sm} color={INK.dim} />
             <Text style={styles.endedNoticeText}>
               {endedReason === 'ghosted' ? i18n.t('match_quiet_body') : i18n.t('match_ended_notice')}
             </Text>
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
   loadErrorText: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
-    color: COLORS.textDim,
+    color: INK.dim,
     textAlign: 'center',
     paddingHorizontal: SPACE.huge,
   },
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   emptySub: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
-    color: COLORS.textDim,
+    color: INK.dim,
     textAlign: 'center',
   },
   activitiesRow: {
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   },
   activitiesLabel: { flex: 1 },
   activitiesTitle: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
-  activitiesSub: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim },
+  activitiesSub: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim },
   activitiesBadge: {
     minWidth: 20,
     paddingHorizontal: SPACE.xs,
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   endedNoticeText: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.md,
-    color: COLORS.textDim,
+    color: INK.dim,
     flexShrink: 1,
   },
   loadEarlierBtn: {
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
   optionsTitle: {
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.textDim,
+    color: INK.dim,
     letterSpacing: 2,
     textAlign: 'center',
     marginBottom: SPACE.xs,

@@ -4,8 +4,7 @@ import type { LayoutChangeEvent } from 'react-native';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
-import { COLORS, FILL, FONTS, FONT_SIZES, LINE_HEIGHTS, RADIUS, SPACE, glow, tint } from '../../lib/theme';
-
+import { COLORS, FILL, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE, glow, tint } from '../../lib/theme';
 export type GateState = 'closed' | 'opening' | 'barred';
 
 interface Props {
@@ -194,7 +193,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.md,
     lineHeight: LINE_HEIGHTS.md,
-    color: COLORS.textDim,
+    color: INK.dim,
     textAlign: 'center',
     fontStyle: 'italic',
   },
