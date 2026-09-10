@@ -5,7 +5,7 @@ import { useBusiness } from '../../hooks/useBusiness';
 import { useBusinessReviews } from '../../hooks/useBusinessReviews';
 import { AppCard } from '../../components/ui/AppCard';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { Skeleton } from '../../components/ui/Skeleton';
+import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
@@ -13,10 +13,11 @@ import { Icon } from '../../components/ui/Icon';
 import { useScrollTail } from '../../hooks/useScrollTail';
 
 
-// Hero then body: shared by both loading sites on this screen (the whole-venue first load, and
-// the "Memorable Moments" review list still loading beneath already-painted venue details), per
-// the plan's brief — the same composite shape stands in for both waits.
-function BusinessSkeleton() {
+// The two waits on this screen need different shapes, not the same one: this one stands in for
+// the whole screen (nothing else has painted yet, so it can take the hero's own box), while
+// `ReviewsSkeleton` below appears beneath venue content that is already on screen — a second
+// hero-sized band there would read as a second, fake venue photo.
+function VenueSkeleton() {
   return (
     <View>
       <Skeleton width="100%" height={200} radius={0} />
@@ -25,6 +26,22 @@ function BusinessSkeleton() {
         <Skeleton width="100%" height={FONT_SIZES.md} />
         <Skeleton width="100%" height={FONT_SIZES.md} />
       </View>
+    </View>
+  );
+}
+
+// Shaped like the review cards it replaces (`reviewList`/`reviewCard`/`reviewPhoto`/
+// `reviewStarsRow` below): a photo block, a short stars-row block, one text line.
+function ReviewsSkeleton() {
+  return (
+    <View style={styles.reviewList}>
+      <SkeletonRows count={2} gap={SPACE.md} row={() => (
+        <View style={styles.reviewCard}>
+          <Skeleton width="100%" height={160} radius={RADIUS.sm} />
+          <Skeleton width={64} height={ICON_SIZES.xs} />
+          <Skeleton width="100%" height={FONT_SIZES.md} />
+        </View>
+      )} />
     </View>
   );
 }
@@ -69,7 +86,7 @@ export default function BusinessDetailScreen() {
     return (
       <View style={styles.screen}>
         <ScreenHeader title="" />
-        <BusinessSkeleton />
+        <VenueSkeleton />
       </View>
     );
   }
@@ -116,7 +133,7 @@ export default function BusinessDetailScreen() {
         <Text style={styles.sectionTitle}>{i18n.t('memorable_moments')}</Text>
 
         {isLoading ? (
-          <BusinessSkeleton />
+          <ReviewsSkeleton />
         ) : !reviews || reviews.length === 0 ? (
           <Text style={styles.emptyText}>{i18n.t('no_moments_yet')}</Text>
         ) : (
