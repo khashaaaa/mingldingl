@@ -20,7 +20,9 @@ type StatusIconName = React.ComponentProps<typeof Icon>['name'];
  * rather than a literal 5, which drifted the moment `reveal.level2.messages` was tuned.
  */
 function questStatus(match: Match, underwayAt: number): { icon: StatusIconName; label: string; color: string } {
-  if (!match.icebreakerComplete) return { icon: 'lock', label: i18n.t('quest_new'), color: COLORS.gold };
+  // Not a padlock: messaging is never gated by the icebreaker (only the video-call button reads
+  // icebreakerComplete, in app/chat/[matchId].tsx) — an unopened quest scroll, not a locked door.
+  if (!match.icebreakerComplete) return { icon: 'script-text', label: i18n.t('quest_new'), color: COLORS.gold };
   if (match.messageCount < underwayAt) return { icon: 'sword-cross', label: i18n.t('quest_in_progress'), color: COLORS.brass };
   return { icon: 'fire', label: i18n.t('quest_active'), color: COLORS.goldBright };
 }
