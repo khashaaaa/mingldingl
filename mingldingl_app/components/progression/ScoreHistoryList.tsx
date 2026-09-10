@@ -2,7 +2,7 @@ import { FlatList, View, Text, StyleSheet } from 'react-native';
 import { i18n, tKey } from '../../lib/i18n';
 import { Icon } from '../ui/Icon';
 import { formatDate } from '../../lib/formatDate';
-import { Skeleton } from '../ui/Skeleton';
+import { Waiting } from '../ui/Waiting';
 import { Entering } from '../ui/Entering';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 
@@ -125,7 +125,11 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
       keyExtractor={(item, index) => `${item.eventType}-${item.createdAt}-${index}`}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
-      ListFooterComponent={isFetchingNextPage ? <Skeleton width="100%" height={56} style={styles.footer} /> : null}
+      ListFooterComponent={isFetchingNextPage ? (
+        <View style={styles.footer}>
+          <Waiting size={ICON_SIZES.md} />
+        </View>
+      ) : null}
       renderItem={({ item, index }) => {
         const icon: EventGlyph = EVENT_ICONS[item.eventType] ?? 'star-four-points';
         const sign = item.delta >= 0 ? '+' : '';
@@ -162,7 +166,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8, textTransform: 'uppercase',
   },
   delta: { fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
-  footer: { marginVertical: SPACE.lg },
+  footer: { alignItems: 'center', paddingVertical: SPACE.lg },
   empty: { alignItems: 'center', padding: SPACE.huge },
   emptyText: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.textDim, textAlign: 'center' },
 });
