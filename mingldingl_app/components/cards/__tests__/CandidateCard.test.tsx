@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import { CandidateCard } from '../CandidateCard';
 import type { Candidate } from '../../../models/user';
 
@@ -68,5 +68,35 @@ describe('CandidateCard photo dots', () => {
     const activeRatio = contrastRgb(hexToRgb(activeStyle.backgroundColor), bg);
     const inactiveRatio = contrastRgb(hexToRgb(inactiveStyle.backgroundColor), bg);
     expect(activeRatio).toBeGreaterThanOrEqual(inactiveRatio);
+  });
+});
+
+/**
+ * Regression for task-8: beneath `GettingStartedCard` on first run, this card's `flex: 1` can be
+ * squeezed to a sliver — the info plaque (name/bio/actions) stays roughly fixed height regardless,
+ * so a short card read as mostly plaque and the photo cropped to a forehead. The card now floors
+ * its own height to a portrait-shaped multiple of its measured width, independent of how tall the
+ * plaque itself happens to be (which varies with bio length).
+ */
+describe('CandidateCard minimum photo height', () => {
+  it('has no minHeight before its first layout, so it never renders collapsed or empty', () => {
+    const { getByTestId } = renderCard();
+    const style = StyleSheet.flatten(getByTestId('candidate-card').props.style);
+    expect(style.minHeight).toBeUndefined();
+    // The card still fills whatever space its parent gives it on that first frame.
+    expect(style.flex).toBe(1);
+  });
+
+  it('floors the card at a portrait aspect ratio once squeezed short by the getting-started board', () => {
+    const { getByTestId } = renderCard();
+    const card = getByTestId('candidate-card');
+    // A width typical of a phone card column, squeezed to a sliver of a height by everything
+    // GettingStartedCard, the daily budget meter, and the gathering pill stack above it.
+    fireEvent(card, 'layout', { nativeEvent: { layout: { width: 353, height: 160 } } });
+    const style = StyleSheet.flatten(card.props.style);
+    expect(style.minHeight).toBeCloseTo(353 * (4 / 3));
+    // The floor keeps the photo the majority of the card even when the measured height undershoots
+    // it: the plaque (name/oath/actions) reads far short of this floor for any real candidate.
+    expect(style.minHeight).toBeGreaterThan(160);
   });
 });

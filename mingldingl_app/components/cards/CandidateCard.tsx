@@ -14,6 +14,15 @@ import type { Candidate } from '../../models/user';
 // Clearance the placeholder figure keeps from the photo dots above and the plaque below.
 const PLACEHOLDER_INSET = SPACE.xxl;
 
+// Below `GettingStartedCard`, this card's `flex: 1` can be squeezed to a sliver — the info plaque
+// (name/bio/actions) stays roughly the same height regardless, so a short card reads as mostly
+// plaque and the photo crops to a forehead. A floor on the card's own aspect ratio (not on the
+// plaque's share of it, which scales with bio length and is unpredictable) keeps the card tall
+// enough, relative to its own width, for the photo to still read as a portrait — see
+// task-8-brief.md. 4:3 is a conservative portrait ratio, not the tightest one, on purpose: it's
+// the minimum that still has to coexist with the getting-started board above it.
+const MIN_PHOTO_ASPECT = 4 / 3;
+
 interface Props {
   candidate: Candidate;
   onRequest: () => void;
@@ -38,6 +47,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
   // on a short card, and a full-size figure in the sliver that is left just peeks out from behind
   // the photo dots. Measure both and shrink the figure to whatever actually fits, or drop it.
   const [cardHeight, setCardHeight] = useState(0);
+  const [cardWidth, setCardWidth] = useState(0);
   const [infoHeight, setInfoHeight] = useState(0);
   const placeholderIcon = Math.min(
     ICON_SIZES.splash,
@@ -55,7 +65,15 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
   }
 
   return (
-    <View style={styles.card} onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}>
+    <View
+      testID="candidate-card"
+      style={[styles.card, cardWidth > 0 && { minHeight: cardWidth * MIN_PHOTO_ASPECT }]}
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout;
+        setCardHeight(height);
+        setCardWidth(width);
+      }}
+    >
       {showPhoto ? (
         <Image
           source={{ uri: photo }}
