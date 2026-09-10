@@ -29,9 +29,14 @@ interface Props {
   onSkip: () => void;
   requesting?: boolean;
   requestDisabled?: boolean;
+  // `discover.tsx`'s measured `cardArea` height — this screen has no scroll view, so it is the
+  // hard ceiling on how tall this card is ever allowed to ask to be. Without it, the aspect-ratio
+  // floor above can demand more height than the screen actually has, pushing the action row (Skip
+  // / Send Summons) off the bottom on a short device — see task-8-report.md's "clamp" addendum.
+  availableHeight?: number;
 }
 
-export function CandidateCard({ candidate, onRequest, onSkip, requesting, requestDisabled }: Props) {
+export function CandidateCard({ candidate, onRequest, onSkip, requesting, requestDisabled, availableHeight }: Props) {
   const photos = candidate.photoUrls ?? [];
   const hasMultiplePhotos = photos.length > 1;
 
@@ -49,10 +54,31 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
   const [cardHeight, setCardHeight] = useState(0);
   const [cardWidth, setCardWidth] = useState(0);
   const [infoHeight, setInfoHeight] = useState(0);
+  // Measured, not a hardcoded constant: the Mongolian labels for "Skip"/"Send Summons" run longer
+  // than the English ones and can wrap the row to a second line, and a literal here would silently
+  // stop matching the moment either button's size changes.
+  const [actionsHeight, setActionsHeight] = useState(0);
   const placeholderIcon = Math.min(
     ICON_SIZES.splash,
     Math.max(0, cardHeight - infoHeight - PLACEHOLDER_INSET * 2),
   );
+
+  // The floor above is an *ideal* — it must never win against `availableHeight` (`cardArea`'s own
+  // measured box; this screen has no scroll, so that box is a hard ceiling) minus room for the
+  // action row plus its own top margin. `availableHeight` comes from the parent, not from this
+  // card's own `cardHeight` state, deliberately: `cardHeight` is fed by this same onLayout and
+  // would move if `minHeight` ever changed it, which is exactly the self-referential growth this
+  // clamp exists to rule out.
+  const reservedForActions = actionsHeight > 0 ? actionsHeight + SPACE.sm : 0;
+  // `discover.tsx`'s `cardArea` (the parent `availableHeight` is measured on) carries its own
+  // `paddingBottom: SPACE.lg`, which isn't part of this card's own box.
+  const availableForCard = availableHeight && availableHeight > 0
+    ? Math.max(0, availableHeight - SPACE.lg)
+    : 0;
+  const idealPhotoFloor = cardWidth > 0 ? cardWidth * MIN_PHOTO_ASPECT : 0;
+  const minCardHeight = idealPhotoFloor > 0 && availableForCard > 0
+    ? Math.max(0, Math.min(idealPhotoFloor, availableForCard - reservedForActions))
+    : 0;
 
   // The scrim has to start above the plaque, not at a fixed fraction of the card: a bright photo
   // behind a two-line name and an oath badge left the text sitting on near-white.
@@ -67,7 +93,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
   return (
     <View
       testID="candidate-card"
-      style={[styles.card, cardWidth > 0 && { minHeight: cardWidth * MIN_PHOTO_ASPECT }]}
+      style={[styles.card, minCardHeight > 0 && { minHeight: minCardHeight }]}
       onLayout={(e) => {
         const { width, height } = e.nativeEvent.layout;
         setCardHeight(height);
@@ -152,7 +178,11 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
           <Text style={styles.bio} numberOfLines={2}>{candidate.bio}</Text>
         ) : null}
 
-        <View style={styles.actions}>
+        <View
+          testID="candidate-actions"
+          style={styles.actions}
+          onLayout={(e) => setActionsHeight(e.nativeEvent.layout.height)}
+        >
           <GameButton variant="ghost" flex={1} disabled={requesting} onPress={onSkip}>{i18n.t('skip')}</GameButton>
           <GameButton variant="primary" flex={1.5} loading={requesting} disabled={requestDisabled} onPress={onRequest}>{i18n.t('send_summons')}</GameButton>
         </View>

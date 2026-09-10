@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
 import { fireEvent, render } from '@testing-library/react-native';
 import { CandidateCard } from '../CandidateCard';
@@ -48,8 +49,10 @@ const CANDIDATE: Candidate = {
   deletionRequestedAt: null, preferredLocale: 'en', gemTier: 'Garnet',
 } as Candidate;
 
-function renderCard() {
-  return render(<CandidateCard candidate={CANDIDATE} onRequest={jest.fn()} onSkip={jest.fn()} />);
+function renderCard(props: Partial<ComponentProps<typeof CandidateCard>> = {}) {
+  return render(
+    <CandidateCard candidate={CANDIDATE} onRequest={jest.fn()} onSkip={jest.fn()} {...props} />,
+  );
 }
 
 describe('CandidateCard photo dots', () => {
@@ -74,9 +77,13 @@ describe('CandidateCard photo dots', () => {
 /**
  * Regression for task-8: beneath `GettingStartedCard` on first run, this card's `flex: 1` can be
  * squeezed to a sliver — the info plaque (name/bio/actions) stays roughly fixed height regardless,
- * so a short card read as mostly plaque and the photo cropped to a forehead. The card now floors
- * its own height to a portrait-shaped multiple of its measured width, independent of how tall the
- * plaque itself happens to be (which varies with bio length).
+ * so a short card read as mostly plaque and the photo cropped to a forehead. The card floors its
+ * own height to a portrait-shaped multiple of its measured width, independent of how tall the
+ * plaque itself happens to be (which varies with bio length) — but that floor is itself clamped to
+ * `availableHeight` (the screen's measured `cardArea`, which this screen never scrolls) minus room
+ * for the action row: the floor must never win against Skip / Send Summons landing outside the
+ * card. See task-8-report.md's "clamp" addendum for why this bounds the floor to a no-op in the
+ * exact squeeze case it was written for.
  */
 describe('CandidateCard minimum photo height', () => {
   it('has no minHeight before its first layout, so it never renders collapsed or empty', () => {
@@ -87,16 +94,46 @@ describe('CandidateCard minimum photo height', () => {
     expect(style.flex).toBe(1);
   });
 
-  it('floors the card at a portrait aspect ratio once squeezed short by the getting-started board', () => {
-    const { getByTestId } = renderCard();
+  it('floors the card at a portrait aspect ratio when the screen has room to give it', () => {
+    const { getByTestId } = renderCard({ availableHeight: 1000 });
     const card = getByTestId('candidate-card');
-    // A width typical of a phone card column, squeezed to a sliver of a height by everything
-    // GettingStartedCard, the daily budget meter, and the gathering pill stack above it.
-    fireEvent(card, 'layout', { nativeEvent: { layout: { width: 353, height: 160 } } });
+    fireEvent(getByTestId('candidate-actions'), 'layout', {
+      nativeEvent: { layout: { width: 320, height: 52 } },
+    });
+    // A width typical of a phone card column, on a tall screen with no getting-started board
+    // squeezing it — the ideal 4:3 floor comfortably fits inside `availableHeight`.
+    fireEvent(card, 'layout', { nativeEvent: { layout: { width: 353, height: 900 } } });
     const style = StyleSheet.flatten(card.props.style);
     expect(style.minHeight).toBeCloseTo(353 * (4 / 3));
-    // The floor keeps the photo the majority of the card even when the measured height undershoots
-    // it: the plaque (name/oath/actions) reads far short of this floor for any real candidate.
-    expect(style.minHeight).toBeGreaterThan(160);
+  });
+
+  it('never asks for more than the screen has left after the action row, board visible + maximal content', () => {
+    // The exact case the overflow concern named: GettingStartedCard, the daily budget meter, and
+    // an active gathering pill have all taken their share above `cardArea`, and this candidate has
+    // every optional field (city, equipped title, two-line bio) pushing the plaque tall too.
+    const MAXIMAL: Candidate = {
+      ...CANDIDATE,
+      equippedTitleId: 'title_dawnwarden',
+      bio: 'Long enough to wrap a full two lines in the plaque, the way a real bio regularly does.',
+    };
+    const { getByTestId } = renderCard({ candidate: MAXIMAL, availableHeight: 380 });
+    const card = getByTestId('candidate-card');
+    const actionsHeight = 52; // GameButton's default `minHeight` — see components/ui/GameButton.tsx
+    fireEvent(getByTestId('candidate-actions'), 'layout', {
+      nativeEvent: { layout: { width: 320, height: actionsHeight } },
+    });
+    // The squeezed height a `flex: 1` card actually gets under the board in this scenario — see
+    // the report's layout maths. What matters for this test is only the *ceiling* asserted below.
+    fireEvent(card, 'layout', { nativeEvent: { layout: { width: 353, height: 160 } } });
+    const style = StyleSheet.flatten(card.props.style);
+    const idealFloor = 353 * (4 / 3);
+    const spaceLeftAfterActions = 380 - 16 /* cardArea's paddingBottom, SPACE.lg */
+      - (actionsHeight + 8 /* the action row's own marginTop, SPACE.sm */);
+    // The invariant: the computed floor never exceeds what's left after the action row's own
+    // guaranteed space, at any content size.
+    expect(style.minHeight).toBeLessThanOrEqual(spaceLeftAfterActions);
+    // And in this squeeze scenario, that ceiling is well short of the 4:3 ideal — the clamp is
+    // actually binding here, not a no-op that happens to never trigger.
+    expect(style.minHeight).toBeLessThan(idealFloor);
   });
 });
