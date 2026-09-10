@@ -72,6 +72,10 @@ export default function BusinessDetailScreen() {
   // The Mission Board hands the whole venue over in params, so the screen paints instantly with
   // no spinner. Every other way in — deep link, shared URL, reload, restored session — arrives
   // with nothing but the id, and the fetch is what fills the screen.
+  //
+  // Both sources are already locale-resolved server-side (BusinessController picks Name/
+  // Category/District/Description through LocalisedContent by the caller's PreferredLocale) —
+  // this screen renders whatever it is given and never reads or translates a raw column itself.
   const name = params.name ?? business?.name ?? '';
   const category = params.category ?? business?.category ?? '';
   const district = params.district ?? business?.district ?? '';
