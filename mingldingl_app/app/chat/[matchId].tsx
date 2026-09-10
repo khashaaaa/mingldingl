@@ -20,7 +20,7 @@ import { RevealStrip } from '../../components/chat/RevealStrip';
 import { SealedLetter } from '../../components/chat/SealedLetter';
 import { Unsealing } from '../../components/chat/Unsealing';
 import { QuestBanner } from '../../components/quest/QuestBanner';
-import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
@@ -164,7 +164,7 @@ export default function ChatScreen() {
   return (
     <View style={styles.container}>
       <View>
-        <ScreenHeader
+        <HeaderBar
           title={revealedName || name || i18n.t('chat_title')}
           right={
             <>

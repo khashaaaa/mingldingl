@@ -6,7 +6,7 @@ import { AppCard } from '../../components/ui/AppCard';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
 import { LootToast } from '../../components/modals/LootToast';
-import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { HeaderBar } from '../../components/ui/HeaderBar';
 import { LongWait } from '../../components/ui/LongWait';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
@@ -118,7 +118,7 @@ export default function QuizScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title={quiz.title} />
+      <HeaderBar title={quiz.title} />
 
       <View style={styles.body}>
         <View style={styles.progressBar}>

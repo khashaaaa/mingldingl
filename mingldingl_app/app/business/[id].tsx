@@ -4,7 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useBusiness } from '../../hooks/useBusiness';
 import { useBusinessReviews } from '../../hooks/useBusinessReviews';
 import { AppCard } from '../../components/ui/AppCard';
-import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
@@ -85,7 +85,7 @@ export default function BusinessDetailScreen() {
   if (!paintedFromParams && venueLoading) {
     return (
       <View style={styles.screen}>
-        <ScreenHeader title="" />
+        <HeaderBar title="" />
         <VenueSkeleton />
       </View>
     );
@@ -94,7 +94,7 @@ export default function BusinessDetailScreen() {
   if (!paintedFromParams && (venueError || !business)) {
     return (
       <View style={styles.screen}>
-        <ScreenHeader title="" />
+        <HeaderBar title="" />
         <View style={styles.centered}>
           <Icon name="map-marker-off" size={ICON_SIZES.huge} color={INK.muted} />
           <Text style={styles.missingTitle}>{i18n.t('venue_missing_title')}</Text>
@@ -106,7 +106,7 @@ export default function BusinessDetailScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title={name} />
+      <HeaderBar title={name} />
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
         {photo ? (
           <Image source={{ uri: photo }} style={styles.hero} contentFit="cover" />

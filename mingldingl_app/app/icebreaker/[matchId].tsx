@@ -7,7 +7,7 @@ import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
 import { TextField } from '../../components/ui/TextField';
 import { LootToast } from '../../components/modals/LootToast';
-import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
@@ -93,7 +93,7 @@ export default function IcebreakerScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title={i18n.t('break_ice')} />
+      <HeaderBar title={i18n.t('break_ice')} />
 
       {/* The submit button sits at the bottom of a non-scrolling body, so it owns the navigation
           bar inset itself — a bare SPACE.xxl left it half-swallowed by a three-button bar. */}

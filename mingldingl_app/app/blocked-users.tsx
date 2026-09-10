@@ -2,7 +2,7 @@ import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useBlockedUsers } from '../hooks/useBlockedUsers';
 import { GameButton } from '../components/ui/GameButton';
-import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { HeaderBar } from '../components/ui/HeaderBar';
 import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
@@ -18,7 +18,7 @@ export default function BlockedUsersScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title={i18n.t('blocked_users_title')} />
+      <HeaderBar title={i18n.t('blocked_users_title')} />
       {isLoading ? (
         <View style={styles.list}>
           <SkeletonRows count={3} gap={SPACE.md} row={() => (

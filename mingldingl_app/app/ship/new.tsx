@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, Share, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { HeaderBar } from '../../components/ui/HeaderBar';
 import { GameButton } from '../../components/ui/GameButton';
 import { TextField } from '../../components/ui/TextField';
 import { apiClient } from '../../lib/api/apiClient';
@@ -50,7 +50,7 @@ export default function NewShipScreen() {
   if (sent) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title={i18n.t('weave_thread_title')} onBack={() => router.back()} />
+        <HeaderBar title={i18n.t('weave_thread_title')} onBack={() => router.back()} />
         <View style={styles.confirmWrap}>
           <Text style={styles.confirmText}>{i18n.t('ship_sent_confirmation')}</Text>
           {/* A nominee who already has an account is invited in-app and gets no code, so there is
@@ -73,7 +73,7 @@ export default function NewShipScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={i18n.t('weave_thread_title')} onBack={() => router.back()} />
+      <HeaderBar title={i18n.t('weave_thread_title')} onBack={() => router.back()} />
       <View style={styles.form}>
         <Text style={styles.hint}>{i18n.t('weave_thread_hint')}</Text>
         <Text style={styles.label}>{i18n.t('first_thread_label')}</Text>

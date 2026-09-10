@@ -1,6 +1,6 @@
 import { ScrollView, Text, View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ScreenHeader } from './ui/ScreenHeader';
+import { HeaderBar } from './ui/HeaderBar';
 import { GameButton } from './ui/GameButton';
 import { Waiting } from './ui/Waiting';
 import { useContentPage } from '../hooks/useContentPage';
@@ -25,7 +25,7 @@ export function ContentPageScreen({ slug }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={localized?.title ?? ''} onBack={() => router.back()} />
+      <HeaderBar title={localized?.title ?? ''} onBack={() => router.back()} />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
         {isLoading && <Waiting />}
         {isError && (

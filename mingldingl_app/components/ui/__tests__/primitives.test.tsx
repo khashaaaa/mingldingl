@@ -3,7 +3,7 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { StyleSheet, Text, TextInput } from 'react-native';
 import { CardEyebrow } from '../CardEyebrow';
 import { TextField } from '../TextField';
-import { ScreenHeader } from '../ScreenHeader';
+import { HeaderBar } from '../HeaderBar';
 import { COLORS, FONTS, FONT_SIZES, LINE } from '../../../lib/theme';
 
 const mockBack = jest.fn();
@@ -73,14 +73,14 @@ describe('TextField', () => {
   });
 });
 
-describe('ScreenHeader', () => {
+describe('HeaderBar', () => {
   beforeEach(() => {
     mockBack.mockClear();
   });
 
   it('renders the title and fires onBack when the back arrow is pressed', () => {
     const onBack = jest.fn();
-    const { getByText, getByLabelText } = render(<ScreenHeader title="Guild Rank" onBack={onBack} />);
+    const { getByText, getByLabelText } = render(<HeaderBar title="Guild Rank" onBack={onBack} />);
 
     expect(getByText('Guild Rank')).toBeTruthy();
 
@@ -90,13 +90,13 @@ describe('ScreenHeader', () => {
 
   it('renders the right slot when provided', () => {
     const { getByText } = render(
-      <ScreenHeader title="Chat" onBack={() => {}} right={<Text>📹</Text>} />
+      <HeaderBar title="Chat" onBack={() => {}} right={<Text>📹</Text>} />
     );
     expect(getByText('📹')).toBeTruthy();
   });
 
   it('calls router.back() when back arrow is pressed and no onBack prop is provided', () => {
-    const { getByText, getByLabelText } = render(<ScreenHeader title="Guild Rank" />);
+    const { getByText, getByLabelText } = render(<HeaderBar title="Guild Rank" />);
 
     expect(getByText('Guild Rank')).toBeTruthy();
 
@@ -105,7 +105,7 @@ describe('ScreenHeader', () => {
   });
 
   it('labels the back arrow for screen readers via i18n', () => {
-    const { getByLabelText } = render(<ScreenHeader title="Guild Rank" />);
+    const { getByLabelText } = render(<HeaderBar title="Guild Rank" />);
     expect(getByLabelText('Back')).toBeTruthy();
   });
 });

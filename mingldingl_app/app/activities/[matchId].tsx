@@ -10,7 +10,7 @@ import { AlertModal } from '../../components/modals/AlertModal';
 import { AppCard } from '../../components/ui/AppCard';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
-import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { signal } from '../../lib/world/feedback';
@@ -160,7 +160,7 @@ export default function ActivitiesScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title={i18n.t('plan_encounter')} />
+      <HeaderBar title={i18n.t('plan_encounter')} />
 
       <ScrollView contentContainerStyle={[styles.list, { paddingBottom: tail }]}>
         {partnerPledged && !suggestions.some((s) => s.myConfirmed) && (

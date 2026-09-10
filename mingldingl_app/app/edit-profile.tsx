@@ -21,7 +21,7 @@ import { ChoiceRow } from '../components/ui/ChoiceRow';
 import { CityPickerModal } from '../components/modals/CityPickerModal';
 import { PhotoGrid } from '../components/PhotoGrid';
 import { SectionDivider } from '../components/ui/SectionDivider';
-import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { HeaderBar } from '../components/ui/HeaderBar';
 import { TextField } from '../components/ui/TextField';
 import { Waiting } from '../components/ui/Waiting';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -124,7 +124,7 @@ export default function EditProfileScreen() {
   return (
     <DismissKeyboardView>
       <View style={styles.screen}>
-      <ScreenHeader title={i18n.t('edit_profile')} onBack={() => router.back()} />
+      <HeaderBar title={i18n.t('edit_profile')} onBack={() => router.back()} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: SPACE.gutter, paddingVertical: SPACE.xxl, gap: SPACE.lg }}>
         <AppCard textured style={{ padding: SPACE.lg }}>
           <View style={styles.cardBody}>

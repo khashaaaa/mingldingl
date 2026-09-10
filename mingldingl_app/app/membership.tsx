@@ -11,7 +11,7 @@ import { AppCard } from '../components/ui/AppCard';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
 import { GameButton } from '../components/ui/GameButton';
 import { GemTierBadge } from '../components/progression/GemTierBadge';
-import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { HeaderBar } from '../components/ui/HeaderBar';
 import { Waiting } from '../components/ui/Waiting';
 import { useMembership } from '../hooks/useMembership';
 import { i18n } from '../lib/i18n';
@@ -61,7 +61,7 @@ export default function MembershipScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={i18n.t('guild_ranks')} />
+      <HeaderBar title={i18n.t('guild_ranks')} />
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tail }]}>
         <Text style={styles.subtitle}>
           {i18n.t('guild_ranks_sub')}

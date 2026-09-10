@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { QuestBanner } from '../../components/quest/QuestBanner';
-import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { signal } from '../../lib/world/feedback';
@@ -136,7 +136,7 @@ export default function CampaignScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title={i18n.t('campaign_title')} />
+      <HeaderBar title={i18n.t('campaign_title')} />
 
       {isLoading ? (
         <View style={styles.scrollContent}>

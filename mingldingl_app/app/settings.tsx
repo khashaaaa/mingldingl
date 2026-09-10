@@ -15,7 +15,7 @@ import { PhoneChangeModal } from '../components/settings/PhoneChangeModal';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
 import { useSoundStore } from '../store/soundStore';
 import { GameButton } from '../components/ui/GameButton';
-import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { HeaderBar } from '../components/ui/HeaderBar';
 import { SectionDivider } from '../components/ui/SectionDivider';
 import { TextField } from '../components/ui/TextField';
 import { useScrollTail } from '../hooks/useScrollTail';
@@ -148,7 +148,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={i18n.t('settings_title')} />
+      <HeaderBar title={i18n.t('settings_title')} />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
         <ChoiceRow
           label={i18n.t('language')}
