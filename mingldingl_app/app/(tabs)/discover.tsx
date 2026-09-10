@@ -112,7 +112,6 @@ export default function DiscoverScreen() {
             candidate={candidate}
             requesting={isRequesting}
             requestDisabled={budgetSpent}
-            availableHeight={deckSize.h}
             onRequest={() => requestMatch(candidate, {
               onSuccess: ({ awarded }) => {
                 setToastPoints(awarded);
