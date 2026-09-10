@@ -535,6 +535,7 @@ Create `mingldingl_app/components/ui/__tests__/Skeleton.test.tsx`:
 
 ```tsx
 import { render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { Skeleton, SkeletonRows } from '../Skeleton';
 import { RADIUS } from '../../../lib/theme';
 
@@ -553,17 +554,18 @@ describe('Skeleton', () => {
 
   it('takes the exact box it is given, so the real row does not shift the layout', () => {
     const { getByTestId } = render(<Skeleton width={120} height={18} />);
-    expect(getByTestId('skeleton-block').props.style).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ width: 120, height: 18, borderRadius: RADIUS.sm }),
-      ]),
+    // `StyleSheet.flatten` first: this is the house convention (see primitives.test.tsx,
+    // AppCard.test.tsx) and it reads correctly whether the style arrives as an array or an
+    // already-flattened object.
+    expect(StyleSheet.flatten(getByTestId('skeleton-block').props.style)).toEqual(
+      expect.objectContaining({ width: 120, height: 18, borderRadius: RADIUS.sm }),
     );
   });
 
   it('accepts a percentage width', () => {
     const { getByTestId } = render(<Skeleton width="60%" height={18} />);
-    expect(getByTestId('skeleton-block').props.style).toEqual(
-      expect.arrayContaining([expect.objectContaining({ width: '60%' })]),
+    expect(StyleSheet.flatten(getByTestId('skeleton-block').props.style)).toEqual(
+      expect.objectContaining({ width: '60%' }),
     );
   });
 
@@ -1087,7 +1089,8 @@ git commit -m "Give the four long waits one shape and a line that advances"
 - Modify: `mingldingl_app/app/(tabs)/matches.tsx:33`, `app/(tabs)/activity.tsx:81`,
   `app/leaderboard.tsx:25`, `app/date-log.tsx:63`, `app/(tabs)/discover.tsx:53`,
   `app/progression.tsx:29`, `app/business/[id].tsx:56,104`, `app/campaign/[matchId].tsx:142`,
-  `app/blocked-users.tsx:23`, `components/progression/ScoreHistoryList.tsx:126`
+  `app/blocked-users.tsx:23`, `components/progression/ScoreHistoryList.tsx:126`,
+  `app/(tabs)/profile.tsx`, `app/quiz/[matchId].tsx`
 
 **Interfaces:**
 - Consumes: `Skeleton`, `SkeletonRows` from Task 3.
@@ -1122,7 +1125,7 @@ match its height and paddings:
   rowLines: { flex: 1, gap: SPACE.sm },
 ```
 
-- [ ] **Step 2: Work through the remaining nine, one shape each**
+- [ ] **Step 2: Work through the remaining eleven, one shape each**
 
 Each entry below gives the shape to build. Open the screen's real row or hero first and copy its
 height, gap and padding — the placeholder must land in the same box, which is the entire point.
@@ -1138,6 +1141,8 @@ height, gap and padding — the placeholder must land in the same box, which is 
 | `app/progression.tsx:29` | Three stacked blocks: `width="100%" height={14} radius={RADIUS.sm}` (the XP track), then `width="60%" height={FONT_SIZES.title}`, then `width="100%" height={120}`. |
 | `app/business/[id].tsx:56` and `:104` | Hero then body: `width="100%" height={180} radius={RADIUS.md}`, then `width="70%" height={FONT_SIZES.title}`, then two `width="100%" height={FONT_SIZES.md}` lines. Both sites get the same shape. |
 | `app/campaign/[matchId].tsx:142` | The map is a single large block: `width="100%" height={240} radius={RADIUS.md}`. |
+| `app/(tabs)/profile.tsx` | The character sheet's first load: `width={96} height={96} radius={RADIUS.pill}` (portrait), then `width="50%" height={FONT_SIZES.title}`, then `width="100%" height={14} radius={RADIUS.sm}` (the XP track). |
+| `app/quiz/[matchId].tsx` | The question card's first load: `width="80%" height={FONT_SIZES.xl}` (the prompt), then `SkeletonRows count={4}` of `width="100%" height={48} radius={RADIUS.md}` (the answer choices). |
 
 - [ ] **Step 3: Confirm no screen still centres a spinner for a list**
 
@@ -1246,7 +1251,7 @@ git commit -m "Turn the knot instead of the platform spinner"
 
 ```tsx
 import { render } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { Entering, ENTER_CAP } from '../Entering';
 
 let mockLevel: 'full' | 'plain' | 'still' | 'off' = 'plain';
@@ -1273,14 +1278,14 @@ describe('Entering', () => {
     expect(jest.getTimerCount()).toBe(0);
     // `style` is an object here, not an array, and `opacity` is an Animated.Value — read it with
     // `__getValue()` rather than comparing it to a number.
-    expect(getByTestId('entering').props.style.opacity.__getValue()).toBe(1);
+    expect(StyleSheet.flatten(getByTestId('entering').props.style).opacity.__getValue()).toBe(1);
   });
 
   // A hundred-row list must not animate a tail nobody has scrolled to, and a row past the cap
   // must not be invisible while it waits its turn.
   it('does not delay rows past the cap', () => {
     const { getByTestId } = render(<Entering index={ENTER_CAP + 5}><Text>a row</Text></Entering>);
-    expect(getByTestId('entering').props.style.opacity.__getValue()).toBe(1);
+    expect(StyleSheet.flatten(getByTestId('entering').props.style).opacity.__getValue()).toBe(1);
   });
 });
 ```
@@ -1393,6 +1398,7 @@ where the other `components/chat/` tests live:
 
 ```tsx
 import { render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { MessageBubble } from '../../../components/chat/MessageBubble';
 
 import type { Message } from '../../../hooks/useChat';
@@ -1409,15 +1415,17 @@ describe('MessageBubble in flight', () => {
     const { getByTestId } = render(
       <MessageBubble message={{ ...base, status: 'sending' }} myId="me" />,
     );
-    expect(getByTestId('bubble').props.style).toEqual(
-      expect.arrayContaining([expect.objectContaining({ opacity: expect.any(Number) })]),
+    expect(StyleSheet.flatten(getByTestId('bubble').props.style)).toEqual(
+      expect.objectContaining({ opacity: expect.any(Number) }),
     );
   });
 
   it('inks a delivered message fully', () => {
     const { getByTestId } = render(<MessageBubble message={base} myId="me" />);
-    const flat = getByTestId('bubble').props.style.filter(Boolean);
-    expect(flat).not.toContainEqual(expect.objectContaining({ opacity: 0.6 }));
+    // A delivered bubble must carry no dimming at all, so assert on the flattened result rather
+    // than hunting for an absent entry in a style array.
+    const flat = StyleSheet.flatten(getByTestId('bubble').props.style);
+    expect(flat.opacity).toBeUndefined();
   });
 });
 ```
