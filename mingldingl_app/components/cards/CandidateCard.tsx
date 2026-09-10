@@ -85,7 +85,11 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
           />
           <View style={styles.photoDots}>
             {photos.map((_, i) => (
-              <View key={i} style={[styles.photoDot, i === photoIndex && styles.photoDotActive]} />
+              <View
+                key={i}
+                testID={i === photoIndex ? 'photo-dot-active' : 'photo-dot-inactive'}
+                style={[styles.photoDot, i === photoIndex && styles.photoDotActive]}
+              />
             ))}
           </View>
           <Pressable
@@ -166,7 +170,10 @@ const styles = StyleSheet.create({
     gap: SPACE.xs,
   },
   photoDot: { flex: 1, height: 3, borderRadius: RADIUS.pill, backgroundColor: COLORS.textDim },
-  photoDotActive: { backgroundColor: COLORS.gold },
+  // COLORS.gold measured at ~3.05:1 against the scrim's own worst case — barely past the 3:1
+  // floor and, backwards, *less* legible than the inactive dots' 3.1:1 (see the comment above).
+  // goldBright clears the same worst case at ~4.6:1.
+  photoDotActive: { backgroundColor: COLORS.goldBright },
   photoTapLeft: { position: 'absolute', top: 0, bottom: 0, left: 0, width: '35%' },
   photoTapRight: { position: 'absolute', top: 0, bottom: 0, right: 0, width: '65%' },
   info: {
