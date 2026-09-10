@@ -15,6 +15,7 @@ import { GameButton } from '../../components/ui/GameButton';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { QuestBoard } from '../../components/quest/QuestBoard';
 import { FatedThreadsSection } from '../../components/quest/FatedThreadsSection';
+import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
@@ -77,9 +78,9 @@ export default function ActivityScreen() {
         <FatedThreadsSection />
         <QuestBoard />
         {isLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={COLORS.gold} />
-          </View>
+          <SkeletonRows count={4} gap={SPACE.lg} row={() => (
+            <Skeleton width="100%" height={110} radius={RADIUS.md} />
+          )} />
         ) : isError ? (
           <View style={styles.center}>
             <Icon name="alert-circle-outline" size={ICON_SIZES.huge} color={INK.muted} />

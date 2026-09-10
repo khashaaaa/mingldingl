@@ -1,4 +1,4 @@
-import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCampaign } from '../../hooks/useCampaign';
 import type { CampaignRoom } from '../../hooks/useCampaign';
@@ -7,6 +7,7 @@ import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { QuestBanner } from '../../components/quest/QuestBanner';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { Skeleton } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
@@ -138,8 +139,8 @@ export default function CampaignScreen() {
       <ScreenHeader title={i18n.t('campaign_title')} />
 
       {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={COLORS.gold} />
+        <View style={styles.scrollContent}>
+          <Skeleton width="100%" height={240} radius={RADIUS.md} />
         </View>
       ) : unavailable ? (
         <View style={styles.centered}>

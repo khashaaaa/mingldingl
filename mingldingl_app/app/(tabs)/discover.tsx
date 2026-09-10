@@ -1,4 +1,4 @@
-import { View, Text as RNText, StyleSheet, ActivityIndicator, type LayoutChangeEvent } from 'react-native';
+import { View, Text as RNText, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { isAxiosError } from 'axios';
@@ -15,6 +15,7 @@ import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { PanelReveal } from '../../components/modals/PanelReveal';
+import { Skeleton } from '../../components/ui/Skeleton';
 import { EmberField } from '../../components/vfx/EmberField';
 import { FogDrift } from '../../components/vfx/FogDrift';
 import { i18n } from '../../lib/i18n';
@@ -37,6 +38,7 @@ export default function DiscoverScreen() {
   const budgetSpent = dailyBudget !== null && dailyBudget.remaining <= 0;
   const [deckSize, setDeckSize] = useState({ w: 0, h: 0 });
   const [emptySize, setEmptySize] = useState({ w: 0, h: 0 });
+  const [loadingCardHeight, setLoadingCardHeight] = useState(0);
 
   function onDeckLayout(e: LayoutChangeEvent) {
     const { width, height } = e.nativeEvent.layout;
@@ -48,9 +50,17 @@ export default function DiscoverScreen() {
     setEmptySize({ w: width, h: height });
   }
 
+  // Matches the deck's own `cardArea` box (same padding), so the placeholder occupies exactly the
+  // space `CandidateCard` will fill once it lands — the card itself is `flex: 1` with no fixed
+  // height, so its box is measured, not read off a stylesheet.
   if (isLoading) return (
-    <View style={styles.center}>
-      <ActivityIndicator color={COLORS.gold} size="large" />
+    <View
+      style={styles.cardArea}
+      onLayout={(e) => setLoadingCardHeight(e.nativeEvent.layout.height)}
+    >
+      {loadingCardHeight > 0 && (
+        <Skeleton width="100%" height={loadingCardHeight} radius={RADIUS.md} />
+      )}
     </View>
   );
 

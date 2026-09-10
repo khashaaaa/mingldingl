@@ -1,16 +1,33 @@
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useBusiness } from '../../hooks/useBusiness';
 import { useBusinessReviews } from '../../hooks/useBusinessReviews';
 import { AppCard } from '../../components/ui/AppCard';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { Skeleton } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 import { useScrollTail } from '../../hooks/useScrollTail';
 
+
+// Hero then body: shared by both loading sites on this screen (the whole-venue first load, and
+// the "Memorable Moments" review list still loading beneath already-painted venue details), per
+// the plan's brief — the same composite shape stands in for both waits.
+function BusinessSkeleton() {
+  return (
+    <View>
+      <Skeleton width="100%" height={200} radius={0} />
+      <View style={styles.skeletonText}>
+        <Skeleton width="70%" height={FONT_SIZES.title} />
+        <Skeleton width="100%" height={FONT_SIZES.md} />
+        <Skeleton width="100%" height={FONT_SIZES.md} />
+      </View>
+    </View>
+  );
+}
 
 export default function BusinessDetailScreen() {
   const tail = useScrollTail();
@@ -52,9 +69,7 @@ export default function BusinessDetailScreen() {
     return (
       <View style={styles.screen}>
         <ScreenHeader title="" />
-        <View style={styles.centered}>
-          <ActivityIndicator color={COLORS.gold} />
-        </View>
+        <BusinessSkeleton />
       </View>
     );
   }
@@ -101,7 +116,7 @@ export default function BusinessDetailScreen() {
         <Text style={styles.sectionTitle}>{i18n.t('memorable_moments')}</Text>
 
         {isLoading ? (
-          <ActivityIndicator color={COLORS.gold} />
+          <BusinessSkeleton />
         ) : !reviews || reviews.length === 0 ? (
           <Text style={styles.emptyText}>{i18n.t('no_moments_yet')}</Text>
         ) : (
@@ -153,4 +168,5 @@ const styles = StyleSheet.create({
   reviewPhoto: { width: '100%', height: 160, borderRadius: RADIUS.sm },
   reviewStarsRow: { flexDirection: 'row', gap: SPACE.hair },
   reviewText: { color: COLORS.text, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
+  skeletonText: { paddingHorizontal: SPACE.gutter, marginTop: SPACE.md, gap: SPACE.sm },
 });

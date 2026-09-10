@@ -1,8 +1,9 @@
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useBlockedUsers } from '../hooks/useBlockedUsers';
 import { GameButton } from '../components/ui/GameButton';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { COLORS, FONTS, FONT_SIZES, LINE, RADIUS, SPACE, circle } from '../lib/theme';
@@ -19,8 +20,13 @@ export default function BlockedUsersScreen() {
     <View style={styles.screen}>
       <ScreenHeader title={i18n.t('blocked_users_title')} />
       {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={COLORS.gold} />
+        <View style={styles.list}>
+          <SkeletonRows count={3} gap={SPACE.md} row={() => (
+            <View style={styles.skeletonRow}>
+              <Skeleton width={44} height={44} radius={RADIUS.pill} />
+              <Skeleton width="50%" height={FONT_SIZES.md} />
+            </View>
+          )} />
         </View>
       ) : isError ? (
         <View style={styles.errorWrap}>
@@ -81,4 +87,11 @@ const styles = StyleSheet.create({
   photo: circle(44),
   photoPlaceholder: { backgroundColor: COLORS.panelRaised },
   name: { flex: 1, color: COLORS.text, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
+  skeletonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.md,
+    paddingVertical: SPACE.md,
+    paddingHorizontal: SPACE.md,
+  },
 });

@@ -1,9 +1,10 @@
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useMyTrophies } from '../hooks/useMyTrophies';
 import { GameHeader } from '../components/ui/GameHeader';
 import { GameButton } from '../components/ui/GameButton';
 import { AppCard } from '../components/ui/AppCard';
+import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
@@ -59,8 +60,16 @@ export default function DateLogScreen() {
     <View style={styles.screen}>
       <GameHeader title={i18n.t('date_log_title')} icon="book-heart" showBack />
       {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={COLORS.gold} />
+        <View style={styles.list}>
+          <SkeletonRows count={4} gap={SPACE.md} row={() => (
+            <View style={styles.skeletonRow}>
+              <Skeleton width={64} height={64} radius={RADIUS.md} />
+              <View style={styles.skeletonInfo}>
+                <Skeleton width="70%" height={FONT_SIZES.lg} />
+                <Skeleton width="35%" height={FONT_SIZES.sm} />
+              </View>
+            </View>
+          )} />
         </View>
       ) : isError ? (
         <View style={styles.errorWrap}>
@@ -98,5 +107,7 @@ const styles = StyleSheet.create({
   subtitle: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
   date: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
   starsRow: { flexDirection: 'row', gap: SPACE.hair },
+  skeletonRow: { flexDirection: 'row', gap: SPACE.md, padding: SPACE.md },
+  skeletonInfo: { flex: 1, justifyContent: 'center', gap: SPACE.xs },
   unrated: { color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, fontStyle: 'italic', marginTop: SPACE.hair },
 });

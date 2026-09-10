@@ -1,4 +1,4 @@
-import { View, Text, FlatList, RefreshControl, StyleSheet, ActivityIndicator, type LayoutChangeEvent } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useMatches } from '../../hooks/useMatches';
@@ -7,10 +7,11 @@ import { GameHeader } from '../../components/ui/GameHeader';
 import { NextGatheringPill } from '../../components/townsquare/NextGatheringPill';
 import { Icon } from '../../components/ui/Icon';
 import { GameButton } from '../../components/ui/GameButton';
+import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { FogDrift } from '../../components/vfx/FogDrift';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
 
 
 export default function MatchesScreen() {
@@ -29,8 +30,16 @@ export default function MatchesScreen() {
       <GameHeader title={i18n.t('tab_quest_log')} icon="script-text" showScore />
       <NextGatheringPill />
       {isLoading && (
-        <View style={styles.center}>
-          <ActivityIndicator color={COLORS.gold} />
+        <View style={styles.listPad}>
+          <SkeletonRows count={5} row={() => (
+            <View style={styles.rowShape}>
+              <Skeleton width={56} height={56} radius={RADIUS.pill} />
+              <View style={styles.rowLines}>
+                <Skeleton width="55%" height={FONT_SIZES.lg} />
+                <Skeleton width="80%" height={FONT_SIZES.md} />
+              </View>
+            </View>
+          )} />
         </View>
       )}
       {!isLoading && isError && (
@@ -87,6 +96,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.sm },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.sm },
+  listPad: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.sm },
+  rowShape: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, padding: SPACE.md },
+  rowLines: { flex: 1, gap: SPACE.xs },
   emptyIcon: { opacity: 0.6, marginBottom: SPACE.xs },
   emptyTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.bodyBold, color: COLORS.text },
   emptySub: { fontSize: FONT_SIZES.md, color: COLORS.textDim, fontFamily: FONTS.body },

@@ -4,7 +4,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { i18n } from '../../lib/i18n';
@@ -29,8 +28,9 @@ import { ShareCharacterButton } from '../../components/cards/ShareCharacterButto
 import { ProfileAvatar } from '../../components/profile/ProfileAvatar';
 import { OathCard } from '../../components/profile/OathCard';
 import { DeletionPendingBanner } from '../../components/profile/DeletionPendingBanner';
+import { Skeleton } from '../../components/ui/Skeleton';
 import { useCancelDeletion } from '../../hooks/useCancelDeletion';
-import { COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import type { GemTier } from '../../models/user';
 
 
@@ -45,7 +45,11 @@ export default function ProfileScreen() {
   if (!profile || !scoreDetail) {
     return (
       <View style={styles.loadingScreen}>
-        <ActivityIndicator color={COLORS.gold} />
+        <Skeleton width={100} height={100} radius={RADIUS.pill} style={styles.loadingAvatar} />
+        <Skeleton width="50%" height={FONT_SIZES.title} style={styles.loadingName} />
+        <View style={styles.loadingXpWrap}>
+          <Skeleton width="100%" height={14} radius={RADIUS.sm} />
+        </View>
       </View>
     );
   }
@@ -161,7 +165,10 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
-  loadingScreen: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
+  loadingScreen: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', paddingTop: SPACE.giant },
+  loadingAvatar: { marginBottom: SPACE.xl },
+  loadingName: { marginBottom: SPACE.xl },
+  loadingXpWrap: { width: '100%', paddingHorizontal: SPACE.gutter },
   scroll: { flex: 1 },
   content: { paddingBottom: SPACE.scrollTail },
   nameRow: {

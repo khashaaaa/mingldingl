@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useScoreDetail } from '../hooks/useScoreDetail';
 import { useScoreHistory } from '../hooks/useScoreHistory';
@@ -9,9 +9,10 @@ import { TierPerkCard } from '../components/progression/TierPerkCard';
 import { StreakSummary } from '../components/progression/StreakSummary';
 import { ScoreHistoryList } from '../components/progression/ScoreHistoryList';
 import { GameButton } from '../components/ui/GameButton';
+import { Skeleton } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
 import type { GemTier } from '../models/user';
 import { Icon } from '../components/ui/Icon';
 import { CardEyebrow } from '../components/ui/CardEyebrow';
@@ -25,8 +26,10 @@ export default function ProgressionScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={COLORS.gold} />
+      <View style={styles.loadingBody}>
+        <Skeleton width="100%" height={14} radius={RADIUS.sm} />
+        <Skeleton width="60%" height={FONT_SIZES.title} />
+        <Skeleton width="100%" height={120} />
       </View>
     );
   }
@@ -84,6 +87,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
   errorTitle: { color: COLORS.text, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, textAlign: 'center' },
+  loadingBody: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.giant, gap: SPACE.lg },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   xpBarWrap: { flex: 1 },
   leaderboardButtonWrap: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.xs },

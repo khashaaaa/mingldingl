@@ -1,9 +1,10 @@
-import { View, Text, FlatList, RefreshControl, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { GameHeader } from '../components/ui/GameHeader';
 import { GameButton } from '../components/ui/GameButton';
 import { GemTierBadge } from '../components/progression/GemTierBadge';
+import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
@@ -21,8 +22,14 @@ export default function LeaderboardScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={COLORS.gold} />
+      <View style={styles.list}>
+        <SkeletonRows count={8} gap={SPACE.sm} row={() => (
+          <View style={styles.rowShape}>
+            <Skeleton width={40} height={FONT_SIZES.lg} />
+            <Skeleton width={28} height={28} radius={RADIUS.pill} />
+            <Skeleton width="45%" height={FONT_SIZES.md} />
+          </View>
+        )} />
       </View>
     );
   }
@@ -99,6 +106,13 @@ const styles = StyleSheet.create({
   },
   rank: { width: 40, fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.textDim },
   rankSelf: { color: COLORS.gold },
+  rowShape: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.lg,
+    paddingVertical: SPACE.md,
+    paddingHorizontal: SPACE.lg,
+  },
   score: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.text, flexShrink: 1 },
   scoreSelf: { fontFamily: FONTS.bodyBold, color: COLORS.goldBright },
   youTag: {

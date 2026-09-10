@@ -1,7 +1,8 @@
-import { FlatList, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { FlatList, View, Text, StyleSheet } from 'react-native';
 import { i18n, tKey } from '../../lib/i18n';
 import { Icon } from '../ui/Icon';
 import { formatDate } from '../../lib/formatDate';
+import { Skeleton } from '../ui/Skeleton';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 
 interface ScoreEventItem {
@@ -123,7 +124,7 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
       keyExtractor={(item, index) => `${item.eventType}-${item.createdAt}-${index}`}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
-      ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color={COLORS.gold} style={styles.footer} /> : null}
+      ListFooterComponent={isFetchingNextPage ? <Skeleton width="100%" height={56} style={styles.footer} /> : null}
       renderItem={({ item }) => {
         const icon: EventGlyph = EVENT_ICONS[item.eventType] ?? 'star-four-points';
         const sign = item.delta >= 0 ? '+' : '';

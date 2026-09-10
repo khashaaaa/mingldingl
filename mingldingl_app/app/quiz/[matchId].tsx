@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuiz } from '../../hooks/useQuiz';
 import { AppCard } from '../../components/ui/AppCard';
@@ -8,6 +8,7 @@ import { GameButton } from '../../components/ui/GameButton';
 import { LootToast } from '../../components/modals/LootToast';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { LongWait } from '../../components/ui/LongWait';
+import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import {
@@ -54,8 +55,13 @@ export default function QuizScreen() {
   }, [submitError]);
 
   if (isLoading) return (
-    <View style={styles.centered}>
-      <ActivityIndicator color={COLORS.gold} />
+    <View style={styles.body}>
+      <AppCard style={styles.questionCard}>
+        <Skeleton width="80%" height={FONT_SIZES.title} style={styles.loadingPrompt} />
+      </AppCard>
+      <SkeletonRows count={4} gap={SPACE.md} row={() => (
+        <Skeleton width="100%" height={48} radius={RADIUS.sm} />
+      )} />
     </View>
   );
 
@@ -202,6 +208,7 @@ const styles = StyleSheet.create({
     padding: SPACE.lg,
     marginBottom: SPACE.xxl,
   },
+  loadingPrompt: { alignSelf: 'center' },
   questionMeta: {
     color: COLORS.textDim,
     fontSize: FONT_SIZES.md,
