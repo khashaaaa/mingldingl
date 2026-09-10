@@ -1,6 +1,14 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MinglDingl.Engine.Tests.Integration;
@@ -330,5 +338,154 @@ public class PhoneVerificationIntegrationTests : IntegrationTestBase
         var service = new PhoneVerificationService(Db, client, config, NullLogger<PhoneVerificationService>.Instance);
 
         Assert.False(service.IsConfigured);
+    }
+}
+
+/// <summary>
+/// The per-IP rate limit on <c>POST /auth/phone/start</c> (<see cref="PhoneStartRateLimit"/>).
+/// Unlike the rest of this file, these tests drive the real HTTP pipeline (the limiter is
+/// registered as ASP.NET Core middleware, not something a direct call into
+/// <see cref="PhoneVerificationService"/> would ever exercise) via
+/// <see cref="WebApplicationFactory{TEntryPoint}"/> against local Postgres.
+///
+/// Two deliberate differences from a real boot, both there only to make this test safe and fast to
+/// run repeatedly against the developer's own local dev database: VerifyMn stays unconfigured, so a
+/// *permitted* `start` call returns 503 immediately with no outbound call to verify.mn and no DB
+/// write (the verification flow itself is covered end-to-end above); and the hourly/10s maintenance
+/// sweepers are stripped so simply booting the app for this test cannot silently ghost matches,
+/// expire memberships, or advance a real Town Square round sitting in that database.
+/// </summary>
+public class PhoneStartRateLimitTests : IClassFixture<PhoneStartRateLimitTests.Factory>
+{
+    public class Factory : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseEnvironment("Development");
+            builder.ConfigureAppConfiguration((_, config) =>
+                config.AddInMemoryCollection(new Dictionary<string, string?> { ["VerifyMn:ApiKey"] = "" }));
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<IHostedService>();
+                services.AddSingleton<IStartupFilter>(new FakeClientIpStartupFilter());
+
+                // The full suite runs hundreds of tests in parallel, each opening its own
+                // NpgsqlDataSource; across the whole process that trips EF Core's "more than
+                // twenty internal service providers" diagnostic. Every other AppDbContext in this
+                // project is built through IntegrationTestBase.BuildContext, which already ignores
+                // it (see that method) — Program.cs's own registration does not, because outside
+                // tests there is only ever one. Re-register with the same ignore so booting the
+                // real app here doesn't fail on a diagnostic that has nothing to do with this test.
+                services.RemoveAll<DbContextOptions<AppDbContext>>();
+                services.AddDbContext<AppDbContext>(opt =>
+                {
+                    var dataSourceBuilder = new Npgsql.NpgsqlDataSourceBuilder(
+                        "Host=127.0.0.1;Database=mingldingl;Username=postgres;Password=1234;Port=5432");
+                    dataSourceBuilder.EnableDynamicJson();
+                    opt.UseNpgsql(dataSourceBuilder.Build(), npgsql => npgsql.EnableRetryOnFailure(maxRetryCount: 3))
+                        .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.ManyServiceProvidersCreatedWarning));
+                });
+            });
+        }
+    }
+
+    /// <summary>
+    /// TestServer has no real socket, so <c>Connection.RemoteIpAddress</c> is whatever this sets it
+    /// to from a test-only header — the only way to simulate "two different callers" and "one
+    /// caller retrying" against the limiter's per-IP partition key.
+    /// </summary>
+    private sealed class FakeClientIpStartupFilter : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
+        {
+            app.Use(async (context, nextMiddleware) =>
+            {
+                if (context.Request.Headers.TryGetValue("X-Test-Client-Ip", out var ip) &&
+                    IPAddress.TryParse(ip.ToString(), out var parsed))
+                {
+                    context.Connection.RemoteIpAddress = parsed;
+                }
+                await nextMiddleware();
+            });
+            next(app);
+        };
+    }
+
+    private readonly Factory _factory;
+
+    public PhoneStartRateLimitTests(Factory factory) => _factory = factory;
+
+    /// <summary>Users.PhoneNumber is uniquely indexed elsewhere; harmless here since Start never
+    /// persists while VerifyMn is unconfigured, but kept consistent with the rest of this file.</summary>
+    private static string NewPhone() => Random.Shared.Next(10_000_000, 100_000_000).ToString();
+
+    private static Task<HttpResponseMessage> PostStart(HttpClient client, string ip, string phone)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/auth/phone/start")
+        {
+            Content = JsonContent.Create(new { phone }),
+        };
+        request.Headers.Add("X-Test-Client-Ip", ip);
+        return client.SendAsync(request);
+    }
+
+    [Fact]
+    public async Task Start_is_refused_once_one_ip_spends_its_window_budget()
+    {
+        var client = _factory.CreateClient();
+        var ip = "203.0.113.10";
+
+        // Every call below uses a *different* number, and none of them is refused by the
+        // per-number cap (each is fresh) — proving this is a source-address budget, not a
+        // per-number one. VerifyMn is unconfigured, so a permitted call returns 503, never 429.
+        for (int i = 0; i < PhoneStartRateLimit.PermitLimit; i++)
+        {
+            var res = await PostStart(client, ip, NewPhone());
+            Assert.NotEqual(HttpStatusCode.TooManyRequests, res.StatusCode);
+        }
+
+        var blocked = await PostStart(client, ip, NewPhone());
+        Assert.Equal(HttpStatusCode.TooManyRequests, blocked.StatusCode);
+
+        // Same body shape as the per-number 429 (phone.too_many_attempts) — only the code differs,
+        // so the client needs no new error-handling branch.
+        var body = await blocked.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("phone.too_many_attempts_ip", body!.Code);
+        Assert.False(string.IsNullOrWhiteSpace(body.Error));
+    }
+
+    [Fact]
+    public async Task Start_budget_is_partitioned_per_ip_not_shared_globally()
+    {
+        var client = _factory.CreateClient();
+        var spentIp = "203.0.113.20";
+        for (int i = 0; i <= PhoneStartRateLimit.PermitLimit; i++)
+            await PostStart(client, spentIp, NewPhone());
+
+        // spentIp is now over budget (see the previous test). A second, unrelated IP must be
+        // completely unaffected — this is what makes the limiter safe to ship despite mobile
+        // carrier NAT: it only ever penalises the address that actually burned its own budget.
+        var otherIp = "203.0.113.21";
+        var res = await PostStart(client, otherIp, NewPhone());
+        Assert.NotEqual(HttpStatusCode.TooManyRequests, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task Status_polling_is_never_rate_limited()
+    {
+        // The app polls this endpoint on a timer for the entire duration of every verification. If
+        // the limiter ever caught it, every real sign-up would eventually 429 mid-poll. Hammer it
+        // well past the start policy's permit count from one simulated IP and confirm none of them
+        // trip the limiter.
+        var client = _factory.CreateClient();
+        var ip = "203.0.113.30";
+
+        for (int i = 0; i < PhoneStartRateLimit.PermitLimit + 10; i++)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, $"/auth/phone/status/{Guid.NewGuid()}");
+            request.Headers.Add("X-Test-Client-Ip", ip);
+            var res = await client.SendAsync(request);
+            Assert.NotEqual(HttpStatusCode.TooManyRequests, res.StatusCode);
+        }
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 /// <summary>
 /// Phone ownership proof via verify.mn (Mobile-Originated SMS: the user texts our code to the
@@ -20,6 +21,10 @@ public class AuthController : ControllerBase
 
     [HttpPost("start")]
     [AllowAnonymous]
+    // Per-IP budget only — never applied to status/callback/claim. The app polls status on a
+    // timer for the whole duration of every verification, and a limiter on that endpoint would
+    // break sign-up for every real user. See PhoneStartRateLimit (Program.cs) for the numbers.
+    [EnableRateLimiting(PhoneStartRateLimit.PolicyName)]
     [ProducesResponseType(typeof(StartPhoneVerificationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]

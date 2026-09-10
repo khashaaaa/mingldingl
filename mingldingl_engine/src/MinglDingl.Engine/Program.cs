@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using System.Threading.RateLimiting;
 
 if (args.Length > 0 && args[0] == "hash-password")
 {
@@ -60,6 +62,39 @@ builder.Services.AddAuthentication("Bearer")
     });
 builder.Services.AddAuthorization();
 builder.Services.AddApplicationServices();
+
+// Per-IP budget on POST /auth/phone/start only — bounds provider-quota burn across many distinct
+// numbers from one source. Deliberately not a global limiter: the app polls
+// GET /auth/phone/status/{id} on a timer for the whole duration of every verification, and a
+// global cap would break that poll for every real user. See PhoneStartRateLimit for the reasoning
+// behind the window/permit numbers (legitimate retry/resume traffic and mobile-carrier NAT).
+builder.Services.AddRateLimiter(options =>
+{
+    options.OnRejected = async (context, ct) =>
+    {
+        // Same body shape as PhoneVerificationService's per-number 429
+        // (phone.too_many_attempts) so the app needs no new error-handling branch, but a
+        // distinguishable code so the two causes can be told apart in logs and by the client.
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new ErrorResponse(
+                "Too many verification attempts from this network; wait a few minutes before trying again",
+                "phone.too_many_attempts_ip"),
+            ct);
+    };
+
+    options.AddPolicy(PhoneStartRateLimit.PolicyName, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = PhoneStartRateLimit.PermitLimit,
+                Window = PhoneStartRateLimit.Window,
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
+});
 var allowedOrigins = CorsOrigins.Parse(builder.Configuration);
 builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
 {
@@ -115,6 +150,7 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/uploads",
 });
 app.UseCors();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseMiddleware<CurrentUserMiddleware>();
 app.UseAuthorization();
@@ -122,3 +158,38 @@ app.MapControllers();
 app.Run();
 
 public partial class Program { }
+
+/// <summary>
+/// Per-IP budget for <c>POST /auth/phone/start</c>. This bounds provider-quota burn across many
+/// distinct numbers from one source; it is deliberately separate from
+/// <see cref="PhoneVerificationService.MaxPendingPerPhone"/>, which only bounds abuse against a
+/// single target number.
+///
+/// Every call to <c>start</c> consumes one permit here, including a resumed session (the app
+/// passes back <c>ResumeVerificationId</c> so a retry does not mint a second provider session, but
+/// the HTTP call still happens and still counts against this budget) — so the numbers below are
+/// sized against *request* volume, not provider-session volume.
+///
+/// Window/limit reasoning:
+///  - Legitimate retry: a real caller resuming their own in-flight verification, or retrying after
+///    a flaky connection, realistically calls <c>start</c> a handful of times for one number — at
+///    most on the order of <see cref="PhoneVerificationService.MaxPendingPerPhone"/> (5) plus a few
+///    resumed calls. 30 permits per 15 minutes leaves wide headroom above that for one legitimate
+///    sign-up attempt, so it should never surface to a real user.
+///  - Mobile carrier NAT: many Mongolian mobile subscribers share a small number of public IPs
+///    (CGNAT), so unrelated real users can appear to share one IP within the window. A limit sized
+///    to "one user's retries" (e.g. 5-10) would lock out everyone else behind that gateway the
+///    moment a handful of concurrent sign-ups landed on it. 30 per 15 minutes tolerates roughly
+///    that many concurrent, unrelated legitimate sign-up attempts from one shared IP — generous for
+///    a single-market, early-stage app — while still meaningfully throttling a script that walks
+///    through hundreds of distinct numbers from one address.
+///  - This is a coarse first layer, not a hard stop: an attacker can still stay just under budget
+///    indefinitely, or rotate source IPs. It exists to blunt bulk, single-source enumeration; the
+///    per-number cap remains the primary defense against any one number being targeted.
+/// </summary>
+public static class PhoneStartRateLimit
+{
+    public const string PolicyName = "phone-verification-start";
+    public const int PermitLimit = 30;
+    public static readonly TimeSpan Window = TimeSpan.FromMinutes(15);
+}
