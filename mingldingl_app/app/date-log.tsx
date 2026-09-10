@@ -5,6 +5,7 @@ import { GameHeader } from '../components/ui/GameHeader';
 import { GameButton } from '../components/ui/GameButton';
 import { AppCard } from '../components/ui/AppCard';
 import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
+import { Entering } from '../components/ui/Entering';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
@@ -83,7 +84,11 @@ export default function DateLogScreen() {
           data={trophies ?? []}
           keyExtractor={(t) => t.matchId}
           ListEmptyComponent={<Text style={styles.empty}>{i18n.t('date_log_empty')}</Text>}
-          renderItem={({ item }) => <TrophyRow trophy={item} />}
+          renderItem={({ item, index }) => (
+            <Entering index={index}>
+              <TrophyRow trophy={item} />
+            </Entering>
+          )}
         />
       )}
     </View>

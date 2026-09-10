@@ -5,6 +5,7 @@ import { GameHeader } from '../components/ui/GameHeader';
 import { GameButton } from '../components/ui/GameButton';
 import { GemTierBadge } from '../components/progression/GemTierBadge';
 import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
+import { Entering } from '../components/ui/Entering';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
@@ -66,14 +67,16 @@ export default function LeaderboardScreen() {
               {/* The board is anonymous by design — no names come back from the engine — so the
                   score is the only thing that distinguishes one rank from the next. Without it
                   every row rendered identically. */}
-              <View style={[styles.row, item.isCurrentUser && styles.rowSelf]}>
-                <Text style={[styles.rank, item.isCurrentUser && styles.rankSelf]}>#{item.rank}</Text>
-                <GemTierBadge tier={(item.gemTier as GemTier) ?? 'Garnet'} size={28} />
-                <Text style={[styles.score, item.isCurrentUser && styles.scoreSelf]}>
-                  {(item.score ?? 0).toLocaleString()} {i18n.t('pts')}
-                </Text>
-                {item.isCurrentUser && <Text style={styles.youTag}>{i18n.t('leaderboard_you')}</Text>}
-              </View>
+              <Entering index={index}>
+                <View style={[styles.row, item.isCurrentUser && styles.rowSelf]}>
+                  <Text style={[styles.rank, item.isCurrentUser && styles.rankSelf]}>#{item.rank}</Text>
+                  <GemTierBadge tier={(item.gemTier as GemTier) ?? 'Garnet'} size={28} />
+                  <Text style={[styles.score, item.isCurrentUser && styles.scoreSelf]}>
+                    {(item.score ?? 0).toLocaleString()} {i18n.t('pts')}
+                  </Text>
+                  {item.isCurrentUser && <Text style={styles.youTag}>{i18n.t('leaderboard_you')}</Text>}
+                </View>
+              </Entering>
             </>
           );
         }}

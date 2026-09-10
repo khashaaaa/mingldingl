@@ -3,6 +3,7 @@ import { i18n, tKey } from '../../lib/i18n';
 import { Icon } from '../ui/Icon';
 import { formatDate } from '../../lib/formatDate';
 import { Skeleton } from '../ui/Skeleton';
+import { Entering } from '../ui/Entering';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 
 interface ScoreEventItem {
@@ -125,20 +126,22 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
       ListFooterComponent={isFetchingNextPage ? <Skeleton width="100%" height={56} style={styles.footer} /> : null}
-      renderItem={({ item }) => {
+      renderItem={({ item, index }) => {
         const icon: EventGlyph = EVENT_ICONS[item.eventType] ?? 'star-four-points';
         const sign = item.delta >= 0 ? '+' : '';
         const color = item.delta >= 0 ? COLORS.gold : COLORS.ember;
         const date = formatDate(item.createdAt);
         return (
-          <View style={styles.row}>
-            <Icon name={icon} size={ICON_SIZES.md} color={COLORS.textDim} style={styles.icon} />
-            <View style={styles.body}>
-              <Text style={styles.line}>{eventLine(item.eventType, item.delta)}</Text>
-              <Text style={styles.dateline}>{date}</Text>
+          <Entering index={index}>
+            <View style={styles.row}>
+              <Icon name={icon} size={ICON_SIZES.md} color={COLORS.textDim} style={styles.icon} />
+              <View style={styles.body}>
+                <Text style={styles.line}>{eventLine(item.eventType, item.delta)}</Text>
+                <Text style={styles.dateline}>{date}</Text>
+              </View>
+              <Text style={[styles.delta, { color }]}>{sign}{item.delta}</Text>
             </View>
-            <Text style={[styles.delta, { color }]}>{sign}{item.delta}</Text>
-          </View>
+          </Entering>
         );
       }}
     />

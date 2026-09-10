@@ -7,6 +7,7 @@ import { GameHeader } from '../../components/ui/GameHeader';
 import { NextGatheringPill } from '../../components/townsquare/NextGatheringPill';
 import { Icon } from '../../components/ui/Icon';
 import { GameButton } from '../../components/ui/GameButton';
+import { Entering } from '../../components/ui/Entering';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { FogDrift } from '../../components/vfx/FogDrift';
 import { i18n } from '../../lib/i18n';
@@ -70,21 +71,23 @@ export default function MatchesScreen() {
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.gold} colors={[COLORS.gold]} />
           }
-          renderItem={({ item }) => (
-            <QuestTile
-              match={item}
-              onPress={() => router.push({
-                pathname: `/chat/${item.matchId}` as any,
-                params: {
-                  name: item.otherUser.isDeleted
-                    ? i18n.t('deleted_user')
-                    : item.revealLevel >= 2
-                      ? (item.otherUser.displayName ?? '')
-                      : i18n.t('mystery_match_name'),
-                  wovenBy: item.weaverDisplayName ?? '',
-                },
-              })}
-            />
+          renderItem={({ item, index }) => (
+            <Entering index={index}>
+              <QuestTile
+                match={item}
+                onPress={() => router.push({
+                  pathname: `/chat/${item.matchId}` as any,
+                  params: {
+                    name: item.otherUser.isDeleted
+                      ? i18n.t('deleted_user')
+                      : item.revealLevel >= 2
+                        ? (item.otherUser.displayName ?? '')
+                        : i18n.t('mystery_match_name'),
+                    wovenBy: item.weaverDisplayName ?? '',
+                  },
+                })}
+              />
+            </Entering>
           )}
         />
       )}

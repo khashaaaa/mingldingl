@@ -15,6 +15,7 @@ import { GameHeader } from '../../components/ui/GameHeader';
 import { QuestBoard } from '../../components/quest/QuestBoard';
 import { FatedThreadsSection } from '../../components/quest/FatedThreadsSection';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
+import { Entering } from '../../components/ui/Entering';
 import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { Icon } from '../../components/ui/Icon';
@@ -94,41 +95,42 @@ export default function ActivityScreen() {
             <Text style={styles.emptyText}>{i18n.t('no_missions')}</Text>
           </View>
         ) : (
-          businesses.map((b) => (
-            <TouchableOpacity
-              key={b.id}
-              activeOpacity={0.8}
-              onPress={() => router.push({
-                pathname: `/business/${b.id}` as any,
-                params: {
-                  name: b.name,
-                  description: b.description,
-                  category: b.category,
-                  district: b.district,
-                  photo: b.photoUrls[0] ?? '',
-                  averageRating: String(b.averageRating),
-                  ratingCount: String(b.ratingCount),
-                  operatingHours: b.operatingHours,
-                },
-              })}
-            >
-              <AppCard style={styles.missionCard}>
-                <View style={styles.row}>
-                  <View style={styles.iconWrap}>
-                    <Icon name={missionIcon(b.category)} size={ICON_SIZES.xl} color={COLORS.gold} style={styles.missionIcon} />
+          businesses.map((b, index) => (
+            <Entering index={index} key={b.id}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => router.push({
+                  pathname: `/business/${b.id}` as any,
+                  params: {
+                    name: b.name,
+                    description: b.description,
+                    category: b.category,
+                    district: b.district,
+                    photo: b.photoUrls[0] ?? '',
+                    averageRating: String(b.averageRating),
+                    ratingCount: String(b.ratingCount),
+                    operatingHours: b.operatingHours,
+                  },
+                })}
+              >
+                <AppCard style={styles.missionCard}>
+                  <View style={styles.row}>
+                    <View style={styles.iconWrap}>
+                      <Icon name={missionIcon(b.category)} size={ICON_SIZES.xl} color={COLORS.gold} style={styles.missionIcon} />
+                    </View>
+                    <View style={styles.info}>
+                      <Text style={styles.missionTitle} numberOfLines={1}>{b.name}</Text>
+                      <Text style={styles.missionDesc} numberOfLines={2}>{b.description}</Text>
+                      <Text style={styles.meta}>{b.category} · {b.district}</Text>
+                    </View>
+                    <View style={styles.pointsBadge}>
+                      <Text style={styles.pointsValue}>+{missionPoints(b)}</Text>
+                      <Text style={styles.pointsLabel}>{i18n.t('pts')}</Text>
+                    </View>
                   </View>
-                  <View style={styles.info}>
-                    <Text style={styles.missionTitle} numberOfLines={1}>{b.name}</Text>
-                    <Text style={styles.missionDesc} numberOfLines={2}>{b.description}</Text>
-                    <Text style={styles.meta}>{b.category} · {b.district}</Text>
-                  </View>
-                  <View style={styles.pointsBadge}>
-                    <Text style={styles.pointsValue}>+{missionPoints(b)}</Text>
-                    <Text style={styles.pointsLabel}>{i18n.t('pts')}</Text>
-                  </View>
-                </View>
-              </AppCard>
-            </TouchableOpacity>
+                </AppCard>
+              </TouchableOpacity>
+            </Entering>
           ))
         )}
         {isFetchingNextPage && (
