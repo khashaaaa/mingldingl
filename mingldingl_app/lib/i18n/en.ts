@@ -325,6 +325,17 @@ export const en = {
   type_message: 'Type a message…',
   video_unavailable: "A face-to-flame call isn't possible for this bond.",
   waiting_join: 'Waiting for your match to join…',
+
+  // Stage two and three of the narrated long waits. Stage one always reuses the line that wait
+  // already showed (see lib/waiting.ts), so only these needed writing.
+  wait_verify_still: 'Still listening at the gate.',
+  wait_verify_long: 'This can take a minute. Your message is on its way.',
+  wait_quiz_still: 'They have not answered yet.',
+  wait_quiz_long: 'They may be away — your answers are saved either way.',
+  wait_video_still: 'Opening the way.',
+  wait_video_long: 'Still opening. Check your connection if this holds.',
+  wait_square_still: 'Finding your seat at the square.',
+  wait_square_long: 'The square is slow to answer. Hold a moment longer.',
   video_web_unsupported: "Video calls aren't supported on web. Open this on the mobile app to join channel %{channel}.",
   video_dev_build_required: 'Video calls require an EAS development build.',
   permission_denied: 'Grant camera and microphone access to light this flame call.',

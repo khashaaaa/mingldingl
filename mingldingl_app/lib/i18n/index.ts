@@ -28,6 +28,14 @@ export const AWAITING_MN_TRANSLATION = [
   'report_reason_other',
   'report_details_label', 'report_details_placeholder', 'report_submit',
   'report_sent_title', 'report_sent_body', 'report_failed_title', 'report_failed_body',
+  // The narrated long waits' second and third lines. Their FIRST lines are already translated
+  // (verify_sms_waiting, waiting_match, waiting_join, round_connecting), so a Mongolian speaker
+  // sees Mongolian at the moment a wait starts and English only if it runs long. Translate and
+  // delete these eight.
+  'wait_verify_still', 'wait_verify_long',
+  'wait_quiz_still', 'wait_quiz_long',
+  'wait_video_still', 'wait_video_long',
+  'wait_square_still', 'wait_square_long',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
