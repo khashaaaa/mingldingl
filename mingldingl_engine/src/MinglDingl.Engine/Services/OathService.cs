@@ -68,17 +68,21 @@ public class OathService
 
         if (user.OathProven) return false;
 
+        // Each payment gates itself, so any one of the three can fail without blocking or
+        // duplicating the others on a later retry: AchieveAsync and GrantAsync already no-op when
+        // their row exists; the score has no such row of its own to check on the milestone, so it's
+        // gated here on its own ScoreEvent instead — the flag is only set once every part has landed.
+        await _milestones.AchieveAsync(userId, "oath_proven");
+
+        bool scoreAlreadyPaid = await _db.ScoreEvents
+            .AnyAsync(e => e.UserId == userId && e.EventType == "OathProven");
+        if (!scoreAlreadyPaid)
+            await _score.AwardAsync(userId, "OathProven");
+
+        await _honours.GrantAsync(userId, "title_oathkeeper", "oath_proven");
+
         user.OathProven = true;
         await _db.SaveChangesAsync();
-
-        bool alreadyPaid = await _db.UserMilestones
-            .AnyAsync(m => m.UserId == userId && m.MilestoneId == "oath_proven");
-        if (!alreadyPaid)
-        {
-            await _milestones.AchieveAsync(userId, "oath_proven");
-            await _score.AwardAsync(userId, "OathProven");
-            await _honours.GrantAsync(userId, "title_oathkeeper", "oath_proven");
-        }
 
         return true;
     }

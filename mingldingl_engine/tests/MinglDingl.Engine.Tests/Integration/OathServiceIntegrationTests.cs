@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace MinglDingl.Engine.Tests.Integration;
 
@@ -138,6 +139,70 @@ public class OathServiceIntegrationTests : IntegrationTestBase
 
         int payouts = await Db.ScoreEvents.CountAsync(e => e.UserId == user.Id && e.EventType == "OathProven");
         Assert.Equal(1, payouts);
+    }
+
+    /// <summary>
+    /// The score award is the one of the three payments (milestone, score, honour) with no gate of
+    /// its own — <see cref="MilestoneService.AchieveAsync"/> and <see cref="HonourService.GrantAsync"/>
+    /// already no-op when their row exists, so a throw here used to be the only way the flag could
+    /// get set without the payment having landed. It's now gated on its own ScoreEvent, and the flag
+    /// is only saved after all three payments run, so a throw here must leave the flag unset and a
+    /// later run must pay the score exactly once.
+    /// </summary>
+    [Fact]
+    public async Task Refresh_ScoreAwardThrows_LeavesOathUnprovenAndALaterRunPaysItOnce()
+    {
+        var user = await SeedSwornUserAsync(DateTime.UtcNow.AddDays(-10));
+        await SeedCompletedEncountersAsync(user.Id, 2, DateTime.UtcNow.AddDays(-1));
+
+        var config = new ConfigService();
+        var failingScore = new Mock<ScoreService>(Db, config) { CallBase = true };
+        failingScore.Setup(s => s.AwardAsync(user.Id, "OathProven", It.IsAny<Guid?>()))
+            .ThrowsAsync(new InvalidOperationException("simulated failure"));
+        var failingOaths = new OathService(Db, config, failingScore.Object,
+            new MilestoneService(Db, NullLogger<MilestoneService>.Instance),
+            new HonourService(Db, NullLogger<HonourService>.Instance));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => failingOaths.RefreshAsync(user.Id));
+
+        Db.ChangeTracker.Clear();
+        Assert.False((await Db.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id)).OathProven);
+        Assert.Equal(0, await Db.ScoreEvents.CountAsync(e => e.UserId == user.Id && e.EventType == "OathProven"));
+
+        var workingOaths = new OathService(Db, config, new ScoreService(Db, config),
+            new MilestoneService(Db, NullLogger<MilestoneService>.Instance),
+            new HonourService(Db, NullLogger<HonourService>.Instance));
+
+        Assert.True(await workingOaths.RefreshAsync(user.Id));
+
+        Db.ChangeTracker.Clear();
+        Assert.True((await Db.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id)).OathProven);
+        Assert.Equal(1, await Db.ScoreEvents.CountAsync(e => e.UserId == user.Id && e.EventType == "OathProven"));
+        Assert.True(await Db.UserMilestones.AnyAsync(m => m.UserId == user.Id && m.MilestoneId == "oath_proven"));
+        Assert.True(await Db.UserItems.AnyAsync(i => i.UserId == user.Id && i.ItemId == "title_oathkeeper"));
+    }
+
+    /// <summary>
+    /// Simulates a prior partial run that paid the score but never reached the final flag save (the
+    /// scenario the naive reorder got wrong: the score event exists, but <c>OathProven</c> is still
+    /// false). A fresh run must not pay the score a second time, and must still finish by setting the
+    /// flag — the parts that already landed are skipped, not repeated.
+    /// </summary>
+    [Fact]
+    public async Task Refresh_ScoreAlreadyPaidButFlagUnset_DoesNotPayTwiceAndStillSetsFlag()
+    {
+        var user = await SeedSwornUserAsync(DateTime.UtcNow.AddDays(-10));
+        await SeedCompletedEncountersAsync(user.Id, 2, DateTime.UtcNow.AddDays(-1));
+
+        // Simulate the score half of a prior run having already landed, without the flag being set.
+        Db.ScoreEvents.Add(new ScoreEvent { UserId = user.Id, EventType = "OathProven", Delta = 40 });
+        await Db.SaveChangesAsync();
+
+        Assert.True(await BuildService().RefreshAsync(user.Id));
+
+        Db.ChangeTracker.Clear();
+        Assert.True((await Db.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id)).OathProven);
+        Assert.Equal(1, await Db.ScoreEvents.CountAsync(e => e.UserId == user.Id && e.EventType == "OathProven"));
     }
 
     [Fact]

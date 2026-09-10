@@ -195,7 +195,7 @@ public class ScoreService
     /// </summary>
     private static bool ProceedsWithZeroDelta(string eventType) => eventType == "GhostPenalty";
 
-    public async Task AwardAsync(Guid userId, string eventType, Guid? matchId = null)
+    public virtual async Task AwardAsync(Guid userId, string eventType, Guid? matchId = null)
     {
         int delta = Delta(eventType);
         if (delta == 0 && !ProceedsWithZeroDelta(eventType)) return;
