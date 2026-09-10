@@ -61,7 +61,9 @@ export function GettingStartedCard({ isProfileComplete, achievedMilestoneIds, on
         <Icon name="check-circle" size={ICON_SIZES.sm} color={COLORS.gold} />
         <CardEyebrow style={styles.compactLabel}>{i18n.t('getting_started_title')}</CardEyebrow>
         {/* Reuses the existing "%{held} of %{needed}" key rather than adding a new one — it
-            already carries a Mongolian translation with the word order that language needs. */}
+            already carries a Mongolian translation with the word order that language needs.
+            Its other call site is HonourCase.tsx's trophy progress — the key is named for
+            honours, so a honours-specific copy edit there would silently retext this board too. */}
         <Text style={styles.compactProgress}>
           {i18n.t('honour_progress', { held: doneCount, needed: steps.length })}
         </Text>

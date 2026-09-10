@@ -335,6 +335,9 @@ function HonourSlot({ id, held, ignited, progress, animate, onPress, onLongPress
                 <View style={styles.progressTrack}>
                   <View style={[styles.progressFill, { width: `${Math.round(pct * 100)}%` }]} />
                 </View>
+                {/* Also used by GettingStartedCard's compact progress line (a deliberate reuse of
+                    this already-translated key) — a honours-specific rewording here would silently
+                    retext that unrelated onboarding board too. */}
                 <Text style={styles.progressText}>{i18n.t('honour_progress', { held: progress.held, needed: progress.needed })}</Text>
               </View>
             )}
