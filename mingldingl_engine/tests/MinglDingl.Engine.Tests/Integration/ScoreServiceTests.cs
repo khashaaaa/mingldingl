@@ -44,9 +44,12 @@ public class ScoreServiceIntegrationTests : IntegrationTestBase
     {
         var user = NewCompleteUser();
         var other = NewCompleteUser();
-        Db.Users.AddRange(user, other);
+        // A different partner for the second conversation: the point is that the cap is per match,
+        // and a pair may hold at most one Match, so two with the same person is not a real shape.
+        var another = NewCompleteUser();
+        Db.Users.AddRange(user, other, another);
         var mine = new Match { Id = Guid.NewGuid(), InitiatorId = user.Id, ReceiverId = other.Id };
-        var elsewhere = new Match { Id = Guid.NewGuid(), InitiatorId = user.Id, ReceiverId = other.Id };
+        var elsewhere = new Match { Id = Guid.NewGuid(), InitiatorId = user.Id, ReceiverId = another.Id };
         Db.Matches.AddRange(mine, elsewhere);
         Db.ScoreEvents.AddRange(
             new ScoreEvent { Id = Guid.NewGuid(), UserId = user.Id, EventType = "MatchReply", Delta = 10, MatchId = mine.Id, CreatedAt = DateTime.UtcNow },

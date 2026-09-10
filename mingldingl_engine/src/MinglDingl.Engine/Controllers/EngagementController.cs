@@ -28,7 +28,7 @@ public class EngagementController : ControllerBase
         var levels = RevealService.EffectiveThresholds(_config)
             .Select(t => new RevealThresholdDto(t.Level, t.Messages))
             .ToList();
-        return Ok(new RevealThresholdsResponse(levels));
+        return Ok(new RevealThresholdsResponse(levels, ActivitiesController.SuggestionThreshold(_config)));
     }
 
     /// <summary>
@@ -218,7 +218,12 @@ public class EngagementController : ControllerBase
         {
             await _db.SaveChangesAsync();
         }
-        catch (DbUpdateException ex) when (UniqueViolationGuard.IsViolation(ex, "IX_QuizResponses_QuizId_UserId_MatchId"))
+        // The second name is the partial index covering the standalone quiz (MatchId IS NULL),
+        // which the composite one cannot constrain because Postgres treats NULLs as distinct — so
+        // concurrent answers there each passed the check above and each collected a QuizDone award.
+        catch (DbUpdateException ex) when (
+            UniqueViolationGuard.IsViolation(ex, "IX_QuizResponses_QuizId_UserId_MatchId") ||
+            UniqueViolationGuard.IsViolation(ex, "ix_quiz_responses_standalone"))
         {
             _db.ChangeTracker.Clear();
             isFirstResponse = false;

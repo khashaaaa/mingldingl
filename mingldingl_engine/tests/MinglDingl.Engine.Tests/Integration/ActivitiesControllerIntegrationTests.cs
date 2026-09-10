@@ -79,7 +79,13 @@ public class ActivitiesControllerIntegrationTests : IntegrationTestBase
         var initiator = NewCompleteUser();
         var receiver = NewCompleteUser();
         Db.Users.AddRange(initiator, receiver);
-        var match = new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active", MessageCount = 3 };
+        // Per-side counts, because the gate reads the mutual count: three messages one person sent
+        // into silence must not carry them to the pledge flow alone.
+        var match = new Match
+        {
+            InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active",
+            MessageCount = 3, InitiatorMessageCount = 2, ReceiverMessageCount = 1,
+        };
         Db.Matches.Add(match);
         await Db.SaveChangesAsync();
 

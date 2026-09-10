@@ -13,7 +13,9 @@ describe('AttendanceCheckModal', () => {
         onDismiss={() => {}}
       />,
     );
-    expect(getByText('Did you meet up for Coffee Date?')).toBeTruthy();
+    // About the other person, not about the pair: the engine reads a "no" here as an
+    // accusation, so a symmetric question put the no-show flag on whoever reported it.
+    expect(getByText('Did they turn up for Coffee Date?')).toBeTruthy();
   });
 
   it('calls onYes when the yes button is pressed', () => {
@@ -28,7 +30,7 @@ describe('AttendanceCheckModal', () => {
         onDismiss={() => {}}
       />,
     );
-    fireEvent.press(getByText('YES, WE MET'));
+    fireEvent.press(getByText('YES, THEY CAME'));
     expect(onYes).toHaveBeenCalledTimes(1);
   });
 
@@ -44,7 +46,7 @@ describe('AttendanceCheckModal', () => {
         onDismiss={() => {}}
       />,
     );
-    fireEvent.press(getByText("NO, WE DIDN'T"));
+    fireEvent.press(getByText("NO, THEY DIDN'T"));
     expect(onNo).toHaveBeenCalledTimes(1);
   });
 

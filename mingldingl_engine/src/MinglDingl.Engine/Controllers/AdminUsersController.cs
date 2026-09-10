@@ -12,13 +12,23 @@ public class AdminUsersController : ControllerBase
     private readonly AdminAuditService _audit;
     private readonly ScoreService _score;
     private readonly ConfigService _config;
+    private readonly LocalFileStorageService _storage;
+    private readonly SupabaseBroadcastService _broadcast;
 
-    public AdminUsersController(AppDbContext db, AdminAuditService audit, ScoreService score, ConfigService config)
+    public AdminUsersController(
+        AppDbContext db,
+        AdminAuditService audit,
+        ScoreService score,
+        ConfigService config,
+        LocalFileStorageService storage,
+        SupabaseBroadcastService broadcast)
     {
         _db = db;
         _audit = audit;
         _score = score;
         _config = config;
+        _storage = storage;
+        _broadcast = broadcast;
     }
 
     [HttpGet]
@@ -151,8 +161,24 @@ public class AdminUsersController : ControllerBase
         user.IsBanned = true;
         user.BannedAt = DateTime.UtcNow;
         user.BanReason = req.Reason;
+
+        // A ban stops the banned account's own requests, but their live conversations were left
+        // Active on the other side: their partners sat in threads that could never be answered,
+        // accruing ghosting state against a person who had been thrown out. Ending them is part of
+        // the ban, not a follow-up an admin has to remember.
+        var liveMatches = await _db.Matches
+            .Where(m => m.Status == "Active" && (m.InitiatorId == id || m.ReceiverId == id))
+            .ToListAsync();
+        foreach (var match in liveMatches) match.Status = "Unmatched";
+
         await _db.SaveChangesAsync();
         await _audit.LogAsync(User, "BanUser", "User", id.ToString(), req.Reason);
+
+        foreach (var match in liveMatches)
+        {
+            await _broadcast.BroadcastAsync("app-nudges", "match_status_changed",
+                new { matchId = match.Id, status = match.Status, userId = id });
+        }
 
         return await GetUser(id);
     }
@@ -170,6 +196,34 @@ public class AdminUsersController : ControllerBase
         user.BanReason = null;
         await _db.SaveChangesAsync();
         await _audit.LogAsync(User, "UnbanUser", "User", id.ToString());
+
+        return await GetUser(id);
+    }
+
+    /// <summary>
+    /// Removes one photo from a user's profile and deletes the file. Until this existed the only
+    /// answer to a single objectionable photo was banning the whole account, because /uploads is
+    /// public: leaving the file in place keeps it fetchable by anyone holding the URL.
+    /// </summary>
+    [HttpPost("{id}/photos/remove")]
+    [ProducesResponseType(typeof(AdminUserDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemovePhoto(Guid id, [FromBody] AdminRemovePhotoRequest req)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
+        if (!user.PhotoUrls.Contains(req.PhotoUrl))
+            return this.NotFoundError("Photo not found on this user", "photo.not_found");
+
+        user.PhotoUrls = user.PhotoUrls.Where(u => u != req.PhotoUrl).ToList();
+        // Emptying the gallery can uncomplete a profile, and the derived flag gates scoring.
+        user.IsProfileComplete = ScoreService.IsProfileComplete(user);
+        await _db.SaveChangesAsync();
+
+        // Only after the row no longer points at it, and only when it is this user's own file —
+        // the same rule PUT /users/me unlinks under.
+        if (_storage.IsOwnedPublicUrl(req.PhotoUrl, id)) _storage.DeleteByPublicUrl(req.PhotoUrl);
+        await _audit.LogAsync(User, "RemoveUserPhoto", "User", id.ToString(), req.PhotoUrl);
 
         return await GetUser(id);
     }

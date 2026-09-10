@@ -15,7 +15,7 @@ describe('api 401 response interceptor', () => {
   });
 
   afterEach(() => {
-    useAuthStore.setState({ session: null });
+    useAuthStore.setState({ session: null, suspended: false });
     queryClient.clear();
   });
 
@@ -49,5 +49,39 @@ describe('api 401 response interceptor', () => {
 
     expect(useAuthStore.getState().session).toBe(fakeSession);
     expect(queryClient.getQueryData(['userProfile'])).toEqual({ displayName: 'Old Account' });
+  });
+});
+
+/**
+ * A ban answers *every* request with 403 `account.suspended`. Signing the person out here would
+ * drop them at the phone screen with no explanation and let them straight back in, so the session
+ * is kept and the root layout says what happened instead.
+ */
+describe('api 403 account.suspended interceptor', () => {
+  const rejected = (api.interceptors.response as any).handlers
+    .map((h: any) => h?.rejected)
+    .find(Boolean);
+
+  const fakeSession = { access_token: 'tok', user: { id: 'u1' } } as any;
+  const authed = { headers: { Authorization: 'Bearer tok' } };
+
+  beforeEach(() => useAuthStore.setState({ session: fakeSession, suspended: false }));
+  afterEach(() => useAuthStore.setState({ session: null, suspended: false }));
+
+  it('flags the account as suspended without clearing the session', async () => {
+    const err = { response: { status: 403, data: { code: 'account.suspended' } }, config: authed };
+
+    await expect(rejected(err)).rejects.toBe(err);
+
+    expect(useAuthStore.getState().suspended).toBe(true);
+    expect(useAuthStore.getState().session).toBe(fakeSession);
+  });
+
+  it('leaves an ordinary 403 alone — most of them are one refused action, not a ban', async () => {
+    const err = { response: { status: 403, data: { code: 'match.not_allowed' } }, config: authed };
+
+    await expect(rejected(err)).rejects.toBe(err);
+
+    expect(useAuthStore.getState().suspended).toBe(false);
   });
 });

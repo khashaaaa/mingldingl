@@ -40,10 +40,42 @@ public static class PushCopy
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
+    /// <summary>
+    /// Byte budgets for the two visible strings. Expo rejects any single message over 4KiB in
+    /// total, and a chat push carries the message verbatim — 2000 characters of Cyrillic is ~4000
+    /// bytes on its own, so a long Mongolian message produced a `MessageTooBig` ticket and no
+    /// notification at all. These are measured in UTF-8 bytes, not characters, because that is what
+    /// the limit counts and Mongolian spends two bytes a letter.
+    /// </summary>
+    private const int MaxTitleBytes = 100;
+    private const int MaxBodyBytes = 500;
+
     public static (string Title, string Body) For(PushKind kind, string? locale, params string[] args)
     {
         var (title, body) = locale == "mn" ? Mongolian(kind) : English(kind);
-        return (Fill(title, args), Fill(body, args));
+        return (Truncate(Fill(title, args), MaxTitleBytes), Truncate(Fill(body, args), MaxBodyBytes));
+    }
+
+    /// <summary>
+    /// Cuts to at most <paramref name="maxBytes"/> UTF-8 bytes on a rune boundary, so a multi-byte
+    /// letter is never split into replacement characters. An ellipsis marks what was cut.
+    /// </summary>
+    internal static string Truncate(string value, int maxBytes)
+    {
+        if (System.Text.Encoding.UTF8.GetByteCount(value) <= maxBytes) return value;
+
+        const string Ellipsis = "…";
+        int budget = maxBytes - System.Text.Encoding.UTF8.GetByteCount(Ellipsis);
+        int used = 0, cut = 0;
+        var runes = value.EnumerateRunes();
+        while (runes.MoveNext())
+        {
+            int size = runes.Current.Utf8SequenceLength;
+            if (used + size > budget) break;
+            used += size;
+            cut += runes.Current.Utf16SequenceLength;
+        }
+        return value[..cut].TrimEnd() + Ellipsis;
     }
 
     /// <summary>
@@ -91,13 +123,13 @@ public static class PushCopy
     {
         PushKind.NewMatch => ("Шинэ таарал!", "{0} танд урилга илгээлээ."),
         PushKind.NewMessage => ("{0}", "{1}"),
-        PushKind.ThreadSparked => ("Утас гялсхийлээ!", "Таны зөвшөөрсөн утас таарал боллоо."),
+        PushKind.ThreadSparked => ("Заяаны утас гялсхийлээ!", "Таны зөвшөөрсөн заяаны утас таарал боллоо."),
         PushKind.TownSquareMatch => ("Шинэ таарал!", "Та хоёр Хотын талбайд бие биедээ тийм гэлээ."),
         PushKind.FlameRiteProposed => ("Галын ёслол санал болголоо", "Таны таарал уулзахаасаа өмнө видеогоор ярилцахыг хүсэж байна."),
         PushKind.FlameRiteAccepted => ("Галын ёслолыг хүлээн авлаа", "Таны таарал Галын ёслолыг зөвшөөрлөө. Бэлэн болмогцоо дуудлагаа эхлүүлээрэй."),
         PushKind.DateConfirmed => ("Уулзалт батлагдлаа", "Та хоёр уулзахаа амлалаа. Дэлгэрэнгүйг үйл ажиллагаанаас хараарай."),
-        PushKind.MatchGhosted => ("Утас хүйтэрлээ", "Нэг таарал хэт удаан чимээгүй байсан тул хаагдлаа."),
-        PushKind.MatchGhostedByYou => ("Утас хүйтэрлээ", "Та нэг яриаг хариугүй орхилоо. Тэр хаагдаж, оноо болон нэр хүнд чинь буурлаа."),
+        PushKind.MatchGhosted => ("Холбоо хүйтэрлээ", "Нэг таарал хэт удаан чимээгүй байсан тул хаагдлаа."),
+        PushKind.MatchGhostedByYou => ("Холбоо хүйтэрлээ", "Та нэг яриаг хариугүй орхилоо. Тэр хаагдаж, оноо болон нэр хүнд чинь буурлаа."),
         PushKind.TownSquareStarting => ("Хотын талбай нээгдлээ", "Таны үе эхэллээ. Одоо ороорой."),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };

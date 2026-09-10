@@ -13,6 +13,11 @@ public record DailyLoginResponse(
     int LongestStreak = 0,
     bool StreakBonusAwarded = false);
 
+/// <param name="ThreadsSparked">
+/// Fated threads this user wove that reached <c>Sparked</c> — the count the thread honours
+/// (Thread-Weaver / Fate-Seer / Bond-Keeper at 1 / 5 / 10) are granted on, so the honours hall
+/// can show how close a dark slot is instead of only what it asks for.
+/// </param>
 public record ScoreDetailResponse(
     int TotalScore,
     string GemTier,
@@ -26,7 +31,8 @@ public record ScoreDetailResponse(
     double ProgressPct,
     int DailyMatchBudget,
     DroppedItem? PendingReferralReward = null,
-    DroppedItem? PendingShipReward = null);
+    DroppedItem? PendingShipReward = null,
+    int ThreadsSparked = 0);
 
 public record AckNotificationDto(string Kind);
 
@@ -50,4 +56,12 @@ public record TierThresholdsResponse(IReadOnlyList<TierThresholdDto> Tiers);
 public record RevealThresholdDto(int Level, int Messages);
 
 /// <summary>The admin-tunable reveal ladder, so the app never pins its own copy of the message counts.</summary>
-public record RevealThresholdsResponse(IReadOnlyList<RevealThresholdDto> Levels);
+/// <param name="ActivitySuggestionMessages">
+/// Mutual messages needed before <c>GET /activities/{matchId}</c> will hand back suggestions
+/// (<c>activity.suggestions.messages</c>). Served alongside the reveal ladder because it is the
+/// same kind of admin-tunable gate: without it the app could only discover the threshold by being
+/// refused, so it offered the door unconditionally and had no countdown to show.
+/// </param>
+public record RevealThresholdsResponse(
+    IReadOnlyList<RevealThresholdDto> Levels,
+    int ActivitySuggestionMessages = 15);

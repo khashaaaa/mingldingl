@@ -72,6 +72,9 @@ public record AdminDeletionRequestDto(
 public record AdminBanUserRequest(
     [MaxLength(FieldLimits.Reason)] string? Reason);
 
+public record AdminRemovePhotoRequest(
+    [Required, MaxLength(FieldLimits.Url)] string PhotoUrl);
+
 public record AdminAdjustScoreRequest(
     int Delta,
     [Required, MaxLength(FieldLimits.Reason)] string Reason);

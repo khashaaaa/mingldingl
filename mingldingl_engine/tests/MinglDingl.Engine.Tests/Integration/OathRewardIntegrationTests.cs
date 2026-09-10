@@ -8,7 +8,7 @@ public class OathRewardIntegrationTests : IntegrationTestBase
     [Fact]
     public void Catalog_ContainsTheOathkeeperTitle()
     {
-        var item = HonourService.Catalog.SingleOrDefault(c => c.Id == "title_oathkeeper");
+        var item = HonourService.Honours.SingleOrDefault(c => c.Id == "title_oathkeeper");
         Assert.NotNull(item);
         Assert.Equal("Title", item!.ItemType);
         Assert.Equal(HonourService.MetalEmber, item.Rarity);

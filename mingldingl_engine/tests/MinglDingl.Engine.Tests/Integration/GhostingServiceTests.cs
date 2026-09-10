@@ -252,6 +252,50 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
             .CountAsync(e => e.UserId == silent.Id && e.EventType == "GhostPenalty"));
     }
 
+    /// <summary>
+    /// The monologue attack, closed at the other end. RevealService.MutualMessageCount stops one
+    /// person talking their way into a stranger's profile while the match is Active — but the freeze
+    /// read the raw total, so waiting out the ghosting window handed over exactly what the live gate
+    /// refused: 30 messages into silence and the frozen level was the full reveal, at no cost, since
+    /// someone who never spoke owes no ghost penalty either.
+    /// </summary>
+    [Fact]
+    public async Task CheckAsync_GhostingAMonologue_FreezesAtTheFloorNotTheRawCount()
+    {
+        var talker = NewCompleteUser();
+        var silent = NewCompleteUser();
+        Db.Users.AddRange(talker, silent);
+
+        var match = new Match
+        {
+            Id = Guid.NewGuid(),
+            InitiatorId = talker.Id,
+            ReceiverId = silent.Id,
+            Status = "Active",
+            RevealLevel = 1,
+            MessageCount = 30,
+            InitiatorMessageCount = 30,
+            ReceiverMessageCount = 0,
+            LastMessageAt = DateTime.UtcNow.AddHours(-49),
+            LastMessageSenderId = talker.Id,
+        };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new HonourService(Db, NullLogger<HonourService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
+
+        Assert.True(await ghosting.CheckAsync(match));
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Matches.AsNoTracking().SingleAsync(m => m.Id == match.Id);
+        Assert.Equal("Ghosted", reloaded.Status);
+        Assert.Equal(1, reloaded.RevealLevel);
+        Assert.Equal(1, RevealService.GetRevealLevel(new ConfigService(), reloaded));
+    }
+
     [Fact]
     public async Task CheckAsync_GhostingMatch_FreezesEarnedRevealLevel()
     {
@@ -267,6 +311,9 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
             Status = "Active",
             RevealLevel = 1,
             MessageCount = 20,
+            // Both sides really spoke, so all 20 count toward the ladder.
+            InitiatorMessageCount = 10,
+            ReceiverMessageCount = 10,
             LastMessageAt = DateTime.UtcNow.AddHours(-49),
             LastMessageSenderId = replier.Id,
         };
@@ -403,6 +450,38 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
 
         Assert.True(await Db.ScoreEvents.AnyAsync(e => e.UserId == abandoner.Id && e.EventType == "GhostPenalty"));
     }
+
+    [Fact]
+    public async Task CheckAsync_UnansweredMatch_GhostsWithoutPenalisingAnyone()
+    {
+        var initiator = NewCompleteUser();
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        var match = new Match
+        {
+            InitiatorId = initiator.Id,
+            ReceiverId = receiver.Id,
+            Status = "Active",
+            CreatedAt = DateTime.UtcNow.AddHours(-200),
+        };
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new HonourService(Db, NullLogger<HonourService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
+        Assert.True(await ghosting.CheckAsync(match));
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal("Ghosted", (await Db.Matches.FindAsync(match.Id))!.Status);
+        // Nobody said anything, so nobody abandoned anything. Scoped to this match's two people:
+        // the database is shared across the suite and other tests leave penalties of their own.
+        Assert.Empty(Db.ScoreEvents
+            .Where(e => e.EventType == "GhostPenalty"
+                && (e.UserId == initiator.Id || e.UserId == receiver.Id))
+            .ToList());
+    }
 }
 
 public class GhostingServiceTests
@@ -466,5 +545,21 @@ public class GhostingServiceTests
         var config = new ConfigService();
         config.Set("ghosting.stale_hours", "0");
         Assert.Equal(TimeSpan.FromHours(1), CreateService(config).StaleAfter);
+    }
+
+    [Fact]
+    public void IsStale_MatchNobodyEverSpokeIn_ClosesOnItsOwnLongerClock()
+    {
+        var config = new ConfigService();
+        config.Set("ghosting.unanswered_hours", "168");
+        var service = CreateService(config);
+
+        var fresh = new Match { Status = "Active", CreatedAt = DateTime.UtcNow.AddHours(-1) };
+        var abandoned = new Match { Status = "Active", CreatedAt = DateTime.UtcNow.AddHours(-200) };
+
+        // Reading LastMessageAt alone left a summons nobody answered Active forever: the pair could
+        // then never match again, since PairAlreadyMatchedAsync counts a row of any status.
+        Assert.False(service.IsStale(fresh));
+        Assert.True(service.IsStale(abandoned));
     }
 }

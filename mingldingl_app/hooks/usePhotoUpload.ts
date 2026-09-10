@@ -2,11 +2,17 @@ import { useState } from 'react';
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { apiClient } from '../lib/api/apiClient';
+import { getApiErrorMessage } from '../lib/api/errors';
+import { i18n } from '../lib/i18n';
 
 export function usePhotoUpload(userId: string | undefined) {
   const [uploadCount, setUploadCount] = useState(0);
 
   const [permissionDenied, setPermissionDenied] = useState(false);
+  // Why the last upload failed, in the caller's language. The engine distinguishes a photo that is
+  // too large, one whose *dimensions* are (a decompression bomb, refused before decoding) and one
+  // rejected by the per-user rate limit — all of which used to collapse into "upload failed".
+  const [lastError, setLastError] = useState<string | null>(null);
 
   async function pickPhoto(selectionLimit: number): Promise<string[]> {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -37,6 +43,7 @@ export function usePhotoUpload(userId: string | undefined) {
 
   async function uploadPhoto(localUri: string): Promise<string | null> {
     setUploadCount((c) => c + 1);
+    setLastError(null);
     try {
       const { url } = Platform.OS === 'web'
         ? await (async () => {
@@ -48,6 +55,7 @@ export function usePhotoUpload(userId: string | undefined) {
       return url ?? null;
     } catch (err) {
       console.error('Photo upload failed:', err, (err as { response?: { data?: unknown } })?.response?.data);
+      setLastError(getApiErrorMessage(err, i18n.t('photo_upload_failed_body')));
       return null;
     } finally {
       setUploadCount((c) => c - 1);
@@ -59,6 +67,8 @@ export function usePhotoUpload(userId: string | undefined) {
     takePhoto,
     uploadPhoto,
     uploading: uploadCount > 0,
+    lastError,
+    clearLastError: () => setLastError(null),
     permissionDenied,
     clearPermissionDenied: () => setPermissionDenied(false),
   };

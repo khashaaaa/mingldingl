@@ -12,9 +12,10 @@ import { useLocaleStore } from '../../store/localeStore';
 import { useProfile } from '../../hooks/useProfile';
 import { useScoreDetail } from '../../hooks/useScoreDetail';
 import { useInventory } from '../../hooks/useInventory';
-import { colorForTier, frameColorFor, itemLabel, membershipLabel } from '../../lib/tiers';
+import { colorForTier, itemLabel, membershipLabel } from '../../lib/tiers';
 import { AppCard } from '../../components/ui/AppCard';
 import { CardEyebrow } from '../../components/ui/CardEyebrow';
+import { CountText } from '../../components/ui/CountText';
 import { GameButton } from '../../components/ui/GameButton';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { SectionDivider } from '../../components/ui/SectionDivider';
@@ -27,6 +28,8 @@ import { NextActionCard } from '../../components/NextActionCard';
 import { ShareCharacterButton } from '../../components/cards/ShareCharacterButton';
 import { ProfileAvatar } from '../../components/profile/ProfileAvatar';
 import { OathCard } from '../../components/profile/OathCard';
+import { DeletionPendingBanner } from '../../components/profile/DeletionPendingBanner';
+import { useCancelDeletion } from '../../hooks/useCancelDeletion';
 import { COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, SPACE } from '../../lib/theme';
 import type { GemTier } from '../../models/user';
 
@@ -34,6 +37,7 @@ import type { GemTier } from '../../models/user';
 export default function ProfileScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
+  const cancelDeletion = useCancelDeletion();
   const { data: profile } = useProfile();
   const { data: scoreDetail } = useScoreDetail();
   const { items } = useInventory();
@@ -50,15 +54,21 @@ export default function ProfileScreen() {
   const nextTier = scoreDetail.nextTier as GemTier | null;
   const firstPhoto = profile.photoUrls?.[0];
   const tierColor = colorForTier(gemTier);
-  // A bare ring is bronze; wearing a tier's colour is a choice made in the Honours card below.
-  const frameColor = frameColorFor(profile.equippedFrameId) ?? INK.muted;
 
   return (
     <View style={styles.screen}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <GameHeader title={i18n.t('character_sheet')} icon="shield-sword" />
 
-        <ProfileAvatar photoUrls={profile.photoUrls ?? []} tierColor={tierColor} frameColor={frameColor} />
+        {profile.deletionRequestedAt && (
+          <DeletionPendingBanner
+            graceDays={profile.deletionGraceDays}
+            onCancel={() => cancelDeletion.mutate()}
+            isCancelling={cancelDeletion.isPending}
+          />
+        )}
+
+        <ProfileAvatar photoUrls={profile.photoUrls ?? []} tierColor={tierColor} />
 
         <View style={styles.nameRow}>
           <View style={styles.nameBlock}>
@@ -86,7 +96,7 @@ export default function ProfileScreen() {
 
         <AppCard tier={gemTier} textured style={[styles.card, styles.cardPadding]}>
           <CardEyebrow>{i18n.t('total_score')}</CardEyebrow>
-          <Text style={styles.scoreValue}>{(scoreDetail.totalScore ?? 0).toLocaleString()} {i18n.t('pts')}</Text>
+          <Text style={styles.scoreValue}><CountText value={scoreDetail.totalScore ?? 0} /> {i18n.t('pts')}</Text>
           <SectionDivider />
           <TouchableOpacity onPress={() => router.push('/membership')}>
             <CardEyebrow>{i18n.t('guild_rank')}</CardEyebrow>
@@ -115,7 +125,7 @@ export default function ProfileScreen() {
 
         <ThreadLog ownedItemIds={items.map((i) => i.itemId ?? '')} />
 
-        <HonourCase gemTier={gemTier} />
+        <HonourCase />
 
         <View style={styles.editButtonWrapper}>
           <GameButton variant="brass" size="compact" icon="book-heart" onPress={() => router.push('/date-log')}>

@@ -4,6 +4,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import { colorForTier } from '../../lib/tiers';
 import { COLORS, FILL, LINE, RADIUS, glow, overlay } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
+import { useActiveFestival } from '../../lib/festivals';
 
 interface Props {
   children: React.ReactNode;
@@ -16,6 +17,10 @@ interface Props {
 
 export function AppCard({ children, tier, tint: tintOverride, textured, style }: Props) {
   const tint = tintOverride ?? (tier ? colorForTier(tier) : COLORS.gold);
+  // On a festival day the gold knots take the festival's colour. The PNGs are metal-shaded over
+  // alpha, so tintColor flattens them to one colour while keeping their shape.
+  const festival = useActiveFestival();
+  const knotTint = festival ? { tintColor: festival.color } : undefined;
   return (
     <View style={[styles.card, glow(tint, 0.35, 12, 6), style]}>
       <LinearGradient
@@ -35,10 +40,10 @@ export function AppCard({ children, tier, tint: tintOverride, textured, style }:
       <View style={styles.hairline} pointerEvents="none" />
       <View style={[styles.topHighlight, { backgroundColor: tint + '66' }]} pointerEvents="none" />
       <View style={styles.bottomShadow} pointerEvents="none" />
-      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTl]} />
-      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTr]} />
-      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotBl]} />
-      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotBr]} />
+      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTl, knotTint]} />
+      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTr, knotTint]} />
+      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotBl, knotTint]} />
+      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotBr, knotTint]} />
       {children}
     </View>
   );

@@ -4,13 +4,24 @@ import {
   DEFAULT_ROOM, PASSAGES, ROOMS, isUnlit, matchRoom, pathOf, roomFor,
 } from '../rooms';
 import {
-  HEARTH_FULL, HONOUR_TOTAL, LIGHT, clamp01, delveLight, forgeLight, hallLight, hearthLight,
-  lerp, profileCompleteness, roadLight, tavernLight, type WorldState,
+  HEARTH_FULL, HONOUR_TOTAL, LIGHT, PHASE_EDGE, PHASE_OFFSET, WARMTH_FLOOR, applyPhase, clamp01,
+  conversationWarmth, dayPhase, delveLight, forgeLight, hallLight, hearthLight, lerp,
+  profileCompleteness, roadLight, tavernLight, type WorldState,
 } from '../light';
+
+const NOW = Date.parse('2026-09-10T12:00:00Z');
 
 const EMPTY: WorldState = {
   budget: null, activeMatches: null, tavern: null, delve: null, profile: null, honours: null,
+  conversation: null, now: NOW,
 };
+
+const HOUR = 60 * 60 * 1000;
+
+/** An ISO timestamp this many hours before `NOW`. */
+function ago(hours: number): string {
+  return new Date(NOW - hours * HOUR).toISOString();
+}
 
 describe('room resolution', () => {
   it.each([
@@ -121,7 +132,7 @@ describe('light ramps', () => {
     for (const recipe of Object.values(LIGHT)) {
       expect(recipe.vignette[1]).toBeLessThan(recipe.vignette[0]);
       expect(recipe.floor[1]).toBeGreaterThan(recipe.floor[0]);
-      expect(recipe.washAlpha[1]).toBeGreaterThanOrEqual(recipe.washAlpha[0]);
+      expect(recipe.toneAlpha[1]).toBeGreaterThan(recipe.toneAlpha[0]);
     }
   });
 
@@ -131,14 +142,30 @@ describe('light ramps', () => {
     expect(LIGHT.dark.floor[0]).toBeGreaterThan(LIGHT.cold.floor[0]);
   });
 
-  it('tells rooms apart without tinting them: every wash is the same colour', () => {
-    const washes = new Set(Object.values(LIGHT).map((r) => r.wash));
-    expect(washes.size).toBe(1);
+  /**
+   * This replaces an assertion that every signature washed the *same* colour. That rule was
+   * written to stop a full-screen coloured wash from filming over the UI, and it worked — by
+   * collapsing all six signatures into one, so the Gate and the Tavern rendered identically and
+   * nothing caught it. Colour is safe again because it moved behind the navigator; what needs
+   * guarding now is the collapse, not the colour.
+   */
+  it('renders no two signatures the same way', () => {
+    const fingerprints = Object.values(LIGHT).map((r) => JSON.stringify([
+      r.floor, r.vignette, r.edge, r.tone, r.toneAlpha,
+    ]));
+    expect(new Set(fingerprints).size).toBe(Object.keys(LIGHT).length);
   });
 
-  it('leaves an unlit room with no film over it', () => {
+  it('gives the rooms with fire in them a different light from the rooms without', () => {
+    expect(LIGHT.warm.tone).not.toBe(LIGHT.cold.tone);
+    expect(LIGHT.hot.tone).not.toBe(LIGHT.cold.tone);
+    // The Forge at full heat is the brightest floor in the hold; the Gate the coolest.
+    expect(LIGHT.hot.toneAlpha[1]).toBeGreaterThan(LIGHT.cold.toneAlpha[1]);
+  });
+
+  it('leaves an unlit room with no light of its own', () => {
     for (const recipe of Object.values(LIGHT)) {
-      expect(recipe.washAlpha[0]).toBe(0);
+      expect(recipe.toneAlpha[0]).toBe(0);
     }
   });
 });
@@ -182,6 +209,99 @@ describe('light functions', () => {
 
   it('holds rather than darkening when a delve has no rooms yet', () => {
     expect(delveLight({ ...EMPTY, delve: { cleared: 0, total: 0 } })).toBeNull();
+  });
+
+  it('lights the Deep by the warmer of the conversation and the torches', () => {
+    const torches = { cleared: 1, total: 4 };
+    // A fresh message outshines one torch in four.
+    expect(delveLight({ ...EMPTY, delve: torches, conversation: { lastMessageAt: ago(0) } })).toBe(1);
+    // A thread gone cold falls back to the torches the pair has planted.
+    expect(delveLight({ ...EMPTY, delve: torches, conversation: { lastMessageAt: ago(100) } })).toBeCloseTo(0.25);
+    // A cold thread with no campaign loaded is still lit by its banked hearth, not held.
+    expect(delveLight({ ...EMPTY, conversation: { lastMessageAt: ago(100) } })).toBe(WARMTH_FLOOR);
+  });
+
+  it('holds the Deep when the thread is open but has no messages and no torches', () => {
+    expect(delveLight({ ...EMPTY, conversation: { lastMessageAt: null } })).toBeNull();
+    // ...and lights it by torches alone when it has those.
+    expect(delveLight({ ...EMPTY, delve: { cleared: 2, total: 4 }, conversation: { lastMessageAt: null } })).toBe(0.5);
+  });
+
+  it('ignores the conversation when it has no clock to read it by', () => {
+    expect(delveLight({ ...EMPTY, now: undefined, conversation: { lastMessageAt: ago(0) } })).toBeNull();
+  });
+});
+
+describe('a hearth that cools', () => {
+  it('is unknown without a message', () => {
+    expect(conversationWarmth(null, NOW)).toBeNull();
+    expect(conversationWarmth('not a date', NOW)).toBeNull();
+  });
+
+  it('is fully warm within the hour', () => {
+    expect(conversationWarmth(ago(0), NOW)).toBe(1);
+    expect(conversationWarmth(ago(1), NOW)).toBe(1);
+  });
+
+  it('cools in a straight line to the ghosting window', () => {
+    const day = conversationWarmth(ago(24), NOW)!;
+    // 23 of the 47 cooling hours have passed.
+    expect(day).toBeCloseTo(1 - 0.9 * (23 / 47));
+    expect(day).toBeLessThan(1);
+    expect(day).toBeGreaterThan(WARMTH_FLOOR);
+    expect(conversationWarmth(ago(48), NOW)).toBeCloseTo(WARMTH_FLOOR);
+  });
+
+  it('banks at the floor rather than going out', () => {
+    expect(conversationWarmth(ago(100), NOW)).toBe(WARMTH_FLOOR);
+  });
+
+  it('never rises from a message in the future', () => {
+    expect(conversationWarmth(ago(-5), NOW)).toBe(1);
+  });
+});
+
+describe('time of day', () => {
+  function at(hour: number, minute = 0): Date {
+    const d = new Date(2026, 8, 10, hour, minute, 0, 0);
+    return d;
+  }
+
+  it.each([
+    [0, 'night'], [4, 'night'], [4, 59, 'night'],
+    [5, 'dawn'], [7, 59, 'dawn'],
+    [8, 'day'], [12, 'day'], [16, 59, 'day'],
+    [17, 'dusk'], [19, 59, 'dusk'],
+    [20, 'night'], [23, 'night'],
+  ] as const)('%s:%s is %s', (...args) => {
+    const phase = args[args.length - 1];
+    const hour = args[0];
+    const minute = args.length === 3 ? (args[1] as number) : 0;
+    expect(dayPhase(at(hour, minute))).toBe(phase);
+  });
+
+  it('keeps null as null — no data is not darkness, whatever the hour', () => {
+    for (const phase of ['dawn', 'day', 'dusk', 'night'] as const) {
+      expect(applyPhase(null, phase)).toBeNull();
+    }
+  });
+
+  it('shifts light by the phase and clamps at both ends', () => {
+    expect(applyPhase(0.5, 'day')).toBe(0.5);
+    expect(applyPhase(0.5, 'dusk')).toBeCloseTo(0.5 + PHASE_OFFSET.dusk);
+    expect(applyPhase(0.5, 'night')).toBeCloseTo(0.5 + PHASE_OFFSET.night);
+    expect(applyPhase(1, 'dusk')).toBe(1);
+    expect(applyPhase(0, 'night')).toBe(0);
+    expect(applyPhase(0.05, 'dawn')).toBe(0);
+  });
+
+  it('leaves the room its own edge by day and lends it the sky otherwise', () => {
+    expect(PHASE_EDGE.day).toBeNull();
+    expect(PHASE_EDGE.dawn).not.toBe(PHASE_EDGE.night);
+    expect(PHASE_EDGE.dusk).not.toBe(PHASE_EDGE.night);
+    expect(PHASE_OFFSET.night).toBeLessThan(PHASE_OFFSET.dawn);
+    expect(PHASE_OFFSET.dawn).toBeLessThan(PHASE_OFFSET.day);
+    expect(PHASE_OFFSET.day).toBeLessThan(PHASE_OFFSET.dusk);
   });
 
   it('lights the Hall a sconce per honour', () => {

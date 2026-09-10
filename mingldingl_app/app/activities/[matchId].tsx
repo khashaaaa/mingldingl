@@ -34,7 +34,7 @@ export default function ActivitiesScreen() {
   const riteLocked = (match?.flameRiteRequired ?? true) && !match?.flameRiteCompletedAt;
 
   const session = useAuthStore((s) => s.session);
-  const { pickPhoto, uploadPhoto, uploading } = usePhotoUpload(session?.user.id);
+  const { pickPhoto, uploadPhoto, uploading, lastError, clearLastError } = usePhotoUpload(session?.user.id);
   const [localPhotoUri, setLocalPhotoUri] = useState<string | null>(null);
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const [uploadFailedAlert, setUploadFailedAlert] = useState(false);
@@ -143,8 +143,8 @@ export default function ActivitiesScreen() {
           visible={uploadFailedAlert}
           tone="warning"
           title={i18n.t('photo_upload_failed_title')}
-          message={i18n.t('photo_upload_failed_body')}
-          onDismiss={() => setUploadFailedAlert(false)}
+          message={lastError ?? i18n.t('photo_upload_failed_body')}
+          onDismiss={() => { setUploadFailedAlert(false); clearLastError(); }}
         />
         <AlertModal
           visible={rateFailedAlert}

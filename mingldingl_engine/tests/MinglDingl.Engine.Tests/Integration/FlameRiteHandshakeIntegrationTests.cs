@@ -62,6 +62,11 @@ public class FlameRiteHandshakeIntegrationTests : IntegrationTestBase
             InitiatorId = a.Id, ReceiverId = b.Id, Status = "Active",
             IcebreakerComplete = icebreakerComplete,
             VideoCallUnlocked = icebreakerComplete,
+            // Completing the rite requires a token to have been taken and the rite's own
+            // duration to have passed since, so a seeded rite has to look like one that
+            // actually happened rather than one nobody dialled into.
+            InitiatorVideoTokenAt = DateTime.UtcNow.AddHours(-1),
+            ReceiverVideoTokenAt = DateTime.UtcNow.AddHours(-1),
         };
         Db.Matches.Add(match);
         await Db.SaveChangesAsync();

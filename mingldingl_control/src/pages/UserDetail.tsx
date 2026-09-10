@@ -50,6 +50,7 @@ export function UserDetail() {
   const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
   const [scoreDelta, setScoreDelta] = useState('');
   const [scoreReason, setScoreReason] = useState('');
+  const [removingPhoto, setRemovingPhoto] = useState<string | null>(null);
 
   const { data: user, isLoading, isError } = useQuery({
     queryKey: queryKeys.user(id ?? ''),
@@ -84,6 +85,25 @@ export function UserDetail() {
       toast({ variant: 'success', description: 'User unbanned.' });
     },
     onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Unban failed — try again.') }),
+  });
+
+  /**
+   * Removes one photo and deletes the file. Before this existed the only answer to a single
+   * objectionable image was banning the whole account — and /uploads is public, so leaving the
+   * file in place keeps it fetchable by anyone holding the URL.
+   */
+  const removePhoto = useMutation({
+    mutationFn: (photoUrl: string) => apiClient.users.removePhoto(id ?? '', photoUrl),
+    onSuccess: (updated) => {
+      updateUserCache(updated);
+      qc.invalidateQueries({ queryKey: ['users'] });
+      setRemovingPhoto(null);
+      toast({ variant: 'success', description: 'Photo removed and the file deleted.' });
+    },
+    onError: (err) => {
+      setRemovingPhoto(null);
+      toast({ variant: 'destructive', description: serverError(err, 'Could not remove that photo.') });
+    },
   });
 
   const cancelDeletion = useMutation({
@@ -216,6 +236,39 @@ export function UserDetail() {
                   Adjust score
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Photos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {user.photoUrls?.length ? (
+                <div className="flex flex-wrap gap-3">
+                  {user.photoUrls.map((url) => (
+                    <div key={url} className="relative">
+                      <img
+                        src={url}
+                        alt=""
+                        className="h-28 w-28 rounded border object-cover"
+                        loading="lazy"
+                      />
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="absolute right-1 top-1 h-6 px-2 text-xs"
+                        disabled={removePhoto.isPending}
+                        onClick={() => setRemovingPhoto(url)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">No photos.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -408,6 +461,31 @@ export function UserDetail() {
               disabled={adjustScore.isPending || !scoreDelta || Number.isNaN(Number(scoreDelta))}
             >
               {adjustScore.isPending ? 'Saving…' : 'Apply'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={removingPhoto !== null} onOpenChange={(open) => !open && setRemovingPhoto(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove this photo?</DialogTitle>
+            <DialogDescription>
+              It comes off the profile and the file is deleted from disk. This cannot be undone, and
+              the user is not told.
+            </DialogDescription>
+          </DialogHeader>
+          {removingPhoto && (
+            <img src={removingPhoto} alt="" className="max-h-64 rounded border object-contain" />
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemovingPhoto(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={removePhoto.isPending}
+              onClick={() => removePhoto.mutate(removingPhoto!)}
+            >
+              {removePhoto.isPending ? 'Removing…' : 'Remove photo'}
             </Button>
           </DialogFooter>
         </DialogContent>

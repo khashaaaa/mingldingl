@@ -35,7 +35,14 @@ export function RoundPrompt({ icebreakerText, roundNumber, secondsLeft, hasRespo
       <Text style={styles.question}>{icebreakerText}</Text>
       {hasResponded ? (
         matchId ? (
-          <Text style={styles.matchText}>{i18n.t('town_square_its_a_match')}</Text>
+          // Deliberately not a link: tapping it mid-round would end the call and forfeit every
+          // remaining round. It used to stop at "It's a Match!" and say nothing more, so the match
+          // simply vanished — the second line says where it went, and the closing screen lists it
+          // with a way in.
+          <View style={styles.matchBlock}>
+            <Text style={styles.matchText}>{i18n.t('town_square_its_a_match')}</Text>
+            <Text style={styles.waitingText}>{i18n.t('town_square_match_after')}</Text>
+          </View>
         ) : (
           <Text style={styles.waitingText}>{i18n.t('town_square_waiting_for_round')}</Text>
         )
@@ -66,6 +73,7 @@ export function RoundPrompt({ icebreakerText, roundNumber, secondsLeft, hasRespo
 }
 
 const styles = StyleSheet.create({
+  matchBlock: { gap: SPACE.xs, alignItems: 'center' },
   wrap: {
     position: 'absolute',
     left: 16,

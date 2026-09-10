@@ -19,6 +19,15 @@ export const AWAITING_MN_TRANSLATION = [
   'hold_title', 'hold_open', 'hold_close',
   'room_gate', 'room_road', 'room_tavern', 'room_hearth', 'room_forge', 'room_hall', 'room_deep',
   'sound',
+  // The report sheet. Safety copy is the last place for an AI guess at Mongolian, so it renders in
+  // English until reviewed — a visible gap rather than a subtly wrong word in front of someone who
+  // is already having a bad time.
+  'report_user', 'report_sheet_title', 'report_sheet_intro',
+  'report_reason_harassment', 'report_reason_inappropriate_photos', 'report_reason_fake_profile',
+  'report_reason_scam', 'report_reason_underage', 'report_reason_off_platform_harm',
+  'report_reason_other',
+  'report_details_label', 'report_details_placeholder', 'report_submit',
+  'report_sent_title', 'report_sent_body', 'report_failed_title', 'report_failed_body',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

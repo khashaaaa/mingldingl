@@ -11,6 +11,8 @@ jest.mock('expo-notifications', () => ({
   getPermissionsAsync: jest.fn(),
   requestPermissionsAsync: jest.fn(),
   getExpoPushTokenAsync: jest.fn(),
+  setNotificationChannelAsync: jest.fn(),
+  AndroidImportance: { HIGH: 4 },
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
 
@@ -27,6 +29,7 @@ const mockGetPermissions = Notifications.getPermissionsAsync as jest.Mock;
 const mockRequestPermissions = Notifications.requestPermissionsAsync as jest.Mock;
 const mockGetToken = Notifications.getExpoPushTokenAsync as jest.Mock;
 const mockAddResponseListener = Notifications.addNotificationResponseReceivedListener as jest.Mock;
+const mockSetChannel = Notifications.setNotificationChannelAsync as jest.Mock;
 const mockRegister = apiClient.push.register as jest.Mock;
 const mockUseRouter = useRouter as jest.Mock;
 const mockPush = jest.fn();
@@ -84,16 +87,24 @@ describe('usePushNotifications — foreground notification handler (module-scope
 describe('usePushNotifications platform gating and registration flow', () => {
   const originalOS = Platform.OS;
 
+  // Registration is an authenticated call, so the hook waits for a session before making it.
+  function signIn(userId = 'user-1') {
+    useAuthStore.setState({ session: { user: { id: userId } } as never });
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
     Platform.OS = 'ios';
     mockIsDevice = true;
     mockUseRouter.mockReturnValue({ push: mockPush });
     mockAddResponseListener.mockReturnValue({ remove: jest.fn() });
+    mockSetChannel.mockResolvedValue(undefined);
+    signIn();
   });
 
   afterEach(() => {
     Platform.OS = originalOS;
+    useAuthStore.setState({ session: null });
   });
 
   it('is a total no-op on web: no permission checks, no listener registration', async () => {
@@ -164,6 +175,68 @@ describe('usePushNotifications platform gating and registration flow', () => {
     renderHook(() => usePushNotifications());
 
     await waitFor(() => expect(mockRegister).toHaveBeenCalled());
+  });
+
+  /**
+   * Signing out unregisters the token. The registration effect used to run once on mount, so the
+   * next person to sign in on the same launch had no notifications at all until a force-quit.
+   */
+  it('re-registers when a different account signs in on the same launch', async () => {
+    mockGetPermissions.mockResolvedValue({ status: 'granted' });
+    mockGetToken.mockResolvedValue({ data: 'ExponentPushToken[abc]' });
+    mockRegister.mockResolvedValue(undefined);
+    const { rerender } = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(mockRegister).toHaveBeenCalledTimes(1));
+
+    signIn('user-2');
+    rerender(undefined);
+
+    await waitFor(() => expect(mockRegister).toHaveBeenCalledTimes(2));
+  });
+
+  /**
+   * A cold start restores the session asynchronously. Registering before it landed sent an
+   * unauthenticated request whose 401 was swallowed, and that run got no pushes.
+   */
+  it('waits for a session before registering', async () => {
+    useAuthStore.setState({ session: null });
+    mockGetPermissions.mockResolvedValue({ status: 'granted' });
+    mockGetToken.mockResolvedValue({ data: 'ExponentPushToken[abc]' });
+    const { rerender } = renderHook(() => usePushNotifications());
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mockRegister).not.toHaveBeenCalled();
+
+    signIn();
+    rerender(undefined);
+    await waitFor(() => expect(mockRegister).toHaveBeenCalled());
+  });
+
+  /**
+   * Android takes a notification's importance from its channel, not the message. Without one the
+   * engine's `channelId: "default"` names nothing and every push lands in Expo's fallback channel
+   * at default importance: no heads-up banner, no sound.
+   */
+  it('creates the high-importance Android channel the engine addresses', async () => {
+    Platform.OS = 'android';
+    mockGetPermissions.mockResolvedValue({ status: 'granted' });
+    mockGetToken.mockResolvedValue({ data: 'ExponentPushToken[abc]' });
+    mockRegister.mockResolvedValue(undefined);
+    renderHook(() => usePushNotifications());
+
+    await waitFor(() => expect(mockSetChannel).toHaveBeenCalled());
+    expect(mockSetChannel.mock.calls[0][0]).toBe('default');
+    expect(mockSetChannel.mock.calls[0][1].importance).toBe(4);
+  });
+
+  it('creates no channel on iOS, which has no such concept', async () => {
+    mockGetPermissions.mockResolvedValue({ status: 'granted' });
+    mockGetToken.mockResolvedValue({ data: 'ExponentPushToken[abc]' });
+    mockRegister.mockResolvedValue(undefined);
+    renderHook(() => usePushNotifications());
+
+    await waitFor(() => expect(mockRegister).toHaveBeenCalled());
+    expect(mockSetChannel).not.toHaveBeenCalled();
   });
 
   it('navigates to the tapped notification\'s chat via router.push', async () => {
@@ -278,10 +351,15 @@ describe('destinationFor', () => {
     expect(destinationFor('townsquare_started', '')).toBe('/(tabs)/townsquare');
   });
 
+  // Its own copy is "Open the activity for the details", and none of those details — the venue,
+  // the time, the confirmation — are in the thread.
+  it('sends a pledged encounter to the activity it is about, not the chat', () => {
+    expect(destinationFor('date_confirmed', 'm1')).toBe('/activities/m1');
+  });
+
   it('sends every other engine push type to the chat', () => {
     expect(destinationFor('match', 'm1')).toBe('/chat/m1');
     expect(destinationFor('message', 'm1')).toBe('/chat/m1');
-    expect(destinationFor('date_confirmed', 'm1')).toBe('/chat/m1');
     expect(destinationFor('match_ghosted', 'm1')).toBe('/chat/m1');
   });
 

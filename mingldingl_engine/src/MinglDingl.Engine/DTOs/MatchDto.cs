@@ -7,7 +7,6 @@ public record CandidateResponse(
     decimal ReputationScore,
     List<string> PhotoUrls,
     string Bio,
-    string? EquippedFrameId = null,
     string? EquippedTitleId = null,
     string? Oath = null,
     bool OathProven = false,
@@ -22,6 +21,11 @@ public record CreateMatchResponse(Guid MatchId, int Awarded = 0);
 
 public record GhostCheckResponse(string Status);
 
+/// <param name="MessageCount">
+/// How far the conversation has come for gating purposes — <see cref="RevealService.MutualMessageCount"/>,
+/// not the raw total. The app draws its reveal countdown from this, so sending the raw total made the
+/// strip promise a rung a one-sided conversation can never reach.
+/// </param>
 public record MatchResponse(
     Guid MatchId,
     Guid OtherUserId,
@@ -49,7 +53,6 @@ public record PartialUserProfile(
     string? ThirdPhoto,
     string? District,
     UserDeepFields? Deep,
-    string? EquippedFrameId = null,
     string? EquippedTitleId = null,
     bool IsDeleted = false,
     string? Oath = null,

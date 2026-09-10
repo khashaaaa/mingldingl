@@ -37,11 +37,6 @@ public class ShipService
         if (shipper.PhoneNumber == slotAPhone || shipper.PhoneNumber == slotBPhone)
             return (false, "Cannot weave a thread to yourself", "ship.self_nominee", null, null);
 
-        int cap = (int)_config.GetNumber("ships.daily.cap", 3);
-        var today = DateTime.UtcNow.Date;
-        int todayCount = await _db.Ships.CountAsync(s => s.ShipperUserId == shipperId && s.CreatedAt >= today);
-        if (todayCount >= cap) return (false, "Daily thread limit reached", "ship.daily_cap", null, null);
-
         var (slotAUserId, slotACode) = await ResolveSlotAsync(slotAPhone, null);
         var (slotBUserId, slotBCode) = await ResolveSlotAsync(slotBPhone, slotACode);
 
@@ -60,17 +55,39 @@ public class ShipService
             if (alreadyMatched) return (true, null, null, null, null);
         }
 
-        _db.Ships.Add(new Ship
+        // Count and insert under one lock on the Weaver. Checking the cap and then adding let two
+        // concurrent weaves both read the same count and both pass it, which is also the shape an
+        // enumeration of the phone directory would take — the cap is what bounds that.
+        int cap = (int)_config.GetNumber("ships.daily.cap", 3);
+        var today = DateTime.UtcNow.Date;
+
+        bool underCap = await _db.InTransactionAsync(async () =>
         {
-            ShipperUserId = shipperId,
-            SlotAUserId = slotAUserId,
-            SlotAInviteCode = slotACode,
-            SlotAOptIn = slotAUserId.HasValue ? "PendingOptIn" : "AwaitingUser",
-            SlotBUserId = slotBUserId,
-            SlotBInviteCode = slotBCode,
-            SlotBOptIn = slotBUserId.HasValue ? "PendingOptIn" : "AwaitingUser",
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock({DailyCapLockKey(shipperId)})");
+
+            int todayCount = await _db.Ships.CountAsync(s => s.ShipperUserId == shipperId && s.CreatedAt >= today);
+            if (todayCount >= cap) return false;
+
+            _db.Ships.Add(new Ship
+            {
+                ShipperUserId = shipperId,
+                // Only for a slot still awaiting its person: once a slot names a user the number
+                // has done its job, and a Ship should not sit on a phone number it no longer needs.
+                SlotAPhoneNumber = slotAUserId.HasValue ? null : slotAPhone,
+                SlotAUserId = slotAUserId,
+                SlotAInviteCode = slotACode,
+                SlotAOptIn = slotAUserId.HasValue ? "PendingOptIn" : "AwaitingUser",
+                SlotBPhoneNumber = slotBUserId.HasValue ? null : slotBPhone,
+                SlotBUserId = slotBUserId,
+                SlotBInviteCode = slotBCode,
+                SlotBOptIn = slotBUserId.HasValue ? "PendingOptIn" : "AwaitingUser",
+            });
+            await _db.SaveChangesAsync();
+            return true;
         });
-        await _db.SaveChangesAsync();
+
+        if (!underCap) return (false, "Daily thread limit reached", "ship.daily_cap", null, null);
         return (true, null, null, slotACode, slotBCode);
     }
 
@@ -79,6 +96,16 @@ public class ShipService
     /// returning one anyway gave the Weaver something to share that could never resolve. The two
     /// slots are resolved in sequence because a freshly generated code is not in the database yet
     /// and so is invisible to <see cref="CodeExistsAsync"/>.
+    /// <para>
+    /// Known trade-off: a null code therefore tells the Weaver that the number they typed has an
+    /// account, which makes this a membership oracle over the phone directory. Closing it would mean
+    /// minting a code for every slot — including ones that can never use it — and the app branches on
+    /// exactly this null to decide between "share this code" and "we have invited them". It is bounded
+    /// instead: <c>ships.daily.cap</c> threads a day is six numbers a day per account, and the count is
+    /// taken under a lock in <see cref="CreateAsync"/> so the cap cannot be raced. The code a slot
+    /// carries is no longer worth guessing either — <see cref="TryResolveInviteCodeAsync"/> also
+    /// requires the redeemer to own the number the code was issued for.
+    /// </para>
     /// </summary>
     private async Task<(Guid? UserId, string? InviteCode)> ResolveSlotAsync(string phoneNumber, string? reservedCode)
     {
@@ -93,6 +120,17 @@ public class ShipService
         return (null, code);
     }
 
+    /// <summary>
+    /// Advisory-lock key for one Weaver's daily allowance. Salted so it can never collide with a
+    /// <see cref="MatchPairing.PairLockKey"/>, which shares the same lock space.
+    /// </summary>
+    private static long DailyCapLockKey(Guid shipperId)
+    {
+        var hash = System.Security.Cryptography.SHA256.HashData(
+            [.. "ship-daily-cap"u8.ToArray(), .. shipperId.ToByteArray()]);
+        return BitConverter.ToInt64(hash, 0);
+    }
+
     private static string GenerateCode()
     {
         var chars = new char[6];
@@ -105,6 +143,13 @@ public class ShipService
         await _db.Users.AnyAsync(u => u.ReferralCode == code) ||
         await _db.Ships.AnyAsync(s => s.SlotAInviteCode == code || s.SlotBInviteCode == code);
 
+    /// <summary>
+    /// Binds a newly created account into the slot its invite code was issued for. The code alone is
+    /// not enough: it used to be a bearer token, so anyone who guessed one — the space is only 31^6,
+    /// and <c>GET /public/ship-invite</c> will confirm a guess — or was simply forwarded one could
+    /// take a stranger's place in someone else's thread. The number the Weaver nominated has to be
+    /// the number this account proved, which is the only thing that makes the slot theirs.
+    /// </summary>
     public async Task TryResolveInviteCodeAsync(Guid newUserId, string? code)
     {
         if (string.IsNullOrWhiteSpace(code)) return;
@@ -116,16 +161,30 @@ public class ShipService
                 s.Status == "Pending" && (s.SlotAInviteCode == normalized || s.SlotBInviteCode == normalized));
             if (ship is null) return;
 
-            if (ship.SlotAInviteCode == normalized)
+            var claimant = await _db.Users.AsNoTracking()
+                .Where(u => u.Id == newUserId)
+                .Select(u => u.PhoneNumber)
+                .FirstOrDefaultAsync();
+            if (string.IsNullOrEmpty(claimant)) return;
+
+            bool isSlotA = ship.SlotAInviteCode == normalized;
+            var nominated = isSlotA ? ship.SlotAPhoneNumber : ship.SlotBPhoneNumber;
+            // Threads woven before the number was recorded have nothing to check against. Refusing
+            // them keeps the rule absolute rather than leaving a window that behaves the old way.
+            if (nominated is null || nominated != claimant) return;
+
+            if (isSlotA)
             {
                 ship.SlotAUserId = newUserId;
                 ship.SlotAInviteCode = null;
+                ship.SlotAPhoneNumber = null;
                 ship.SlotAOptIn = "PendingOptIn";
             }
             else
             {
                 ship.SlotBUserId = newUserId;
                 ship.SlotBInviteCode = null;
+                ship.SlotBPhoneNumber = null;
                 ship.SlotBOptIn = "PendingOptIn";
             }
             await _db.SaveChangesAsync();
@@ -182,7 +241,13 @@ public class ShipService
 
         bool alreadyMatched = await MatchPairing.PairAlreadyMatchedAsync(_db, row.SlotAUserId!.Value, row.SlotBUserId!.Value);
         bool blocked = await MatchPairing.IsPairBlockedAsync(_db, row.SlotAUserId!.Value, row.SlotBUserId!.Value);
-        string terminalStatus = alreadyMatched || blocked ? "Expired" : "Sparked";
+        // A woven thread is the third path that can create a Match, and it was the one that never
+        // asked whether the two may be matched at all — so it could pair two people of the same
+        // gender, or someone paused, banned or pending deletion, straight past the rule discovery
+        // and POST /matches both obey. Checked here rather than at weave time because weeks can
+        // pass between the weave and the second acceptance.
+        bool eligible = await MatchPairing.AreBothEligibleAsync(_db, row.SlotAUserId!.Value, row.SlotBUserId!.Value);
+        string terminalStatus = alreadyMatched || blocked || !eligible ? "Expired" : "Sparked";
 
         // Leaving Pending is the claim, and it is what makes everything below run exactly once.
         // Both slots can observe "both accepted" concurrently — a double-tapped accept on the
@@ -195,12 +260,18 @@ public class ShipService
         _db.Entry(ship).Property(s => s.Status).IsModified = false;
         if (terminalStatus == "Expired") return false;
 
-        var match = MatchPairing.NewMatch(row.SlotAUserId!.Value, row.SlotBUserId!.Value, ship.Id);
-        _db.Matches.Add(match);
+        // Under the same advisory lock the other two match-creating paths take. Without it a
+        // concurrent POST /matches on the same pair raced this insert into a unique violation,
+        // leaving the Ship claimed as Sparked with no match to show for it.
+        var (matchId, created) = await CreateMatchUnderPairLockAsync(
+            row.SlotAUserId!.Value, row.SlotBUserId!.Value, ship.Id);
+
+        ship.ResultMatchId = matchId;
         await _db.SaveChangesAsync();
 
-        ship.ResultMatchId = match.Id;
-        await _db.SaveChangesAsync();
+        // Somebody else's match, found inside the lock: the thread did not cause it, so it pays
+        // the Weaver nothing and announces nothing.
+        if (!created) return false;
 
         await _score.AwardAsync(ship.ShipperUserId, "ShipSparked");
         var shipperHonour = await GrantMilestoneTitleIfEarnedAsync(ship.ShipperUserId);
@@ -213,14 +284,31 @@ public class ShipService
         await _milestones.AchieveAsync(row.SlotAUserId.Value, "first_match");
         await _milestones.AchieveAsync(row.SlotBUserId.Value, "first_match");
 
-        var sparkData = new Dictionary<string, object> { ["matchId"] = match.Id.ToString() };
+        var sparkData = new Dictionary<string, object> { ["matchId"] = matchId.ToString() };
         await _push.NotifyUserAsync(row.SlotAUserId.Value, PushKind.ThreadSparked, sparkData);
         await _push.NotifyUserAsync(row.SlotBUserId.Value, PushKind.ThreadSparked, sparkData);
         await _broadcast.BroadcastAsync("app-nudges", "match_created",
-            new { matchId = match.Id, userIds = new[] { match.InitiatorId, match.ReceiverId }, source = "ship" });
+            new { matchId, userIds = new[] { row.SlotAUserId.Value, row.SlotBUserId.Value }, source = "ship" });
 
         return true;
     }
+
+    private Task<(Guid MatchId, bool Created)> CreateMatchUnderPairLockAsync(Guid slotAUserId, Guid slotBUserId, Guid shipId) =>
+        _db.InTransactionAsync(async () =>
+        {
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock({MatchPairing.PairLockKey(slotAUserId, slotBUserId)})");
+
+            var existing = await _db.Matches.FirstOrDefaultAsync(m =>
+                (m.InitiatorId == slotAUserId && m.ReceiverId == slotBUserId) ||
+                (m.InitiatorId == slotBUserId && m.ReceiverId == slotAUserId));
+            if (existing is not null) return (existing.Id, false);
+
+            var match = MatchPairing.NewMatch(slotAUserId, slotBUserId, shipId);
+            _db.Matches.Add(match);
+            await _db.SaveChangesAsync();
+            return (match.Id, true);
+        });
 
     private sealed class ShipOptInRow
     {

@@ -21,7 +21,7 @@ export interface Business {
  * over an empty photo band, because the screen read the params and never asked the engine.
  */
 export function useBusiness(businessId: string) {
-  const { data: business, isLoading } = useQuery<Business>({
+  const { data: business, isLoading, isError } = useQuery<Business>({
     queryKey: queryKeys.business(businessId),
     queryFn: async () => {
       const b = await apiClient.business.get(businessId);
@@ -41,5 +41,5 @@ export function useBusiness(businessId: string) {
     staleTime: 1000 * 60 * 5,
   });
 
-  return { business, isLoading };
+  return { business, isLoading, isError };
 }

@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AgoraVideoCall } from '../../components/video/AgoraVideoCall';
 import { VideoControls } from '../../components/video/VideoControls';
 import { RoundPrompt } from '../../components/townsquare/RoundPrompt';
 import { AlertModal } from '../../components/modals/AlertModal';
+import { ReportUserSheet } from '../../components/modals/ReportUserSheet';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
-import { useTownSquareRound } from '../../hooks/useTownSquareRound';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
+import { useTownSquareRound, useTownSquareSessionSummary } from '../../hooks/useTownSquareRound';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE, circle, overlay } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 
@@ -23,6 +25,8 @@ export default function TownSquareRoundScreen() {
   const [now, setNow] = useState(() => Date.now());
   const [callFailed, setCallFailed] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+  const insets = useSafeAreaInsets();
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -32,6 +36,50 @@ export default function TownSquareRoundScreen() {
 
   function leave() {
     router.replace('/(tabs)/townsquare' as any);
+  }
+
+  // Only asked for once the round has failed: a session that is not InProgress is refused by
+  // `currentRound`, and this is what says whether that is because it finished or because this
+  // user is no longer in it.
+  const summary = useTownSquareSessionSummary(sessionId, !!error);
+
+  // A gathering reaching its last round is the normal, intended ending — it used to arrive here
+  // as a failed request and be reported as "you left the square, the session moved on without
+  // you", then drop the user on a tab whose next-session no longer knew this one existed. The
+  // matches made in it were never surfaced anywhere at all.
+  if (error && summary?.status === 'Completed') {
+    return (
+      <View style={[styles.screen, styles.center]}>
+        <Icon name="party-popper" size={ICON_SIZES.hero} color={COLORS.gold} />
+        <Text style={styles.errorTitle}>{i18n.t('round_over_title')}</Text>
+        <Text style={styles.status}>
+          {i18n.t('round_over_body', { count: summary.roundsPlayed })}
+        </Text>
+
+        {summary.matches.length === 0 ? (
+          <Text style={styles.status}>{i18n.t('round_over_no_matches')}</Text>
+        ) : (
+          <View style={styles.matchList}>
+            <Text style={styles.status}>{i18n.t('round_over_matches')}</Text>
+            {summary.matches.map((m) => (
+              <GameButton
+                key={m.matchId}
+                variant="primary"
+                size="compact"
+                icon="chat"
+                onPress={() => router.replace(`/chat/${m.matchId}` as any)}
+              >
+                {m.displayName || i18n.t('mystery_match_name')}
+              </GameButton>
+            ))}
+          </View>
+        )}
+
+        <GameButton variant="ghost" size="compact" onPress={leave}>
+          {i18n.t('town_square_rejoin')}
+        </GameButton>
+      </View>
+    );
   }
 
   // #17: an error used to bounce the user out silently; now they are told before leaving.
@@ -97,6 +145,18 @@ export default function TownSquareRoundScreen() {
         isResponding={isResponding}
         onRespond={(response) => submitResponse(round.pairingId, response)}
       />
+      {/* A Town Square partner is a stranger with no match to reach them through, so this is the
+          only place they can be reported from. Reporting also blocks them, which keeps the
+          round-robin from ever seating the two of them together again. */}
+      <TouchableOpacity
+        style={[styles.reportButton, { top: insets.top + SPACE.sm }]}
+        accessibilityLabel={i18n.t('report_user')}
+        onPress={() => setReportVisible(true)}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+      >
+        <Icon name="flag" size={ICON_SIZES.sm} color={COLORS.text} />
+      </TouchableOpacity>
+
       <VideoControls
         muted={muted}
         cameraOff={cameraOff}
@@ -132,13 +192,28 @@ export default function TownSquareRoundScreen() {
         onConfirm={() => { clearJoinError(); markJoined(round.pairingId); }}
         onDismiss={clearJoinError}
       />
+      <ReportUserSheet
+        visible={reportVisible}
+        reportedUserId={round.partnerUserId}
+        onClose={() => setReportVisible(false)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Top-right, clear of the video controls at the bottom and of the round prompt in the middle.
+  reportButton: {
+    position: 'absolute',
+    right: SPACE.md,
+    ...circle(36),
+    backgroundColor: overlay(0.75),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   screen: { flex: 1, backgroundColor: COLORS.bg },
   center: { alignItems: 'center', justifyContent: 'center', gap: SPACE.lg, paddingHorizontal: SPACE.xxxl },
   status: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center' },
   errorTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: COLORS.text, textAlign: 'center' },
+  matchList: { alignSelf: 'stretch', gap: SPACE.sm },
 });

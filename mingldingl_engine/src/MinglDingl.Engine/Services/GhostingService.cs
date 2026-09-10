@@ -57,8 +57,12 @@ public class GhostingService
         // Freeze at the level the pair had actually reached, never below the floor every match is
         // created with. Reading message count alone stripped that floor off a short conversation
         // whenever reveal.level1.messages was tuned above 1, so ghosting *lowered* the reveal.
+        // The count is the mutual one for the same reason GetRevealLevel uses it: the raw total let
+        // a monologue unlock a stranger's profile, and freezing on it made ghosting the back door —
+        // 30 messages into silence, wait out the window, and the frozen level was the full reveal.
         int frozenLevel = Math.Max(
-            match.RevealLevel, RevealService.LevelForMessageCount(_config, match.MessageCount));
+            match.RevealLevel,
+            RevealService.LevelForMessageCount(_config, RevealService.MutualMessageCount(match)));
         int rowsAffected = await _db.Matches
             .Where(m => m.Id == match.Id && m.Status == "Active")
             .ExecuteUpdateAsync(s => s
@@ -78,9 +82,25 @@ public class GhostingService
     /// <summary>Exposed so the sweep can push the same cutoff into SQL instead of filtering in memory.</summary>
     public TimeSpan StaleAfter => TimeSpan.FromHours(Math.Max(1, _config.GetNumber("ghosting.stale_hours", 48)));
 
+    /// <summary>
+    /// How long a match nobody has said anything in stays open. Its own window, and a longer one:
+    /// a summons the other person has not answered yet is not the same as a conversation that
+    /// stopped, and the target never asked for it.
+    /// </summary>
+    public TimeSpan UnansweredAfter =>
+        TimeSpan.FromHours(Math.Max(1, _config.GetNumber("ghosting.unanswered_hours", 168)));
+
+    /// <summary>
+    /// Both clocks a match can run out on. Reading only <see cref="Match.LastMessageAt"/> left a
+    /// match where nobody ever spoke Active forever — permanently blocking that pair from ever
+    /// matching again, since PairAlreadyMatchedAsync counts a row of any status, and holding a
+    /// daily slot the initiator never got anything for.
+    /// </summary>
     public bool IsStale(Match match) =>
-        match.Status == "Active" && match.LastMessageAt.HasValue &&
-        DateTime.UtcNow - match.LastMessageAt.Value > StaleAfter;
+        match.Status == "Active" && (
+            match.LastMessageAt.HasValue
+                ? DateTime.UtcNow - match.LastMessageAt.Value > StaleAfter
+                : DateTime.UtcNow - match.CreatedAt > UnansweredAfter);
 
     public static Guid? GetGhostAtFaultUserId(Match match) =>
         match.LastMessageSenderId is null ? null :

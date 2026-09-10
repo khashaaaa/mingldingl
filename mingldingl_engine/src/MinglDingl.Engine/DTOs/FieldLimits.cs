@@ -10,6 +10,7 @@ public static class FieldLimits
     public const int DisplayName = 64;
     public const int Password = 256;
     public const int Url = 512;
+    public const int PushToken = 256;
     public const int Title = 200;
     public const int Bio = 1000;
     public const int Review = 1000;

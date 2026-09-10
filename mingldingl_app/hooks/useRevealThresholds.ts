@@ -3,7 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { useAuthStore } from '../store/authStore';
-import { hydrateRevealThresholds, revealLadderSnapshot, subscribeToRevealThresholds } from '../lib/reveal';
+import {
+  activityGateSnapshot,
+  hydrateRevealThresholds,
+  revealLadderSnapshot,
+  subscribeToRevealThresholds,
+} from '../lib/reveal';
 
 export function useRevealThresholds(): void {
   const session = useAuthStore((s) => s.session);
@@ -15,7 +20,7 @@ export function useRevealThresholds(): void {
   });
 
   useEffect(() => {
-    if (data?.levels) hydrateRevealThresholds(data.levels);
+    if (data?.levels) hydrateRevealThresholds(data.levels, data.activitySuggestionMessages);
   }, [data]);
 }
 
@@ -26,4 +31,9 @@ export function useRevealThresholds(): void {
  */
 export function useRevealLadder(): number[] {
   return useSyncExternalStore(subscribeToRevealThresholds, revealLadderSnapshot, revealLadderSnapshot);
+}
+
+/** The live activity-suggestion gate, hydrated and re-rendered the same way the ladder is. */
+export function useActivityGate(): number {
+  return useSyncExternalStore(subscribeToRevealThresholds, activityGateSnapshot, activityGateSnapshot);
 }

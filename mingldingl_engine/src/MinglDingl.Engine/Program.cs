@@ -75,6 +75,25 @@ builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
             "Cors:AllowedOrigins must be configured outside Development.");
 }));
 
+if (!builder.Environment.IsDevelopment())
+{
+    // These do not fail loudly when unset — they fail open, which is worse. Without
+    // VerifyMn:ApiKey the engine stops requiring proof of phone ownership at all and falls back to
+    // the JWT's client-written user_metadata.phone, which is exactly how anyone could become
+    // anyone; without the Admin pair the panel is simply unreachable but the reason only surfaces
+    // as a 401 at login. Refuse to boot instead, the way Cors:AllowedOrigins already does.
+    foreach (var required in new[] { "VerifyMn:ApiKey", "Supabase:ProjectUrl", "Admin:Username", "Admin:PasswordHash" })
+        if (string.IsNullOrWhiteSpace(builder.Configuration[required]))
+            throw new InvalidOperationException($"{required} must be configured outside Development.");
+
+    // HmacSha256 needs 256 bits of key. A shorter one is accepted here and then throws on the
+    // first admin login instead, which reads as a server fault rather than a misconfiguration.
+    var adminSigningKey = builder.Configuration["Admin:JwtSigningKey"];
+    if (adminSigningKey is null || System.Text.Encoding.UTF8.GetByteCount(adminSigningKey) < 32)
+        throw new InvalidOperationException(
+            "Admin:JwtSigningKey must be configured outside Development and be at least 32 bytes.");
+}
+
 var app = builder.Build();
 
 const int seedAttempts = 5;

@@ -9,7 +9,9 @@ import { translations } from '../i18n';
  */
 
 const ROOT = join(__dirname, '..', '..');
-const SOURCE_DIRS = ['app', 'components', 'hooks', 'lib', 'store'];
+// `models` holds domain code that names i18n keys too — `reportReasonKey` builds the
+// `report_reason_*` family there — so leaving it out made those keys look orphaned.
+const SOURCE_DIRS = ['app', 'components', 'hooks', 'lib', 'models', 'store'];
 
 /** Key families the engine supplies as data (a `nameKey` on an API response), so no app
  *  source file ever names them literally. Adding a family here should be deliberate. */

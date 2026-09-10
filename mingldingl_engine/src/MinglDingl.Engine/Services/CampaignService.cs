@@ -83,7 +83,9 @@ public class CampaignService
         var cleared = new HashSet<string> { "gate" };
 
         if (match.IcebreakerComplete) cleared.Add("echoes");
-        if (match.MessageCount >= VoicesMessageThreshold) cleared.Add("voices");
+        // Mutual, not raw: a room is a shared deed, and its bonus is claimable per user, so the
+        // raw total let one person clear Voices — and bank the score — by talking into silence.
+        if (RevealService.MutualMessageCount(match) >= VoicesMessageThreshold) cleared.Add("voices");
         // Same equivalence the AddFlameRite migration's backfill used for pre-rite matches.
         if (match.FlameRiteCompletedAt is not null || match.VideoRewardClaimed) cleared.Add("flame");
 

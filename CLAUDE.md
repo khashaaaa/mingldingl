@@ -77,7 +77,7 @@ cd mingldingl_engine && DOTNET_ROOT=$HOME/.dotnet ASPNETCORE_ENVIRONMENT=Develop
 
 dotnet build                                          # build
 dotnet test                                           # run all tests (xUnit)
-dotnet test --filter FullyQualifiedName~LootServiceTests   # single test class
+dotnet test --filter FullyQualifiedName~HonourServiceTests # single test class
 dotnet test --filter ComputeStreak                    # by test name substring
 
 dotnet ef migrations add <Name> --project src/MinglDingl.Engine   # needs DOTNET_ROOT + $HOME/.dotnet/tools on PATH,

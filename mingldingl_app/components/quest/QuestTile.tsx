@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
 import { colorForTier } from '../../lib/tiers';
+import { useRevealLadder } from '../../hooks/useRevealThresholds';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE, circle } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
@@ -14,9 +15,13 @@ interface Props {
 
 type StatusIconName = React.ComponentProps<typeof Icon>['name'];
 
-function questStatus(match: Match): { icon: StatusIconName; label: string; color: string } {
+/**
+ * A conversation counts as under way once it has earned its second reveal rung — the live ladder
+ * rather than a literal 5, which drifted the moment `reveal.level2.messages` was tuned.
+ */
+function questStatus(match: Match, underwayAt: number): { icon: StatusIconName; label: string; color: string } {
   if (!match.icebreakerComplete) return { icon: 'lock', label: i18n.t('quest_new'), color: COLORS.gold };
-  if (match.messageCount < 5) return { icon: 'sword-cross', label: i18n.t('quest_in_progress'), color: COLORS.brass };
+  if (match.messageCount < underwayAt) return { icon: 'sword-cross', label: i18n.t('quest_in_progress'), color: COLORS.brass };
   return { icon: 'fire', label: i18n.t('quest_active'), color: COLORS.goldBright };
 }
 
@@ -29,7 +34,8 @@ export function QuestTile({ match, onPress }: Props) {
   const showPhoto = photo && photo !== failedUrl;
   const tier = (otherUser as any).gemTier ?? 'Garnet';
   const tierColor = colorForTier(tier);
-  const status = questStatus(match);
+  const ladder = useRevealLadder();
+  const status = questStatus(match, ladder[1] ?? 5);
 
   const wasBlurred = useRef(blurred);
   const reveal = useRef(new Animated.Value(blurred ? 0 : 1)).current;

@@ -7,6 +7,7 @@ import { useProfile } from '../../hooks/useProfile';
 import { useMilestones } from '../../hooks/useMilestones';
 import { useDailyMatchBudget } from '../../hooks/useScore';
 import { DailyBudgetMeter } from '../../components/progression/DailyBudgetMeter';
+import { NextGatheringPill } from '../../components/townsquare/NextGatheringPill';
 import { CandidateCard } from '../../components/cards/CandidateCard';
 import { GettingStartedCard } from '../../components/progression/GettingStartedCard';
 import { LootToast } from '../../components/modals/LootToast';
@@ -90,6 +91,7 @@ export default function DiscoverScreen() {
         onCompleteProfile={() => router.push('/edit-profile')}
       />
       {dailyBudget && <DailyBudgetMeter budget={dailyBudget} />}
+      <NextGatheringPill />
       <View style={styles.cardArea} onLayout={onDeckLayout}>
         <PanelReveal style={{ flex: 1 }}>
           <CandidateCard

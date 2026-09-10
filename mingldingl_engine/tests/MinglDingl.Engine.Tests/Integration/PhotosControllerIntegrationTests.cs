@@ -26,7 +26,7 @@ public class PhotosControllerIntegrationTests : IntegrationTestBase, IDisposable
         var storage = new LocalFileStorageService(envMock.Object, config, NullLogger<LocalFileStorageService>.Instance);
         var compression = new PhotoCompressionService();
 
-        return new PhotosController(compression, storage)
+        return new PhotosController(compression, storage, new PhotoUploadThrottleService())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -48,6 +48,16 @@ public class PhotosControllerIntegrationTests : IntegrationTestBase, IDisposable
         using var ms = new MemoryStream();
         image.SaveAsJpeg(ms);
         return ms.ToArray();
+    }
+
+    [Fact]
+    public async Task Upload_NoFilePartAtAll_ReturnsBadRequestNotAServerError()
+    {
+        // ASP.NET binds a missing `file` part to null, and reading .Length on it made a malformed
+        // request a logged 500 instead of the 400 the endpoint documents.
+        var result = await BuildController(Guid.NewGuid()).Upload(null);
+
+        Assert.Equal(400, Assert.IsType<BadRequestObjectResult>(result).StatusCode);
     }
 
     [Fact]

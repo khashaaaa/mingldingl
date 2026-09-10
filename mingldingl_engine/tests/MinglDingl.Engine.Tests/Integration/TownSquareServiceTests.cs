@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MinglDingl.Engine.Tests.Integration;
@@ -167,6 +169,76 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         Assert.Equal(25, pairings.Count);
         foreach (var group in pairings.GroupBy(p => p.UserAId))
             Assert.Equal(5, group.Select(p => p.UserBId).Distinct().Count());
+    }
+
+    /// <summary>
+    /// A block has to mean "never in front of me again". The round-robin sits every man opposite
+    /// every woman, so the person someone blocked was seated across from them for a whole round —
+    /// the pair check on responding only refused the resulting *match*, long after the encounter it
+    /// was meant to prevent.
+    /// </summary>
+    [Fact]
+    public async Task LockRosterAsync_NeverSeatsAPairWhoHaveBlockedEachOther()
+    {
+        var session = await SeedOpenSessionWithRsvps(menCount: 3, womenCount: 3);
+        var rsvps = await Db.TownSquareRsvps.Where(r => r.SessionId == session.Id).ToListAsync();
+        var users = await Db.Users.Where(u => rsvps.Select(r => r.UserId).Contains(u.Id)).ToListAsync();
+        var blocker = users.First(u => u.Gender == "Female");
+        var blocked = users.First(u => u.Gender == "Male");
+        Db.BlockedUsers.Add(new BlockedUser { BlockerId = blocker.Id, BlockedId = blocked.Id });
+        await Db.SaveChangesAsync();
+
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
+        await service.LockRosterAsync(session.Id);
+
+        Db.ChangeTracker.Clear();
+        var roundIds = await Db.TownSquareRounds.Where(r => r.SessionId == session.Id).Select(r => r.Id).ToListAsync();
+        var pairings = await Db.TownSquarePairings.Where(p => roundIds.Contains(p.RoundId)).ToListAsync();
+
+        Assert.DoesNotContain(pairings, p =>
+            (p.UserAId == blocker.Id && p.UserBId == blocked.Id)
+            || (p.UserAId == blocked.Id && p.UserBId == blocker.Id));
+        // Only that one pairing goes: the two sit a single round out and everyone else still meets
+        // everyone else exactly once.
+        Assert.Equal(8, pairings.Count);
+    }
+
+    /// <summary>
+    /// The start notification used to read round one alone. A pairing dropped there for a blocked
+    /// pair left both of them unrostered, and neither was ever told the gathering had begun.
+    /// </summary>
+    [Fact]
+    public async Task StartSessionAsync_NotifiesEveryoneEvenWhenAPairingWasDroppedFromRoundOne()
+    {
+        var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2);
+        var rsvps = await Db.TownSquareRsvps.Where(r => r.SessionId == session.Id).ToListAsync();
+        var users = await Db.Users.Where(u => rsvps.Select(r => r.UserId).Contains(u.Id)).ToListAsync();
+        foreach (var user in users)
+        {
+            user.PushEnabled = true;
+            Db.PushTokens.Add(new PushToken { UserId = user.Id, Token = $"ExponentPushToken[{user.Id:N}]" });
+        }
+        await Db.SaveChangesAsync();
+
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
+        await service.LockRosterAsync(session.Id);
+
+        // Whoever round one paired first is the pair we drop, to stand in for a block.
+        Db.ChangeTracker.Clear();
+        var firstRoundId = await Db.TownSquareRounds
+            .Where(r => r.SessionId == session.Id && r.RoundNumber == 1).Select(r => r.Id).FirstAsync();
+        var dropped = await Db.TownSquarePairings.FirstAsync(p => p.RoundId == firstRoundId);
+        var strandedIds = new[] { dropped.UserAId, dropped.UserBId };
+        Db.TownSquarePairings.Remove(dropped);
+        await Db.SaveChangesAsync();
+
+        var (push, handler) = BuildCapturingPush();
+        var notifying = new TownSquareService(Db, BuildTestBroadcast(), push, NullLogger<TownSquareService>.Instance, new ConfigService());
+        await notifying.StartSessionAsync(session.Id);
+
+        var pushed = string.Join("\n", handler.RequestBodies);
+        foreach (var id in strandedIds)
+            Assert.Contains(id.ToString("N"), pushed);
     }
 
     [Fact]
@@ -420,6 +492,31 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         var ex = await Assert.ThrowsAsync<DomainException>(() => service.RespondToPairingAsync(pairing.Id, stranger.Id, "Yes"));
         Assert.Equal(StatusCodes.Status403Forbidden, ex.StatusCode);
     }
+    /// <summary>
+    /// An admin may cancel a session that is only Locked, and a Locked session already has its
+    /// pairings — so with no session check at all both sides of a gathering that never ran could
+    /// still answer Yes and walk away with a real match.
+    /// </summary>
+    [Fact]
+    public async Task RespondToPairingAsync_SessionWasCancelled_RefusesAndCreatesNoMatch()
+    {
+        var pairing = await SeedSinglePairing();
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
+        var sessionId = await Db.TownSquareRounds.AsNoTracking()
+            .Where(r => r.Id == pairing.RoundId).Select(r => r.SessionId).FirstAsync();
+        Assert.True(await service.CancelSessionAsync(sessionId));
+        Db.ChangeTracker.Clear();
+
+        var ex = await Assert.ThrowsAsync<DomainException>(
+            () => service.RespondToPairingAsync(pairing.Id, pairing.UserAId, "Yes"));
+
+        Assert.Equal("square.not_in_progress", ex.Code);
+        Db.ChangeTracker.Clear();
+        Assert.False(await Db.Matches.AnyAsync(m =>
+            (m.InitiatorId == pairing.UserAId && m.ReceiverId == pairing.UserBId) ||
+            (m.InitiatorId == pairing.UserBId && m.ReceiverId == pairing.UserAId)));
+    }
+
     [Fact]
     public async Task RespondToPairingAsync_MutualYesButPairIsBlocked_DoesNotCreateMatch()
     {
@@ -485,6 +582,130 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
         // Leaving it Open would hand the 10s scheduler a session it re-crashes on forever.
         Assert.Equal("Cancelled", (await Db.TownSquareSessions.FindAsync(session.Id))!.Status);
         Assert.Empty(await Db.TownSquareRounds.Where(r => r.SessionId == session.Id).ToListAsync());
+    }
+
+    [Fact]
+    public async Task RespondToPairingAsync_MutualYesButOneSideWasBannedSince_DoesNotCreateMatch()
+    {
+        var pairing = await SeedSinglePairing();
+        var banned = await Db.Users.FindAsync(pairing.UserBId);
+        banned!.IsBanned = true;
+        await Db.SaveChangesAsync();
+
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
+        await service.RespondToPairingAsync(pairing.Id, pairing.UserAId, "Yes");
+        var resultId = await service.RespondToPairingAsync(pairing.Id, pairing.UserBId, "Yes");
+
+        // Weeks can separate the gathering from the answer, and this was the last match-creating
+        // path that never re-read the rule discovery and POST /matches both obey.
+        Assert.Null(resultId);
+        Db.ChangeTracker.Clear();
+        Assert.False(await Db.Matches.AnyAsync(m =>
+            (m.InitiatorId == pairing.UserAId && m.ReceiverId == pairing.UserBId) ||
+            (m.InitiatorId == pairing.UserBId && m.ReceiverId == pairing.UserAId)));
+    }
+
+    [Fact]
+    public async Task RespondToPairingAsync_MutualYesBetweenEligiblePeople_StillCreatesTheMatch()
+    {
+        var pairing = await SeedSinglePairing();
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
+
+        await service.RespondToPairingAsync(pairing.Id, pairing.UserAId, "Yes");
+        var resultId = await service.RespondToPairingAsync(pairing.Id, pairing.UserBId, "Yes");
+
+        Assert.NotNull(resultId);
+    }
+
+    private static VideoTokenService BuildVideoTokenService() =>
+        new(new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Agora:AppId"] = "test_app_id",
+                    ["Agora:AppCertificate"] = "test_cert",
+                }).Build(),
+            TestHostEnvironment.Development);
+
+    /// <summary>
+    /// The session a pairing belongs to. The database is shared across the suite, so a bare
+    /// <c>TownSquareSessions.FirstAsync()</c> picks up whichever session another test left behind.
+    /// </summary>
+    private async Task<TownSquareSession> SessionForAsync(TownSquarePairing pairing) =>
+        await (from p in Db.TownSquarePairings
+               join r in Db.TownSquareRounds on p.RoundId equals r.Id
+               join sess in Db.TownSquareSessions on r.SessionId equals sess.Id
+               where p.Id == pairing.Id
+               select sess).FirstAsync();
+
+    private TownSquareController BuildController(Guid userId)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Items["UserId"] = userId;
+        var config = new ConfigService();
+        return new TownSquareController(
+            Db,
+            new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, config),
+            BuildVideoTokenService())
+        {
+            ControllerContext = new ControllerContext { HttpContext = httpContext },
+        };
+    }
+
+    [Fact]
+    public async Task GetSessionSummary_CompletedSession_ReportsItAsCompletedRatherThanAnError()
+    {
+        var pairing = await SeedSinglePairing();
+        var session = await SessionForAsync(pairing);
+        session.Status = "Completed";
+        await Db.SaveChangesAsync();
+
+        var result = Assert.IsType<OkObjectResult>(await BuildController(pairing.UserAId).GetSessionSummary(session.Id));
+        var body = Assert.IsType<SessionSummaryResponse>(result.Value);
+
+        // current-round refuses anything not InProgress, so without this the round screen could
+        // only read a finished gathering as a failure and told the user they had been left behind.
+        Assert.Equal("Completed", body.Status);
+        Assert.Equal(1, body.RoundsPlayed);
+    }
+
+    [Fact]
+    public async Task GetSessionSummary_CarriesTheMatchesTheCallerMadeInThatSession()
+    {
+        var pairing = await SeedSinglePairing();
+        var session = await SessionForAsync(pairing);
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
+        await service.RespondToPairingAsync(pairing.Id, pairing.UserAId, "Yes");
+        var matchId = await service.RespondToPairingAsync(pairing.Id, pairing.UserBId, "Yes");
+        Assert.NotNull(matchId);
+
+        session.Status = "Completed";
+        await Db.SaveChangesAsync();
+        Db.ChangeTracker.Clear();
+
+        var result = Assert.IsType<OkObjectResult>(await BuildController(pairing.UserAId).GetSessionSummary(session.Id));
+        var body = Assert.IsType<SessionSummaryResponse>(result.Value);
+
+        // A match made in the square was surfaced nowhere once the session ended.
+        var match = Assert.Single(body.Matches);
+        Assert.Equal(matchId, match.MatchId);
+        Assert.Equal(pairing.UserBId, match.OtherUserId);
+    }
+
+    [Fact]
+    public async Task GetSessionSummary_ListsNoMatchesForAPairingThatNeverAgreed()
+    {
+        var pairing = await SeedSinglePairing();
+        var session = await SessionForAsync(pairing);
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
+        await service.RespondToPairingAsync(pairing.Id, pairing.UserAId, "Yes");
+        await service.RespondToPairingAsync(pairing.Id, pairing.UserBId, "No");
+        Db.ChangeTracker.Clear();
+
+        var result = Assert.IsType<OkObjectResult>(await BuildController(pairing.UserAId).GetSessionSummary(session.Id));
+        var body = Assert.IsType<SessionSummaryResponse>(result.Value);
+
+        Assert.Empty(body.Matches);
+        Assert.Equal(1, body.RoundsPlayed);
     }
 }
 

@@ -29,6 +29,14 @@ public class MatchesController : ControllerBase
         _broadcast = broadcast;
     }
 
+    /// <summary>
+    /// How many eligible profiles one discover pull ranks. Deep enough that paging through the feed
+    /// never reaches the bottom in practice, shallow enough that the query is bounded work. Tunable
+    /// because "deep enough" depends on how many people are actually in one city.
+    /// </summary>
+    private int CandidatePoolLimit =>
+        Math.Max(1, (int)_config.GetNumber("matching.candidate_pool", 500));
+
     [HttpGet("candidates")]
     [ProducesResponseType(typeof(PagedResponse<CandidateResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -40,7 +48,7 @@ public class MatchesController : ControllerBase
 
         var (safePage, safePageSize, skip) = PagingDefaults.Normalize(page, pageSize);
 
-        var unmatched = await _db.Users
+        var eligible = _db.Users
             .AsNoTracking()
             .Where(MatchEligibility.IsEligibleFor(me))
             .Where(u => !_db.Matches.Any(m =>
@@ -48,8 +56,21 @@ public class MatchesController : ControllerBase
                     (m.InitiatorId == u.Id && m.ReceiverId == userId))
                 && !_db.BlockedUsers.Any(bl =>
                     (bl.BlockerId == userId && bl.BlockedId == u.Id) ||
-                    (bl.BlockerId == u.Id && bl.BlockedId == userId)))
-            .ToListAsync();
+                    (bl.BlockerId == u.Id && bl.BlockedId == userId)));
+
+        // Compatibility and Haversine distance cannot be expressed in SQL, so the shortlist has to
+        // be ranked in memory — but it used to be the *whole* eligible table, materialised on every
+        // pull of the discover feed. The pool is bounded here instead, pre-ranked by the key the
+        // in-memory sort weights most heavily so the cap, when it bites, drops the far-away rather
+        // than the arbitrary: located people first, then a cheap degree-space proximity proxy.
+        double myLat = me.Latitude ?? 0, myLng = me.Longitude ?? 0;
+        var pooled = me.Latitude.HasValue && me.Longitude.HasValue
+            ? eligible
+                .OrderBy(u => u.Latitude == null || u.Longitude == null ? 1 : 0)
+                .ThenBy(u => Math.Abs((u.Latitude ?? 0) - myLat) + Math.Abs((u.Longitude ?? 0) - myLng))
+            : eligible.OrderByDescending(u => u.TotalScore).ThenBy(u => u.Id);
+
+        var unmatched = await pooled.Take(CandidatePoolLimit).ToListAsync();
 
         const double PriorityCompatibilityBandKm = 15;
 
@@ -58,6 +79,7 @@ public class MatchesController : ControllerBase
         const double OathAffinityBandKm = 25;
         bool priorityMatching = me.MembershipLevel == "Gold";
         bool myLocationKnown = me.Latitude.HasValue && me.Longitude.HasValue;
+        // The pool, not the eligible population: paging must not promise rows past what was ranked.
         var totalCount = unmatched.Count;
 
         // Only the people actually on this page's shortlist can affect the new-user boost, so ask
@@ -122,7 +144,7 @@ public class MatchesController : ControllerBase
 
         var items = candidates.Select(c => new CandidateResponse(
             c.Id, c.DisplayName, c.Age, c.City, c.GemTier, c.ReputationScore,
-            c.PhotoUrls, c.Bio, c.EquippedFrameId, c.EquippedTitleId,
+            c.PhotoUrls, c.Bio, c.EquippedTitleId,
             c.Oath, c.OathProven)).ToList();
 
         return Ok(new PagedResponse<CandidateResponse>(items, safePage, safePageSize, totalCount, skip + items.Count < totalCount));
@@ -156,9 +178,8 @@ public class MatchesController : ControllerBase
         if (!MatchEligibility.IsEligibleFor(me).Compile()(target))
             return this.ForbiddenError("Cannot match with this user", "match.not_allowed");
 
-        var (outcome, matchId) = await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        var (outcome, matchId) = await _db.InTransactionAsync(async () =>
         {
-            await using var tx = await _db.Database.BeginTransactionAsync();
             await _db.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT pg_advisory_xact_lock({MatchPairing.PairLockKey(userId, req.TargetUserId)})");
 
@@ -173,7 +194,6 @@ public class MatchesController : ControllerBase
             await _db.SaveChangesAsync();
             await _db.Database.ExecuteSqlInterpolatedAsync(
                 $"""UPDATE "Users" SET "DailyMatchesUsed" = "DailyMatchesUsed" + 1 WHERE "Id" = {userId}""");
-            await tx.CommitAsync();
             return ("created", (Guid?)match.Id);
         });
 
@@ -279,10 +299,21 @@ public class MatchesController : ControllerBase
         match.Status = "Unmatched";
 
         bool alreadyBlocked = await _db.BlockedUsers.AnyAsync(bl => bl.BlockerId == userId && bl.BlockedId == otherId);
-        if (!alreadyBlocked)
-            _db.BlockedUsers.Add(new BlockedUser { BlockerId = userId, BlockedId = otherId });
+        var block = alreadyBlocked ? null : new BlockedUser { BlockerId = userId, BlockedId = otherId };
+        if (block is not null) _db.BlockedUsers.Add(block);
 
-        await _db.SaveChangesAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (
+            block is not null && UniqueViolationGuard.IsViolation(ex, "IX_BlockedUsers_BlockerId_BlockedId"))
+        {
+            // Two taps on Block raced the check above. The row the loser wanted already exists, so
+            // the intent is satisfied — drop the duplicate and save the unmatch on its own.
+            _db.Entry(block).State = EntityState.Detached;
+            await _db.SaveChangesAsync();
+        }
 
         await _broadcast.BroadcastAsync("app-nudges", "match_status_changed",
             new { matchId = match.Id, status = match.Status, userId });
@@ -296,7 +327,7 @@ public class MatchesController : ControllerBase
         int level = RevealService.GetRevealLevel(_config, m);
 
         return new MatchResponse(
-            m.Id, other.Id, m.Status, level, m.MessageCount,
+            m.Id, other.Id, m.Status, level, RevealService.MutualMessageCount(m),
             m.IcebreakerComplete, m.VideoCallUnlocked,
             new PartialUserProfile(
                 DisplayName: level >= 1 ? other.DisplayName : null,
@@ -309,7 +340,6 @@ public class MatchesController : ControllerBase
                 Deep: level >= 4 && membership is "Silver" or "Gold"
                     ? new UserDeepFields(other.HasKids, other.SmokingHabit, other.DrinkingHabit, other.Religion, other.Lifestyle)
                     : null,
-                EquippedFrameId: level >= 1 ? other.EquippedFrameId : null,
                 EquippedTitleId: level >= 1 ? other.EquippedTitleId : null,
                 IsDeleted: other.IsDeleted,
                 Oath: level >= 1 ? other.Oath : null,

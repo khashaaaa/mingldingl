@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import TownSquareRoundScreen from '../[sessionId]';
-import { useTownSquareRound } from '../../../hooks/useTownSquareRound';
+import { useTownSquareRound, useTownSquareSessionSummary } from '../../../hooks/useTownSquareRound';
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ sessionId: 's1' }),
@@ -16,6 +16,7 @@ jest.mock('../../../hooks/useTownSquareRound');
 jest.mock('../../../components/video/AgoraVideoCall', () => ({ AgoraVideoCall: () => null }));
 
 const mockUseRound = useTownSquareRound as jest.Mock;
+const mockUseSummary = useTownSquareSessionSummary as jest.Mock;
 
 const round = {
   pairingId: 'p1',
@@ -59,7 +60,10 @@ const renderScreen = () =>
     </SafeAreaProvider>,
   );
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockUseSummary.mockReturnValue(null);
+});
 
 describe('TownSquareRoundScreen — join failure', () => {
   // The hook has always reported joinError; no screen ever read it, so a failed join was
@@ -95,5 +99,53 @@ describe('TownSquareRoundScreen — join failure', () => {
 
     expect(stub.clearJoinError).toHaveBeenCalled();
     expect(stub.markJoined).not.toHaveBeenCalled();
+  });
+});
+
+describe('TownSquareRoundScreen — the session ending', () => {
+  // current-round refuses any session that is not InProgress, so a gathering reaching its last
+  // round arrived here as a failed request. It was reported as "you left the square, the session
+  // moved on without you" — blaming the user for the normal, intended ending — and then dropped
+  // them on a tab whose next-session no longer knew the session existed.
+  it('celebrates a completed session instead of blaming the user for leaving', () => {
+    stubRound({ error: new Error('not in progress') });
+    mockUseSummary.mockReturnValue({ status: 'Completed', roundsPlayed: 3, matches: [] });
+
+    const { getByText, queryByText } = renderScreen();
+
+    expect(getByText('The Square Has Closed')).toBeTruthy();
+    expect(getByText('You met 3 people tonight.')).toBeTruthy();
+    expect(queryByText('You left the square')).toBeNull();
+  });
+
+  it('lists the matches the session produced, each a way into the conversation', () => {
+    stubRound({ error: new Error('not in progress') });
+    mockUseSummary.mockReturnValue({
+      status: 'Completed',
+      roundsPlayed: 2,
+      matches: [{ matchId: 'm1', otherUserId: 'u2', displayName: 'Nomin' }],
+    });
+
+    const { getByText } = renderScreen();
+
+    // A match made in the square used to be surfaced nowhere once the gathering ended.
+    expect(getByText('You matched with:')).toBeTruthy();
+    expect(getByText('NOMIN')).toBeTruthy();
+  });
+
+  it('says so plainly when nobody said yes back', () => {
+    stubRound({ error: new Error('not in progress') });
+    mockUseSummary.mockReturnValue({ status: 'Completed', roundsPlayed: 2, matches: [] });
+
+    const { getByText } = renderScreen();
+    expect(getByText('No mutual yes this time — the next gathering will be along.')).toBeTruthy();
+  });
+
+  it('still reports being dropped from a session that is not over', () => {
+    stubRound({ error: new Error('not paired') });
+    mockUseSummary.mockReturnValue({ status: 'InProgress', roundsPlayed: 1, matches: [] });
+
+    const { getByText } = renderScreen();
+    expect(getByText('You left the square')).toBeTruthy();
   });
 });

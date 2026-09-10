@@ -7,19 +7,44 @@
 const DEFAULT_LADDER = [1, 5, 15, 30];
 const LEVELS = [1, 2, 3, 4] as const;
 
+/**
+ * Mutual messages before the engine will hand back activity suggestions
+ * (`activity.suggestions.messages`). Admin-tunable like the ladder, and travelling on the same
+ * response, because the app otherwise had no way to learn it except by being refused — so it
+ * offered the door unconditionally and had no countdown to put beside it.
+ */
+const DEFAULT_ACTIVITY_GATE = 15;
+
 let ladder: number[] = DEFAULT_LADDER;
+let activityGate = DEFAULT_ACTIVITY_GATE;
 let hydrated = false;
 const listeners = new Set<() => void>();
 
-export function hydrateRevealThresholds(raw: readonly { level?: number; messages?: number }[]): void {
+export function hydrateRevealThresholds(
+  raw: readonly { level?: number; messages?: number }[],
+  activitySuggestionMessages?: number,
+): void {
   const byLevel = new Map(raw.map((t) => [t.level, t.messages]));
   const ordered = LEVELS.map((level) => byLevel.get(level));
   if (ordered.some((v) => typeof v !== 'number')) return;
   const next = ordered as number[];
+  const nextGate = typeof activitySuggestionMessages === 'number' && activitySuggestionMessages > 0
+    ? activitySuggestionMessages
+    : activityGate;
   hydrated = true;
-  if (next.every((v, i) => v === ladder[i])) return;
+  if (next.every((v, i) => v === ladder[i]) && nextGate === activityGate) return;
   ladder = next;
+  activityGate = nextGate;
   for (const notify of listeners) notify();
+}
+
+/** Mutual messages still needed before activity suggestions unlock, or 0 once they have. */
+export function messagesUntilActivities(messageCount: number, gate: number = activityGate): number {
+  return Math.max(0, gate - messageCount);
+}
+
+export function activityGateSnapshot(): number {
+  return activityGate;
 }
 
 export function areRevealThresholdsHydrated(): boolean {
@@ -61,6 +86,7 @@ export function deepProfileThreshold(from: number[] = ladder): number {
 
 export function resetRevealThresholdsForTests(): void {
   ladder = DEFAULT_LADDER;
+  activityGate = DEFAULT_ACTIVITY_GATE;
   hydrated = false;
   listeners.clear();
 }

@@ -34,7 +34,7 @@ public class UsersController : ControllerBase
     /// result to hand straight back, or null when the fields are acceptable.
     /// </summary>
     private IActionResult? ValidateProfileFields(
-        string? gender, string? city, List<string>? photoUrls,
+        Guid ownerId, string? gender, string? city, List<string>? photoUrls,
         string? smoking = null, string? drinking = null, string? religion = null, string? lifestyle = null,
         IReadOnlyCollection<string>? alreadyStoredPhotos = null)
     {
@@ -65,12 +65,13 @@ public class UsersController : ControllerBase
         // and Storage:PublicBaseUrl legitimately differs between localhost, the LAN IP used for
         // device testing and production — so checking every entry against the current origin locked
         // every existing user out of editing their own profile the moment that setting changed.
-        // Only what is genuinely new has to prove it came from this service.
+        // Only what is genuinely new has to prove it came from this service, and that it is a file
+        // this user was given rather than any URL this engine happens to serve.
         if (photoUrls is not null)
         {
             var kept = alreadyStoredPhotos as ISet<string>
                 ?? new HashSet<string>(alreadyStoredPhotos ?? [], StringComparer.Ordinal);
-            if (photoUrls.Any(url => !kept.Contains(url) && !_storage.IsOwnedPublicUrl(url)))
+            if (photoUrls.Any(url => !kept.Contains(url) && !_storage.IsOwnedPublicUrl(url, ownerId)))
                 return this.BadRequestError("Photos must be uploaded through this service", "profile.photo_not_owned");
         }
 
@@ -86,7 +87,7 @@ public class UsersController : ControllerBase
         var existing = await _db.Users.FindAsync(userId);
 
         if (ValidateProfileFields(
-                req.Gender, req.City, req.PhotoUrls,
+                userId, req.Gender, req.City, req.PhotoUrls,
                 alreadyStoredPhotos: existing?.PhotoUrls) is { } invalid)
             return invalid;
 
@@ -95,6 +96,15 @@ public class UsersController : ControllerBase
         var verifiedPhone = await _phones.GetVerifiedPhoneAsync(userId);
         if (existing is null && _phones.IsConfigured && verifiedPhone is null)
             return this.ForbiddenError("Phone number must be verified before creating an account", "phone.verification_required");
+
+        // PUT /users/me deliberately does not expose Gender, because MatchEligibility is built on
+        // it: flipping it moves you between discovery feeds and invalidates every match you hold.
+        // This endpoint is an upsert, so it was the unguarded second door onto the same field.
+        // Age is not treated the same way — people do get a year older.
+        // Only once one is actually set: this endpoint also finishes a half-created account, where
+        // Gender is still blank and is being chosen for the first time rather than changed.
+        if (existing is not null && !string.IsNullOrEmpty(existing.Gender) && req.Gender != existing.Gender)
+            return this.BadRequestError("Gender cannot be changed after sign-up", "profile.gender_immutable");
 
         var user = existing ?? new User { Id = userId };
 
@@ -144,12 +154,10 @@ public class UsersController : ControllerBase
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user is null) return this.NotFoundError("User not found", "user.not_found");
 
-        if (user.DeletionRequestedAt.HasValue && !user.IsDeleted)
-        {
-            user.DeletionRequestedAt = null;
-            await _db.SaveChangesAsync();
-        }
-
+        // Reading a profile does not call off its deletion. This endpoint is the app's most-polled
+        // one — the root layout holds it with a 60s staleTime — and the delete flow only signs out
+        // once the user acknowledges an alert, so any refetch inside that window silently revoked
+        // the request. Cancelling is a decision, so it needs an endpoint of its own.
         await _referral.GetOrCreateCodeAsync(userId);
         var (held, needed) = await _oaths.GetProgressAsync(userId);
         return Ok(ToResponse(user) with { OathEncountersHeld = held, OathEncountersNeeded = needed });
@@ -170,6 +178,27 @@ public class UsersController : ControllerBase
         return Ok(ToResponse(user));
     }
 
+    [HttpPost("me/delete/cancel")]
+    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelDeletion()
+    {
+        var userId = this.CurrentUserId();
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null) return this.NotFoundError("User not found", "user.not_found");
+
+        // Past the grace period the sweep has already anonymised the row; there is no profile left
+        // to restore, so this must not report success over an empty account.
+        if (user.IsDeleted)
+            return this.BadRequestError("This account has already been deleted", "user.already_deleted");
+
+        user.DeletionRequestedAt = null;
+        await _db.SaveChangesAsync();
+
+        return Ok(ToResponse(user));
+    }
+
     [HttpPut("me")]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
@@ -183,7 +212,7 @@ public class UsersController : ControllerBase
         // Checked before any assignment: a later rejection would otherwise leave the tracked entity
         // half-updated, and the photo unlink below would run against a list that was never saved.
         if (ValidateProfileFields(
-                gender: null, req.City, req.PhotoUrls,
+                userId, gender: null, req.City, req.PhotoUrls,
                 req.SmokingHabit, req.DrinkingHabit, req.Religion, req.Lifestyle,
                 alreadyStoredPhotos: user.PhotoUrls) is { } invalid)
             return invalid;
@@ -242,7 +271,10 @@ public class UsersController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        foreach (var dropped in droppedPhotos)
+        // Scoped to this user's own directory even though the add path already is. An entry that
+        // predates that check — a photo stolen from another profile while only the origin was
+        // validated — must not be able to reach into someone else's files on its way out.
+        foreach (var dropped in droppedPhotos.Where(url => _storage.IsOwnedPublicUrl(url, userId)))
             _storage.DeleteByPublicUrl(dropped);
 
         if (user.IsProfileComplete && !wasComplete)
@@ -286,12 +318,9 @@ public class UsersController : ControllerBase
             .Select(x => new OwnedItemResponse(
                 x.Def!.Id, x.Def.NameKey, x.Def.Rarity, x.Def.ItemType, x.Row.AcquiredAt,
                 x.Def.Id == user.EquippedTitleId))
-            .OrderByDescending(r => r.AcquiredAt);
-        // Frames come with the tier rather than being stored, so the list is derived on every read
-        // and a tier that fell takes its frames with it.
-        var frames = HonourService.FramesUnlockedFor(user.GemTier)
-            .Select(f => new OwnedItemResponse(f.Id, f.NameKey, f.Rarity, f.ItemType, user.CreatedAt, f.Id == user.EquippedFrameId));
-        return Ok(honours.Concat(frames).ToList());
+            .OrderByDescending(r => r.AcquiredAt)
+            .ToList();
+        return Ok(honours);
     }
 
     [HttpPost("me/items/{itemId}/equip")]
@@ -305,17 +334,11 @@ public class UsersController : ControllerBase
         if (user is null) return this.NotFoundError("User not found", "user.not_found");
         var def = HonourService.Find(itemId);
         if (def is null) return this.NotFoundError("Unknown item", "item.unknown");
-        bool owned = def.ItemType == "Frame"
-            ? HonourService.FrameUnlocked(itemId, user.GemTier)
-            : await _db.UserItems.AnyAsync(i => i.UserId == userId && i.ItemId == itemId);
+        bool owned = await _db.UserItems.AnyAsync(i => i.UserId == userId && i.ItemId == itemId);
         if (!owned) return this.NotFoundError("Item not in your honours", "item.not_owned");
 
-        switch (def.ItemType)
-        {
-            case "Frame": user.EquippedFrameId = user.EquippedFrameId == itemId ? null : itemId; break;
-            case "Title": user.EquippedTitleId = user.EquippedTitleId == itemId ? null : itemId; break;
-            default: return this.BadRequestError("This item cannot be worn", "item.not_equippable");
-        }
+        // Wearing is a toggle: the honour already worn comes off, any other replaces it.
+        user.EquippedTitleId = user.EquippedTitleId == itemId ? null : itemId;
         await _db.SaveChangesAsync();
         return Ok(ToResponse(user));
     }
@@ -420,12 +443,13 @@ public class UsersController : ControllerBase
         u.Id, u.DisplayName, u.Age, u.Gender, u.City, u.Bio,
         u.PhotoUrls,
         u.MembershipLevel, u.IsProfileComplete,
-        u.EquippedFrameId, u.EquippedTitleId,
+        u.EquippedTitleId,
         u.HasKids, u.SmokingHabit, u.DrinkingHabit, u.Religion, u.Lifestyle,
         u.PushEnabled, u.AgeMin, u.AgeMax, u.IsPaused, u.PhoneNumber,
         u.ReferralCode,
         Oath: u.Oath,
         OathProven: u.OathProven,
         DeletionGraceDays: (int)DailyMaintenanceBackgroundService.GracePeriodFor(_config).TotalDays,
-        PreferredLocale: u.PreferredLocale);
+        PreferredLocale: u.PreferredLocale,
+        DeletionRequestedAt: u.DeletionRequestedAt);
 }

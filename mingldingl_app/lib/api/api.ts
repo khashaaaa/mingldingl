@@ -29,6 +29,12 @@ api.interceptors.response.use(
 
       queryClient.clear();
     }
+    // A ban answers *every* request this way. Signing them out here would drop them at the phone
+    // screen with no explanation and let them straight back in, so the session is kept and the
+    // root layout says what happened instead.
+    if (error?.response?.status === 403 && error?.response?.data?.code === 'account.suspended') {
+      useAuthStore.getState().setSuspended(true);
+    }
     return Promise.reject(error);
   },
 );

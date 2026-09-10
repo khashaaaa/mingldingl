@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/users', label: 'Users' },
+  { to: '/reports', label: 'Reports' },
   { to: '/deletion-requests', label: 'Deletion Requests' },
   { to: '/content', label: 'Content' },
   { to: '/business', label: 'Business' },

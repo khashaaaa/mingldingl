@@ -6,6 +6,8 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
+import { GateScene, type GateState } from '../../components/onboarding/GateScene';
+import { signal } from '../../lib/world/feedback';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 
 
@@ -31,6 +33,10 @@ export default function OtpScreen() {
 
   const [expired, setExpired] = useState(false);
   const [openFailed, setOpenFailed] = useState(false);
+  // True from the moment the poll says `verified` until sign-in either lands or fails. The gate
+  // opens on the provider's word, not on our own success, so the person sees it swing the instant
+  // the engine does.
+  const [opened, setOpened] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const completing = useRef(false);
 
@@ -60,8 +66,13 @@ export default function OtpScreen() {
       if (outcome === 'verified') {
         if (completing.current) return;
         completing.current = true;
+        setOpened(true);
+        signal('ascend');
         const ok = await completeSignIn(verificationId, phone);
-        if (!ok && !cancelled) completing.current = false;
+        if (!ok && !cancelled) {
+          completing.current = false;
+          setOpened(false);
+        }
         return;
       }
       if (outcome === 'expired') setExpired(true);
@@ -83,6 +94,7 @@ export default function OtpScreen() {
     setOpenFailed(false);
     try {
       await Linking.openURL(smsUri);
+      signal('horn');
     } catch {
       setOpenFailed(true);
     }
@@ -91,6 +103,7 @@ export default function OtpScreen() {
   if (!verificationId) return null;
 
   const mmss = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
+  const gate: GateState = expired ? 'barred' : opened ? 'opening' : 'closed';
 
   return (
     // The provider's instruction copy is variable-length and this screen has no other escape
@@ -98,6 +111,8 @@ export default function OtpScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.inner}>
       <Text style={styles.title}>{i18n.t('verify_title')}</Text>
       <Text style={styles.phone}>+976 {phone}</Text>
+
+      <GateScene state={gate} />
 
       {expired ? (
         <View style={styles.card}>

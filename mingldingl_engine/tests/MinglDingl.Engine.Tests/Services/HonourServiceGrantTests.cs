@@ -33,13 +33,13 @@ public class HonourServiceGrantTests : Integration.IntegrationTestBase
     }
 
     [Fact]
-    public async Task GrantAsync_TierFrame_IsNotGrantable()
+    public async Task GrantAsync_RetiredTierRing_IsNotGrantable()
     {
         var userId = Guid.NewGuid();
         Db.Users.Add(NewCompleteUser(userId));
         await Db.SaveChangesAsync();
 
-        // Frames come with the tier, so a stored row for one would be a second source of truth.
+        // The tier rings are gone from the catalogue, so an old call site naming one stores nothing.
         Assert.Null(await BuildService().GrantAsync(userId, "frame_garnet", "anything"));
         Db.ChangeTracker.Clear();
         Assert.Empty(Db.UserItems.Where(i => i.UserId == userId));

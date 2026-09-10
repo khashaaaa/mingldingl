@@ -10,6 +10,12 @@ public class DateConfirmation
 
     public DateTime? CompletedAt { get; set; }
 
+    /// <summary>
+    /// Each side's answer to "did the other person show up?", so these are accusations about the
+    /// <em>opposite</em> participant, not self-reports: <see cref="InitiatorAttended"/> is the
+    /// initiator's verdict on the receiver. Read the other way round, a no-show penalty lands on
+    /// whoever reported being stood up.
+    /// </summary>
     public bool? InitiatorAttended { get; set; }
     public bool? ReceiverAttended { get; set; }
 

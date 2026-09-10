@@ -16,13 +16,28 @@ type ContentPage = NonNullable<Awaited<ReturnType<typeof apiClient.content.list>
 export function ContentPageEdit() {
   const { slug } = useParams<{ slug: string }>();
 
-  const { data: pages, isLoading } = useQuery({
+  const { data: pages, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.content,
     queryFn: () => apiClient.content.list(),
   });
   const page = pages?.find((p) => p.slug === slug);
 
   if (isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
+
+  // A failed request also leaves `page` undefined, and reporting that as "Page not found" sent an
+  // admin looking for a missing row when the real answer was an unreachable engine or an expired
+  // token — and offered nothing to do about it.
+  if (isError) {
+    return (
+      <p className="text-destructive text-sm">
+        Couldn't load content pages.{' '}
+        <button type="button" className="underline" onClick={() => refetch()}>
+          Try again
+        </button>
+      </p>
+    );
+  }
+
   if (!page) return <p className="text-destructive text-sm">Page not found.</p>;
 
   return <ContentPageEditForm key={slug} slug={slug ?? ''} page={page} />;

@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 import { COLORS } from './theme';
 import { TIER_COLORS } from './tiers';
 
@@ -25,4 +27,20 @@ export function activeFestival(now: Date = new Date()): FestivalWindow | null {
   const d = String(now.getDate()).padStart(2, '0');
   const iso = `${y}-${m}-${d}`;
   return FESTIVALS.find((f) => iso >= f.start && iso <= f.end) ?? null;
+}
+
+// The festival window is a calendar fact, so a screen left open across midnight (or resumed from
+// the background days later) must not keep painting yesterday's answer. Re-evaluated on mount and
+// each time the app returns to the foreground; `activeFestival` itself stays pure.
+export function useActiveFestival(): FestivalWindow | null {
+  const [festival, setFestival] = useState<FestivalWindow | null>(() => activeFestival());
+  useEffect(() => {
+    setFestival(activeFestival());
+    const onChange = (state: AppStateStatus) => {
+      if (state === 'active') setFestival(activeFestival());
+    };
+    const sub = AppState.addEventListener('change', onChange);
+    return () => sub.remove();
+  }, []);
+  return festival;
 }

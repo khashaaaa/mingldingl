@@ -207,12 +207,12 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         return controller;
     }
 
-    protected static User NewCompleteUser(Guid? id = null) => new()
+    protected static User NewCompleteUser(Guid? id = null, string gender = "Female") => new()
     {
         Id = id ?? Guid.NewGuid(),
         DisplayName = "Integration Test User",
         Age = 30,
-        Gender = "Female",
+        Gender = gender,
         City = "Ulaanbaatar",
         Bio = "Created by an integration test",
         PhotoUrls = ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"],

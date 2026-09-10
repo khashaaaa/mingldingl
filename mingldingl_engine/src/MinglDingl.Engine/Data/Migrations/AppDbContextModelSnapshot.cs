@@ -430,6 +430,9 @@ namespace MinglDingl.Engine.Data.Migrations
                     b.Property<bool>("InitiatorVideoRewardClaimed")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("InitiatorVideoTokenAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("LastMessageAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -447,6 +450,9 @@ namespace MinglDingl.Engine.Data.Migrations
 
                     b.Property<bool>("ReceiverVideoRewardClaimed")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ReceiverVideoTokenAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("RevealLevel")
                         .HasColumnType("integer");
@@ -784,6 +790,9 @@ namespace MinglDingl.Engine.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("SlotAPhoneNumber")
+                        .HasColumnType("text");
+
                     b.Property<Guid?>("SlotAUserId")
                         .HasColumnType("uuid");
 
@@ -792,6 +801,9 @@ namespace MinglDingl.Engine.Data.Migrations
 
                     b.Property<string>("SlotBOptIn")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SlotBPhoneNumber")
                         .HasColumnType("text");
 
                     b.Property<Guid?>("SlotBUserId")
@@ -992,9 +1004,6 @@ namespace MinglDingl.Engine.Data.Migrations
                     b.Property<string>("DrinkingHabit")
                         .HasColumnType("text");
 
-                    b.Property<string>("EquippedFrameId")
-                        .HasColumnType("text");
-
                     b.Property<string>("EquippedTitleId")
                         .HasColumnType("text");
 
@@ -1187,6 +1196,60 @@ namespace MinglDingl.Engine.Data.Migrations
                     b.ToTable("UserMilestones");
                 });
 
+            modelBuilder.Entity("UserReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("MatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("ReportedUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ReporterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReviewNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReviewedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportedUserId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.HasIndex("ReporterId", "ReportedUserId", "Status");
+
+                    b.ToTable("UserReports");
+                });
+
             modelBuilder.Entity("ActivitySuggestion", b =>
                 {
                     b.HasOne("BusinessPartner", "BusinessPartner")
@@ -1300,6 +1363,25 @@ namespace MinglDingl.Engine.Data.Migrations
                     b.Navigation("Session");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("UserReport", b =>
+                {
+                    b.HasOne("User", "ReportedUser")
+                        .WithMany()
+                        .HasForeignKey("ReportedUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("User", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ReportedUser");
+
+                    b.Navigation("Reporter");
                 });
 
             modelBuilder.Entity("BusinessPartner", b =>

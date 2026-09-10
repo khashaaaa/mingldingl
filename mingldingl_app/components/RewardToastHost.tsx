@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { LootToast } from './modals/LootToast';
+import { TierUpCeremony } from './modals/TierUpCeremony';
 import { useAuthStore } from '../store/authStore';
 import { useScoreDetail } from '../hooks/useScoreDetail';
 import { apiClient } from '../lib/api/apiClient';
 import { i18n } from '../lib/i18n';
 import { queryKeys } from '../lib/api/queryKeys';
-import { toDroppedItem, tierLabel } from '../lib/tiers';
+import { TIER_ORDER, colorForTier, toDroppedItem } from '../lib/tiers';
 import { signal } from '../lib/world/feedback';
+import { setReforgedTint } from '../lib/world/session';
 import type { components } from '../lib/api/api.generated';
 
 type ScoreDetailResponse = components['schemas']['ScoreDetailResponse'];
@@ -48,14 +50,21 @@ export function RewardToastHost() {
   useEffect(() => { if (pendingDrop) signal('honour'); }, [pendingDrop]);
 
   if (pendingTierUp) {
+    // The stone being shed is the rung below; on the first rung there is nothing below to shed.
+    const rung = TIER_ORDER.indexOf(pendingTierUp as (typeof TIER_ORDER)[number]);
+    const previousTier = rung > 0 ? TIER_ORDER[rung - 1] : pendingTierUp;
+    const tier = pendingTierUp;
     return (
-      <LootToast
+      <TierUpCeremony
         key="tier-up"
-        title={i18n.t('tier_up_title', { tier: tierLabel(pendingTierUp) })}
-        points={0}
         visible
-        onDismiss={() => setPendingTierUp(null)}
-        bottomOffset={TOAST_BOTTOM_OFFSET}
+        tier={tier}
+        previousTier={previousTier}
+        onDismiss={() => {
+          // The ceremony ends but the hold keeps the colour: the floor carries it for the session.
+          setReforgedTint(colorForTier(tier));
+          setPendingTierUp(null);
+        }}
       />
     );
   }

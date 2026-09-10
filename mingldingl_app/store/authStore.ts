@@ -16,6 +16,14 @@ interface AuthState {
   pendingNudge: { icon: string; title: string; matchId: string } | null;
   setPendingNudge: (nudge: { icon: string; title: string; matchId: string } | null) => void;
 
+  /**
+   * The engine answers every request from a banned account with 403 `account.suspended`. Without
+   * this the app just failed every query with a generic error and left the person in a silently
+   * broken app; the root layout reads it and says what happened.
+   */
+  suspended: boolean;
+  setSuspended: (suspended: boolean) => void;
+
   activeChatMatchId: string | null;
 
   activeChatStack: string[];
@@ -43,6 +51,8 @@ export const useAuthStore = create<AuthState>()(
       setPendingTierUp: (tier) => set({ pendingTierUp: tier }),
       pendingNudge: null,
       setPendingNudge: (nudge) => set({ pendingNudge: nudge }),
+      suspended: false,
+      setSuspended: (suspended) => set({ suspended }),
       activeChatMatchId: null,
       activeChatStack: [],
       pushActiveChat: (matchId) => set((s) => {
@@ -55,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
         if (idx !== -1) stack.splice(idx, 1);
         return { activeChatStack: stack, activeChatMatchId: stack[stack.length - 1] ?? null };
       }),
-      clearSession: () => set({ session: null, streakBonusPending: false, pendingDrop: null, pendingTierUp: null, pendingNudge: null, activeChatMatchId: null, activeChatStack: [] }),
+      clearSession: () => set({ session: null, suspended: false, streakBonusPending: false, pendingDrop: null, pendingTierUp: null, pendingNudge: null, activeChatMatchId: null, activeChatStack: [] }),
     }),
     {
       name: 'auth-store',

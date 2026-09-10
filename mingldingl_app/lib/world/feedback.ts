@@ -5,9 +5,11 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 /**
  * The moments the hold answers to. A closed union with one table entry each, the way `PushCopy`
  * maps a push kind to its copy — adding a moment means adding a row, never a literal at a call
- * site, so the whole world's feedback stays readable in one place.
+ * site, so the whole world's feedback stays readable in one place. `press` is the one ordinary
+ * moment here — every `GameButton` ticks on press-in — and `horn` is a short call for a summons.
  */
-export type WorldEvent = 'enterDeep' | 'ascend' | 'tierUp' | 'sealBreak' | 'honour' | 'pledgeKept';
+export type WorldEvent =
+  | 'enterDeep' | 'ascend' | 'tierUp' | 'sealBreak' | 'honour' | 'pledgeKept' | 'press' | 'horn';
 
 type HapticKind = 'soft' | 'light' | 'medium' | 'heavy' | 'success';
 
@@ -25,6 +27,8 @@ const SIGNALS: Record<WorldEvent, EventDef> = {
   sealBreak: { haptic: 'heavy',   sound: require('../../assets/sounds/seal.wav') },
   honour:    { haptic: 'success', sound: require('../../assets/sounds/honour.wav') },
   pledgeKept:{ haptic: 'success', sound: require('../../assets/sounds/pledge.wav') },
+  press:     { haptic: 'soft',    sound: require('../../assets/sounds/tick.wav') },
+  horn:      { haptic: 'light',   sound: require('../../assets/sounds/horn.wav') },
 };
 
 const REPEAT_GAP_MS = 110;

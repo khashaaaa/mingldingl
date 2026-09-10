@@ -45,7 +45,6 @@ public record UserResponse(
     List<string> PhotoUrls,
     string MembershipLevel,
     bool IsProfileComplete,
-    string? EquippedFrameId = null,
     string? EquippedTitleId = null,
     bool? HasKids = null,
     string? SmokingHabit = null,
@@ -63,7 +62,13 @@ public record UserResponse(
     int? OathEncountersHeld = null,
     int? OathEncountersNeeded = null,
     int DeletionGraceDays = 7,
-    string PreferredLocale = "en");
+    string PreferredLocale = "en",
+    /// <summary>
+    /// When the account was scheduled for deletion, or null. Surfaced because deletion is now
+    /// cancelled only by an explicit request: with nothing on the wire, a pending deletion was
+    /// invisible to the app and could not be shown, warned about, or called off deliberately.
+    /// </summary>
+    DateTime? DeletionRequestedAt = null);
 
 public record OwnedItemResponse(string ItemId, string NameKey, string Rarity, string ItemType, DateTime AcquiredAt, bool Equipped);
 

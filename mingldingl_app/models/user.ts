@@ -16,7 +16,6 @@ export interface UserProfile {
 
   membershipLevel: MembershipLevel;
   isProfileComplete: boolean;
-  equippedFrameId?: string | null;
   equippedTitleId?: string | null;
   hasKids?: boolean | null;
   smokingHabit?: string | null;
@@ -36,6 +35,11 @@ export interface UserProfile {
   oathEncountersNeeded: number | null;
   /** Days between a deletion request and anonymisation; admin-tunable, quoted in the deletion dialogs. */
   deletionGraceDays: number;
+  /**
+   * When deletion was requested, or null. The engine no longer cancels it on a profile read, so
+   * this is what tells the app a request is outstanding and lets it be called off deliberately.
+   */
+  deletionRequestedAt: string | null;
   /** "en" | "mn" — the language the engine writes this user's push notifications in. */
   preferredLocale: string;
 }
@@ -53,7 +57,6 @@ export function parseUserProfile(d: components['schemas']['UserResponse']): User
     photoUrls:        d.photoUrls          ?? [],
     membershipLevel:  (d.membershipLevel as MembershipLevel) ?? 'Free',
     isProfileComplete: d.isProfileComplete ?? false,
-    equippedFrameId:  d.equippedFrameId    ?? null,
     equippedTitleId:  d.equippedTitleId    ?? null,
     hasKids:          d.hasKids            ?? null,
     smokingHabit:     d.smokingHabit       ?? null,
@@ -71,6 +74,7 @@ export function parseUserProfile(d: components['schemas']['UserResponse']): User
     oathEncountersHeld:   d.oathEncountersHeld   ?? null,
     oathEncountersNeeded: d.oathEncountersNeeded ?? null,
     deletionGraceDays: d.deletionGraceDays ?? 7,
+    deletionRequestedAt: d.deletionRequestedAt ?? null,
     preferredLocale: d.preferredLocale ?? 'en',
   };
 }

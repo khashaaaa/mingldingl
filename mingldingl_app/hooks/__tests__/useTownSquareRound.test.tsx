@@ -67,6 +67,7 @@ function makeWrapper(queryClient: QueryClient) {
 
 const round1 = {
   pairingId: 'p1',
+  partnerUserId: 'u-partner',
   videoToken: 'tok1',
   channelName: 'chan1',
   appId: 'app1',
@@ -100,6 +101,8 @@ describe('useTownSquareRound', () => {
     await waitFor(() => expect(result.current.round?.pairingId).toBe('p1'));
     expect(result.current.round).toEqual({
       pairingId: 'p1',
+      // The screen needs it to offer a report: a Town Square partner is a stranger with no match.
+      partnerUserId: 'u-partner',
       videoToken: 'tok1',
       channelName: 'chan1',
       appId: 'app1',

@@ -11,6 +11,50 @@ Check this file before assuming a feature doesn't exist yet.
 
 ---
 
+## Authored cast reseed + device style sweep (2026-09-10)
+
+The dev seed's people were a modulo expression over a name list, their photos were letter
+placeholders, and every match's "conversation" was the same eight lines looped. Replaced with an
+authored cast and real portraits, then swept the app on the Galaxy A51 for what real photographs
+and real threads exposed.
+
+**The seed.** 19 people with hand-written bios, real UB districts and coordinates, spread across
+every tier, oath, membership and lifecycle state, plus nine matches each carrying one authored
+Mongolian conversation (2 to 34 messages) that reads as two people actually talking. Reveal levels
+now span 1-4 across the fixtures.
+
+**`InitiatorMessageCount`/`ReceiverMessageCount` were never seeded.** `RevealService.MutualMessageCount`
+reads the per-side counts, so with both at 0 a 35-message thread computed `min(35, 2*0+1) = 1` and
+rendered as "1 of 3 photos revealed · next reveal at 5 messages". Every seeded conversation
+contradicted its own reveal strip. The seed writes both counts now.
+
+**Portraits are StyleGAN output** (`scripts/gen-cast-photos.py`) — photorealistic but depicting no
+real person, because a dating-app fixture must not put identifiable people on fabricated profiles.
+Frames are square: the discover card covers its photo into a box that is landscape on a tall phone,
+so a 3:4 portrait was being scaled up ~1.5x and cropped to a nose. They live under
+`seed/c2/` — a cast version, because expo-image caches by URL and a reseed reusing
+`seed/<slug>-1.jpg` left every device that had seen the old cast showing the old picture.
+
+**Style fixes the placeholders had been hiding.** The chat screen is transparent so the world floor
+shows through, and that floor sits at very nearly `COLORS.panel` — an incoming bubble's edge scored
+**1.03:1** against what was actually behind it, so a received message read as bare text with no
+bubble. Fill cannot carry it in a palette this dark (`panelRaised` only reaches 1.09:1); the bubble
+takes the same `LINE.edge` hairline every other panel uses, measured at **3.10:1** on device. The
+discover card's photo-progress dots were `COLORS.text` at 30% alpha directly on the photograph —
+**1.01:1** on a pale portrait, i.e. gone; they are opaque now over their own top scrim, worst case
+**3.5:1** (a translucent dot darkens along with the scrim, so the scrim alone made it worse).
+`formatCountdown` had no day rung, so Town Square's next-session card counted in raw hours and a
+gathering nine days out read "216ц 0м".
+
+**A test that only passed on an empty database.** `GetNextSession_NoUpcomingSession_ReturnsNullSessionId`
+asserted a claim about the whole table while the integration tests share the dev database, so it
+went red against any reseeded DB and stayed green on CI. It now clears live sessions inside its own
+rolled-back transaction.
+
+Engine 939/939, app 688/688, control lint + build green.
+
+---
+
 ## Second real-device sweep — 11 fixes (2026-09-06)
 
 A pass over the parts nothing had driven end to end: Town Square (a real session RSVP'd, locked,
@@ -543,6 +587,105 @@ toast).
 
 ---
 
+## Screens stand on their own ground — the transparent-transition glitch (2026-09-10)
+
+Pushing The War Room (and any other screen) drew the incoming and outgoing screens *through each
+other* for the whole transition: ~350 ms of the War Room superimposed on the Character Sheet, and
+the Quest Log visible through a chat as it slid up. Recorded on the Galaxy A51 with `screenrecord`
+and read frame by frame. Root cause: every screen was transparent (so the one world floor behind
+the navigator could show through), and a native stack keeps the outgoing screen attached until the
+incoming one has appeared — with both transparent, every animation is an overlap, and even
+`animation: 'none'` left a frame or two of composite. Fix: the Stack's `screenLayout`
+(`ScreenGround` in `app/_layout.tsx`) wraps every screen in an opaque `COLORS.bg` view that carries
+its own `WorldFloor`, so screens stay background-free but cover each other properly; the root-level
+floor is gone. `animationFor` now returns `'none'` for lateral moves (it said "instant" and
+returned the platform default), keeps `slide_from_bottom` into a delve — which now reads as a real
+slide — and `fade` under reduce-motion. `lib/world/__tests__/travel.test.ts` pins the table.
+Verified: the War Room push is a clean cut and the chat push an opaque slide.
+
+---
+
+## The Answering Hold — creative effects wave — Shipped (2026-09-10)
+
+**Why.** What makes a mobile game feel alive is feedback and rhythm, not art: every action answers
+back, the screen moves on its own, and progress is always visible with a gap to close. The app had
+the ceremonies and the world layer but ordinary taps went quiet, numbers jumped and most gaps were
+hidden. Eleven pieces shipped in one wave, built by parallel agents from one plan and verified
+together (app 845+ tests / 93 suites, engine 935, typecheck, control lint+build) and on the
+Galaxy A51. Left out on purpose because a phone would struggle or the data does not exist yet:
+parallax, ambient soundscapes, continuous Skia shimmer, lit windows on the atlas, "held by few".
+
+**Every action answers back.** `GameButton` squashes to 0.97 and fires a new `press` world event
+(soft haptic + `tick.wav`); `horn.wav`/`horn` added for the Gate — both rendered by
+`scripts/gen-sounds.js` (now eight sounds). `components/ui/CountText` ticks any number from its
+previous value (600 ms ease-out, static under reduce-motion) and is used by `ScoreHUD`, `XPBar`,
+`DailyBudgetMeter` and the profile total; `ScoreHUD` floats a `+N`/`−N` from the score on change.
+Tier-up is a ceremony (`TierUpCeremony`): the old gem shakes, cracks and dims, burst, the new gem
+springs in under its torch glow; on dismiss `lib/world/session.ts` remembers the tier colour for
+the session and `WorldFloor` paints it as a faint second tone (alpha 0.10). A chat whose only
+message is the other person's first renders it as a folded letter with a wax seal
+(`SealedLetter` + `useSealedLetter`, once per match per session); tap breaks the wax and folds it
+away into the bubble.
+
+**The hold moves on its own.** `dayPhase()` (dawn/day/dusk/night) offsets every room's light
+(−0.10/0/+0.08/−0.15) and gives the canopy vignette the phase's temperature, re-evaluated each
+minute in `WorldProvider`. In the Deep, `delveLight` is the warmer of campaign torches and
+`conversationWarmth`: 1 within an hour of the last message, ebbing to 0.1 at the 48 h ghosting
+window — the pre-ghost nudge told as a fire going out. `useWorldState(matchId)` reads the messages
+cache for it. Ember honours breathe (opacity 0.75↔1, 2.4 s); gold ones shimmer once on mount.
+Festival days (`useActiveFestival`) tint every card corner and divider in the festival colour and
+give the Town Square card a festival eyebrow.
+
+**Progress with a gap to close.** The hall: an emblem per honour (`HONOUR_ICONS`), ignition when
+an honour arrives while watching (`useIgnition`: burst, outline→metal, border sweep, `honour`
+signal), near-miss rules on dark slots (`useHonourProgress`: streak of 7, oath encounters, threads
+sparked 1/5/10 — the engine's `ScoreDetailResponse` gained `ThreadsSparked`), the thread triptych
+drawn as one chained row with a thread lighting between held neighbours, and long-press for a lore
+line (`honour_lore_*`) with Wear / Take off. The streak is a lantern (`Lantern`): one flame per day
+toward seven, "4 of 7 dawns", lost flames blow out. Score history is a chronicle
+(`CHRONICLE_KEYS` → `chronicle_*`, EN+MN, one saga line per event type with a small-caps dateline).
+
+**Reasons to return.** `NextGatheringPill` (horn + countdown to RSVP close or start) on Seek and
+the Hearth tab. The verify screen is the Gate (`GateScene`): closed while the gatekeeper listens,
+the horn sounds when the SMS app opens, the gate swings open with `ascend` on VERIFIED, barred on
+expiry.
+
+**Device-verified:** countdown pill, streak flame in the HUD, the hall (emblems, 4 of 7, 0 of 2,
+0 of 1/5/10, triptych), long-press story, ignition (Flamekeeper lit in place), two chest opens, the
+Amethyst reforging and the purple floor tint after it, the lantern, the chronicle, the sealed
+letter and its unfold, the warm Deep after a fresh message. Two fixes from the device pass: the
+ceremony printed the tier name twice and said "Take Bounty" (now the coloured title alone and
+"Continue"), and the wax seal sat over the letter's caption. Not device-verified: the Gate (needs a
+sign-out and a SIM), festival tint (no festival today), time of day (daytime offset is 0).
+
+**Wave 2, not started:** the personal sigil and the knot of two, the encounter scroll.
+
+---
+
+## Honours as a Trophy Hall — Shipped (2026-09-10)
+
+The Honours card mixed nine deed-granted titles with "Rings of the Tiers", a six-slot picker of
+frames unlocked by gem tier. The rings said nothing (ring colour = tier colour, already the gem
+badge on the same screen), a ring below one's tier was a choice nobody wanted, and only the wearer
+ever saw it — so the card read as a wardrobe under copy that promised "earned by deeds". **Tier
+frames are gone end to end:** migration `RetireTierFrames` drops `Users.EquippedFrameId`;
+`EquippedFrameId` left `UserResponse`, `CandidateResponse` and `PartialUserProfile`;
+`HonourService` is titles-only (`Honours`, `Find`, `GrantAsync`; `Catalog`/`TierFrames`/frame
+helpers removed); `ScoreService` no longer clears a frame on demotion; `GET /users/me/items`
+returns held honours newest-first and `POST /users/me/items/{id}/equip` toggles the title only.
+The avatar ring takes the tier colour on the client (`ProfileAvatar` has one `tierColor` prop).
+
+The card is now a **trophy hall**: all nine honours always shown in catalogue order
+(`HONOUR_IDS` in `lib/tiers.ts`), lit in their Ulzii metal with the date earned, dark with the
+deed as the hint (`HONOUR_DEED_KEYS` → `honour_deed_*`, EN + MN) until then, `n / 9` in the eyebrow
+row, `honours_hint` under it. Tapping a lit honour wears it as the title (toggle); dark slots are
+inert. Milestone chests keep their row. Removed copy: `no_honours`, `frames_title`,
+`frame_locked_at`, `item_frame_*`. Verified on the Galaxy A51: 0/9 dark hall, two honours
+granted → lit with dates, tap → "Equipped" and the title under the display name, ring stays Opal.
+Tests: 934 engine, 711 app. API types regenerated in both frontends.
+
+---
+
 ## Honours Replace Loot — Shipped (2026-09-05)
 
 Random loot drops (`LootService`, catalogue of frames/emblems/titles, daily 3-drop cap,
@@ -639,3 +782,131 @@ with a test that fails on the old code.
   rows are claimed by the `sub`, not the account id); the admin login throttle evicts stale
   unlocked entries instead of failing open when full; a malformed `Admin:PasswordHash` is a 401,
   not a 500.
+
+---
+
+## Moderation, image safety and notification delivery (2026-09-08)
+
+A hunt across image upload, banning, reporting and notifications turned up 14 findings; all are
+fixed. The through-line is that three of the four areas had a lever missing rather than a lever
+broken.
+
+### Reporting, which did not exist
+
+`ScoreService` had carried a `ReportPenalty` delta since the beginning that nothing could ever
+award: there was no report endpoint, no table, no admin queue, and no UI. Blocking was the only
+lever a user had, and `POST /matches/{id}/block` only reaches someone you are already matched with —
+so a Town Square stranger could not be blocked at all. Now: `UserReport` + `ReportService`,
+`POST /reports` (seven reasons, optional details, one open report per pair), a `ReportUserSheet`
+reachable from the chat options and from the Town Square round screen, and `/admin/reports` with a
+queue, per-user report history and four outcomes. `Penalised` is the only thing that spends the
+score delta and `Banned` suspends the account — both admin decisions, never automatic, or any two
+accounts could drive anyone's score down on demand. Filing a report blocks the reported user and
+ends the conversation in the same write.
+
+The sheet's copy is English-only for now and sits on `AWAITING_MN_TRANSLATION`; the error strings
+are translated. Safety copy is the last place for a guess at Mongolian.
+
+### Photo ownership
+
+`IsOwnedPublicUrl` validated a photo URL's *origin* but not whose directory it named, and
+`GET /matches/candidates` hands out every candidate's full photo list. So anyone could put someone
+else's photo on their own profile — wearing that person's face — and then, by dropping it again,
+run `PUT /users/me`'s unlink against the victim's real file on disk. The check is now scoped to
+`photos/profiles/{ownerId}/`, and both unlink paths (the update, and deletion-anonymisation) refuse
+a file that is not the user's own, so a URL stolen before the fix cannot destroy anything either.
+
+### The rest
+
+- **Decompression bomb.** `Image.LoadAsync` ran on up to 15MB of attacker-chosen bytes with no
+  pixel cap; a ~1MB PNG declaring 30000×30000 takes the process to several GB. The header is read
+  first now (`MaxPixels`, ~60MP), and `POST /photos/upload` is rate-limited per user.
+- **Orphaned uploads.** An upload is issued when a photo is picked and only lands on a row when the
+  profile is saved, so every abandoned edit left a permanently public file behind and nothing
+  bounded the disk. The daily sweep now deletes unreferenced photo files older than 24h, comparing
+  relative paths (a live photo recorded under an older `PublicBaseUrl` must not read as an orphan).
+- **Long Mongolian messages produced no push at all.** A chat push carries the message verbatim and
+  2000 characters of Cyrillic is ~4000 bytes against Expo's 4KiB limit; the `MessageTooBig` ticket
+  was discarded along with every other non-`DeviceNotRegistered` error, and the HTTP status was
+  never checked. Copy is truncated to a byte budget on a rune boundary, and Expo's refusals are
+  logged.
+- **Push registration was tied to mount, not to the session.** Signing out unregisters the token,
+  so the next person to sign in on the same launch had no notifications until a force-quit; a cold
+  start could also register before the stored session was restored and swallow the 401. The effect
+  now keys on the user id. Android had no notification channel at all, so every push landed in
+  Expo's fallback channel at default importance — no heads-up banner, no sound.
+- **`POST /push/unregister` matched on token value alone** — an IDOR letting any account silence any
+  device whose token it could name. Tokens are also now format-checked and capped at 10 per user,
+  and the DTO has a length limit like every other string on the API.
+- **A ban left the other side stranded.** Banned accounts kept receiving pushes and their partners
+  sat in Active threads that could never be answered. Banning now ends those conversations, and
+  `NotifyUserAsync` skips suspended and pending-deletion recipients.
+- **Blocking did not reach Town Square.** The round-robin seated every man opposite every woman;
+  the block check ran at match time, long after the encounter it was meant to prevent. Blocked
+  pairs are dropped from the rounds (both sit that one round out), and the start notification now
+  reads the whole session rather than round one.
+- **Admins could not remove a single photo** — the only answer to one objectionable image was
+  banning the account. `POST /admin/users/{id}/photos/remove` takes it off the profile and deletes
+  the file.
+- The ban 403 now carries a `code` like every other error, and the app renders a suspension screen
+  instead of failing every query with a shrug. `image/heic`/`image/heif` left the upload allowlist:
+  ImageSharp cannot decode either, so they always failed as "unreadable". Picking the same photo
+  twice no longer duplicates a grid key, uploads the file twice or deletes both tiles at once.
+  Upload failures now show the engine's own reason.
+
+939 engine tests, 687 app tests, control builds clean.
+
+
+## The world layer switched back on, and the reveal got its moment (2026-09-10)
+
+An audit of the visual-effects layer found the machinery in good shape and the *values* switched
+off — a lighting system built, then turned down to nothing to work around a texture bug.
+
+**Rank became visible again.** `TIER_PRESENCE` (ring weight + glow per tier) had been defined and
+tested for weeks and read by no component; `GemTierBadge` still gated all three of ring, glow and
+shimmer on a hard `tierIndex >= 3` cliff, so tiers 1-3 rendered identically to each other and tiers
+4-6 identically to each other — six rungs of data drawn as two, on the badge that carries the
+product's whole identity. `presenceForTier` turns one row of the table into the three numbers a
+badge needs, clamped for the size it is drawn at, and `TorchGlow` gained a `strength` scale.
+Normalised against the table's own top, so the hero badge is unchanged and only the lower rungs
+dim. Regression-tested as a ladder rather than through a render.
+
+**Effects stopped being invisible on the surface they are developed on.** `VfxLevel`'s `reduced`
+conflated two unrelated facts — "no Skia renderer here" (web) and "this person asked for less
+motion" — and `EmberField`, `FogDrift` and `ChestBurst` all answered it by rendering *nothing*, so
+the entire vfx layer was blank in the browser. The levels are now `full` / `plain` / `still` /
+`off`, precedence off > still > plain > full: `plain` gets React Native `Animated` fallbacks at
+half density, and `still` renders each effect's static form — nothing at all for the ones that are
+purely motion, since a still ember is a speck of dust rather than a dim ember. Travel animation
+and the light fade followed the same correction, having both been gated on "is this Skia".
+
+**Six light signatures that rendered as one.** After the brick floor was replaced, both floor
+textures resolved to the same colour and all six signatures washed `silver` at 0.00-0.06 alpha —
+the Gate and the Tavern were the same room. The wash had twice failed the same way: painted in
+front of the content, any colour strong enough to tell rooms apart read as a film over the UI.
+The room's `tone` therefore moved to `WorldFloor`, *behind* the navigator, as a bottom-anchored
+gradient where it cannot touch a word of text and can be as warm as the Tavern needs; the canopy
+kept only the vignette, which now carries a per-room `edge` because night has a temperature too.
+The test that guarded the old rule ("every wash is the same colour") was replaced by one that
+guards the failure it caused: no two signatures may render identically.
+
+**The Unsealing.** Progressive reveal is the mechanic the product is built on, and its entire
+visual treatment was a 36px tile swapping a padlock glyph for an image. Crossing a rung now dims
+the room, sets an Ulzii knot as the seal, breaks it into the existing chest-burst particles with
+the `sealBreak` haptic, and resolves the newly unlocked photo out of blur. `useUnsealing` reports
+only a level that climbs *while you are watching* — the first level seen for a match is recorded
+silently, so opening an old conversation never replays a ceremony it earned days ago. It adds no
+new copy: headline and subline are the strings the reveal strip already uses, so it shipped in both
+languages rather than joining the `AWAITING_MN_TRANSLATION` list.
+
+**Light that arrives rather than catches up.** Rising light springs with a small overshoot and
+settles; falling light keeps the flat fade. A match landing makes the Hearth swell; losing
+something is not given a flourish.
+
+Device-verified on a Galaxy A51: the Tavern reads as firelight on the floor with the panels and
+body copy untouched (bottom gutter measured warm at (36,26,17) against the Road's cool (19,22,29)),
+and the ceremony was driven end to end by crossing a real reveal threshold in a seeded chat. Two
+defects the device caught and the tests could not: the scrim was sheer enough that chat bubbles
+showed through the headline, and the plate was too small — both fixed and re-verified.
+
+939 engine tests, 710 app tests, control builds clean.

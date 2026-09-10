@@ -47,6 +47,8 @@ public static class ConfigKeys
         Number("budget.score_divisor", "Budget", "50", "One extra daily match slot per this many total score points", 1, 100000),
 
         // Membership — pricing
+        Bool("membership.purchase.enabled", "Membership", "false",
+            "When false, POST /membership/upgrade refuses paid tiers. Keep it off until a payment provider actually charges before the tier is granted — nothing in the engine takes money yet"),
         Number("membership.silver.monthly_mnt", "Membership", "10900", "Silver monthly price in MNT; multi-month totals derive from it", 1, 10000000),
         Number("membership.gold.monthly_mnt", "Membership", "21900", "Gold monthly price in MNT; multi-month totals derive from it", 1, 10000000),
         Number("membership.discount.3mo_pct", "Membership", "10", "Percent off the monthly price when paying for 3 months", 0, 90),
@@ -61,11 +63,17 @@ public static class ConfigKeys
             $"Messages a match must exchange before profile reveal level {d.Level} unlocks; the four thresholds must stay strictly increasing",
             1, 100000)),
 
+        Number("matching.candidate_pool", "Matching", "500",
+            "How many eligible profiles one discover pull ranks in memory; the feed cannot be paged past this depth",
+            50, 5000),
         Number("activity.suggestions.messages", "Matching", "15",
             "Messages a match must exchange before activity suggestions (and the pledge that follows) unlock", 1, 100000),
 
         // Safety
-        Number("dating.noshow.threshold", "Safety", "3", "Distinct-match attendance mismatches before ReputationScore is docked", 1, 100),
+        Number("ghosting.unanswered_hours", "Safety", "168",
+            "Hours a match nobody has sent a single message in stays open before it closes; nobody is penalised for it",
+            1, 8760),
+        Number("dating.noshow.threshold", "Safety", "3", "Times a user has been reported as not showing up before ReputationScore is docked", 1, 100),
         Number("dating.attendance_check.delay_hours", "Safety", "48", "Hours after a confirmed date before each side is asked whether the other showed up", 0, 8760),
         Number("dating.flamerite.duration_minutes", "Safety", "5", "Length of the Flame Rite video call, and the TTL of the token minted for it", 1, 120),
         Bool("dating.flamerite.required", "Safety", "true", "When true, a match cannot pledge an encounter until the Flame Rite is complete (ignored while video.enabled is false)"),

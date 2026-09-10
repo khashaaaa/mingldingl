@@ -10,12 +10,15 @@ import { useAttendanceCheck } from '../../hooks/useAttendanceCheck';
 import { useMatches } from '../../hooks/useMatches';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { AttendanceCheckModal } from '../../components/modals/AttendanceCheckModal';
+import { ReportUserSheet } from '../../components/modals/ReportUserSheet';
 import FlameRiteCard, { type FlameRiteState } from '../../components/FlameRiteCard';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { MessageBubble } from '../../components/chat/MessageBubble';
 import { MessageInput } from '../../components/chat/MessageInput';
 import { RevealStrip } from '../../components/chat/RevealStrip';
+import { SealedLetter } from '../../components/chat/SealedLetter';
+import { Unsealing } from '../../components/chat/Unsealing';
 import { QuestBanner } from '../../components/quest/QuestBanner';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { i18n } from '../../lib/i18n';
@@ -24,6 +27,10 @@ import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
+import { useActivityGate, useRevealLadder } from '../../hooks/useRevealThresholds';
+import { messagesUntilActivities, nextRevealThreshold } from '../../lib/reveal';
+import { useUnsealing } from '../../hooks/useUnsealing';
+import { useSealedLetter } from '../../hooks/useSealedLetter';
 
 const DEFAULT_RITE_DURATION_MINUTES = 5;
 
@@ -58,9 +65,11 @@ export default function ChatScreen() {
   const [endedAcknowledged, setEndedAcknowledged] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [activitiesVisible, setActivitiesVisible] = useState(false);
+  const activityGate = useActivityGate();
   const [confirmUnmatch, setConfirmUnmatch] = useState(false);
   const [unmatching, setUnmatching] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [actionFailedAlert, setActionFailedAlert] = useState(false);
 
@@ -69,6 +78,21 @@ export default function ChatScreen() {
     !!riteState.proposedByUserId && riteState.proposedByUserId !== myId
     && !riteState.acceptedAt && !riteState.completedAt;
   const waitingOnYou = (attendanceDue ? 1 : 0) + (ritePendingMyAnswer ? 1 : 0);
+  // match.messageCount is the engine's mutual count, which is what the gate itself reads.
+  const encounterLockedBy = messagesUntilActivities(match?.messageCount ?? 0, activityGate);
+
+  // The reveal ceremony. Everything it shows is derived from the match rather than held in state,
+  // so a reveal that lands while the modal is already open updates it instead of queueing.
+  const revealLadder = useRevealLadder();
+  const { unsealed, dismiss: dismissUnsealing } = useUnsealing(matchId, match?.revealLevel);
+  // The other side's first word arrives as a sealed letter, once, until you break the wax.
+  const { sealedMessageId, unseal } = useSealedLetter(matchId, messages, myId, hasMore);
+  const revealedPhotos = match
+    ? [match.otherUser.firstPhoto, match.otherUser.secondPhoto, match.otherUser.thirdPhoto].filter(Boolean)
+    : [];
+  // Reveals arrive in order, so the last one present is the one that just broke its seal.
+  const unsealedPhoto = revealedPhotos[revealedPhotos.length - 1] ?? null;
+  const unsealedNextAt = nextRevealThreshold(match?.messageCount ?? 0, revealLadder);
 
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -124,11 +148,23 @@ export default function ChatScreen() {
     setEndedAcknowledged(false);
   }, [matchId]);
 
+  // `name` is a route param frozen when the quest-log row was tapped, so a match that crossed the
+  // level-2 reveal threshold mid-conversation kept a "??? • Mystery" header while the reveal strip
+  // right below it already read "2 of 3 photos". Derive it from the live match instead, and keep
+  // the param only as the first-paint value while `useMatches` is still in flight.
+  const revealedName = match
+    ? match.otherUser.isDeleted
+      ? i18n.t('deleted_user')
+      : match.revealLevel >= 2
+        ? (match.otherUser.displayName ?? i18n.t('unknown_name'))
+        : i18n.t('mystery_match_name')
+    : null;
+
   return (
     <View style={styles.container}>
       <View>
         <ScreenHeader
-          title={name || i18n.t('chat_title')}
+          title={revealedName || name || i18n.t('chat_title')}
           right={
             <>
               <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.unmatchBtn} accessibilityLabel={i18n.t('chat_options_title')}>
@@ -151,6 +187,21 @@ export default function ChatScreen() {
             messageCount={match.messageCount}
             revealLevel={match.revealLevel}
             defaultExpanded={false}
+          />
+        )}
+        {match && (
+          <Unsealing
+            visible={unsealed}
+            onDismiss={dismissUnsealing}
+            photoUri={unsealedPhoto}
+            // Level 2 is the rung that hands over a name, and a name is the whole headline it
+            // needs. Above that the reveal is another photo, so the count carries it.
+            headline={match.revealLevel === 2
+              ? (match.otherUser.displayName ?? i18n.t('unknown_name'))
+              : i18n.t('reveal_summary', { shown: revealedPhotos.length, total: match.otherUser.photoCount ?? revealedPhotos.length })}
+            subline={unsealedNextAt !== null
+              ? i18n.t('reveal_next_at', { count: unsealedNextAt })
+              : i18n.t('reveal_complete')}
           />
         )}
       </View>
@@ -240,7 +291,10 @@ export default function ChatScreen() {
               </>
             ) : null}
             renderItem={({ item }) => (
-              <MessageBubble message={item} myId={myId ?? ''} onRetry={retryMessage} />
+              item.id === sealedMessageId
+                // The match carries no tier for the other side, so the wax is gold.
+                ? <SealedLetter onOpen={unseal} sealColor={COLORS.gold} />
+                : <MessageBubble message={item} myId={myId ?? ''} onRetry={retryMessage} />
             )}
           />
         )}
@@ -332,8 +386,16 @@ export default function ChatScreen() {
               )}
               <QuestBanner icon="brain" title={i18n.t('trial_compat')}
                 onPress={() => { setActivitiesVisible(false); router.push(`/quiz/${matchId}`); }} />
-              <QuestBanner icon="map-marker" title={i18n.t('plan_encounter')}
-                onPress={() => { setActivitiesVisible(false); router.push(`/activities/${matchId}`); }} />
+              {/* The gate is the engine's (activity.suggestions.messages, served with the reveal
+                  ladder). Offering the door unconditionally sent people to a screen that could
+                  only say "keep chatting" with no idea how much more was needed. */}
+              {encounterLockedBy > 0 ? (
+                <QuestBanner icon="lock" disabled
+                  title={i18n.t('encounter_locked', { count: encounterLockedBy })} />
+              ) : (
+                <QuestBanner icon="map-marker" title={i18n.t('plan_encounter')}
+                  onPress={() => { setActivitiesVisible(false); router.push(`/activities/${matchId}`); }} />
+              )}
               {attendanceDue && (
                 <QuestBanner icon="calendar-check" title={i18n.t('attendance_check_title')}
                   onPress={() => { setActivitiesVisible(false); setAttendanceModalVisible(true); }} />
@@ -357,9 +419,23 @@ export default function ChatScreen() {
             <GameButton variant="danger" icon="account-cancel" onPress={() => { setOptionsVisible(false); setConfirmBlock(true); }}>
               {i18n.t('block_user')}
             </GameButton>
+            <GameButton variant="danger" icon="flag" onPress={() => { setOptionsVisible(false); setReportVisible(true); }}>
+              {i18n.t('report_user')}
+            </GameButton>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+      {match && (
+        <ReportUserSheet
+          visible={reportVisible}
+          reportedUserId={match.otherUserId}
+          matchId={matchId}
+          onClose={() => setReportVisible(false)}
+          // The engine blocks them and ends the thread in the same write, so the conversation this
+          // screen is showing is already over by the time this fires.
+          onReported={() => router.back()}
+        />
+      )}
     </View>
   );
 }

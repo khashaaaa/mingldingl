@@ -50,6 +50,11 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
             Status = "Active",
             VideoCallUnlocked = videoCallUnlocked,
             FlameRiteAcceptedAt = videoCallUnlocked ? DateTime.UtcNow : null,
+            // Completing the rite requires a token to have been taken and the rite's own
+            // duration to have passed since, so a seeded rite has to look like one that
+            // actually happened rather than one nobody dialled into.
+            InitiatorVideoTokenAt = videoCallUnlocked ? DateTime.UtcNow.AddHours(-1) : null,
+            ReceiverVideoTokenAt = videoCallUnlocked ? DateTime.UtcNow.AddHours(-1) : null,
         };
         Db.Matches.Add(match);
         await Db.SaveChangesAsync();
@@ -328,7 +333,13 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         var initiatorId = Guid.NewGuid();
         var firstMatch = await SeedMatchAsync(initiatorId, Guid.NewGuid());
         var otherReceiver = NewCompleteUser();
-        var secondMatch = new Match { InitiatorId = initiatorId, ReceiverId = otherReceiver.Id, Status = "Active", VideoCallUnlocked = true, FlameRiteAcceptedAt = DateTime.UtcNow };
+        var secondMatch = new Match
+        {
+            InitiatorId = initiatorId, ReceiverId = otherReceiver.Id, Status = "Active",
+            VideoCallUnlocked = true, FlameRiteAcceptedAt = DateTime.UtcNow,
+            InitiatorVideoTokenAt = DateTime.UtcNow.AddHours(-1),
+            ReceiverVideoTokenAt = DateTime.UtcNow.AddHours(-1),
+        };
         Db.Users.Add(otherReceiver);
         Db.Matches.Add(secondMatch);
         await Db.SaveChangesAsync();
@@ -344,5 +355,58 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         Assert.True(second.Awarded > 0);
         Db.ChangeTracker.Clear();
         Assert.Single(Db.UserItems.Where(i => i.UserId == initiatorId && i.ItemId == "title_flamekeeper"));
+    }
+
+    [Fact]
+    public async Task MarkComplete_WithoutEverTakingAToken_EarnsNothing()
+    {
+        var initiatorId = Guid.NewGuid();
+        var match = await SeedMatchAsync(initiatorId, Guid.NewGuid());
+        await Db.Matches.Where(m => m.Id == match.Id).ExecuteUpdateAsync(s => s
+            .SetProperty(m => m.InitiatorVideoTokenAt, (DateTime?)null)
+            .SetProperty(m => m.ReceiverVideoTokenAt, (DateTime?)null));
+        Db.ChangeTracker.Clear();
+
+        // Nothing outside the client reports that a call happened, so this endpoint is a claim —
+        // and it used to be a free one: score, a quest tick, first_video_call and title_flamekeeper
+        // for a POST nobody had to place a call to send.
+        var result = await BuildController(initiatorId).MarkComplete(new VideoCompleteDto(match.Id));
+
+        Assert.Equal(StatusCodes.Status403Forbidden, Assert.IsType<ObjectResult>(result).StatusCode);
+        Assert.Empty(Db.ScoreEvents.Where(e => e.UserId == initiatorId && e.EventType == "VideoCallDone").ToList());
+    }
+
+    [Fact]
+    public async Task MarkComplete_BeforeTheRiteCouldHaveRun_EarnsNothing()
+    {
+        var initiatorId = Guid.NewGuid();
+        var match = await SeedMatchAsync(initiatorId, Guid.NewGuid());
+        // Token taken two seconds ago: a five-minute rite cannot be over.
+        await Db.Matches.Where(m => m.Id == match.Id).ExecuteUpdateAsync(s => s
+            .SetProperty(m => m.InitiatorVideoTokenAt, DateTime.UtcNow.AddSeconds(-2)));
+        Db.ChangeTracker.Clear();
+
+        var result = await BuildController(initiatorId).MarkComplete(new VideoCompleteDto(match.Id));
+
+        Assert.Equal(StatusCodes.Status403Forbidden, Assert.IsType<ObjectResult>(result).StatusCode);
+        Assert.Empty(Db.ScoreEvents.Where(e => e.UserId == initiatorId && e.EventType == "VideoCallDone").ToList());
+    }
+
+    [Fact]
+    public async Task GetToken_StampsTheAskingParticipantsTokenTime()
+    {
+        var initiatorId = Guid.NewGuid();
+        var match = await SeedMatchAsync(initiatorId, Guid.NewGuid());
+        await Db.Matches.Where(m => m.Id == match.Id).ExecuteUpdateAsync(s => s
+            .SetProperty(m => m.InitiatorVideoTokenAt, (DateTime?)null)
+            .SetProperty(m => m.ReceiverVideoTokenAt, (DateTime?)null));
+        Db.ChangeTracker.Clear();
+
+        await BuildController(initiatorId).GetToken(new VideoTokenRequestDto(match.Id));
+
+        Db.ChangeTracker.Clear();
+        var reloaded = await Db.Matches.FindAsync(match.Id);
+        Assert.NotNull(reloaded!.InitiatorVideoTokenAt);
+        Assert.Null(reloaded.ReceiverVideoTokenAt);
     }
 }

@@ -14,6 +14,7 @@ import { Alegreya_700Bold } from '@expo-google-fonts/alegreya/700Bold';
 import { AlegreyaSC_700Bold } from '@expo-google-fonts/alegreya-sc/700Bold';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAuthStore } from '../store/authStore';
+import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { useOptimisticScoreBump } from '../hooks/useOptimisticScoreBump';
 import { queryClient } from '../lib/api/queryClient';
@@ -55,6 +56,27 @@ installGlobalErrorHandlers();
  * with the screens transparent they sit on top of the world floor and turn the hold white. Setting
  * them transparent is what lets the floor reach the screen at all.
  */
+/**
+ * Every stack screen stands on its own opaque ground with the world floor laid inside it.
+ *
+ * The floor used to be painted once, behind the navigator, with every screen transparent above
+ * it. That is exactly what a stack transition cannot survive: the navigator keeps the outgoing
+ * screen attached until the incoming one has appeared, and two transparent screens draw *through
+ * each other* for the whole hand-over — a full 350 ms platform animation on Android, and still a
+ * frame or two with `animation: 'none'`. On the Galaxy A51 the War Room and the Character Sheet
+ * sat superimposed on every push. Laying the floor inside each screen makes the screen opaque
+ * without a screen ever painting its own background, so the incoming one covers the outgoing one
+ * the way a screen is supposed to, and the slide into a delve is a slide again.
+ */
+function ScreenGround({ children }: { children: React.ReactNode }) {
+  return (
+    <View style={styles.ground}>
+      <WorldFloor />
+      {children}
+    </View>
+  );
+}
+
 const HOLD_THEME = {
   ...DefaultTheme,
   colors: { ...DefaultTheme.colors, background: 'transparent', card: 'transparent' },
@@ -73,6 +95,7 @@ const styles = StyleSheet.create({
   splashTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: COLORS.text, textAlign: 'center' },
   splashBody: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center' },
   transparent: { backgroundColor: 'transparent' },
+  ground: { flex: 1, backgroundColor: COLORS.bg },
   webFrame: Platform.OS === 'web'
     ? { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' }
     : { flex: 1 },
@@ -88,12 +111,14 @@ export default function RootLayout() {
 
 function AppContent() {
   const session = useAuthStore((s) => s.session);
+  const suspended = useAuthStore((s) => s.suspended);
   const setSession = useAuthStore((s) => s.setSession);
   const setStreakBonusPending = useAuthStore((s) => s.setStreakBonusPending);
   const pendingNudge = useAuthStore((s) => s.pendingNudge);
   const setPendingNudge = useAuthStore((s) => s.setPendingNudge);
   const { data: userProfile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useProfile();
   const bumpScore = useOptimisticScoreBump();
+  const { signOut } = useAuth();
   const isOnline = useNetworkStatus();
   const vfxLevel = useVfxLevel();
   useRealtimeNudges();
@@ -202,6 +227,18 @@ function AppContent() {
     );
   }
 
+  // Checked before the profile-error screen: a suspended account's profile query fails too, and
+  // "couldn't load your character — retry" is the wrong thing to tell someone who has been banned.
+  if (session && suspended) {
+    return (
+      <View style={styles.splash}>
+        <Text style={styles.splashTitle}>{i18n.t('account_suspended_title')}</Text>
+        <Text style={styles.splashBody}>{i18n.t('err_account_suspended')}</Text>
+        <GameButton variant="brass" onPress={() => signOut()}>{i18n.t('sign_out')}</GameButton>
+      </View>
+    );
+  }
+
   if (session && profileError && !userProfile) {
     return (
       <View style={styles.splash}>
@@ -218,19 +255,19 @@ function AppContent() {
         <WorldProvider>
         <View style={styles.webFrame}>
           {!isOnline && <OfflineBanner />}
-          {/* Floor behind the navigator, canopy above it: screens still painting their own opaque
-              background hide the floor but never the canopy, so the hold is lit either way. */}
-          <WorldFloor />
+          {/* The floor is laid inside every stack screen (`ScreenGround`) rather than once behind
+              the navigator, and the canopy sits above it all — so the hold is lit either way. */}
           <ErrorBoundary>
             <ThemeProvider value={HOLD_THEME}>
             <Stack
               screenOptions={({ route }) => ({
                 headerShown: false,
-                animation: animationFor(route.name, vfxLevel !== 'full'),
+                animation: animationFor(route.name, vfxLevel === 'still'),
                 // Native stack screens take their ground from `contentStyle` rather than the
                 // theme, so both are needed — see HOLD_THEME.
                 contentStyle: styles.transparent,
               })}
+              screenLayout={ScreenGround}
             />
             </ThemeProvider>
           </ErrorBoundary>

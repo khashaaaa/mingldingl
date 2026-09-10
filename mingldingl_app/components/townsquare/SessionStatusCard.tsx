@@ -6,6 +6,8 @@ import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
 import type { TownSquareNextSession } from '../../hooks/useTownSquareSession';
 import { Icon } from '../ui/Icon';
+import { CardEyebrow } from '../ui/CardEyebrow';
+import { useActiveFestival } from '../../lib/festivals';
 
 interface Props {
   session: TownSquareNextSession | undefined;
@@ -18,6 +20,7 @@ interface Props {
 }
 
 export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter, isRsvping, isCancelling }: Props) {
+  const festival = useActiveFestival();
   if (!session?.sessionId) {
     return (
       <View style={styles.emptyWrap}>
@@ -30,6 +33,15 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
     );
   }
 
+  const festivalEyebrow = festival && (
+    <View style={styles.festivalRow} testID="festival-eyebrow">
+      <Icon name={festival.icon} size={ICON_SIZES.sm} color={festival.color} />
+      <CardEyebrow color={festival.color} style={styles.festivalText}>
+        {i18n.t('festival_gathering', { festival: i18n.t(festival.nameKey) })}
+      </CardEyebrow>
+    </View>
+  );
+
   const isOpen = session.status === 'Open';
   const isInProgress = session.status === 'InProgress';
   const startsCountdown = formatCountdown(session.scheduledStartAt, now);
@@ -39,6 +51,7 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
   if (isInProgress) {
     return (
       <AppCard style={styles.card}>
+        {festivalEyebrow}
         <Text style={styles.title}>{i18n.t('town_square_title')}</Text>
         <Text style={styles.countdown}>{i18n.t('town_square_in_progress')}</Text>
         {session.isRsvpd && (
@@ -52,6 +65,7 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
 
   return (
     <AppCard style={styles.card}>
+      {festivalEyebrow}
       <Text style={styles.title}>{i18n.t('town_square_title')}</Text>
       {isOpen && (
         <Text style={styles.hint}>{i18n.t('town_square_rsvp_closes_in', { time: formatCountdown(session.rsvpClosesAt, now) })}</Text>
@@ -74,6 +88,8 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg, gap: SPACE.sm },
+  festivalRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+  festivalText: { marginBottom: 0 },
   title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, letterSpacing: 1 },
   hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
   countdown: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.title, color: COLORS.text },

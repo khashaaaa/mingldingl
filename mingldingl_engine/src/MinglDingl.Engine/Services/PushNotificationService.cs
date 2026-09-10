@@ -19,8 +19,11 @@ public class PushNotificationService
     /// </summary>
     public async Task NotifyUserAsync(Guid userId, PushKind kind, Dictionary<string, object>? data = null, params string[] args)
     {
+        // A suspended account is not a recipient: it cannot open the app to act on anything it is
+        // told, and a stream of "you have a new message" to someone who has been thrown out is
+        // worse than silence. Same for one already past its deletion request.
         var recipient = await _db.Users.AsNoTracking()
-            .Where(u => u.Id == userId && u.PushEnabled)
+            .Where(u => u.Id == userId && u.PushEnabled && !u.IsBanned && u.DeletionRequestedAt == null)
             .Select(u => new { u.PreferredLocale, Tokens = _db.PushTokens.Where(t => t.UserId == userId).Select(t => t.Token).ToList() })
             .FirstOrDefaultAsync();
         if (recipient is null || recipient.Tokens.Count == 0) return;

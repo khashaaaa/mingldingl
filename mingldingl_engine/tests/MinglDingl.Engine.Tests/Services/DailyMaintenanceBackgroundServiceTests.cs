@@ -204,9 +204,14 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         // /uploads is public and unauthenticated, so clearing the column alone would leave the
         // photos fetchable by anyone holding an old URL.
         var storage = BuildTestStorage();
-        var url = await storage.UploadAsync("photos", "u1/a.jpg", [1, 2, 3], "image/jpeg");
-
         var user = NewCompleteUser();
+        // The path POST /photos/upload issues: a file only counts as this user's own when it is in
+        // the directory they were given, so the sweep can never reach into another account's files.
+        var url = await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket,
+            $"{LocalFileStorageService.ProfilePhotoDirectory(user.Id)}a.jpg",
+            [1, 2, 3],
+            "image/jpeg");
         user.PhotoUrls = [url];
         user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriodFor(new ConfigService()) - TimeSpan.FromDays(1);
         Db.Users.Add(user);
@@ -217,6 +222,87 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         Assert.False(storage.DeleteByPublicUrl(url), "the file should already be gone");
         Assert.Empty((await Db.Users.FindAsync(user.Id))!.PhotoUrls);
     }
+
+    /// <summary>
+    /// An upload is issued the moment a photo is picked and only lands on a row when the profile is
+    /// saved, so every abandoned edit and failed save left a permanently public file behind and
+    /// nothing bounded the disk.
+    /// </summary>
+    [Fact]
+    public async Task RunSweepAsync_DeletesAnUploadedFileNoRowEverPointedAt()
+    {
+        var storage = BuildTestStorage();
+        var owner = NewCompleteUser();
+        var orphan = await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket,
+            $"{LocalFileStorageService.ProfilePhotoDirectory(owner.Id)}abandoned.jpg",
+            [1, 2, 3], "image/jpeg");
+        AgeFile(storage, orphan);
+        owner.PhotoUrls = [];
+        Db.Users.Add(owner);
+        await Db.SaveChangesAsync();
+
+        await BuildService(storage).RunSweepAsync(CancellationToken.None);
+
+        Assert.False(storage.DeleteByPublicUrl(orphan), "the orphan should already be gone");
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_LeavesAnUploadYoungerThanTheGracePeriodAlone()
+    {
+        var storage = BuildTestStorage();
+        var owner = NewCompleteUser();
+        var justUploaded = await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket,
+            $"{LocalFileStorageService.ProfilePhotoDirectory(owner.Id)}mid-edit.jpg",
+            [1, 2, 3], "image/jpeg");
+        owner.PhotoUrls = [];
+        Db.Users.Add(owner);
+        await Db.SaveChangesAsync();
+
+        await BuildService(storage).RunSweepAsync(CancellationToken.None);
+
+        // Someone is in the middle of editing their profile right now.
+        Assert.True(storage.DeleteByPublicUrl(justUploaded));
+    }
+
+    /// <summary>
+    /// The trap this sweep has to avoid. Storage:PublicBaseUrl differs between localhost, the LAN
+    /// IP used for device testing and production, so comparing full URLs would read a live photo
+    /// recorded under an older origin as an orphan and delete it.
+    /// </summary>
+    [Fact]
+    public async Task RunSweepAsync_KeepsAReferencedPhotoRecordedUnderAnOlderOrigin()
+    {
+        var storage = BuildTestStorage();
+        var owner = NewCompleteUser();
+        var url = await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket,
+            $"{LocalFileStorageService.ProfilePhotoDirectory(owner.Id)}kept.jpg",
+            [1, 2, 3], "image/jpeg");
+        AgeFile(storage, url);
+        owner.PhotoUrls = [url.Replace("http://localhost:5150", "http://192.168.1.32:5150")];
+        Db.Users.Add(owner);
+        await Db.SaveChangesAsync();
+
+        await BuildService(storage).RunSweepAsync(CancellationToken.None);
+
+        Assert.True(storage.DeleteByPublicUrl(url), "a live photo must survive the orphan sweep");
+    }
+
+    /// <summary>Backdates a stored file past the sweep's 24h grace period.</summary>
+    private static void AgeFile(LocalFileStorageService storage, string url)
+    {
+        var relative = storage.RelativePathOf(url)!;
+        var path = Path.Combine(RootOf(storage), relative.Replace('/', Path.DirectorySeparatorChar));
+        File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddDays(-3));
+    }
+
+    /// <summary>The uploads root the service was constructed with; nothing else exposes it.</summary>
+    private static string RootOf(LocalFileStorageService storage) =>
+        (string)typeof(LocalFileStorageService)
+            .GetField("_root", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .GetValue(storage)!;
 
     [Fact]
     public async Task RunSweepAsync_AnonymizingAUser_PurgesTheirPhoneVerificationRecords()

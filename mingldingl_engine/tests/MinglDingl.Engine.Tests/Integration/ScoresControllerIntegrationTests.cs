@@ -18,6 +18,28 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
         return controller;
     }
 
+    /// <summary>A suspended account holding a top rank is exactly the standing the ban removes.</summary>
+    [Fact]
+    public async Task Leaderboard_BannedRival_IsOffTheBoard()
+    {
+        var meId = Guid.NewGuid();
+        var me = NewCompleteUser(meId);
+        me.City = "Darkhan";
+        me.TotalScore = 10;
+        var banned = NewCompleteUser();
+        banned.City = "Darkhan";
+        banned.TotalScore = 999_999;
+        banned.IsBanned = true;
+        Db.Users.AddRange(me, banned);
+        await Db.SaveChangesAsync();
+
+        var result = Assert.IsType<OkObjectResult>(await BuildController(meId).GetLeaderboard());
+        var board = Assert.IsType<LeaderboardResponse>(result.Value);
+
+        Assert.DoesNotContain(board.Entries, e => e.Score == 999_999);
+        Assert.Equal(1, board.MyRank);
+    }
+
     [Fact]
     public async Task Leaderboard_UlaanbaatarDistrictUser_SharesTheCapitalCohort()
     {
@@ -203,15 +225,15 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
         {
             InviterUserId = inviterId,
             InviteeUserId = inviteeId,
-            InviterRewardItemId = HonourService.Catalog[0].Id,
-            InviteeRewardItemId = HonourService.Catalog[1].Id,
+            InviterRewardItemId = HonourService.Honours[0].Id,
+            InviteeRewardItemId = HonourService.Honours[1].Id,
         });
         await Db.SaveChangesAsync();
         var controller = BuildController(inviterId);
 
         var first = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
         Assert.NotNull(first.PendingReferralReward);
-        Assert.Equal(HonourService.Catalog[0].Id, first.PendingReferralReward!.Id);
+        Assert.Equal(HonourService.Honours[0].Id, first.PendingReferralReward!.Id);
 
         var second = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
         Assert.NotNull(second.PendingReferralReward);
@@ -249,14 +271,14 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
             Status = "Sparked",
             SlotAUserId = Guid.NewGuid(),
             SlotBUserId = Guid.NewGuid(),
-            ShipperRewardItemId = HonourService.Catalog[0].Id,
+            ShipperRewardItemId = HonourService.Honours[0].Id,
         });
         await Db.SaveChangesAsync();
         var controller = BuildController(weaverId);
 
         var first = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
         Assert.NotNull(first.PendingShipReward);
-        Assert.Equal(HonourService.Catalog[0].Id, first.PendingShipReward!.Id);
+        Assert.Equal(HonourService.Honours[0].Id, first.PendingShipReward!.Id);
 
         var second = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
         Assert.NotNull(second.PendingShipReward);
@@ -267,6 +289,30 @@ public class ScoresControllerIntegrationTests : IntegrationTestBase
 
         var third = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(await controller.GetMyScoreDetail()).Value);
         Assert.Null(third.PendingShipReward);
+    }
+
+    [Fact]
+    public async Task GetMyScoreDetail_ThreadsSparked_CountsOnlyThisWeaversSparkedShips()
+    {
+        var weaverId = Guid.NewGuid();
+        var otherId = Guid.NewGuid();
+        Db.Users.Add(NewCompleteUser(weaverId));
+        Db.Users.Add(NewCompleteUser(otherId));
+        await Db.SaveChangesAsync();
+        Db.Ships.Add(new Ship { ShipperUserId = weaverId, Status = "Sparked", SlotAUserId = Guid.NewGuid(), SlotBUserId = Guid.NewGuid(), ShipperNotifiedAt = DateTime.UtcNow });
+        Db.Ships.Add(new Ship { ShipperUserId = weaverId, Status = "Sparked", SlotAUserId = Guid.NewGuid(), SlotBUserId = Guid.NewGuid() });
+        Db.Ships.Add(new Ship { ShipperUserId = weaverId, Status = "Pending" });
+        Db.Ships.Add(new Ship { ShipperUserId = weaverId, Status = "Expired" });
+        Db.Ships.Add(new Ship { ShipperUserId = otherId, Status = "Sparked" });
+        await Db.SaveChangesAsync();
+
+        var body = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(
+            await BuildController(weaverId).GetMyScoreDetail()).Value);
+        Assert.Equal(2, body.ThreadsSparked);
+
+        var none = Assert.IsType<ScoreDetailResponse>(Assert.IsType<OkObjectResult>(
+            await BuildController(otherId).GetMyScoreDetail()).Value);
+        Assert.Equal(1, none.ThreadsSparked);
     }
 
     [Fact]

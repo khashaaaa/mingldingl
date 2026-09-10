@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useMatches } from '../../hooks/useMatches';
 import { QuestTile } from '../../components/quest/QuestTile';
 import { GameHeader } from '../../components/ui/GameHeader';
+import { NextGatheringPill } from '../../components/townsquare/NextGatheringPill';
 import { Icon } from '../../components/ui/Icon';
 import { GameButton } from '../../components/ui/GameButton';
 import { FogDrift } from '../../components/vfx/FogDrift';
@@ -26,6 +27,7 @@ export default function MatchesScreen() {
   return (
     <View style={styles.screen}>
       <GameHeader title={i18n.t('tab_quest_log')} icon="script-text" showScore />
+      <NextGatheringPill />
       {isLoading && (
         <View style={styles.center}>
           <ActivityIndicator color={COLORS.gold} />

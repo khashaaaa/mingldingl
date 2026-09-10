@@ -39,7 +39,6 @@ public class User
     public int LongestStreak { get; set; }
     public DateTime? LastLoginDate { get; set; }
 
-    public string? EquippedFrameId { get; set; }
     public string? EquippedTitleId { get; set; }
 
     public string? ReferralCode { get; set; }

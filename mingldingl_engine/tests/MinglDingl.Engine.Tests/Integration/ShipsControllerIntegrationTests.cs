@@ -22,9 +22,11 @@ public class ShipsControllerIntegrationTests : IntegrationTestBase
         return controller;
     }
 
-    private User AddUser(string phone)
+    // Gendered explicitly: a Fated Thread now resolves its nominees through MatchEligibility, and
+    // every NewCompleteUser is Female, so a same-gender pair correctly refuses to spark.
+    private User AddUser(string phone, string gender = "Female")
     {
-        var user = NewCompleteUser();
+        var user = NewCompleteUser(gender: gender);
         user.PhoneNumber = phone;
         Db.Users.Add(user);
         return user;
@@ -78,7 +80,7 @@ public class ShipsControllerIntegrationTests : IntegrationTestBase
     {
         var weaver = AddUser("88120001");
         var a = AddUser("88120002");
-        var b = AddUser("88120003");
+        var b = AddUser("88120003", "Male");
         await Db.SaveChangesAsync();
         await BuildController(weaver.Id).Create(new CreateShipRequest("88120002", "88120003"));
 
@@ -94,7 +96,7 @@ public class ShipsControllerIntegrationTests : IntegrationTestBase
     {
         var weaver = AddUser("88120001");
         var a = AddUser("88120002");
-        var b = AddUser("88120003");
+        var b = AddUser("88120003", "Male");
         await Db.SaveChangesAsync();
         await BuildController(weaver.Id).Create(new CreateShipRequest("88120002", "88120003"));
         Db.ChangeTracker.Clear();
@@ -157,7 +159,7 @@ public class ShipsControllerIntegrationTests : IntegrationTestBase
     {
         var weaver = AddUser("88120001");
         var slotA = AddUser("88120002");
-        var slotB = AddUser("88120003");
+        var slotB = AddUser("88120003", "Male");
         await Db.SaveChangesAsync();
         await BuildController(weaver.Id).Create(new CreateShipRequest("88120002", "88120003"));
 

@@ -334,35 +334,41 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task SubmitAttendanceAsync_BothSayNo_NoNoShowFlagIncrementEitherSide()
+    public async Task SubmitAttendanceAsync_EachSaysTheOtherDidNotShow_FlagsBothSides()
     {
         var (match, _) = await SeedCompletedDateAsync(hoursAgo: 49);
         var service = BuildService();
 
+        // Each answer is about the other person, so two "no"s are two accusations, not one
+        // contradiction — a date neither of them turned up to.
         await service.SubmitAttendanceAsync(match.Id, match.InitiatorId, attended: false);
         await service.SubmitAttendanceAsync(match.Id, match.ReceiverId, attended: false);
 
         Db.ChangeTracker.Clear();
         var initiator = await Db.Users.FindAsync(match.InitiatorId);
         var receiver = await Db.Users.FindAsync(match.ReceiverId);
-        Assert.Equal(0, initiator!.NoShowFlagCount);
-        Assert.Equal(0, receiver!.NoShowFlagCount);
+        Assert.Equal(1, initiator!.NoShowFlagCount);
+        Assert.Equal(1, receiver!.NoShowFlagCount);
     }
 
     [Fact]
-    public async Task SubmitAttendanceAsync_Mismatch_IncrementsOnlyTheDenyingSidesFlagCount()
+    public async Task SubmitAttendanceAsync_FlagsTheAbsentee_NeverTheOneWhoReportedThem()
     {
         var (match, _) = await SeedCompletedDateAsync(hoursAgo: 49);
         var service = BuildService();
 
+        // The receiver says the initiator never turned up; the initiator says otherwise. The flag
+        // belongs on the person who was reported absent. Landing it on the reporter instead made
+        // saying you were stood up the only thing that cost you anything, while whoever did the
+        // standing up answered "yes, we met" and walked away clean.
         await service.SubmitAttendanceAsync(match.Id, match.InitiatorId, attended: true);
         await service.SubmitAttendanceAsync(match.Id, match.ReceiverId, attended: false);
 
         Db.ChangeTracker.Clear();
         var initiator = await Db.Users.FindAsync(match.InitiatorId);
         var receiver = await Db.Users.FindAsync(match.ReceiverId);
-        Assert.Equal(0, initiator!.NoShowFlagCount);
-        Assert.Equal(1, receiver!.NoShowFlagCount);
+        Assert.Equal(1, initiator!.NoShowFlagCount);
+        Assert.Equal(0, receiver!.NoShowFlagCount);
     }
 
     [Fact]
@@ -392,15 +398,15 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         await service.SubmitAttendanceAsync(match.Id, match.ReceiverId, attended: false);
 
         Db.ChangeTracker.Clear();
-        var receiver = await Db.Users.FindAsync(match.ReceiverId);
-        Assert.Equal(1.0m, receiver!.ReputationScore);
+        var reportedAbsent = await Db.Users.FindAsync(match.InitiatorId);
+        Assert.Equal(1.0m, reportedAbsent!.ReputationScore);
     }
 
     [Fact]
-    public async Task SubmitAttendanceAsync_SameDenyingUserAcrossThreeDistinctMatches_DocksReputationOnceAtThreshold()
+    public async Task SubmitAttendanceAsync_SameAbsenteeAcrossThreeDistinctMatches_DocksReputationOnceAtThreshold()
     {
-        var denyingUser = NewCompleteUser();
-        Db.Users.Add(denyingUser);
+        var absentUser = NewCompleteUser();
+        Db.Users.Add(absentUser);
         await Db.SaveChangesAsync();
         var service = BuildService();
 
@@ -408,7 +414,7 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         {
             var initiator = NewCompleteUser();
             Db.Users.Add(initiator);
-            var match = new Match { InitiatorId = initiator.Id, ReceiverId = denyingUser.Id, MessageCount = 20 };
+            var match = new Match { InitiatorId = initiator.Id, ReceiverId = absentUser.Id, MessageCount = 20 };
             Db.Matches.Add(match);
             var suggestion = new ActivitySuggestion { MatchId = match.Id, ActivityType = "Coffee", Title = $"Coffee Date {i}" };
             Db.ActivitySuggestions.Add(suggestion);
@@ -423,21 +429,22 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
             Db.DateConfirmations.Add(confirmation);
             await Db.SaveChangesAsync();
 
-            await service.SubmitAttendanceAsync(match.Id, initiator.Id, attended: true);
-            await service.SubmitAttendanceAsync(match.Id, denyingUser.Id, attended: false);
+            // Each partner reports that this one never showed; this one says they did.
+            await service.SubmitAttendanceAsync(match.Id, initiator.Id, attended: false);
+            await service.SubmitAttendanceAsync(match.Id, absentUser.Id, attended: true);
         }
 
         Db.ChangeTracker.Clear();
-        var reloaded = await Db.Users.FindAsync(denyingUser.Id);
+        var reloaded = await Db.Users.FindAsync(absentUser.Id);
         Assert.Equal(3, reloaded!.NoShowFlagCount);
         Assert.Equal(0.9m, reloaded.ReputationScore);
 
-        var penaltyEvents = Db.ScoreEvents.Where(e => e.UserId == denyingUser.Id && e.EventType == "RepeatedNoShowPenalty").ToList();
+        var penaltyEvents = Db.ScoreEvents.Where(e => e.UserId == absentUser.Id && e.EventType == "RepeatedNoShowPenalty").ToList();
         Assert.Single(penaltyEvents);
     }
 
     [Fact]
-    public async Task SubmitAttendanceAsync_TwoMismatchesFromTheSameMatch_OnlyCountsOnceTowardThreshold()
+    public async Task SubmitAttendanceAsync_TwoReportsFromTheSameMatch_OnlyCountsOnceTowardThreshold()
     {
         var initiator = NewCompleteUser();
         var receiver = NewCompleteUser();
@@ -452,8 +459,8 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         await Db.SaveChangesAsync();
 
         var service = BuildService();
-        await service.SubmitAttendanceAsync(match.Id, initiator.Id, attended: true);
-        await service.SubmitAttendanceAsync(match.Id, receiver.Id, attended: false);
+        await service.SubmitAttendanceAsync(match.Id, initiator.Id, attended: false);
+        await service.SubmitAttendanceAsync(match.Id, receiver.Id, attended: true);
 
         Db.ChangeTracker.Clear();
         var afterFirst = await Db.Users.FindAsync(receiver.Id);
@@ -465,8 +472,8 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         Db.DateConfirmations.Add(confirmationB);
         await Db.SaveChangesAsync();
 
-        await service.SubmitAttendanceAsync(match.Id, initiator.Id, attended: true);
-        await service.SubmitAttendanceAsync(match.Id, receiver.Id, attended: false);
+        await service.SubmitAttendanceAsync(match.Id, initiator.Id, attended: false);
+        await service.SubmitAttendanceAsync(match.Id, receiver.Id, attended: true);
 
         Db.ChangeTracker.Clear();
         var afterSecond = await Db.Users.FindAsync(receiver.Id);

@@ -30,6 +30,7 @@ function deepChips(deep: DeepFields | null | undefined): Chip[] {
 
 interface Props {
   otherUser: PartialUser;
+  /** The engine's mutual count (see `Match.messageCount`), so the countdown matches the gate. */
   messageCount: number;
   /** The engine's effective level for this match; the last rung is the deep-profile one. */
   revealLevel?: number;

@@ -24,9 +24,35 @@ interface Props {
 
 const TILE = 90;
 
+/**
+ * The picked URIs that are genuinely new. Picking the same library asset twice hands back the same
+ * URI, and keeping both put a duplicate key in the grid, uploaded the file twice — leaving one copy
+ * orphaned on a public path forever — mapped both entries onto the one public URL, and made a
+ * single delete remove both tiles.
+ */
+export function newUris(existing: string[], picked: string[]): string[] {
+  const seen = new Set(existing);
+  const fresh: string[] = [];
+  for (const uri of picked) {
+    if (seen.has(uri)) continue;
+    seen.add(uri);
+    fresh.push(uri);
+  }
+  return fresh;
+}
+
+/**
+ * Swaps each local URI for the public URL it uploaded to, dropping anything that repeats — the
+ * list may already hold that URL if the same photo was picked in an earlier batch.
+ */
+export function applyUploaded(current: string[], uploaded: Map<string, string>): string[] {
+  const swapped = current.map((u) => uploaded.get(u) ?? u);
+  return swapped.filter((u, i) => swapped.indexOf(u) === i);
+}
+
 export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChange }: Props) {
   const session = useAuthStore((s) => s.session);
-  const { pickPhoto, takePhoto, uploadPhoto, uploading, permissionDenied, clearPermissionDenied } = usePhotoUpload(session?.user.id);
+  const { pickPhoto, takePhoto, uploadPhoto, uploading, lastError, clearLastError, permissionDenied, clearPermissionDenied } = usePhotoUpload(session?.user.id);
   const [sourceModalVisible, setSourceModalVisible] = useState(false);
   const [failedAlert, setFailedAlert] = useState(false);
   const [pendingLocalUris, setPendingLocalUris] = useState<string[]>([]);
@@ -40,7 +66,8 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
   useEffect(() => { uploadingCbRef.current?.(hasPendingUploads); }, [hasPendingUploads]);
   useEffect(() => () => uploadingCbRef.current?.(false), []);
 
-  async function addPhotos(localUris: string[]) {
+  async function addPhotos(picked: string[]) {
+    const localUris = newUris(photoUrls, picked);
     if (localUris.length === 0) return;
     setPendingLocalUris((prev) => [...prev, ...localUris]);
 
@@ -52,9 +79,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
     setPendingLocalUris((prev) => prev.filter((u) => !localUris.includes(u)));
     const succeeded = new Map(results.filter((r) => r.publicUrl).map((r) => [r.localUri, r.publicUrl!]));
     const failedUris = new Set(results.filter((r) => !r.publicUrl).map((r) => r.localUri));
-    if (succeeded.size > 0) {
-      onChange((prev) => prev.map((u) => succeeded.get(u) ?? u));
-    }
+    if (succeeded.size > 0) onChange((prev) => applyUploaded(prev, succeeded));
     if (failedUris.size > 0) {
       onChange((prev) => prev.filter((u) => !failedUris.has(u)));
       setFailedAlert(true);
@@ -147,8 +172,10 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
         visible={failedAlert}
         tone="warning"
         title={i18n.t('photo_upload_failed_title')}
-        message={i18n.t('photo_upload_failed_body')}
-        onDismiss={() => setFailedAlert(false)}
+        // The engine's own reason when it gave one — "too large", "dimensions too large", "too many
+        // uploads" are all actionable, and all read as one shrug without this.
+        message={lastError ?? i18n.t('photo_upload_failed_body')}
+        onDismiss={() => { setFailedAlert(false); clearLastError(); }}
       />
 
       <AlertModal

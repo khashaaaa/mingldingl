@@ -73,6 +73,16 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
 
       {hasMultiplePhotos && (
         <>
+          {/* The dots sit directly on the photograph, and an inactive one was COLORS.text at 30%
+              alpha — 1.01:1 against a pale background, i.e. gone. Two changes, because the scrim
+              alone made it worse: a translucent dot darkens along with the ground it is drawn on,
+              so the dot is opaque now and the scrim gives it a ground it can rely on. Worst case
+              (a white-wall portrait) lands at 3.5:1 instead of 1.01:1. */}
+          <LinearGradient
+            colors={[overlay(0.75), 'transparent']}
+            style={styles.photoDotsScrim}
+            pointerEvents="none"
+          />
           <View style={styles.photoDots}>
             {photos.map((_, i) => (
               <View key={i} style={[styles.photoDot, i === photoIndex && styles.photoDotActive]} />
@@ -146,6 +156,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  photoDotsScrim: { position: 'absolute', top: 0, left: 0, right: 0, height: 72 },
   photoDots: {
     position: 'absolute',
     top: 12,
@@ -154,7 +165,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACE.xs,
   },
-  photoDot: { flex: 1, height: 3, borderRadius: RADIUS.pill, backgroundColor: tint(COLORS.text, 0.3) },
+  photoDot: { flex: 1, height: 3, borderRadius: RADIUS.pill, backgroundColor: COLORS.textDim },
   photoDotActive: { backgroundColor: COLORS.gold },
   photoTapLeft: { position: 'absolute', top: 0, bottom: 0, left: 0, width: '35%' },
   photoTapRight: { position: 'absolute', top: 0, bottom: 0, right: 0, width: '65%' },

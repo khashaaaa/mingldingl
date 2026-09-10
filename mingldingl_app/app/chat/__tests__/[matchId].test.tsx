@@ -1,4 +1,4 @@
-import { render, fireEvent } from '@testing-library/react-native';
+import { act, render, fireEvent } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ChatScreen from '../[matchId]';
 import { WithSafeArea } from '../../../lib/testing/safeArea';
@@ -16,9 +16,11 @@ jest.mock('../../../hooks/useMatchStatus', () => ({
   useMatchStatus: () => ({ status: 'Active', endedReason: mockEndedReason, reset: jest.fn() }),
 }));
 
+type MockMessage = { id: string; matchId: string; senderId: string; content: string; createdAt: string; status: 'sent' };
+let mockMessages: MockMessage[] = [];
 jest.mock('../../../hooks/useChat', () => ({
   useChat: () => ({
-    messages: [], loading: false, isError: false, refetch: jest.fn(),
+    messages: mockMessages, loading: false, isError: false, refetch: jest.fn(),
     sendMessage: jest.fn(), retryMessage: jest.fn(), myId: 'me1',
     loadEarlier: jest.fn(), hasMore: false, loadingEarlier: false,
     earlierError: false, justLoadedEarlier: false, acknowledgeEarlierLoaded: jest.fn(),
@@ -26,6 +28,8 @@ jest.mock('../../../hooks/useChat', () => ({
 }));
 
 let mockAttendanceDue = false;
+/** The engine's mutual count; the activity gate defaults to 15 of them. */
+let mockMatchMessageCount = 7;
 jest.mock('../../../hooks/useAttendanceCheck', () => ({
   useAttendanceCheck: () => ({
     due: mockAttendanceDue, activityTitle: 'Coffee', submit: jest.fn(),
@@ -36,7 +40,7 @@ jest.mock('../../../hooks/useAttendanceCheck', () => ({
 jest.mock('../../../hooks/useMatches', () => ({
   useMatches: () => ({
     data: [{
-      matchId: 'm1', otherUserId: 'u2', status: 'Active', revealLevel: 2, messageCount: 7,
+      matchId: 'm1', otherUserId: 'u2', status: 'Active', revealLevel: 2, messageCount: mockMatchMessageCount,
       icebreakerComplete: false, videoCallUnlocked: false, otherUser: { displayName: 'Riley' },
       flameRiteDurationMinutes: 5, flameRiteRequired: false, videoEnabled: true,
     }],
@@ -62,7 +66,33 @@ describe('ChatScreen', () => {
   beforeEach(() => {
     mockEndedReason = null;
     mockAttendanceDue = false;
+    mockMatchMessageCount = 7;
+    mockMessages = [];
     mockPush.mockClear();
+  });
+
+  it('renders a lone incoming first word as a sealed letter, and the bubble once opened', () => {
+    jest.useFakeTimers();
+    mockMessages = [{ id: 'msg1', matchId: 'm1', senderId: 'u2', content: 'Сайн уу', createdAt: '2026-09-10T10:00:00Z', status: 'sent' }];
+    const { getByTestId, queryByText, getByText, queryByTestId } = renderScreen();
+
+    expect(getByTestId('sealed-letter')).toBeTruthy();
+    expect(queryByText('Сайн уу')).toBeNull();
+
+    fireEvent.press(getByTestId('sealed-letter'));
+    act(() => { jest.advanceTimersByTime(1000); });
+
+    expect(queryByTestId('sealed-letter')).toBeNull();
+    expect(getByText('Сайн уу')).toBeTruthy();
+    jest.useRealTimers();
+  });
+
+  it('does not seal your own first word', () => {
+    mockMessages = [{ id: 'msg1', matchId: 'm1', senderId: 'me1', content: 'Hello', createdAt: '2026-09-10T10:00:00Z', status: 'sent' }];
+    const { queryByTestId, getByText } = renderScreen();
+
+    expect(queryByTestId('sealed-letter')).toBeNull();
+    expect(getByText('Hello')).toBeTruthy();
   });
 
   it('keeps the per-match activities behind one row instead of stacking them over the thread', () => {
@@ -78,6 +108,17 @@ describe('ChatScreen', () => {
 
     expect(getByText('Break the Ice')).toBeTruthy();
     expect(getByText('Trial of Compatibility')).toBeTruthy();
+    // 7 of the 15 mutual messages the engine's gate wants, so the door is shown locked with the
+    // remainder on it rather than sending you to a screen that can only say "keep chatting".
+    expect(getByText('Plan an Encounter · 8 more messages')).toBeTruthy();
+  });
+
+  it('opens the encounter door once the activity gate has been met', () => {
+    mockMatchMessageCount = 15;
+    const { getByTestId, getByText } = renderScreen();
+
+    fireEvent.press(getByTestId('chat-activities'));
+
     expect(getByText('Plan an Encounter')).toBeTruthy();
   });
 

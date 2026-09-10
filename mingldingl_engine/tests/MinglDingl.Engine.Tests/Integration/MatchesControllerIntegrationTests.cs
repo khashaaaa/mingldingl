@@ -26,6 +26,106 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         return controller;
     }
 
+    /// <summary>
+    /// Banning stops the banned account's own requests and nothing else, so before MatchEligibility
+    /// learned about IsBanned a suspended profile stayed in everyone's feed — and summoning one
+    /// spent a real daily slot on a match that could never be answered.
+    /// </summary>
+    [Fact]
+    public async Task GetCandidates_BannedProfile_IsNotOffered()
+    {
+        var meId = Guid.NewGuid();
+        var me = NewCompleteUser(meId, "Male");
+        var banned = NewCompleteUser(Guid.NewGuid(), "Female");
+        banned.IsBanned = true;
+        banned.BannedAt = DateTime.UtcNow;
+        Db.Users.AddRange(me, banned);
+        await Db.SaveChangesAsync();
+
+        var result = Assert.IsType<OkObjectResult>(await BuildController(meId).GetCandidates());
+        var page = Assert.IsType<PagedResponse<CandidateResponse>>(result.Value);
+
+        Assert.DoesNotContain(page.Items, c => c.Id == banned.Id);
+    }
+
+    /// <summary>
+    /// The located branch of the candidate pool's pre-ranking, which orders in SQL by a degree-space
+    /// proximity proxy so the pool cap drops the far-away rather than the arbitrary. Exercised here
+    /// because a Math.Abs the provider cannot translate would only fail at runtime.
+    /// </summary>
+    [Fact]
+    public async Task GetCandidates_CallerHasCoordinates_RanksNearerProfilesFirst()
+    {
+        var meId = Guid.NewGuid();
+        var me = NewCompleteUser(meId, "Male");
+        me.Latitude = 47.9184;
+        me.Longitude = 106.9177; // Ulaanbaatar
+
+        var near = NewCompleteUser(Guid.NewGuid(), "Female");
+        near.Latitude = 47.93;
+        near.Longitude = 106.93;
+
+        var far = NewCompleteUser(Guid.NewGuid(), "Female");
+        far.Latitude = 43.5708;
+        far.Longitude = 104.4250; // Dalanzadgad
+
+        Db.Users.AddRange(me, far, near);
+        await Db.SaveChangesAsync();
+
+        var result = Assert.IsType<OkObjectResult>(await BuildController(meId).GetCandidates());
+        var page = Assert.IsType<PagedResponse<CandidateResponse>>(result.Value);
+
+        // Relative, not absolute: this runs against the shared development database, so seeded
+        // Ulaanbaatar profiles legitimately outrank both of these.
+        int nearIndex = page.Items.ToList().FindIndex(c => c.Id == near.Id);
+        int farIndex = page.Items.ToList().FindIndex(c => c.Id == far.Id);
+        Assert.True(nearIndex >= 0 && farIndex >= 0, "both seeded candidates should be offered");
+        Assert.True(nearIndex < farIndex, $"the nearer profile should rank first (near {nearIndex}, far {farIndex})");
+    }
+
+    [Fact]
+    public async Task RequestMatch_TargetIsBanned_IsRefusedAndSpendsNoBudget()
+    {
+        var meId = Guid.NewGuid();
+        var me = NewCompleteUser(meId, "Male");
+        var banned = NewCompleteUser(Guid.NewGuid(), "Female");
+        banned.IsBanned = true;
+        Db.Users.AddRange(me, banned);
+        await Db.SaveChangesAsync();
+
+        var result = Assert.IsType<ObjectResult>(
+            await BuildController(meId).RequestMatch(new RequestMatchDto(banned.Id)));
+
+        Assert.Equal(StatusCodes.Status403Forbidden, result.StatusCode);
+        Db.ChangeTracker.Clear();
+        var after = await Db.Users.AsNoTracking().SingleAsync(u => u.Id == meId);
+        Assert.Equal(0, after.DailyMatchesUsed);
+        Assert.False(await Db.Matches.AnyAsync(m => m.ReceiverId == banned.Id));
+    }
+
+    /// <summary>
+    /// BlockedUsers carries a unique index, and Block checked for the row before adding it — so two
+    /// taps racing each other turned the loser's insert into a logged 500 rather than a no-op.
+    /// </summary>
+    [Fact]
+    public async Task Block_WhenTheBlockRowAlreadyExists_StillUnmatchesWithoutFailing()
+    {
+        var meId = Guid.NewGuid();
+        var otherId = Guid.NewGuid();
+        Db.Users.AddRange(NewCompleteUser(meId, "Male"), NewCompleteUser(otherId, "Female"));
+        var match = new Match { Id = Guid.NewGuid(), InitiatorId = meId, ReceiverId = otherId, Status = "Active", RevealLevel = 1 };
+        Db.Matches.Add(match);
+        Db.BlockedUsers.Add(new BlockedUser { BlockerId = meId, BlockedId = otherId });
+        await Db.SaveChangesAsync();
+        Db.ChangeTracker.Clear();
+
+        Assert.IsType<OkObjectResult>(await BuildController(meId).Block(match.Id));
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal("Unmatched", (await Db.Matches.AsNoTracking().SingleAsync(m => m.Id == match.Id)).Status);
+        Assert.Equal(1, await Db.BlockedUsers.CountAsync(b => b.BlockerId == meId && b.BlockedId == otherId));
+    }
+
     [Fact]
     public async Task GetMyMatches_SilverMembership_SeesDeepProfileFields()
     {
@@ -814,5 +914,24 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var body = Assert.IsType<PagedResponse<MatchResponse>>(result.Value);
 
         Assert.Equal(2, Assert.Single(body.Items).OtherUser.PhotoCount);
+    }
+
+    [Fact]
+    public async Task Matches_ASecondRowForTheSamePairInEitherOrder_IsRefusedByTheDatabase()
+    {
+        var a = NewCompleteUser(gender: "Male");
+        var b = NewCompleteUser(gender: "Female");
+        Db.Users.AddRange(a, b);
+        Db.Matches.Add(new Match { InitiatorId = a.Id, ReceiverId = b.Id, Status = "Active" });
+        await Db.SaveChangesAsync();
+
+        // A pair holds at most one Match, ever. Until this index existed the rule lived only in
+        // pg_advisory_xact_lock, so a path that forgot to take it — or an execution-strategy retry
+        // replaying an insert — produced a silent duplicate instead of an error. Reversed, because
+        // the pair is unordered.
+        Db.Matches.Add(new Match { InitiatorId = b.Id, ReceiverId = a.Id, Status = "Active" });
+        var ex = await Assert.ThrowsAsync<DbUpdateException>(() => Db.SaveChangesAsync());
+        Assert.True(UniqueViolationGuard.IsViolation(ex, "ix_matches_pair"));
+        Db.ChangeTracker.Clear();
     }
 }

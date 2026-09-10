@@ -44,7 +44,10 @@ public class CampaignServiceIntegrationTests : IntegrationTestBase
     {
         var (match, initiator, receiver) = await NewMatchAsync();
         match.IcebreakerComplete = true;
+        // Voices clears on the mutual count, so the 15 have to be a conversation, not a monologue.
         match.MessageCount = 15;
+        match.InitiatorMessageCount = 8;
+        match.ReceiverMessageCount = 7;
         match.VideoRewardClaimed = true;
 
         var quizId = Guid.NewGuid();

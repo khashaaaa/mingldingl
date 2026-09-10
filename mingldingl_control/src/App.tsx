@@ -8,6 +8,7 @@ import { Dashboard } from './pages/Dashboard';
 import { UsersList } from './pages/UsersList';
 import { UserDetail } from './pages/UserDetail';
 import { DeletionRequests } from './pages/DeletionRequests';
+import { Reports } from './pages/Reports';
 import { ContentPages } from './pages/ContentPages';
 import { ContentPageEdit } from './pages/ContentPageEdit';
 import { BusinessList } from './pages/BusinessList';
@@ -37,6 +38,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/users" element={<UsersList />} />
               <Route path="/users/:id" element={<UserDetail />} />
+              <Route path="/reports" element={<Reports />} />
               <Route path="/deletion-requests" element={<DeletionRequests />} />
               <Route path="/content" element={<ContentPages />} />
               <Route path="/content/:slug" element={<ContentPageEdit />} />

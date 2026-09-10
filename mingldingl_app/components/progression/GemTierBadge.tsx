@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colorForTier, shadeForTier, TIER_ORDER } from '../../lib/tiers';
+import { colorForTier, shadeForTier, presenceForTier } from '../../lib/tiers';
 import { COLORS, tint } from '../../lib/theme';
 import { TorchGlow } from '../vfx/TorchGlow';
 
@@ -9,38 +9,52 @@ interface Props {
   tier: string;
   size?: number;
 
+  /**
+   * Whether this badge is allowed to burn at all — the hero placements (profile, progression) pass
+   * it, a badge in a list does not. *How brightly* it burns is not this flag's business: that is
+   * the tier's rank, via `presenceForTier`.
+   */
   glow?: boolean;
 
   color?: string;
   shade?: string;
 }
 
-const SHIMMER_MIN_INDEX = 3;
-const SHIMMER_MIN_SIZE = 32;
-
+/**
+ * Rank is drawn here, and only here. The jewels are luminance-matched on purpose — see the
+ * `GEM_COLORS` note in `theme.ts` — so hue says *which stone* and this badge's ring weight, glow
+ * and shimmer say *how high*. Before this the badge gated all three on `tierIndex >= 3`, which
+ * made tiers 1-3 identical to each other and tiers 4-6 identical to each other: the ladder was
+ * six rungs of data rendered as two.
+ */
 export function GemTierBadge({ tier, size = 40, glow = false, color: colorOverride, shade: shadeOverride }: Props) {
   const color = colorOverride ?? colorForTier(tier);
   const shade = shadeOverride ?? shadeForTier(tier);
-  const tierIndex = TIER_ORDER.indexOf(tier as (typeof TIER_ORDER)[number]);
-  const hasShimmer = tierIndex >= SHIMMER_MIN_INDEX && size >= SHIMMER_MIN_SIZE;
+  const presence = presenceForTier(tier, size);
 
-  const hasGlow = glow && hasShimmer;
+  const hasShimmer = presence.shimmer > 0;
+  const hasGlow = glow && presence.glowStrength > 0;
   const gemSize = size * 0.68;
   const highlightSize = gemSize * 0.55;
+
+  // A higher rank shines both brighter and more often, so the ramp still reads on a badge that is
+  // only glanced at. Emerald keeps the 800ms cadence and 0.55 highlight that shipped before.
+  const sweepDelay = 2400 - 1600 * presence.shimmer;
+  const sweepAlpha = 0.2 + 0.35 * presence.shimmer;
 
   const sweep = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!hasShimmer) return;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.delay(800),
+        Animated.delay(sweepDelay),
         Animated.timing(sweep, { toValue: 1, duration: 900, useNativeDriver: true }),
         Animated.timing(sweep, { toValue: 0, duration: 0, useNativeDriver: true }),
       ]),
     );
     loop.start();
     return () => loop.stop();
-  }, [hasShimmer, sweep]);
+  }, [hasShimmer, sweepDelay, sweep]);
 
   const badge = (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -49,8 +63,9 @@ export function GemTierBadge({ tier, size = 40, glow = false, color: colorOverri
           width: gemSize,
           height: gemSize,
           borderRadius: Math.max(2, size * 0.05),
-          borderWidth: 1,
-          borderColor: tint(COLORS.text, 0.28),
+          borderWidth: presence.ringWidth,
+          // A heavier bezel that stayed at the same alpha read as a smudge rather than as weight.
+          borderColor: tint(COLORS.text, 0.28 + 0.08 * (presence.ringWidth - 1)),
           overflow: 'hidden',
           transform: [{ rotate: '45deg' }],
         }}
@@ -92,7 +107,7 @@ export function GemTierBadge({ tier, size = 40, glow = false, color: colorOverri
             }}
           >
             <LinearGradient
-              colors={['transparent', tint(COLORS.text, 0.55), 'transparent']}
+              colors={['transparent', tint(COLORS.text, sweepAlpha), 'transparent']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{ width: '100%', height: '100%' }}
@@ -105,7 +120,7 @@ export function GemTierBadge({ tier, size = 40, glow = false, color: colorOverri
 
   if (hasGlow) {
     return (
-      <TorchGlow size={size * 1.6} color={color}>
+      <TorchGlow size={size * 1.6} color={color} strength={presence.glowStrength}>
         {badge}
       </TorchGlow>
     );

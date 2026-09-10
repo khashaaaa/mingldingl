@@ -70,9 +70,52 @@ public class TownSquareController : ControllerBase
         DateTime roundEndsAt = round.StartsAt.AddSeconds(round.DurationSeconds);
 
         return Ok(new CurrentRoundResponse(
-            pairing.Id, token, channelName, _videoToken.AppId,
+            pairing.Id, pairing.OtherParticipant(userId), token, channelName, _videoToken.AppId,
             icebreaker is null ? "" : LocalisedContent.Pick(locale, icebreaker.QuestionText, icebreaker.QuestionTextEn),
             round.RoundNumber, roundEndsAt));
+    }
+
+    /// <summary>
+    /// What became of a gathering, for the caller. The round screen polls
+    /// <see cref="GetCurrentRound"/>, which refuses anything that is not InProgress — so a session
+    /// finishing normally arrived at the client as an error and was shown as "you left the square,
+    /// the session moved on without you". A completed session is not a failure, and the matches it
+    /// produced were never surfaced anywhere: this is what the screen reads instead.
+    /// </summary>
+    [HttpGet("session/{sessionId}/summary")]
+    [ProducesResponseType(typeof(SessionSummaryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSessionSummary(Guid sessionId)
+    {
+        var userId = this.CurrentUserId();
+        var session = await _db.TownSquareSessions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sessionId);
+        if (session is null) return this.NotFoundError("Session not found", "square.session_not_found");
+
+        var pairings = await (
+            from p in _db.TownSquarePairings.AsNoTracking()
+            join r in _db.TownSquareRounds on p.RoundId equals r.Id
+            where r.SessionId == sessionId && (p.UserAId == userId || p.UserBId == userId)
+            orderby r.RoundNumber
+            select new { p.UserAId, p.UserBId, p.ResultingMatchId }
+        ).ToListAsync();
+
+        var matched = pairings.Where(p => p.ResultingMatchId != null).ToList();
+        var otherIds = matched.Select(p => p.UserAId == userId ? p.UserBId : p.UserAId).ToList();
+
+        // Every match is created at RevealLevel 1, which is exactly the rung that shows a display
+        // name — so this is the same thing the Quest Log already shows for these matches, not a way
+        // around progressive reveal. A deleted account has no name to show.
+        var names = await _db.Users.AsNoTracking()
+            .Where(u => otherIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.IsDeleted ? null : u.DisplayName);
+
+        var matches = matched.Select(p =>
+        {
+            var otherId = p.UserAId == userId ? p.UserBId : p.UserAId;
+            return new SessionSummaryMatch(p.ResultingMatchId!.Value, otherId, names.GetValueOrDefault(otherId));
+        }).ToList();
+
+        return Ok(new SessionSummaryResponse(session.Status, pairings.Count, matches));
     }
 
     [HttpPost("pairing/{pairingId}/joined")]
@@ -118,6 +161,19 @@ public class TownSquareController : ControllerBase
 
 public record TownSquareRsvpDto(Guid SessionId);
 public record NextSessionResponse(Guid? SessionId, DateTime? RsvpOpensAt, DateTime? RsvpClosesAt, DateTime? ScheduledStartAt, string? Status, bool IsRsvpd);
-public record CurrentRoundResponse(Guid PairingId, string VideoToken, string ChannelName, string AppId, string IcebreakerText, int RoundNumber, DateTime RoundEndsAt);
+/// <summary>
+/// <paramref name="PartnerUserId"/> is who the caller is sitting opposite. The screen needs it to
+/// offer a report: a Town Square partner is a stranger the caller has no match with, and reporting
+/// used to be reachable only from a conversation.
+/// </summary>
+public record CurrentRoundResponse(
+    Guid PairingId, Guid PartnerUserId, string VideoToken, string ChannelName, string AppId,
+    string IcebreakerText, int RoundNumber, DateTime RoundEndsAt);
+
+/// <param name="Status">The session's own status — "Completed" is the normal end, not a fault.</param>
+/// <param name="RoundsPlayed">How many rounds the caller was actually paired into.</param>
+public record SessionSummaryResponse(string Status, int RoundsPlayed, IReadOnlyList<SessionSummaryMatch> Matches);
+
+public record SessionSummaryMatch(Guid MatchId, Guid OtherUserId, string? DisplayName);
 public record TownSquareRespondDto(string Response);
 public record TownSquareRespondResult(Guid? MatchId);

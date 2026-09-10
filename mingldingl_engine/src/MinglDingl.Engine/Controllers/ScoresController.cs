@@ -63,6 +63,8 @@ public class ScoresController : ControllerBase
 
         var pendingShipReward = HonourService.ToDropped(pendingShip?.ShipperRewardItemId);
 
+        int threadsSparked = await _db.Ships.CountAsync(s => s.ShipperUserId == userId && s.Status == "Sparked");
+
         return Ok(new ScoreDetailResponse(
             user.TotalScore,
             user.GemTier,
@@ -76,7 +78,8 @@ public class ScoresController : ControllerBase
             progressPct,
             _score.DailyMatchBudget(user),
             pendingReward,
-            pendingShipReward));
+            pendingShipReward,
+            threadsSparked));
     }
 
     [HttpPost("me/notifications/ack")]
@@ -171,7 +174,10 @@ public class ScoresController : ControllerBase
         // or every district that isn't the seed's bare "Ulaanbaatar" gets a lonely board of one.
         var cohort = MongoliaGeo.CohortCityNames(user.City);
 
+        // Banned and pending-deletion accounts are off the board: a suspended account holding a top
+        // rank is the standing the ban was meant to remove.
         var top = await _db.Users.AsNoTracking()
+            .Where(MatchEligibility.IsActiveAccount())
             .Where(u => cohort.Contains(u.City))
             .OrderByDescending(u => u.TotalScore)
             .ThenBy(u => u.Id)
@@ -190,7 +196,9 @@ public class ScoresController : ControllerBase
         }
         else
         {
-            myRank = 1 + await _db.Users.CountAsync(u => cohort.Contains(u.City) && u.TotalScore > user.TotalScore);
+            myRank = 1 + await _db.Users
+                .Where(MatchEligibility.IsActiveAccount())
+                .CountAsync(u => cohort.Contains(u.City) && u.TotalScore > user.TotalScore);
             entries.Add(new LeaderboardEntryDto(myRank, user.GemTier, user.TotalScore, true));
         }
 

@@ -58,6 +58,17 @@ public class VideoController : ControllerBase
         {
             token = _videoToken.GenerateToken(req.MatchId);
         }
+
+        // Stamped because nothing else records that a call was even attempted — Agora reports
+        // nothing back to us — and /video/complete has to have something to check.
+        var issuedAt = DateTime.UtcNow;
+        if (match.InitiatorId == userId)
+            await _db.Matches.Where(m => m.Id == req.MatchId)
+                .ExecuteUpdateAsync(s => s.SetProperty(m => m.InitiatorVideoTokenAt, issuedAt));
+        else
+            await _db.Matches.Where(m => m.Id == req.MatchId)
+                .ExecuteUpdateAsync(s => s.SetProperty(m => m.ReceiverVideoTokenAt, issuedAt));
+
         string channelName = req.MatchId.ToString("N");
         string appId = _videoToken.AppId;
 
@@ -72,10 +83,23 @@ public class VideoController : ControllerBase
     {
         var userId = this.CurrentUserId();
 
+        if (!_config.GetBool("video.enabled", true))
+            return this.NotFoundError("Video calls are not open", "video.disabled");
+
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, req.MatchId, tracked: false, requireActive: true);
         if (accessError is not null) return accessError;
         if (match.FlameRiteAcceptedAt is null)
             return this.ForbiddenError("The Flame Rite has not been accepted for this match", "rite.not_accepted");
+
+        // Nothing outside the client tells us a call happened, so this endpoint is a claim rather
+        // than an observation and used to be free: score, a quest tick, first_video_call and
+        // title_flamekeeper for a POST nobody had to place a call to send. It cannot be made proof
+        // without an Agora webhook, but it can be made cost what it claims — a token has to have
+        // been taken by this participant, and the rite's own duration has to have passed since.
+        var tokenAt = match.InitiatorId == userId ? match.InitiatorVideoTokenAt : match.ReceiverVideoTokenAt;
+        double riteMinutes = Math.Max(1, _config.GetNumber("dating.flamerite.duration_minutes", 5));
+        if (tokenAt is null || DateTime.UtcNow - tokenAt.Value < TimeSpan.FromMinutes(riteMinutes))
+            return this.ForbiddenError("The Flame Rite is not finished yet", "rite.not_finished");
 
         // The claim is per participant, not per match. Both people completed the same call, and the
         // quest tick and first_video_call milestone are personal achievements in any case; a single

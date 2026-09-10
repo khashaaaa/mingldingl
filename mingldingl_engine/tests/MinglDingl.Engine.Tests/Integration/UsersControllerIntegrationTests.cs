@@ -32,7 +32,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
 
         var result = await controller.Upsert(new CreateUserRequest(
             "New User", 26, "Male", "Ulaanbaatar", "Fresh signup",
-            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"]));
+            [Photo(userId, "1.jpg"), Photo(userId, "2.jpg"), Photo(userId, "3.jpg")]));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<UserResponse>(ok.Value);
@@ -59,7 +59,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var controller = BuildController(userId);
         var req = new CreateUserRequest(
             "Now Complete", 26, "Male", "Ulaanbaatar", "Filled in",
-            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"]);
+            [Photo(userId, "1.jpg"), Photo(userId, "2.jpg"), Photo(userId, "3.jpg")]);
 
         await controller.Upsert(req);
         await controller.Upsert(req);
@@ -77,7 +77,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
 
         await controller.Upsert(new CreateUserRequest(
             "Phoned User", 26, "Male", "Ulaanbaatar", "Fresh signup",
-            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"]));
+            [Photo(userId, "1.jpg"), Photo(userId, "2.jpg"), Photo(userId, "3.jpg")]));
 
         Db.ChangeTracker.Clear();
         var saved = await Db.Users.FindAsync(userId);
@@ -95,7 +95,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var controller = BuildController(userId, phone: "99009900");
         await controller.Upsert(new CreateUserRequest(
             "Updated", 21, "Male", "Ulaanbaatar", "Edit",
-            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"]));
+            [Photo(userId, "1.jpg"), Photo(userId, "2.jpg"), Photo(userId, "3.jpg")]));
 
         Db.ChangeTracker.Clear();
         var saved = await Db.Users.FindAsync(userId);
@@ -175,7 +175,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var inviteeController = BuildController(inviteeId);
         var result = await inviteeController.Upsert(new CreateUserRequest(
             "New Ally", 24, "Female", "Ulaanbaatar", "Fresh signup",
-            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"],
+            [Photo(inviteeId, "1.jpg"), Photo(inviteeId, "2.jpg"), Photo(inviteeId, "3.jpg")],
             ReferralCode: inviterCode));
 
         Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(result).Value);
@@ -195,7 +195,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
 
         var result = await controller.Upsert(new CreateUserRequest(
             "New Ally", 24, "Female", "Ulaanbaatar", "Fresh signup",
-            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"],
+            [Photo(inviteeId, "1.jpg"), Photo(inviteeId, "2.jpg"), Photo(inviteeId, "3.jpg")],
             ReferralCode: "ZZZZZZ"));
 
         var response = Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(result).Value);
@@ -219,7 +219,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var controller = BuildController(newUserId, phone: "88130001");
         await controller.Upsert(new CreateUserRequest(
             "New Nominee", 24, "Female", "Ulaanbaatar", "Fresh signup",
-            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"],
+            [Photo(newUserId, "1.jpg"), Photo(newUserId, "2.jpg"), Photo(newUserId, "3.jpg")],
             ReferralCode: code));
 
         Db.ChangeTracker.Clear();
@@ -241,7 +241,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var controller = BuildController(inviteeId);
         var req = new CreateUserRequest(
             "New Ally", 24, "Female", "Ulaanbaatar", "Fresh signup",
-            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"],
+            [Photo(inviteeId, "1.jpg"), Photo(inviteeId, "2.jpg"), Photo(inviteeId, "3.jpg")],
             ReferralCode: inviterCode);
 
         await controller.Upsert(req);
@@ -257,7 +257,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var userId = Guid.NewGuid();
         var controller = BuildController(userId);
         var photos = new List<string>
-            { "/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg" };
+            { Photo(userId, "1.jpg"), Photo(userId, "2.jpg"), Photo(userId, "3.jpg") };
         var complete = new CreateUserRequest("Farmer", 26, "Male", "Ulaanbaatar", "Filled in", photos);
         var incomplete = new CreateUserRequest("Farmer", 26, "Male", "Ulaanbaatar", "", photos);
 
@@ -321,7 +321,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var controller = BuildController(userId);
         await controller.Upsert(new CreateUserRequest(
             "Complete", 26, "Male", "Ulaanbaatar", "Filled in",
-            ["/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg"]));
+            [Photo(userId, "1.jpg"), Photo(userId, "2.jpg"), Photo(userId, "3.jpg")]));
 
         await controller.Update(new UpdateUserRequest(
             null, "", [], null, null, null, null, null, null, null, null, null, null));
@@ -370,7 +370,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         await controller.Upsert(new CreateUserRequest("Partial", 26, "Male", "Ulaanbaatar", "", []));
 
         var photos = new List<string>
-            { "/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg" };
+            { Photo(userId, "1.jpg"), Photo(userId, "2.jpg"), Photo(userId, "3.jpg") };
         await controller.Update(new UpdateUserRequest(
             null, "Filled in", photos, null, null, null, null, null, null, null, null, null, null));
         await controller.Update(new UpdateUserRequest(
@@ -387,7 +387,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var userId = Guid.NewGuid();
         var controller = BuildController(userId);
         var photos = new List<string>
-            { "/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg" };
+            { Photo(userId, "1.jpg"), Photo(userId, "2.jpg"), Photo(userId, "3.jpg") };
         await controller.Upsert(new CreateUserRequest("Complete", 26, "Male", "Ulaanbaatar", "Filled in", photos));
 
         var deleted = new List<string>();
@@ -395,7 +395,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
 
         // AgeMin > AgeMax is rejected, so the dropped photos must survive: the row still points at them.
         var result = await recordingController.Update(new UpdateUserRequest(
-            null, null, ["/uploads/photos/1.jpg"], null, null, null, null, null, null,
+            null, null, [Photo(userId, "1.jpg")], null, null, null, null, null, null,
             AgeMin: 40, AgeMax: 20, null, null));
 
         Assert.IsType<BadRequestObjectResult>(result);
@@ -410,61 +410,63 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var userId = Guid.NewGuid();
         var controller = BuildController(userId);
         var photos = new List<string>
-            { "/uploads/photos/1.jpg", "/uploads/photos/2.jpg", "/uploads/photos/3.jpg" };
+            { Photo(userId, "1.jpg"), Photo(userId, "2.jpg"), Photo(userId, "3.jpg") };
         await controller.Upsert(new CreateUserRequest("Complete", 26, "Male", "Ulaanbaatar", "Filled in", photos));
 
         var deleted = new List<string>();
         var recordingController = BuildController(userId, storage: BuildRecordingStorage(deleted));
 
         await recordingController.Update(new UpdateUserRequest(
-            null, null, ["/uploads/photos/1.jpg"], null, null, null, null, null, null, null, null, null, null));
+            null, null, [Photo(userId, "1.jpg")], null, null, null, null, null, null, null, null, null, null));
 
-        Assert.Equal(["/uploads/photos/2.jpg", "/uploads/photos/3.jpg"], deleted);
+        Assert.Equal([Photo(userId, "2.jpg"), Photo(userId, "3.jpg")], deleted);
     }
 
     [Fact]
-    public async Task GetMyItems_ListsHeldHonoursAndTheFramesOfEveryTierReached()
+    public async Task GetMyItems_ListsHeldHonoursOnly_NewestFirst_NoTierRings()
     {
         var userId = Guid.NewGuid();
         var user = NewCompleteUser(userId);
         user.TotalScore = 350;
         user.GemTier = "Amethyst";
-        user.EquippedFrameId = "frame_opal";
+        user.EquippedTitleId = "title_oathkeeper";
         Db.Users.Add(user);
-        Db.UserItems.Add(new UserItem { UserId = userId, ItemId = "title_oathkeeper", Source = "oath_proven" });
+        Db.UserItems.Add(new UserItem { UserId = userId, ItemId = "title_oathkeeper", Source = "oath_proven", AcquiredAt = DateTime.UtcNow.AddDays(-2) });
+        Db.UserItems.Add(new UserItem { UserId = userId, ItemId = "title_sevendawns", Source = "DailyLogin", AcquiredAt = DateTime.UtcNow.AddDays(-1) });
         Db.UserItems.Add(new UserItem { UserId = userId, ItemId = "title_wanderer", Source = "legacy" });
         await Db.SaveChangesAsync();
 
         var items = Assert.IsType<List<OwnedItemResponse>>(Assert.IsType<OkObjectResult>(await BuildController(userId).GetMyItems()).Value);
 
-        Assert.Equal(["title_oathkeeper", "frame_garnet", "frame_opal", "frame_amethyst"], items.Select(i => i.ItemId));
-        Assert.True(items.Single(i => i.ItemId == "frame_opal").Equipped);
-        Assert.False(items.Single(i => i.ItemId == "frame_garnet").Equipped);
-        Assert.All(items.Where(i => i.ItemType == "Frame"), f => Assert.Equal(HonourService.MetalGold, f.Rarity));
+        Assert.Equal(["title_sevendawns", "title_oathkeeper"], items.Select(i => i.ItemId));
+        Assert.True(items.Single(i => i.ItemId == "title_oathkeeper").Equipped);
+        Assert.False(items.Single(i => i.ItemId == "title_sevendawns").Equipped);
+        Assert.All(items, i => Assert.Equal("Title", i.ItemType));
     }
 
     [Fact]
-    public async Task EquipItem_FrameAtOrBelowTier_Equips_FrameAboveTier_IsNotOwned()
+    public async Task EquipItem_HeldHonourToggles_UnheldAndRetiredRingAreNotOwned()
     {
         var userId = Guid.NewGuid();
         var user = NewCompleteUser(userId);
         user.TotalScore = 350;
         user.GemTier = "Amethyst";
         Db.Users.Add(user);
+        Db.UserItems.Add(new UserItem { UserId = userId, ItemId = "title_sevendawns", Source = "DailyLogin" });
         await Db.SaveChangesAsync();
         var controller = BuildController(userId);
 
-        var equipped = Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(await controller.EquipItem("frame_amethyst")).Value);
-        Assert.Equal("frame_amethyst", equipped.EquippedFrameId);
+        var worn = Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(await controller.EquipItem("title_sevendawns")).Value);
+        Assert.Equal("title_sevendawns", worn.EquippedTitleId);
 
-        var above = await controller.EquipItem("frame_sapphire");
-        Assert.IsType<NotFoundObjectResult>(above);
+        Assert.IsType<NotFoundObjectResult>(await controller.EquipItem("title_oathkeeper"));
+        Assert.IsType<NotFoundObjectResult>(await controller.EquipItem("frame_amethyst"));
 
-        var retired = await controller.EquipItem("frame_gold_crown");
-        Assert.IsType<NotFoundObjectResult>(retired);
+        var takenOff = Assert.IsType<UserResponse>(Assert.IsType<OkObjectResult>(await controller.EquipItem("title_sevendawns")).Value);
+        Assert.Null(takenOff.EquippedTitleId);
 
         Db.ChangeTracker.Clear();
-        Assert.Equal("frame_amethyst", (await Db.Users.FindAsync(userId))!.EquippedFrameId);
+        Assert.Null((await Db.Users.FindAsync(userId))!.EquippedTitleId);
     }
 
     [Fact]
@@ -479,12 +481,21 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         Assert.IsType<NotFoundObjectResult>(result);
     }
 
-    private static List<string> OwnedPhotos() =>
-        ["/uploads/photos/a.jpg", "/uploads/photos/b.jpg", "/uploads/photos/c.jpg"];
+    /// <summary>
+    /// A photo URL as <c>POST /photos/upload</c> issues it: under this engine's uploads root, in
+    /// the directory belonging to <paramref name="ownerId"/>. Origin alone is not ownership —
+    /// every candidate's photo URLs are handed out by the discover feed, so a URL that merely
+    /// resolves here is not evidence it is yours.
+    /// </summary>
+    private static string Photo(Guid ownerId, string file) =>
+        $"/uploads/photos/profiles/{ownerId}/{file}";
+
+    private static List<string> OwnedPhotos(Guid ownerId) =>
+        [Photo(ownerId, "a.jpg"), Photo(ownerId, "b.jpg"), Photo(ownerId, "c.jpg")];
 
     private static CreateUserRequest Profile(
-        string gender = "Male", string city = "Ulaanbaatar", List<string>? photos = null) =>
-        new("New User", 26, gender, city, "A perfectly ordinary bio", photos ?? OwnedPhotos());
+        Guid ownerId, string gender = "Male", string city = "Ulaanbaatar", List<string>? photos = null) =>
+        new("New User", 26, gender, city, "A perfectly ordinary bio", photos ?? OwnedPhotos(ownerId));
 
     [Theory]
     [InlineData("Banana")]
@@ -494,9 +505,10 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
     {
         // Matching is case-sensitive on "Male"/"Female", so a value outside the pair silently
         // removed the account from every discovery feed while showing it everyone in return.
-        var controller = BuildController(Guid.NewGuid());
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
 
-        var result = await controller.Upsert(Profile(gender: gender));
+        var result = await controller.Upsert(Profile(userId, gender: gender));
 
         Assert.IsType<BadRequestObjectResult>(result);
     }
@@ -505,9 +517,10 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
     public async Task Upsert_CityNotOnTheMongolianMap_IsRejected()
     {
         // The leaderboard is scoped by city, so an invented one made the caller rank 1 of 1.
-        var controller = BuildController(Guid.NewGuid());
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
 
-        var result = await controller.Upsert(Profile(city: "Atlantis"));
+        var result = await controller.Upsert(Profile(userId, city: "Atlantis"));
 
         Assert.IsType<BadRequestObjectResult>(result);
     }
@@ -517,10 +530,11 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
     {
         // Photos must come from POST /photos. An arbitrary origin leaks every viewer's IP to
         // whoever runs it and can be swapped for something else after moderation has passed it.
-        var controller = BuildController(Guid.NewGuid());
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
 
-        var result = await controller.Upsert(Profile(
-            photos: ["https://evil.example/x.jpg", "/uploads/photos/b.jpg", "/uploads/photos/c.jpg"]));
+        var result = await controller.Upsert(Profile(userId,
+            photos: ["https://evil.example/x.jpg", Photo(userId, "b.jpg"), Photo(userId, "c.jpg")]));
 
         Assert.IsType<BadRequestObjectResult>(result);
     }
@@ -532,7 +546,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         var userId = Guid.NewGuid();
         var controller = BuildController(userId);
 
-        var ok = Assert.IsType<OkObjectResult>(await controller.Upsert(Profile()));
+        var ok = Assert.IsType<OkObjectResult>(await controller.Upsert(Profile(userId)));
 
         Assert.True(Assert.IsType<UserResponse>(ok.Value).IsProfileComplete);
     }
@@ -547,7 +561,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         // rendered in chat as [missing "en.habit_socially"] — a raw i18n key shown to a real user.
         var userId = Guid.NewGuid();
         var controller = BuildController(userId);
-        await controller.Upsert(Profile());
+        await controller.Upsert(Profile(userId));
 
         var result = await controller.Update(new UpdateUserRequest(
             null, null, null, null, null, habit, null, null));
@@ -560,7 +574,7 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
     {
         var userId = Guid.NewGuid();
         var controller = BuildController(userId);
-        await controller.Upsert(Profile());
+        await controller.Upsert(Profile(userId));
 
         var result = await controller.Update(new UpdateUserRequest(
             null, null, null, null, "Never", "Occasionally", "Buddhist", "Balanced"));

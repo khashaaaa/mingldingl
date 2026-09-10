@@ -2,7 +2,7 @@ import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Alert } from 'react-native';
 import { i18n } from '../i18n';
-import { getApiErrorMessage } from './errors';
+import { getApiErrorMessage, isApiError } from './errors';
 import { areTierThresholdsHydrated, tierForScore } from '../tiers';
 import { useAuthStore } from '../../store/authStore';
 import { queryKeys } from './queryKeys';
@@ -70,6 +70,11 @@ function createQueryCache(): QueryCache {
       // fail on the way down. Every query this handler can see is session-gated, so with no
       // session there is no real failure left to report — only teardown noise.
       if (!useAuthStore.getState().session) return;
+      // Onboarding holds a session before `POST /users` has made the account, so every
+      // session-gated read 404s until it does. That is the expected shape of a half-signed-up
+      // identity, not a failure: without this, a brand-new user meets "No such traveler" on
+      // step 1 and again on every step after, once per cooldown window.
+      if (isApiError(error, 'user.not_found') || isApiError(error, 'user.profile_incomplete')) return;
       // A dropped connection fails every mounted query at once — only speak up once.
       const now = Date.now();
       if (now - lastNoticeAt < NOTICE_COOLDOWN_MS) return;

@@ -3,6 +3,14 @@ import type { components } from './api.generated';
 
 type Schemas = components['schemas'];
 
+/**
+ * How a report can be closed. `Penalised` is the only thing that spends the `ReportPenalty` score
+ * delta and `Banned` suspends the account and ends its live conversations — both deliberately an
+ * admin decision rather than an automatic consequence of being reported.
+ */
+export const REPORT_OUTCOMES = ['Dismissed', 'Warned', 'Penalised', 'Banned'] as const;
+export type ReportOutcome = (typeof REPORT_OUTCOMES)[number];
+
 function query(params: Record<string, string | number | undefined>): string {
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -34,8 +42,28 @@ export const apiClient = {
       api.post<Schemas['AdminUserDetailDto']>(`/admin/users/${id}/adjust-score`, { delta, reason }).then((r) => r.data),
     resetNoShow: (id: string) =>
       api.post<Schemas['AdminUserDetailDto']>(`/admin/users/${id}/reset-noshow`).then((r) => r.data),
+    /**
+     * Removes one photo and deletes the file. The only alternative to this was banning the whole
+     * account over a single objectionable image — and /uploads is public, so leaving the file
+     * there keeps it fetchable by anyone holding the URL.
+     */
+    removePhoto: (id: string, photoUrl: string) =>
+      api.post<Schemas['AdminUserDetailDto']>(`/admin/users/${id}/photos/remove`, { photoUrl }).then((r) => r.data),
     export: (search: string) =>
       api.get(`/admin/users/export${query({ search })}`, { responseType: 'blob' }).then((r) => r.data as Blob),
+  },
+  reports: {
+    list: (status: string, page: number, pageSize = 20) =>
+      api
+        .get<Schemas['AdminReportListItemDtoPagedResponse']>(`/admin/reports${query({ status, page, pageSize })}`)
+        .then((r) => r.data),
+    detail: (id: string) => api.get<Schemas['AdminReportDetailDto']>(`/admin/reports/${id}`).then((r) => r.data),
+    pendingCount: () =>
+      api.get<Schemas['PendingReportCountDto']>('/admin/reports/pending-count').then((r) => r.data),
+    resolve: (id: string, outcome: ReportOutcome, notes: string) =>
+      api
+        .post<Schemas['AdminReportDetailDto']>(`/admin/reports/${id}/resolve`, { outcome, notes })
+        .then((r) => r.data),
   },
   content: {
     list: () => api.get<Schemas['ContentPageResponse'][]>('/admin/content').then((r) => r.data),

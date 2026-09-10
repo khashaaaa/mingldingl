@@ -961,6 +961,196 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    status?: string;
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminReportListItemDtoPagedResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/reports/pending-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PendingReportCountDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/reports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminReportDetailDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/reports/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AdminResolveReportRequest"];
+                    "text/json": components["schemas"]["AdminResolveReportRequest"];
+                    "application/*+json": components["schemas"]["AdminResolveReportRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminReportDetailDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/ships": {
         parameters: {
             query?: never;
@@ -1364,6 +1554,58 @@ export interface paths {
                 cookie?: never;
             };
             requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminUserDetailDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{id}/photos/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AdminRemovePhotoRequest"];
+                    "text/json": components["schemas"]["AdminRemovePhotoRequest"];
+                    "application/*+json": components["schemas"]["AdminRemovePhotoRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -3546,6 +3788,15 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -3774,6 +4025,74 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateReportRequest"];
+                    "text/json": components["schemas"]["CreateReportRequest"];
+                    "application/*+json": components["schemas"]["CreateReportRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreateReportResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
                 };
             };
         };
@@ -4310,6 +4629,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/townsquare/session/{sessionId}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SessionSummaryResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/townsquare/pairing/{pairingId}/joined": {
         parameters: {
             query?: never;
@@ -4644,6 +5009,59 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["UserResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/delete/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -5447,6 +5865,70 @@ export interface components {
             /** Format: date-time */
             expiresAt?: string;
         };
+        AdminRemovePhotoRequest: {
+            photoUrl?: string | null;
+        };
+        AdminReportDetailDto: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            reporterId?: string;
+            reporterDisplayName?: string | null;
+            /** Format: uuid */
+            reportedUserId?: string;
+            reportedDisplayName?: string | null;
+            reportedIsBanned?: boolean;
+            reportedPhotoUrls?: string[] | null;
+            reason?: string | null;
+            details?: string | null;
+            status?: string | null;
+            /** Format: uuid */
+            matchId?: string | null;
+            reviewNotes?: string | null;
+            reviewedBy?: string | null;
+            /** Format: date-time */
+            reviewedAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int32 */
+            totalReportsAgainst?: number;
+            /** Format: int32 */
+            distinctReportersAgainst?: number;
+            /** Format: int32 */
+            pendingReportsAgainst?: number;
+        };
+        AdminReportListItemDto: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            reporterId?: string;
+            reporterDisplayName?: string | null;
+            /** Format: uuid */
+            reportedUserId?: string;
+            reportedDisplayName?: string | null;
+            reportedIsBanned?: boolean;
+            reason?: string | null;
+            details?: string | null;
+            status?: string | null;
+            /** Format: uuid */
+            matchId?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AdminReportListItemDtoPagedResponse: {
+            items?: components["schemas"]["AdminReportListItemDto"][] | null;
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            pageSize?: number;
+            /** Format: int32 */
+            totalCount?: number;
+            hasMore?: boolean;
+        };
+        AdminResolveReportRequest: {
+            outcome?: string | null;
+            notes?: string | null;
+        };
         AdminShipListItemDto: {
             /** Format: uuid */
             id?: string;
@@ -5745,7 +6227,6 @@ export interface components {
             reputationScore?: number;
             photoUrls?: string[] | null;
             bio?: string | null;
-            equippedFrameId?: string | null;
             equippedTitleId?: string | null;
             oath?: string | null;
             oathProven?: boolean;
@@ -5815,6 +6296,19 @@ export interface components {
             /** Format: int32 */
             awarded?: number;
         };
+        CreateReportRequest: {
+            /** Format: uuid */
+            reportedUserId?: string;
+            reason?: string | null;
+            details?: string | null;
+            /** Format: uuid */
+            matchId?: string | null;
+        };
+        CreateReportResponse: {
+            /** Format: uuid */
+            id?: string;
+            status?: string | null;
+        };
         CreateShipRequest: {
             slotAPhoneNumber?: string | null;
             slotBPhoneNumber?: string | null;
@@ -5851,6 +6345,8 @@ export interface components {
         CurrentRoundResponse: {
             /** Format: uuid */
             pairingId?: string;
+            /** Format: uuid */
+            partnerUserId?: string;
             videoToken?: string | null;
             channelName?: string | null;
             appId?: string | null;
@@ -6077,13 +6573,16 @@ export interface components {
             thirdPhoto?: string | null;
             district?: string | null;
             deep?: components["schemas"]["UserDeepFields"];
-            equippedFrameId?: string | null;
             equippedTitleId?: string | null;
             isDeleted?: boolean;
             oath?: string | null;
             oathProven?: boolean;
             /** Format: int32 */
             photoCount?: number;
+        };
+        PendingReportCountDto: {
+            /** Format: int32 */
+            pending?: number;
         };
         PendingShipResponse: {
             /** Format: uuid */
@@ -6203,6 +6702,8 @@ export interface components {
         };
         RevealThresholdsResponse: {
             levels?: components["schemas"]["RevealThresholdDto"][] | null;
+            /** Format: int32 */
+            activitySuggestionMessages?: number;
         };
         ScoreDetailResponse: {
             /** Format: int32 */
@@ -6227,6 +6728,8 @@ export interface components {
             dailyMatchBudget?: number;
             pendingReferralReward?: components["schemas"]["DroppedItem"];
             pendingShipReward?: components["schemas"]["DroppedItem"];
+            /** Format: int32 */
+            threadsSparked?: number;
         };
         ScoreEventDto: {
             eventType?: string | null;
@@ -6262,6 +6765,19 @@ export interface components {
             message?: components["schemas"]["MessageResponse"];
             /** Format: int32 */
             awarded?: number;
+        };
+        SessionSummaryMatch: {
+            /** Format: uuid */
+            matchId?: string;
+            /** Format: uuid */
+            otherUserId?: string;
+            displayName?: string | null;
+        };
+        SessionSummaryResponse: {
+            status?: string | null;
+            /** Format: int32 */
+            roundsPlayed?: number;
+            matches?: components["schemas"]["SessionSummaryMatch"][] | null;
         };
         StartPhoneVerificationRequest: {
             phone?: string | null;
@@ -6370,7 +6886,6 @@ export interface components {
             photoUrls?: string[] | null;
             membershipLevel?: string | null;
             isProfileComplete?: boolean;
-            equippedFrameId?: string | null;
             equippedTitleId?: string | null;
             hasKids?: boolean | null;
             smokingHabit?: string | null;
@@ -6394,6 +6909,8 @@ export interface components {
             /** Format: int32 */
             deletionGraceDays?: number;
             preferredLocale?: string | null;
+            /** Format: date-time */
+            deletionRequestedAt?: string | null;
         };
         VideoCompleteDto: {
             /** Format: uuid */

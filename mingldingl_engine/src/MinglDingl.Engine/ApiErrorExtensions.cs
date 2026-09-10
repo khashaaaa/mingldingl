@@ -19,6 +19,9 @@ public static class ApiErrorExtensions
     public static IActionResult ForbiddenError(this ControllerBase c, string message, string code) =>
         c.StatusCode(403, new ErrorResponse(message, code));
 
+    public static IActionResult TooManyRequestsError(this ControllerBase c, string message, string code) =>
+        c.StatusCode(429, new ErrorResponse(message, code));
+
     public static IActionResult NotImplementedError(this ControllerBase c, string message, string code) =>
         c.StatusCode(501, new ErrorResponse(message, code));
 }

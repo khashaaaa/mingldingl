@@ -33,6 +33,11 @@ export interface Match {
   otherUserId: string;
   status: MatchStatus;
   revealLevel: number;
+  /**
+   * The engine's *mutual* message count — what the reveal ladder and the activity gate actually
+   * read — not the raw combined total. Sending the raw total made the reveal strip count down to a
+   * rung a one-sided conversation can never reach.
+   */
   messageCount: number;
   icebreakerComplete: boolean;
   videoCallUnlocked: boolean;

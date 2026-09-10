@@ -58,10 +58,14 @@ public class TownSquareService
         var session = await _db.TownSquareSessions.FindAsync(sessionId);
         if (session is null || session.Status != "Open") return;
 
+        // An RSVP is only as good as the account behind it at lock time. Someone banned, paused or
+        // pending deletion since they signed up would otherwise hold a seat nobody can sit in — and
+        // seats are the scarce thing here, capped at MaxPerSide a side.
         var rsvps = await (
             from r in _db.TownSquareRsvps
             join u in _db.Users on r.UserId equals u.Id
             where r.SessionId == sessionId
+                && u.DeletionRequestedAt == null && !u.IsBanned && !u.IsPaused
             orderby r.RsvpAt
             select new { u.Id, u.Gender }
         ).ToListAsync();
@@ -92,6 +96,29 @@ public class TownSquareService
         }
 
         var rounds = GenerateRoundRobin(men, women);
+
+        // A block has to mean "never in front of me again". The round-robin sits every man opposite
+        // every woman, so without this the person someone blocked was seated across from them for a
+        // whole round — the pair check further down only refused the *match* afterwards, long after
+        // the encounter it was supposed to prevent. The pairing is dropped rather than reshuffled:
+        // both sit that one round out, and every other pairing keeps the meet-everyone-once
+        // property the rotation exists for.
+        var rosterIds = men.Concat(women).ToList();
+        var blockedPairs = await _db.BlockedUsers.AsNoTracking()
+            .Where(bl => rosterIds.Contains(bl.BlockerId) && rosterIds.Contains(bl.BlockedId))
+            .Select(bl => new { bl.BlockerId, bl.BlockedId })
+            .ToListAsync();
+        if (blockedPairs.Count > 0)
+        {
+            var blocked = new HashSet<(Guid, Guid)>();
+            foreach (var pair in blockedPairs)
+            {
+                blocked.Add((pair.BlockerId, pair.BlockedId));
+                blocked.Add((pair.BlockedId, pair.BlockerId));
+            }
+            for (int r = 0; r < rounds.Count; r++)
+                rounds[r] = rounds[r].Where(p => !blocked.Contains((p.UserAId, p.UserBId))).ToList();
+        }
 
         for (int r = 0; r < rounds.Count; r++)
         {
@@ -146,11 +173,14 @@ public class TownSquareService
         session.CurrentRoundNumber = 1;
         await _db.SaveChangesAsync();
 
-        // The roster is whoever LockRosterAsync paired into round one; RSVPs it turned away are not on it.
+        // The roster is whoever LockRosterAsync paired into this session; RSVPs it turned away are
+        // not on it. Read across every round, not just the first: a pairing dropped because the two
+        // have blocked each other leaves both of them unpaired in that one round, and reading round
+        // one alone then never told them the gathering had started.
         var rostered = await (
             from p in _db.TownSquarePairings
             join r in _db.TownSquareRounds on p.RoundId equals r.Id
-            where r.SessionId == sessionId && r.RoundNumber == 1
+            where r.SessionId == sessionId
             select new[] { p.UserAId, p.UserBId }
         ).ToListAsync();
         var startData = new Dictionary<string, object> { ["sessionId"] = sessionId.ToString() };
@@ -194,9 +224,25 @@ public class TownSquareService
         if (response != "Yes" && response != "No")
             throw new DomainException("Response must be Yes or No", "square.response_invalid");
 
-        var lookup = await _db.TownSquarePairings.AsNoTracking().FirstOrDefaultAsync(p => p.Id == pairingId);
-        if (lookup is null || !lookup.IsParticipant(userId))
+        // The session comes along for the ride because a pairing outlives its session's status. An
+        // admin may cancel a *Locked* session, and a Locked session already has its pairings — so
+        // without this check both sides of a gathering that never ran could still answer Yes and
+        // walk away with a real match.
+        var lookup = await (
+            from p in _db.TownSquarePairings.AsNoTracking()
+            join r in _db.TownSquareRounds on p.RoundId equals r.Id
+            join sess in _db.TownSquareSessions on r.SessionId equals sess.Id
+            where p.Id == pairingId
+            select new { p.UserAId, p.UserBId, SessionStatus = sess.Status }
+        ).FirstOrDefaultAsync();
+        if (lookup is null || (lookup.UserAId != userId && lookup.UserBId != userId))
             throw DomainException.Forbidden("Not a participant in this pairing", "square.not_participant");
+
+        // A late answer is fine — people decide in their own time, and a locked session is simply
+        // one that has not started yet. A cancelled one is different: it never ran, so nothing that
+        // happened in it may become a match.
+        if (lookup.SessionStatus == "Cancelled")
+            throw new DomainException("Session is not in progress", "square.not_in_progress");
 
         bool isUserA = lookup.UserAId == userId;
 
@@ -213,12 +259,23 @@ public class TownSquareService
                 WHERE "Id" = {pairingId}
                 RETURNING "UserAResponse", "UserBResponse", "UserAId", "UserBId", "ResultingMatchId"
                 """).ToListAsync();
+        // The row can be gone by now. Both sibling RETURNING call sites check this; indexing
+        // straight into an empty list turned a vanished pairing into a logged 500.
+        if (updated.Count == 0)
+            throw DomainException.Forbidden("Not a participant in this pairing", "square.not_participant");
         var row = updated[0];
 
         if (row.UserAResponse != "Yes" || row.UserBResponse != "Yes" || row.ResultingMatchId is not null)
             return row.ResultingMatchId;
 
         if (await MatchPairing.IsPairBlockedAsync(_db, row.UserAId, row.UserBId))
+            return null;
+
+        // Weeks can separate the gathering from the answer, and this was the one remaining path
+        // that went straight from "both said yes" to a Match without re-reading the rule discovery,
+        // POST /matches and a woven thread all obey. Someone banned, paused or pending deletion
+        // since the round still walked away with a live conversation.
+        if (!await MatchPairing.AreBothEligibleAsync(_db, row.UserAId, row.UserBId))
             return null;
 
         var (matchId, created) = await CreateOrReuseMatchAsync(row.UserAId, row.UserBId);
@@ -253,25 +310,19 @@ public class TownSquareService
             (m.InitiatorId == userBId && m.ReceiverId == userAId));
         if (existing is not null) return (existing.Id, false);
 
-        return await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        return await _db.InTransactionAsync(async () =>
         {
-            await using var tx = await _db.Database.BeginTransactionAsync();
             await _db.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT pg_advisory_xact_lock({MatchPairing.PairLockKey(userAId, userBId)})");
 
             var lockedExisting = await _db.Matches.FirstOrDefaultAsync(m =>
                 (m.InitiatorId == userAId && m.ReceiverId == userBId) ||
                 (m.InitiatorId == userBId && m.ReceiverId == userAId));
-            if (lockedExisting is not null)
-            {
-                await tx.CommitAsync();
-                return (lockedExisting.Id, false);
-            }
+            if (lockedExisting is not null) return (lockedExisting.Id, false);
 
             var match = MatchPairing.NewMatch(userAId, userBId);
             _db.Matches.Add(match);
             await _db.SaveChangesAsync();
-            await tx.CommitAsync();
             return (match.Id, true);
         });
     }

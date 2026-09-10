@@ -1,6 +1,6 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import type { Message } from '../../hooks/useChat';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 
@@ -41,7 +41,18 @@ const styles = StyleSheet.create({
   alignStart: { alignSelf: 'flex-start' },
   bubble: { borderRadius: RADIUS.lg, padding: SPACE.md, maxWidth: '100%' },
   bubbleMine: { alignSelf: 'flex-end', backgroundColor: tint(COLORS.gold, 0.9), borderBottomRightRadius: RADIUS.sm },
-  bubbleTheirs: { alignSelf: 'flex-start', backgroundColor: COLORS.panel, borderBottomLeftRadius: RADIUS.sm },
+  // The chat screen is transparent so the world floor shows through, and that floor sits at very
+  // nearly COLORS.panel — an incoming bubble's fill was scoring 1.03:1 against what was actually
+  // behind it, so a received message read as bare text with no bubble at all. Fill alone cannot
+  // carry the edge in a palette this dark (panelRaised only reaches 1.09:1); the hairline is what
+  // defines it, at ~3:1, and it is the same LINE.edge every other panel in the app uses.
+  bubbleTheirs: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.panelRaised,
+    borderBottomLeftRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: LINE.edge,
+  },
   bubbleFailed: { opacity: 0.55 },
   text: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: COLORS.text },
   textMine: { color: COLORS.panelDeep },

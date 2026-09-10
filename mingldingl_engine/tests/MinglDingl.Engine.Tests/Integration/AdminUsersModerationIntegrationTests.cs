@@ -5,7 +5,7 @@ namespace MinglDingl.Engine.Tests.Integration;
 public class AdminUsersModerationIntegrationTests : IntegrationTestBase
 {
     private AdminUsersController BuildController() =>
-        new(Db, new AdminAuditService(Db), new ScoreService(Db, new ConfigService()), new ConfigService());
+        new(Db, new AdminAuditService(Db), new ScoreService(Db, new ConfigService()), new ConfigService(), BuildTestStorage(), BuildTestBroadcast());
 
     private static System.Security.Claims.ClaimsPrincipal AdminPrincipal() =>
         new(new System.Security.Claims.ClaimsIdentity(
@@ -155,5 +155,78 @@ public class AdminUsersModerationIntegrationTests : IntegrationTestBase
     {
         var controller = BuildControllerWithUser();
         Assert.IsType<NotFoundObjectResult>(await controller.ResetNoShow(Guid.NewGuid()));
+    }
+
+    /// <summary>
+    /// Before this existed the only answer to one objectionable photo was banning the whole
+    /// account. /uploads is public, so the file has to go too — clearing the column alone leaves it
+    /// fetchable by anyone holding the URL.
+    /// </summary>
+    [Fact]
+    public async Task RemovePhoto_TakesItOffTheProfileAndDeletesTheFile()
+    {
+        var user = NewCompleteUser();
+        var storage = BuildTestStorage();
+        var kept = await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket,
+            $"{LocalFileStorageService.ProfilePhotoDirectory(user.Id)}kept.jpg", [1], "image/jpeg");
+        var offensive = await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket,
+            $"{LocalFileStorageService.ProfilePhotoDirectory(user.Id)}bad.jpg", [1], "image/jpeg");
+        user.PhotoUrls = [kept, offensive];
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        var controller = new AdminUsersController(
+            Db, new AdminAuditService(Db), new ScoreService(Db, new ConfigService()), new ConfigService(),
+            storage, BuildTestBroadcast());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = AdminPrincipal() },
+        };
+
+        var result = Assert.IsType<OkObjectResult>(
+            await controller.RemovePhoto(user.Id, new AdminRemovePhotoRequest(offensive)));
+
+        var detail = Assert.IsType<AdminUserDetailDto>(result.Value);
+        Assert.Equal([kept], detail.PhotoUrls);
+        Assert.False(storage.DeleteByPublicUrl(offensive), "the file should already be gone");
+        Assert.True(storage.DeleteByPublicUrl(kept), "the other photo must survive");
+    }
+
+    [Fact]
+    public async Task RemovePhoto_ForAUrlThisUserDoesNotHave_Is404()
+    {
+        var user = NewCompleteUser();
+        user.PhotoUrls = [];
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        var result = await BuildControllerWithUser()
+            .RemovePhoto(user.Id, new AdminRemovePhotoRequest("/uploads/photos/profiles/x/y.jpg"));
+
+        Assert.Equal("photo.not_found", Assert.IsType<ErrorResponse>(
+            Assert.IsType<NotFoundObjectResult>(result).Value).Code);
+    }
+
+    /// <summary>
+    /// A ban stops the banned account's own requests, but their partners were left in threads that
+    /// could never be answered, taking ghosting state against someone who had been thrown out.
+    /// </summary>
+    [Fact]
+    public async Task BanUser_EndsEveryLiveConversationTheAccountHolds()
+    {
+        var banned = NewCompleteUser();
+        var partner = NewCompleteUser(gender: "Male");
+        Db.Users.AddRange(banned, partner);
+        await Db.SaveChangesAsync();
+        var match = MatchPairing.NewMatch(partner.Id, banned.Id);
+        Db.Matches.Add(match);
+        await Db.SaveChangesAsync();
+
+        await BuildControllerWithUser().BanUser(banned.Id, new AdminBanUserRequest("spam"));
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal("Unmatched", (await Db.Matches.FindAsync(match.Id))!.Status);
     }
 }

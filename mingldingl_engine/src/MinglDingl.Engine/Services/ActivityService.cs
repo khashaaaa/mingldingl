@@ -182,37 +182,55 @@ public class ActivityService
             await _honours.GrantAsync(match.ReceiverId, "title_trueword", "encounter_kept");
         }
 
-        if (confirmation.InitiatorAttended.HasValue && confirmation.ReceiverAttended.HasValue
-            && confirmation.InitiatorAttended != confirmation.ReceiverAttended)
+        // Each side is asked whether THE OTHER showed up — that is what
+        // dating.attendance_check.delay_hours describes and what the app now asks — so a "no" is an
+        // accusation, never a confession. Reading it as a confession put the flag on whoever
+        // reported being stood up while the no-show, answering "yes", walked away clean: reporting
+        // a no-show was the one thing that penalised you for it.
+        if (confirmation.InitiatorAttended.HasValue && confirmation.ReceiverAttended.HasValue)
         {
             bool alreadyPenalizedForThisMatch = await _db.DateConfirmations
                 .AnyAsync(c => c.MatchId == matchId && c.PenaltyApplied);
 
-            if (!alreadyPenalizedForThisMatch)
+            // The initiator answers about the receiver and the receiver about the initiator, so
+            // both can be named at once: a date neither side turned up to is two no-shows, not a
+            // contradiction to be thrown away.
+            var absentees = new List<Guid>();
+            if (confirmation.InitiatorAttended == false) absentees.Add(match.ReceiverId);
+            if (confirmation.ReceiverAttended == false) absentees.Add(match.InitiatorId);
+
+            if (!alreadyPenalizedForThisMatch && absentees.Count > 0)
             {
-                var denyingUserId = confirmation.InitiatorAttended == false ? match.InitiatorId : match.ReceiverId;
                 confirmation.PenaltyApplied = true;
                 await _db.SaveChangesAsync();
 
-                var updated = await _db.Database.SqlQuery<int>(
-                    $"""
-                    UPDATE "Users" SET "NoShowFlagCount" = "NoShowFlagCount" + 1
-                    WHERE "Id" = {denyingUserId}
-                    RETURNING "NoShowFlagCount"
-                    """).ToListAsync();
-
-                if (updated.Count > 0)
-                {
-                    var trackedUser = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == denyingUserId)?.Entity;
-                    if (trackedUser is not null) trackedUser.NoShowFlagCount = updated[0];
-
-                    int threshold = (int)_config.GetNumber("dating.noshow.threshold", 3);
-                    if (updated[0] >= threshold)
-                        await _score.ApplyReputationPenaltyAsync(denyingUserId, "RepeatedNoShowPenalty");
-                }
+                foreach (var absentUserId in absentees)
+                    await FlagNoShowAsync(absentUserId);
             }
         }
 
         return attended;
+    }
+
+    /// <summary>
+    /// Records one no-show against a user and docks reputation once they have collected enough of
+    /// them. The count moves in SQL because two matches can report the same person concurrently.
+    /// </summary>
+    private async Task FlagNoShowAsync(Guid absentUserId)
+    {
+        var updated = await _db.Database.SqlQuery<int>(
+            $"""
+            UPDATE "Users" SET "NoShowFlagCount" = "NoShowFlagCount" + 1
+            WHERE "Id" = {absentUserId}
+            RETURNING "NoShowFlagCount"
+            """).ToListAsync();
+        if (updated.Count == 0) return;
+
+        var trackedUser = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == absentUserId)?.Entity;
+        if (trackedUser is not null) trackedUser.NoShowFlagCount = updated[0];
+
+        int threshold = (int)_config.GetNumber("dating.noshow.threshold", 3);
+        if (updated[0] >= threshold)
+            await _score.ApplyReputationPenaltyAsync(absentUserId, "RepeatedNoShowPenalty");
     }
 }

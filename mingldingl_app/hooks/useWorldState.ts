@@ -5,6 +5,7 @@ import { profileCompleteness, type WorldState } from '../lib/world/light';
 import type { Match } from '../models/match';
 import type { UserProfile } from '../models/user';
 import type { Campaign } from './useCampaign';
+import type { Message } from './useChat';
 import type { TownSquareNextSession } from './useTownSquareSession';
 
 interface ScoreShape { dailyMatchBudget?: number | null; dailyMatchesUsed?: number | null; dailyMatchesRemaining?: number | null }
@@ -26,10 +27,21 @@ function useCached<T>(qc: QueryClient, key: readonly unknown[] | null): T | unde
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+/** The newest message's timestamp; null for a thread with nothing in it yet. */
+export function newestMessageAt(messages: readonly Message[]): string | null {
+  let newest: string | null = null;
+  for (const m of messages) {
+    if (newest == null || m.createdAt > newest) newest = m.createdAt;
+  }
+  return newest;
+}
+
 /**
  * @param matchId the delve currently open, when there is one — the Deep is lit per match.
+ * @param now the clock the time-based ramps read. The provider passes its minute tick so a chat
+ *   left open cools on its own; defaulting to `Date.now()` keeps the hook honest when called bare.
  */
-export function useWorldState(matchId?: string): WorldState {
+export function useWorldState(matchId?: string, now: number = Date.now()): WorldState {
   const qc = useQueryClient();
   const profile = useCached<UserProfile>(qc, queryKeys.userProfile);
   const score = useCached<ScoreShape>(qc, queryKeys.score);
@@ -37,6 +49,7 @@ export function useWorldState(matchId?: string): WorldState {
   const session = useCached<TownSquareNextSession>(qc, queryKeys.townSquareNextSession);
   const items = useCached<OwnedItemShape[]>(qc, queryKeys.itemsMine);
   const campaign = useCached<Campaign>(qc, matchId ? queryKeys.campaign(matchId) : null);
+  const messages = useCached<Message[]>(qc, matchId ? queryKeys.messages(matchId) : null);
 
   const budgetTotal = score?.dailyMatchBudget ?? null;
   const used = score?.dailyMatchesUsed ?? 0;
@@ -57,5 +70,7 @@ export function useWorldState(matchId?: string): WorldState {
     profile: profileCompleteness(profile),
     // Honours are `Title` items; tier frames are derived and would inflate the Hall's ladder.
     honours: items ? items.filter((i) => i.itemType === 'Title').length : null,
+    conversation: messages ? { lastMessageAt: newestMessageAt(messages) } : null,
+    now,
   };
 }

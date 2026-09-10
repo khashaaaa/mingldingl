@@ -24,6 +24,7 @@ public class AppDbContext : DbContext
     public DbSet<UserMilestone> UserMilestones => Set<UserMilestone>();
     public DbSet<PushToken> PushTokens => Set<PushToken>();
     public DbSet<BlockedUser> BlockedUsers => Set<BlockedUser>();
+    public DbSet<UserReport> UserReports => Set<UserReport>();
     public DbSet<ContentPage> ContentPages => Set<ContentPage>();
     public DbSet<AdminAuditLog> AdminAuditLogs => Set<AdminAuditLog>();
     public DbSet<AdminConfig> AdminConfigs => Set<AdminConfig>();
@@ -78,6 +79,21 @@ public class AppDbContext : DbContext
         b.Entity<IcebreakerResponse>().HasIndex(r => new { r.MatchId, r.IcebreakerId, r.UserId }).IsUnique();
         b.Entity<QuizResponse>().HasIndex(r => new { r.QuizId, r.UserId, r.MatchId }).IsUnique();
         b.Entity<BlockedUser>().HasIndex(r => new { r.BlockerId, r.BlockedId }).IsUnique();
+
+        // Restrict, like every other user reference: a report is the record of why an account was
+        // acted on, so it must not be quietly cascaded away with either party.
+        b.Entity<UserReport>().HasOne(r => r.Reporter).WithMany().HasForeignKey(r => r.ReporterId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<UserReport>().HasOne(r => r.ReportedUser).WithMany().HasForeignKey(r => r.ReportedUserId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<UserReport>().Property(r => r.Reason).HasMaxLength(FieldLimits.ShortLabel);
+        b.Entity<UserReport>().Property(r => r.Status).HasMaxLength(FieldLimits.ShortLabel);
+        b.Entity<UserReport>().Property(r => r.Details).HasMaxLength(FieldLimits.Reason);
+        b.Entity<UserReport>().Property(r => r.ReviewNotes).HasMaxLength(FieldLimits.Reason);
+        b.Entity<UserReport>().Property(r => r.ReviewedBy).HasMaxLength(FieldLimits.DisplayName);
+        // The admin queue reads pending-first, and the report sheet refuses a second open report
+        // against the same person — both are this index.
+        b.Entity<UserReport>().HasIndex(r => new { r.Status, r.CreatedAt });
+        b.Entity<UserReport>().HasIndex(r => new { r.ReporterId, r.ReportedUserId, r.Status });
+        b.Entity<UserReport>().HasIndex(r => r.ReportedUserId);
 
         b.Entity<BusinessRating>().HasIndex(r => new { r.BusinessPartnerId, r.UserId, r.MatchId }).IsUnique();
         b.Entity<ContentPage>().HasIndex(c => c.Slug).IsUnique();

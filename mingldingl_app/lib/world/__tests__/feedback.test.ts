@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Audio from 'expo-audio';
-import { __resetFeedback, setFeedbackMuted, setSoundEnabled, signal } from '../feedback';
+import { __resetFeedback, setFeedbackMuted, setSoundEnabled, signal, type WorldEvent } from '../feedback';
 import { animationFor } from '../travel';
 
 const player = (Audio as unknown as { __player: { play: jest.Mock; seekTo: jest.Mock; remove: jest.Mock } }).__player;
@@ -87,6 +87,34 @@ describe('world feedback', () => {
     expect(impact).toHaveBeenLastCalledWith('heavy');
   });
 
+  it('ticks softly on an ordinary press', () => {
+    signal('press');
+    expect(impact).toHaveBeenCalledTimes(1);
+    expect(impact).toHaveBeenCalledWith('soft');
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('sounds the horn with a light impact', () => {
+    signal('horn');
+    expect(impact).toHaveBeenCalledTimes(1);
+    expect(impact).toHaveBeenCalledWith('light');
+  });
+
+  it('has a row, with a haptic and a sound, for every event in the union', () => {
+    // `satisfies` makes adding a WorldEvent without extending this list a typecheck failure.
+    const events = {
+      enterDeep: true, ascend: true, tierUp: true, sealBreak: true,
+      honour: true, pledgeKept: true, press: true, horn: true,
+    } satisfies Record<WorldEvent, true>;
+    setSoundEnabled(true);
+    for (const event of Object.keys(events) as WorldEvent[]) {
+      jest.clearAllMocks();
+      signal(event);
+      expect(impact.mock.calls.length + notify.mock.calls.length).toBeGreaterThanOrEqual(1);
+      expect(player.play).toHaveBeenCalledTimes(1);
+    }
+  });
+
   it('does not reach for a haptic engine the web does not have', () => {
     const original = Platform.OS;
     Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true });
@@ -105,14 +133,14 @@ describe('travel', () => {
     expect(animationFor('campaign/[matchId]', false)).toBe('slide_from_bottom');
   });
 
-  it('leaves movement inside the hold alone', () => {
-    expect(animationFor('(tabs)/discover', false)).toBe('default');
-    expect(animationFor('edit-profile', false)).toBe('default');
+  it('cuts between rooms at the same depth', () => {
+    expect(animationFor('(tabs)/discover', false)).toBe('none');
+    expect(animationFor('edit-profile', false)).toBe('none');
   });
 
-  it('does not animate a route with no place in the hold', () => {
-    expect(animationFor('(tabs)', false)).toBe('default');
-    expect(animationFor('some-new-screen', false)).toBe('default');
+  it('cuts for a route with no place in the hold', () => {
+    expect(animationFor('(tabs)', false)).toBe('none');
+    expect(animationFor('some-new-screen', false)).toBe('none');
   });
 
   it('leaves the unlit video call to the navigator', () => {

@@ -416,14 +416,16 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
     public async Task GetIcebreaker_NeverServesAnInactiveQuestion()
     {
         var initiator = NewCompleteUser();
-        var receiver = NewCompleteUser();
-        Db.Users.AddRange(initiator, receiver);
+        var receivers = Enumerable.Range(0, 6).Select(_ => NewCompleteUser()).ToList();
+        Db.Users.Add(initiator);
+        Db.Users.AddRange(receivers);
         Db.Icebreakers.Add(new Icebreaker { QuestionText = "Active", Type = "OpenText", IsActive = true });
         Db.Icebreakers.Add(new Icebreaker { QuestionText = "Retired", Type = "OpenText", IsActive = false });
 
-        // Several matches, so the stable index is exercised across different seeds.
-        var matches = Enumerable.Range(0, 6)
-            .Select(_ => new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active" })
+        // Several matches, so the stable index is exercised across different seeds — one partner
+        // each, because a pair may hold at most one Match.
+        var matches = receivers
+            .Select(r => new Match { InitiatorId = initiator.Id, ReceiverId = r.Id, Status = "Active" })
             .ToList();
         Db.Matches.AddRange(matches);
         await Db.SaveChangesAsync();
@@ -443,12 +445,15 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
     public async Task GetIcebreaker_SpreadsAcrossQuestionsRatherThanPinningEveryMatchToOne()
     {
         var initiator = NewCompleteUser();
-        var receiver = NewCompleteUser();
-        Db.Users.AddRange(initiator, receiver);
+        // One partner per match: a pair may hold at most one Match, so stacking 25 of them on the
+        // same two people is a shape the database now refuses outright.
+        var receivers = Enumerable.Range(0, 25).Select(_ => NewCompleteUser()).ToList();
+        Db.Users.Add(initiator);
+        Db.Users.AddRange(receivers);
         for (var i = 0; i < 8; i++)
             Db.Icebreakers.Add(new Icebreaker { QuestionText = $"Q{i}", Type = "OpenText", IsActive = true });
-        var matches = Enumerable.Range(0, 25)
-            .Select(_ => new Match { InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active" })
+        var matches = receivers
+            .Select(r => new Match { InitiatorId = initiator.Id, ReceiverId = r.Id, Status = "Active" })
             .ToList();
         Db.Matches.AddRange(matches);
         await Db.SaveChangesAsync();
@@ -557,5 +562,19 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
         var result = Assert.IsType<OkObjectResult>(await BuildController(initiator.Id).GetIcebreaker(match.Id));
 
         Assert.Equal(expected, Assert.IsType<IcebreakerQuestionResponse>(result.Value).QuestionText);
+    }
+
+    [Fact]
+    public void GetRevealThresholds_AlsoServesTheActivitySuggestionGate()
+    {
+        var config = new ConfigService();
+        config.Set("activity.suggestions.messages", "9");
+
+        var result = Assert.IsType<OkObjectResult>(BuildController(Guid.NewGuid(), config).GetRevealThresholds());
+        var body = Assert.IsType<RevealThresholdsResponse>(result.Value);
+
+        // Without it on the wire the app could only discover the gate by being refused, so it
+        // offered the door unconditionally and had no countdown to put next to it.
+        Assert.Equal(9, body.ActivitySuggestionMessages);
     }
 }

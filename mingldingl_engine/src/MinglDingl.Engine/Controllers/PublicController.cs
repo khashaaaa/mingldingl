@@ -32,6 +32,12 @@ public class PublicController : ControllerBase
     [Produces("text/html")]
     public ContentResult GetStatsPage() => Content(StatsPageHtml, "text/html");
 
+    /// <summary>
+    /// Whether an invite code names a thread still waiting for someone. Anonymous and unthrottled,
+    /// so it is an enumeration oracle over a 31^6 code space — acceptable only because a code is no
+    /// longer a bearer token: <see cref="ShipService.TryResolveInviteCodeAsync"/> also requires the
+    /// redeemer to own the number the code was issued for, so a guessed code buys nothing.
+    /// </summary>
     [HttpGet("ship-invite")]
     [ProducesResponseType(typeof(PublicShipInviteResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetShipInvite([FromQuery] string? code)

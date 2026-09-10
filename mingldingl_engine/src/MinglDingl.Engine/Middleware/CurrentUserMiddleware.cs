@@ -22,7 +22,8 @@ public class CurrentUserMiddleware
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new { error = "Invalid authentication token." });
+            await context.Response.WriteAsJsonAsync(
+                new ErrorResponse("Invalid authentication token.", "auth.token_invalid"));
             return;
         }
 
@@ -38,7 +39,11 @@ public class CurrentUserMiddleware
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new { error = "This account has been suspended." });
+            // The same {Error, Code} shape every controller returns. Writing a bare `error` here
+            // meant the one response the app most needs to explain — you have been suspended —
+            // was the one it could not map to localised copy.
+            await context.Response.WriteAsJsonAsync(
+                new ErrorResponse("This account has been suspended.", "account.suspended"));
             return;
         }
 

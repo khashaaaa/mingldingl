@@ -25,6 +25,16 @@ public class LocalFileStorageService
         return combined.StartsWith(prefix, StringComparison.Ordinal) ? combined : null;
     }
 
+    /// <summary>The bucket every user-uploaded profile photo lives in.</summary>
+    public const string PhotoBucket = "photos";
+
+    /// <summary>
+    /// The one directory a given user's profile photos may live in. Both the writer
+    /// (<c>POST /photos/upload</c>) and the ownership check read this, so a URL can never be
+    /// accepted for a directory nobody would have written it to.
+    /// </summary>
+    public static string ProfilePhotoDirectory(Guid ownerId) => $"profiles/{ownerId}/";
+
     public async Task<string> UploadAsync(string bucket, string path, byte[] bytes, string contentType)
     {
         var fullPath = ResolveWithinRoot(bucket, path)
@@ -52,8 +62,12 @@ public class LocalFileStorageService
     /// <see cref="UploadAsync"/> returned; an absolute URL must carry this engine's own origin,
     /// which is what <c>Storage:PublicBaseUrl</c> exists to declare per environment.
     /// </para>
+    /// <para>
+    /// Origin alone is not ownership: the path has to be the one
+    /// <see cref="ProfilePhotoDirectory"/> gives <paramref name="ownerId"/>.
+    /// </para>
     /// </summary>
-    public virtual bool IsOwnedPublicUrl(string? url)
+    public virtual bool IsOwnedPublicUrl(string? url, Guid ownerId)
     {
         if (string.IsNullOrWhiteSpace(url)) return false;
 
@@ -85,17 +99,30 @@ public class LocalFileStorageService
         // Must name a bucket and a file within it, and must not climb out of the uploads root.
         var separator = relative.IndexOf('/');
         if (separator <= 0 || separator == relative.Length - 1) return false;
-        return ResolveWithinRoot(relative[..separator], relative[(separator + 1)..]) is not null;
+        if (ResolveWithinRoot(relative[..separator], relative[(separator + 1)..]) is null) return false;
+
+        // And it must be a file *this* user was given. Checking only the origin meant every photo
+        // URL in the discover feed was accepted onto anyone's profile: the thief wore the victim's
+        // face, and dropping the stolen entry later ran the unlink in PUT /users/me against the
+        // victim's real file. Matching is ordinal because this is compared against a path the
+        // engine itself wrote, and a case-folded match would name a different file on Linux.
+        var expected = PhotoBucket + "/" + ProfilePhotoDirectory(ownerId);
+        return relative.StartsWith(expected, StringComparison.Ordinal)
+            && relative.Length > expected.Length
+            && !relative.AsSpan(expected.Length).Contains('/');
     }
 
-    public virtual bool DeleteByPublicUrl(string? url)
+    /// <summary>
+    /// The bucket-and-path this URL names beneath the uploads root, or null when it names nothing
+    /// this service stores. Origin-agnostic on purpose: <c>Storage:PublicBaseUrl</c> legitimately
+    /// differs per environment (localhost, the LAN IP used for on-device testing, the production
+    /// domain), and a file recorded under an older origin is still the same file on disk. Anything
+    /// that must also prove *whose* file it is uses <see cref="IsOwnedPublicUrl"/> instead.
+    /// </summary>
+    public virtual string? RelativePathOf(string? url)
     {
-        if (string.IsNullOrWhiteSpace(url)) return false;
+        if (string.IsNullOrWhiteSpace(url)) return null;
 
-        // Match on the path beneath the uploads root, never the full origin. PublicBaseUrl
-        // legitimately differs per environment (localhost, LAN IP for on-device testing, the
-        // production domain), and a photo stored under an older origin must stay deletable —
-        // otherwise it silently survives account deletion on a public, unauthenticated path.
         var path = Uri.TryCreate(url, UriKind.Absolute, out var parsed) ? parsed.AbsolutePath : url;
         var basePath = Uri.TryCreate(_publicBaseUrl, UriKind.Absolute, out var parsedBase)
             ? parsedBase.AbsolutePath
@@ -103,16 +130,23 @@ public class LocalFileStorageService
         var marker = '/' + basePath.Trim('/') + '/';
 
         var at = path.IndexOf(marker, StringComparison.Ordinal);
-        if (at < 0) return false;
+        if (at < 0) return null;
 
         var relative = Uri.UnescapeDataString(path[(at + marker.Length)..]).TrimStart('/');
-        if (relative.Length == 0) return false;
+        if (relative.Length == 0) return null;
 
         var separator = relative.IndexOf('/');
-        if (separator <= 0) return false;
+        if (separator <= 0 || separator == relative.Length - 1) return null;
+        return ResolveWithinRoot(relative[..separator], relative[(separator + 1)..]) is null ? null : relative;
+    }
 
-        var fullPath = ResolveWithinRoot(relative[..separator], relative[(separator + 1)..]);
-        if (fullPath is null) return false;
+    public virtual bool DeleteByPublicUrl(string? url)
+    {
+        var relative = RelativePathOf(url);
+        if (relative is null) return false;
+
+        var separator = relative.IndexOf('/');
+        var fullPath = ResolveWithinRoot(relative[..separator], relative[(separator + 1)..])!;
 
         try
         {
@@ -127,6 +161,60 @@ public class LocalFileStorageService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Could not delete stored file for {Url}", url);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Every profile photo currently on disk, as (relative path, last-write time). Used by the
+    /// maintenance sweep to find files no row points at: an upload is issued the moment a photo is
+    /// picked, so every abandoned edit, failed save and removed-before-saving photo leaves a file
+    /// behind on a path that is public and unauthenticated forever.
+    /// <para>
+    /// Relative paths, not URLs, because the two sides of that comparison can carry different
+    /// origins — see <see cref="RelativePathOf"/>. Matching on the full URL would classify a live
+    /// photo stored under an older origin as an orphan and delete it.
+    /// </para>
+    /// </summary>
+    public virtual IReadOnlyList<(string RelativePath, DateTime LastWriteUtc)> EnumerateProfilePhotos()
+    {
+        var bucketRoot = Path.Combine(_root, PhotoBucket, "profiles");
+        if (!Directory.Exists(bucketRoot)) return [];
+
+        var results = new List<(string, DateTime)>();
+        foreach (var file in Directory.EnumerateFiles(bucketRoot, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(_root, file).Replace(Path.DirectorySeparatorChar, '/');
+            try
+            {
+                results.Add((relative, File.GetLastWriteTimeUtc(file)));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Raced with a delete, or unreadable. Skipping is right: an orphan sweep must
+                // never be the thing that takes the whole maintenance pass down.
+                _logger.LogWarning(ex, "Could not stat stored file {Path}", relative);
+            }
+        }
+        return results;
+    }
+
+    /// <summary>Deletes one file named by the relative path <see cref="EnumerateProfilePhotos"/> returns.</summary>
+    public virtual bool DeleteByRelativePath(string relativePath)
+    {
+        var separator = relativePath.IndexOf('/');
+        if (separator <= 0 || separator == relativePath.Length - 1) return false;
+        var fullPath = ResolveWithinRoot(relativePath[..separator], relativePath[(separator + 1)..]);
+        if (fullPath is null) return false;
+        try
+        {
+            if (!File.Exists(fullPath)) return false;
+            File.Delete(fullPath);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not delete orphaned file {Path}", relativePath);
             return false;
         }
     }

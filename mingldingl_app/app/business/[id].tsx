@@ -27,7 +27,13 @@ export default function BusinessDetailScreen() {
     operatingHours?: string;
   }>();
   const { reviews, isLoading } = useBusinessReviews(params.id);
-  const { business } = useBusiness(params.id);
+  const { business, isLoading: venueLoading, isError: venueError } = useBusiness(params.id);
+
+  // The Mission Board hands the venue over whole, so that path never waits. Every other way in
+  // has nothing but an id, and the screen used to paint its empty shell anyway — a blank title
+  // bar, a placeholder band and a fabricated "0.0 (0)" — while the fetch ran, and for good if the
+  // venue was gone. Only the param-less path gets a loading and a missing state.
+  const paintedFromParams = !!params.name;
 
   // The Mission Board hands the whole venue over in params, so the screen paints instantly with
   // no spinner. Every other way in — deep link, shared URL, reload, restored session — arrives
@@ -41,6 +47,30 @@ export default function BusinessDetailScreen() {
   const averageRating = Number(params.averageRating ?? business?.averageRating ?? 0);
   const ratingCount = Number(params.ratingCount ?? business?.ratingCount ?? 0);
   const hasMeta = !!category || !!district;
+
+  if (!paintedFromParams && venueLoading) {
+    return (
+      <View style={styles.screen}>
+        <ScreenHeader title="" />
+        <View style={styles.centered}>
+          <ActivityIndicator color={COLORS.gold} />
+        </View>
+      </View>
+    );
+  }
+
+  if (!paintedFromParams && (venueError || !business)) {
+    return (
+      <View style={styles.screen}>
+        <ScreenHeader title="" />
+        <View style={styles.centered}>
+          <Icon name="map-marker-off" size={ICON_SIZES.huge} color={INK.muted} />
+          <Text style={styles.missingTitle}>{i18n.t('venue_missing_title')}</Text>
+          <Text style={styles.emptyText}>{i18n.t('venue_missing_body')}</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -115,7 +145,9 @@ const styles = StyleSheet.create({
     color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.display, letterSpacing: 1,
     textTransform: 'uppercase', paddingHorizontal: SPACE.gutter, marginTop: SPACE.xxl, marginBottom: SPACE.md,
   },
-  emptyText: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter },
+  emptyText: { color: COLORS.textDim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter, textAlign: 'center' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.md, paddingHorizontal: SPACE.xxxl },
+  missingTitle: { color: COLORS.text, fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, textAlign: 'center' },
   reviewList: { paddingHorizontal: SPACE.gutter, gap: SPACE.md },
   reviewCard: { padding: SPACE.md, gap: SPACE.sm },
   reviewPhoto: { width: '100%', height: 160, borderRadius: RADIUS.sm },

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const QUICK_LINKS = [
   { to: '/users', label: 'Users', description: 'Search, view, and moderate accounts' },
+  { to: '/reports', label: 'Reports', description: 'What users have reported about each other' },
   { to: '/deletion-requests', label: 'Deletion Requests', description: 'Pending auto-anonymization' },
   { to: '/content', label: 'Content', description: 'Terms, Privacy, Guides' },
   { to: '/business', label: 'Business Partners', description: 'Cafes, hikes, and date spots' },
@@ -30,6 +31,11 @@ export function Dashboard() {
   const auditLogQuery = useQuery({
     queryKey: queryKeys.auditLog(1, 5),
     queryFn: () => apiClient.auditLog.list(1, 5),
+  });
+  // The only queue here with a person waiting at the other end of it.
+  const pendingReportsQuery = useQuery({
+    queryKey: queryKeys.pendingReportCount,
+    queryFn: () => apiClient.reports.pendingCount(),
   });
 
   const overview = overviewQuery.data;
@@ -55,9 +61,10 @@ export function Dashboard() {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <StatTile label="Total users" value={overview?.totalUsers ?? '—'} />
         <StatTile label="Active" value={overview?.activeUsers ?? '—'} />
+        <StatTile label="Open reports" value={pendingReportsQuery.data?.pending ?? '—'} />
         <StatTile label="Pending deletions" value={deletionRequests?.length ?? '—'} />
         <StatTile
           label="Est. monthly revenue"

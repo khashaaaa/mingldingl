@@ -39,7 +39,7 @@ function renderAvatar(photoUrls = ['OLD', 'B', 'C']) {
   qc.setQueryData(queryKeys.userProfile, cached);
   const utils = render(
     <QueryClientProvider client={qc}>
-      <ProfileAvatar photoUrls={photoUrls} tierColor="#fff" frameColor="#fff" />
+      <ProfileAvatar photoUrls={photoUrls} tierColor="#fff" />
     </QueryClientProvider>,
   );
   return { ...utils, qc };

@@ -116,6 +116,15 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
     {
         var user = NewCompleteUser();
         Db.Users.Add(user);
+
+        // "No upcoming session" is a claim about the whole table, and these tests share the dev
+        // database — so a seeded Open session (reseed-dev-db.sql creates two) made this fail
+        // locally while staying green on CI's empty database. Clear the live ones inside the
+        // test's own transaction, which is rolled back either way.
+        var live = await Db.TownSquareSessions
+            .Where(s => s.Status == "Open" || s.Status == "Locked" || s.Status == "InProgress")
+            .ToListAsync();
+        Db.TownSquareSessions.RemoveRange(live);
         await Db.SaveChangesAsync();
 
         var controller = BuildController(user.Id);

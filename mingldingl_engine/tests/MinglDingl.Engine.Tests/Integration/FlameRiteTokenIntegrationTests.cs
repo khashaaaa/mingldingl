@@ -55,6 +55,11 @@ public class FlameRiteTokenIntegrationTests : IntegrationTestBase
             FlameRiteProposedAt = now,
             FlameRiteAcceptedAt = accepted ? now : null,
             FlameRiteCompletedAt = completed ? now : null,
+            // Completing the rite requires a token to have been taken and the rite's own
+            // duration to have passed since, so a seeded rite has to look like one that
+            // actually happened rather than one nobody dialled into.
+            InitiatorVideoTokenAt = accepted ? now.AddHours(-1) : null,
+            ReceiverVideoTokenAt = accepted ? now.AddHours(-1) : null,
         };
         Db.Matches.Add(match);
         await Db.SaveChangesAsync();

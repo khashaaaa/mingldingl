@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { BUTTON_METALS, COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from './Icon';
+import { signal } from '../../lib/world/feedback';
 
 interface Props {
   children: string;
@@ -27,20 +28,28 @@ const SIZES = {
 
 export function GameButton({ children, onPress, variant = 'primary', size = 'default', icon, disabled, loading, style, flex }: Props) {
   const pressY = useRef(new Animated.Value(0)).current;
+  const pressScale = useRef(new Animated.Value(1)).current;
   const isMetal = METAL_VARIANTS.has(variant);
   const sz = SIZES[size];
 
   function pressIn() {
-    Animated.timing(pressY, { toValue: 2, duration: 60, useNativeDriver: true }).start();
+    if (!disabled && !loading) signal('press');
+    Animated.parallel([
+      Animated.timing(pressY, { toValue: 2, duration: 60, useNativeDriver: true }),
+      Animated.timing(pressScale, { toValue: 0.97, duration: 60, useNativeDriver: true }),
+    ]).start();
   }
   function pressOut() {
-    Animated.spring(pressY, { toValue: 0, useNativeDriver: true, speed: 40 }).start();
+    Animated.parallel([
+      Animated.spring(pressY, { toValue: 0, useNativeDriver: true, speed: 40 }),
+      Animated.spring(pressScale, { toValue: 1, useNativeDriver: true, speed: 40 }),
+    ]).start();
   }
 
   return (
     <Animated.View
       style={[
-        { transform: [{ translateY: pressY }] },
+        { transform: [{ translateY: pressY }, { scale: pressScale }] },
         flex !== undefined && { flex },
         variant === 'primary' && styles.forgeGlow,
         style,

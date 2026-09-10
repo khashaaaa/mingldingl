@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
+import { useCancelDeletion } from '../hooks/useCancelDeletion';
 import { useAuth } from '../hooks/useAuth';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
@@ -41,6 +42,8 @@ export default function SettingsScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletedAlert, setDeletedAlert] = useState(false);
+  const cancelDeletion = useCancelDeletion();
+  const deletionPending = !!profile?.deletionRequestedAt;
 
   const [ageMinInput, setAgeMinInput] = useState(String(profile?.ageMin ?? 18));
   const [ageMaxInput, setAgeMaxInput] = useState(String(profile?.ageMax ?? 99));
@@ -127,6 +130,20 @@ export default function SettingsScreen() {
   async function handleAcknowledgeDeletion() {
     setDeletedAlert(false);
     await signOut();
+  }
+
+  /**
+   * Explicit, because reading the profile no longer calls the deletion off by itself. That used to
+   * happen on `GET /users/me` — the app's most-polled endpoint — so any background refetch between
+   * requesting deletion and signing out silently revoked it, with nothing on screen to say so.
+   */
+  async function handleCancelDeletion() {
+    try {
+      await cancelDeletion.mutateAsync();
+      setSavedNotice(true);
+    } catch {
+      setSaveFailedAlert(true);
+    }
   }
 
   return (
@@ -226,9 +243,27 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.dangerWrap}>
-          <GameButton variant="danger" size="compact" icon="account-remove" onPress={() => setConfirmDelete(true)}>
-            {i18n.t('delete_account')}
-          </GameButton>
+          {deletionPending ? (
+            <>
+              <Text style={styles.sectionLabel}>{i18n.t('delete_pending_title')}</Text>
+              <Text style={styles.sectionHint}>
+                {i18n.t('delete_pending_body', { days: deletionGraceDays })}
+              </Text>
+              <GameButton
+                variant="primary"
+                size="compact"
+                icon="shield-account"
+                loading={cancelDeletion.isPending}
+                onPress={handleCancelDeletion}
+              >
+                {i18n.t('delete_cancel')}
+              </GameButton>
+            </>
+          ) : (
+            <GameButton variant="danger" size="compact" icon="account-remove" onPress={() => setConfirmDelete(true)}>
+              {i18n.t('delete_account')}
+            </GameButton>
+          )}
         </View>
         <View style={styles.signOutWrap}>
           <GameButton variant="brass" size="compact" icon="skull-crossbones" onPress={signOut}>{i18n.t('sign_out')}</GameButton>

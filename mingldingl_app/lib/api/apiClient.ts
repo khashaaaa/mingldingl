@@ -1,6 +1,7 @@
 import { api, UPLOAD_TIMEOUT_MS } from './api';
 import type { components } from './api.generated';
 import type { Oath } from '../../models/user';
+import type { ReportReason } from '../../models/report';
 
 type Schemas = components['schemas'];
 
@@ -77,6 +78,8 @@ export const apiClient = {
     updateLocation: (latitude: number, longitude: number) =>
       api.post<Schemas['UpdateLocationResponse']>('/users/me/location', { latitude, longitude }).then((r) => r.data),
     requestDeletion: () => api.post<Schemas['UserResponse']>('/users/me/delete').then((r) => r.data),
+    // Deliberate, because reading the profile no longer calls a pending deletion off by itself.
+    cancelDeletion: () => api.post<Schemas['UserResponse']>('/users/me/delete/cancel').then((r) => r.data),
     blockedUsers: () => api.get<Schemas['BlockedUserResponse'][]>('/users/me/blocked').then((r) => r.data),
     unblock: (targetUserId: string) =>
       api.post<Schemas['BlockedUserResponse'][]>(`/users/me/blocked/${targetUserId}/unblock`).then((r) => r.data),
@@ -124,6 +127,16 @@ export const apiClient = {
       api.get<Schemas['CampaignResponse']>(`/matches/${id}/campaign`).then((r) => r.data),
     claimCampaignRoom: (id: string, roomId: string) =>
       api.post<Schemas['ClaimCampaignRoomResponse']>(`/matches/${id}/campaign/rooms/${roomId}/claim`).then((r) => r.data),
+  },
+  reports: {
+    /**
+     * Reports another user. Reachable from anywhere they can be seen, not only from a match:
+     * `matchId` is context for the moderator and is ignored unless the caller is in it.
+     */
+    create: (reportedUserId: string, reason: ReportReason, details?: string, matchId?: string) =>
+      api.post<Schemas['CreateReportResponse']>('/reports', {
+        reportedUserId, reason, details, matchId,
+      }).then((r) => r.data),
   },
   ships: {
     create: (slotAPhoneNumber: string, slotBPhoneNumber: string) =>
@@ -212,6 +225,10 @@ export const apiClient = {
       api.delete(`/townsquare/rsvp${query({ sessionId })}`).then((r) => r.data),
     currentRound: (sessionId: string) =>
       api.get<Schemas['CurrentRoundResponse']>(`/townsquare/session/${sessionId}/current-round`).then((r) => r.data),
+    // What became of a gathering. `currentRound` refuses anything that is not InProgress, so this
+    // is how the round screen tells a session that ended normally from one it was dropped out of.
+    sessionSummary: (sessionId: string) =>
+      api.get<Schemas['SessionSummaryResponse']>(`/townsquare/session/${sessionId}/summary`).then((r) => r.data),
     joined: (pairingId: string) =>
       api.post(`/townsquare/pairing/${pairingId}/joined`).then((r) => r.data),
     respond: (pairingId: string, response: string) =>

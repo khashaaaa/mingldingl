@@ -59,7 +59,19 @@ describe('RoundPrompt', () => {
         hasResponded matchId="m1" isResponding={false} onRespond={jest.fn()} />,
     );
     expect(getByText(/Match/i)).toBeTruthy();
-    expect(queryByText(/Waiting/i)).toBeNull();
+    // The round's own waiting line, matched exactly: the match message carries the word "waiting"
+    // too, in the sentence saying where the match went.
+    expect(queryByText('Waiting for the round to end…')).toBeNull();
+  });
+
+  it('says where a mid-round match went, rather than stopping at "It\'s a Match!"', () => {
+    // Deliberately not a link — tapping it would end the call and forfeit the remaining rounds —
+    // so it has to name the place the match can actually be found instead.
+    const { getByText } = renderPrompt(
+      <RoundPrompt icebreakerText="Favorite trip?" roundNumber={1} secondsLeft={60}
+        hasResponded matchId="m1" isResponding={false} onRespond={jest.fn()} />,
+    );
+    expect(getByText('They will be waiting in your Quest Log when the square closes.')).toBeTruthy();
   });
 
   it('locks both answers while a response is in flight', () => {

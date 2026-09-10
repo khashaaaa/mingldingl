@@ -1,6 +1,11 @@
 import { render, fireEvent } from '@testing-library/react-native';
 import { SessionStatusCard } from '../SessionStatusCard';
 import type { TownSquareNextSession } from '../../../hooks/useTownSquareSession';
+import { useActiveFestival } from '../../../lib/festivals';
+
+jest.mock('../../../lib/festivals', () => ({ useActiveFestival: jest.fn() }));
+const mockFestival = useActiveFestival as jest.Mock;
+const NAADAM = { key: 'naadam-2026', nameKey: 'festival_naadam', icon: 'bow-arrow', color: '#E0561F', start: '2026-07-11', end: '2026-07-13' };
 
 const NOW = new Date('2026-08-14T10:00:00Z').getTime();
 
@@ -17,6 +22,8 @@ function openSession(overrides: Partial<TownSquareNextSession> = {}): TownSquare
 }
 
 describe('SessionStatusCard', () => {
+  beforeEach(() => mockFestival.mockReturnValue(null));
+
   it('renders an empty state when there is no upcoming session', () => {
     const { getByText } = render(
       <SessionStatusCard session={{ sessionId: null, rsvpOpensAt: null, rsvpClosesAt: null, scheduledStartAt: null, status: null, isRsvpd: false }}
@@ -76,5 +83,39 @@ describe('SessionStatusCard', () => {
     );
     expect(getByText(/gathering is under way/i)).toBeTruthy();
     expect(queryByText(/Return to the Square/i)).toBeNull();
+  });
+
+  it('shows no festival eyebrow on an ordinary day', () => {
+    const { queryByTestId } = render(
+      <SessionStatusCard session={openSession()} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
+    );
+    expect(queryByTestId('festival-eyebrow')).toBeNull();
+  });
+
+  it('names the festival above the title when one is on and a session exists', () => {
+    mockFestival.mockReturnValue(NAADAM);
+    const { getByTestId, getByText } = render(
+      <SessionStatusCard session={openSession()} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
+    );
+    expect(getByTestId('festival-eyebrow')).toBeTruthy();
+    expect(getByText('NAADAM TRIALS GATHERING')).toBeTruthy();
+  });
+
+  it('keeps the festival eyebrow on an in-progress session too', () => {
+    mockFestival.mockReturnValue(NAADAM);
+    const { getByText } = render(
+      <SessionStatusCard session={openSession({ status: 'InProgress', isRsvpd: true })} now={NOW}
+        onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
+    );
+    expect(getByText('NAADAM TRIALS GATHERING')).toBeTruthy();
+  });
+
+  it('does not show the festival eyebrow when there is no session', () => {
+    mockFestival.mockReturnValue(NAADAM);
+    const { queryByTestId } = render(
+      <SessionStatusCard session={{ sessionId: null, rsvpOpensAt: null, rsvpClosesAt: null, scheduledStartAt: null, status: null, isRsvpd: false }}
+        now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
+    );
+    expect(queryByTestId('festival-eyebrow')).toBeNull();
   });
 });

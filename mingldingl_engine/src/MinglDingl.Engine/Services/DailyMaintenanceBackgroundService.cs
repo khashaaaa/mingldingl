@@ -52,8 +52,13 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         // Push the staleness cutoff into SQL — this used to pull the whole active-match table
         // into memory every hour just to filter it on LastMessageAt.
         var staleCutoff = DateTime.UtcNow - ghosting.StaleAfter;
+        // Both of IsStale's clocks, or a match nobody ever spoke in never came back here at all.
+        var unansweredCutoff = DateTime.UtcNow - ghosting.UnansweredAfter;
         var staleMatches = await db.Matches
-            .Where(m => m.Status == "Active" && m.LastMessageAt != null && m.LastMessageAt < staleCutoff)
+            .Where(m => m.Status == "Active" && (
+                m.LastMessageAt != null
+                    ? m.LastMessageAt < staleCutoff
+                    : m.CreatedAt < unansweredCutoff))
             .ToListAsync(ct);
 
         var ghostedMatches = new List<Match>();
@@ -93,13 +98,18 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             .Where(u => u.PhoneNumber is not null)
             .Select(u => u.PhoneNumber!)
             .ToList();
+        // Clearing the column is not deletion: /uploads is public and unauthenticated, so the files
+        // have to go too or anyone holding an old URL keeps access after deletion. The unlink is
+        // deferred until after the transaction below commits, because it is the one step here that
+        // cannot be rolled back — deleting first meant a failed save left the account live and
+        // still pending deletion while its photos were already gone.
+        // Only files the user actually owns. A stolen URL sitting on a row from before that was
+        // checked would otherwise let one account's deletion destroy another account's photo.
+        var photoUrlsToUnlink = usersToAnonymize
+            .SelectMany(u => u.PhotoUrls.Where(url => storage.IsOwnedPublicUrl(url, u.Id)))
+            .ToList();
         foreach (var user in usersToAnonymize)
         {
-            // Clearing the column is not deletion: /uploads is public and unauthenticated, so the
-            // files have to go too or anyone holding an old URL keeps access after deletion.
-            foreach (var photoUrl in user.PhotoUrls)
-                storage.DeleteByPublicUrl(photoUrl);
-
             user.DisplayName = "";
             user.Bio = "";
             user.PhotoUrls = [];
@@ -111,7 +121,6 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             user.DrinkingHabit = null;
             user.Religion = null;
             user.Lifestyle = null;
-            user.EquippedFrameId = null;
             user.EquippedTitleId = null;
             user.PhoneNumber = null;
             user.ReferralCode = null;
@@ -119,20 +128,6 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             user.OathSwornAt = null;
             user.OathProven = false;
             user.IsDeleted = true;
-        }
-
-        if (usersToAnonymize.Count > 0)
-        {
-            // Verification rows hold the phone number in plaintext; deletion has to reach them too.
-            var anonymizedIds = usersToAnonymize.Select(u => u.Id).ToList();
-            await db.PhoneVerifications
-                .Where(v => (v.ClaimedByUserId != null && anonymizedIds.Contains(v.ClaimedByUserId.Value))
-                    || anonymizedPhones.Contains(v.Phone))
-                .ExecuteDeleteAsync(ct);
-            // A push token is a live handle to the person's device; a deleted account keeps none.
-            await db.PushTokens
-                .Where(t => anonymizedIds.Contains(t.UserId))
-                .ExecuteDeleteAsync(ct);
         }
 
         // Unclaimed verifications are short-lived proof-of-ownership records with no purpose
@@ -155,8 +150,45 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         foreach (var ship in expiredShips)
             ship.Status = "Expired";
 
+        // One transaction over everything this pass mutates through the change tracker, plus the
+        // set-based purges that belong to the same deletions. They used to run as separate
+        // statements ahead of the save, so a failure part-way through destroyed a person's
+        // verification rows and push tokens while their account stayed un-anonymised.
         if (ghostedMatches.Count > 0 || usersToAnonymize.Count > 0 || expiredShips.Count > 0)
-            await db.SaveChangesAsync(ct);
+        {
+            var anonymizedIds = usersToAnonymize.Select(u => u.Id).ToList();
+            await db.InTransactionAsync(async () =>
+            {
+                await db.SaveChangesAsync(ct);
+
+                if (anonymizedIds.Count > 0)
+                {
+                    // Verification rows hold the phone number in plaintext; deletion has to reach them too.
+                    await db.PhoneVerifications
+                        .Where(v => (v.ClaimedByUserId != null && anonymizedIds.Contains(v.ClaimedByUserId.Value))
+                            || anonymizedPhones.Contains(v.Phone))
+                        .ExecuteDeleteAsync(ct);
+                    // A push token is a live handle to the person's device; a deleted account keeps none.
+                    await db.PushTokens
+                        .Where(t => anonymizedIds.Contains(t.UserId))
+                        .ExecuteDeleteAsync(ct);
+                    // A woven thread holds the nominated number until that person signs up, so it
+                    // is another plaintext copy deletion has to reach. The slot keeps its code and
+                    // simply stops being redeemable, which is the right outcome for an invitation
+                    // to an account that no longer exists.
+                    await db.Ships
+                        .Where(sh => sh.SlotAPhoneNumber != null && anonymizedPhones.Contains(sh.SlotAPhoneNumber))
+                        .ExecuteUpdateAsync(setters => setters.SetProperty(sh => sh.SlotAPhoneNumber, (string?)null), ct);
+                    await db.Ships
+                        .Where(sh => sh.SlotBPhoneNumber != null && anonymizedPhones.Contains(sh.SlotBPhoneNumber))
+                        .ExecuteUpdateAsync(setters => setters.SetProperty(sh => sh.SlotBPhoneNumber, (string?)null), ct);
+                }
+            }, ct);
+        }
+
+        // Only now that the anonymisation is durable. DeleteByPublicUrl never throws.
+        foreach (var photoUrl in photoUrlsToUnlink)
+            storage.DeleteByPublicUrl(photoUrl);
 
         if (usersReset > 0 || expiredMemberships > 0)
             _logger.LogInformation(
@@ -180,5 +212,54 @@ public class DailyMaintenanceBackgroundService : BackgroundService
                 _logger.LogWarning(ex, "Failed to refresh oath state for user {UserId} after ghost sweep", userId);
             }
         }
+
+        await PruneOrphanedPhotosAsync(db, storage, ct);
+    }
+
+    /// <summary>
+    /// How long an uploaded file may sit unreferenced before it is treated as abandoned. An upload
+    /// is issued as soon as a photo is picked and only lands on a row when the profile is saved, so
+    /// the window has to comfortably outlast one editing session — but not longer, because until it
+    /// closes the file is fetchable by anyone on a public, unauthenticated path.
+    /// </summary>
+    private static readonly TimeSpan OrphanGracePeriod = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// Deletes stored profile photos no row points at. Without this, every abandoned edit, failed
+    /// save and photo removed before saving left a permanently public file behind, and nothing
+    /// bounded the disk.
+    /// </summary>
+    private async Task PruneOrphanedPhotosAsync(AppDbContext db, LocalFileStorageService storage, CancellationToken ct)
+    {
+        var stored = storage.EnumerateProfilePhotos();
+        if (stored.Count == 0) return;
+
+        // Every table that can point at an uploaded file. Missing one would make this sweep delete
+        // live photos, so it is compared on relative paths — the two sides can carry different
+        // origins — and built before anything is deleted.
+        var referenced = new HashSet<string>(StringComparer.Ordinal);
+        void Reference(string? url)
+        {
+            if (storage.RelativePathOf(url) is { } relative) referenced.Add(relative);
+        }
+
+        foreach (var urls in await db.Users.AsNoTracking().Select(u => u.PhotoUrls).ToListAsync(ct))
+            foreach (var url in urls) Reference(url);
+        foreach (var urls in await db.BusinessPartners.AsNoTracking().Select(b => b.PhotoUrls).ToListAsync(ct))
+            foreach (var url in urls) Reference(url);
+        foreach (var url in await db.BusinessRatings.AsNoTracking()
+            .Where(r => r.PhotoUrl != null).Select(r => r.PhotoUrl!).ToListAsync(ct))
+            Reference(url);
+
+        var cutoff = DateTime.UtcNow - OrphanGracePeriod;
+        int deleted = 0;
+        foreach (var (relativePath, lastWriteUtc) in stored)
+        {
+            if (ct.IsCancellationRequested) break;
+            if (lastWriteUtc > cutoff || referenced.Contains(relativePath)) continue;
+            if (storage.DeleteByRelativePath(relativePath)) deleted++;
+        }
+
+        if (deleted > 0) _logger.LogInformation("Sweep deleted {Count} orphaned photo files", deleted);
     }
 }

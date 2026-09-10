@@ -6,6 +6,8 @@ import {
   resetRevealThresholdsForTests,
   subscribeToRevealThresholds,
   revealLadderSnapshot,
+  activityGateSnapshot,
+  messagesUntilActivities,
 } from '../reveal';
 
 describe('reveal ladder', () => {
@@ -90,5 +92,36 @@ describe('reveal ladder', () => {
       expect(after).not.toBe(before);
       expect(revealLadderSnapshot()).toBe(after);
     });
+  });
+});
+
+describe('the activity-suggestion gate', () => {
+  beforeEach(() => resetRevealThresholdsForTests());
+  afterEach(() => resetRevealThresholdsForTests());
+
+  it('falls back to the engine default before the thresholds have been fetched', () => {
+    expect(activityGateSnapshot()).toBe(15);
+    expect(messagesUntilActivities(7)).toBe(8);
+  });
+
+  it('hydrates from the same response the reveal ladder comes on', () => {
+    hydrateRevealThresholds(
+      [{ level: 1, messages: 1 }, { level: 2, messages: 5 }, { level: 3, messages: 15 }, { level: 4, messages: 30 }],
+      9,
+    );
+    expect(activityGateSnapshot()).toBe(9);
+    expect(messagesUntilActivities(7)).toBe(2);
+  });
+
+  it('reports nothing outstanding once the gate is met or passed', () => {
+    expect(messagesUntilActivities(15)).toBe(0);
+    expect(messagesUntilActivities(40)).toBe(0);
+  });
+
+  it('keeps the standing gate when the field is missing, so an older engine does not zero it', () => {
+    hydrateRevealThresholds(
+      [{ level: 1, messages: 1 }, { level: 2, messages: 5 }, { level: 3, messages: 15 }, { level: 4, messages: 30 }],
+    );
+    expect(activityGateSnapshot()).toBe(15);
   });
 });

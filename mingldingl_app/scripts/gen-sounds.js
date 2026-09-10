@@ -1,4 +1,4 @@
-// scripts/gen-sounds.js — generates the world layer's six event sounds.
+// scripts/gen-sounds.js — generates the world layer's eight event sounds.
 //
 // Same doctrine as gen-ornaments.js: assets are rendered from description, not committed as
 // opaque binaries nobody can adjust. Everything here is additive synthesis plus a one-pole
@@ -49,7 +49,7 @@ function render(durationS, fn) {
   return out;
 }
 
-// ---------- the six ----------
+// ---------- the eight ----------
 
 /** Entering a delve: a door closing above you. Body, no sparkle. */
 function door() {
@@ -123,6 +123,39 @@ function pledge() {
   return render(dur, (t) => (tap(t, 0) + tap(t, 0.13) * 0.75) * 0.7);
 }
 
+/**
+ * A button pressed: a dry metallic click. ~40 ms of a high sine with a fast decay plus a tiny
+ * bright-noise transient. Deliberately quiet (peak 0.5) — it fires on every press, so it must
+ * never draw attention to itself.
+ */
+function tick() {
+  const dur = 0.04;
+  const n = noiseSource(0x71c4, 7000);
+  return render(dur, (t) => {
+    const ping = sine(t, 2400) * decay(t, dur, 9);
+    const transient = n() * decay(t, dur, 60) * 0.6;
+    return ping * 0.7 + transient;
+  });
+}
+
+/**
+ * A horn call: fundamental near 220 Hz with three harmonics, a slight upward bend through the
+ * first 80 ms as the note finds its pitch, gentle vibrato, and a decaying tail.
+ */
+function horn() {
+  const dur = 0.7;
+  const BEND_S = 0.08;
+  return render(dur, (t) => {
+    const bend = t < BEND_S ? 1 - 0.04 * (1 - t / BEND_S) : 1;
+    const vibrato = 1 + 0.006 * Math.sin(2 * Math.PI * 5.5 * t);
+    const f = 220 * bend * vibrato;
+    const attack = Math.min(1, t / 0.02);
+    const tail = t < 0.25 ? 1 : decay(t - 0.25, dur - 0.25, 4);
+    const v = sine(t, f) * 1.0 + sine(t, f * 2) * 0.55 + sine(t, f * 3) * 0.3 + sine(t, f * 4) * 0.12;
+    return v * attack * tail;
+  });
+}
+
 // ---------- encode ----------
 
 function normalise(samples, peak = 0.82) {
@@ -165,13 +198,16 @@ function toWav(samples) {
   return buf;
 }
 
-const SOUNDS = { door, rise, anvil, seal, honour, pledge };
+// The tick is the one sound that fires on every press, so it is held well below the others.
+const PEAKS = { tick: 0.5 };
+
+const SOUNDS = { door, rise, anvil, seal, honour, pledge, tick, horn };
 
 const outDir = path.join(__dirname, '..', 'assets', 'sounds');
 fs.mkdirSync(outDir, { recursive: true });
 
 for (const [name, make] of Object.entries(SOUNDS)) {
-  const wav = toWav(fadeOut(normalise(make())));
+  const wav = toWav(fadeOut(normalise(make(), PEAKS[name])));
   const file = path.join(outDir, `${name}.wav`);
   fs.writeFileSync(file, wav);
   console.log(`${name}.wav  ${(wav.length / 1024).toFixed(1)} kB`);

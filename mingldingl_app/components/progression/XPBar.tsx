@@ -7,7 +7,12 @@ import { tierLabel } from '../../lib/tiers';
 import { COLORS, FONTS, FONT_SIZES, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { GemTierBadge } from './GemTierBadge';
+import { CountText } from '../ui/CountText';
 import type { GemTier } from '../../models/user';
+
+// Stands in for the number inside a translated sentence, so the sentence keeps its own word
+// order in every language and only the number is swapped for a counting one.
+const SLOT = '\uFFFC';
 
 interface Props {
   gemTier: GemTier;
@@ -38,6 +43,9 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
 
   const fillWidth = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   const pointsToNext = nextTier && nextTierThreshold != null ? Math.max(0, nextTierThreshold - totalScore) : null;
+  const [nextBefore, nextAfter] = pointsToNext !== null
+    ? i18n.t('next_tier_threshold', { points: SLOT, tier: tierLabel(nextTier) }).split(SLOT)
+    : ['', ''];
 
   return (
     <View style={styles.container}>
@@ -72,10 +80,10 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
       <View style={styles.footer}>
         {pointsToNext !== null && (
           <Text style={styles.nextThreshold}>
-            {i18n.t('next_tier_threshold', { points: pointsToNext.toLocaleString(), tier: tierLabel(nextTier) })}
+            {nextBefore}<CountText value={pointsToNext} />{nextAfter}
           </Text>
         )}
-        <Text style={styles.scoreText}>{totalScore.toLocaleString()} {i18n.t('pts')}</Text>
+        <Text style={styles.scoreText}><CountText value={totalScore} /> {i18n.t('pts')}</Text>
       </View>
     </View>
   );

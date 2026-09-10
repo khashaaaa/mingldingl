@@ -32,7 +32,9 @@ public class ActivitiesController : ControllerBase
         var userId = this.CurrentUserId();
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
         if (accessError is not null) return accessError;
-        if (match.MessageCount < SuggestionThreshold(_config))
+        // Mutual, not raw: the gate opens onto the pledge flow, and a monologue must not carry
+        // one person there alone. Same rule the reveal ladder uses.
+        if (RevealService.MutualMessageCount(match) < SuggestionThreshold(_config))
             return this.BadRequestError("Keep chatting to unlock activity suggestions", "activity.locked");
 
         var suggestions = await _activities.GetOrCreateSuggestionsAsync(matchId);

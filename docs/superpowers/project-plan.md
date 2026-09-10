@@ -164,7 +164,7 @@ Daily login is `DailyLogin` × the current streak (capped at 7), not a flat +5. 
 | Activity | Penalty |
 |---|---|
 | Ghost a match (no reply 48h) | -15 |
-| Receive a negative report | -30 (`ReportPenalty` — reserved; no report endpoint exists yet, see Outstanding Follow-ups) |
+| Receive a negative report | -30 (`ReportPenalty`) — applied only when an admin resolves a report as `Penalised`, never automatically on being reported |
 
 #### Daily Match Budget
 Per `ScoreService.DailyMatchBudget` (`Services/ScoreService.cs`):
@@ -425,6 +425,33 @@ turned up and left open:
   real prefix; the dev DB currently has Undram (`091eadb0…`) pointed at the test SIM `88583269`
   (and the throwaway `Khashaa` row's number nulled) so a rich character can be signed into.
 
+## Found on the cast reseed + style sweep (2026-09-10, Galaxy A51/Expo Go SDK 54)
+
+The dev database was reseeded with an authored cast of 19 people carrying real portraits and one
+hand-written conversation per match (see `shipped-log.md`). Real photographs immediately exposed
+things the letter-placeholder fixtures had been hiding. Fixed the same session: the incoming chat
+bubble's 1.03:1 edge, the invisible photo-progress dots, the hour-only countdown, and the seed's
+missing per-side message counts. Left open:
+
+- **The discover card's photo area is mostly plaque on first run.** The card is `flex: 1` under
+  `GettingStartedCard`, so while the four first-steps are outstanding the photo band is ~26% of the
+  card and a portrait reads as a forehead. The board disappears once the steps are done
+  (`GettingStartedCard` returns null), so this is first-run only — which is also the worst moment
+  for it. Either the board should collapse to one line once started, or the card should hold a
+  minimum photo height.
+- **Venue content is structurally English-only.** `BusinessPartners` stores one `Name`,
+  `Description`, `Category` and `District`, and the app renders `Category`/`District` verbatim
+  (`app/business/[id].tsx:89`), so a Mongolian user reads "Outdoor · Khan-Uul" and "City viewpoint
+  — best at sunset." under a fully Mongolian UI. Town Square icebreakers already got
+  `LocalisedContent`; venues need the same treatment, which is a schema change rather than a copy
+  fix.
+- **The discover card's active (gold) photo dot sits at ~2.3-2.7:1** against its own scrim. The
+  inactive dots were the broken case (1.01:1, now 3.1:1) and gold reads clearly in practice
+  because of hue, but it is below the 3:1 line if that matters later.
+- **`Users.City` holds a GPS district for real sign-ups and "Ulaanbaatar" for the cast.** The
+  leaderboard already collapses these via `MongoliaGeo.CohortCityNames`, and it was verified on
+  device — but anything else that groups by the raw string will fragment the same way.
+
 ## Found on the second real-device sweep (2026-09-06, Galaxy A51/Expo Go SDK 54)
 
 A pass over Town Square, the Mission Board, venues, the character sheet and the per-match
@@ -457,6 +484,47 @@ it turned up and left open:
 - **Seeded venues have no photos** (`PhotoUrls` is `'[]'::jsonb` for every `BusinessPartner`), so
   the venue hero and the Encounter Log thumbnail always fall back to the placeholder. The
   placeholders now carry a glyph, but `gen-seed-photos.py` never has venue URLs to fill.
+
+## Mechanics sweep, 2026-09-10 — API-level, against the authored cast
+
+Thirteen mechanics driven end to end against a running engine with real Supabase JWTs for the
+seeded cast. **No defects found.** Recorded here so the same ground is not re-walked blind:
+
+- **Reveal ladder monologue guard.** 20 one-sided messages produce `mutual = 1`, level 1, with age
+  and district still withheld. `2*min(a,b)+1` holds.
+- **Daily match budget.** Exact at the boundary: at `budget-1` a summons is accepted, at `budget`
+  it is refused with `match.daily_budget_spent`. Note `budget.cap.*` is *not* a hard ceiling —
+  `Math.Min(base + bonus + tierBonus, cap + tierBonus)` — but its admin description already says
+  "plus one per gem tier", so this is intended, not drift.
+- **Daily login.** `5 x min(streak,7)` = 35 at streak 9; repeat calls award 0 and leave exactly one
+  `ScoreEvent` (the partial unique index does the work).
+- **Per-match reply cap.** 13 alternating replies each; exactly 10 `MatchReply` awards each.
+  Consecutive messages from the same sender pay nothing.
+- **Deep-profile gate.** At level 4, Free sees `deep: null`; the same match as Silver returns the
+  five fields.
+- **Blocking.** Symmetric — each side drops out of the other's discover pool, the match goes
+  Unmatched, the blocked list renders. Only reachable from an existing match; there is no
+  block-a-stranger path from discover.
+- **Ghosting.** The silent side of a two-sided thread took `-15` and the match froze at its earned
+  reveal level. A stranger who never spoke and never asked for the match was ghosted but **not**
+  penalised — the `GetPenalisableGhostAsync` fairness rule holds against the score-drain attack its
+  comment describes.
+- **Tier promotion.** 595 + 10 crosses `tier.sapphire.threshold` (600) and the stored `GemTier`
+  flips to Sapphire.
+- **Icebreaker.** Repeat responses are refused `409 engagement.already_responded`; nothing is paid
+  until both sides answer, then both get `IcebreakerDone` + the quest XP.
+- **Quest chest.** `400 quest.incomplete` before the board is done, `+30` once, `alreadyClaimed`
+  after, one `ScoreEvent` row.
+- **Town Square.** RSVP idempotent; Open -> Locked -> InProgress on schedule; pairing is a true
+  round-robin (each man meets each woman exactly once across three rounds, each round with its own
+  icebreaker); mutual Yes creates a match, Yes+No does not.
+- **Referral guards** (self-referral, one per invitee, deleted inviter) exist but are only reachable
+  from `POST /users`, so they are code-inspected rather than driven — a live pass costs an SMS.
+- **Config guards** (value bounds, strictly-increasing tier thresholds) are already covered by the
+  engine suite (`ConfigValueValidatorTests`, `ValidateTierThreshold_EnforcesStrictOrdering`).
+
+Caveat: `ConfigService` caches on boot, so tuning a key by direct SQL does not take effect until the
+engine restarts — a live config change has to go through the admin API.
 
 ## Manual verification still owed
 
@@ -636,11 +704,15 @@ ghosting sweep), then fixed everything found. Engine 816 → 844 tests, app 641 
   English for an `mn` user, which is a visible gap rather than a wrong translation. The parity
   test fails if one is translated and left on the list.
 - **Ulzii deferrals** — Skia shimmer on the Oath sigil / boss seal, unlit empty-state knots,
-  festival-tinted ornament variants.
+  festival-tinted ornament variants. (The knot now carries the reveal ceremony's breaking seal —
+  see the shipped log — but the Oath sigil and boss seal still have no shimmer of their own.)
 - **Admin panel** — `ConfigField` ignores `Min`/`Max` (server error shows in the toast);
   `admin.*` error codes are English-only on purpose; `lib/apiError.ts` reads `error`, not `code`.
 - **Mongolian copy is unproofread by a native speaker**, and `en`/`mn` diverge in voice where
-  the 2026-07-28 rewrite deliberately left `mn` alone.
+  the 2026-07-28 rewrite deliberately left `mn` alone. The report sheet's 17 keys
+  (`report_*` in `lib/i18n/en.ts`) are English-only and on `AWAITING_MN_TRANSLATION` — safety copy
+  is the last place for a guessed translation, so they need writing before the feature is really
+  shipped for this market.
 - **§6 paid extras** (Fun Tags, Reputation Repair, Score Boosters, Profile Boost) and the
   "Slow Responder" tag / pre-ghost nudge — designed, never built, not scheduled.
 
@@ -658,9 +730,6 @@ ghosting sweep), then fixed everything found. Engine 816 → 844 tests, app 641 
   lightness and must always render as a filled banner with an icon), and `STATUS.success` is
   deliberately the same value as the Emerald jewel. Both are resolved by moving the accent off
   orange, which is the deferred "approach B" repalette.
-- `TIER_PRESENCE` (ring weight + glow per tier) is defined and tested as the new carrier of rank,
-  but **no component reads it yet** — the gem badges still render without the ramp, so rank is
-  currently not visually encoded anywhere now that the jewels are luminance-matched.
 
 - `OathService.RefreshAsync` flips `OathProven` and saves before paying the milestone; if the
   award throws the reward is never paid (the `alreadyPaid` guard makes the reverse order safe).

@@ -7,6 +7,8 @@ import { queryKeys } from '../lib/api/queryKeys';
 
 export interface TownSquareRound {
   pairingId: string;
+  /** Who the caller is sitting opposite. A stranger, so the only way to report them is here. */
+  partnerUserId: string;
   videoToken: string;
   channelName: string;
   appId: string;
@@ -24,6 +26,7 @@ export function useTownSquareRound(sessionId: string | undefined) {
       const res = await apiClient.townSquare.currentRound(sessionId!);
       return {
         pairingId: res.pairingId ?? '',
+        partnerUserId: res.partnerUserId ?? '',
         videoToken: res.videoToken ?? '',
         channelName: res.channelName ?? '',
         appId: res.appId ?? '',
@@ -99,4 +102,38 @@ export function useTownSquareRound(sessionId: string | undefined) {
     joinError,
     clearJoinError: () => setJoinError(false),
   };
+}
+
+export interface TownSquareSessionSummary {
+  status: string;
+  roundsPlayed: number;
+  matches: { matchId: string; otherUserId: string; displayName: string | null }[];
+}
+
+/**
+ * How a gathering ended, fetched only once the round query has failed. `currentRound` refuses any
+ * session that is not InProgress, so a session finishing normally reached the screen as an error
+ * and was shown as "you left the square, the session moved on without you" — then dropped the user
+ * on a tab that no longer knew the session existed, with the matches they had just made nowhere in
+ * sight. This is what tells a normal ending from being dropped, and carries those matches.
+ */
+export function useTownSquareSessionSummary(sessionId: string | undefined, enabled: boolean) {
+  const { data } = useQuery<TownSquareSessionSummary>({
+    queryKey: queryKeys.townSquareSessionSummary(sessionId ?? ''),
+    queryFn: async () => {
+      const res = await apiClient.townSquare.sessionSummary(sessionId!);
+      return {
+        status: res.status ?? '',
+        roundsPlayed: res.roundsPlayed ?? 0,
+        matches: (res.matches ?? []).map((m) => ({
+          matchId: m.matchId ?? '',
+          otherUserId: m.otherUserId ?? '',
+          displayName: m.displayName ?? null,
+        })),
+      };
+    },
+    enabled: !!sessionId && enabled,
+    meta: { silentError: true },
+  });
+  return data ?? null;
 }

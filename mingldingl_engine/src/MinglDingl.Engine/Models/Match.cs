@@ -28,6 +28,15 @@ public class Match
     public bool InitiatorVideoRewardClaimed { get; set; }
     public bool ReceiverVideoRewardClaimed { get; set; }
 
+    /// <summary>
+    /// When each side last asked for an Agora token on this match. Nothing outside the client
+    /// reports that a call happened — there is no Agora webhook — so completing the rite is a
+    /// claim, not an observation. These are what make the claim cost something: it can only be
+    /// made by someone who actually took a token, and only once the rite's own duration has run.
+    /// </summary>
+    public DateTime? InitiatorVideoTokenAt { get; set; }
+    public DateTime? ReceiverVideoTokenAt { get; set; }
+
     public Guid? FlameRiteProposedById { get; set; }
     public DateTime? FlameRiteProposedAt { get; set; }
     public DateTime? FlameRiteAcceptedAt { get; set; }

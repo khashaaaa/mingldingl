@@ -19,12 +19,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<OathService>();
         services.AddScoped<PhoneVerificationService>();
         services.AddScoped<CampaignService>();
+        services.AddScoped<ReportService>();
         services.AddSingleton<VideoTokenService>();
         services.AddSingleton<PhotoCompressionService>();
         services.AddSingleton<LocalFileStorageService>();
         services.AddSingleton<ConfigService>();
         services.AddSingleton<MembershipCatalog>();
         services.AddSingleton<LoginThrottleService>();
+        services.AddSingleton<PhotoUploadThrottleService>();
 
         services.AddScoped<PushNotificationService>();
         services.AddHttpClient(PushDispatchBackgroundService.HttpClientName, client =>

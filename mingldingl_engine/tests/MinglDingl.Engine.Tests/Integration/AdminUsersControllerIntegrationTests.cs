@@ -4,7 +4,7 @@ namespace MinglDingl.Engine.Tests.Integration;
 
 public class AdminUsersControllerIntegrationTests : IntegrationTestBase
 {
-    private AdminUsersController BuildController() => new(Db, new AdminAuditService(Db), new ScoreService(Db, new ConfigService()), new ConfigService());
+    private AdminUsersController BuildController() => new(Db, new AdminAuditService(Db), new ScoreService(Db, new ConfigService()), new ConfigService(), BuildTestStorage(), BuildTestBroadcast());
 
     [Fact]
     public async Task ListUsers_FiltersBySearchTerm()

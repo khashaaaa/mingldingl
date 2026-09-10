@@ -15,16 +15,14 @@ import { COLORS, ICON_SIZES, RADIUS, SPACE, circle, overlay } from '../../lib/th
 interface Props {
   /** The whole list, not just the first: replacing the portrait rewrites slot 0 and keeps the rest. */
   photoUrls: string[];
-  /** Drives the torch glow and the ring's cast shadow. */
+  /** The current gem tier's colour: the ring, the torch glow and the ring's cast shadow all wear it. */
   tierColor: string;
-  /** The equipped frame's colour, which falls back to the tier colour. */
-  frameColor: string;
 }
 
 /** The character portrait, and the picker + upload flow behind tapping it. */
-export function ProfileAvatar({ photoUrls, tierColor, frameColor }: Props) {
+export function ProfileAvatar({ photoUrls, tierColor }: Props) {
   const session = useAuthStore((s) => s.session);
-  const { pickPhoto, takePhoto, uploadPhoto, uploading, permissionDenied, clearPermissionDenied } =
+  const { pickPhoto, takePhoto, uploadPhoto, uploading, lastError, clearLastError, permissionDenied, clearPermissionDenied } =
     usePhotoUpload(session?.user.id);
   const { mutateAsync: saveProfile, previewPatch } = useUpdateProfile();
   // Remembering *which* URL failed, rather than a boolean, means a new URL is always tried.
@@ -68,8 +66,8 @@ export function ProfileAvatar({ photoUrls, tierColor, frameColor }: Props) {
       >
         <TorchGlow size={118} color={tierColor}>
           <View style={styles.avatarFrame}>
-            <View style={[styles.avatarFrameRotated, { borderColor: frameColor }]} />
-            <View style={[styles.avatarRing, { borderColor: frameColor, shadowColor: tierColor }]}>
+            <View style={[styles.avatarFrameRotated, { borderColor: tierColor }]} />
+            <View style={[styles.avatarRing, { borderColor: tierColor, shadowColor: tierColor }]}>
               <View style={styles.avatarClip}>
                 {showPhoto ? (
                   <Image
@@ -127,8 +125,8 @@ export function ProfileAvatar({ photoUrls, tierColor, frameColor }: Props) {
         visible={uploadFailedAlert}
         tone="warning"
         title={i18n.t('photo_upload_failed_title')}
-        message={i18n.t('photo_upload_failed_body')}
-        onDismiss={() => setUploadFailedAlert(false)}
+        message={lastError ?? i18n.t('photo_upload_failed_body')}
+        onDismiss={() => { setUploadFailedAlert(false); clearLastError(); }}
       />
       <AlertModal
         visible={permissionDenied}

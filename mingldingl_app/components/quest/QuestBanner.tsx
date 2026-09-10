@@ -6,26 +6,30 @@ import { Icon } from '../ui/Icon';
 interface Props {
   icon: React.ComponentProps<typeof Icon>['name'];
   title: string;
-  onPress: () => void;
+  /** Optional only when `disabled`: a locked banner is shown to explain itself, not to be tapped. */
+  onPress?: () => void;
+  /** Dimmed and inert, for a destination that exists but has not been earned yet. */
+  disabled?: boolean;
   tint?: string;
   // 'icon' is the default: banner icons carry meaning (destination). 'knot' is for
   // banners whose destination is the ornament's own world, e.g. the campaign map.
   medallion?: 'icon' | 'knot';
 }
 
-export function QuestBanner({ icon, title, onPress, tint = COLORS.gold, medallion = 'icon' }: Props) {
+export function QuestBanner({ icon, title, onPress, disabled = false, tint = COLORS.gold, medallion = 'icon' }: Props) {
+  const colour = disabled ? COLORS.textDim : tint;
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
-      <View style={[styles.row, { borderColor: tint + '88' }]}>
-        <View style={[styles.medallion, { borderColor: tint }]}>
-          {medallion === 'knot' ? (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} disabled={disabled || !onPress}>
+      <View style={[styles.row, { borderColor: colour + '88' }]}>
+        <View style={[styles.medallion, { borderColor: colour }]}>
+          {medallion === 'knot' && !disabled ? (
             <Image source={ORNAMENTS.knotGold} testID="ulzii-medallion" style={styles.knot} />
           ) : (
-            <Icon name={icon} size={ICON_SIZES.md} color={tint} />
+            <Icon name={icon} size={ICON_SIZES.md} color={colour} />
           )}
         </View>
-        <Text style={[styles.title, { color: tint }]} numberOfLines={2}>{title}</Text>
-        <Text style={[styles.chevron, { color: tint }]}>›</Text>
+        <Text style={[styles.title, { color: colour }]} numberOfLines={2}>{title}</Text>
+        {!disabled && <Text style={[styles.chevron, { color: colour }]}>›</Text>}
       </View>
     </TouchableOpacity>
   );
