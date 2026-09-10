@@ -526,6 +526,27 @@ seeded cast. **No defects found.** Recorded here so the same ground is not re-wa
 Caveat: `ConfigService` caches on boot, so tuning a key by direct SQL does not take effect until the
 engine restarts — a live config change has to go through the admin API.
 
+## The waiting vocabulary, 2026-09-10 — final review follow-ups
+
+Replaced ~30 identical `ActivityIndicator`s with a themed wait vocabulary — `Waiting` (the inline
+turning knot), `Skeleton` (content-shaped placeholders), `LongWait` (narrated long waits) — plus a
+list-entrance stagger, an in-flight message state, a tab ignite, and the header-wrapper collapse.
+Left open after the whole-branch review fixed everything else it found:
+
+- **Nine English-only strings await a Mongolian speaker.** `wait_verify_still`, `wait_verify_long`,
+  `wait_quiz_still`, `wait_quiz_long`, `wait_video_still`, `wait_video_long`, `wait_square_still`,
+  `wait_square_long`, and `quiz_answers_in` sit on `AWAITING_MN_TRANSLATION` in `lib/i18n/index.ts`
+  — translating them and removing them from that list is the last step.
+- **A device-verification pass on the Galaxy A51 is owed**, same as the rest of this feature: the
+  narrated waits actually reaching their 8s/25s "still going"/"long" lines, skeleton visibility
+  against the world floor, the knot rendering inside a compact button, the hung lamp's swing
+  pivot, the tab-switch ignite, and that the row-entrance stagger does not re-fire on
+  pull-to-refresh.
+- **`app/icebreaker/[matchId].tsx` narrates a partner-wait with a static `Waiting` line**, where
+  the quiz screen (`app/quiz/[matchId].tsx`) uses `LongWait` for the same moment. A fifth
+  `WaitKind` would make the two consistent, but was deliberately deferred here rather than add two
+  more untranslated strings to the list above.
+
 ## Manual verification still owed
 
 All need the `verify` skill (real Supabase JWTs, full stack running).
