@@ -145,5 +145,11 @@ describe('ProfileAvatar', () => {
     await pickFromLibrary(view);
 
     expect(mockUpdate).toHaveBeenCalledWith({ photoUrls: ['https://cdn/new.jpg'] });
+    // Without this, the mutation's pending/success notifications (react-query's notifyManager
+    // batches them onto a real setTimeout) land after the test has already returned, outside any
+    // act() scope — logging "not wrapped in act" under a busy parallel run even though this test
+    // itself passes. Waiting for the settled cache, like the other tests here do, keeps act's
+    // scope open until that timer has actually fired.
+    await waitFor(() => expect(cachedPhotos(view.qc)).toEqual(['https://cdn/new.jpg']));
   });
 });
