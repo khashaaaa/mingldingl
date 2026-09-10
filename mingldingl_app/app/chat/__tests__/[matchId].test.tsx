@@ -143,4 +143,11 @@ describe('ChatScreen', () => {
     expect(queryByTestId('chat-activities')).toBeNull();
     expect(getByText('This bond has been severed — you can no longer send messages.')).toBeTruthy();
   });
+
+  it('shows an empty state instead of a blank scroll area for a thread with no messages', () => {
+    mockMessages = [];
+    const { getByTestId } = renderScreen();
+
+    expect(getByTestId('chat-empty')).toBeTruthy();
+  });
 });

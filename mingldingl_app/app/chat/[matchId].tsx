@@ -26,7 +26,7 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
 import { useActivityGate, useRevealLadder } from '../../hooks/useRevealThresholds';
 import { messagesUntilActivities, nextRevealThreshold } from '../../lib/reveal';
@@ -278,6 +278,16 @@ export default function ChatScreen() {
               scrollToEndSoon();
             }}
             onLayout={scrollToEndSoon}
+            // A brand-new match has nothing to scroll through yet — without this the thread was
+            // just the reveal strip and activities row over a blank area, with no cue that
+            // sending the first message is the way to begin.
+            ListEmptyComponent={!hasMore ? (
+              <View style={styles.emptyWrap} testID="chat-empty">
+                <Icon name="message-text-outline" size={ICON_SIZES.hero} color={INK.muted} />
+                <Text style={styles.emptyTitle}>{i18n.t('chat_empty_title')}</Text>
+                <Text style={styles.emptySub}>{i18n.t('chat_empty_sub')}</Text>
+              </View>
+            ) : null}
             ListHeaderComponent={hasMore ? (
               <>
                 <TouchableOpacity style={styles.loadEarlierBtn} onPress={() => loadEarlier()} disabled={loadingEarlier} accessibilityRole="button">
@@ -479,6 +489,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.gutter,
     paddingVertical: SPACE.lg,
     flexGrow: 1,
+  },
+  emptyWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.md,
+    paddingHorizontal: SPACE.huge,
+  },
+  emptyTitle: {
+    fontFamily: FONTS.display,
+    fontSize: FONT_SIZES.title,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  emptySub: {
+    fontFamily: FONTS.body,
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.textDim,
+    textAlign: 'center',
   },
   activitiesRow: {
     flexDirection: 'row',

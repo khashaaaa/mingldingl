@@ -79,6 +79,8 @@ export const en = {
   discover_load_error: "Couldn't summon any travelers",
   quiz_load_error: "Couldn't load the trial",
   chat_load_error: "Couldn't load this thread",
+  chat_empty_title: 'No words spoken yet',
+  chat_empty_sub: 'Send the first message to open this thread.',
   letter_sealed_hint: 'A first word, sealed. Tap to break the wax.',
   screen_load_error: "Couldn't load this page",
   offline_banner: 'No connection — some things may not load',

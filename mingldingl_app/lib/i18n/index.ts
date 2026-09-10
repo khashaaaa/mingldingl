@@ -38,6 +38,9 @@ export const AWAITING_MN_TRANSLATION = [
   'wait_video_still', 'wait_video_long',
   'wait_square_still', 'wait_square_long',
   'quiz_answers_in',
+  // The empty-thread state (a match with zero messages). Nothing already translated fit without
+  // implying a gate that doesn't exist (see next_action_icebreaker's neighbouring fix).
+  'chat_empty_title', 'chat_empty_sub',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
