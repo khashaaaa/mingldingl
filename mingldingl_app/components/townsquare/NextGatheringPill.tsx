@@ -5,7 +5,7 @@ import { Icon } from '../ui/Icon';
 import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { formatCountdown } from '../../lib/townSquareTime';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, METAL, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, METAL, RADIUS, SPACE } from '../../lib/theme';
 // The Town Square tab already shows the full session state; this is the same countdown boiled
 // down to one line so the next gathering stays visible from the tabs people actually live on.
 // It reuses the tab's query (and its polling) rather than opening a second one.
@@ -40,11 +40,11 @@ export function NextGatheringPill() {
       accessibilityLabel={label}
       testID="next-gathering-pill"
     >
-      <Icon name="bugle" size={ICON_SIZES.sm} color={COLORS.gold} />
+      <Icon name="bugle" size={ICON_SIZES.sm} color={ACCENT.base} />
       <Text style={styles.text} numberOfLines={1}>{label}</Text>
       {session.isRsvpd && (
         <View testID="next-gathering-rsvpd">
-          <Icon name="check-bold" size={ICON_SIZES.xs} color={COLORS.gold} />
+          <Icon name="check-bold" size={ICON_SIZES.xs} color={ACCENT.base} />
         </View>
       )}
     </Pressable>
@@ -67,5 +67,5 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panel,
   },
   pressed: { opacity: 0.8 },
-  text: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: COLORS.gold, letterSpacing: 0.5 },
+  text: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: ACCENT.base, letterSpacing: 0.5 },
 });

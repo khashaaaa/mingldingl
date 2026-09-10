@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE } from '../../lib/theme';
 import { METAL_COLORS } from '../../lib/tiers';
 import { Icon } from '../ui/Icon';
 
@@ -69,13 +69,13 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
               style={[styles.ray, { opacity: rays, transform: [{ rotate: `${deg}deg` }] }]}
             />
           ))}
-          <Icon name="trophy" size={ICON_SIZES.xl} color={COLORS.gold} />
+          <Icon name="trophy" size={ICON_SIZES.xl} color={ACCENT.base} />
         </View>
         <View style={styles.textCol}>
           <Text style={styles.title}>{title}</Text>
           {points > 0 && <Text style={styles.points}>{i18n.t('xp_earned', { points })}</Text>}
           {item && (
-            <Text style={[styles.itemLine, { color: METAL_COLORS[item.rarity] ?? COLORS.gold }]}>
+            <Text style={[styles.itemLine, { color: METAL_COLORS[item.rarity] ?? METAL.gold }]}>
               ✦ {i18n.t(item.nameKey)}
             </Text>
           )}
@@ -94,10 +94,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 2,
-    borderColor: COLORS.gold,
+    borderColor: ACCENT.base,
     paddingHorizontal: SPACE.lg,
     paddingVertical: SPACE.md,
-    shadowColor: COLORS.gold,
+    shadowColor: ACCENT.base,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -107,6 +107,6 @@ const styles = StyleSheet.create({
   ray: { position: 'absolute', width: 36, height: 2, backgroundColor: ACCENT.bright },
   textCol: { flex: 1, gap: SPACE.hair },
   title: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md, color: INK.primary },
-  points: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: COLORS.gold, letterSpacing: 1 },
+  points: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: ACCENT.base, letterSpacing: 1 },
   itemLine: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm },
 });

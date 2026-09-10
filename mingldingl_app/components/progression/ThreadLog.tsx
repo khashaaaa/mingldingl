@@ -3,7 +3,7 @@ import { CardEyebrow } from '../ui/CardEyebrow';
 import { AppCard } from '../ui/AppCard';
 import { i18n } from '../../lib/i18n';
 import { itemLabel } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 const MILESTONE_TITLE_IDS = ['title_threadweaver', 'title_fateseer', 'title_bondkeeper'] as const;
 
 interface Props {
@@ -33,5 +33,5 @@ const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg, gap: SPACE.md },
   empty: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   list: { gap: SPACE.sm },
-  titleRow: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
+  titleRow: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
 });

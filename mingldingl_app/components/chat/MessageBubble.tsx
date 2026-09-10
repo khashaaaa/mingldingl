@@ -1,6 +1,6 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import type { Message } from '../../hooks/useChat';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   alignEnd: { alignSelf: 'flex-end' },
   alignStart: { alignSelf: 'flex-start' },
   bubble: { borderRadius: RADIUS.lg, padding: SPACE.md, maxWidth: '100%' },
-  bubbleMine: { alignSelf: 'flex-end', backgroundColor: tint(COLORS.gold, 0.9), borderBottomRightRadius: RADIUS.sm },
+  bubbleMine: { alignSelf: 'flex-end', backgroundColor: tint(ACCENT.base, 0.9), borderBottomRightRadius: RADIUS.sm },
   // The chat screen is transparent so the world floor shows through, and that floor sits at very
   // nearly COLORS.panel — an incoming bubble's fill was scoring 1.03:1 against what was actually
   // behind it, so a received message read as bare text with no bubble at all. Fill alone cannot

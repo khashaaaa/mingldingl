@@ -17,7 +17,7 @@ import { useMembership } from '../hooks/useMembership';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, METAL, SPACE } from '../lib/theme';
 import { membershipLabel } from '../lib/tiers';
 import type { GemTier } from '../models/user';
 import type { MembershipPriceOption } from '../models/membership';
@@ -31,7 +31,7 @@ const BADGE_TIER: Record<string, GemTier> = {
 const BADGE_COLOR: Record<string, { color: string; shade: string }> = {
   Free: { color: INK.muted, shade: COLORS.bronzeDark },
   Silver: { color: COLORS.silver, shade: COLORS.silverDark },
-  Gold: { color: ACCENT.bright, shade: COLORS.gold },
+  Gold: { color: ACCENT.bright, shade: METAL.gold },
 };
 
 const DURATIONS = ['1', '3', '6'] as const;
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.xs,
   },
   expiryLine: {
-    color: COLORS.gold,
+    color: ACCENT.base,
     fontSize: FONT_SIZES.md,
     fontFamily: FONTS.bodyMedium,
     marginBottom: SPACE.xs,
@@ -200,11 +200,11 @@ const styles = StyleSheet.create({
     padding: SPACE.xl,
   },
   tierCardSelected: {
-    borderColor: COLORS.gold,
+    borderColor: ACCENT.base,
     borderWidth: 2,
   },
   selectedGlow: {
-    shadowColor: COLORS.gold,
+    shadowColor: ACCENT.base,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 14,
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   currentBadge: {
-    color: COLORS.gold,
+    color: ACCENT.base,
     fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.bodyMedium,
     marginTop: SPACE.hair,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   tierPrice: {
-    color: COLORS.gold,
+    color: ACCENT.base,
     fontSize: FONT_SIZES.xl,
     fontFamily: FONTS.bodyBold,
   },
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     gap: SPACE.md,
   },
   perkCheck: {
-    color: COLORS.gold,
+    color: ACCENT.base,
     fontSize: FONT_SIZES.md,
     fontFamily: FONTS.bodyBold,
     width: 16,

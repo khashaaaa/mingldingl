@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonIdle: { borderColor: LINE.edge, backgroundColor: COLORS.panelRaised },
-  buttonActive: { borderColor: ACCENT.bright, backgroundColor: COLORS.gold },
+  buttonActive: { borderColor: ACCENT.bright, backgroundColor: METAL.gold },
   buttonEnd: { borderColor: COLORS.emberDark, backgroundColor: METAL.ember },
   buttonBusy: { opacity: 0.5 },
 });

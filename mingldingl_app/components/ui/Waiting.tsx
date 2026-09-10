@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet } from 'react-native';
 import { ORNAMENTS } from '../../lib/ornaments';
-import { COLORS, ICON_SIZES } from '../../lib/theme';
+import { ACCENT, ICON_SIZES } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
 interface Props {
@@ -25,7 +25,7 @@ const STILL_OPACITY = 0.5;
  * rule forbids guessed Mongolian), and an English word read aloud to a Mongolian speaker is
  * worse than the platform's own localised "progress bar" from `accessibilityRole`.
  */
-export function Waiting({ size = ICON_SIZES.lg, color = COLORS.gold }: Props) {
+export function Waiting({ size = ICON_SIZES.lg, color = ACCENT.base }: Props) {
   const level = useVfxLevel();
   const animate = motionAllowed(level);
   const spin = useRef(new Animated.Value(0)).current;

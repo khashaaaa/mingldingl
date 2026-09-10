@@ -11,8 +11,7 @@ import { usePhotoUpload } from '../../hooks/usePhotoUpload';
 import { useUpdateProfile } from '../../hooks/useProfile';
 import { useAuthStore } from '../../store/authStore';
 import { i18n } from '../../lib/i18n';
-import { COLORS, ICON_SIZES, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
-
+import { ACCENT, COLORS, ICON_SIZES, METAL, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
 interface Props {
   /** The whole list, not just the first: replacing the portrait rewrites slot 0 and keeps the rest. */
   photoUrls: string[];
@@ -79,7 +78,7 @@ export function ProfileAvatar({ photoUrls, tierColor }: Props) {
                   />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <Icon name="camera" size={ICON_SIZES.huge} color={COLORS.gold} />
+                    <Icon name="camera" size={ICON_SIZES.huge} color={ACCENT.base} />
                   </View>
                 )}
                 {uploading && (
@@ -174,7 +173,7 @@ const styles = StyleSheet.create({
     bottom: 2,
     right: 2,
     ...circle(26),
-    backgroundColor: COLORS.gold,
+    backgroundColor: METAL.gold,
     borderWidth: 2,
     borderColor: COLORS.bg,
     alignItems: 'center',

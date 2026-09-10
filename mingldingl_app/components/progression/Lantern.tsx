@@ -123,7 +123,7 @@ export function Lantern({ days }: Props) {
     <View style={styles.wrap} accessible accessibilityLabel={caption}>
       <View style={styles.panel}>
         <View style={styles.glow} pointerEvents="none">
-          <TorchGlow size={GLOW_SIZE} color={COLORS.gold} strength={shown / LANTERN_SLOTS}>
+          <TorchGlow size={GLOW_SIZE} color={ACCENT.base} strength={shown / LANTERN_SLOTS}>
             <View style={{ width: GLOW_SIZE, height: GLOW_SIZE }} />
           </TorchGlow>
         </View>
@@ -135,7 +135,7 @@ export function Lantern({ days }: Props) {
                 testID="flame-lit"
                 style={[styles.slot, { opacity: Animated.multiply(value, flicker) }]}
               >
-                <Icon name="fire" size={GLYPH} color={i === LANTERN_SLOTS - 1 ? ACCENT.bright : COLORS.gold} />
+                <Icon name="fire" size={GLYPH} color={i === LANTERN_SLOTS - 1 ? ACCENT.bright : ACCENT.base} />
               </Animated.View>
             ) : (
               <View key={i} testID="flame-unlit" style={styles.slot}>
@@ -176,5 +176,5 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: INK.dim,
   },
-  captionBurning: { color: COLORS.gold },
+  captionBurning: { color: ACCENT.base },
 });

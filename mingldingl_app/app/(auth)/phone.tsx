@@ -19,7 +19,7 @@ import { DismissKeyboardView } from '../../components/ui/DismissKeyboardView';
 import { GlowText } from '../../components/vfx/GlowText';
 import { EmberField } from '../../components/vfx/EmberField';
 import { SectionDivider } from '../../components/ui/SectionDivider';
-import { COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
 export default function PhoneScreen() {
   useLocaleStore((s) => s.locale);
   const [phone, setPhone] = useState('');
@@ -66,7 +66,7 @@ export default function PhoneScreen() {
         <View style={styles.inner}>
           <GlowText style={styles.logo}>MINGLDINGL</GlowText>
           <Text style={styles.subtitle}>{i18n.t('enter_the_realm')}</Text>
-          <View style={styles.divider}><SectionDivider tint={COLORS.gold} /></View>
+          <View style={styles.divider}><SectionDivider tint={ACCENT.base} /></View>
           <Text style={styles.label}>{i18n.t('your_phone_number')}</Text>
           <View style={styles.inputRow}>
             <View style={styles.prefixBadge}>
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     fontSize: FONT_SIZES.wordmark,
-    color: COLORS.gold,
+    color: ACCENT.base,
     textAlign: 'center',
     letterSpacing: 0,
     fontFamily: FONTS.wordmark,
@@ -148,13 +148,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.lg,
     backgroundColor: COLORS.panel,
     borderWidth: 1,
-    borderColor: COLORS.gold,
+    borderColor: ACCENT.base,
     borderRadius: RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   prefixText: {
-    color: COLORS.gold,
+    color: ACCENT.base,
     fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.bodyBold,
   },

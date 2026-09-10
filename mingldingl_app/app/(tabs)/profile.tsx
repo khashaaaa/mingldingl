@@ -30,7 +30,7 @@ import { OathCard } from '../../components/profile/OathCard';
 import { DeletionPendingBanner } from '../../components/profile/DeletionPendingBanner';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCancelDeletion } from '../../hooks/useCancelDeletion';
-import { COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import type { GemTier } from '../../models/user';
 
 
@@ -185,14 +185,14 @@ const styles = StyleSheet.create({
     color: INK.primary,
     marginBottom: SPACE.xs,
   },
-  equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: COLORS.gold, letterSpacing: 1, marginTop: SPACE.hair },
+  equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: ACCENT.base, letterSpacing: 1, marginTop: SPACE.hair },
   subText: { fontSize: FONT_SIZES.md, color: INK.dim, fontFamily: FONTS.body },
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   cardPadding: { padding: SPACE.lg },
   scoreValue: {
     fontSize: FONT_SIZES.display,
     fontFamily: FONTS.displayBlack,
-    color: COLORS.gold,
+    color: ACCENT.base,
   },
   membershipRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   // Both halves carry the same size and leading, or `alignItems: center` centres two line boxes
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   },
   membershipArrow: {
     fontSize: FONT_SIZES.lg, lineHeight: LINE_HEIGHTS.lg,
-    color: COLORS.gold, fontFamily: FONTS.body,
+    color: ACCENT.base, fontFamily: FONTS.body,
   },
   bioText: { fontSize: FONT_SIZES.md, color: INK.dim, lineHeight: LINE_HEIGHTS.md, fontFamily: FONTS.body },
   editButtonWrapper: { marginHorizontal: SPACE.gutter, marginTop: SPACE.sm },

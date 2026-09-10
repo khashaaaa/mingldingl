@@ -1,7 +1,7 @@
 import { Text, View, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import { AppModal } from './AppModal';
 
@@ -19,7 +19,7 @@ export function AttendanceCheckModal({ visible, activityTitle, onYes, onNo, isSu
     <AppModal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.overlay}>
         <View style={styles.card}>
-          <Icon name="calendar-check" size={ICON_SIZES.xxl} color={COLORS.gold} />
+          <Icon name="calendar-check" size={ICON_SIZES.xxl} color={ACCENT.base} />
           <Text style={styles.title}>{i18n.t('attendance_check_title')}</Text>
           <Text style={styles.question}>
             {i18n.t('attendance_check_question', { activity: activityTitle ?? '' })}
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.panel,
     borderWidth: 2,
-    borderColor: COLORS.gold,
+    borderColor: ACCENT.base,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACE.xxxl,
     paddingVertical: SPACE.xxxl,

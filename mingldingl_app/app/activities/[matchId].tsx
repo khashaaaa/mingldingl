@@ -15,7 +15,7 @@ import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
 import { useScrollTail } from '../../hooks/useScrollTail';
 
 
@@ -133,7 +133,7 @@ export default function ActivitiesScreen() {
                   disabled={isRating || uploading}
                   onPress={() => rateBusiness(n, uploadedPhotoUrl)}
                 >
-                  <Icon name="star" size={ICON_SIZES.md} color={COLORS.gold} />
+                  <Icon name="star" size={ICON_SIZES.md} color={ACCENT.base} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -165,7 +165,7 @@ export default function ActivitiesScreen() {
       <ScrollView contentContainerStyle={[styles.list, { paddingBottom: tail }]}>
         {partnerPledged && !suggestions.some((s) => s.myConfirmed) && (
           <View style={styles.partnerPledgedBanner}>
-            <Icon name="hand-heart" size={ICON_SIZES.md} color={COLORS.gold} />
+            <Icon name="hand-heart" size={ICON_SIZES.md} color={ACCENT.base} />
             <Text style={styles.partnerPledgedText}>{i18n.t('pledge_partner_first')}</Text>
           </View>
         )}
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
     borderRadius: RADIUS.md, borderWidth: 1, borderColor: METAL.brass, backgroundColor: COLORS.panel,
   },
-  partnerPledgedText: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
+  partnerPledgedText: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
   title: { color: INK.primary, fontSize: FONT_SIZES.title, fontFamily: FONTS.display, textAlign: 'center' },
   subtitle: { color: INK.dim, fontSize: FONT_SIZES.md, textAlign: 'center', fontFamily: FONTS.body },
   completionCard: { alignItems: 'center', gap: SPACE.sm, width: '100%' },
@@ -247,8 +247,8 @@ const styles = StyleSheet.create({
     backgroundColor: overlay(0.55), alignItems: 'center', justifyContent: 'center',
   },
   momentHint: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, textAlign: 'center', maxWidth: 220 },
-  rateLabel: { color: COLORS.gold, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyMedium, marginTop: SPACE.sm },
+  rateLabel: { color: ACCENT.base, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyMedium, marginTop: SPACE.sm },
   stars: { flexDirection: 'row', gap: SPACE.xs },
   starTouchable: { padding: SPACE.sm },
-  thanks: { color: COLORS.gold, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyMedium },
+  thanks: { color: ACCENT.base, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyMedium },
 });

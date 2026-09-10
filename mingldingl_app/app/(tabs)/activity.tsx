@@ -20,7 +20,7 @@ import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 type CategoryGlyph = React.ComponentProps<typeof Icon>['name'];
 
 // Must stay in step with mingldingl_control's BusinessForm CATEGORIES — the venues the engine
@@ -57,7 +57,7 @@ export default function ActivityScreen() {
       <ScrollView
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.gold} colors={[COLORS.gold]} />
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT.base} colors={[ACCENT.base]} />
         }
         onScroll={({ nativeEvent }) => {
           const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
@@ -114,7 +114,7 @@ export default function ActivityScreen() {
                 <AppCard style={styles.missionCard}>
                   <View style={styles.row}>
                     <View style={styles.iconWrap}>
-                      <Icon name={missionIcon(b.category)} size={ICON_SIZES.xl} color={COLORS.gold} style={styles.missionIcon} />
+                      <Icon name={missionIcon(b.category)} size={ICON_SIZES.xl} color={ACCENT.base} style={styles.missionIcon} />
                     </View>
                     <View style={styles.info}>
                       <Text style={styles.missionTitle} numberOfLines={1}>{b.name}</Text>
@@ -166,13 +166,13 @@ const styles = StyleSheet.create({
   pointsBadge: {
     backgroundColor: FILL.gold,
     borderWidth: 1,
-    borderColor: COLORS.gold,
+    borderColor: ACCENT.base,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACE.md,
     paddingVertical: SPACE.sm,
     alignItems: 'center',
     minWidth: 52,
   },
-  pointsValue: { color: COLORS.gold, fontSize: FONT_SIZES.lg, fontFamily: FONTS.display },
-  pointsLabel: { color: COLORS.gold, fontSize: FONT_SIZES.xs, fontFamily: FONTS.bodyMedium, letterSpacing: 0.5 },
+  pointsValue: { color: ACCENT.base, fontSize: FONT_SIZES.lg, fontFamily: FONTS.display },
+  pointsLabel: { color: ACCENT.base, fontSize: FONT_SIZES.xs, fontFamily: FONTS.bodyMedium, letterSpacing: 0.5 },
 });

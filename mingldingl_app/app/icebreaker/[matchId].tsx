@@ -56,7 +56,7 @@ export default function IcebreakerScreen() {
     const isMatch = myAnswer === partnerAnswer;
     return (
       <View style={styles.centered}>
-        <Icon name={isMatch ? 'party-popper' : 'message-text'} size={ICON_SIZES.huge} color={COLORS.gold} />
+        <Icon name={isMatch ? 'party-popper' : 'message-text'} size={ICON_SIZES.huge} color={ACCENT.base} />
         <AppCard style={styles.completionCard}>
           <Text style={styles.completionTitle}>{i18n.t('icebreaker_revealed')}</Text>
           <Text style={styles.questionText}>{question.questionText}</Text>
@@ -213,9 +213,9 @@ const styles = StyleSheet.create({
   },
   optionSelected: {
     backgroundColor: FILL.gold,
-    borderLeftColor: COLORS.gold,
-    borderRightColor: COLORS.gold,
-    borderBottomColor: COLORS.gold,
+    borderLeftColor: ACCENT.base,
+    borderRightColor: ACCENT.base,
+    borderBottomColor: ACCENT.base,
   },
   optionText: {
     fontSize: FONT_SIZES.lg,
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   matchCount: {
-    color: COLORS.gold,
+    color: ACCENT.base,
     fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.body,
     textAlign: 'center',

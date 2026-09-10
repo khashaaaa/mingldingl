@@ -2,7 +2,7 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GemTierBadge } from '../progression/GemTierBadge';
 import { colorForTier, tierLabel } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, circle } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, circle } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
 import type { GemTier } from '../../models/user';
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: FONTS.display, fontSize: FONT_SIZES.display, color: INK.primary, marginBottom: SPACE.lg },
   tierRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginBottom: SPACE.md },
   tierName: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, letterSpacing: 0 },
-  score: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, marginBottom: SPACE.sm },
+  score: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, marginBottom: SPACE.sm },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginBottom: SPACE.xl },
   streak: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.dim },
   wordmark: {

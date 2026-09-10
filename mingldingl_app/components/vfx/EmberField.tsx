@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { Canvas, Circle } from '@shopify/react-native-skia';
 import { useSharedValue, withRepeat, withTiming, withDelay, useDerivedValue, Easing } from 'react-native-reanimated';
-import { COLORS, METAL } from '../../lib/theme';
+import { METAL } from '../../lib/theme';
 import { useVfxLevel } from '../../lib/vfx';
 
 interface Props { width: number; height: number; density?: number; }
@@ -16,7 +16,7 @@ function configure(width: number, density: number): EmberCfg[] {
     r: 1.5 + Math.random() * 1.8,
     duration: 3500 + Math.random() * 3000,
     delay: (i / density) * 3000,
-    color: Math.random() < 0.6 ? COLORS.gold : METAL.ember,
+    color: Math.random() < 0.6 ? METAL.gold : METAL.ember,
   }));
 }
 

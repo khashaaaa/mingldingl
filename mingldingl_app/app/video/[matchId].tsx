@@ -15,7 +15,7 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE } from '../../lib/theme';
 import { toDroppedItem } from '../../lib/tiers';
 import { Icon } from '../../components/ui/Icon';
 
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   riteFramingTitle: {
     fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.md,
-    color: COLORS.gold,
+    color: ACCENT.base,
     letterSpacing: 0.5,
   },
   riteFramingCountdown: {

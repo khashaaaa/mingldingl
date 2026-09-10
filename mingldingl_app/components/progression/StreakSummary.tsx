@@ -3,8 +3,7 @@ import { CardEyebrow } from '../ui/CardEyebrow';
 import { Lantern } from './Lantern';
 import { i18n } from '../../lib/i18n';
 import { AppCard } from '../ui/AppCard';
-import { COLORS, FONTS, FONT_SIZES, LINE, SPACE } from '../../lib/theme';
-
+import { ACCENT, FONTS, FONT_SIZES, LINE, SPACE } from '../../lib/theme';
 interface Props {
   currentStreak: number;
   longestStreak: number;
@@ -38,5 +37,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   longestLabel: { marginBottom: 0 },
-  value: { fontSize: FONT_SIZES.title, fontFamily: FONTS.displayBlack, color: COLORS.gold },
+  value: { fontSize: FONT_SIZES.title, fontFamily: FONTS.displayBlack, color: ACCENT.base },
 });

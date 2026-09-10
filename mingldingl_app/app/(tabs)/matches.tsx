@@ -12,7 +12,7 @@ import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { FogDrift } from '../../components/vfx/FogDrift';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
 export default function MatchesScreen() {
   useLocaleStore((s) => s.locale);
   const { data: matches, isLoading, isError, isRefetching, refetch } = useMatches();
@@ -67,7 +67,7 @@ export default function MatchesScreen() {
           keyExtractor={(m) => m.matchId}
           contentContainerStyle={styles.list}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.gold} colors={[COLORS.gold]} />
+            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT.base} colors={[ACCENT.base]} />
           }
           renderItem={({ item, index }) => (
             <Entering index={index}>

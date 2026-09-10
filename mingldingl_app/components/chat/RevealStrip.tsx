@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE } from '../../lib/theme';
 import type { DeepFields, PartialUser } from '../../models/match';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { deepRevealLevel, nextRevealThreshold } from '../../lib/reveal';
@@ -106,7 +106,7 @@ export function RevealStrip({ otherUser, messageCount, revealLevel, defaultExpan
               style={[styles.chip, styles.chipUpgrade]}
               testID="reveal-deep-upgrade"
             >
-              <Icon name="crown" size={ICON_SIZES.xs} color={COLORS.gold} />
+              <Icon name="crown" size={ICON_SIZES.xs} color={ACCENT.base} />
               <Text style={[styles.chipText, styles.chipTextUpgrade]} numberOfLines={1}>
                 {i18n.t('reveal_deep_membership')}
               </Text>
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   title: { marginBottom: 0 },
   summary: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: INK.primary, flexShrink: 1 },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
-  next: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.gold },
+  next: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: ACCENT.base },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   photo: {
     width: PHOTO,
@@ -169,8 +169,8 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   chipLocked: { borderColor: LINE.edge },
-  chipUpgrade: { borderColor: COLORS.gold },
-  chipTextUpgrade: { color: COLORS.gold },
+  chipUpgrade: { borderColor: ACCENT.base },
+  chipTextUpgrade: { color: ACCENT.base },
   chipText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.primary, flexShrink: 1 },
   chipTextLocked: { color: INK.dim },
 });

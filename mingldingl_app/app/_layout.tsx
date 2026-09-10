@@ -21,7 +21,7 @@ import { queryClient } from '../lib/api/queryClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api/apiClient';
-import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { installGlobalErrorHandlers } from '../lib/globalErrorHandler';
@@ -222,7 +222,7 @@ function AppContent() {
   if (!fontsReady || !localeReady) {
     return (
       <View style={styles.splash}>
-        <ActivityIndicator color={COLORS.gold} size="large" />
+        <ActivityIndicator color={ACCENT.base} size="large" />
       </View>
     );
   }

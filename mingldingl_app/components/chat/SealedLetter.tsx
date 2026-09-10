@@ -4,7 +4,7 @@ import { Icon } from '../ui/Icon';
 import { signal } from '../../lib/world/feedback';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, METAL, RADIUS, SPACE, tint } from '../../lib/theme';
 interface Props {
   /** Called once the wax has broken and the card has unfolded; the real bubble takes over. */
   onOpen: () => void;
@@ -25,7 +25,7 @@ const UNFOLD_MS = 280;
  * top edge and `onOpen` hands the row back to `MessageBubble`. Reduce-motion skips straight to
  * the open letter — the tick still fires, it is not motion.
  */
-export function SealedLetter({ onOpen, sealColor = COLORS.gold }: Props) {
+export function SealedLetter({ onOpen, sealColor = METAL.gold }: Props) {
   const animate = motionAllowed(useVfxLevel());
   const seal = useRef(new Animated.Value(1)).current;
   const fold = useRef(new Animated.Value(0)).current;

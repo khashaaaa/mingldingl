@@ -9,7 +9,7 @@ import { SheetModal } from './modals/SheetModal';
 import { GameButton } from './ui/GameButton';
 import { Waiting } from './ui/Waiting';
 import { i18n } from '../lib/i18n';
-import { COLORS, ICON_SIZES, INK, LINE, RADIUS, SPACE, circle, overlay } from '../lib/theme';
+import { COLORS, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle, overlay } from '../lib/theme';
 interface Props {
   photoUrls: string[];
   maxPhotos?: number;
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   primaryBadge: {
     position: 'absolute', top: 4, left: 4,
     ...circle(18),
-    backgroundColor: COLORS.gold,
+    backgroundColor: METAL.gold,
     alignItems: 'center', justifyContent: 'center',
   },
   deleteButton: {

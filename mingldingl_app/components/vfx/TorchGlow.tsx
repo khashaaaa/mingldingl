@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useRef } from 'react';
 import { Animated, View, StyleSheet } from 'react-native';
 import { Canvas, Circle, RadialGradient, vec } from '@shopify/react-native-skia';
 import { useSharedValue, withRepeat, withTiming, useDerivedValue } from 'react-native-reanimated';
-import { COLORS, tint } from '../../lib/theme';
+import { ACCENT, tint } from '../../lib/theme';
 import { useVfxLevel } from '../../lib/vfx';
 
 interface Props {
@@ -26,7 +26,7 @@ const GLOW_STOPS = (color: string) => [tint(color, 0.67), tint(color, 0.13), tin
 const PULSE_LOW = 0.45;
 const PULSE_HIGH = 0.8;
 
-export function TorchGlow({ size, color = COLORS.gold, strength = 1, children }: Props) {
+export function TorchGlow({ size, color = ACCENT.base, strength = 1, children }: Props) {
   const level = useVfxLevel();
   // A glow scaled to nothing is not a faint glow, it is a Canvas and a loop burning frames to
   // draw zero pixels. Rank 0 renders the bare child.

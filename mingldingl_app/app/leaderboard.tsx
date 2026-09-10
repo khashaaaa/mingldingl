@@ -63,7 +63,7 @@ export default function LeaderboardScreen() {
         keyExtractor={(item, i) => `${item.rank ?? i}`}
         ListEmptyComponent={<Text style={styles.empty}>{i18n.t('leaderboard_empty')}</Text>}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.gold} colors={[COLORS.gold]} />
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT.base} colors={[ACCENT.base]} />
         }
         renderItem={({ item, index }) => {
           const showGap = ownRowDetached && item.isCurrentUser && index > 0;
@@ -111,10 +111,10 @@ const styles = StyleSheet.create({
   rowSelf: {
     backgroundColor: COLORS.panelRaised,
     borderWidth: 1,
-    borderColor: COLORS.gold,
+    borderColor: ACCENT.base,
   },
   rank: { width: 40, fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: INK.dim },
-  rankSelf: { color: COLORS.gold },
+  rankSelf: { color: ACCENT.base },
   rowShape: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -129,6 +129,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.sm,
     letterSpacing: 1,
-    color: COLORS.gold,
+    color: ACCENT.base,
   },
 });

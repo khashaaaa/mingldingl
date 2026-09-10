@@ -174,7 +174,7 @@ export default function ChatScreen() {
               </TouchableOpacity>
               {!endedReason && (
                 <TouchableOpacity onPress={() => router.push(`/video/${matchId}`)} style={styles.videoBtn} accessibilityLabel={i18n.t('start_video_call')}>
-                  <Icon name="video" size={ICON_SIZES.lg} color={COLORS.gold} />
+                  <Icon name="video" size={ICON_SIZES.lg} color={ACCENT.base} />
                 </TouchableOpacity>
               )}
             </>
@@ -228,7 +228,7 @@ export default function ChatScreen() {
             testID="chat-activities"
           >
             <View style={styles.activitiesRow}>
-              <Icon name="compass-rose" size={ICON_SIZES.md} color={COLORS.gold} />
+              <Icon name="compass-rose" size={ICON_SIZES.md} color={ACCENT.base} />
               <View style={styles.activitiesLabel}>
                 <Text style={styles.activitiesTitle} numberOfLines={1}>{i18n.t('match_activities')}</Text>
                 {waitingOnYou > 0 && (
@@ -294,7 +294,7 @@ export default function ChatScreen() {
                 <TouchableOpacity style={styles.loadEarlierBtn} onPress={() => loadEarlier()} disabled={loadingEarlier} accessibilityRole="button">
                   {loadingEarlier ? <Waiting size={ICON_SIZES.md} /> : (
                     <>
-                      <Icon name="chevron-double-up" size={ICON_SIZES.sm} color={COLORS.gold} />
+                      <Icon name="chevron-double-up" size={ICON_SIZES.sm} color={ACCENT.base} />
                       <Text style={styles.loadEarlierText}>{i18n.t('load_earlier')}</Text>
                     </>
                   )}
@@ -305,7 +305,7 @@ export default function ChatScreen() {
             renderItem={({ item }) => (
               item.id === sealedMessageId
                 // The match carries no tier for the other side, so the wax is gold.
-                ? <SealedLetter onOpen={unseal} sealColor={COLORS.gold} />
+                ? <SealedLetter onOpen={unseal} sealColor={METAL.gold} />
                 : <MessageBubble message={item} myId={myId ?? ''} onRetry={retryMessage} />
             )}
           />
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   wovenByBanner: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.gold,
+    color: ACCENT.base,
     textAlign: 'center',
     paddingVertical: SPACE.xs,
   },
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panel,
   },
   activitiesLabel: { flex: 1 },
-  activitiesTitle: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
+  activitiesTitle: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
   activitiesSub: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim },
   activitiesBadge: {
     minWidth: 20,
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activitiesBadgeText: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.sm, color: INK.primary },
-  activitiesChevron: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: COLORS.gold },
+  activitiesChevron: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: ACCENT.base },
   activitiesScroll: { maxHeight: 420 },
   activitiesScrollContent: { paddingBottom: SPACE.sm },
   endedNotice: {
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
   loadEarlierText: {
     fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.sm,
-    color: COLORS.gold,
+    color: ACCENT.base,
     letterSpacing: 0.5,
   },
   optionsOverlay: {

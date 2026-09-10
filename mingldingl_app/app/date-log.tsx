@@ -9,7 +9,7 @@ import { Entering } from '../components/ui/Entering';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
 import type { Trophy } from '../models/trophy';
 import { Icon } from '../components/ui/Icon';
 import { useScrollTail } from '../hooks/useScrollTail';
@@ -40,7 +40,7 @@ function TrophyRow({ trophy }: { trophy: Trophy }) {
           ) : trophy.myStars ? (
             <View style={styles.starsRow}>
               {Array.from({ length: trophy.myStars }).map((_, i) => (
-                <Icon key={i} name="star" size={ICON_SIZES.sm} color={COLORS.gold} />
+                <Icon key={i} name="star" size={ICON_SIZES.sm} color={ACCENT.base} />
               ))}
             </View>
           ) : (

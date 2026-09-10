@@ -8,7 +8,7 @@ import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 import { useScrollTail } from '../../hooks/useScrollTail';
 
@@ -124,7 +124,7 @@ export default function BusinessDetailScreen() {
           <Text style={styles.meta} numberOfLines={1}>
             {hasMeta ? [category, district].filter(Boolean).join(' · ') : ''}
           </Text>
-          <Icon name="star" size={ICON_SIZES.sm} color={COLORS.gold} />
+          <Icon name="star" size={ICON_SIZES.sm} color={ACCENT.base} />
           <Text style={styles.rating}>{averageRating.toFixed(1)} ({ratingCount})</Text>
         </View>
 
@@ -149,7 +149,7 @@ export default function BusinessDetailScreen() {
                 )}
                 <View style={styles.reviewStarsRow}>
                   {Array.from({ length: r.stars }).map((_, i) => (
-                    <Icon key={i} name="star" size={ICON_SIZES.xs} color={COLORS.gold} />
+                    <Icon key={i} name="star" size={ICON_SIZES.xs} color={ACCENT.base} />
                   ))}
                 </View>
                 {r.review ? <Text style={styles.reviewText}>{r.review}</Text> : null}
@@ -174,11 +174,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.gutter, marginTop: SPACE.md,
   },
   meta: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
-  rating: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
+  rating: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   description: { color: INK.primary, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md, paddingHorizontal: SPACE.gutter, marginTop: SPACE.md },
   hours: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter, marginTop: SPACE.sm },
   sectionTitle: {
-    color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.display, letterSpacing: 1,
+    color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.display, letterSpacing: 1,
     textTransform: 'uppercase', paddingHorizontal: SPACE.gutter, marginTop: SPACE.xxl, marginBottom: SPACE.md,
   },
   emptyText: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter, textAlign: 'center' },

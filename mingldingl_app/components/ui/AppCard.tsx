@@ -2,7 +2,7 @@ import { View, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { colorForTier } from '../../lib/tiers';
-import { COLORS, FILL, LINE, RADIUS, glow, overlay } from '../../lib/theme';
+import { ACCENT, COLORS, FILL, LINE, RADIUS, glow, overlay } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { useActiveFestival } from '../../lib/festivals';
 
@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function AppCard({ children, tier, tint: tintOverride, textured, style }: Props) {
-  const tint = tintOverride ?? (tier ? colorForTier(tier) : COLORS.gold);
+  const tint = tintOverride ?? (tier ? colorForTier(tier) : ACCENT.base);
   // On a festival day the gold knots take the festival's colour. The PNGs are metal-shaded over
   // alpha, so tintColor flattens them to one colour while keeping their shape.
   const festival = useActiveFestival();

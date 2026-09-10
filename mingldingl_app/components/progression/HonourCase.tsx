@@ -24,7 +24,7 @@ import { formatDate } from '../../lib/formatDate';
 import { i18n, tKey } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { signal } from '../../lib/world/feedback';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE, circle, tint } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, METAL, RADIUS, SPACE, circle, tint } from '../../lib/theme';
 interface HeldHonour {
   itemId?: string | null;
   rarity?: string | null;
@@ -148,7 +148,7 @@ export function HonourCase() {
           <CardEyebrow>{i18n.t('milestones')}</CardEyebrow>
           {unopened.map((m) => (
             <TouchableOpacity key={m.id} disabled={isOpening} onPress={() => handleOpenMilestone(m.id!)} style={styles.milestoneRow}>
-              <Icon name="treasure-chest-outline" size={ICON_SIZES.lg} color={COLORS.gold} />
+              <Icon name="treasure-chest-outline" size={ICON_SIZES.lg} color={ACCENT.base} />
               <Text style={styles.milestoneName}>{tKey(m.nameKey)}</Text>
               <Text style={styles.milestoneXp}>+{m.xp}</Text>
             </TouchableOpacity>
@@ -204,7 +204,7 @@ export function HonourCase() {
 }
 
 function metalFor(held: HeldHonour): string {
-  return METAL_COLORS[held.rarity ?? ''] ?? COLORS.gold;
+  return METAL_COLORS[held.rarity ?? ''] ?? METAL.gold;
 }
 
 interface SlotProps {
@@ -349,13 +349,13 @@ function HonourSlot({ id, held, ignited, progress, animate, onPress, onLongPress
 const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  count: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: COLORS.gold },
+  count: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: ACCENT.base },
   hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, marginBottom: SPACE.md },
   hall: { gap: SPACE.md },
   row: { flexDirection: 'row', gap: SPACE.md, alignItems: 'stretch' },
   triptych: { gap: 0, alignItems: 'center' },
   thread: { width: SPACE.md, height: 2, backgroundColor: INK.muted, opacity: 0.5 },
-  threadLit: { backgroundColor: COLORS.gold, opacity: 1 },
+  threadLit: { backgroundColor: ACCENT.base, opacity: 1 },
   slot: {
     flex: 1, minWidth: 92, borderWidth: 2, borderColor: INK.muted, borderRadius: RADIUS.md,
     backgroundColor: COLORS.panelDeep,
@@ -372,12 +372,12 @@ const styles = StyleSheet.create({
   sweep: { position: 'absolute', top: -CHIP / 2, left: 0, width: CHIP * 0.5, height: CHIP * 2 },
   slotName: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.xs, color: INK.primary, textAlign: 'center' },
   slotNameDark: { color: INK.dim },
-  equippedTag: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: COLORS.gold, letterSpacing: 1 },
+  equippedTag: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: ACCENT.base, letterSpacing: 1 },
   dateTag: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, textAlign: 'center' },
   deedTag: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, textAlign: 'center' },
   progress: { alignSelf: 'stretch', alignItems: 'center', gap: SPACE.hair, marginTop: SPACE.hair },
   progressTrack: { alignSelf: 'stretch', height: 3, borderRadius: 2, backgroundColor: tint(INK.primary, 0.1), overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: COLORS.gold },
+  progressFill: { height: '100%', backgroundColor: ACCENT.base },
   progressText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: INK.dim },
   story: { alignItems: 'center', gap: SPACE.md },
   storyChip: { ...circle(72), borderWidth: 2, backgroundColor: COLORS.panelDeep, alignItems: 'center', justifyContent: 'center' },
@@ -386,5 +386,5 @@ const styles = StyleSheet.create({
   storyMeta: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center' },
   milestoneRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm },
   milestoneName: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.primary },
-  milestoneXp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: COLORS.gold },
+  milestoneXp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: ACCENT.base },
 });

@@ -9,7 +9,7 @@ import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, SPACE } from '../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, SPACE } from '../lib/theme';
 import { AlertModal } from '../components/modals/AlertModal';
 import { PhoneChangeModal } from '../components/settings/PhoneChangeModal';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   section: { gap: SPACE.sm },
   ageRow: { flexDirection: 'row', gap: SPACE.md, alignItems: 'center' },
   ageField: { gap: SPACE.hair, flex: 1 },
-  sectionLabel: { color: COLORS.gold, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
+  sectionLabel: { color: ACCENT.base, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
   sectionHint: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: LINE_HEIGHTS.sm },
   fieldLabel: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
   errorText: { color: COLORS.emberLight, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },

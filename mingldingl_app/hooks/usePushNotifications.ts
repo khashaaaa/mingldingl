@@ -5,8 +5,7 @@ import * as Device from 'expo-device';
 import { useRouter } from 'expo-router';
 import { apiClient } from '../lib/api/apiClient';
 import { useAuthStore } from '../store/authStore';
-import { COLORS } from '../lib/theme';
-
+import { ACCENT } from '../lib/theme';
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const matchId = notification.request.content.data?.matchId as string | undefined;
@@ -60,7 +59,7 @@ async function ensureAndroidChannel() {
     name: 'MingldIngl',
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: COLORS.gold,
+    lightColor: ACCENT.base,
   });
 }
 

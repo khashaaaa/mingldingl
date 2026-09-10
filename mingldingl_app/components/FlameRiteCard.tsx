@@ -7,7 +7,7 @@ import { AlertModal } from './modals/AlertModal';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
-import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, METAL, RADIUS, SPACE } from '../lib/theme';
+import { ACCENT, COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, METAL, RADIUS, SPACE } from '../lib/theme';
 import { Icon } from './ui/Icon';
 
 export interface FlameRiteState {
@@ -135,18 +135,18 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginTop: SPACE.sm, marginBottom: SPACE.sm, padding: SPACE.lg, gap: SPACE.sm },
-  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, letterSpacing: 1 },
+  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, letterSpacing: 1 },
   body: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, lineHeight: LINE_HEIGHTS.md },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.xs },
   btn: { paddingVertical: SPACE.md, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
-  proposeBtn: { borderColor: COLORS.gold, backgroundColor: FILL.gold, marginTop: SPACE.xs },
-  proposeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
+  proposeBtn: { borderColor: ACCENT.base, backgroundColor: FILL.gold, marginTop: SPACE.xs },
+  proposeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
   declineBtn: { flex: 1, borderColor: LINE.edge, backgroundColor: COLORS.panelRaised },
   declineText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.dim },
-  acceptBtn: { flex: 1, borderColor: COLORS.gold, backgroundColor: FILL.gold },
-  acceptText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
-  joinBtn: { borderColor: COLORS.gold, backgroundColor: FILL.gold, marginTop: SPACE.xs },
-  joinText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
+  acceptBtn: { flex: 1, borderColor: ACCENT.base, backgroundColor: FILL.gold },
+  acceptText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
+  joinBtn: { borderColor: ACCENT.base, backgroundColor: FILL.gold, marginTop: SPACE.xs },
+  joinText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
   completeRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -158,9 +158,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.md,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.gold,
+    borderColor: ACCENT.base,
     backgroundColor: FILL.gold,
     alignSelf: 'flex-start',
   },
-  completeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: COLORS.gold, letterSpacing: 0.5 },
+  completeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: ACCENT.base, letterSpacing: 0.5 },
 });

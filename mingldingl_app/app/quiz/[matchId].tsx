@@ -81,7 +81,7 @@ export default function QuizScreen() {
   if (allAnswered) {
     return (
       <View style={styles.centered}>
-        <Icon name={isWaitingForPartner ? 'brain' : 'trophy'} size={ICON_SIZES.huge} color={COLORS.gold} />
+        <Icon name={isWaitingForPartner ? 'brain' : 'trophy'} size={ICON_SIZES.huge} color={ACCENT.base} />
         <AppCard style={styles.completionCard}>
           <Text style={styles.completionTitle}>
             {isWaitingForPartner ? i18n.t('quiz_answers_in') : i18n.t('compat_revealed')}
@@ -238,9 +238,9 @@ const styles = StyleSheet.create({
   },
   optionSelected: {
     backgroundColor: FILL.gold,
-    borderLeftColor: COLORS.gold,
-    borderRightColor: COLORS.gold,
-    borderBottomColor: COLORS.gold,
+    borderLeftColor: ACCENT.base,
+    borderRightColor: ACCENT.base,
+    borderBottomColor: ACCENT.base,
   },
   optionText: {
     fontSize: FONT_SIZES.lg,
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scoreEarned: {
-    color: COLORS.gold,
+    color: ACCENT.base,
     fontSize: FONT_SIZES.title,
     fontFamily: FONTS.display,
     textAlign: 'center',

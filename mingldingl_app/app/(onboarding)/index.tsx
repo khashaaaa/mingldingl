@@ -5,7 +5,7 @@ import { NameAgeStep } from '../../components/onboarding/NameAgeStep';
 import { AboutStep } from '../../components/onboarding/AboutStep';
 import { PhotosStep } from '../../components/onboarding/PhotosStep';
 import { OathStep } from '../../components/onboarding/OathStep';
-import { COLORS, FONTS, FONT_SIZES, INK, LINE, SPACE, circle } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, LINE, SPACE, circle } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 
@@ -23,7 +23,7 @@ export default function OnboardingScreen() {
         style={{
           fontFamily: FONTS.display,
           fontSize: FONT_SIZES.xl,
-          color: COLORS.gold,
+          color: ACCENT.base,
           textAlign: 'center',
           letterSpacing: 1.5,
           paddingTop: SPACE.md,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   },
   dot: circle(10),
   dotActive: {
-    backgroundColor: COLORS.gold,
+    backgroundColor: ACCENT.base,
   },
   dotInactive: {
     backgroundColor: LINE.edge,

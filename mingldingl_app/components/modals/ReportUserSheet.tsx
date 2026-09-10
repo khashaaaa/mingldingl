@@ -4,7 +4,7 @@ import { apiClient } from '../../lib/api/apiClient';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { i18n } from '../../lib/i18n';
 import { REPORT_REASONS, reportReasonKey, type ReportReason } from '../../models/report';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
 import { SheetModal } from './SheetModal';
@@ -78,7 +78,7 @@ export function ReportUserSheet({ visible, reportedUserId, matchId, onClose, onR
                 <Icon
                   name={selected ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
                   size={ICON_SIZES.sm}
-                  color={selected ? COLORS.gold : INK.dim}
+                  color={selected ? ACCENT.base : INK.dim}
                 />
                 <Text style={[styles.reasonLabel, selected && styles.reasonLabelSelected]}>
                   {i18n.t(reportReasonKey(option))}
@@ -134,7 +134,7 @@ export function ReportUserSheet({ visible, reportedUserId, matchId, onClose, onR
 
 const styles = StyleSheet.create({
   title: {
-    fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.gold,
+    fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: ACCENT.base,
     textAlign: 'center', marginBottom: SPACE.xs,
   },
   intro: {

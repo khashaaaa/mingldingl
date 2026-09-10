@@ -4,7 +4,7 @@ import { GameButton } from '../ui/GameButton';
 import { ChestBurst } from '../vfx/ChestBurst';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { AppModal } from './AppModal';
 
 interface Props { visible: boolean; xp: number; onDismiss: () => void; }
@@ -51,7 +51,7 @@ export function ChestModal({ visible, xp, onDismiss }: Props) {
             ],
           }}
         >
-          <Icon name={revealed ? 'treasure-chest' : 'treasure-chest-outline'} size={ICON_SIZES.splash} color={COLORS.gold} />
+          <Icon name={revealed ? 'treasure-chest' : 'treasure-chest-outline'} size={ICON_SIZES.splash} color={ACCENT.base} />
         </Animated.View>
         <View style={{ width: 220, height: 220, position: 'absolute' }} pointerEvents="none">
           <ChestBurst size={220} trigger={burst} />
@@ -70,9 +70,9 @@ export function ChestModal({ visible, xp, onDismiss }: Props) {
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: overlay(0.92), alignItems: 'center', justifyContent: 'center', gap: SPACE.xxl },
   rewardCard: {
-    backgroundColor: COLORS.panel, borderWidth: 2, borderColor: COLORS.gold, borderRadius: RADIUS.md,
+    backgroundColor: COLORS.panel, borderWidth: 2, borderColor: ACCENT.base, borderRadius: RADIUS.md,
     paddingHorizontal: SPACE.huge, paddingVertical: SPACE.xxl, alignItems: 'center', gap: SPACE.sm, minWidth: 260,
   },
-  xp: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.display, color: COLORS.gold },
+  xp: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.display, color: ACCENT.base },
   closeBtn: { marginTop: SPACE.md, alignSelf: 'stretch' },
 });

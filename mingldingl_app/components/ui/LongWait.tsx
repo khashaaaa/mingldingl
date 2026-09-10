@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { Icon } from './Icon';
 import { TorchGlow } from '../vfx/TorchGlow';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, SPACE } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { useWaitStage, type WaitKind } from '../../lib/waiting';
 
@@ -50,11 +50,11 @@ function WaitLantern() {
   return (
     <Animated.View style={[styles.hang, { transform: [{ rotate }] }]}>
       <View style={styles.chain} />
-      <TorchGlow size={LAMP_SIZE} color={COLORS.gold}>
+      <TorchGlow size={LAMP_SIZE} color={ACCENT.base}>
         {/* `Icon` takes only name/size/color/style — it does not forward `testID`, and widening
             that shared primitive's API for one test hook is the larger change. */}
         <View testID="longwait-lamp">
-          <Icon name="lamp" size={LAMP_SIZE} color={COLORS.gold} />
+          <Icon name="lamp" size={LAMP_SIZE} color={ACCENT.base} />
         </View>
       </TorchGlow>
     </Animated.View>

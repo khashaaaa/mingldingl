@@ -3,7 +3,7 @@ import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { formatCountdown } from '../../lib/townSquareTime';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
 import type { TownSquareNextSession } from '../../hooks/useTownSquareSession';
 import { Icon } from '../ui/Icon';
 import { CardEyebrow } from '../ui/CardEyebrow';
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg, gap: SPACE.sm },
   festivalRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
   festivalText: { marginBottom: 0 },
-  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, letterSpacing: 1 },
+  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, letterSpacing: 1 },
   hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   countdown: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.title, color: INK.primary },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.gutter },

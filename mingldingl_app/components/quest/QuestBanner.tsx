@@ -1,5 +1,5 @@
 import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { Icon } from '../ui/Icon';
 
@@ -16,7 +16,7 @@ interface Props {
   medallion?: 'icon' | 'knot';
 }
 
-export function QuestBanner({ icon, title, onPress, disabled = false, tint = COLORS.gold, medallion = 'icon' }: Props) {
+export function QuestBanner({ icon, title, onPress, disabled = false, tint = ACCENT.base, medallion = 'icon' }: Props) {
   const colour = disabled ? INK.dim : tint;
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} disabled={disabled || !onPress}>

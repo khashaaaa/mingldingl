@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { Animated, type TextProps } from 'react-native';
-import { COLORS } from '../../lib/theme';
+import { ACCENT } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
 interface Props extends TextProps {
   color?: string;
 }
 
-export function GlowText({ style, color = COLORS.gold, children, ...rest }: Props) {
+export function GlowText({ style, color = ACCENT.base, children, ...rest }: Props) {
   const level = useVfxLevel();
   const pulse = useRef(new Animated.Value(6)).current;
 

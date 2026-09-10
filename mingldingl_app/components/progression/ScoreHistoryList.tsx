@@ -132,7 +132,7 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
       renderItem={({ item, index }) => {
         const icon: EventGlyph = EVENT_ICONS[item.eventType] ?? 'star-four-points';
         const sign = item.delta >= 0 ? '+' : '';
-        const color = item.delta >= 0 ? COLORS.gold : METAL.ember;
+        const color = item.delta >= 0 ? METAL.gold : METAL.ember;
         const date = formatDate(item.createdAt);
         return (
           <Entering index={index}>

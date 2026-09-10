@@ -11,7 +11,7 @@ import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { LongWait } from '../../components/ui/LongWait';
 import { useTownSquareRound, useTownSquareSessionSummary } from '../../hooks/useTownSquareRound';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, circle, overlay } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, circle, overlay } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 
@@ -51,7 +51,7 @@ export default function TownSquareRoundScreen() {
   if (error && summary?.status === 'Completed') {
     return (
       <View style={[styles.screen, styles.center]}>
-        <Icon name="party-popper" size={ICON_SIZES.hero} color={COLORS.gold} />
+        <Icon name="party-popper" size={ICON_SIZES.hero} color={ACCENT.base} />
         <Text style={styles.errorTitle}>{i18n.t('round_over_title')}</Text>
         <Text style={styles.status}>
           {i18n.t('round_over_body', { count: summary.roundsPlayed })}

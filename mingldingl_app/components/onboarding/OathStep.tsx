@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { StepScaffold } from './StepScaffold';
@@ -38,7 +38,7 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
               style={isSelected ? styles.selectedGlow : undefined}
             >
               <AppCard
-                tint={isSelected ? COLORS.gold : undefined}
+                tint={isSelected ? ACCENT.base : undefined}
                 style={[styles.card, isSelected && styles.cardSelected]}
               >
                 <Image source={OATH_SIGILS[oath]} style={[styles.glyphImg, !isSelected && styles.glyphImgDim]} />
@@ -79,9 +79,9 @@ const styles = StyleSheet.create({
   help: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
   cardList: { gap: SPACE.md },
   card: { flexDirection: 'row', alignItems: 'center', padding: SPACE.lg, gap: SPACE.lg },
-  cardSelected: { borderColor: COLORS.gold, borderWidth: 2 },
+  cardSelected: { borderColor: ACCENT.base, borderWidth: 2 },
   selectedGlow: {
-    shadowColor: COLORS.gold,
+    shadowColor: ACCENT.base,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 14,

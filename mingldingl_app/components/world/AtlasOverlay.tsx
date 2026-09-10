@@ -102,7 +102,7 @@ export function AtlasOverlay({ visible, onClose }: Props) {
                   accessibilityLabel={i18n.t(ROOMS[name].key)}
                   style={[styles.room, { left: cx - MEDALLION, top: cy - MEDALLION / 2 }]}
                 >
-                  <View style={[styles.medallion, lit && glow(COLORS.gold, 0.5, 8, 4)]}>
+                  <View style={[styles.medallion, lit && glow(ACCENT.base, 0.5, 8, 4)]}>
                     <Image source={source} style={styles.knot} resizeMode="contain" />
                     {name === 'deep' && delves > 0 && (
                       <Text style={styles.count}>{delves}</Text>

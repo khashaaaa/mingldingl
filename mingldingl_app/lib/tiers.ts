@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react';
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type { GemTier } from '../models/user';
 import { tKey } from './i18n';
-import { COLORS, GEM_COLORS, GEM_SHADES, METAL, TIER_PRESENCE } from './theme';
+import { GEM_COLORS, GEM_SHADES, METAL, TIER_PRESENCE } from './theme';
 export const TIER_ORDER: GemTier[] = ['Garnet', 'Opal', 'Amethyst', 'Sapphire', 'Ruby', 'Emerald'];
 
 const DEFAULT_TIER_THRESHOLDS = [0, 100, 300, 600, 1000, 2000];
@@ -92,7 +92,7 @@ export function tierProgress(totalScore: number, gemTier: GemTier): { pct: numbe
 // The engine's `rarity` field now carries an Ulzii metal: ember for the honours with stakes
 // (Oath, Rite, boss), gold for everything else. Two metals, no fourth.
 export const METAL_COLORS: Record<string, string> = {
-  Gold:  COLORS.gold,
+  Gold:  METAL.gold,
   Ember: METAL.ember,
 };
 

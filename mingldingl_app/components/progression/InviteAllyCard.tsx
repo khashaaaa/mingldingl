@@ -3,7 +3,7 @@ import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { Text, View } from 'react-native';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 interface Props {
   referralCode: string | null | undefined;
 }
@@ -32,7 +32,7 @@ export function InviteAllyCard({ referralCode }: Props) {
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg, gap: SPACE.sm },
-  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, letterSpacing: 1 },
+  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, letterSpacing: 1 },
   hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   codeRow: { alignItems: 'center', paddingVertical: SPACE.sm },
   code: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.display, color: INK.primary, letterSpacing: 4 },

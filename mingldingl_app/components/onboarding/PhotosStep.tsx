@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 import { PhotoGrid } from '../PhotoGrid';
 import { StepScaffold } from './StepScaffold';
 import { GameButton } from '../ui/GameButton';
@@ -24,7 +24,7 @@ export function PhotosStep({ photoUrls, onPhotosChange, referralCode, onReferral
       <Text style={styles.heading}>{i18n.t('your_photos')}</Text>
       <Text style={styles.hint}>{i18n.t('add_photos_hint')}</Text>
       <PhotoGrid photoUrls={photoUrls} onChange={onPhotosChange} onUploadingChange={setPhotosUploading} />
-      <Text style={[styles.count, { color: photoUrls.length >= 3 ? ACCENT.bright : COLORS.gold }]}>
+      <Text style={[styles.count, { color: photoUrls.length >= 3 ? ACCENT.bright : ACCENT.base }]}>
         {i18n.t('photos_minimum', { n: photoUrls.length })}
       </Text>
       <Text style={styles.label}>

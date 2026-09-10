@@ -3,7 +3,7 @@ import { CardEyebrow } from '../ui/CardEyebrow';
 import { AppCard } from '../ui/AppCard';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
 interface Props {
   isProfileComplete: boolean;
 
@@ -24,7 +24,7 @@ function StepRow({ step }: { step: Step }) {
       <Icon
         name={step.done ? 'check-circle' : 'circle-outline'}
         size={ICON_SIZES.lg}
-        color={step.done ? COLORS.gold : INK.dim}
+        color={step.done ? ACCENT.base : INK.dim}
       />
       <Text style={[styles.label, step.done && styles.labelDone]}>{i18n.t(step.labelKey)}</Text>
     </View>
@@ -57,7 +57,7 @@ export function GettingStartedCard({ isProfileComplete, achievedMilestoneIds, on
   if (doneCount > 0) {
     return (
       <View style={styles.compactCard} testID="getting-started-compact">
-        <Icon name="check-circle" size={ICON_SIZES.sm} color={COLORS.gold} />
+        <Icon name="check-circle" size={ICON_SIZES.sm} color={ACCENT.base} />
         <CardEyebrow style={styles.compactLabel}>{i18n.t('getting_started_title')}</CardEyebrow>
         {/* Reuses the existing "%{held} of %{needed}" key rather than adding a new one — it
             already carries a Mongolian translation with the word order that language needs.
@@ -97,5 +97,5 @@ const styles = StyleSheet.create({
     borderColor: LINE.edge,
   },
   compactLabel: { flex: 1, marginBottom: 0 },
-  compactProgress: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: COLORS.gold },
+  compactProgress: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: ACCENT.base },
 });

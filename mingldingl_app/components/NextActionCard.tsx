@@ -6,7 +6,7 @@ import { CardEyebrow } from './ui/CardEyebrow';
 import { Icon } from './ui/Icon';
 import { useNextAction } from '../hooks/useNextAction';
 import { i18n } from '../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
 export function NextActionCard() {
   const action = useNextAction();
   const router = useRouter();
@@ -50,7 +50,7 @@ export function NextActionCard() {
         <QuestBanner icon={icon} title={title} onPress={onPress} />
       ) : (
         <View style={styles.staticRow}>
-          <Icon name={icon} size={ICON_SIZES.md} color={COLORS.gold} />
+          <Icon name={icon} size={ICON_SIZES.md} color={ACCENT.base} />
           <Text style={styles.staticTitle}>{title}</Text>
         </View>
       )}

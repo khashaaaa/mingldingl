@@ -12,7 +12,7 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { useAuthStore } from '../../store/authStore';
 import { activeFestival } from '../../lib/festivals';
 import { i18n, tKey } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
 function ProgressPips({ progress, target }: { progress: number; target: number }) {
   if (target === 1) return null;
   return (
@@ -37,7 +37,7 @@ export function QuestBoard() {
   if (isLoading || !board) return null;
 
   const festival = activeFestival();
-  const accent = festival?.color ?? COLORS.gold;
+  const accent = festival?.color ?? ACCENT.base;
   const headingIcon = festival?.icon ?? 'anvil';
   const headingText = festival ? i18n.t(festival.nameKey) : i18n.t('quest_board');
 
@@ -133,19 +133,19 @@ const styles = StyleSheet.create({
   questRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm },
   rune: {
     width: 28, height: 28, borderRadius: RADIUS.sm, borderWidth: 1,
-    borderColor: COLORS.gold + '66', backgroundColor: COLORS.gold + '15',
+    borderColor: ACCENT.base + '66', backgroundColor: ACCENT.base + '15',
     alignItems: 'center', justifyContent: 'center',
   },
   runeDone: { borderColor: LINE.edge, backgroundColor: COLORS.panelDeep },
-  runeText: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.display },
+  runeText: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.display },
   runeTextDone: { color: INK.dim },
   questInfo: { flex: 1, gap: SPACE.xs },
   questName: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.primary },
   questNameDone: { color: INK.dim, textDecorationLine: 'line-through' },
-  questXp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: COLORS.gold },
+  questXp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: ACCENT.base },
   pips: { flexDirection: 'row', gap: SPACE.xs },
   pip: { width: 14, height: 4, borderRadius: RADIUS.pill, backgroundColor: COLORS.panelRaised },
-  pipFilled: { backgroundColor: COLORS.gold },
+  pipFilled: { backgroundColor: ACCENT.base },
   chestRow: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginTop: SPACE.md, paddingTop: SPACE.md,
     borderTopWidth: 1, borderTopColor: LINE.edge,

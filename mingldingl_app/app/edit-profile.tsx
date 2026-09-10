@@ -130,7 +130,7 @@ export default function EditProfileScreen() {
           <View style={styles.cardBody}>
             <Text style={styles.sectionTitle}>{i18n.t('your_photos')}</Text>
             <PhotoGrid photoUrls={photoUrls} onChange={setPhotoUrls} onUploadingChange={setPhotosUploading} />
-            <Text style={[styles.hint, { color: photoUrls.length >= 3 ? ACCENT.bright : COLORS.gold }]}>
+            <Text style={[styles.hint, { color: photoUrls.length >= 3 ? ACCENT.bright : ACCENT.base }]}>
               {i18n.t('photos_minimum', { n: photoUrls.length })}
             </Text>
           </View>
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   locatingRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   deniedBlock: { gap: SPACE.sm },
   footer: { flexDirection: 'row', gap: SPACE.md, padding: SPACE.huge, paddingTop: SPACE.md },
-  sectionTitle: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
+  sectionTitle: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   hint: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   error: { color: COLORS.emberLight, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   city: { color: INK.primary, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },

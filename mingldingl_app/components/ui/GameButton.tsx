@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Pressable, Text, Animated, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { BUTTON_METALS, COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { ACCENT, BUTTON_METALS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from './Icon';
 import { Waiting } from './Waiting';
 import { signal } from '../../lib/world/feedback';
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   forgeGlow: {
-    shadowColor: COLORS.gold,
+    shadowColor: ACCENT.base,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.45,
     shadowRadius: 10,

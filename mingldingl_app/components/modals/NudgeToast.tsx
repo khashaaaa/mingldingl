@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
 interface Props {
   icon: string;
   title: string;
@@ -50,10 +50,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panel,
     borderRadius: RADIUS.md,
     borderWidth: 2,
-    borderColor: COLORS.gold,
+    borderColor: ACCENT.base,
     paddingHorizontal: SPACE.gutter,
     paddingVertical: SPACE.lg,
-    shadowColor: COLORS.gold,
+    shadowColor: ACCENT.base,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 20,

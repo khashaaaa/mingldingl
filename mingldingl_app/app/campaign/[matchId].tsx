@@ -69,7 +69,7 @@ export default function CampaignScreen() {
   const renderRoom = (room: CampaignRoom, index: number, rooms: CampaignRoom[]) => {
     const isBoss = room.roomId === BOSS_ROOM_ID;
     const isCurrent = room.roomId === currentRoomId;
-    const roomTint = isBoss ? METAL.ember : COLORS.gold;
+    const roomTint = isBoss ? METAL.ember : METAL.gold;
     const dimmed = !room.cleared && !isCurrent;
 
     return (

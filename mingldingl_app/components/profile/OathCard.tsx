@@ -9,7 +9,7 @@ import { GameButton } from '../ui/GameButton';
 import OathSigil, { OATH_VALUES, OATH_SIGILS, OATH_NAME_KEYS, OATH_DESC_KEYS } from '../OathSigil';
 import { useSwearOath } from '../../hooks/useOath';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
 import type { CloseThen } from '../modals/SheetModal';
 import type { GemTier, Oath } from '../../models/user';
 
@@ -126,7 +126,7 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
 
 const styles = StyleSheet.create({
   oathRow: { marginTop: SPACE.hair },
-  oathPrompt: { fontSize: FONT_SIZES.md, color: COLORS.gold, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
+  oathPrompt: { fontSize: FONT_SIZES.md, color: ACCENT.base, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
   sheetTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, color: INK.primary, marginBottom: SPACE.hair },
   sheetHelp: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.sm },
   option: {
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     borderColor: LINE.edge,
     backgroundColor: COLORS.panelRaised,
   },
-  optionCurrent: { borderColor: COLORS.gold, borderWidth: 2 },
+  optionCurrent: { borderColor: ACCENT.base, borderWidth: 2 },
   optionSigil: { width: 30, height: 30 },
   optionSigilDim: { opacity: 0.5 },
   optionText: { flex: 1, gap: SPACE.hair },

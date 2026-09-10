@@ -170,9 +170,9 @@ const styles = StyleSheet.create({
     gap: SPACE.xs,
   },
   photoDot: { flex: 1, height: 3, borderRadius: RADIUS.pill, backgroundColor: INK.dim },
-  // COLORS.gold measured at ~3.05:1 against the scrim's own worst case — barely past the 3:1
+  // ACCENT.base measured at ~3.05:1 against the scrim's own worst case — barely past the 3:1
   // floor and, backwards, *less* legible than the inactive dots' 3.1:1 (see the comment above).
-  // goldBright clears the same worst case at ~4.6:1.
+  // ACCENT.bright clears the same worst case at ~4.6:1.
   photoDotActive: { backgroundColor: ACCENT.bright },
   photoTapLeft: { position: 'absolute', top: 0, bottom: 0, left: 0, width: '35%' },
   photoTapRight: { position: 'absolute', top: 0, bottom: 0, right: 0, width: '65%' },
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     padding: SPACE.xxl,
     gap: SPACE.sm,
   },
-  plaqueRule: { height: 1, backgroundColor: tint(COLORS.gold, 0.5), marginBottom: SPACE.xs },
+  plaqueRule: { height: 1, backgroundColor: tint(ACCENT.base, 0.5), marginBottom: SPACE.xs },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     flex: 1,
   },
-  equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: COLORS.gold, letterSpacing: 1 },
+  equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: ACCENT.base, letterSpacing: 1 },
   location: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.dim },
   bio: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: INK.primary, lineHeight: LINE_HEIGHTS.lg },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.sm },

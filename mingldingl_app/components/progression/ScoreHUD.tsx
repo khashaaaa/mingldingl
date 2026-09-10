@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, Text, Animated, Easing, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, metalGradient, tint } from '../../lib/theme';
+import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, metalGradient, tint } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { GemTierBadge } from './GemTierBadge';
 import { CountText } from '../ui/CountText';
@@ -78,7 +78,7 @@ export function ScoreHUD({ score, tier = 'Garnet', streak }: Props) {
             styles.delta,
             scoreBox ? { left: scoreBox.x, width: scoreBox.width } : styles.deltaUnmeasured,
             {
-              color: delta.n > 0 ? COLORS.gold : COLORS.emberLight,
+              color: delta.n > 0 ? ACCENT.base : COLORS.emberLight,
               opacity: float.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 1, 0] }),
               transform: [{ translateY: float.interpolate({ inputRange: [0, 1], outputRange: [0, -FLOAT_RISE] }) }],
             },
