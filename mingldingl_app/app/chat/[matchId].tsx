@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.xs,
     paddingVertical: 1,
     borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.ember,
+    backgroundColor: METAL.ember,
     alignItems: 'center',
     justifyContent: 'center',
   },

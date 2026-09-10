@@ -2,8 +2,7 @@ import type { ComponentProps } from 'react';
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type { GemTier } from '../models/user';
 import { tKey } from './i18n';
-import { COLORS, GEM_COLORS, GEM_SHADES, TIER_PRESENCE } from './theme';
-
+import { COLORS, GEM_COLORS, GEM_SHADES, METAL, TIER_PRESENCE } from './theme';
 export const TIER_ORDER: GemTier[] = ['Garnet', 'Opal', 'Amethyst', 'Sapphire', 'Ruby', 'Emerald'];
 
 const DEFAULT_TIER_THRESHOLDS = [0, 100, 300, 600, 1000, 2000];
@@ -94,7 +93,7 @@ export function tierProgress(totalScore: number, gemTier: GemTier): { pct: numbe
 // (Oath, Rite, boss), gold for everything else. Two metals, no fourth.
 export const METAL_COLORS: Record<string, string> = {
   Gold:  COLORS.gold,
-  Ember: COLORS.ember,
+  Ember: METAL.ember,
 };
 
 // Mirrors HonourService.Honours on the engine, in catalogue order; the id is data, the key is copy.

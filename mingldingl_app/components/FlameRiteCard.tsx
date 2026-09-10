@@ -7,7 +7,7 @@ import { AlertModal } from './modals/AlertModal';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
-import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, METAL, RADIUS, SPACE } from '../lib/theme';
 import { Icon } from './ui/Icon';
 
 export interface FlameRiteState {
@@ -56,7 +56,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
   if (state.completedAt) {
     content = (
       <View style={styles.completeRow}>
-        <Icon name="fire" size={ICON_SIZES.lg} color={COLORS.ember} />
+        <Icon name="fire" size={ICON_SIZES.lg} color={METAL.ember} />
         <Text style={styles.completeText}>{i18n.t('rite_complete')}</Text>
       </View>
     );

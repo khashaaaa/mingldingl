@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, METAL, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import { AppModal } from './AppModal';
 
@@ -28,7 +28,7 @@ export function AlertModal({
   visible, title, message, onDismiss, tone = 'default',
   confirmLabel, onConfirm, isConfirming, destructive = tone === 'warning', children,
 }: Props) {
-  const tint = tone === 'warning' ? COLORS.ember : COLORS.gold;
+  const tint = tone === 'warning' ? METAL.ember : COLORS.gold;
   // #7: while a confirm is in flight, cancelling (or hardware back) would race the request.
   const locked = !!isConfirming;
   return (

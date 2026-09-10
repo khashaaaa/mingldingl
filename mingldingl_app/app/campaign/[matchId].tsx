@@ -12,7 +12,7 @@ import { i18n } from '../../lib/i18n';
 import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
 import { toDroppedItem } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { useScrollTail } from '../../hooks/useScrollTail';
 
@@ -69,7 +69,7 @@ export default function CampaignScreen() {
   const renderRoom = (room: CampaignRoom, index: number, rooms: CampaignRoom[]) => {
     const isBoss = room.roomId === BOSS_ROOM_ID;
     const isCurrent = room.roomId === currentRoomId;
-    const roomTint = isBoss ? COLORS.ember : COLORS.gold;
+    const roomTint = isBoss ? METAL.ember : COLORS.gold;
     const dimmed = !room.cleared && !isCurrent;
 
     return (
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   roomName: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, flexShrink: 1 },
   bossChip: {
     borderWidth: 1,
-    borderColor: COLORS.ember,
+    borderColor: METAL.ember,
     borderRadius: RADIUS.sm,
     paddingHorizontal: SPACE.sm,
     paddingVertical: SPACE.hair,

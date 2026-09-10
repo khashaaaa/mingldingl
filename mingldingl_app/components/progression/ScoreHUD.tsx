@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, Text, Animated, Easing, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, metalGradient, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, metalGradient, tint } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { GemTierBadge } from './GemTierBadge';
 import { CountText } from '../ui/CountText';
@@ -62,7 +62,7 @@ export function ScoreHUD({ score, tier = 'Garnet', streak }: Props) {
         <Text style={styles.pts}>XP</Text>
         {streak !== undefined && streak >= 2 && (
           <View style={styles.streakRow}>
-            <Icon name="fire" size={ICON_SIZES.xs} color={COLORS.ember} />
+            <Icon name="fire" size={ICON_SIZES.xs} color={METAL.ember} />
             <Text style={styles.streak}>{streak}</Text>
           </View>
         )}

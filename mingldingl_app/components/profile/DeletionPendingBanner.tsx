@@ -2,7 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, METAL, RADIUS, SPACE } from '../../lib/theme';
 interface Props {
   graceDays: number;
   onCancel: () => void;
@@ -20,7 +20,7 @@ export function DeletionPendingBanner({ graceDays, onCancel, isCancelling }: Pro
   return (
     <View style={styles.card}>
       <View style={styles.row}>
-        <Icon name="alert-octagon" size={ICON_SIZES.md} color={COLORS.ember} />
+        <Icon name="alert-octagon" size={ICON_SIZES.md} color={METAL.ember} />
         <Text style={styles.title}>{i18n.t('delete_pending_title')}</Text>
       </View>
       <Text style={styles.body}>{i18n.t('delete_pending_body', { days: graceDays })}</Text>
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     padding: SPACE.lg,
     gap: SPACE.sm,
     borderWidth: 1,
-    borderColor: COLORS.ember,
+    borderColor: METAL.ember,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.panel,
   },

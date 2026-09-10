@@ -93,7 +93,7 @@ export default function ActivitiesScreen() {
   if (completed) {
     return (
       <View style={styles.centered}>
-        <Icon name={rated ? 'party-popper' : 'map-marker'} size={ICON_SIZES.md} color={COLORS.ember} />
+        <Icon name={rated ? 'party-popper' : 'map-marker'} size={ICON_SIZES.md} color={METAL.ember} />
         <AppCard style={styles.completionCard}>
           <Text style={styles.title}>{i18n.t('both_in')}</Text>
           <Text style={styles.subtitle}>{completed.title}</Text>
@@ -172,7 +172,7 @@ export default function ActivitiesScreen() {
         {suggestions.map((s) => (
           <AppCard key={s.id} style={styles.card}>
             <View style={styles.sealRow}>
-              <View style={styles.seal}><Icon name="candle" size={ICON_SIZES.md} color={COLORS.ember} /></View>
+              <View style={styles.seal}><Icon name="candle" size={ICON_SIZES.md} color={METAL.ember} /></View>
               <Text style={styles.cardTitle}>{s.title}</Text>
             </View>
             {s.business && (
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   seal: {
     ...circle(34),
     backgroundColor: COLORS.panelRaised,
-    borderWidth: 2, borderColor: COLORS.ember,
+    borderWidth: 2, borderColor: METAL.ember,
     alignItems: 'center', justifyContent: 'center',
   },
   cardTitle: { color: INK.primary, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },

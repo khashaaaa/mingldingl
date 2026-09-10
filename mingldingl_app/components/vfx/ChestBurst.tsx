@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { Canvas, Circle } from '@shopify/react-native-skia';
 import { useSharedValue, withTiming, useDerivedValue, Easing, SharedValue } from 'react-native-reanimated';
-import { COLORS } from '../../lib/theme';
+import { COLORS, METAL } from '../../lib/theme';
 import { useVfxLevel } from '../../lib/vfx';
 
 interface Props { size: number; trigger: number; }
@@ -18,7 +18,7 @@ function configure(count: number): P[] {
       angle: Math.random() * Math.PI * 2,
       speed: 0.4 + Math.random() * 0.6,
       r: coin ? 3 + Math.random() * 1.5 : 1.5 + Math.random() * 2.5,
-      color: Math.random() < 0.7 ? COLORS.goldBright : COLORS.ember,
+      color: Math.random() < 0.7 ? COLORS.goldBright : METAL.ember,
       coin,
     };
   });

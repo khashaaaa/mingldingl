@@ -15,7 +15,7 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE } from '../../lib/theme';
 import { toDroppedItem } from '../../lib/tiers';
 import { Icon } from '../../components/ui/Icon';
 
@@ -135,7 +135,7 @@ export default function VideoScreen() {
       {riteActive && secondsLeft !== null && (
         <View style={styles.riteFraming} pointerEvents="none">
           <View style={styles.riteTitleRow}>
-            <Icon name="fire" size={ICON_SIZES.md} color={COLORS.ember} />
+            <Icon name="fire" size={ICON_SIZES.md} color={METAL.ember} />
             <Text style={styles.riteFramingTitle}>{i18n.t('rite_title')}</Text>
           </View>
           <Text style={styles.riteFramingCountdown}>{formatCountdown(secondsLeft)}</Text>
