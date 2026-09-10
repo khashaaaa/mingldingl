@@ -5,8 +5,7 @@ import { Icon } from '../ui/Icon';
 import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { formatCountdown } from '../../lib/townSquareTime';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE } from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, METAL, RADIUS, SPACE } from '../../lib/theme';
 // The Town Square tab already shows the full session state; this is the same countdown boiled
 // down to one line so the next gathering stays visible from the tabs people actually live on.
 // It reuses the tab's query (and its polling) rather than opening a second one.
@@ -64,7 +63,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.xs,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    borderColor: COLORS.brass,
+    borderColor: METAL.brass,
     backgroundColor: COLORS.panel,
   },
   pressed: { opacity: 0.8 },

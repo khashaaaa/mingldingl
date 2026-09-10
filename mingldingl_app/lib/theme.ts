@@ -249,6 +249,23 @@ export const STATUS_SOFT = {
   info: tint(STATUS.info, 0.14),
 } as const;
 
+/**
+ * A flat metal surface: a border, fill or icon standing for an object *made of* this material —
+ * a medallion, a wax seal, a rarity badge, a brass-trimmed pill — rather than a hue chosen to
+ * draw the eye. `ACCENT` tints attention; `METAL` names substance, and a gold heading is not a
+ * button even though both are the same pigment (see `ACCENT`'s own note).
+ *
+ * Two metals, no fourth: the engine's item `rarity` field is literally either of these (see
+ * `METAL_COLORS` in `lib/tiers.ts`) — gold for ordinary drops, ember for the honours with real
+ * stakes (the Oath, the Rite, a boss room). `brass` is a third, UI-only metal for ornamental
+ * trim (quest runes, card borders) that never carries rarity.
+ */
+export const METAL = {
+  gold: COLORS.gold,
+  ember: COLORS.ember,
+  brass: COLORS.brass,
+} as const;
+
 export function overlay(opacity: number): string {
   return `rgba(10,11,16,${opacity})`;
 }

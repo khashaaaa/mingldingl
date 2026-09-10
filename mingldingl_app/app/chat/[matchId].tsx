@@ -27,7 +27,7 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { useAuthStore } from '../../store/authStore';
 import { useActivityGate, useRevealLadder } from '../../hooks/useRevealThresholds';
 import { messagesUntilActivities, nextRevealThreshold } from '../../lib/reveal';
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.md,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.brass,
+    borderColor: METAL.brass,
     backgroundColor: COLORS.panel,
   },
   activitiesLabel: { flex: 1 },
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.sm,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.brass,
+    borderColor: METAL.brass,
     backgroundColor: COLORS.panel,
   },
   loadEarlierText: {

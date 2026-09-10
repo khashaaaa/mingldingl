@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { Icon } from '../ui/Icon';
 import { TorchGlow } from '../vfx/TorchGlow';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, METAL, RADIUS, SPACE } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
 interface Props {
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.sm,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.brass,
+    borderColor: METAL.brass,
     backgroundColor: COLORS.panelDeep,
     overflow: 'hidden',
   },

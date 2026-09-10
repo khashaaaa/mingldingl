@@ -15,7 +15,7 @@ import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
 import { useScrollTail } from '../../hooks/useScrollTail';
 
 
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   partnerPledgedBanner: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
-    borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.brass, backgroundColor: COLORS.panel,
+    borderRadius: RADIUS.md, borderWidth: 1, borderColor: METAL.brass, backgroundColor: COLORS.panel,
   },
   partnerPledgedText: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.gold },
   title: { color: INK.primary, fontSize: FONT_SIZES.title, fontFamily: FONTS.display, textAlign: 'center' },

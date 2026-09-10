@@ -2,7 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Icon } from '../ui/Icon';
 import { CountText } from '../ui/CountText';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE } from '../../lib/theme';
 import type { DailyMatchBudget } from '../../hooks/useScore';
 
 // Stands in for the remaining count inside the translated sentence, so the sentence keeps its
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.xs,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    borderColor: COLORS.brass,
+    borderColor: METAL.brass,
     backgroundColor: COLORS.panel,
   },
   wrapSpent: { borderColor: LINE.edge },

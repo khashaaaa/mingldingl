@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE } from '../../lib/theme';
 import type { DeepFields, PartialUser } from '../../models/match';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { deepRevealLevel, nextRevealThreshold } from '../../lib/reveal';
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     height: PHOTO,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
-    borderColor: COLORS.brass,
+    borderColor: METAL.brass,
     backgroundColor: COLORS.panelRaised,
   },
   locked: { borderColor: LINE.edge, alignItems: 'center', justifyContent: 'center' },
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.hair,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
-    borderColor: COLORS.brass,
+    borderColor: METAL.brass,
     backgroundColor: COLORS.panelRaised,
     maxWidth: '100%',
   },

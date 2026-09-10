@@ -4,7 +4,7 @@ import type { LayoutChangeEvent } from 'react-native';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
-import { COLORS, FILL, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE, glow, tint } from '../../lib/theme';
+import { COLORS, FILL, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, METAL, RADIUS, SPACE, glow, tint } from '../../lib/theme';
 export type GateState = 'closed' | 'opening' | 'barred';
 
 interface Props {
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '50%',
     backgroundColor: COLORS.panelDeep,
-    borderColor: COLORS.brass,
+    borderColor: METAL.brass,
   },
   leftHalf: { left: 0, borderRightWidth: 2 },
   rightHalf: { right: 0, borderLeftWidth: 2 },
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: COLORS.brassDark,
     borderWidth: 1.5,
-    borderColor: COLORS.brass,
+    borderColor: METAL.brass,
   },
   studLeft: { right: SPACE.lg },
   studRight: { left: SPACE.lg },

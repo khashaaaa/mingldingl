@@ -3,7 +3,7 @@ import { Animated, TouchableOpacity, View, Text, Image, StyleSheet } from 'react
 import { colorForTier } from '../../lib/tiers';
 import { useRevealLadder } from '../../hooks/useRevealThresholds';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, circle } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import OathSigil from '../OathSigil';
 import type { Match } from '../../models/match';
@@ -23,7 +23,7 @@ function questStatus(match: Match, underwayAt: number): { icon: StatusIconName; 
   // Not a padlock: messaging is never gated by the icebreaker (only the video-call button reads
   // icebreakerComplete, in app/chat/[matchId].tsx) — an unopened quest scroll, not a locked door.
   if (!match.icebreakerComplete) return { icon: 'script-text', label: i18n.t('quest_new'), color: COLORS.gold };
-  if (match.messageCount < underwayAt) return { icon: 'sword-cross', label: i18n.t('quest_in_progress'), color: COLORS.brass };
+  if (match.messageCount < underwayAt) return { icon: 'sword-cross', label: i18n.t('quest_in_progress'), color: METAL.brass };
   return { icon: 'fire', label: i18n.t('quest_active'), color: COLORS.goldBright };
 }
 
