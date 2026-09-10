@@ -228,6 +228,7 @@ export const en = {
   submit_answer: 'Submit Answer',
   no_quiz: 'No quiz available right now',
   waiting_match: 'Waiting for your match…',
+  quiz_answers_in: 'Your answers are in.',
   compat_revealed: 'Compatibility Revealed!',
   percent_compatible: '%{pct}% Compatible',
   xp_earned: '+%{points} XP earned',

@@ -7,6 +7,7 @@ import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
 import { LootToast } from '../../components/modals/LootToast';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { LongWait } from '../../components/ui/LongWait';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import {
@@ -81,14 +82,14 @@ export default function QuizScreen() {
         <Icon name={isWaitingForPartner ? 'brain' : 'trophy'} size={ICON_SIZES.huge} color={COLORS.gold} />
         <AppCard style={styles.completionCard}>
           <Text style={styles.completionTitle}>
-            {isWaitingForPartner ? i18n.t('waiting_match') : i18n.t('compat_revealed')}
+            {isWaitingForPartner ? i18n.t('quiz_answers_in') : i18n.t('compat_revealed')}
           </Text>
           {!isWaitingForPartner && (
             <Text style={styles.scoreEarned}>{i18n.t('percent_compatible', { pct: compatibility })}</Text>
           )}
           {awarded > 0 && <Text style={styles.completionSub}>{i18n.t('xp_earned', { points: awarded })}</Text>}
         </AppCard>
-        {isWaitingForPartner && <ActivityIndicator color={COLORS.gold} />}
+        {isWaitingForPartner && <LongWait kind="quizPartner" />}
         <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
       </View>
     );

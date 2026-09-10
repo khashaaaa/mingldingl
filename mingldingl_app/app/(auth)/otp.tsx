@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, View, Text, StyleSheet, Linking, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth, VERIFICATION_POLL_MS } from '../../hooks/useAuth';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
+import { LongWait } from '../../components/ui/LongWait';
 import { GateScene, type GateState } from '../../components/onboarding/GateScene';
 import { signal } from '../../lib/world/feedback';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
@@ -139,12 +140,18 @@ export default function OtpScreen() {
           </GameButton>
           {openFailed && <Text style={styles.error}>{i18n.t('verify_open_sms_failed')}</Text>}
 
-          <View style={styles.waitingRow}>
-            <ActivityIndicator color={COLORS.gold} size="small" />
-            <Text style={styles.waiting}>
-              {loading ? i18n.t('verify_sms_sent') : i18n.t('verify_sms_waiting')}
-            </Text>
-          </View>
+          {loading ? (
+            <Text style={styles.waiting}>{i18n.t('verify_sms_sent')}</Text>
+          ) : (
+            <LongWait
+              kind="verifySms"
+              action={
+                <GameButton variant="ghost" size="compact" onPress={restart}>
+                  {i18n.t('verify_start_over')}
+                </GameButton>
+              }
+            />
+          )}
 
           <Text style={styles.meta}>{i18n.t('verify_expires_in', { time: mmss })}</Text>
           <Text style={styles.meta}>{i18n.t('verify_sms_cost')}</Text>
@@ -187,7 +194,6 @@ const styles = StyleSheet.create({
     lineHeight: LINE_HEIGHTS.lg,
   },
   manual: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
-  waitingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.sm },
   waiting: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim },
   meta: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.textDim, textAlign: 'center' },
   error: { color: COLORS.emberLight, fontSize: FONT_SIZES.md, textAlign: 'center', fontFamily: FONTS.body },

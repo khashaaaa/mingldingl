@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useVideoCall } from '../../hooks/useVideoCall';
@@ -8,6 +8,7 @@ import { VideoControls } from '../../components/video/VideoControls';
 import { AgoraVideoCall } from '../../components/video/AgoraVideoCall';
 import { GameButton } from '../../components/ui/GameButton';
 import { AlertModal } from '../../components/modals/AlertModal';
+import { LongWait } from '../../components/ui/LongWait';
 import { apiClient } from '../../lib/api/apiClient';
 import { useAuthStore } from '../../store/authStore';
 import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
@@ -90,7 +91,7 @@ export default function VideoScreen() {
 
   if (loading) return (
     <View style={styles.centered}>
-      <ActivityIndicator color={COLORS.gold} />
+      <LongWait kind="videoConnect" />
     </View>
   );
 
@@ -172,7 +173,7 @@ export default function VideoScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
-  centered: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   stack: { gap: SPACE.lg },
   failPadding: { paddingHorizontal: SPACE.huge },
   unavailable: { color: COLORS.text, fontSize: FONT_SIZES.xl, textAlign: 'center', fontFamily: FONTS.body },

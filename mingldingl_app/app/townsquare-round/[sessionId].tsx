@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AgoraVideoCall } from '../../components/video/AgoraVideoCall';
@@ -9,6 +9,7 @@ import { AlertModal } from '../../components/modals/AlertModal';
 import { ReportUserSheet } from '../../components/modals/ReportUserSheet';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
+import { LongWait } from '../../components/ui/LongWait';
 import { useTownSquareRound, useTownSquareSessionSummary } from '../../hooks/useTownSquareRound';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE, circle, overlay } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
@@ -98,9 +99,8 @@ export default function TownSquareRoundScreen() {
   // #16: loading used to render a bare black screen, indistinguishable from a hard failure.
   if (isLoading || !round) {
     return (
-      <View style={[styles.screen, styles.center]}>
-        <ActivityIndicator color={COLORS.gold} size="large" />
-        <Text style={styles.status}>{i18n.t('round_connecting')}</Text>
+      <View style={[styles.screen, styles.center, styles.waitGround]}>
+        <LongWait kind="squareRound" />
       </View>
     );
   }
@@ -212,6 +212,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   screen: { flex: 1, backgroundColor: COLORS.bg },
+  waitGround: { backgroundColor: 'transparent' },
   center: { alignItems: 'center', justifyContent: 'center', gap: SPACE.lg, paddingHorizontal: SPACE.xxxl },
   status: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.textDim, textAlign: 'center' },
   errorTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: COLORS.text, textAlign: 'center' },
