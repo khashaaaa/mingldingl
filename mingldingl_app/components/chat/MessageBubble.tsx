@@ -13,9 +13,18 @@ interface Props {
 export function MessageBubble({ message, myId, onRetry }: Props) {
   const isMine = (!!myId && message.senderId === myId) || message.senderId === 'me';
   const isFailed = message.status === 'failed';
+  const isSending = message.status === 'sending';
 
   const bubble = (
-    <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs, isFailed && styles.bubbleFailed]}>
+    <View
+      testID="bubble"
+      style={[
+        styles.bubble,
+        isMine ? styles.bubbleMine : styles.bubbleTheirs,
+        isSending && styles.bubbleSending,
+        isFailed && styles.bubbleFailed,
+      ]}
+    >
       <Text style={[styles.text, isMine && styles.textMine]}>{message.content}</Text>
     </View>
   );
@@ -53,6 +62,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: LINE.edge,
   },
+  // A message in flight used to render exactly like a delivered one, so there was no way to tell
+  // a sent message from one still going. Not yet inked: pale, and without the squared corner
+  // that marks a message as landed.
+  bubbleSending: { opacity: 0.6, borderBottomRightRadius: RADIUS.lg },
   bubbleFailed: { opacity: 0.55 },
   text: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: COLORS.text },
   textMine: { color: COLORS.panelDeep },
