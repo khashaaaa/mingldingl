@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Share, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Share, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useActivitySuggestions } from '../../hooks/useActivitySuggestions';
@@ -11,6 +11,7 @@ import { AppCard } from '../../components/ui/AppCard';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
@@ -76,7 +77,7 @@ export default function ActivitiesScreen() {
 
   if (isLoading) return (
     <View style={styles.centered}>
-      <ActivityIndicator color={COLORS.gold} />
+      <Waiting />
     </View>
   );
 
@@ -118,7 +119,7 @@ export default function ActivitiesScreen() {
               )}
               {uploading && (
                 <View style={styles.momentPhotoOverlay}>
-                  <ActivityIndicator color={COLORS.gold} size="small" />
+                  <Waiting size={ICON_SIZES.md} />
                 </View>
               )}
             </TouchableOpacity>

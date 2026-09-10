@@ -1,9 +1,10 @@
 import { useRef } from 'react';
-import { Pressable, Text, Animated, StyleSheet, ActivityIndicator, View } from 'react-native';
+import { Pressable, Text, Animated, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { BUTTON_METALS, COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from './Icon';
+import { Waiting } from './Waiting';
 import { signal } from '../../lib/world/feedback';
 
 interface Props {
@@ -73,7 +74,7 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
         <View style={[styles.topHighlight, { backgroundColor: BUTTON_METALS[variant].highlight }]} />
         {isMetal && <View style={styles.bottomShadow} />}
         {loading ? (
-          <ActivityIndicator color={BUTTON_METALS[variant].label} />
+          <Waiting color={BUTTON_METALS[variant].label} />
         ) : (
           <View style={styles.labelRow}>
             {icon && <Icon name={icon} size={sz.iconSize} color={BUTTON_METALS[variant].label} />}

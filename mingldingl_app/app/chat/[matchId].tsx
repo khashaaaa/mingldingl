@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, ScrollView, TouchableOpacity, Modal, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, ScrollView, TouchableOpacity, Modal, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -21,6 +21,7 @@ import { SealedLetter } from '../../components/chat/SealedLetter';
 import { Unsealing } from '../../components/chat/Unsealing';
 import { QuestBanner } from '../../components/quest/QuestBanner';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
@@ -247,7 +248,7 @@ export default function ChatScreen() {
 
         {loading ? (
           <View style={styles.spinnerWrap}>
-            <ActivityIndicator color={COLORS.gold} />
+            <Waiting />
           </View>
         ) : isError ? (
           <View style={styles.spinnerWrap}>
@@ -280,7 +281,7 @@ export default function ChatScreen() {
             ListHeaderComponent={hasMore ? (
               <>
                 <TouchableOpacity style={styles.loadEarlierBtn} onPress={() => loadEarlier()} disabled={loadingEarlier} accessibilityRole="button">
-                  {loadingEarlier ? <ActivityIndicator color={COLORS.gold} size="small" /> : (
+                  {loadingEarlier ? <Waiting size={ICON_SIZES.md} /> : (
                     <>
                       <Icon name="chevron-double-up" size={ICON_SIZES.sm} color={COLORS.gold} />
                       <Text style={styles.loadEarlierText}>{i18n.t('load_earlier')}</Text>

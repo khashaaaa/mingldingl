@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useAuthStore } from '../store/authStore';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
@@ -7,6 +7,7 @@ import { Icon } from './ui/Icon';
 import { AlertModal } from './modals/AlertModal';
 import { SheetModal } from './modals/SheetModal';
 import { GameButton } from './ui/GameButton';
+import { Waiting } from './ui/Waiting';
 import { i18n } from '../lib/i18n';
 import { COLORS, ICON_SIZES, LINE, RADIUS, SPACE, circle, overlay } from '../lib/theme';
 
@@ -101,7 +102,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
           <Image source={{ uri: url }} style={styles.image} contentFit="cover" />
           {pendingLocalUris.includes(url) && (
             <View style={styles.uploadOverlay}>
-              <ActivityIndicator size="small" color={COLORS.gold} />
+              <Waiting size={ICON_SIZES.md} />
             </View>
           )}
           {i === 0 && (
@@ -135,7 +136,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
           disabled={uploading}
           onPress={() => setSourceModalVisible(true)}
         >
-          {uploading ? <ActivityIndicator size="small" color={COLORS.gold} /> : <Icon name="image-plus" size={ICON_SIZES.xxl} color={COLORS.textDim} />}
+          {uploading ? <Waiting size={ICON_SIZES.md} /> : <Icon name="image-plus" size={ICON_SIZES.xxl} color={COLORS.textDim} />}
         </TouchableOpacity>
       )}
 

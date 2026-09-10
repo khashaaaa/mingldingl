@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { AlertModal } from '../modals/AlertModal';
 import { SheetModal } from '../modals/SheetModal';
 import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
+import { Waiting } from '../ui/Waiting';
 import { TorchGlow } from '../vfx/TorchGlow';
 import { usePhotoUpload } from '../../hooks/usePhotoUpload';
 import { useUpdateProfile } from '../../hooks/useProfile';
@@ -83,7 +84,7 @@ export function ProfileAvatar({ photoUrls, tierColor }: Props) {
                 )}
                 {uploading && (
                   <View style={styles.uploadingOverlay}>
-                    <ActivityIndicator color={tierColor} />
+                    <Waiting color={tierColor} />
                   </View>
                 )}
               </View>

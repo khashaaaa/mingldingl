@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, TextInput, View, Text, StyleSheet } from 'react-native';
+import { Keyboard, TextInput, View, Text, StyleSheet } from 'react-native';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
 import { StepScaffold } from './StepScaffold';
 import { GameButton } from '../ui/GameButton';
 import { TextField } from '../ui/TextField';
+import { Waiting } from '../ui/Waiting';
 import { CityPickerModal } from '../modals/CityPickerModal';
 import { useLocationCapture } from '../../hooks/useLocationCapture';
 import { useGeoCities } from '../../hooks/useGeoCities';
@@ -69,7 +70,7 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
           </View>
         ) : isCapturing ? (
           <View style={styles.detecting}>
-            <ActivityIndicator color={COLORS.gold} />
+            <Waiting />
             <Text style={{ color: COLORS.textDim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md }}>
               {i18n.t('detecting_location')}
             </Text>

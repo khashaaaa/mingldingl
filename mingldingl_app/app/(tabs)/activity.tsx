@@ -5,7 +5,6 @@ import {
   RefreshControl,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useActivity } from '../../hooks/useActivity';
@@ -16,6 +15,7 @@ import { GameHeader } from '../../components/ui/GameHeader';
 import { QuestBoard } from '../../components/quest/QuestBoard';
 import { FatedThreadsSection } from '../../components/quest/FatedThreadsSection';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
+import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
@@ -133,7 +133,7 @@ export default function ActivityScreen() {
         )}
         {isFetchingNextPage && (
           <View style={styles.center}>
-            <ActivityIndicator size="small" color={COLORS.gold} />
+            <Waiting size={ICON_SIZES.md} />
           </View>
         )}
       </ScrollView>

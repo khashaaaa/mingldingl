@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { AlertModal } from '../components/modals/AlertModal';
 import { AppCard } from '../components/ui/AppCard';
@@ -13,6 +12,7 @@ import { ChoiceRow } from '../components/ui/ChoiceRow';
 import { GameButton } from '../components/ui/GameButton';
 import { GemTierBadge } from '../components/progression/GemTierBadge';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { Waiting } from '../components/ui/Waiting';
 import { useMembership } from '../hooks/useMembership';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
@@ -71,7 +71,7 @@ export default function MembershipScreen() {
             {i18n.t('membership_active_until', { date: formatDate(expiresAt) })}
           </Text>
         )}
-        {tiersLoading && <ActivityIndicator color={COLORS.gold} />}
+        {tiersLoading && <Waiting />}
         {tiers.map((t) => {
           const isSelected = selectedTier === t.level;
           const isCurrent = currentLevel === t.level;

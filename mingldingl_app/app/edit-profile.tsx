@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
@@ -12,7 +12,7 @@ import { i18n } from '../lib/i18n';
 import { deepProfileThreshold } from '../lib/reveal';
 import { useRevealLadder } from '../hooks/useRevealThresholds';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../lib/theme';
 import { FIELD_LIMITS } from '../lib/fieldLimits';
 import { DismissKeyboardView } from '../components/ui/DismissKeyboardView';
 import { AppCard } from '../components/ui/AppCard';
@@ -23,6 +23,7 @@ import { PhotoGrid } from '../components/PhotoGrid';
 import { SectionDivider } from '../components/ui/SectionDivider';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { TextField } from '../components/ui/TextField';
+import { Waiting } from '../components/ui/Waiting';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SMOKING_DRINKING_OPTIONS = ['Never', 'Occasionally', 'Regularly'] as const;
@@ -216,7 +217,7 @@ export default function EditProfileScreen() {
             <Text style={styles.sectionTitle}>{i18n.t('your_area')}</Text>
             {isCapturing ? (
               <View style={styles.locatingRow}>
-                <ActivityIndicator color={COLORS.gold} size="small" />
+                <Waiting size={ICON_SIZES.md} />
                 <Text style={styles.hint}>
                   {i18n.t('detecting_location')}
                 </Text>

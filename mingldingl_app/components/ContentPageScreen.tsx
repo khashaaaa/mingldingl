@@ -1,7 +1,8 @@
-import { ActivityIndicator, ScrollView, Text, View, StyleSheet } from 'react-native';
+import { ScrollView, Text, View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenHeader } from './ui/ScreenHeader';
 import { GameButton } from './ui/GameButton';
+import { Waiting } from './ui/Waiting';
 import { useContentPage } from '../hooks/useContentPage';
 import { selectContentPageLocale } from '../models/content';
 import { i18n } from '../lib/i18n';
@@ -26,7 +27,7 @@ export function ContentPageScreen({ slug }: Props) {
     <View style={styles.container}>
       <ScreenHeader title={localized?.title ?? ''} onBack={() => router.back()} />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
-        {isLoading && <ActivityIndicator color={COLORS.gold} />}
+        {isLoading && <Waiting />}
         {isError && (
           <View style={styles.errorWrap}>
             <Text style={styles.errorTitle}>{i18n.t('error_boundary_title')}</Text>

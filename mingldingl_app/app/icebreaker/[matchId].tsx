@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useIcebreaker } from '../../hooks/useIcebreaker';
 import { AppCard } from '../../components/ui/AppCard';
@@ -8,6 +8,7 @@ import { GameButton } from '../../components/ui/GameButton';
 import { TextField } from '../../components/ui/TextField';
 import { LootToast } from '../../components/modals/LootToast';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
@@ -39,7 +40,7 @@ export default function IcebreakerScreen() {
 
   if (isLoading) return (
     <View style={styles.centered}>
-      <ActivityIndicator color={COLORS.gold} />
+      <Waiting />
     </View>
   );
 
@@ -71,7 +72,7 @@ export default function IcebreakerScreen() {
   if (hasResponded || isWaitingForPartner) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={COLORS.gold} />
+        <Waiting />
         <Text style={styles.completionTitle}>{i18n.t('waiting_partner')}</Text>
         <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
       </View>
