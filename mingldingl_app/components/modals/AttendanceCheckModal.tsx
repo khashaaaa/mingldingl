@@ -1,8 +1,9 @@
-import { Modal, Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
+import { AppModal } from './AppModal';
 
 interface Props {
   visible: boolean;
@@ -15,7 +16,7 @@ interface Props {
 
 export function AttendanceCheckModal({ visible, activityTitle, onYes, onNo, isSubmitting, onDismiss }: Props) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+    <AppModal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.overlay}>
         <View style={styles.card}>
           <Icon name="calendar-check" size={ICON_SIZES.xxl} color={COLORS.gold} />
@@ -33,7 +34,7 @@ export function AttendanceCheckModal({ visible, activityTitle, onYes, onNo, isSu
           </View>
         </View>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 

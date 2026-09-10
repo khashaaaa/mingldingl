@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { ChestBurst } from '../vfx/ChestBurst';
 import { ORNAMENTS } from '../../lib/ornaments';
@@ -9,6 +9,7 @@ import { i18n } from '../../lib/i18n';
 import {
   COLORS, FONTS, FONT_SIZES, LINE, LINE_HEIGHTS, RADIUS, SPACE, overlay,
 } from '../../lib/theme';
+import { AppModal } from '../modals/AppModal';
 
 interface Props {
   visible: boolean;
@@ -102,7 +103,7 @@ export function Unsealing({ visible, onDismiss, photoUri, headline, subline }: P
   if (!visible) return null;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>
+    <AppModal visible transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable
         style={styles.scrim}
         onPress={onDismiss}
@@ -157,7 +158,7 @@ export function Unsealing({ visible, onDismiss, photoUri, headline, subline }: P
           <Text style={styles.subline} numberOfLines={2}>{subline}</Text>
         </Animated.View>
       </Pressable>
-    </Modal>
+    </AppModal>
   );
 }
 

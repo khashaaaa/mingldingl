@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Image, Modal, Pressable, StyleSheet, Text, View, type LayoutChangeEvent,
+  Image, Pressable, StyleSheet, Text, View, type LayoutChangeEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
@@ -8,6 +8,7 @@ import { ROOMS, PASSAGES, type RoomName } from '../../lib/world';
 import { useWorldState } from '../../hooks/useWorldState';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
+import { AppModal } from '../modals/AppModal';
 import {
   COLORS,
   FONTS,
@@ -69,7 +70,7 @@ export function AtlasOverlay({ visible, onClose }: Props) {
   const delves = state.activeMatches ?? 0;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <AppModal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel={i18n.t('hold_close')}>
         {/* Swallow presses on the panel itself so only the scrim dismisses. */}
         <Pressable style={styles.panel} onPress={() => {}} accessibilityViewIsModal>
@@ -130,7 +131,7 @@ export function AtlasOverlay({ visible, onClose }: Props) {
           </View>
         </Pressable>
       </Pressable>
-    </Modal>
+    </AppModal>
   );
 }
 

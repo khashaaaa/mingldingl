@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, View, Text, StyleSheet } from 'react-native';
+import { Animated, View, Text, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { ChestBurst } from '../vfx/ChestBurst';
 import { TorchGlow } from '../vfx/TorchGlow';
@@ -8,6 +8,7 @@ import { i18n } from '../../lib/i18n';
 import { colorForTier, tierLabel } from '../../lib/tiers';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { AppModal } from './AppModal';
 
 interface Props {
   visible: boolean;
@@ -110,7 +111,7 @@ export function TierUpCeremony({ visible, tier, previousTier, onDismiss }: Props
   }, [visible, level]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+    <AppModal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.overlay}>
         <View style={styles.stage}>
           <View style={styles.burstWrap} pointerEvents="none">
@@ -161,7 +162,7 @@ export function TierUpCeremony({ visible, tier, previousTier, onDismiss }: Props
           </View>
         )}
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 

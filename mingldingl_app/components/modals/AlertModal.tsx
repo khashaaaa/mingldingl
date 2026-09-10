@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
-import { Modal, View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
+import { AppModal } from './AppModal';
 
 export type AlertTone = 'default' | 'warning';
 
@@ -31,7 +32,7 @@ export function AlertModal({
   // #7: while a confirm is in flight, cancelling (or hardware back) would race the request.
   const locked = !!isConfirming;
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={() => { if (!locked) onDismiss(); }}>
+    <AppModal visible={visible} transparent animationType="fade" onRequestClose={() => { if (!locked) onDismiss(); }}>
       <View style={styles.overlay}>
         <View style={[styles.card, { borderColor: tint }]}>
           <Icon name={tone === 'warning' ? 'alert' : 'rhombus-outline'} size={ICON_SIZES.xl} color={tint} />
@@ -57,7 +58,7 @@ export function AlertModal({
           )}
         </View>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, ScrollView, TouchableOpacity, Modal, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import { useMatchStatus } from '../../hooks/useMatchStatus';
 import { useAttendanceCheck } from '../../hooks/useAttendanceCheck';
 import { useMatches } from '../../hooks/useMatches';
 import { AlertModal } from '../../components/modals/AlertModal';
+import { AppModal } from '../../components/modals/AppModal';
 import { AttendanceCheckModal } from '../../components/modals/AttendanceCheckModal';
 import { ReportUserSheet } from '../../components/modals/ReportUserSheet';
 import FlameRiteCard, { type FlameRiteState } from '../../components/FlameRiteCard';
@@ -376,7 +377,7 @@ export default function ChatScreen() {
         message={i18n.t('attendance_submit_failed')}
         onDismiss={() => { clearSubmitFailed(); setAttendanceModalVisible(true); }}
       />
-      <Modal visible={activitiesVisible} transparent animationType="fade" onRequestClose={() => setActivitiesVisible(false)}>
+      <AppModal visible={activitiesVisible} transparent animationType="fade" onRequestClose={() => setActivitiesVisible(false)}>
         <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={() => setActivitiesVisible(false)}>
           <TouchableOpacity
             activeOpacity={1}
@@ -414,8 +415,8 @@ export default function ChatScreen() {
             </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
-      </Modal>
-      <Modal visible={optionsVisible} transparent animationType="fade" onRequestClose={() => setOptionsVisible(false)}>
+      </AppModal>
+      <AppModal visible={optionsVisible} transparent animationType="fade" onRequestClose={() => setOptionsVisible(false)}>
         <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={() => setOptionsVisible(false)}>
           {/* Swallows taps so pressing the sheet's own padding or title does not dismiss it. */}
           <TouchableOpacity
@@ -435,7 +436,7 @@ export default function ChatScreen() {
             </GameButton>
           </TouchableOpacity>
         </TouchableOpacity>
-      </Modal>
+      </AppModal>
       {match && (
         <ReportUserSheet
           visible={reportVisible}

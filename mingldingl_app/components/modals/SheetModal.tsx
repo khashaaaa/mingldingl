@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from 'react';
-import { Modal, Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { COLORS, LINE, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { AppModal } from './AppModal';
 
 /**
  * Runs `action` once the sheet has finished dismissing. On iOS a native picker cannot be
@@ -30,7 +31,7 @@ export function SheetModal({ visible, onClose, children }: Props) {
   };
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       transparent
       animationType="fade"
@@ -46,7 +47,7 @@ export function SheetModal({ visible, onClose, children }: Props) {
           {typeof children === 'function' ? children(closeThen) : children}
         </View>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 

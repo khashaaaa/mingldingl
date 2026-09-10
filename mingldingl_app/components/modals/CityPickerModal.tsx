@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Modal, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, LINE, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { AppModal } from './AppModal';
 
 interface Props {
   visible: boolean;
@@ -14,6 +16,7 @@ interface Props {
 
 export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSelect, onDismiss }: Props) {
   const [showingDistricts, setShowingDistricts] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) setShowingDistricts(false);
@@ -31,7 +34,7 @@ export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSe
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
+    <AppModal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onDismiss}>
         <TouchableOpacity style={styles.sheet} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>
@@ -49,14 +52,14 @@ export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSe
           />
           <GameButton
             variant="ghost"
-            style={styles.cancelWrap}
+            style={[styles.cancelWrap, { paddingBottom: SPACE.lg + insets.bottom }]}
             onPress={showingDistricts ? () => setShowingDistricts(false) : onDismiss}
           >
             {i18n.t('back')}
           </GameButton>
         </TouchableOpacity>
       </TouchableOpacity>
-    </Modal>
+    </AppModal>
   );
 }
 

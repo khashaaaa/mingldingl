@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, View, Text, StyleSheet } from 'react-native';
+import { Animated, View, Text, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { ChestBurst } from '../vfx/ChestBurst';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { AppModal } from './AppModal';
 
 interface Props { visible: boolean; xp: number; onDismiss: () => void; }
 
@@ -40,7 +41,7 @@ export function ChestModal({ visible, xp, onDismiss }: Props) {
   }, [visible]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+    <AppModal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.overlay}>
         <Animated.View
           style={{
@@ -62,7 +63,7 @@ export function ChestModal({ visible, xp, onDismiss }: Props) {
           </View>
         )}
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 
