@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     gap: SPACE.lg,
     paddingHorizontal: SPACE.xxxl,
   },
-  splashTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: COLORS.text, textAlign: 'center' },
+  splashTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: INK.primary, textAlign: 'center' },
   splashBody: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center' },
   transparent: { backgroundColor: 'transparent' },
   ground: { flex: 1, backgroundColor: COLORS.bg },

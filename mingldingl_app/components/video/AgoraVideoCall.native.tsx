@@ -147,5 +147,5 @@ const styles = StyleSheet.create({
     width: 100, height: 140, borderRadius: RADIUS.lg, overflow: 'hidden',
   },
   placeholder: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
-  placeholderText: { color: COLORS.text, fontFamily: FONTS.body, textAlign: 'center', paddingHorizontal: SPACE.huge },
+  placeholderText: { color: INK.primary, fontFamily: FONTS.body, textAlign: 'center', paddingHorizontal: SPACE.huge },
 });

@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   roundLabel: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: INK.dim, letterSpacing: 1 },
   clock: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.lg, color: COLORS.goldBright },
-  question: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.text },
+  question: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary },
   waitingText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   matchText: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, color: COLORS.goldBright },
   buttonRow: { flexDirection: 'row', gap: SPACE.md },
@@ -98,5 +98,5 @@ const styles = StyleSheet.create({
   buttonText: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, letterSpacing: 1 },
   // Light-on-gold reads at 2.4:1; the rest of the app puts a dark label on this slab (as GameButton does).
   yesButtonText: { color: COLORS.panelDeep },
-  noButtonText: { color: COLORS.text },
+  noButtonText: { color: INK.primary },
 });

@@ -12,7 +12,7 @@ import { GameButton } from '../components/ui/GameButton';
 import { Skeleton } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
+import { FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
 import type { GemTier } from '../models/user';
 import { Icon } from '../components/ui/Icon';
 import { CardEyebrow } from '../components/ui/CardEyebrow';
@@ -89,7 +89,7 @@ export default function ProgressionScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
-  errorTitle: { color: COLORS.text, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, textAlign: 'center' },
+  errorTitle: { color: INK.primary, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, textAlign: 'center' },
   loadingBody: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.giant, gap: SPACE.lg },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   xpBarWrap: { flex: 1 },

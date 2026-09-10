@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.display,
     lineHeight: LINE_HEIGHTS.title,
-    color: COLORS.text,
+    color: INK.primary,
     textAlign: 'center',
   },
   subline: {

@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   icon: { width: 18, textAlign: 'center' },
   body: { flex: 1, gap: SPACE.xs },
-  line: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: COLORS.text },
+  line: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.primary },
   dateline: {
     fontSize: FONT_SIZES.xs, fontFamily: FONTS.utility, color: INK.dim,
     letterSpacing: 0.8, textTransform: 'uppercase',

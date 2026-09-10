@@ -94,7 +94,7 @@ export default function LeaderboardScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
-  errorTitle: { color: COLORS.text, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, textAlign: 'center' },
+  errorTitle: { color: INK.primary, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, textAlign: 'center' },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
   empty: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.md,
     paddingHorizontal: SPACE.lg,
   },
-  score: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.text, flexShrink: 1 },
+  score: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.primary, flexShrink: 1 },
   scoreSelf: { fontFamily: FONTS.bodyBold, color: COLORS.goldBright },
   youTag: {
     marginLeft: 'auto',

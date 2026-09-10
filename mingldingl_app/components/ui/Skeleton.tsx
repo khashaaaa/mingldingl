@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Animated, Easing, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { COLORS, RADIUS, SPACE, tint } from '../../lib/theme';
+import { INK, RADIUS, SPACE, tint } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
 const LOW = 0.35;
@@ -95,5 +95,5 @@ export function SkeletonRows({ count, gap = SPACE.md, row }: RowsProps) {
 }
 
 const styles = StyleSheet.create({
-  block: { backgroundColor: tint(COLORS.text, 0.13) },
+  block: { backgroundColor: tint(INK.primary, 0.13) },
 });

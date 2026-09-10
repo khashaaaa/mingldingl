@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   runeText: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.display },
   runeTextDone: { color: INK.dim },
   questInfo: { flex: 1, gap: SPACE.xs },
-  questName: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.text },
+  questName: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.primary },
   questNameDone: { color: INK.dim, textDecorationLine: 'line-through' },
   questXp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: COLORS.gold },
   pips: { flexDirection: 'row', gap: SPACE.xs },

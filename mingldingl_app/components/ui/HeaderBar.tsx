@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { SectionDivider } from './SectionDivider';
 import { Icon } from './Icon';
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FONTS.displayBlack,
     fontSize: FONT_SIZES.title,
-    color: COLORS.text,
+    color: INK.primary,
     letterSpacing: 1.5,
     flexShrink: 1,
   },

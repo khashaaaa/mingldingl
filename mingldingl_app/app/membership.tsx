@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     gap: SPACE.md,
   },
   tierName: {
-    color: COLORS.text,
+    color: INK.primary,
     fontSize: FONT_SIZES.xl,
     fontFamily: FONTS.display,
     letterSpacing: 0.3,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     width: 16,
   },
   perkLabel: {
-    color: COLORS.text,
+    color: INK.primary,
     fontSize: FONT_SIZES.md,
     fontFamily: FONTS.body,
   },

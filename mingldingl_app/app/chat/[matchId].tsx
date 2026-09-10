@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.title,
-    color: COLORS.text,
+    color: INK.primary,
     textAlign: 'center',
   },
   emptySub: {
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activitiesBadgeText: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.sm, color: COLORS.text },
+  activitiesBadgeText: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.sm, color: INK.primary },
   activitiesChevron: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: COLORS.gold },
   activitiesScroll: { maxHeight: 420 },
   activitiesScrollContent: { paddingBottom: SPACE.sm },

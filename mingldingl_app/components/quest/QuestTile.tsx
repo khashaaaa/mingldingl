@@ -138,6 +138,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   info: { flex: 1, gap: SPACE.xs },
-  name: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg, color: COLORS.text },
+  name: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg, color: INK.primary },
   status: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md },
 });

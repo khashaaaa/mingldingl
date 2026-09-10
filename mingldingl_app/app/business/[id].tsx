@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   },
   meta: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
   rating: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
-  description: { color: COLORS.text, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md, paddingHorizontal: SPACE.gutter, marginTop: SPACE.md },
+  description: { color: INK.primary, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md, paddingHorizontal: SPACE.gutter, marginTop: SPACE.md },
   hours: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter, marginTop: SPACE.sm },
   sectionTitle: {
     color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.display, letterSpacing: 1,
@@ -183,11 +183,11 @@ const styles = StyleSheet.create({
   },
   emptyText: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter, textAlign: 'center' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.md, paddingHorizontal: SPACE.xxxl },
-  missingTitle: { color: COLORS.text, fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, textAlign: 'center' },
+  missingTitle: { color: INK.primary, fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, textAlign: 'center' },
   reviewList: { paddingHorizontal: SPACE.gutter, gap: SPACE.md },
   reviewCard: { padding: SPACE.md, gap: SPACE.sm },
   reviewPhoto: { width: '100%', height: 160, borderRadius: RADIUS.sm },
   reviewStarsRow: { flexDirection: 'row', gap: SPACE.hair },
-  reviewText: { color: COLORS.text, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
+  reviewText: { color: INK.primary, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
   skeletonText: { paddingHorizontal: SPACE.gutter, marginTop: SPACE.md, gap: SPACE.sm },
 });

@@ -154,7 +154,7 @@ export default function TownSquareRoundScreen() {
         onPress={() => setReportVisible(true)}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <Icon name="flag" size={ICON_SIZES.sm} color={COLORS.text} />
+        <Icon name="flag" size={ICON_SIZES.sm} color={INK.primary} />
       </TouchableOpacity>
 
       <VideoControls
@@ -215,6 +215,6 @@ const styles = StyleSheet.create({
   waitGround: { backgroundColor: 'transparent' },
   center: { alignItems: 'center', justifyContent: 'center', gap: SPACE.lg, paddingHorizontal: SPACE.xxxl },
   status: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center' },
-  errorTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: COLORS.text, textAlign: 'center' },
+  errorTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: INK.primary, textAlign: 'center' },
   matchList: { alignSelf: 'stretch', gap: SPACE.sm },
 });

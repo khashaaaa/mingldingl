@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body, fontSize: FONT_SIZES.md, lineHeight: LINE_HEIGHTS.md,
     color: INK.dim, flexShrink: 1,
   },
-  reasonLabelSelected: { color: COLORS.text },
+  reasonLabelSelected: { color: INK.primary },
   detailsLabel: {
     fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, lineHeight: LINE_HEIGHTS.xs,
     color: INK.dim, alignSelf: 'flex-start', marginTop: SPACE.md,
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: LINE.edge,
     borderRadius: RADIUS.sm,
-    color: COLORS.text,
+    color: INK.primary,
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.md,
     textAlignVertical: 'top',

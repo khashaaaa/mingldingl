@@ -43,7 +43,7 @@ export function FatedThreadsSection() {
 const styles = StyleSheet.create({
   section: { gap: SPACE.md, marginBottom: SPACE.lg },
   card: { padding: SPACE.lg, gap: SPACE.md },
-  message: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.text, lineHeight: LINE_HEIGHTS.md },
+  message: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.primary, lineHeight: LINE_HEIGHTS.md },
   actions: { flexDirection: 'row', gap: SPACE.md },
   btn: { flex: 1, paddingVertical: SPACE.md, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
   pass: { borderColor: LINE.edge, backgroundColor: COLORS.panelRaised },

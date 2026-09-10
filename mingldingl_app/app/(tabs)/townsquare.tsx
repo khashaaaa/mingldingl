@@ -8,9 +8,7 @@ import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { i18n } from '../../lib/i18n';
 import { getApiErrorMessage, isApiError } from '../../lib/api/errors';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../../lib/theme';
-
-
+import { FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 const autoNavigatedSessions = new Set<string>();
 
 export default function TownSquareScreen() {
@@ -74,5 +72,5 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   content: { flex: 1, paddingTop: SPACE.lg },
   errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.md },
-  errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
+  errorText: { color: INK.primary, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
 });

@@ -173,6 +173,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACE.md,
   },
-  emptyTitle: { fontSize: FONT_SIZES.title, fontFamily: FONTS.display, color: COLORS.text },
+  emptyTitle: { fontSize: FONT_SIZES.title, fontFamily: FONTS.display, color: INK.primary },
   emptySub: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: INK.dim, textAlign: 'center' },
 });

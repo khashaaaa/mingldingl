@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     borderColor: LINE.edge,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACE.lg,
-    color: COLORS.text,
+    color: INK.primary,
     fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.body,
   },

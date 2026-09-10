@@ -1,8 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, SPACE } from '../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
 export function OfflineBanner() {
   const insets = useSafeAreaInsets();
   return (
@@ -24,7 +23,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.md,
   },
   text: {
-    color: COLORS.text,
+    color: INK.primary,
     fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.sm,
     textAlign: 'center',

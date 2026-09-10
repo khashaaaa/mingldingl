@@ -7,7 +7,7 @@ import { GemTierBadge } from '../progression/GemTierBadge';
 import { i18n } from '../../lib/i18n';
 import { colorForTier, tierLabel } from '../../lib/tiers';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE, overlay } from '../../lib/theme';
 import { AppModal } from './AppModal';
 
 interface Props {
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FONTS.displayBlack,
     fontSize: FONT_SIZES.xl,
-    color: COLORS.text,
+    color: INK.primary,
     textAlign: 'center',
   },
   footer: {

@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   },
   missionIcon: { width: 26, textAlign: 'center' },
   info: { flex: 1 },
-  missionTitle: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text, marginBottom: SPACE.xs },
+  missionTitle: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: INK.primary, marginBottom: SPACE.xs },
   missionDesc: { fontSize: FONT_SIZES.sm, color: INK.dim, lineHeight: LINE_HEIGHTS.sm, marginBottom: SPACE.xs, fontFamily: FONTS.body },
   meta: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body },
   pointsBadge: {

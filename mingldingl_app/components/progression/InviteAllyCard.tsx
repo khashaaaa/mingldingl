@@ -35,5 +35,5 @@ const styles = StyleSheet.create({
   title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, letterSpacing: 1 },
   hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   codeRow: { alignItems: 'center', paddingVertical: SPACE.sm },
-  code: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.display, color: COLORS.text, letterSpacing: 4 },
+  code: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.display, color: INK.primary, letterSpacing: 4 },
 });

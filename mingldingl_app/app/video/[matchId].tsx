@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   stack: { gap: SPACE.lg },
   failPadding: { paddingHorizontal: SPACE.huge },
-  unavailable: { color: COLORS.text, fontSize: FONT_SIZES.xl, textAlign: 'center', fontFamily: FONTS.body },
+  unavailable: { color: INK.primary, fontSize: FONT_SIZES.xl, textAlign: 'center', fontFamily: FONTS.body },
   riteFraming: {
     position: 'absolute',
     top: 16,
@@ -195,8 +195,8 @@ const styles = StyleSheet.create({
   riteFramingCountdown: {
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.title,
-    color: COLORS.text,
+    color: INK.primary,
   },
-  errorTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: COLORS.text, textAlign: 'center' },
+  errorTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: INK.primary, textAlign: 'center' },
   errorBody: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center' },
 });

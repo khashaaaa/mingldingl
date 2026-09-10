@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   fkBr: { bottom: 5, right: 5, transform: [{ scaleX: -1 }, { scaleY: -1 }] },
   avatar: { ...circle(140), marginBottom: SPACE.xl },
   avatarPlaceholder: { backgroundColor: COLORS.panelRaised },
-  name: { fontFamily: FONTS.display, fontSize: FONT_SIZES.display, color: COLORS.text, marginBottom: SPACE.lg },
+  name: { fontFamily: FONTS.display, fontSize: FONT_SIZES.display, color: INK.primary, marginBottom: SPACE.lg },
   tierRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginBottom: SPACE.md },
   tierName: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, letterSpacing: 0 },
   score: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: COLORS.gold, marginBottom: SPACE.sm },

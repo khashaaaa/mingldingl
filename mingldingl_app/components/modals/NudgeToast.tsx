@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
 interface Props {
   icon: string;
   title: string;
@@ -61,5 +60,5 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   icon: { fontSize: FONT_SIZES.title },
-  title: { flex: 1, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg, color: COLORS.text },
+  title: { flex: 1, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg, color: INK.primary },
 });

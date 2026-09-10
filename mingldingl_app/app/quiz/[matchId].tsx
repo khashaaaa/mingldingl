@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.md,
   },
   questionText: {
-    color: COLORS.text,
+    color: INK.primary,
     fontSize: FONT_SIZES.title,
     fontFamily: FONTS.bodyBold,
     lineHeight: LINE_HEIGHTS.title,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   optionTextDefault: {
-    color: COLORS.text,
+    color: INK.primary,
   },
   optionTextSelected: {
     color: COLORS.goldBright,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   completionTitle: {
-    color: COLORS.text,
+    color: INK.primary,
     fontSize: FONT_SIZES.title,
     fontFamily: FONTS.display,
     textAlign: 'center',

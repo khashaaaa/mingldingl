@@ -282,5 +282,5 @@ const styles = StyleSheet.create({
   sectionTitle: { color: COLORS.gold, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   hint: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   error: { color: COLORS.emberLight, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
-  city: { color: COLORS.text, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },
+  city: { color: INK.primary, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },
 });

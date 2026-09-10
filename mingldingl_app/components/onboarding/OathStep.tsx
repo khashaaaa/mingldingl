@@ -75,7 +75,7 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
 const styles = StyleSheet.create({
   container: { flex: 1, padding: SPACE.huge, gap: SPACE.lg },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: 'auto' },
-  heading: { color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
+  heading: { color: INK.primary, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
   help: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
   cardList: { gap: SPACE.md },
   card: { flexDirection: 'row', alignItems: 'center', padding: SPACE.lg, gap: SPACE.lg },
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   glyphImg: { width: 34, height: 34 },
   glyphImgDim: { opacity: 0.45 },
   cardText: { flex: 1, gap: SPACE.xs },
-  cardName: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text },
+  cardName: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: INK.primary },
   cardDesc: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.dim, lineHeight: LINE_HEIGHTS.md },
   error: { color: COLORS.emberLight, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
 });

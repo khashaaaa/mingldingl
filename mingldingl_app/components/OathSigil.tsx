@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: RADIUS.md,
   },
-  name: { fontFamily: FONTS.bodyBold, color: COLORS.text, letterSpacing: 0.3 },
+  name: { fontFamily: FONTS.bodyBold, color: INK.primary, letterSpacing: 0.3 },
   state: { fontFamily: FONTS.utility, letterSpacing: 0.5, textTransform: 'uppercase' },
   progress: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, marginTop: SPACE.hair },
 });

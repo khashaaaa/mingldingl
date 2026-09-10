@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   rowShape: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, padding: SPACE.md },
   rowLines: { flex: 1, gap: SPACE.xs },
   emptyIcon: { opacity: 0.6, marginBottom: SPACE.xs },
-  emptyTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.bodyBold, color: COLORS.text },
+  emptyTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.bodyBold, color: INK.primary },
   emptySub: { fontSize: FONT_SIZES.md, color: INK.dim, fontFamily: FONTS.body },
   emptyCta: { marginTop: SPACE.lg },
 });

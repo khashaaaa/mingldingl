@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     maxWidth: 340,
     width: '100%',
   },
-  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.text, textAlign: 'center' },
+  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary, textAlign: 'center' },
   question: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center', lineHeight: LINE_HEIGHTS.md },
   btnRow: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.md, alignSelf: 'stretch' },
 });

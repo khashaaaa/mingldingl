@@ -57,7 +57,7 @@ export function PhotosStep({ photoUrls, onPhotosChange, referralCode, onReferral
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: SPACE.huge, gap: SPACE.lg },
-  heading: { color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
+  heading: { color: INK.primary, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
   hint: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
   count: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   label: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },

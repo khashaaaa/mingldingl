@@ -113,5 +113,5 @@ const styles = StyleSheet.create({
   label: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: COLORS.gold, letterSpacing: 1, marginTop: SPACE.sm },
   error: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.emberLight },
   confirmWrap: { padding: SPACE.xl, gap: SPACE.lg, alignItems: 'center' },
-  confirmText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: COLORS.text, textAlign: 'center' },
+  confirmText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: INK.primary, textAlign: 'center' },
 });

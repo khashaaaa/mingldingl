@@ -59,7 +59,7 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
   return (
     <StepScaffold>
       <View style={styles.container}>
-        <Text style={{ color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display as any }}>{i18n.t('about_you')}</Text>
+        <Text style={{ color: INK.primary, fontSize: FONT_SIZES.title, fontFamily: FONTS.display as any }}>{i18n.t('about_you')}</Text>
 
         {city ? (
           <View>

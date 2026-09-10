@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   inner: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.xxxl, paddingVertical: SPACE.xxl, gap: SPACE.lg },
   title: {
     fontSize: FONT_SIZES.display,
-    color: COLORS.text,
+    color: INK.primary,
     textAlign: 'center',
     letterSpacing: 0.5,
     fontFamily: FONTS.display,
@@ -183,11 +183,11 @@ const styles = StyleSheet.create({
     gap: SPACE.md,
     alignItems: 'center',
   },
-  cardTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: COLORS.text, textAlign: 'center' },
+  cardTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary, textAlign: 'center' },
   instruction: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
-    color: COLORS.text,
+    color: INK.primary,
     textAlign: 'center',
     lineHeight: LINE_HEIGHTS.lg,
   },

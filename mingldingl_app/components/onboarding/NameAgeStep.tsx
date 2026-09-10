@@ -75,7 +75,7 @@ export function NameAgeStep({ initialName, initialAge, initialGender, onNext }: 
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: SPACE.huge, gap: SPACE.lg },
-  heading: { color: COLORS.text, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
+  heading: { color: INK.primary, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
   error: { color: COLORS.emberLight, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   genderGroup: { gap: SPACE.sm },
   label: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },

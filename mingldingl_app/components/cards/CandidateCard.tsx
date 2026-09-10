@@ -73,7 +73,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
 
       {hasMultiplePhotos && (
         <>
-          {/* The dots sit directly on the photograph, and an inactive one was COLORS.text at 30%
+          {/* The dots sit directly on the photograph, and an inactive one was INK.primary at 30%
               alpha — 1.01:1 against a pale background, i.e. gone. Two changes, because the scrim
               alone made it worse: a translucent dot darkens along with the ground it is drawn on,
               so the dot is opaque now and the scrim gives it a ground it can rely on. Worst case
@@ -193,12 +193,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: FONT_SIZES.display,
     fontFamily: FONTS.display,
-    color: COLORS.text,
+    color: INK.primary,
     letterSpacing: 0.3,
     flex: 1,
   },
   equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: COLORS.gold, letterSpacing: 1 },
   location: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.dim },
-  bio: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: COLORS.text, lineHeight: LINE_HEIGHTS.lg },
+  bio: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: INK.primary, lineHeight: LINE_HEIGHTS.lg },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.sm },
 });

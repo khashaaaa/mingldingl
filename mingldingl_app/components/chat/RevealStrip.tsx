@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: SPACE.sm },
   title: { marginBottom: 0 },
-  summary: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: COLORS.text, flexShrink: 1 },
+  summary: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: INK.primary, flexShrink: 1 },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
   next: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.gold },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
@@ -171,6 +171,6 @@ const styles = StyleSheet.create({
   chipLocked: { borderColor: LINE.edge },
   chipUpgrade: { borderColor: COLORS.gold },
   chipTextUpgrade: { color: COLORS.gold },
-  chipText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.text, flexShrink: 1 },
+  chipText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.primary, flexShrink: 1 },
   chipTextLocked: { color: INK.dim },
 });

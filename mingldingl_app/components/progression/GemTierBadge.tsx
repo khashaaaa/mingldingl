@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier, shadeForTier, presenceForTier } from '../../lib/tiers';
-import { COLORS, tint } from '../../lib/theme';
+import { INK, tint } from '../../lib/theme';
 import { TorchGlow } from '../vfx/TorchGlow';
 
 interface Props {
@@ -65,7 +65,7 @@ export function GemTierBadge({ tier, size = 40, glow = false, color: colorOverri
           borderRadius: Math.max(2, size * 0.05),
           borderWidth: presence.ringWidth,
           // A heavier bezel that stayed at the same alpha read as a smudge rather than as weight.
-          borderColor: tint(COLORS.text, 0.28 + 0.08 * (presence.ringWidth - 1)),
+          borderColor: tint(INK.primary, 0.28 + 0.08 * (presence.ringWidth - 1)),
           overflow: 'hidden',
           transform: [{ rotate: '45deg' }],
         }}
@@ -87,7 +87,7 @@ export function GemTierBadge({ tier, size = 40, glow = false, color: colorOverri
             borderLeftWidth: highlightSize,
             borderLeftColor: 'transparent',
             borderBottomWidth: highlightSize,
-            borderBottomColor: tint(COLORS.text, 0.32),
+            borderBottomColor: tint(INK.primary, 0.32),
           }}
         />
         {hasShimmer && (
@@ -107,7 +107,7 @@ export function GemTierBadge({ tier, size = 40, glow = false, color: colorOverri
             }}
           >
             <LinearGradient
-              colors={['transparent', tint(COLORS.text, sweepAlpha), 'transparent']}
+              colors={['transparent', tint(INK.primary, sweepAlpha), 'transparent']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{ width: '100%', height: '100%' }}

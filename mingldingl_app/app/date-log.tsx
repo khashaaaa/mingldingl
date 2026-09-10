@@ -98,7 +98,7 @@ export default function DateLogScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.md },
-  errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
+  errorText: { color: INK.primary, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
   empty: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   photo: { width: 64, height: 64, borderRadius: RADIUS.md },
   photoPlaceholder: { backgroundColor: COLORS.panelRaised, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1, justifyContent: 'center', gap: SPACE.xs },
-  title: { color: COLORS.text, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg },
+  title: { color: INK.primary, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg },
   subtitle: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
   date: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
   starsRow: { flexDirection: 'row', gap: SPACE.hair },

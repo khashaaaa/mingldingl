@@ -91,5 +91,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.panelRaised,
   },
-  rowText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: COLORS.text },
+  rowText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: INK.primary },
 });

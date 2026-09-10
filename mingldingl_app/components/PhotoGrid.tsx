@@ -115,7 +115,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
             onPress={() => setPendingDeleteUrl(url)}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Icon name="close" size={ICON_SIZES.sm} color={COLORS.text} />
+            <Icon name="close" size={ICON_SIZES.sm} color={INK.primary} />
           </TouchableOpacity>
           {i !== 0 && (
             <TouchableOpacity
@@ -124,7 +124,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
               onPress={() => handleSetPrimary(url)}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <Icon name="star-outline" size={ICON_SIZES.sm} color={COLORS.text} />
+              <Icon name="star-outline" size={ICON_SIZES.sm} color={INK.primary} />
             </TouchableOpacity>
           )}
         </View>

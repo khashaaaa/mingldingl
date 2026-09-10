@@ -1,6 +1,6 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import type { Message } from '../../hooks/useChat';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   // failed must read as different states, not two shades of the same fade.
   bubbleSending: { opacity: 0.8, borderBottomRightRadius: RADIUS.lg },
   bubbleFailed: { opacity: 0.55 },
-  text: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: COLORS.text },
+  text: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: INK.primary },
   textMine: { color: COLORS.panelDeep },
   retryRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginTop: SPACE.xs, alignSelf: 'flex-end' },
   retryText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.emberLight },

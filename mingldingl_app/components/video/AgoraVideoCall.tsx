@@ -25,5 +25,5 @@ export function AgoraVideoCall({ token }: Props) {
 
 const styles = StyleSheet.create({
   placeholder: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
-  placeholderText: { color: COLORS.text, fontFamily: FONTS.body, textAlign: 'center', paddingHorizontal: SPACE.huge },
+  placeholderText: { color: INK.primary, fontFamily: FONTS.body, textAlign: 'center', paddingHorizontal: SPACE.huge },
 });

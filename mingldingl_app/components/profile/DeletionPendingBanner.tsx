@@ -44,6 +44,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.panel,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-  title: { flex: 1, color: COLORS.text, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.lg },
+  title: { flex: 1, color: INK.primary, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.lg },
   body: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, lineHeight: LINE_HEIGHTS.md },
 });

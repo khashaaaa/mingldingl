@@ -6,8 +6,7 @@ import { CardEyebrow } from './ui/CardEyebrow';
 import { Icon } from './ui/Icon';
 import { useNextAction } from '../hooks/useNextAction';
 import { i18n } from '../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../lib/theme';
-
+import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
 export function NextActionCard() {
   const action = useNextAction();
   const router = useRouter();
@@ -62,5 +61,5 @@ export function NextActionCard() {
 const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg },
   staticRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.xs },
-  staticTitle: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.text },
+  staticTitle: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.primary },
 });

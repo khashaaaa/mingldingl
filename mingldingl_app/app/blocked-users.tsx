@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.md },
-  errorText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
+  errorText: { color: INK.primary, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
   empty: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   },
   photo: circle(44),
   photoPlaceholder: { backgroundColor: COLORS.panelRaised },
-  name: { flex: 1, color: COLORS.text, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
+  name: { flex: 1, color: INK.primary, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
   skeletonRow: {
     flexDirection: 'row',
     alignItems: 'center',

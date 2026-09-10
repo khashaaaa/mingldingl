@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     gap: SPACE.xs,
     overflow: 'hidden',
   },
-  topHighlight: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: tint(COLORS.text, 0.14) },
+  topHighlight: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: tint(INK.primary, 0.14) },
   score: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: 0.5 },
   pts: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: INK.dim, letterSpacing: 1 },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginLeft: SPACE.xs },

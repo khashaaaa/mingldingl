@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FONTS.display, fontSize: FONT_SIZES.title, lineHeight: LINE_HEIGHTS.title,
-    color: COLORS.text, textAlign: 'center',
+    color: INK.primary, textAlign: 'center',
   },
   fret: { width: FRET_HEIGHT * FRET_ASPECT, height: FRET_HEIGHT, alignSelf: 'center', opacity: 0.8 },
   grid: { height: 400, marginTop: SPACE.sm },
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   label: {
     marginTop: SPACE.xs,
     fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, lineHeight: LINE_HEIGHTS.xs,
-    color: COLORS.text, textAlign: 'center', width: '100%',
+    color: INK.primary, textAlign: 'center', width: '100%',
   },
   labelDim: { color: INK.dim },
 });

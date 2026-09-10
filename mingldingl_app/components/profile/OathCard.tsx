@@ -127,7 +127,7 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
 const styles = StyleSheet.create({
   oathRow: { marginTop: SPACE.hair },
   oathPrompt: { fontSize: FONT_SIZES.md, color: COLORS.gold, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
-  sheetTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, color: COLORS.text, marginBottom: SPACE.hair },
+  sheetTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, color: INK.primary, marginBottom: SPACE.hair },
   sheetHelp: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.sm },
   option: {
     flexDirection: 'row',
@@ -143,6 +143,6 @@ const styles = StyleSheet.create({
   optionSigil: { width: 30, height: 30 },
   optionSigilDim: { opacity: 0.5 },
   optionText: { flex: 1, gap: SPACE.hair },
-  optionName: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: COLORS.text },
+  optionName: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: INK.primary },
   optionDesc: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, color: INK.dim, lineHeight: LINE_HEIGHTS.sm },
 });

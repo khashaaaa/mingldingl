@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize: FONT_SIZES.title,
     fontFamily: FONTS.display,
-    color: COLORS.text,
+    color: INK.primary,
     marginBottom: SPACE.xs,
   },
   equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: COLORS.gold, letterSpacing: 1, marginTop: SPACE.hair },
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   // of different heights and the arrow reads as having slipped below the word.
   membershipValue: {
     fontSize: FONT_SIZES.lg, lineHeight: LINE_HEIGHTS.lg,
-    fontFamily: FONTS.bodyBold, color: COLORS.text,
+    fontFamily: FONTS.bodyBold, color: INK.primary,
   },
   membershipArrow: {
     fontSize: FONT_SIZES.lg, lineHeight: LINE_HEIGHTS.lg,

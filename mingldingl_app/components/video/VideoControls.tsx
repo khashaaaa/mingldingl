@@ -2,8 +2,7 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, ICON_SIZES, LINE, SPACE, circle } from '../../lib/theme';
-
+import { COLORS, ICON_SIZES, INK, LINE, SPACE, circle } from '../../lib/theme';
 /** Geometry the round prompt above these controls has to clear. */
 export const VIDEO_CONTROLS_BOTTOM = 24;
 export const VIDEO_CONTROLS_SIZE = 60;
@@ -28,7 +27,7 @@ export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, 
         accessibilityState={{ selected: muted }}
         accessibilityLabel={i18n.t(muted ? 'unmute' : 'mute')}
       >
-        <Icon name={muted ? 'microphone-off' : 'microphone'} size={ICON_SIZES.xl} color={muted ? COLORS.panelDeep : COLORS.text} />
+        <Icon name={muted ? 'microphone-off' : 'microphone'} size={ICON_SIZES.xl} color={muted ? COLORS.panelDeep : INK.primary} />
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.button, styles.buttonEnd, endDisabled && styles.buttonBusy]}
@@ -38,7 +37,7 @@ export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, 
         accessibilityState={{ disabled: endDisabled }}
         accessibilityLabel={i18n.t('end_call')}
       >
-        <Icon name="phone-hangup" size={ICON_SIZES.xl} color={COLORS.text} />
+        <Icon name="phone-hangup" size={ICON_SIZES.xl} color={INK.primary} />
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.button, cameraOff ? styles.buttonActive : styles.buttonIdle]}
@@ -47,7 +46,7 @@ export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, 
         accessibilityState={{ selected: cameraOff }}
         accessibilityLabel={i18n.t(cameraOff ? 'camera_on' : 'camera_off')}
       >
-        <Icon name={cameraOff ? 'video-off' : 'video'} size={ICON_SIZES.xl} color={cameraOff ? COLORS.panelDeep : COLORS.text} />
+        <Icon name={cameraOff ? 'video-off' : 'video'} size={ICON_SIZES.xl} color={cameraOff ? COLORS.panelDeep : INK.primary} />
       </TouchableOpacity>
     </View>
   );

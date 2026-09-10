@@ -81,7 +81,7 @@ export function GettingStartedCard({ isProfileComplete, achievedMilestoneIds, on
 const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg, gap: SPACE.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm },
-  label: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: COLORS.text },
+  label: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.primary },
   labelDone: { color: INK.dim, textDecorationLine: 'line-through' },
   compactCard: {
     marginHorizontal: SPACE.gutter,

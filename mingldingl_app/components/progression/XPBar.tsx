@@ -109,12 +109,12 @@ const styles = StyleSheet.create({
   // The walking pattern (алхан хээ): faint on the empty road, engraved into the fill.
   trackFret: { position: 'absolute', left: 0, top: 0, height: 12, width: 12 * FRET_ASPECT, opacity: 0.15 },
   fillFret: { position: 'absolute', left: 0, top: 0, height: 12, width: 12 * FRET_ASPECT, opacity: 0.5 },
-  fillCap: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 2, backgroundColor: COLORS.text },
+  fillCap: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 2, backgroundColor: INK.primary },
   shimmer: {
     position: 'absolute',
     top: 0, bottom: 0,
     width: 40,
-    backgroundColor: tint(COLORS.text, 0.25),
+    backgroundColor: tint(INK.primary, 0.25),
     transform: [{ skewX: '-20deg' }],
   },
   tick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: tint(LINE.edge, 0.6) },
