@@ -63,9 +63,10 @@ const styles = StyleSheet.create({
     borderColor: LINE.edge,
   },
   // A message in flight used to render exactly like a delivered one, so there was no way to tell
-  // a sent message from one still going. Not yet inked: pale, and without the squared corner
-  // that marks a message as landed.
-  bubbleSending: { opacity: 0.6, borderBottomRightRadius: RADIUS.lg },
+  // a sent message from one still going. Not yet inked: dimmed, and without the squared corner
+  // that marks a message as landed. Kept well above bubbleFailed's opacity below — sending and
+  // failed must read as different states, not two shades of the same fade.
+  bubbleSending: { opacity: 0.8, borderBottomRightRadius: RADIUS.lg },
   bubbleFailed: { opacity: 0.55 },
   text: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: COLORS.text },
   textMine: { color: COLORS.panelDeep },

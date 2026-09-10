@@ -17,8 +17,10 @@ describe('MessageBubble in flight', () => {
     const { getByTestId } = render(
       <MessageBubble message={{ ...base, status: 'sending' }} myId="me" />,
     );
+    // Pinned to the exact sending opacity so a regression that confuses this with the (also
+    // dimmed) failed state fails the test instead of passing on any old number.
     expect(StyleSheet.flatten(getByTestId('bubble').props.style)).toEqual(
-      expect.objectContaining({ opacity: expect.any(Number) }),
+      expect.objectContaining({ opacity: 0.8 }),
     );
   });
 

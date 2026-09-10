@@ -146,8 +146,8 @@ export default function OtpScreen() {
             <LongWait
               kind="verifySms"
               action={
-                <GameButton variant="ghost" size="compact" onPress={restart}>
-                  {i18n.t('verify_start_over')}
+                <GameButton variant="ghost" size="compact" icon="message-text" onPress={openSmsApp} disabled={loading}>
+                  {i18n.t('verify_sms_open')}
                 </GameButton>
               }
             />
