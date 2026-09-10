@@ -52,15 +52,19 @@ export default function DiscoverScreen() {
 
   // Matches the deck's own `cardArea` box (same padding), so the placeholder occupies exactly the
   // space `CandidateCard` will fill once it lands — the card itself is `flex: 1` with no fixed
-  // height, so its box is measured, not read off a stylesheet.
+  // height, so its box is measured, not read off a stylesheet. The header renders here too, so
+  // only the card area swaps when the deck lands — the header itself never jumps into place.
   if (isLoading) return (
-    <View
-      style={styles.cardArea}
-      onLayout={(e) => setLoadingCardHeight(e.nativeEvent.layout.height)}
-    >
-      {loadingCardHeight > 0 && (
-        <Skeleton width="100%" height={loadingCardHeight} radius={RADIUS.md} />
-      )}
+    <View style={styles.screen}>
+      <GameHeader title={i18n.t('seek_title')} icon="sword-cross" showScore />
+      <View
+        style={styles.cardArea}
+        onLayout={(e) => setLoadingCardHeight(e.nativeEvent.layout.height)}
+      >
+        {loadingCardHeight > 0 && (
+          <Skeleton width="100%" height={loadingCardHeight} radius={RADIUS.md} />
+        )}
+      </View>
     </View>
   );
 

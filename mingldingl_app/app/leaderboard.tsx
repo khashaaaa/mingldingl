@@ -23,14 +23,20 @@ export default function LeaderboardScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.list}>
-        <SkeletonRows count={8} gap={SPACE.sm} row={() => (
-          <View style={styles.rowShape}>
-            <Skeleton width={40} height={FONT_SIZES.lg} />
-            <Skeleton width={28} height={28} radius={RADIUS.pill} />
-            <Skeleton width="45%" height={FONT_SIZES.md} />
-          </View>
-        )} />
+      <View style={styles.screen}>
+        {/* The city name isn't known until the leaderboard loads, so the loading header renders
+            with it blank rather than reading into `data`, which TanStack narrows to `undefined`
+            here anyway. */}
+        <GameHeader title={i18n.t('leaderboard_title', { city: '' })} icon="podium-gold" showBack />
+        <View style={styles.list}>
+          <SkeletonRows count={8} gap={SPACE.sm} row={() => (
+            <View style={styles.rowShape}>
+              <Skeleton width={40} height={FONT_SIZES.lg} />
+              <Skeleton width={28} height={28} radius={RADIUS.pill} />
+              <Skeleton width="45%" height={FONT_SIZES.md} />
+            </View>
+          )} />
+        </View>
       </View>
     );
   }

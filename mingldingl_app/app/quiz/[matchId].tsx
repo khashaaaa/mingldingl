@@ -54,14 +54,23 @@ export default function QuizScreen() {
     }
   }, [submitError]);
 
+  // The title and the number of questions aren't known until the quiz loads, but the header and
+  // progress bar still render here — with a placeholder title and a single neutral segment that
+  // matches the real bar's height — so only the question card and options swap when it lands.
   if (isLoading) return (
-    <View style={styles.body}>
-      <AppCard style={styles.questionCard}>
-        <Skeleton width="80%" height={FONT_SIZES.title} style={styles.loadingPrompt} />
-      </AppCard>
-      <SkeletonRows count={4} gap={SPACE.md} row={() => (
-        <Skeleton width="100%" height={48} radius={RADIUS.sm} />
-      )} />
+    <View style={styles.screen}>
+      <HeaderBar title={i18n.t('trial_compat')} />
+      <View style={styles.body}>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressSegment, { backgroundColor: LINE.edge }]} />
+        </View>
+        <AppCard style={styles.questionCard}>
+          <Skeleton width="80%" height={FONT_SIZES.title} style={styles.loadingPrompt} />
+        </AppCard>
+        <SkeletonRows count={4} gap={SPACE.md} row={() => (
+          <Skeleton width="100%" height={48} radius={RADIUS.sm} />
+        )} />
+      </View>
     </View>
   );
 

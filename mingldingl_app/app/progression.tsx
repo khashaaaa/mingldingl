@@ -26,10 +26,13 @@ export default function ProgressionScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingBody}>
-        <Skeleton width="100%" height={14} radius={RADIUS.sm} />
-        <Skeleton width="60%" height={FONT_SIZES.title} />
-        <Skeleton width="100%" height={120} />
+      <View style={styles.screen}>
+        <GameHeader title={i18n.t('progression_title')} icon="chart-line" showBack />
+        <View style={styles.loadingBody}>
+          <Skeleton width="100%" height={14} radius={RADIUS.sm} />
+          <Skeleton width="60%" height={FONT_SIZES.title} />
+          <Skeleton width="100%" height={120} />
+        </View>
       </View>
     );
   }
