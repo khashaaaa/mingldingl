@@ -52,6 +52,7 @@
     "jest": "^29.7.0",
     "jest-expo": "~54.0.0",
     "openapi-typescript": "^7.13.0",
+    "oxlint": "^1.82.0",
     "react-test-renderer": "19.1.0",
     "typescript": "~5.9.2"
   },
@@ -62,7 +63,8 @@
     "web": "expo start --web",
     "test": "jest --forceExit",
     "generate:api": "openapi-typescript http://localhost:5150/swagger/v1/swagger.json -o lib/api/api.generated.d.ts",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "lint": "oxlint"
   },
   "jest": {
     "preset": "jest-expo",

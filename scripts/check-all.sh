@@ -4,8 +4,8 @@
 # after every change. Exits non-zero on first failure so it's usable as a
 # CI gate, not just a manual habit.
 #
-# --fast runs only the sub-minute checks (app typecheck, control lint +
-# typecheck). The pre-commit hook uses it; CI runs the full set.
+# --fast runs only the sub-minute checks (app lint + typecheck, control lint
+# + typecheck). The pre-commit hook uses it; CI runs the full set.
 #
 # Requires: the engine's local Postgres running (integration tests hit it
 # directly — see mingldingl_engine/scripts/start-engine.sh) and node_modules
@@ -17,6 +17,8 @@ export DOTNET_ROOT="${DOTNET_ROOT:-$HOME/.dotnet}"
 export PATH="$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH"
 
 if [[ "${1:-}" == "--fast" ]]; then
+  echo "== app: lint =="
+  (cd "$ROOT/mingldingl_app" && npm run lint)
   echo "== app: typecheck =="
   (cd "$ROOT/mingldingl_app" && npm run typecheck)
   echo "== control: lint =="
@@ -38,6 +40,9 @@ else
   echo "== engine: dotnet test =="
   (cd "$ROOT/mingldingl_engine" && dotnet test)
 fi
+
+echo "== app: lint =="
+(cd "$ROOT/mingldingl_app" && npm run lint)
 
 echo "== app: typecheck =="
 (cd "$ROOT/mingldingl_app" && npm run typecheck)
