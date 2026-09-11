@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Tap } from '../../components/ui/Tap';
 import { View, Text, FlatList, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCampaign } from '../../hooks/useCampaign';
@@ -98,6 +99,7 @@ export default function ChatScreen() {
   const unsealedNextAt = nextRevealThreshold(match?.messageCount ?? 0, revealLadder);
 
   const insets = useSafeAreaInsets();
+  const keyboardHeight = useAndroidKeyboardHeight();
   const router = useRouter();
   const qc = useQueryClient();
   const flatListRef = useRef<FlatList>(null);
@@ -210,9 +212,16 @@ export default function ChatScreen() {
       </View>
 
       <KeyboardAvoidingView
-        style={styles.keyboardAvoider}
-
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={[styles.keyboardAvoider, Platform.OS === 'android' && {
+          // The event's height stops at the navigation bar the screen draws under, so the bar
+          // is added back while the keyboard is up.
+          paddingBottom: keyboardHeight > 0 ? keyboardHeight + insets.bottom : 0,
+        }]}
+        // Android pads by the measured keyboard instead (see useAndroidKeyboardHeight): `height`
+        // left the composer ~80dp above the bottom edge after the keyboard closed, `padding` did
+        // the same by a different route, and with no behaviour at all the composer vanished
+        // behind the keyboard, because edge-to-edge does not resize the window. Seen on the A51.
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         // KeyboardAvoidingView measures its own frame relative to its parent, so the offset is the
         // screen-space origin of that parent — the root SafeAreaView's top edge, not the header.
         keyboardVerticalOffset={insets.top}

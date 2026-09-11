@@ -429,8 +429,6 @@ This is the whole of it, as of 2026-09-11; the sections below add the detail:
   none of it may be guessed, and the report sheet least of all. `enableFallback` renders the keys in
   English for an `mn` user; the parity test fails if one is translated and left on the list. This
   is the single largest thing between the app and a Mongolian market.
-- **One unfixed bug: the Android chat composer never returns to the bottom** once the keyboard has
-  been opened (detail under "Open findings from device sweeps").
 - **Device verification passes**, listed under "Manual verification still owed" — they need the
   Galaxy A51 and the development build rather than Expo Go (see `mingldingl_app/AGENTS.md`).
 - **Three items blocked on something outside the code.** `POST /video/complete` is a client
@@ -444,12 +442,6 @@ This is the whole of it, as of 2026-09-11; the sections below add the detail:
 
 ## Open findings from device sweeps
 
-- **The Android chat composer never returns to the bottom once the keyboard has been open:** after
-  dismissing the keyboard it stays lifted ~70dp with dead world-floor under it until the thread is
-  re-entered. Ruled out: the `KeyboardAvoidingView` `behavior` value (`height`, `padding`,
-  `undefined` all reproduce); screens with a text input but no `KeyboardAvoidingView` (the
-  icebreaker's answer box) are fine. Next suspect: Expo SDK 54's edge-to-edge Android window and
-  `adjustResize`.
 - **`Users.City` holds a GPS district for real sign-ups and "Ulaanbaatar" for the seeded cast.**
   The leaderboard collapses these via `MongoliaGeo.CohortCityNames`; anything else grouping by the
   raw string will fragment the same way.

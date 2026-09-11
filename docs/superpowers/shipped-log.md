@@ -707,3 +707,22 @@ Also found while watching CI: the engine job had been red since the swagger-expo
 inserted its check step between `dotnet test` and that step's `env:` block, so the connection
 string moved and `PhoneStartRateLimitTests` (the three that boot the real `Program`) died with
 "Host can't be null". The env is back on the test step.
+
+---
+
+## Device pass on the Galaxy A51, and the chat composer bug (2026-09-11)
+
+First run of the EAS development build on hardware (wireless debugging, Metro over LAN, signed in
+as a seeded character through the Hermes inspector). Seek, Missions, Town Square, Character, The
+War Room, Guild Ranks and chat all match the web pass; Skia embers and the tier glow render.
+
+**The composer bug is fixed and verified on the phone.** `KeyboardAvoidingView` is wrong on Android
+under Expo 54's edge-to-edge window in every mode: `height` never restores the frame, `padding`
+leaves the composer lifted by the status bar plus the navigation bar after the keyboard hides
+(the hide event and the view's frame are measured in different coordinate spaces), and no
+behaviour at all hides the composer behind the keyboard because the window is not resized.
+`hooks/useAndroidKeyboardHeight.ts` listens to the keyboard events, which are right, and the chat
+screen pads by that height plus the bottom inset on Android while keeping the avoider for iOS.
+
+Still unseen with the keyboard up on hardware: onboarding's `StepScaffold` and the phone screen,
+which use no Android behaviour — their inputs may sit under the keyboard on short screens.
