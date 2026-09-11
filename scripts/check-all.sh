@@ -41,6 +41,9 @@ else
   (cd "$ROOT/mingldingl_engine" && dotnet test)
 fi
 
+echo "== engine: swagger.json up to date =="
+"$ROOT/mingldingl_engine/scripts/export-swagger.sh" --check
+
 echo "== app: lint =="
 (cd "$ROOT/mingldingl_app" && npm run lint)
 

@@ -50,6 +50,9 @@ jobs:
           ConnectionStrings__DefaultConnection: "Host=127.0.0.1;Database=mingldingl;Username=postgres;Password=1234;Port=5432"
       - run: dotnet test
         working-directory: mingldingl_engine
+      # Both frontends generate their API types from the committed swagger.json, so a
+      # controller/DTO change that forgot to re-export it fails here, not on a phone.
+      - run: ./mingldingl_engine/scripts/export-swagger.sh --check
         env:
           ConnectionStrings__DefaultConnection: "Host=127.0.0.1;Database=mingldingl;Username=postgres;Password=1234;Port=5432"
 

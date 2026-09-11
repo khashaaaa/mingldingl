@@ -49,17 +49,17 @@ MingldIngl is a gamified dating app targeting the Mongolian market, designed to 
 
 ```
 React Native Expo (iOS + Android + web)
-    ↓ REST                          ↘ Supabase Auth (JWT) + Realtime (subscribed, but see gap below)
+    ↓ REST                          ↘ Supabase Auth (JWT) + Realtime (Broadcast)
 ASP.NET Core API (:5150)  ←→  local PostgreSQL 16
                                     ↓ nightly pg_dump
                               Supabase Storage (backups bucket)
 ```
 
 - **Primary datastore is local Postgres**, not Supabase — outbound port 5432 to Supabase's host is blocked from this dev network, so the engine runs against `127.0.0.1:5432/mingldingl`. Supabase's direct-Postgres wire protocol is what's blocked; its HTTPS/WSS-based services (Auth, Realtime) are unaffected and still used.
-- Supabase now serves two roles: **Auth** (phone/OTP → JWT, validated by the engine via JWKS) and a **nightly backup destination** (cron pg_dump → private Storage bucket). It is no longer the primary database or the photo storage backend.
-- **Fixed (2026-07-10):** `useChat.ts`/`useRealtimeNudges.ts` used to subscribe to Supabase Realtime's `postgres_changes`, which only observes Supabase's *own* hosted Postgres — broken silently by the local-Postgres pivot (data saved fine, just never pushed live). Switched to Supabase Realtime's **Broadcast** API instead: the engine (`SupabaseBroadcastService`) explicitly pushes an event after each relevant write (new message, icebreaker/quiz response, date confirmed) to a topic the client is already subscribed to via `.on('broadcast', ...)`. Works regardless of where the underlying data lives. Verified live via two simultaneous browser sessions — a message sent by one appears in the other's open chat and as a nudge toast elsewhere in the app within ~1s, no refresh.
+- Supabase serves two roles: **Auth** (phone/OTP → JWT, validated by the engine via JWKS) and a **nightly backup destination** (cron pg_dump → private Storage bucket). It is no longer the primary database or the photo storage backend.
+- **Realtime is Supabase Broadcast, not `postgres_changes`** (fixed 2026-07-10): `useChat.ts`/`useRealtimeNudges.ts` subscribe via `.on('broadcast', ...)` and the engine's `SupabaseBroadcastService` pushes an event after each relevant write. `postgres_changes` only observes Supabase's own hosted Postgres and broke silently with the local-Postgres pivot.
 - **Photo storage is local disk**, served by the engine at `/uploads` — not Supabase Storage.
-- **React Native Expo** talks to `mingldingl_engine` via REST for all business actions/data, and directly to Supabase for auth and realtime chat/nudge delivery.
+- The app talks to `mingldingl_engine` via REST for all business actions/data, and directly to Supabase for auth and realtime delivery.
 
 ---
 
@@ -83,7 +83,7 @@ ASP.NET Core API (:5150)  ←→  local PostgreSQL 16
 ### Visual Design — Dark-Fantasy RPG Theme (current, replaces the original "Dark Luxury" direction)
 
 #### Feel
-Warcraft/tower-defense-adjacent dark fantasy, not premium-luxury minimalism as originally spec'd — the app went through a full RPG reskin (2026-07-03; that overhaul's design spec was folded into this section and the code — `lib/theme.ts` is the reference) plus a palette retheme afterward. Yeseva One (display) + Alegreya (body) + Alegreya SC (small-caps utility labels) fonts — the original Cinzel choice was replaced during the Ulzii pass. Single source of truth: `mingldingl_app/lib/theme.ts`.
+Warcraft/tower-defense-adjacent dark fantasy, not premium-luxury minimalism as originally spec'd — the app went through a full RPG reskin (2026-07-03) plus a palette retheme afterward. Yeseva One (display) + Alegreya (body) + Alegreya SC (small-caps utility labels) fonts — the original Cinzel choice was replaced during the Ulzii pass. Single source of truth: `mingldingl_app/lib/theme.ts`; components reach colour only through its roles (`INK`, `ACCENT`, `METAL`, `LINE`, `STATUS`, …), never `COLORS` directly.
 
 #### Color Tokens (`lib/theme.ts` COLORS)
 
@@ -107,7 +107,7 @@ Warcraft/tower-defense-adjacent dark fantasy, not premium-luxury minimalism as o
 | Ruby | `#E0115F` | `#6E0630` | 1000 |
 | Emerald | `#2ECC71` | `#0B5A32` | 2000 |
 
-Every threshold above Garnet is admin-tunable (`tier.<name>.threshold`). Thresholds are `ScoreService.TierDefaults` (`mingldingl_engine/src/MinglDingl.Engine/Services/ScoreService.cs`); the client hydrates them via `useTierThresholds`, see the note under Folder Structure.
+Every threshold above Garnet is admin-tunable (`tier.<name>.threshold`, e.g. `tier.sapphire.threshold`). Defaults are `ScoreService.TierDefaults` and `ScoreService.CalculateTier` is authoritative (`mingldingl_engine/src/MinglDingl.Engine/Services/ScoreService.cs`); the client hydrates the live ladder via `useTierThresholds`, derives `tierForScore()` from it, and keeps `DEFAULT_TIER_THRESHOLDS` in `lib/tiers.ts` only as a pre-fetch fallback, so the two cannot drift (they once did — Amethyst at 250 client-side vs 300 server-side made the optimistic tier-up toast fire early).
 
 The age-adaptive theme toggle in the original spec was never built — one theme ships for everyone.
 
@@ -157,7 +157,8 @@ Full profile completion on signup grants an immediate score bonus (+100 pts).
 | Seventh consecutive daily login | +50 extra (`score.streak.weekly_bonus`) |
 
 Daily login is `DailyLogin` × the current streak (capped at 7), not a flat +5. Every delta is
-`ScoreService.DefaultDeltas`, overridable per event through `score.event.<Type>`. The original
+`ScoreService.DefaultDeltas`, overridable per event through `score.event.<Type>`. `MatchReply` is
+capped per match per day (`score.match_reply.daily_cap_per_match`, default 10). The original
 "+25 for a positive fun tag" has no counterpart: fun tags were never built (see §6).
 
 #### Losing Points
@@ -167,19 +168,20 @@ Daily login is `DailyLogin` × the current streak (capped at 7), not a flat +5. 
 | Receive a negative report | -30 (`ReportPenalty`) — applied only when an admin resolves a report as `Penalised`, never automatically on being reported |
 
 #### Daily Match Budget
-Per `ScoreService.DailyMatchBudget` (`Services/ScoreService.cs`):
+Per `ScoreService.DailyMatchBudget` (`Services/ScoreService.cs`), all admin-tunable under `budget.*`:
 - Base by membership: Free 5 / Silver 12 / Gold 20 requests per day
 - +1 slot per 50 total score, plus +1 per gem-tier index (Garnet 0 … Emerald 5)
-- Cap by membership: Free 12 / Silver 25 / Gold 40, plus the same gem-tier index
+- Cap by membership: Free 12 / Silver 25 / Gold 40, plus the same gem-tier index (the cap is not a hard ceiling — `Math.Min(base + bonus + tierBonus, cap + tierBonus)`, as the admin description says)
 
 ---
 
 ### 3. Match Engine
 
 #### Matching Logic
-- Candidates weighted by score proximity and gemstone tier (soft filter — not a hard wall)
+- Candidates weighted by score proximity and gemstone tier (soft filter — not a hard wall); Oath `Affinity` leads the sort inside a 25 km band (see the shipped log)
 - Location-aware (city/region in Mongolia)
 - Age preference range set by user
+- `MatchEligibility` holds the one rule discovery and `POST /matches` share; blocking is symmetric and only reachable from an existing match or a report
 
 #### Progressive Profile Reveal
 
@@ -192,14 +194,17 @@ Per `ScoreService.DailyMatchBudget` (`Services/ScoreService.cs`):
 
 The four thresholds are `reveal.levelN.messages` (admin-tunable, strictly increasing); the app
 hydrates them via `GET /engagement/reveal-thresholds` (`lib/reveal.ts`, `useRevealThresholds`) so
-the chat's reveal strip and the deep-profile hint never pin their own counts. If conversation
-dies (`ghosting.stale_hours`, default 48), unlock progress freezes at the level reached.
+the chat's reveal strip and the deep-profile hint never pin their own counts. "Messages exchanged"
+is mutual: `RevealService.MutualMessageCount` allows a lead of one message (`2*min(a,b)+1`), so a
+monologue cannot climb the ladder. If conversation dies (`ghosting.stale_hours`, default 48),
+unlock progress freezes at the level reached.
 
 #### Anti-Ghosting
-- Ghosting applies a score penalty and docks reputation; both sides get a `match_ghosted` push
+- Ghosting applies a score penalty and docks reputation; both sides get a push (`match_ghosted`,
+  and `MatchGhostedByYou` for the at-fault side). A recipient who never sent a message into the
+  match is never at fault (`GhostingService.GetPenalisableGhostAsync`).
 - **Not built:** the pre-ghost "soft nudge" at 48h and the "Slow Responder" tag on repeat
-  ghosters. Neither has a code counterpart; the ghost record and reputation dock are the only
-  visible consequences today.
+  ghosters. The Deep's cooling hearth light is the only pre-ghost signal.
 
 ---
 
@@ -226,10 +231,10 @@ After `activity.suggestions.messages` messages (default 15, admin-tunable), the 
 
 ### 5. Business Partner System
 
-Verified businesses (cafés, cinemas, hiking operators) appear in activity suggestions.
+Verified businesses (cafés, cinemas, hiking operators) appear in activity suggestions. Categories are `Cafe/Restaurant/Bar/Entertainment/Outdoor/Culture`.
 
 #### Business Accounts
-- Separate account type; profile includes name, category, location, photos, hours
+- Separate account type; profile includes name, category, location, photos, hours (with nullable Mongolian overlays `NameMn`/`CategoryMn`/`DistrictMn`/`DescriptionMn`)
 - Verified badge shown in activity suggestion cards
 
 #### User Ratings
@@ -276,26 +281,28 @@ Platinum was retired (2026-08-18, migration `RetirePlatinumTier` merged it into 
 | Screen | Route | Key Behavior |
 |---|---|---|
 | Phone input | `(auth)/phone` | +976 prefix, 8-digit Mongolian validation |
-| Prove your number | `(auth)/otp` | verify.mn Mobile-Originated flow: shows the engine-minted code and shortcode `144773` with a one-tap `sms:` link, polls `GET /auth/phone/status/{id}`; nothing is typed in |
+| Prove your number | `(auth)/otp` | verify.mn Mobile-Originated flow: shows the engine-minted code and shortcode `144773` with a one-tap `sms:` link, polls `GET /auth/phone/status/{id}`; nothing is typed in. Rendered as the Gate (`GateScene`) |
 | Onboarding wizard | `(onboarding)/index` | 4 steps: Name/Age/Gender → Bio/City → Photos (min 3) → Oath (`components/onboarding/OathStep.tsx`); POST /users + POST /users/me/oath; +100 pts |
 | Discover | `(tabs)/discover` | Card stack; match/pass; daily budget counter |
 | Matches list | `(tabs)/matches` | Progressive reveal info per message milestone |
-| Chat | `chat/[matchId]` | Supabase Realtime; icebreaker banner; `FlameRiteCard` once the icebreaker is done; video icon once the rite is accepted |
+| Chat | `chat/[matchId]` | Supabase Realtime; icebreaker banner; `FlameRiteCard` once the icebreaker is done; video icon once the rite is accepted; report sheet in options |
 | Icebreaker | `icebreaker/[matchId]` | Prompted question → simultaneous reveal when both answered |
 | Quiz | `quiz/[matchId]` | 5 questions → compatibility % |
 | Activity | `(tabs)/activity` | Business partner cards; "We're doing this" CTA |
-| Profile | `(tabs)/profile` | Score, gem tier badge, photo grid, membership level |
-| Membership | `membership` | Tier comparison, upgrade CTA |
-| Video call | `video/[matchId]` | Agora RTC; 5-min Flame Rite framing before `flameRiteCompletedAt`, 30-min cap after |
-| Town Square | `(tabs)/townsquare` | Next session countdown, RSVP / cancel (see Town Square under Done) |
-| Town Square round | `townsquare-round/[sessionId]` | Agora call + icebreaker prompt + Yes/No; mutual Yes → match |
+| Profile | `(tabs)/profile` | Score, gem tier badge, photo grid, membership level, honours trophy hall |
+| Membership | `membership` | Tier comparison, duration `ChoiceRow`, upgrade CTA |
+| Video call | `video/[matchId]` | Agora RTC; 5-min Flame Rite framing before `flameRiteCompletedAt`; decorative countdown after |
+| Town Square | `(tabs)/townsquare` | Next session countdown, RSVP / cancel |
+| Town Square round | `townsquare-round/[sessionId]` | Agora call + icebreaker prompt + Yes/No; mutual Yes → match; report sheet |
 | Weave a Thread | `ship/new` | Fated Threads: two phone numbers → double-blind Ship |
 | Campaign | `campaign/[matchId]` | The per-match dungeon map; rooms clear from real progress, claims pay `campaign.room.bonus` |
 | Activities (per match) | `activities/[matchId]` | Suggestions once `activity.suggestions.messages` is reached; pledge + attendance check |
 | Business | `business/[id]` | Partner detail + ratings |
-| Progression / Leaderboard / Date log | `progression`, `leaderboard`, `date-log` | Score history and tier ladder; city leaderboard; confirmed encounters |
-| Edit profile / Settings / Blocked | `edit-profile`, `settings`, `blocked-users` | Deep fields; language, notifications, age range, pause, phone change, deletion; unblock |
+| Progression / Leaderboard / Date log | `progression`, `leaderboard`, `date-log` | Score chronicle and tier ladder; city leaderboard (anonymous); confirmed encounters |
+| Edit profile / Settings / Blocked | `edit-profile`, `settings`, `blocked-users` | Deep fields; language, notifications, sound, age range, pause, phone change, deletion; unblock |
 | Guides / Privacy / Terms | `guides`, `privacy`, `terms` | Admin-editable content pages (`GET /content/{slug}`) |
+
+Every route also belongs to a room of the world layer (`lib/world/rooms.ts`) — see CLAUDE.md.
 
 ---
 
@@ -304,7 +311,7 @@ Platinum was retired (2026-08-18, migration `RetirePlatinumTier` merged it into 
 ```
 mingldingl_app/
 ├── app/
-│   ├── _layout.tsx             # Root: providers, auth gate
+│   ├── _layout.tsx             # Root: providers, auth gate, ScreenGround + world layer
 │   ├── (auth)/
 │   │   ├── _layout.tsx
 │   │   ├── phone.tsx
@@ -335,34 +342,42 @@ mingldingl_app/
 ├── components/        # one shallow directory per surface, plus a few loose
 │   │                  # top-level ones — ContentPageScreen, ErrorBoundary,
 │   │                  # NextActionCard, OfflineBanner, PhotoGrid
-│   ├── ui/            # the design system — GameButton, AppCard, CardEyebrow, Icon, ...
-│   ├── modals/        # AlertModal, SheetModal (the shared action sheet), ChestModal, toasts
+│   ├── ui/            # the design system — GameButton, AppCard, CardEyebrow, StateBlock,
+│   │                  # DialogSurface, Tap, CountText, HeaderBar, Icon, ...
+│   ├── modals/        # AlertModal, SheetModal (the shared action sheet), AppModal,
+│   │                  # ChestModal, ReportUserSheet, toasts
 │   ├── onboarding/    # NameAgeStep, AboutStep, PhotosStep, OathStep
 │   ├── profile/       # ProfileAvatar, OathCard — the character sheet's own pieces
-│   ├── progression/   # XPBar, GemTierBadge, TrophyCase, ScoreHistoryList, ...
+│   ├── progression/   # XPBar, GemTierBadge, TrophyCase, ScoreHistoryList, Lantern, ...
+│   ├── world/         # WorldFloor, WorldCanopy, AtlasOverlay, feedback — see lib/world
 │   ├── chat/, quest/, settings/, townsquare/, video/, cards/, vfx/
 │   ├── FlameRiteCard.tsx, OathSigil.tsx
-│   └── RewardToastHost.tsx   # global reward/loot toast layer
+│   └── RewardToastHost.tsx   # global reward toast layer
 ├── hooks/             # flat, one per concern — useAuth, useDiscover, useMatches,
 │                      # useChat, useIcebreaker, useQuiz, useActivity, useQuests,
 │                      # useMembership, useRealtimeNudges, usePushNotifications, ...
 ├── lib/
 │   ├── api/apiClient.ts + api/api.generated.d.ts  # typed REST client to the engine
-│   ├── theme.ts       # COLORS/FONTS/SPACE/RADIUS — see Visual Design above
-│   ├── tiers.ts        # gem tier colors + fallback thresholds; the live values
-│                      # are hydrated from the engine (see useTierThresholds)
+│   ├── theme.ts       # COLORS/roles/FONTS/SPACE/RADIUS + ladders — see Visual Design above
+│   ├── tiers.ts        # gem tier colors, HONOUR_IDS, fallback thresholds; the live
+│                      # values are hydrated from the engine (see useTierThresholds)
 │   ├── reveal.ts       # reveal ladder, same pattern (useRevealThresholds)
-│   ├── i18n/           # index.ts (i18n-js setup, tKey) + en/mn tables + errors.{en,mn}.ts (err_<code> copy)
+│   ├── world/          # rooms.ts, light.ts, feedback.ts, session.ts — the world layer
+│   ├── i18n/           # index.ts (i18n-js setup, tKey, AWAITING_MN_TRANSLATION) + en/mn
+│                      # tables + errors.{en,mn}.ts (err_<code> copy)
 │   ├── realtime/subscribeWithRetry.ts  # Supabase Broadcast subscription with reconnect
 │   ├── appFocus.ts     # foreground/background focus events
 │   ├── api/queryKeys.ts + api/queryClient.ts  # react-query; queryClient owns the
 │                      # MutationCache meta.invalidates/awardedSelector convention
+│   ├── testing/sourceTree.ts  # the one source walker the guard tests share
 │   └── supabase.ts    # auth + realtime only, no DB/storage access anymore
 ├── models/            # TypeScript interfaces (user, match, business)
+├── scripts/           # gen-ornaments.js, gen-parchment.js, gen-sounds.js — generated assets
 ├── store/
 │   └── authStore.ts   # Zustand: session + pending toasts only. The profile is
 │                      # react-query state (useProfile); it used to be mirrored
 │                      # here and the two copies drifted.
+├── .oxlintrc.json, .oxlintrc.README.md
 ├── babel.config.js
 ├── app.json
 ├── tsconfig.json
@@ -371,10 +386,6 @@ mingldingl_app/
 
 (The original spec described a per-feature `features/{name}/{components,hooks}` structure; the app shipped with flat `hooks/`/`lib/` directories and a `components/` tree grouped by surface rather than by feature.)
 
-**Fixed (2026-07-10):** `lib/tiers.ts`'s `TIER_THRESHOLDS` used to disagree with the backend's authoritative `ScoreService.CalculateTier` (e.g. Amethyst at 250 client-side vs 300 server-side), so `authStore.addScore()`'s optimistic tier-up toast could fire early and then silently revert on the next profile refetch. Thresholds now match exactly (`[0, 100, 300, 600, 1000, 2000]`), and `tierForScore()` is derived from `TIER_THRESHOLDS`/`TIER_ORDER` rather than a separately-hardcoded chain, so the two can't drift apart again the way they did here. Both sides carry a comment pointing at the other.
-
-**Superseded (2026-08-19):** the client no longer keeps a pinned copy at all — `lib/tiers.ts` holds `DEFAULT_TIER_THRESHOLDS` purely as a pre-fetch fallback, and `useTierThresholds` hydrates the live values from the engine, which is authoritative. Divergence is now structurally impossible rather than merely pinned.
-
 ---
 
 ### 9. Key Constraints
@@ -382,7 +393,7 @@ mingldingl_app/
 - **Solo developer** — monolithic engine, no microservices
 - **Minimal cost** — local Postgres for dev (was Supabase free tier; Supabase is now backup-only), VPS for API in prod
 - **Mongolian market** — phone login, mn + en i18n from day one
-- **Expo web is actively used for dev/testing** (Playwright E2E, no device needed) — video calls are gated out on web by design, everything else works; mobile (iOS/Android) remains the real target for release
+- **Expo web is actively used for dev/testing** (Playwright E2E, no device needed) — video calls are gated out on web by design, everything else works; mobile (iOS/Android) remains the real target for release, through the development build (Expo Go cannot run the native modules — see CLAUDE.md)
 - **No real payments shipped** — membership tier upgrades are mocked, not wired to a payment gateway
 
 ---
@@ -395,7 +406,7 @@ mingldingl_app/
 - The paid extras in §6 (Fun Tags, Reputation Repair, Score Boosters, Profile Boost) and the
   §3 "Slow Responder" tag / pre-ghost soft nudge — designed, never built, not scheduled
 
-Shipped since the original MVP spec (no longer out of scope): push notifications (Expo push, `PushNotificationService`), a full gamification layer (daily quests, streaks, milestones, and named honours — the random loot drops that preceded them were retired 2026-09-05, see the shipped log), realtime nudges, multi-select photo onboarding, and the dark-fantasy RPG visual overhaul.
+Shipped since the original MVP spec (no longer out of scope): push notifications (Expo push, `PushNotificationService`), a full gamification layer (daily quests, streaks, milestones, and named honours — the random loot drops that preceded them were retired 2026-09-05), user reporting with an admin queue, realtime nudges, multi-select photo onboarding, the dark-fantasy RPG visual overhaul, the Ulzii ornament language and the world layer.
 
 ---
 
@@ -406,22 +417,22 @@ are not struck through here — their record moves to [`shipped-log.md`](shipped
 
 ## What is actually open, in one place
 
-The sections below are organised by the pass that found each item, which is useful for context and
-useless for answering "what is left". This is the whole of it, as of 2026-09-11:
+This is the whole of it, as of 2026-09-11; the sections below add the detail:
 
 - **Mongolian copy for 39 keys, plus four venue columns.** `AWAITING_MN_TRANSLATION` in
   `lib/i18n/index.ts` holds 11 world/atlas keys (the hold title, seven room names, the Sound row),
-  the report sheet's 17, the 9 narrated long-wait lines, and the 2 empty-thread lines.
-  `BusinessPartners` now has `NameMn`/`CategoryMn`/`DistrictMn`/`DescriptionMn`, and every one of
-  them is NULL. All of it needs a native speaker; none of it may be guessed, and the report sheet
-  least of all. This is the single largest thing between the app and a Mongolian market.
+  the report sheet's 17 (`report_*` in `lib/i18n/en.ts`), the 9 narrated long-wait lines
+  (`wait_verify_still`, `wait_verify_long`, `wait_quiz_still`, `wait_quiz_long`, `wait_video_still`,
+  `wait_video_long`, `wait_square_still`, `wait_square_long`, `quiz_answers_in`), and the 2
+  empty-thread lines (`chat_empty_*`). `BusinessPartners` has
+  `NameMn`/`CategoryMn`/`DistrictMn`/`DescriptionMn`, all NULL. All of it needs a native speaker;
+  none of it may be guessed, and the report sheet least of all. `enableFallback` renders the keys in
+  English for an `mn` user; the parity test fails if one is translated and left on the list. This
+  is the single largest thing between the app and a Mongolian market.
 - **One unfixed bug: the Android chat composer never returns to the bottom** once the keyboard has
-  been opened. Everything ruled out so far is recorded under the second device sweep below. It was
-  the one task of the 2026-09-10 backlog clearance not closed.
-- **Device verification passes.** Listed under "Manual verification still owed" — they need the
-  Galaxy A51 and, now, the development build rather than Expo Go (see `mingldingl_app/AGENTS.md`).
-  The world below the Gate, the six sounds and every haptic have still never been seen or heard on
-  hardware; the modal nav-bar fix and the design-token/Ulzii pass are owed a look.
+  been opened (detail under "Open findings from device sweeps").
+- **Device verification passes**, listed under "Manual verification still owed" — they need the
+  Galaxy A51 and the development build rather than Expo Go (see `mingldingl_app/AGENTS.md`).
 - **Three items blocked on something outside the code.** `POST /video/complete` is a client
   assertion until Agora webhooks corroborate it; `LoginThrottleService` is per-instance until the
   engine has shared state to scale out with; `AuthAliases (Sub → UserId)` is a schema change that
@@ -431,153 +442,55 @@ useless for answering "what is left". This is the whole of it, as of 2026-09-11:
   config, the Ulzii shimmer deferrals, leaderboard names, and discovery's materialise-everything
   query. None is scheduled; each is a decision, not an oversight.
 
-## Found on the first real-device run (2026-09-06, Redmi/Expo Go SDK 54)
+## Open findings from device sweeps
 
-Three bugs found here were fixed the same session, and the `AtlasOverlay` warning was confirmed
-stale on 2026-09-10 (see `shipped-log.md`). These are what the run turned up and left open:
-
-- **World-layer strings are still English for `mn` users.** The eleven keys in
-  `AWAITING_MN_TRANSLATION` — the Hold/atlas overlay, the seven room names, and the Settings
-  `sound` label — render in English on a Mongolian device. They need a native speaker, not a
-  guess; `sound` in particular sits between two translated rows in The War Room.
-- **Seeded profile photos are missing on this machine**, so every candidate card, thread avatar and
-  the character sheet shows a placeholder. Not a code bug: `python3
-  mingldingl_engine/scripts/gen-seed-photos.py` has not been run since the last reseed.
-- **The seeded phone numbers (`810000xx`) cannot reach verify.mn** — `POST /auth/phone/start`
-  answers 503 because `81` is not a valid Mongolian mobile prefix. Any device sign-in test needs a
-  real prefix; the dev DB currently has Undram (`091eadb0…`) pointed at the test SIM `88583269`
-  (and the throwaway `Khashaa` row's number nulled) so a rich character can be signed into.
-
-## Found on the cast reseed + style sweep (2026-09-10, Galaxy A51/Expo Go SDK 54)
-
-The dev database was reseeded with an authored cast of 19 people carrying real portraits and one
-hand-written conversation per match (see `shipped-log.md`). Real photographs immediately exposed
-things the letter-placeholder fixtures had been hiding. Fixed the same session: the incoming chat
-bubble's 1.03:1 edge, the invisible photo-progress dots, the hour-only countdown, and the seed's
-missing per-side message counts. Three more — the squeezed discover card, the dim active photo dot
-and English-only venue content — closed on 2026-09-10. Left open:
-
-- **`Users.City` holds a GPS district for real sign-ups and "Ulaanbaatar" for the cast.** The
-  leaderboard already collapses these via `MongoliaGeo.CohortCityNames`, and it was verified on
-  device — but anything else that groups by the raw string will fragment the same way.
-
-## Found on the second real-device sweep (2026-09-06, Galaxy A51/Expo Go SDK 54)
-
-A pass over Town Square, the Mission Board, venues, the character sheet and the per-match
-activities. Eleven fixes from it shipped the same session and four more on 2026-09-10 — the white Android
-navigation bar, the empty thread, the icebreaker padlock and icebreaker/quiz localisation (see
-`shipped-log.md`). What it turned up and left open:
-
-- **The chat composer never returns to the bottom once the keyboard has been open.** Open a
-  thread, focus the message box, dismiss the keyboard (Back or by tapping the list) — the composer
-  stays lifted ~70dp with dead world-floor showing under it for the rest of that screen's life;
-  re-entering the thread clears it. Ruled out: it is not the `KeyboardAvoidingView` `behavior`
-  value (`height`, `padding` and `undefined` all reproduce), and screens with a text input but no
-  `KeyboardAvoidingView` (the icebreaker's answer box) do not show it. Next suspect is the
-  interaction between Expo SDK 54's edge-to-edge Android window and `adjustResize`.
-- **The leaderboard is anonymous by design** (`LeaderboardEntryDto` carries rank/tier/score only),
-  so every row reads `#N ◆ 3,724 pts` with nothing to recognise. Worth confirming that is still
-  the intent — it is currently a ranking of strangers.
-- **Seeded venues have no photos** (`PhotoUrls` is `'[]'::jsonb` for every `BusinessPartner`), so
-  the venue hero and the Encounter Log thumbnail always fall back to the placeholder. The
-  placeholders now carry a glyph, but `gen-seed-photos.py` never has venue URLs to fill.
-
-## Mechanics sweep, 2026-09-10 — API-level, against the authored cast
-
-Thirteen mechanics driven end to end against a running engine with real Supabase JWTs for the
-seeded cast. **No defects found.** Recorded here so the same ground is not re-walked blind:
-
-- **Reveal ladder monologue guard.** 20 one-sided messages produce `mutual = 1`, level 1, with age
-  and district still withheld. `2*min(a,b)+1` holds.
-- **Daily match budget.** Exact at the boundary: at `budget-1` a summons is accepted, at `budget`
-  it is refused with `match.daily_budget_spent`. Note `budget.cap.*` is *not* a hard ceiling —
-  `Math.Min(base + bonus + tierBonus, cap + tierBonus)` — but its admin description already says
-  "plus one per gem tier", so this is intended, not drift.
-- **Daily login.** `5 x min(streak,7)` = 35 at streak 9; repeat calls award 0 and leave exactly one
-  `ScoreEvent` (the partial unique index does the work).
-- **Per-match reply cap.** 13 alternating replies each; exactly 10 `MatchReply` awards each.
-  Consecutive messages from the same sender pay nothing.
-- **Deep-profile gate.** At level 4, Free sees `deep: null`; the same match as Silver returns the
-  five fields.
-- **Blocking.** Symmetric — each side drops out of the other's discover pool, the match goes
-  Unmatched, the blocked list renders. Only reachable from an existing match; there is no
-  block-a-stranger path from discover.
-- **Ghosting.** The silent side of a two-sided thread took `-15` and the match froze at its earned
-  reveal level. A stranger who never spoke and never asked for the match was ghosted but **not**
-  penalised — the `GetPenalisableGhostAsync` fairness rule holds against the score-drain attack its
-  comment describes.
-- **Tier promotion.** 595 + 10 crosses `tier.sapphire.threshold` (600) and the stored `GemTier`
-  flips to Sapphire.
-- **Icebreaker.** Repeat responses are refused `409 engagement.already_responded`; nothing is paid
-  until both sides answer, then both get `IcebreakerDone` + the quest XP.
-- **Quest chest.** `400 quest.incomplete` before the board is done, `+30` once, `alreadyClaimed`
-  after, one `ScoreEvent` row.
-- **Town Square.** RSVP idempotent; Open -> Locked -> InProgress on schedule; pairing is a true
-  round-robin (each man meets each woman exactly once across three rounds, each round with its own
-  icebreaker); mutual Yes creates a match, Yes+No does not.
-- **Referral guards** (self-referral, one per invitee, deleted inviter) exist but are only reachable
-  from `POST /users`, so they are code-inspected rather than driven — a live pass costs an SMS.
-- **Config guards** (value bounds, strictly-increasing tier thresholds) are already covered by the
-  engine suite (`ConfigValueValidatorTests`, `ValidateTierThreshold_EnforcesStrictOrdering`).
-
-Caveat: `ConfigService` caches on boot, so tuning a key by direct SQL does not take effect until the
-engine restarts — a live config change has to go through the admin API.
-
-## The waiting vocabulary, 2026-09-10 — final review follow-ups
-
-Replaced ~30 identical `ActivityIndicator`s with a themed wait vocabulary — `Waiting` (the inline
-turning knot), `Skeleton` (content-shaped placeholders), `LongWait` (narrated long waits) — plus a
-list-entrance stagger, an in-flight message state, a tab ignite, and the header-wrapper collapse.
-Left open after the whole-branch review fixed everything else it found:
-
-- **Nine English-only strings await a Mongolian speaker.** `wait_verify_still`, `wait_verify_long`,
-  `wait_quiz_still`, `wait_quiz_long`, `wait_video_still`, `wait_video_long`, `wait_square_still`,
-  `wait_square_long`, and `quiz_answers_in` sit on `AWAITING_MN_TRANSLATION` in `lib/i18n/index.ts`
-  — translating them and removing them from that list is the last step.
-- **A device-verification pass on the Galaxy A51 is owed**, same as the rest of this feature: the
-  narrated waits actually reaching their 8s/25s "still going"/"long" lines, skeleton visibility
-  against the world floor, the knot rendering inside a compact button, the hung lamp's swing
-  pivot, the tab-switch ignite, and that the row-entrance stagger does not re-fire on
-  pull-to-refresh.
-- **`app/icebreaker/[matchId].tsx` narrates a partner-wait with a static `Waiting` line**, where
-  the quiz screen (`app/quiz/[matchId].tsx`) uses `LongWait` for the same moment. A fifth
-  `WaitKind` would make the two consistent, but was deliberately deferred here rather than add two
-  more untranslated strings to the list above.
+- **The Android chat composer never returns to the bottom once the keyboard has been open:** after
+  dismissing the keyboard it stays lifted ~70dp with dead world-floor under it until the thread is
+  re-entered. Ruled out: the `KeyboardAvoidingView` `behavior` value (`height`, `padding`,
+  `undefined` all reproduce); screens with a text input but no `KeyboardAvoidingView` (the
+  icebreaker's answer box) are fine. Next suspect: Expo SDK 54's edge-to-edge Android window and
+  `adjustResize`.
+- **`Users.City` holds a GPS district for real sign-ups and "Ulaanbaatar" for the seeded cast.**
+  The leaderboard collapses these via `MongoliaGeo.CohortCityNames`; anything else grouping by the
+  raw string will fragment the same way.
+- **Seeded venues have no photos** (`PhotoUrls` is `'[]'::jsonb` for every `BusinessPartner`);
+  `mingldingl_engine/scripts/gen-seed-photos.py` never has venue URLs to fill. Cast portraits come
+  from `gen-cast-photos.py` under `seed/c2/` and must exist on the machine serving the engine.
+- **The seeded phone numbers (`810000xx`) cannot reach verify.mn** (`POST /auth/phone/start` → 503,
+  `81` is not a Mongolian mobile prefix). The dev DB has Undram (`091eadb0…`) on the test SIM
+  `88583269` (the throwaway `Khashaa` row's number nulled) so a rich character can be signed into.
+- **`app/icebreaker/[matchId].tsx` narrates a partner-wait with a static `Waiting` line** where
+  `app/quiz/[matchId].tsx` uses `LongWait`; a fifth `WaitKind` was deferred rather than add two more
+  untranslated strings.
 
 ## Manual verification still owed
 
-All need the `verify` skill (real Supabase JWTs, full stack running).
+All need the `verify` skill (real Supabase JWTs, full stack running) or the Galaxy A51.
 
 - **Fated Threads — the full pass, never run.** Weaver A weaves B + C → B's `GET /ships/pending`
-  names A and nothing about C → B accepts, nothing sparks → C accepts: match exists, chat shows
-  "Woven by A", neither `DailyMatchesUsed` moved → A's honour toast fires once and does not replay
-  → the weave past `ships.daily.cap` is rejected → a brand-new number resolves via the onboarding
-  code field; plus two distinct codes on the confirmation screen, the blocked-Weaver silent no-op,
-  same-number rejection, push + list refresh on spark, and the Missions-tab CTA.
-- **Town Square — no two-browser end-to-end run** (a scheduled session, real Agora tokens,
-  a full round-robin).
-- **Flame Rite — the app screens** (jest-covered only) and the 5-minute vs long token TTL (the
-  Agora token is opaque; would need decoding its privilege expiry). The API-level ladder passed
-  2026-09-01.
-- **No-Show — the threshold-crossing `RepeatedNoShowPenalty` leg** is integration-test-only
-  (needs three distinct-match mismatches). The mismatch → flag walk passed 2026-09-01.
-- **Membership — the duration `ChoiceRow`'s rendered layout** (MN label length, chip wrapping)
-  and one real end-to-end upgrade call.
-- **The world pass below the Gate — never seen.** Only `(auth)` renders without a backend, so the
-  Long Road, Tavern, Hearth, Forge, Hall and Deep have had their light judged by nobody: the six
-  signatures, the per-room state ramps, the floor showing through each migrated screen, the atlas
-  over a real profile, and the descend/rise transitions. Needs the `verify` skill.
-- **The six sounds have never been heard, and no haptic has fired on hardware.** Both were written
-  and unit-tested against mocks. The WAVs are synthesised, so their voicing is a guess until
-  somebody plays them on a phone speaker; the silent-switch behaviour is likewise untested on a
-  real device.
-- **The 2026-09-10/11 fixes, none of them seen on hardware.** The white navigation bar under a
-  modal was a device-only symptom and its fix is device-only evidence; the collapsed
-  getting-started board, the brighter photo dot, the empty-thread state and the whole design-system
-  wave (the shared state/dialog surfaces, the five ladders) have been seen by jest and nothing else.
-- **A device pass for the design-token snap and the Ulzii ornaments** — sizes moved at most
-  ±2 px per step, but Mongolian labels are longer than English; knot density/brightness looked
-  right on web only.
+  names A and nothing about C → B accepts, nothing sparks → C accepts: match exists, "Woven by A" in
+  chat, neither `DailyMatchesUsed` moved → A's honour toast fires once and does not replay → the
+  weave past `ships.daily.cap` is rejected → a brand-new number resolves via the onboarding code
+  field; plus the blocked-Weaver silent no-op, same-number rejection, push + list refresh on spark.
+- **Town Square — no two-browser end-to-end run** (real Agora tokens, a full round-robin); the
+  API-level round-robin and mutual-Yes were driven 2026-09-10.
+- **Flame Rite — the app screens** (jest only) and the 5-minute vs long token TTL (the Agora token
+  is opaque). **No-Show — the threshold-crossing `RepeatedNoShowPenalty` leg** (needs three
+  distinct-match mismatches). **Referral guards** (self-referral, one per invitee, deleted inviter)
+  are only reachable from `POST /users`; a live pass costs an SMS. **Membership — the duration
+  `ChoiceRow`'s layout** (MN label length) and one real upgrade call.
+- **The world below the Gate, on hardware.** Only `(auth)` renders without a backend, so the six
+  light signatures, per-room state ramps, the atlas over a real profile and the descend/rise
+  transitions have been judged on web only. **The eight sounds have never been heard and no haptic
+  has fired on hardware**; the WAVs are synthesised, so their voicing is a guess, and the
+  silent-switch behaviour is untested.
+- **Never seen on hardware:** the white navigation bar fix (`AppModal`), the collapsed
+  getting-started board, the brighter photo dot, the empty-thread state, the design-system wave
+  (shared state/dialog surfaces, the five ladders), the waiting vocabulary (narrated waits reaching
+  their 8 s/25 s lines, skeletons against the world floor, the knot in a compact button, the
+  tab-switch ignite, the row stagger not re-firing on pull-to-refresh), the design-token snap and
+  Ulzii ornaments under longer Mongolian labels, and from the creative-effects wave the Gate scene
+  (needs a sign-out and a SIM), festival tint and time-of-day light offsets.
 
 ## Security & identity
 
@@ -585,14 +498,13 @@ All need the `verify` skill (real Supabase JWTs, full stack running).
   later changes their number from that device, the alias stops resolving and the device behaves as
   a fresh identity. An `AuthAliases (Sub → UserId)` table would remove the dependency and save a
   query per request; needs a schema change.
-- **No general API rate limiting.** `POST /auth/phone/start` is now bounded per IP (30 per 15
-  minutes, sized loose because carrier NAT shares one address across many users) on top of the
-  per-number cap; every other endpoint is unlimited.
+- **No general API rate limiting.** `POST /auth/phone/start` is bounded per IP (30 per 15 minutes)
+  and per number, `POST /photos/upload` per user; every other endpoint is unlimited.
 - **`LoginThrottleService` is per-instance** — a second engine instance halves the effective
   lockout. Needs shared state if the engine is ever scaled out.
-- **`POST /video/complete` is a client assertion** — any participant can claim the score,
-  honour and milestone without a call connecting. Corroborating it needs Agora webhooks; the
-  never-built 30-minute post-rite call cap is parked with the same dependency.
+- **`POST /video/complete` is a client assertion** — any participant can claim the score, honour
+  and milestone without a call connecting. Corroborating it needs Agora webhooks; the never-built
+  30-minute post-rite call cap is parked with the same dependency.
 
 ## Product decisions pending
 
@@ -600,105 +512,21 @@ All need the `verify` skill (real Supabase JWTs, full stack running).
   ever enforced it, and gating now would strand every active match that skipped it. If wanted:
   `MessagesController.SendMessage` behind a config key, banner becomes a wall.
 - **The video-screen countdown is decorative** — resets on remount, not anchored to token issue
-  or `FlameRiteAcceptedAt`, and 0:00 does nothing. Reads as an enforced limit that isn't.
-- **`MatchReply` (+10) is capped but still farmable at a slower rate.** The per-match/per-day cap
-  (`score.match_reply.daily_cap_per_match`, default 10) landed 2026-09-06, so one conversation is
-  worth at most +100/day instead of being unbounded. Two colluding accounts can still spread the
-  farm across their daily match budget — roughly 500/day, so Emerald in ~4 days rather than two
-  minutes. Whether to tighten further (minimum length, decay) is a tuning call, not a bug.
-- **A match where nobody ever messages can never be ghosted** — both the sweep and
-  `GhostingService.IsStale` require `LastMessageAt != null`. Falling back to `CreatedAt` closes it
-  but leaves no single party to penalise (`LastMessageSenderId` is also null). Related and now
-  fixed: a *recipient* who never sent anything is no longer penalised either
-  (`GhostingService.GetPenalisableGhostAsync`) — see the QA pass below.
-- **`ReportPenalty` (−30) has no award path** — no report endpoint exists. Closing it means a
-  report flow: endpoint, moderation surface in `mingldingl_control`, award call site.
-  `ScoreHistoryList.ENGINE_EVENT_TYPES` deliberately omits it.
-- **Second and later recruits produce no toast** since Ally-Caller is earned once. Whether a
-  repeat recruit deserves acknowledgement is a product call.
+  or `FlameRiteAcceptedAt`, and 0:00 does nothing.
+- **`MatchReply` (+10) is capped but still farmable at a slower rate.** With
+  `score.match_reply.daily_cap_per_match` (10) one conversation is worth at most +100/day; two
+  colluding accounts can spread the farm across their daily budget (~500/day, Emerald in ~4 days).
+  Tightening further (minimum length, decay) is a tuning call.
+- **A match where nobody ever messages can never be ghosted** — the sweep and
+  `GhostingService.IsStale` require `LastMessageAt != null`. Falling back to `CreatedAt` leaves no
+  single party to penalise (`LastMessageSenderId` is also null).
+- **"The seal is broken"** is what `bossCleared` reports (the boss fell; other rooms unlock on
+  their own terms). Change the copy if beating the boss should end the campaign outright.
+- **Second and later recruits produce no toast** since Ally-Caller is earned once.
 - **Kill switches show copy rather than hiding entry points** (`ships.enabled`,
   `townsquare.enabled`). Hiding the tab / weave CTA on a 404 is a follow-up if used in anger.
-
-## QA pass, 2026-09-06 — mechanics testing and fix wave
-
-Drove the live engine with real Supabase JWTs (signup → match → icebreaker → chat → reveal →
-ghosting sweep), then fixed everything found. Engine 816 → 844 tests, app 641 → 648.
-
-**Fixed — behaviour**
-
-- **Reputation griefing.** `POST /matches` needs no consent and `GhostingService` penalised whoever
-  did not reply, so three strangers could take a victim from Opal/100/rep 1.0 to Garnet/55/rep 0.7
-  without that victim ever opening the app. A recipient who never sent a message into the match is
-  no longer at fault. The batched copy of this rule in `DailyMaintenanceBackgroundService` — the
-  path that actually runs hourly in production — had to be fixed separately; fixing only
-  `GhostingService.CheckAsync` left the exploit fully open, which the live re-test caught.
-- **`MatchEligibility`** now holds the one rule discovery and the summon endpoint share (consumed as
-  SQL by `GetCandidates`, compiled for the single-target check). `POST /matches` previously ignored
-  every filter: self-match returned 200 and created a real row, a missing target surfaced as a 500,
-  and paused, pending-deletion, out-of-age-range and same-gender targets were all reachable.
-- **The reveal ladder was climbable alone.** It read `Match.MessageCount`, the combined figure, so
-  30 messages into silence unlocked a stranger's age, district and both locked photos.
-  `RevealService.MutualMessageCount` now allows a lead of one message and no more; `Match` carries
-  per-side counters, backfilled from `messages` so no live match dropped a rung.
-- **`awarded` lied.** Every icebreaker after the first on a match reported the config delta while
-  paying nothing, and `useIcebreaker` fed that straight into the reward toast.
-- **Unvalidated profile fields.** `Gender` (a lowercase `"male"` silently removed the account from
-  every discovery feed), `City` (an invented one gave a leaderboard of one), photo URLs (any origin,
-  bypassing uploads), and the habit/religion/lifestyle enums. All now validated against a closed set
-  in `ProfileValidation`; `MongoliaGeo.AcceptedCityNames` exists because the canonical list holds
-  Ulaanbaatar's nine districts but not the capital's own name, which is what onboarding writes.
-- **Oath re-swear** was destructive twice over: re-swearing the *same* oath reset the vow for
-  nothing (now a no-op), and switching oaths clears `OathProven` for a reward that is never paid
-  twice (now behind a confirmation).
-- Icebreaker responses accepted any GUID; `GetCandidates` loaded every match participant in the
-  database into memory for one tie-break.
-- **A regression introduced by this same pass, caught on review.** The photo-origin check was
-  origin-strict against the *current* `Storage:PublicBaseUrl`, and the app re-sends the whole photo
-  list on any edit — so changing that setting (localhost → LAN → production domain) returned
-  `profile.photo_not_owned` for photos the user never touched, locking every existing account out
-  of profile editing. Photos already on the row are now grandfathered; only genuinely new entries
-  have to prove they came from this service.
-
-**Fixed — design detail**
-
-- **The ghost penalty was invisible.** Both parties got the same neutral push while one silently
-  lost 15 points and 0.1 reputation. `PushKind.MatchGhostedByYou` now tells the at-fault party what
-  it cost, in both languages.
-- **Icebreakers and quizzes were Mongolian-only** — one text column each, so an `en` user read
-  Cyrillic prompts inside an otherwise translated app. `LocalisedContent` picks by
-  `PreferredLocale` with a Mongolian fallback; English overlays added for all seeded content.
-- **DataAnnotations failures escaped the `DomainException` contract** — raw .NET prose, no code,
-  English only. `ModelValidationResponse` gives them `request.invalid`.
-- **A padlock on a photo that does not exist.** `PartialUserProfile.PhotoCount` lets the reveal
-  strip render only slots that can ever fill; a two-photo profile no longer shows "2 of 3" forever.
-- **`habit_socially` / `lifestyle_homebody` rendered as raw missing-key text in chat** — found only
-  by looking at a real device. The seed used a vocabulary the app had no keys for; seed corrected,
-  engine now validates, and `i18nCoverage` asserts every offered option has a label.
-
-**Found later in the same pass, by looking at real screens**
-
-- **Switching language left authored content in the old one.** Locale now drives icebreaker and quiz
-  text server-side, but the app never dropped the cached copies — a reader who switched to Mongolian
-  kept getting English questions inside an otherwise Mongolian app. `useSyncPreferredLocale` now
-  invalidates the icebreaker, quiz and Town Square round caches. This was a consequence of the
-  localisation fix itself: before it, content was Mongolian regardless of locale, so nothing could
-  go stale.
-- **"Campaign complete" contradicted the room counter.** `bossCleared` means only that the boss room
-  fell, and the other rooms unlock on their own terms, so the line sat directly under "5 of 7 rooms
-  cleared". Reworded to name the boss ("The seal is broken"), which is what the flag reports. Copy
-  judgement — change it if the intent was that beating the boss ends the campaign outright.
-
-**Deliberately not done**
-
-- **More than two genders.** Validation was tightened to the pair the app offers, which closes the
-  invisibility bug. Supporting a third is a feature with matching semantics to design — it would
-  also need `MatchEligibility.OppositeGenderOf` and Town Square's `Male × Female` pairing rethought.
-- **Leaderboard anonymity** (rank/tier/score, no names) — flagged, nothing broken, left alone.
-- **Candidate discovery still materialises every eligible user** to sort on compatibility and
-  distance, which SQL cannot express. Fine at 41 users; a real wall before launch.
-- `DEEP_REVEAL_LEVEL` in `RevealStrip` was reported as drift but `lib/reveal.ts` pins `LEVELS` at
-  four, so it could not actually desynchronise. Derived from the ladder anyway; it was duplication,
-  not a live bug.
+- **The leaderboard is anonymous by design** (`LeaderboardEntryDto` carries rank/tier/score only),
+  so every row reads `#N ◆ 3,724 pts`. Worth confirming that is still the intent.
 
 ## Known gaps, deliberately not built
 
@@ -707,48 +535,41 @@ ghosting sweep), then fixed everything found. Engine 816 → 844 tests, app 641 
   misroute slot B (vanishingly unlikely, unguarded).
 - **Town Square** pairs strictly `Male × Female` (other genders RSVP but are never rostered),
   drops overflow RSVPs silently at lock time, and attaches no score, quest or honour to attending.
+- **More than two genders.** Validation is tightened to the pair the app offers. Supporting a
+  third is a feature with matching semantics to design — `MatchEligibility.OppositeGenderOf` and
+  Town Square's pairing would both need rethinking.
 - **Reveal after the rite** — the second photo still unblurs at 5 messages; milestone-based
   reveal and un-paywalling `HasKids` were deferred.
-- **The world lights only what some screen has already fetched.** `useWorldState` subscribes to
-  the query cache and never fetches, on purpose — so a room whose data nobody has asked for yet
-  sits at its base light rather than its true one (the Tavern is unlit until the Town Square tab
-  has been opened once this session). Correct by the "no data is not darkness" rule, but it means
-  first-run light is systematically dimmer than steady-state light.
-- **`WORLD_ENABLED` is a build-time constant, not admin config.** Flipping the world off is a
-  release. The app has no generic config-read path — tier and reveal thresholds each got their own
-  endpoint — and a cosmetic layer did not justify inventing one.
-- **The atlas ships English-only.** `AWAITING_MN_TRANSLATION` lists the eleven keys (the hold
-  title, seven room names, the two map labels, the Sound row); `enableFallback` renders them in
-  English for an `mn` user, which is a visible gap rather than a wrong translation. The parity
-  test fails if one is translated and left on the list.
+- **The world lights only what some screen has already fetched.** `useWorldState` never fetches,
+  so a room whose data nobody has asked for sits at its base light (the Tavern is unlit until the
+  Town Square tab has been opened once this session). Correct by the "no data is not darkness"
+  rule; first-run light is systematically dimmer than steady-state.
+- **`WORLD_ENABLED` is a build-time constant, not admin config.** The app has no generic
+  config-read path — tier and reveal thresholds each got their own endpoint — and a cosmetic layer
+  did not justify inventing one.
 - **Ulzii deferrals** — Skia shimmer on the Oath sigil / boss seal, unlit empty-state knots,
-  festival-tinted ornament variants. (The knot now carries the reveal ceremony's breaking seal —
-  see the shipped log — but the Oath sigil and boss seal still have no shimmer of their own.)
+  festival-tinted ornament variants. **Creative-effects wave 2** — the personal sigil, the knot of
+  two, the encounter scroll — not started.
+- **Candidate discovery materialises every eligible user** to sort on compatibility and distance,
+  which SQL cannot express. Fine at ~40 users; a real wall before launch.
 - **Admin panel** — `admin.*` error codes are English-only on purpose; `lib/apiError.ts` reads
-  `error`, not `code`.
-- **Mongolian copy is unproofread by a native speaker**, and `en`/`mn` diverge in voice where
-  the 2026-07-28 rewrite deliberately left `mn` alone. The report sheet's 17 keys
-  (`report_*` in `lib/i18n/en.ts`) are English-only and on `AWAITING_MN_TRANSLATION` — safety copy
-  is the last place for a guessed translation, so they need writing before the feature is really
-  shipped for this market.
+  `error`, not `code`; `ConfigField` ignores `Min`/`Max` (the server error shows in the toast).
+- **`en`/`mn` diverge in voice** where the 2026-07-28 rewrite deliberately left `mn` alone, and no
+  Mongolian copy has been proofread by a native speaker.
 - **§6 paid extras** (Fun Tags, Reputation Repair, Score Boosters, Profile Boost) and the
   "Slow Responder" tag / pre-ghost nudge — designed, never built, not scheduled.
 
 ## Code health
 
-- **Colour system, all three stages, done (2026-09-11).** Nothing outside `lib/theme.ts` reaches
-  into `COLORS` at all, and `palette.test.ts` asserts it with no allowlist — the exceptions the
-  migration recorded along the way (`lib/world/light.ts`'s light-ramp tones, `lib/festivals.ts`'s
-  festival colour) were closed by giving them roles of their own (`NIGHT`, `GROUND`, `METAL`)
-  rather than exempting them. See the shipped log. What is left is the two seams below.
-- Two palette seams are known and documented in `lib/theme.ts` rather than solved: `STATUS.warning`
-  sits 15.9° from `ACCENT.base` in hue (unavoidable while the accent is orange — it separates on
-  lightness and must always render as a filled banner with an icon), and `STATUS.success` is
-  deliberately the same value as the Emerald jewel. Both are resolved by moving the accent off
-  orange, which is the deferred "approach B" repalette.
-
+- **Two palette seams** are documented in `lib/theme.ts` rather than solved: `STATUS.warning` sits
+  15.9° from `ACCENT.base` in hue (it separates on lightness and must always render as a filled
+  banner with an icon), and `STATUS.success` is deliberately the same value as the Emerald jewel.
+  Both are resolved by moving the accent off orange — the deferred "approach B" repalette.
 - Message pagination's `before` cursor is `CreatedAt`-only; a same-instant tie across a page
   boundary would need a composite cursor (public API change). `SendMessage` has no happy-path
   integration test because it opens its own transaction inside `IntegrationTestBase`'s rollback.
 - Historic `DuplicateLoot` score rows keep their label (`event_duplicate_loot`) so old chronicle
-  entries render; the event is no longer emitted.
+  entries render; the event is no longer emitted. `ScoreHistoryList.ENGINE_EVENT_TYPES` still
+  omits `ReportPenalty` (its icon and label keys exist) although `ReportService` can award it now.
+- `ConfigService` caches on boot: a key changed by direct SQL takes effect only after a restart, so
+  live tuning must go through the admin API.

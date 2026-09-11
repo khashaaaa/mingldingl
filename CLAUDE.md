@@ -49,7 +49,7 @@ Design/product background, the full domain model, and live implementation plans 
 - **Engine services are all explicitly registered** in `mingldingl_engine/src/MinglDingl.Engine/ServiceCollectionExtensions.cs` (`AddApplicationServices`) — new services need to be added there, not just `AddScoped`'d ad hoc in `Program.cs`.
 - **`DailyMaintenanceBackgroundService`** (ghosting, daily reset, deletion-anonymization, membership expiry, Ship expiry) is registered as both a singleton and a hosted service so `DevController` can trigger it on demand — `POST /dev/run-maintenance-sweep` (Development-only, 404 elsewhere) runs the sweep immediately instead of waiting up to an hour. `TownSquareSchedulerBackgroundService` (10s sweep that locks rosters, starts sessions, advances rounds) uses the same singleton + hosted registration.
 - **Video calls** go through Agora (`react-native-agora` in the app; `Agora:AppId`/`Agora:AppCertificate` + `VideoTokenService` in the engine, which mints Agora tokens — see `VideoController`).
-- **API types are generated, not hand-written**, in both frontends via `openapi-typescript` hitting the engine's live Swagger JSON (`generate:api` script in both `mingldingl_app/package.json` and `mingldingl_control/package.json` → `lib/api/api.generated.d.ts` / `src/lib/api/api.generated.d.ts`). The engine must be running on :5150 for this to work.
+- **API types are generated, not hand-written**, in both frontends via `openapi-typescript` reading the checked-in `mingldingl_engine/swagger.json` (`generate:api` script in both `mingldingl_app/package.json` and `mingldingl_control/package.json` → `lib/api/api.generated.d.ts` / `src/lib/api/api.generated.d.ts`). That file is produced by `./mingldingl_engine/scripts/export-swagger.sh` (`dotnet run -- export-swagger <path>`, which exits before touching Postgres), so no running engine is needed; after any controller/DTO change, re-export it, rerun both `generate:api`, and commit all three. CI and `check-all.sh` fail if `swagger.json` is stale (`export-swagger.sh --check`).
 - **`mingldingl_app/CLAUDE.md` just points to `mingldingl_app/AGENTS.md`** (read it before writing Expo code). It names the SDK the app is actually on — **54**, against React Native 0.81.5 — and the versioned docs URL to read. The two used to disagree: AGENTS.md said v56 from the initial commit while `package.json` pinned v54, and this line used to tell readers to believe AGENTS.md over the lockfile, which aimed every Expo instruction in the repo at an SDK the app was not on. Bump both together or neither.
 - **Expo Go cannot run this app, at any SDK version.** `react-native-agora` (all video), `@shopify/react-native-skia` (all Canvas vfx) and `react-native-view-shot` are third-party native modules Expo Go does not carry — `AgoraVideoCall.native.tsx` guards on `Constants.appOwnership !== 'expo'` for exactly this reason. Device testing goes through the **development build** (`eas build --profile development --platform android`), which `expo-dev-client` and `eas.json`'s `development` profile already have configured. Expo Go auto-updates to the newest SDK and will therefore always drift from this project; that mismatch is noise with no effect on anything shipped, so don't upgrade to chase it.
 - **Client env vars come from EAS, not the gitignored `.env`, for anything EAS builds.** `mingldingl_app/.env` holds four `EXPO_PUBLIC_*` vars and is gitignored, so EAS Build never sees it — a build with no substitute produces `createClient(undefined, undefined)` in `lib/supabase.ts` and an app that dies on launch. `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` and `EXPO_PUBLIC_AGORA_APP_ID` are stored as project environment variables on EAS in all three environments (`eas env:list <environment>`), and each build profile in `eas.json` names its `environment` so they resolve. They are `EXPO_PUBLIC_`-prefixed, i.e. inlined into the JS bundle and public by construction — they are identifiers, not secrets.
@@ -84,6 +84,7 @@ dotnet test --filter FullyQualifiedName~HonourServiceTests # single test class
 dotnet test --filter ComputeStreak                    # by test name substring
 
 dotnet ef migrations add <Name> --project src/MinglDingl.Engine   # needs DOTNET_ROOT + $HOME/.dotnet/tools on PATH,
+./scripts/export-swagger.sh [--check]                            # rewrite swagger.json (or fail if stale) — no server, no DB
 dotnet ef database update --project src/MinglDingl.Engine         # and dotnet-ef pinned to 8.0.x (a default install grabs 10.x, which fails: "Failed to resolve libhostfxr.so" against this net8.0 project)
 ```
 Health check: `GET /health`. Swagger UI only in Development: `/swagger`.
@@ -96,7 +97,7 @@ cd mingldingl_app
 npx expo start [--web --port 8081 | --android | --ios]
 npm test                       # jest --forceExit
 npm run typecheck              # tsc --noEmit — use this, not plain `npx tsc`, which resolves to the wrong npm package in this repo
-npm run generate:api           # regenerate lib/api/api.generated.d.ts from the running engine's swagger.json
+npm run generate:api           # regenerate lib/api/api.generated.d.ts from mingldingl_engine/swagger.json
 ```
 No lint script defined in `package.json`.
 
@@ -107,7 +108,7 @@ npm run dev                    # vite dev server
 npm run build                  # tsc -b && vite build
 npm run lint                   # oxlint
 npm run preview
-npm run generate:api           # regenerate src/lib/api/api.generated.d.ts from the running engine's swagger.json
+npm run generate:api           # regenerate src/lib/api/api.generated.d.ts from mingldingl_engine/swagger.json
 ```
 No test script defined. `VITE_API_URL` (`.env`, defaults to `http://localhost:5150`) points at the engine.
 

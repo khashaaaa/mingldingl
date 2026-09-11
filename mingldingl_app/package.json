@@ -62,7 +62,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest --forceExit",
-    "generate:api": "openapi-typescript http://localhost:5150/swagger/v1/swagger.json -o lib/api/api.generated.d.ts",
+    "generate:api": "openapi-typescript ../mingldingl_engine/swagger.json -o lib/api/api.generated.d.ts",
     "typecheck": "tsc --noEmit -p .",
     "lint": "oxlint"
   },

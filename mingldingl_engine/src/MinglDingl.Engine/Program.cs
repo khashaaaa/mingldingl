@@ -15,6 +15,12 @@ if (args.Length > 0 && args[0] == "hash-password")
     return;
 }
 
+// `dotnet run -- export-swagger <path>` writes the OpenAPI document and exits before touching
+// the database, so both frontends can regenerate their API types from a checked-in file
+// (mingldingl_engine/swagger.json) instead of needing a live engine on :5150.
+string? exportSwaggerPath = args.Length == 2 && args[0] == "export-swagger" ? args[1] : null;
+if (exportSwaggerPath is not null) args = Array.Empty<string>();
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -114,6 +120,16 @@ builder.Services.AddCors(opt => opt.AddDefaultPolicy(p =>
 StartupGuards.RequireProductionConfig(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
+
+if (exportSwaggerPath is not null)
+{
+    var swagger = app.Services.GetRequiredService<Swashbuckle.AspNetCore.Swagger.ISwaggerProvider>().GetSwagger("v1");
+    using var writer = new StringWriter();
+    swagger.SerializeAsV3(new Microsoft.OpenApi.Writers.OpenApiJsonWriter(writer));
+    File.WriteAllText(exportSwaggerPath, writer.ToString() + "\n");
+    Console.WriteLine($"Wrote {exportSwaggerPath}");
+    return;
+}
 
 const int seedAttempts = 5;
 for (int attempt = 1; attempt <= seedAttempts; attempt++)
