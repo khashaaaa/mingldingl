@@ -481,6 +481,24 @@
    "h": 860,
    "title": "How it was on 11 September 2026",
    "page": "before"
+  },
+  {
+   "file": "Satchel.dc.html",
+   "x": 1440,
+   "y": 980,
+   "w": 390,
+   "h": 844,
+   "title": "The Satchel",
+   "page": "screens"
+  },
+  {
+   "file": "Materials.dc.html",
+   "x": 0,
+   "y": 5280,
+   "w": 1180,
+   "h": 560,
+   "title": "Materials",
+   "page": "kit"
   }
  ],
  "annotations": [
@@ -553,7 +571,7 @@
    "x": 2400,
    "y": -96,
    "w": 520,
-   "text": "The Sealed Fire, final set: every screen once, start to finish, dials adopted. Superseded boards were removed on 11 September 2026. The report: claude.ai/code/artifact/c2542b0e-1c65-48ec-be04-e85b7caa61d3",
+   "text": "The Sealed Fire, final set: every screen once, start to finish; dials and the Satchel adopted. The report: claude.ai/code/artifact/c2542b0e-1c65-48ec-be04-e85b7caa61d3",
    "page": "screens"
   }
  ],

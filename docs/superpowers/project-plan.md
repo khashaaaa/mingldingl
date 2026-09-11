@@ -21,7 +21,7 @@ ships, move its record over rather than leaving it in this file.
 The one-page report is <https://claude.ai/code/artifact/c2542b0e-1c65-48ec-be04-e85b7caa61d3>
 (Export gives the PDF); the working canvas is
 <https://claude.ai/code/artifact/0697f213-d884-4ed5-b8b8-e62616403fb1> (pages: *Every screen*,
-*The kit*, *Before*; 52 boards, one per screen or sheet, superseded variants removed). Sources are
+*The kit*, *Before*; 54 boards, one per screen or sheet, superseded variants removed). Sources are
 in the repo under `docs/design/sealed-fire/` (`boards/*.dc.html` + `canvas.json` + `boards.txt`
 for the canvas; `report/Main.dc.html` + `report/img/` for the report). Re-seed either with the
 `design` skill's helper: `node <helper> --template <payload> --out x.html --title "..." $(cat
@@ -103,7 +103,17 @@ The user asked "what if more fierce" and chose three dials: **law** up, **furnac
 - **The cave belongs to the Campaign.** Torchlight, caverns, the dragon at the threshold. Nowhere
   else.
 
-Dropped: **monsters and bats** as a category (sketch-level creature art is worse than none, and
+- **The Satchel and materials** (adopted 23:00). One screen reached from the hearth showing what
+  the rules gave you today: candles (daily budget), arrows (Fated Threads), the lantern (RSVP), the
+  oath sigil and its proof, the key (membership), the ally's word (referral code), the worn honour,
+  seals held across threads, your card; each taps through to where it is used. Every object has one
+  material, drawn the same way everywhere: wax (consumed), wood and iron (used), bronze (stamped
+  once), gold (opens or rewards), parchment (written). Three new tokens: `wax`, `wood`,
+  `parchment`; the metals exist. Nothing is found, bought, dropped, crafted or stacked; no stats,
+  no shop; the Hall of Honours is the only armory.
+
+Dropped: **inventory as a system** (loot, drops, a shop, stackable items, stats, combat: a bag
+that grows turns a dating app into hoarding); **monsters and bats** as a category (sketch-level creature art is worse than none, and
 creatures outside the Campaign make the other person read as one); **iron** as a dial (shapes stay
 soft except where furnace is). Boards: the adopted versions are the only ones kept on the canvas and in the report.
 
@@ -233,14 +243,15 @@ on `AWAITING_MN_TRANSLATION` in this wave.
   via the existing share button.
 - **Wave 4 — the hearth and the square.** The hearth home (behind a kill switch like
   `WORLD_ENABLED`) with the real sky in its window from the day phases, candle-stub budget, the
-  plaza with lantern RSVPs, the round as The Second Bell.
+  plaza with lantern RSVPs, the round as The Second Bell, the Satchel (`app/satchel.tsx`, a view
+  over existing queries: budget, ships, town-square session, profile oath, membership, referral
+  code, equipped item, reveal levels) with the three material tokens.
 - **Every wave** adds its EN strings only; every new MN string goes on `AWAITING_MN_TRANSLATION`.
   The translator's list grows by roughly 120 lines across the four waves.
 
 ### Readiness checklist (what "ready to build" means here)
 
-- [x] Every route, every modal/sheet/toast/banner, and every copy-key family has a board (71 boards
-      including the adopted dials,
+- [x] Every route, every modal/sheet/toast/banner, and every copy-key family has a board (54 boards, one per screen or sheet, including the adopted dials and the Satchel,
       audited 2026-09-11 from three angles: `app/`, `components/`, `lib/i18n/en.ts`).
 - [x] Every board uses only existing tokens (`lib/theme.ts`), the two shipped faces, and the
       Ulzii knot asset; the blackletter face is the one addition and is decided separately.
