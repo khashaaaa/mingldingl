@@ -11,6 +11,98 @@ Check this file before assuming a feature doesn't exist yet.
 
 ---
 
+## The design system finished — pigments, ladders, shared surfaces (2026-09-10 → 11)
+
+Stage 3 of the colour system, then the same treatment for every other axis that was still being
+eyeballed at the call site.
+
+**No component knows a pigment any more.** The remaining ~395 raw `COLORS` references were mapped
+to roles one pigment at a time — `textDim` → `INK.dim`, `text` → `INK.primary`, `brass` →
+`METAL.brass` (the `METAL` role was added for it: a flat surface standing for an object made of
+that material, as against `ACCENT`, which tints for attention), `ember` → `METAL.ember`,
+`goldBright` → `ACCENT.bright`. `gold` was the one that could not be replaced blind: of its 160
+sites, 146 were `ACCENT.base` (a gold heading is not a button) and 13 `METAL.gold` (a wax seal, a
+medallion, the item-rarity metal). `palette.test.ts`'s guard is now "nothing outside `lib/theme.ts`
+reaches into `COLORS` at all", with no allowlist — the exceptions recorded during the migration
+(`lib/world/light.ts`'s light ramps, `lib/festivals.ts`'s festival colour) were closed by giving
+them roles of their own rather than exempting them.
+
+**Five more ladders, held to the same standard as colour.** `LEADING`, `TRACKING`, `SCRIM`, `PRESS`
+and `BADGE_SIZES`, with `lib/__tests__/ladders.test.ts` asserting each is monotonic, gapped and
+actually reached for — the test that stops a ladder from being a table nobody renders. `HEAT`,
+`TONE`, `STATUS_DEEP`, `NIGHT`, `GROUND` and `MEMBERSHIP_METALS` name the things `FILL` and a pile of
+literals were doing by hand; `FILL` is gone.
+
+**Four primitives replaced four habits.** `StateBlock` (the loading/error/empty slot eight screens
+each drew differently), `DialogSurface` (the scrim and panel every modal rebuilt — it exposes its
+scrim style so the two dialogs that need their own inner layout still share the surface), `Tap`
+(the press axis, previously 42 hand-copies of the same four props) and `Vignette` (extracted from
+the copy `RoomLight` and `WorldCanopy` each carried). Duplicate style blocks 70 → 58, hand-built
+panels 34 → 22. `lib/testing/sourceTree.ts` is now the one source walker the guard tests share,
+where four had grown their own with four separate skip lists.
+
+**The app is linted for the first time.** `mingldingl_control` had run oxlint since it was created;
+the app, four times its size, had nothing — 61 unused locals and 7 dead style blocks had
+accumulated in code that typechecks and passes tests. `.oxlintrc.json` (hooks rules and both
+`no-unused-vars` at error) plus `noUnusedLocals`/`noUnusedParameters`, wired into `check-all.sh` in
+both modes and into CI. Four `react/*` rules are off with the reasoning written down in
+`.oxlintrc.README.md`: all 229 of their hits are `Animated.Value`/`SharedValue` refs read during
+render, which is the React Native idiom, not the misuse the rules are looking for.
+
+The admin panel got the same treatment in miniature: `--success`/`--warning` tokens in both themes,
+so its badge and toast variants stop naming Tailwind palette colours directly.
+
+950 engine tests, 923 app tests, control builds clean. Not yet seen on a device.
+
+---
+
+## Backlog clearance — 13 of 14 (2026-09-10)
+
+A pass straight down the Outstanding Follow-ups list, closing everything that could be closed
+without a native Mongolian speaker or a phone in hand.
+
+**Security.** The engine now refuses to boot outside Development without `VerifyMn:ApiKey`
+(`StartupGuards`, following `Cors:AllowedOrigins`'s precedent) — unset, it had quietly disabled the
+phone-ownership gate and revived the client-writable `user_metadata.phone` fallback as a way to
+become any user. `POST /auth/phone/start` gained a per-IP fixed window (30 per 15 minutes,
+deliberately loose because Mongolian carrier NAT puts many users behind one address), answering
+`phone.too_many_attempts_ip` so it can be told from the per-number cap in logs. Its tests drive the
+real HTTP pipeline through `WebApplicationFactory<Program>` — a first for this suite — with hosted
+services stripped so booting a test host cannot run the maintenance sweep against real dev data.
+
+**The oath milestone is now paid before the flag flips**, but the naive reorder the backlog implied
+would have made it worse: one `alreadyPaid` gate covered all three payments, so a failure after
+`AchieveAsync` committed would have silently dropped the score and honour while returning success.
+Each of the three payments now has its own gate and is independently retry-safe.
+
+**Venues localise through the existing mechanism.** `BusinessPartners` carries nullable
+`NameMn`/`CategoryMn`/`DistrictMn`/`DescriptionMn`; `LocalisedContent.Pick` was generalised to
+serve an overlay in either direction, and the app's locale-switch cache drop learned about venue
+and Mission Board queries — the exact staleness bug that list exists to prevent. Every overlay
+column ships NULL: the mechanism is done, the Mongolian is a native speaker's job.
+
+**Five app fixes, each smaller than the entry that described it.** An empty chat thread now has an
+empty state instead of blank space. The quest tile's padlock — a lock the product does not actually
+enforce, stated as a symbol after the copy saying it had already been fixed — is now an unopened
+scroll. The active photo dot moved to `ACCENT.bright` (~4.6:1, where it had been reading *less*
+legible than the plain dots beside it). The white Android navigation bar under every modal was
+fixed by introducing the choke point the app never had: `AppModal`, which puts each modal's own
+Dialog window into edge-to-edge mode — `expo-navigation-bar` cannot reach that window at all.
+And the squeezed discover card was fixed from above, by collapsing the getting-started board to one
+line once the first step is done (~246px → ~51px): two attempts at flooring the card's own height
+were reverted after proving a `minHeight` bounded by available space can never fire.
+
+**Two claims turned out to be stale on inspection**, and are recorded as tested rather than
+deleted: the `AtlasOverlay` setState-during-render warning (every write is in an event handler or
+an effect; a test now mounts the real Discover tree and watches `console.error`) and the missing
+admin-config → `ScoreService` coverage (a test now boots the real DI container and reads a value
+back in a different scope, confirmed red under a temporary `AddScoped` flip).
+
+**Not closed: the Android chat composer** that stays lifted ~70dp after the keyboard has been
+dismissed. It stays in the backlog with what has been ruled out.
+
+---
+
 ## Authored cast reseed + device style sweep (2026-09-10)
 
 The dev seed's people were a modulo expression over a name list, their photos were letter

@@ -404,15 +404,38 @@ Shipped since the original MVP spec (no longer out of scope): push notifications
 The live backlog: items consciously deferred that still have a real consequence. Closed items
 are not struck through here — their record moves to [`shipped-log.md`](shipped-log.md).
 
+## What is actually open, in one place
+
+The sections below are organised by the pass that found each item, which is useful for context and
+useless for answering "what is left". This is the whole of it, as of 2026-09-11:
+
+- **Mongolian copy for 39 keys, plus four venue columns.** `AWAITING_MN_TRANSLATION` in
+  `lib/i18n/index.ts` holds 11 world/atlas keys (the hold title, seven room names, the Sound row),
+  the report sheet's 17, the 9 narrated long-wait lines, and the 2 empty-thread lines.
+  `BusinessPartners` now has `NameMn`/`CategoryMn`/`DistrictMn`/`DescriptionMn`, and every one of
+  them is NULL. All of it needs a native speaker; none of it may be guessed, and the report sheet
+  least of all. This is the single largest thing between the app and a Mongolian market.
+- **One unfixed bug: the Android chat composer never returns to the bottom** once the keyboard has
+  been opened. Everything ruled out so far is recorded under the second device sweep below. It was
+  the one task of the 2026-09-10 backlog clearance not closed.
+- **Device verification passes.** Listed under "Manual verification still owed" — they need the
+  Galaxy A51 and, now, the development build rather than Expo Go (see `mingldingl_app/AGENTS.md`).
+  The world below the Gate, the six sounds and every haptic have still never been seen or heard on
+  hardware; the modal nav-bar fix and the design-token/Ulzii pass are owed a look.
+- **Three items blocked on something outside the code.** `POST /video/complete` is a client
+  assertion until Agora webhooks corroborate it; `LoginThrottleService` is per-instance until the
+  engine has shared state to scale out with; `AuthAliases (Sub → UserId)` is a schema change that
+  would only optimise a path that already works.
+- **Deliberate non-features**, listed under "Known gaps": §6 paid extras, a third gender, Town
+  Square's gender pairing and overflow handling, milestone-based reveal, `WORLD_ENABLED` as admin
+  config, the Ulzii shimmer deferrals, leaderboard names, and discovery's materialise-everything
+  query. None is scheduled; each is a decision, not an oversight.
+
 ## Found on the first real-device run (2026-09-06, Redmi/Expo Go SDK 54)
 
-Three bugs found here were fixed the same session (see `shipped-log.md`). These are what the run
-turned up and left open:
+Three bugs found here were fixed the same session, and the `AtlasOverlay` warning was confirmed
+stale on 2026-09-10 (see `shipped-log.md`). These are what the run turned up and left open:
 
-- **`AtlasOverlay` setState-during-render.** LogBox, every time Discover mounts: "Cannot update a
-  component (`AtlasOverlay`) while rendering a different component (`DiscoverScreen`)". React
-  tolerates it today; it is a real violation and the fix belongs in whichever Discover render path
-  writes atlas state.
 - **World-layer strings are still English for `mn` users.** The eleven keys in
   `AWAITING_MN_TRANSLATION` — the Hold/atlas overlay, the seven room names, and the Settings
   `sound` label — render in English on a Mongolian device. They need a native speaker, not a
@@ -431,23 +454,9 @@ The dev database was reseeded with an authored cast of 19 people carrying real p
 hand-written conversation per match (see `shipped-log.md`). Real photographs immediately exposed
 things the letter-placeholder fixtures had been hiding. Fixed the same session: the incoming chat
 bubble's 1.03:1 edge, the invisible photo-progress dots, the hour-only countdown, and the seed's
-missing per-side message counts. Left open:
+missing per-side message counts. Three more — the squeezed discover card, the dim active photo dot
+and English-only venue content — closed on 2026-09-10. Left open:
 
-- **The discover card's photo area is mostly plaque on first run.** The card is `flex: 1` under
-  `GettingStartedCard`, so while the four first-steps are outstanding the photo band is ~26% of the
-  card and a portrait reads as a forehead. The board disappears once the steps are done
-  (`GettingStartedCard` returns null), so this is first-run only — which is also the worst moment
-  for it. Either the board should collapse to one line once started, or the card should hold a
-  minimum photo height.
-- **Venue content is structurally English-only.** `BusinessPartners` stores one `Name`,
-  `Description`, `Category` and `District`, and the app renders `Category`/`District` verbatim
-  (`app/business/[id].tsx:89`), so a Mongolian user reads "Outdoor · Khan-Uul" and "City viewpoint
-  — best at sunset." under a fully Mongolian UI. Town Square icebreakers already got
-  `LocalisedContent`; venues need the same treatment, which is a schema change rather than a copy
-  fix.
-- **The discover card's active (gold) photo dot sits at ~2.3-2.7:1** against its own scrim. The
-  inactive dots were the broken case (1.01:1, now 3.1:1) and gold reads clearly in practice
-  because of hue, but it is below the 3:1 line if that matters later.
 - **`Users.City` holds a GPS district for real sign-ups and "Ulaanbaatar" for the cast.** The
   leaderboard already collapses these via `MongoliaGeo.CohortCityNames`, and it was verified on
   device — but anything else that groups by the raw string will fragment the same way.
@@ -455,8 +464,9 @@ missing per-side message counts. Left open:
 ## Found on the second real-device sweep (2026-09-06, Galaxy A51/Expo Go SDK 54)
 
 A pass over Town Square, the Mission Board, venues, the character sheet and the per-match
-activities. Eleven fixes from it shipped the same session (see `shipped-log.md`); these are what
-it turned up and left open:
+activities. Eleven fixes from it shipped the same session and four more on 2026-09-10 — the white Android
+navigation bar, the empty thread, the icebreaker padlock and icebreaker/quiz localisation (see
+`shipped-log.md`). What it turned up and left open:
 
 - **The chat composer never returns to the bottom once the keyboard has been open.** Open a
   thread, focus the message box, dismiss the keyboard (Back or by tapping the list) — the composer
@@ -465,19 +475,6 @@ it turned up and left open:
   value (`height`, `padding` and `undefined` all reproduce), and screens with a text input but no
   `KeyboardAvoidingView` (the icebreaker's answer box) do not show it. Next suspect is the
   interaction between Expo SDK 54's edge-to-edge Android window and `adjustResize`.
-- **Icebreaker and quiz content is single-language by schema.** `Icebreakers.QuestionText` and the
-  quiz tables hold one string, seeded in Mongolian, so an English-locale user reads the Town Square
-  round prompt and every icebreaker in Mongolian. Localising it means a column per locale (or a
-  translations table), not an i18n key.
-- **A modal turns the Android navigation bar white.** Every `Modal` (the leave-the-square confirm,
-  the activities sheet, the chest) renders its own window and the system navigation bar reverts to
-  the light default under a dark app.
-- **`icebreakerComplete` gates the video button and nothing else.** Neither the app nor the engine
-  stops you messaging before the icebreaker, so the character sheet's `next_action_icebreaker`
-  ("Break the ice with X to unlock chat") promises a lock that does not exist. Either gate
-  `POST /matches/{id}/messages` on it or reword the card.
-- **A thread with no messages yet renders as an empty screen** — no prompt, no empty state, just
-  the reveal strip and the activities row above a blank scroll area.
 - **The leaderboard is anonymous by design** (`LeaderboardEntryDto` carries rank/tier/score only),
   so every row reads `#N ◆ 3,724 pts` with nothing to recognise. Worth confirming that is still
   the intent — it is currently a ranking of strangers.
@@ -574,21 +571,23 @@ All need the `verify` skill (real Supabase JWTs, full stack running).
   and unit-tested against mocks. The WAVs are synthesised, so their voicing is a guess until
   somebody plays them on a phone speaker; the silent-switch behaviour is likewise untested on a
   real device.
+- **The 2026-09-10/11 fixes, none of them seen on hardware.** The white navigation bar under a
+  modal was a device-only symptom and its fix is device-only evidence; the collapsed
+  getting-started board, the brighter photo dot, the empty-thread state and the whole design-system
+  wave (the shared state/dialog surfaces, the five ladders) have been seen by jest and nothing else.
 - **A device pass for the design-token snap and the Ulzii ornaments** — sizes moved at most
   ±2 px per step, but Mongolian labels are longer than English; knot density/brightness looked
   right on web only.
 
 ## Security & identity
 
-- **A production deploy without `VerifyMn:ApiKey` is wide open** — the gate, the metadata-phone
-  alias and `POST /users`'s metadata fallback are all inert/live together, and nothing refuses to
-  boot in that state the way `Cors:AllowedOrigins` does.
 - **The returning-user alias is keyed on the phone the identity proved.** If an aliased user
   later changes their number from that device, the alias stops resolving and the device behaves as
   a fresh identity. An `AuthAliases (Sub → UserId)` table would remove the dependency and save a
   query per request; needs a schema change.
-- **No per-IP limit on `POST /auth/phone/start`** and no general API rate limiting. The
-  per-number cap bounds abuse against one target, not provider-quota burn across many numbers.
+- **No general API rate limiting.** `POST /auth/phone/start` is now bounded per IP (30 per 15
+  minutes, sized loose because carrier NAT shares one address across many users) on top of the
+  per-number cap; every other endpoint is unlimited.
 - **`LoginThrottleService` is per-instance** — a second engine instance halves the effective
   lockout. Needs shared state if the engine is ever scaled out.
 - **`POST /video/complete` is a client assertion** — any participant can claim the score,
@@ -688,8 +687,6 @@ ghosting sweep), then fixed everything found. Engine 816 → 844 tests, app 641 
   fell, and the other rooms unlock on their own terms, so the line sat directly under "5 of 7 rooms
   cleared". Reworded to name the boss ("The seal is broken"), which is what the flag reports. Copy
   judgement — change it if the intent was that beating the boss ends the campaign outright.
-- **The admin panel enforces config Min/Max client-side**, so the "ConfigField ignores Min/Max" note
-  under Known gaps is stale — out-of-range values are refused with an inline message and Save disabled.
 
 **Deliberately not done**
 
@@ -727,8 +724,8 @@ ghosting sweep), then fixed everything found. Engine 816 → 844 tests, app 641 
 - **Ulzii deferrals** — Skia shimmer on the Oath sigil / boss seal, unlit empty-state knots,
   festival-tinted ornament variants. (The knot now carries the reveal ceremony's breaking seal —
   see the shipped log — but the Oath sigil and boss seal still have no shimmer of their own.)
-- **Admin panel** — `ConfigField` ignores `Min`/`Max` (server error shows in the toast);
-  `admin.*` error codes are English-only on purpose; `lib/apiError.ts` reads `error`, not `code`.
+- **Admin panel** — `admin.*` error codes are English-only on purpose; `lib/apiError.ts` reads
+  `error`, not `code`.
 - **Mongolian copy is unproofread by a native speaker**, and `en`/`mn` diverge in voice where
   the 2026-07-28 rewrite deliberately left `mn` alone. The report sheet's 17 keys
   (`report_*` in `lib/i18n/en.ts`) are English-only and on `AWAITING_MN_TRANSLATION` — safety copy
@@ -739,29 +736,19 @@ ghosting sweep), then fixed everything found. Engine 816 → 844 tests, app 641 
 
 ## Code health
 
-- **Colour system, stage 2 of 3 (2026-09-06).** `lib/theme.ts` now carries a semantic role layer
-  (`SURFACE`/`INK`/`ACCENT`/`LINE`/`STATUS`/`STATUS_SOFT`) over the raw `COLORS` pigments, and
-  `COLORS.bronze` is fully migrated off (36 borders → `LINE.edge`, 12 empty-state icons and the
-  locked/inactive states → `INK.muted`, 5 structural fills → `LINE.edge`). Stage 3 — migrating the
-  remaining raw-pigment call sites (`COLORS.gold` 178, `textDim` 123, `text` 94) and widening the
-  `palette.test.ts` guard from "no `COLORS.bronze`" to "no raw `COLORS` outside the theme" — is
-  **not done**. The guard only covers `bronze` today, so `gold` can still be reached for directly.
+- **Colour system, all three stages, done (2026-09-11).** Nothing outside `lib/theme.ts` reaches
+  into `COLORS` at all, and `palette.test.ts` asserts it with no allowlist — the exceptions the
+  migration recorded along the way (`lib/world/light.ts`'s light-ramp tones, `lib/festivals.ts`'s
+  festival colour) were closed by giving them roles of their own (`NIGHT`, `GROUND`, `METAL`)
+  rather than exempting them. See the shipped log. What is left is the two seams below.
 - Two palette seams are known and documented in `lib/theme.ts` rather than solved: `STATUS.warning`
   sits 15.9° from `ACCENT.base` in hue (unavoidable while the accent is orange — it separates on
   lightness and must always render as a filled banner with an icon), and `STATUS.success` is
   deliberately the same value as the Emerald jewel. Both are resolved by moving the accent off
   orange, which is the deferred "approach B" repalette.
 
-- `OathService.RefreshAsync` flips `OathProven` and saves before paying the milestone; if the
-  award throws the reward is never paid (the `alreadyPaid` guard makes the reverse order safe).
 - Message pagination's `before` cursor is `CreatedAt`-only; a same-instant tie across a page
   boundary would need a composite cursor (public API change). `SendMessage` has no happy-path
   integration test because it opens its own transaction inside `IntegrationTestBase`'s rollback.
-- No test exercises the admin config write → `ScoreService` read path in one process; a
-  regression of `ConfigService` to `AddScoped` would go unnoticed.
-- `components/profile/__tests__/ProfileAvatar.test.tsx` still logs "update not wrapped in act"
-  under the full parallel run. The Skia/reanimated `transformIgnorePatterns` half of this item was
-  closed by the world pass (`jest.setup.js` registers Skia's own mock and an `expo-audio` mock
-  once, and the hand-written `TorchGlow` mock is gone).
 - Historic `DuplicateLoot` score rows keep their label (`event_duplicate_loot`) so old chronicle
   entries render; the event is no longer emitted.
