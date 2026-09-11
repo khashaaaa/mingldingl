@@ -249,7 +249,6 @@ export const mn = {
   quest_in_progress: 'Явагдаж байна',
   quest_active: 'Идэвхтэй',
   daily_matches_count: 'Өдөрт %{n} тохирол',
-  price_free: 'Үнэгүй',
   price_per_month: 'Сард ₮%{amount}',
   price_total: 'Нийт ₮%{amount}',
   perk_icebreakers_quizzes: 'Мөс хагалах, сорил',

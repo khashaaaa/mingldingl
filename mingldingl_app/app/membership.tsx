@@ -66,8 +66,9 @@ export default function MembershipScreen() {
           const gemTier = BADGE_TIER[t.level] ?? 'Garnet';
           const badgeColor = MEMBERSHIP_METALS[t.level as keyof typeof MEMBERSHIP_METALS] ?? MEMBERSHIP_METALS.Free;
           const priceOption = priceOptionFor(t);
+          // The Free card's name is its price; printing "Free" twice on one row read as a typo.
           const priceLabel = t.monthlyPriceMnt === null
-            ? i18n.t('price_free')
+            ? null
             : i18n.t('price_per_month', { amount: (priceOption?.pricePerMonthMnt ?? t.monthlyPriceMnt).toLocaleString() });
           const totalPriceLabel = priceOption && priceOption.durationMonths > 1
             ? i18n.t('price_total', { amount: priceOption.totalPriceMnt.toLocaleString() })
@@ -97,7 +98,7 @@ export default function MembershipScreen() {
                     </View>
                   </View>
                   <View style={styles.priceColumn}>
-                    <Text style={styles.tierPrice}>{priceLabel}</Text>
+                    {priceLabel && <Text style={styles.tierPrice}>{priceLabel}</Text>}
                     {totalPriceLabel && <Text style={styles.totalPriceLabel}>{totalPriceLabel}</Text>}
                     {priceOption && priceOption.discountPct > 0 && (
                       <Text style={styles.saveBadge}>{i18n.t('save_percent', { percent: priceOption.discountPct })}</Text>
@@ -134,21 +135,25 @@ export default function MembershipScreen() {
             onChange={setSelectedDuration}
           />
         )}
-        <View style={styles.buttonWrap}>
-          <GameButton
-            variant="primary"
-            onPress={() => upgrade(selectedTier, Number(selectedDuration))}
-            disabled={membershipLoading || (selectedTier === 'Free' && currentLevel === 'Free')}
-            loading={isUpgrading}
-          >
-            {i18n.t(
-              selectedTier === currentLevel && selectedTier !== 'Free' ? 'renew_tier' : 'upgrade_to',
-              // The tier cards localise their names, so the call to action has to as well —
-              // interpolating the raw enum produced "SILVER СУНГАХ" next to a card reading "Мөнгөн".
-              { tier: membershipLabel(selectedTier) },
-            )}
-          </GameButton>
-        </View>
+        {/* Nothing to buy until a paid rank is chosen — the button used to sit there disabled,
+            reading "Upgrade to Free". */}
+        {selectedTier !== 'Free' && (
+          <View style={styles.buttonWrap}>
+            <GameButton
+              variant="primary"
+              onPress={() => upgrade(selectedTier, Number(selectedDuration))}
+              disabled={membershipLoading}
+              loading={isUpgrading}
+            >
+              {i18n.t(
+                selectedTier === currentLevel ? 'renew_tier' : 'upgrade_to',
+                // The tier cards localise their names, so the call to action has to as well —
+                // interpolating the raw enum produced "SILVER СУНГАХ" next to a card reading "Мөнгөн".
+                { tier: membershipLabel(selectedTier) },
+              )}
+            </GameButton>
+          </View>
+        )}
       </ScrollView>
       <AlertModal
         visible={showUpgradeError}

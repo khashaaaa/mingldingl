@@ -81,13 +81,16 @@ export default function ActivitiesScreen() {
   );
 
   if (error || !suggestions || suggestions.length === 0) return (
-    <StateBlock
-      icon="calendar"
-      title={i18n.t('no_date_ideas')}
-      body={i18n.t('keep_chatting')}
-    >
-      <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
-    </StateBlock>
+    <View style={styles.screen}>
+      <HeaderBar title={i18n.t('plan_encounter')} />
+      <StateBlock
+        icon="calendar"
+        title={i18n.t('no_date_ideas')}
+        body={i18n.t('keep_chatting')}
+      >
+        <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+      </StateBlock>
+    </View>
   );
 
   if (completed) {

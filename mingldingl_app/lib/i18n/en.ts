@@ -252,7 +252,6 @@ export const en = {
   quest_in_progress: 'In Progress',
   quest_active: 'Active',
   daily_matches_count: '%{n} matches/day',
-  price_free: 'Free',
   price_per_month: '₮%{amount} / month',
   price_total: '₮%{amount} total',
   perk_icebreakers_quizzes: 'Icebreakers & quizzes',

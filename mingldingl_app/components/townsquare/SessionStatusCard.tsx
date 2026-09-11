@@ -2,6 +2,7 @@ import { Text, View, StyleSheet } from 'react-native';
 import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { formatCountdown } from '../../lib/townSquareTime';
+import { formatDateTime } from '../../lib/formatDate';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
 import { StateBlock } from '../ui/StateBlock';
@@ -54,7 +55,7 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
     return (
       <AppCard style={styles.card}>
         {festivalEyebrow}
-        <Text style={styles.title}>{i18n.t('town_square_title')}</Text>
+        <Text style={styles.title}>{formatDateTime(session.scheduledStartAt)}</Text>
         <Text style={styles.countdown}>{i18n.t('town_square_in_progress')}</Text>
         {session.isRsvpd && (
           <GameButton variant="primary" icon="bank" onPress={() => onEnter(session.sessionId!)}>
@@ -68,7 +69,9 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
   return (
     <AppCard style={styles.card}>
       {festivalEyebrow}
-      <Text style={styles.title}>{i18n.t('town_square_title')}</Text>
+      {/* The screen's header already says "Town Square"; the card's own title is the date it
+          names — the one fact the countdown below does not carry. */}
+      <Text style={styles.title}>{formatDateTime(session.scheduledStartAt)}</Text>
       {isOpen && (
         <Text style={styles.hint}>{i18n.t('town_square_rsvp_closes_in', { time: formatCountdown(session.rsvpClosesAt, now) })}</Text>
       )}

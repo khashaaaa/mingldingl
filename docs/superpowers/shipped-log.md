@@ -676,3 +676,29 @@ a tab ignite, and the header-wrapper collapse. Its nine narrated strings are Eng
 - Rising light springs with a small overshoot; falling light keeps the flat fade.
 
 Device-verified on the Galaxy A51, including the ceremony across a real reveal threshold.
+
+---
+
+## Aesthetic pass over the web build (2026-09-11)
+
+Every screen screenshotted at phone width in both locales via Playwright after the design-system
+overhaul; the fixes are what the review turned up, nothing speculative.
+
+- **Choices are chips, not buttons.** `ChoiceRow` drew each option as a forged `GameButton`, so
+  The War Room read as eleven calls to action. It is now hairline chips in the body face with the
+  chosen one in gold — one component, so settings, the profile editor and the billing cycle all
+  changed together.
+- **Daily quests carry their own rune** (`QUEST_ICONS`, keyed by the engine's `nameKey`) instead
+  of three identical crossed swords.
+- **Guild Ranks** no longer offers "Upgrade to Free": the button appears only once a paid rank is
+  chosen, and the Free card's price column is gone (the name is the price; `price_free` deleted).
+- **The Town Square card names its date** (`formatDateTime`) rather than repeating the screen
+  title directly above it.
+- **Plan an Encounter's empty state keeps the header**, so the screen no longer loses its back
+  arrow and title when there is nothing to plan.
+
+Seen and left alone: the three stacked strips above the Seek card (First Steps, summons budget,
+Gathering pill) push the candidate below a third of the screen; "Seek Companions" wraps to two
+lines on web (Android/iOS shrink it via `adjustsFontSizeToFit`); "Sound" in The War Room is still
+English in Mongolian (on `AWAITING_MN_TRANSLATION`); leaderboard rows show gem and points only.
+Not yet seen on hardware.
