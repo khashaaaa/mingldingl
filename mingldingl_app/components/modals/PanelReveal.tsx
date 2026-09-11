@@ -17,7 +17,7 @@ export function PanelReveal({ children, delay = 0, style }: Props) {
       Animated.timing(opacity, { toValue: 1, duration: 250, delay, useNativeDriver: true }),
       Animated.timing(translateY, { toValue: 0, duration: 250, delay, useNativeDriver: true }),
     ]).start();
-  }, []);
+  }, [delay, opacity, translateY]);
 
   return (
     <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>

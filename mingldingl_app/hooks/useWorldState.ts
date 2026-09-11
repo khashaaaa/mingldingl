@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/api/queryKeys';
 import { profileCompleteness, type WorldState } from '../lib/world/light';
@@ -19,10 +19,17 @@ interface OwnedItemShape { itemType?: string | null }
  */
 function useCached<T>(qc: QueryClient, key: readonly unknown[] | null): T | undefined {
   const subscribe = useCallback((cb: () => void) => qc.getQueryCache().subscribe(cb), [qc]);
+  // The key is a fresh array each render, so it is hashed and rebuilt from the hash: a key that
+  // is structurally the same then keeps the same snapshot function, and the cache lookup is by
+  // structure anyway, so the rebuilt key finds exactly what the original would.
+  const keyHash = key ? JSON.stringify(key) : null;
+  const stableKey = useMemo(
+    () => (keyHash == null ? null : (JSON.parse(keyHash) as readonly unknown[])),
+    [keyHash],
+  );
   const getSnapshot = useCallback(
-    () => (key ? qc.getQueryData<T>(key) : undefined),
-    // The key is a fresh array each render, so hash it rather than depend on identity.
-    [qc, key ? JSON.stringify(key) : null],
+    () => (stableKey ? qc.getQueryData<T>(stableKey) : undefined),
+    [qc, stableKey],
   );
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

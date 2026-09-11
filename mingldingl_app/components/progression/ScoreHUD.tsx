@@ -43,7 +43,8 @@ export function ScoreHUD({ score, tier = 'Garnet', streak }: Props) {
     rise.start(({ finished }) => { if (finished) setDelta(null); });
     return () => rise.stop();
     // `level` is read, not reacted to: a reduce-motion toggle should not float the same change twice.
-  }, [score]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [score, float]);
 
   const onScoreLayout = (e: LayoutChangeEvent) => {
     const { x, width } = e.nativeEvent.layout;

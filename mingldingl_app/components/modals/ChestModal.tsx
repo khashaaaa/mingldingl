@@ -39,7 +39,7 @@ export function ChestModal({ visible, xp, onDismiss }: Props) {
 
     anim.current.start(({ finished }) => { if (finished) { setRevealed(true); setBurst((b) => b + 1); } });
     return () => { anim.current?.stop(); anim.current = null; };
-  }, [visible]);
+  }, [visible, shake, pop]);
 
   return (
     <AppModal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>

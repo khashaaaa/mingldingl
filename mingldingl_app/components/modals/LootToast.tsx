@@ -25,6 +25,10 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.8)).current;
   const rays = useRef(new Animated.Value(0)).current;
+  // Every caller passes an inline arrow; reading it through a ref keeps the auto-dismiss timer
+  // keyed on `visible` alone instead of restarting on the parent's every render.
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
 
   useEffect(() => {
     if (visible) {
@@ -39,11 +43,11 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
           Animated.timing(translateY, { toValue: 140, duration: 300, useNativeDriver: true }),
           Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
           Animated.timing(rays, { toValue: 0, duration: 300, useNativeDriver: true }),
-        ]).start(() => { scale.setValue(0.8); onDismiss(); });
+        ]).start(() => { scale.setValue(0.8); onDismissRef.current(); });
       }, 4000);
       return () => clearTimeout(t);
     }
-  }, [visible]);
+  }, [visible, translateY, opacity, scale, rays]);
 
   function dismissNow() {
     Animated.parallel([

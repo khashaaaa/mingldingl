@@ -108,7 +108,7 @@ export function TierUpCeremony({ visible, tier, previousTier, onDismiss }: Props
       });
     });
     return reset;
-  }, [visible, level]);
+  }, [visible, level, shake, oldScale, oldOpacity, newScale, newOpacity, rise]);
 
   return (
     <AppModal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>

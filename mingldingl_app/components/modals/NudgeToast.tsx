@@ -13,6 +13,10 @@ interface Props {
 export function NudgeToast({ icon, title, visible, onDismiss, onPress }: Props) {
   const translateY = useRef(new Animated.Value(-120)).current;
   const opacity = useRef(new Animated.Value(0)).current;
+  // Every caller passes an inline arrow; reading it through a ref keeps the auto-dismiss timer
+  // keyed on `visible` alone instead of restarting on the parent's every render.
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
 
   useEffect(() => {
     if (visible) {
@@ -24,11 +28,11 @@ export function NudgeToast({ icon, title, visible, onDismiss, onPress }: Props) 
         Animated.parallel([
           Animated.timing(translateY, { toValue: -120, duration: 300, useNativeDriver: true }),
           Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-        ]).start(onDismiss);
+        ]).start(() => onDismissRef.current());
       }, 2800);
       return () => clearTimeout(t);
     }
-  }, [visible]);
+  }, [visible, translateY, opacity]);
 
   if (!visible) return null;
 

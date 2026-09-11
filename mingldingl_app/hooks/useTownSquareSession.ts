@@ -62,7 +62,7 @@ export function useTownSquareSession() {
         }),
       () => { qc.invalidateQueries({ queryKey: queryKeys.townSquareNextSession }); },
     );
-  }, [sessionId, shouldSubscribe]);
+  }, [sessionId, shouldSubscribe, qc]);
 
   const rsvpMutation = useMutation({
     mutationFn: (sessionId: string) => apiClient.townSquare.rsvp(sessionId),

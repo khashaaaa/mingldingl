@@ -35,7 +35,9 @@ export function EmberField({ width, height, density = 8 }: Props) {
 }
 
 function SkiaEmbers({ width, height, density }: Required<Props>) {
-  const embers = useMemo(() => configure(width, density), [width, height, density]);
+  // Re-rolled whenever the canvas changes shape. `height` is not a spawn input, so it is read
+  // here to make that intent a real dependency; it is never 0 by the time this mounts.
+  const embers = useMemo(() => (height > 0 ? configure(width, density) : []), [width, height, density]);
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
       <Canvas style={{ width, height }}>
@@ -49,7 +51,9 @@ function Ember({ cfg, height }: { cfg: EmberCfg; height: number }) {
   const progress = useSharedValue(0);
   useEffect(() => {
     progress.value = withDelay(cfg.delay, withRepeat(withTiming(1, { duration: cfg.duration, easing: Easing.linear }), -1, false));
-  }, []);
+    // The climb is started once: a re-rolled cfg moves the ember, it does not restart it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress]);
   const cy = useDerivedValue(() => height - progress.value * height);
   const cx = useDerivedValue(() => cfg.x + Math.sin(progress.value * Math.PI * 2) * cfg.drift);
   const opacity = useDerivedValue(() => (progress.value < 0.1 ? progress.value * 6 : (1 - progress.value) * 0.7));
@@ -57,7 +61,9 @@ function Ember({ cfg, height }: { cfg: EmberCfg; height: number }) {
 }
 
 function PlainEmbers({ width, height, density }: Required<Props>) {
-  const embers = useMemo(() => configure(width, density), [width, height, density]);
+  // Re-rolled whenever the canvas changes shape. `height` is not a spawn input, so it is read
+  // here to make that intent a real dependency; it is never 0 by the time this mounts.
+  const embers = useMemo(() => (height > 0 ? configure(width, density) : []), [width, height, density]);
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
       {embers.map((cfg, i) => <PlainEmber key={i} cfg={cfg} height={height} />)}

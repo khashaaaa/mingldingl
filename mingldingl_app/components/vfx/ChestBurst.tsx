@@ -40,12 +40,14 @@ export function ChestBurst({ size, trigger }: Props) {
 interface BurstProps extends Props { count: number; }
 
 function SkiaChestBurst({ size, trigger, count }: BurstProps) {
-  const particles = useMemo<P[]>(() => configure(count), [trigger, count]);
+  // Every burst re-rolls its particles. Reading `trigger` is what makes that a real
+  // dependency; `ChestBurst` never mounts this at 0.
+  const particles = useMemo<P[]>(() => (trigger === 0 ? [] : configure(count)), [trigger, count]);
   const progress = useSharedValue(0);
   useEffect(() => {
     progress.value = 0;
     progress.value = withTiming(1, { duration: BURST_MS, easing: Easing.out(Easing.quad) });
-  }, [trigger]);
+  }, [trigger, progress]);
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
       <Canvas style={{ width: size, height: size }}>
@@ -71,7 +73,9 @@ function Particle({ p, size, progress }: { p: P; size: number; progress: SharedV
 }
 
 function PlainChestBurst({ size, trigger, count }: BurstProps) {
-  const particles = useMemo<P[]>(() => configure(count), [trigger, count]);
+  // Every burst re-rolls its particles. Reading `trigger` is what makes that a real
+  // dependency; `ChestBurst` never mounts this at 0.
+  const particles = useMemo<P[]>(() => (trigger === 0 ? [] : configure(count)), [trigger, count]);
   const progress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     progress.setValue(0);

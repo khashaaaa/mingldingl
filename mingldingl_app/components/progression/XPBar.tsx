@@ -39,7 +39,7 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
       Animated.timing(flash, { toValue: 0, duration: 900, useNativeDriver: true }).start();
     }
     prevPct.current = pct;
-  }, [pct]);
+  }, [pct, anim, shimmer, flash]);
 
   const fillWidth = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   const pointsToNext = nextTier && nextTierThreshold != null ? Math.max(0, nextTierThreshold - totalScore) : null;

@@ -16,8 +16,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAuthStore } from '../store/authStore';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
-import { useOptimisticScoreBump } from '../hooks/useOptimisticScoreBump';
-import { queryClient } from '../lib/api/queryClient';
+import { applyScoreBump, queryClient } from '../lib/api/queryClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api/apiClient';
@@ -117,7 +116,6 @@ function AppContent() {
   const pendingNudge = useAuthStore((s) => s.pendingNudge);
   const setPendingNudge = useAuthStore((s) => s.setPendingNudge);
   const { data: userProfile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useProfile();
-  const bumpScore = useOptimisticScoreBump();
   const { signOut } = useAuth();
   const isOnline = useNetworkStatus();
   const vfxLevel = useVfxLevel();
@@ -186,7 +184,9 @@ function AppContent() {
       if (event !== 'SIGNED_IN' && event !== 'INITIAL_SESSION') return;
       try {
         const daily = await apiClient.scores.dailyLogin();
-        if ((daily.awarded ?? 0) > 0) bumpScore(daily.awarded ?? 0);
+        // Bumped on the module client rather than through `useOptimisticScoreBump`, whose
+        // function is new every render and would re-subscribe auth on each one.
+        if ((daily.awarded ?? 0) > 0) applyScoreBump(queryClient, daily.awarded ?? 0);
         setStreakBonusPending(!!daily.streakBonusAwarded);
         queryClient.invalidateQueries({ queryKey: queryKeys.scoreDetail });
       } catch (err) {
@@ -200,7 +200,7 @@ function AppContent() {
       }
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [setSession, setStreakBonusPending]);
 
   useEffect(() => {
     if (!mounted || !storeHydrated) return;
@@ -217,7 +217,7 @@ function AppContent() {
     } else {
       if (inAuth || inOnboarding) router.replace('/(tabs)/discover');
     }
-  }, [mounted, storeHydrated, session, profileLoading, profileError, userProfile, segments]);
+  }, [mounted, storeHydrated, session, profileLoading, profileError, userProfile, segments, router]);
 
   if (!fontsReady || !localeReady) {
     return (

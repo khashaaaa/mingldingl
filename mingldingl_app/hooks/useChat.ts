@@ -117,7 +117,7 @@ export function useChat(matchId: string) {
         }),
       () => { qc.invalidateQueries({ queryKey: queryKeys.messages(matchId) }); },
     );
-  }, [matchId]);
+  }, [matchId, qc]);
 
   const sentCount = messages.reduce((n, m) => (m.status === 'sent' ? n + 1 : n), 0);
   const hasMore = !earlierExhausted && sentCount >= MESSAGE_PAGE_SIZE;

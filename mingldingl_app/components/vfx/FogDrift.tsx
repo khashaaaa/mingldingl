@@ -27,7 +27,7 @@ function SkiaFogDrift({ width, height }: Props) {
   const t = useSharedValue(0);
   useEffect(() => {
     t.value = withRepeat(withTiming(1, { duration: DRIFT_MS, easing: Easing.inOut(Easing.quad) }), -1, true);
-  }, []);
+  }, [t]);
   const cx1 = useDerivedValue(() => width * 0.25 + t.value * width * 0.5);
   const cx2 = useDerivedValue(() => width * 0.75 - t.value * width * 0.5);
   return (

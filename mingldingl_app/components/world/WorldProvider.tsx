@@ -70,7 +70,7 @@ export function WorldProvider({ children }: { children: ReactNode }) {
     light.value = target > light.value
       ? withSpring(target, LIGHT_SPRING)
       : withTiming(target, { duration: LIGHT_FADE_MS });
-  }, [room, target, level]);
+  }, [room, target, level, light]);
 
   // Depth, not identity, is what the body is told about: descending into a delve thuds, coming
   // back up rises, and crossing between rooms at the same depth says nothing at all.

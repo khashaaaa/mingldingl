@@ -124,5 +124,5 @@ export function useRealtimeNudges() {
       }),
       () => { queryClient.invalidateQueries({ queryKey: queryKeys.matches }); },
     );
-  }, [myId]);
+  }, [myId, setPendingNudge]);
 }

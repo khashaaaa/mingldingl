@@ -54,7 +54,7 @@ export function useTownSquareRound(sessionId: string | undefined) {
         }),
       () => { qc.invalidateQueries({ queryKey: queryKeys.townSquareCurrentRound(sessionId) }); },
     );
-  }, [sessionId]);
+  }, [sessionId, qc]);
 
   // Pairings answered in this session, so a remount cannot re-open a prompt already sent.
   const [respondedPairings, setRespondedPairings] = useState<Record<string, string | null>>({});

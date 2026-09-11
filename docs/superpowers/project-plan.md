@@ -558,6 +558,10 @@ All need the `verify` skill (real Supabase JWTs, full stack running) or the Gala
   Mongolian copy has been proofread by a native speaker.
 - **§6 paid extras** (Fun Tags, Reputation Repair, Score Boosters, Profile Boost) and the
   "Slow Responder" tag / pre-ghost nudge — designed, never built, not scheduled.
+- **Two leftovers from the 2026-09-06 E2E pass** (low): `MongoliaGeo.IsValidCoordinate` only
+  checks earth bounds, not a Mongolia bbox, so `(0,0)` snaps to Ölgii; and the dev reseed sets
+  `BusinessPartners.AverageRating`/`RatingCount` without matching `BusinessRatings` rows, so the
+  first real rating collapses e.g. 4.8 (67) to 5.0 (1). Seed data, not code, for the second.
 
 ## Code health
 

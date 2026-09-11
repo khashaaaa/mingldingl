@@ -25,6 +25,10 @@ export function PhoneChangeModal({ visible, onDismiss, onChanged }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const claiming = useRef(false);
+  // `useAuth` re-creates this each render; the poll below is keyed on the verification alone, so
+  // it reads the latest version through a ref rather than restarting on every render.
+  const checkRef = useRef(checkVerification);
+  checkRef.current = checkVerification;
 
   const reset = useCallback(() => {
     setPhone('');
@@ -59,7 +63,7 @@ export function PhoneChangeModal({ visible, onDismiss, onChanged }: Props) {
     let cancelled = false;
 
     async function poll() {
-      const outcome = await checkVerification(verification!.id);
+      const outcome = await checkRef.current(verification!.id);
       if (cancelled || claiming.current) return;
       if (outcome === 'expired') {
         setError(i18n.t('verify_expired_body'));

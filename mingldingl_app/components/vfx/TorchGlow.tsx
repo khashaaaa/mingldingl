@@ -43,7 +43,7 @@ function SkiaGlow({ size, color, strength, children }: Required<Props>) {
   const pulse = useSharedValue(PULSE_LOW * strength);
   useEffect(() => {
     pulse.value = withRepeat(withTiming(PULSE_HIGH * strength, { duration: 1500 }), -1, true);
-  }, [strength]);
+  }, [strength, pulse]);
   const opacity = useDerivedValue(() => pulse.value);
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>

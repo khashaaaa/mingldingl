@@ -39,6 +39,10 @@ export default function OtpScreen() {
   const [opened, setOpened] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const completing = useRef(false);
+  // `useAuth` re-creates these each render; the poll below is keyed on the verification alone, so
+  // it reads the latest versions through a ref rather than restarting on every render.
+  const auth = useRef({ checkVerification, completeSignIn });
+  auth.current = { checkVerification, completeSignIn };
 
   const expiresAtMs = expiresAt ? new Date(expiresAt).getTime() : 0;
   const secondsLeft = Math.max(0, Math.round((expiresAtMs - now) / 1000));
@@ -61,14 +65,14 @@ export default function OtpScreen() {
     let cancelled = false;
 
     async function poll() {
-      const outcome = await checkVerification(verificationId);
+      const outcome = await auth.current.checkVerification(verificationId);
       if (cancelled) return;
       if (outcome === 'verified') {
         if (completing.current) return;
         completing.current = true;
         setOpened(true);
         signal('ascend');
-        const ok = await completeSignIn(verificationId, phone);
+        const ok = await auth.current.completeSignIn(verificationId, phone);
         if (!ok && !cancelled) {
           completing.current = false;
           setOpened(false);
