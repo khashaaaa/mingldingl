@@ -9,7 +9,8 @@ import { Icon } from '../../components/ui/Icon';
 import { LongWait } from '../../components/ui/LongWait';
 import { GateScene, type GateState } from '../../components/onboarding/GateScene';
 import { signal } from '../../lib/world/feedback';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { LEADING, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, STATUS, SURFACE, TRACKING } from '../../lib/theme';
+import { FieldError } from '../../components/ui/StateBlock';
 /**
  * verify.mn is Mobile-Originated: the user sends our code to the shortcode rather than receiving
  * one. So this screen shows the provider's instruction, offers a one-tap pre-filled SMS, and
@@ -115,7 +116,7 @@ export default function OtpScreen() {
 
       {expired ? (
         <View style={styles.card}>
-          <Icon name="timer-sand-empty" size={ICON_SIZES.xxl} color={COLORS.emberLight} />
+          <Icon name="timer-sand-empty" size={ICON_SIZES.xxl} color={STATUS.danger} />
           <Text style={styles.cardTitle}>{i18n.t('verify_expired_title')}</Text>
           <Text style={styles.instruction}>{i18n.t('verify_expired_body')}</Text>
           <GameButton variant="primary" onPress={restart}>{i18n.t('verify_start_over')}</GameButton>
@@ -136,7 +137,7 @@ export default function OtpScreen() {
           <GameButton variant="primary" icon="message-text" onPress={openSmsApp} disabled={loading}>
             {i18n.t('verify_sms_open')}
           </GameButton>
-          {openFailed && <Text style={styles.error}>{i18n.t('verify_open_sms_failed')}</Text>}
+          {openFailed && <FieldError style={styles.error}>{i18n.t('verify_open_sms_failed')}</FieldError>}
 
           {loading ? (
             <Text style={styles.waiting}>{i18n.t('verify_sms_sent')}</Text>
@@ -156,7 +157,7 @@ export default function OtpScreen() {
         </>
       )}
 
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      {!!error && <FieldError style={styles.error}>{error}</FieldError>}
 
       <GameButton variant="ghost" size="compact" onPress={restart}>{i18n.t('back')}</GameButton>
     </ScrollView>
@@ -170,12 +171,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.display,
     color: INK.primary,
     textAlign: 'center',
-    letterSpacing: 0.5,
+    letterSpacing: TRACKING.label,
     fontFamily: FONTS.display,
   },
   phone: { fontSize: FONT_SIZES.lg, color: INK.dim, textAlign: 'center', fontFamily: FONTS.body },
   card: {
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderWidth: 1,
     borderColor: LINE.edge,
     borderRadius: RADIUS.md,
@@ -189,10 +190,10 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg,
     color: INK.primary,
     textAlign: 'center',
-    lineHeight: LINE_HEIGHTS.lg,
+    lineHeight: LEADING.lg,
   },
   manual: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center' },
   waiting: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   meta: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center' },
-  error: { color: COLORS.emberLight, fontSize: FONT_SIZES.md, textAlign: 'center', fontFamily: FONTS.body },
+  error: { textAlign: 'center' },
 });

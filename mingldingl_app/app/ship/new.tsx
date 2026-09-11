@@ -9,7 +9,8 @@ import { getApiErrorMessage } from '../../lib/api/errors';
 import { i18n } from '../../lib/i18n';
 import { shipInviteMessage } from '../../lib/shipInvite';
 import { useLocaleStore } from '../../store/localeStore';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
+import { FieldError } from '../../components/ui/StateBlock';
 const PHONE_REGEX = /^\d{8}$/;
 
 export default function NewShipScreen() {
@@ -91,7 +92,7 @@ export default function NewShipScreen() {
           keyboardType="phone-pad"
           maxLength={8}
         />
-        {error && <Text style={styles.error}>{error}</Text>}
+        {error && <FieldError>{error}</FieldError>}
         <GameButton
           variant="primary"
           icon="bow-arrow"
@@ -110,8 +111,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
   form: { padding: SPACE.xl, gap: SPACE.md },
   hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
-  label: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: ACCENT.base, letterSpacing: 1, marginTop: SPACE.sm },
-  error: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: COLORS.emberLight },
+  label: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: ACCENT.base, letterSpacing: TRACKING.wide, marginTop: SPACE.sm },
   confirmWrap: { padding: SPACE.xl, gap: SPACE.lg, alignItems: 'center' },
   confirmText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: INK.primary, textAlign: 'center' },
 });

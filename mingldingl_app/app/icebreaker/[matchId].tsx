@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Tap } from '../../components/ui/Tap';
+import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useIcebreaker } from '../../hooks/useIcebreaker';
 import { AppCard } from '../../components/ui/AppCard';
@@ -11,10 +12,10 @@ import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { ACCENT, COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, tint } from '../../lib/theme';
+import { StateBlock } from '../../components/ui/StateBlock';
 import { Icon } from '../../components/ui/Icon';
 import { useScrollTail } from '../../hooks/useScrollTail';
-
 
 export default function IcebreakerScreen() {
   useLocaleStore((s) => s.locale);
@@ -45,11 +46,9 @@ export default function IcebreakerScreen() {
   );
 
   if (!question) return (
-    <View style={styles.centered}>
-      <Icon name="help-circle-outline" size={ICON_SIZES.huge} color={INK.muted} />
-      <Text style={styles.completionTitle}>{i18n.t('no_icebreaker')}</Text>
+    <StateBlock icon="help-circle-outline" title={i18n.t('no_icebreaker')}>
       <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
-    </View>
+    </StateBlock>
   );
 
   if (isComplete) {
@@ -125,7 +124,7 @@ export default function IcebreakerScreen() {
             {question.options.map((opt, i) => {
               const isSelected = selected === opt;
               return (
-                <TouchableOpacity
+                <Tap
                   key={i}
                   disabled={selected !== null}
                   onPress={() => handleSelect(opt)}
@@ -134,7 +133,7 @@ export default function IcebreakerScreen() {
                   <Text style={[styles.optionText, isSelected ? styles.optionTextSelected : styles.optionTextDefault]}>
                     {opt}
                   </Text>
-                </TouchableOpacity>
+                </Tap>
               );
             })}
           </View>
@@ -186,7 +185,7 @@ const styles = StyleSheet.create({
     color: INK.primary,
     fontSize: FONT_SIZES.title,
     fontFamily: FONTS.bodyBold,
-    lineHeight: LINE_HEIGHTS.title,
+    lineHeight: LEADING.title,
     textAlign: 'center',
   },
   options: {
@@ -206,13 +205,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   optionDefault: {
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     borderLeftColor: LINE.edge,
     borderRightColor: LINE.edge,
     borderBottomColor: LINE.edge,
   },
   optionSelected: {
-    backgroundColor: FILL.gold,
+    backgroundColor: ACCENT.soft,
     borderLeftColor: ACCENT.base,
     borderRightColor: ACCENT.base,
     borderBottomColor: ACCENT.base,

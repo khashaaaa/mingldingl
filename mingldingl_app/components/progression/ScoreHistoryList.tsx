@@ -4,7 +4,8 @@ import { Icon } from '../ui/Icon';
 import { formatDate } from '../../lib/formatDate';
 import { Waiting } from '../ui/Waiting';
 import { Entering } from '../ui/Entering';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE } from '../../lib/theme';
+import { FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { EmptyHint } from '../ui/StateBlock';
 interface ScoreEventItem {
   eventType: string;
   delta: number;
@@ -113,7 +114,7 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
   if (items.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyText}>{i18n.t('no_score_events')}</Text>
+        <EmptyHint>{i18n.t('no_score_events')}</EmptyHint>
       </View>
     );
   }
@@ -155,17 +156,16 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
     paddingVertical: SPACE.md, paddingHorizontal: SPACE.gutter,
-    borderBottomWidth: 1, borderBottomColor: COLORS.panelRaised,
+    borderBottomWidth: 1, borderBottomColor: SURFACE.raised,
   },
   icon: { width: 18, textAlign: 'center' },
   body: { flex: 1, gap: SPACE.xs },
   line: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.primary },
   dateline: {
     fontSize: FONT_SIZES.xs, fontFamily: FONTS.utility, color: INK.dim,
-    letterSpacing: 0.8, textTransform: 'uppercase',
+    letterSpacing: TRACKING.wide, textTransform: 'uppercase',
   },
   delta: { fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   footer: { alignItems: 'center', paddingVertical: SPACE.lg },
   empty: { alignItems: 'center', padding: SPACE.huge },
-  emptyText: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.dim, textAlign: 'center' },
 });

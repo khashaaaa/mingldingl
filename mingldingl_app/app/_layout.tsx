@@ -21,7 +21,7 @@ import { queryClient } from '../lib/api/queryClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api/apiClient';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, SPACE, SURFACE } from '../lib/theme';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { installGlobalErrorHandlers } from '../lib/globalErrorHandler';
@@ -83,10 +83,10 @@ const HOLD_THEME = {
 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.bg },
+  root: { flex: 1, backgroundColor: SURFACE.ground },
   splash: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: SURFACE.ground,
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACE.lg,
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   splashTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: INK.primary, textAlign: 'center' },
   splashBody: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center' },
   transparent: { backgroundColor: 'transparent' },
-  ground: { flex: 1, backgroundColor: COLORS.bg },
+  ground: { flex: 1, backgroundColor: SURFACE.ground },
   webFrame: Platform.OS === 'web'
     ? { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' }
     : { flex: 1 },

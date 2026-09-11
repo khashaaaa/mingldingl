@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { Tap } from '../../components/ui/Tap';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuiz } from '../../hooks/useQuiz';
 import { AppCard } from '../../components/ui/AppCard';
@@ -11,10 +12,10 @@ import { LongWait } from '../../components/ui/LongWait';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { ACCENT, COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, tint } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, tint } from '../../lib/theme';
+import { StateBlock } from '../../components/ui/StateBlock';
 import { Icon } from '../../components/ui/Icon';
 import { useScrollTail } from '../../hooks/useScrollTail';
-
 
 export default function QuizScreen() {
   const tail = useScrollTail();
@@ -62,20 +63,16 @@ export default function QuizScreen() {
   );
 
   if (isLoadError) return (
-    <View style={styles.centered}>
-      <Icon name="wifi-off" size={ICON_SIZES.huge} color={INK.muted} />
-      <Text style={styles.completionTitle}>{i18n.t('quiz_load_error')}</Text>
+    <StateBlock tone="danger" icon="wifi-off" title={i18n.t('quiz_load_error')}>
       <GameButton variant="primary" onPress={() => refetchQuiz()}>{i18n.t('retry')}</GameButton>
       <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
-    </View>
+    </StateBlock>
   );
 
   if (!quiz) return (
-    <View style={styles.centered}>
-      <Icon name="help-circle-outline" size={ICON_SIZES.huge} color={INK.muted} />
-      <Text style={styles.completionTitle}>{i18n.t('no_quiz')}</Text>
+    <StateBlock icon="help-circle-outline" title={i18n.t('no_quiz')}>
       <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
-    </View>
+    </StateBlock>
   );
 
   if (allAnswered) {
@@ -138,7 +135,7 @@ export default function QuizScreen() {
           {q.options.map((opt, i) => {
             const isSelected = selectedIndex === i;
             return (
-              <TouchableOpacity
+              <Tap
                 key={i}
                 disabled={selectedIndex !== null}
                 onPress={() => handleSelect(i)}
@@ -147,7 +144,7 @@ export default function QuizScreen() {
                 <Text style={[styles.optionText, isSelected ? styles.optionTextSelected : styles.optionTextDefault]}>
                   {opt}
                 </Text>
-              </TouchableOpacity>
+              </Tap>
             );
           })}
         </View>
@@ -215,7 +212,7 @@ const styles = StyleSheet.create({
     color: INK.primary,
     fontSize: FONT_SIZES.title,
     fontFamily: FONTS.bodyBold,
-    lineHeight: LINE_HEIGHTS.title,
+    lineHeight: LEADING.title,
     textAlign: 'center',
   },
   options: {
@@ -231,13 +228,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   optionDefault: {
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     borderLeftColor: LINE.edge,
     borderRightColor: LINE.edge,
     borderBottomColor: LINE.edge,
   },
   optionSelected: {
-    backgroundColor: FILL.gold,
+    backgroundColor: ACCENT.soft,
     borderLeftColor: ACCENT.base,
     borderRightColor: ACCENT.base,
     borderBottomColor: ACCENT.base,

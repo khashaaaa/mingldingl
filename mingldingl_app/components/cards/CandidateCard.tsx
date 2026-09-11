@@ -5,9 +5,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { GemTierBadge } from '../progression/GemTierBadge';
 import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
+import { RoomLight } from '../world/RoomLight';
 import OathSigil from '../OathSigil';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, overlay, tint } from '../../lib/theme';
+import { LEADING, ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SCRIM, SPACE, SURFACE, TRACKING, overlay, tint } from '../../lib/theme';
 import { itemLabel } from '../../lib/tiers';
 import type { Candidate } from '../../models/user';
 
@@ -79,7 +80,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
               so the dot is opaque now and the scrim gives it a ground it can rely on. Worst case
               (a white-wall portrait) lands at 3.5:1 instead of 1.01:1. */}
           <LinearGradient
-            colors={[overlay(0.75), 'transparent']}
+            colors={[overlay(SCRIM.veilStrong), 'transparent']}
             style={styles.photoDotsScrim}
             pointerEvents="none"
           />
@@ -108,17 +109,19 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
       )}
 
       <LinearGradient
-        colors={['transparent', overlay(0.72), overlay(0.97)]}
+        colors={['transparent', overlay(SCRIM.veilStrong), overlay(SCRIM.ceremony)]}
         style={StyleSheet.absoluteFill}
         locations={[Math.max(0, plaqueTop - 0.18), plaqueTop, 1]}
         pointerEvents="none"
       />
 
+      <RoomLight />
+
       <View style={styles.info} onLayout={(e) => setInfoHeight(e.nativeEvent.layout.height)}>
         <View style={styles.plaqueRule} />
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>{candidate.displayName}, {candidate.age}</Text>
-          <GemTierBadge tier={candidate.gemTier} size={32} />
+          <GemTierBadge tier={candidate.gemTier} size={BADGE_SIZES.row} />
         </View>
         {candidate.equippedTitleId && (
           <Text style={styles.equippedTitle}>{itemLabel(candidate.equippedTitleId)}</Text>
@@ -148,7 +151,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: RADIUS.md,
     overflow: 'hidden',
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderWidth: 1,
     borderColor: LINE.edge,
   },
@@ -156,7 +159,7 @@ const styles = StyleSheet.create({
   photo: { ...StyleSheet.absoluteFillObject },
   photoPlaceholder: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -194,11 +197,11 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.display,
     fontFamily: FONTS.display,
     color: INK.primary,
-    letterSpacing: 0.3,
+    letterSpacing: TRACKING.body,
     flex: 1,
   },
-  equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: ACCENT.base, letterSpacing: 1 },
+  equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: ACCENT.base, letterSpacing: TRACKING.wide },
   location: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.dim },
-  bio: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: INK.primary, lineHeight: LINE_HEIGHTS.lg },
+  bio: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: INK.primary, lineHeight: LEADING.lg },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.sm },
 });

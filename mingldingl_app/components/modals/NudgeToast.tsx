@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
+import { Tap } from '../ui/Tap';
+import { Animated, Text, StyleSheet } from 'react-native';
+import { ACCENT, FONTS, FONT_SIZES, INK, RADIUS, SPACE, SURFACE } from '../../lib/theme';
 interface Props {
   icon: string;
   title: string;
@@ -33,10 +34,10 @@ export function NudgeToast({ icon, title, visible, onDismiss, onPress }: Props) 
 
   return (
     <Animated.View style={[styles.container, { transform: [{ translateY }], opacity }]}>
-      <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+      <Tap style={styles.card} onPress={onPress}>
         <Text style={styles.icon}>{icon}</Text>
         <Text style={styles.title}>{title}</Text>
-      </TouchableOpacity>
+      </Tap>
     </Animated.View>
   );
 }
@@ -47,7 +48,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.lg,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderRadius: RADIUS.md,
     borderWidth: 2,
     borderColor: ACCENT.base,

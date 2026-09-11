@@ -1,6 +1,5 @@
-import { readdirSync, readFileSync, statSync } from 'fs';
-import { join } from 'path';
 import { translations } from '../i18n';
+import { allSources } from '../testing/sourceTree';
 
 /**
  * Key parity is covered by i18n.test.ts. What was never covered — and what let five
@@ -8,7 +7,6 @@ import { translations } from '../i18n';
  * is the link between a key and the code that uses it, in both directions.
  */
 
-const ROOT = join(__dirname, '..', '..');
 // `models` holds domain code that names i18n keys too — `reportReasonKey` builds the
 // `report_reason_*` family there — so leaving it out made those keys look orphaned.
 const SOURCE_DIRS = ['app', 'components', 'hooks', 'lib', 'models', 'store'];
@@ -18,24 +16,13 @@ const SOURCE_DIRS = ['app', 'components', 'hooks', 'lib', 'models', 'store'];
 const ENGINE_SUPPLIED = ['milestone_', 'quest_'];
 
 
-function sourceFiles(): string[] {
-  const out: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      const full = join(dir, entry);
-      if (statSync(full).isDirectory()) {
-        // The translation tables themselves must not count as "a reference" to their own keys.
-        if (entry !== 'node_modules' && entry !== '__tests__' && full !== join(ROOT, 'lib', 'i18n')) walk(full);
-      } else if (/\.tsx?$/.test(entry)) {
-        out.push(full);
-      }
-    }
-  };
-  for (const dir of SOURCE_DIRS) walk(join(ROOT, dir));
-  return out;
-}
-
-const blob = sourceFiles().map((f) => readFileSync(f, 'utf8')).join('\n');
+// The shared walk, narrowed to the dirs that may name a key. The translation tables themselves
+// must not count as "a reference" to their own keys, and neither may the tests.
+const blob = allSources()
+  .filter((f) => SOURCE_DIRS.some((d) => f.rel === d || f.rel.startsWith(`${d}/`)))
+  .filter((f) => !f.rel.startsWith('lib/i18n/') && !f.rel.includes('__tests__'))
+  .map((f) => f.text)
+  .join('\n');
 const defined = Object.keys(translations.en);
 
 /** Families built at the call site — i18n.t(`campaign_room_${id}`), or a key assembled first
@@ -84,7 +71,7 @@ describe('i18n key coverage', () => {
     // "at least one key behind the prefix" is not enough: habit_never and habit_regularly existed
     // while the stored value was "Socially", so a real profile rendered
     // [missing "en.habit_socially"] in the chat reveal strip. Each offered value needs its own key.
-    const source = readFileSync(join(ROOT, 'app/edit-profile.tsx'), 'utf8');
+    const source = allSources().find((f) => f.rel === 'app/edit-profile.tsx')!.text;
     const optionList = (name: string): string[] => {
       const match = source.match(new RegExp(`const ${name} = \\[([^\\]]*)\\]`));
       if (!match) throw new Error(`${name} not found in edit-profile.tsx`);

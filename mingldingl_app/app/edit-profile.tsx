@@ -12,7 +12,8 @@ import { i18n } from '../lib/i18n';
 import { deepProfileThreshold } from '../lib/reveal';
 import { useRevealLadder } from '../hooks/useRevealThresholds';
 import { useLocaleStore } from '../store/localeStore';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
+import { FieldError } from '../components/ui/StateBlock';
 import { FIELD_LIMITS } from '../lib/fieldLimits';
 import { DismissKeyboardView } from '../components/ui/DismissKeyboardView';
 import { AppCard } from '../components/ui/AppCard';
@@ -158,7 +159,7 @@ export default function EditProfileScreen() {
                 returnKeyType="done" onSubmitEditing={Keyboard.dismiss} blurOnSubmit
               />
             </View>
-            {error && <Text style={styles.error}>{error}</Text>}
+            {error && <FieldError>{error}</FieldError>}
           </View>
         </AppCard>
 
@@ -228,7 +229,7 @@ export default function EditProfileScreen() {
             <GameButton variant="brass" size="compact" icon="crosshairs-gps" loading={isCapturing} onPress={handleRefreshLocation}>
               {i18n.t('refresh_location')}
             </GameButton>
-            {error && <Text style={styles.error}>{error}</Text>}
+            {error && <FieldError>{error}</FieldError>}
             {permissionDenied && (
               <View style={styles.deniedBlock}>
                 <Text style={styles.hint}>
@@ -281,6 +282,5 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', gap: SPACE.md, padding: SPACE.huge, paddingTop: SPACE.md },
   sectionTitle: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   hint: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
-  error: { color: COLORS.emberLight, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   city: { color: INK.primary, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },
 });

@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { GameButton } from '../ui/GameButton';
 import { CharacterCard } from './CharacterCard';
 import { i18n } from '../../lib/i18n';
 import type { GemTier } from '../../models/user';
-import { COLORS, FONTS, FONT_SIZES } from '../../lib/theme';
+
+import { FieldError } from '../ui/StateBlock';
 
 interface Props {
   displayName: string;
@@ -48,7 +49,7 @@ export function ShareCharacterButton({ displayName, photoUrl, gemTier, totalScor
       <GameButton variant="brass" size="compact" icon="share-variant" loading={sharing} onPress={handleShare}>
         {i18n.t('share_character')}
       </GameButton>
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      {!!error && <FieldError style={styles.error}>{error}</FieldError>}
       <View style={styles.offscreen} pointerEvents="none">
         <ViewShot ref={shotRef} options={{ format: 'png', quality: 0.92 }}>
           <CharacterCard
@@ -66,5 +67,5 @@ export function ShareCharacterButton({ displayName, photoUrl, gemTier, totalScor
 
 const styles = StyleSheet.create({
   offscreen: { position: 'absolute', top: 0, left: -9999 },
-  error: { color: COLORS.emberLight, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, textAlign: 'center' },
+  error: { textAlign: 'center' },
 });

@@ -8,10 +8,10 @@ import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { Entering } from '../components/ui/Entering';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
+import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, RADIUS, SPACE, SURFACE, TRACKING } from '../lib/theme';
+import { EmptyHint, StateBlock } from '../components/ui/StateBlock';
 import type { GemTier } from '../models/user';
 import { useScrollTail } from '../hooks/useScrollTail';
-
 
 const TOP_SLICE_SIZE = 50;
 
@@ -43,11 +43,10 @@ export default function LeaderboardScreen() {
 
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorTitle}>{i18n.t('leaderboard_load_error')}</Text>
+      <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('leaderboard_load_error')}>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
         <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
-      </View>
+      </StateBlock>
     );
   }
 
@@ -61,7 +60,7 @@ export default function LeaderboardScreen() {
         contentContainerStyle={[entries.length === 0 ? styles.listEmpty : styles.list, { paddingBottom: tail }]}
         data={entries}
         keyExtractor={(item, i) => `${item.rank ?? i}`}
-        ListEmptyComponent={<Text style={styles.empty}>{i18n.t('leaderboard_empty')}</Text>}
+        ListEmptyComponent={<EmptyHint>{i18n.t('leaderboard_empty')}</EmptyHint>}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT.base} colors={[ACCENT.base]} />
         }
@@ -76,7 +75,7 @@ export default function LeaderboardScreen() {
               <Entering index={index}>
                 <View style={[styles.row, item.isCurrentUser && styles.rowSelf]}>
                   <Text style={[styles.rank, item.isCurrentUser && styles.rankSelf]}>#{item.rank}</Text>
-                  <GemTierBadge tier={(item.gemTier as GemTier) ?? 'Garnet'} size={28} />
+                  <GemTierBadge tier={(item.gemTier as GemTier) ?? 'Garnet'} size={BADGE_SIZES.row} />
                   <Text style={[styles.score, item.isCurrentUser && styles.scoreSelf]}>
                     {(item.score ?? 0).toLocaleString()} {i18n.t('pts')}
                   </Text>
@@ -94,10 +93,8 @@ export default function LeaderboardScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
-  errorTitle: { color: INK.primary, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, textAlign: 'center' },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
-  empty: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
   gap: { color: INK.dim, textAlign: 'center', fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, marginVertical: SPACE.xs },
   row: {
     flexDirection: 'row',
@@ -109,7 +106,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.sm,
   },
   rowSelf: {
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     borderWidth: 1,
     borderColor: ACCENT.base,
   },
@@ -128,7 +125,7 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.sm,
-    letterSpacing: 1,
+    letterSpacing: TRACKING.wide,
     color: ACCENT.base,
   },
 });

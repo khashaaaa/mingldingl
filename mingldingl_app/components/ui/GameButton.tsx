@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Pressable, Text, Animated, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { ACCENT, BUTTON_METALS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { PRESS, ACCENT, BUTTON_METALS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SCRIM, SPACE, TRACKING, overlay } from '../../lib/theme';
 import { Icon } from './Icon';
 import { Waiting } from './Waiting';
 import { signal } from '../../lib/world/feedback';
@@ -19,12 +19,11 @@ interface Props {
   flex?: number;
 }
 
-
 const METAL_VARIANTS = new Set(['primary', 'danger', 'brass']);
 
 const SIZES = {
-  default: { minHeight: 52, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.lg, fontSize: FONT_SIZES.md, letterSpacing: 1, iconSize: ICON_SIZES.md },
-  compact: { minHeight: 44, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md, fontSize: FONT_SIZES.sm, letterSpacing: 0.5, iconSize: ICON_SIZES.sm },
+  default: { minHeight: 52, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.lg, fontSize: FONT_SIZES.md, letterSpacing: TRACKING.wide, iconSize: ICON_SIZES.md },
+  compact: { minHeight: 44, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md, fontSize: FONT_SIZES.sm, letterSpacing: TRACKING.label, iconSize: ICON_SIZES.sm },
 } as const;
 
 export function GameButton({ children, onPress, variant = 'primary', size = 'default', icon, disabled, loading, style, flex }: Props) {
@@ -121,9 +120,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
     height: 2,
-    backgroundColor: overlay(0.35),
+    backgroundColor: overlay(SCRIM.edge),
   },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, maxWidth: '100%' },
-  label: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: 1, flexShrink: 1, textAlign: 'center' },
-  disabled: { opacity: 0.4 },
+  label: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: TRACKING.wide, flexShrink: 1, textAlign: 'center' },
+  disabled: { opacity: PRESS.disabled },
 });

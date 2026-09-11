@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { Icon } from '../ui/Icon';
 import { TorchGlow } from '../vfx/TorchGlow';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, METAL, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, SURFACE } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
 interface Props {
@@ -15,7 +15,7 @@ interface Props {
 export const LANTERN_SLOTS = 7;
 
 const SLOT = 28;
-const GLYPH = 22;
+const GLYPH = ICON_SIZES.xl;
 const SLOT_GAP = SPACE.xs;
 const PANEL_PAD_X = SPACE.md;
 const ROW_WIDTH = LANTERN_SLOTS * SLOT + (LANTERN_SLOTS - 1) * SLOT_GAP;
@@ -139,7 +139,7 @@ export function Lantern({ days }: Props) {
               </Animated.View>
             ) : (
               <View key={i} testID="flame-unlit" style={styles.slot}>
-                <Icon name="fire" size={GLYPH} color={COLORS.brassDark} style={styles.wick} />
+                <Icon name="fire" size={GLYPH} color={METAL.brassDeep} style={styles.wick} />
               </View>
             )
           ))}
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: METAL.brass,
-    backgroundColor: COLORS.panelDeep,
+    backgroundColor: SURFACE.sunken,
     overflow: 'hidden',
   },
   glow: {

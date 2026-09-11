@@ -9,7 +9,8 @@ import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, SPACE } from '../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
+import { FieldError } from '../components/ui/StateBlock';
 import { AlertModal } from '../components/modals/AlertModal';
 import { PhoneChangeModal } from '../components/settings/PhoneChangeModal';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
@@ -19,7 +20,6 @@ import { HeaderBar } from '../components/ui/HeaderBar';
 import { SectionDivider } from '../components/ui/SectionDivider';
 import { TextField } from '../components/ui/TextField';
 import { useScrollTail } from '../hooks/useScrollTail';
-
 
 const LANGUAGE_OPTIONS = ['en', 'mn'] as const;
 const NOTIF_OPTIONS = ['on', 'off'] as const;
@@ -47,7 +47,6 @@ export default function SettingsScreen() {
 
   const [ageMinInput, setAgeMinInput] = useState(String(profile?.ageMin ?? 18));
   const [ageMaxInput, setAgeMaxInput] = useState(String(profile?.ageMax ?? 99));
-  const [ageRangeError, setAgeRangeError] = useState(false);
 
   const hydratedRef = useRef(false);
   useEffect(() => {
@@ -195,7 +194,7 @@ export default function SettingsScreen() {
               />
             </View>
           </View>
-          {!!ageRangeMessage && <Text style={styles.errorText}>{ageRangeMessage}</Text>}
+          {!!ageRangeMessage && <FieldError>{ageRangeMessage}</FieldError>}
           <GameButton variant="brass" size="compact" onPress={handleSaveAgeRange}>{i18n.t('save')}</GameButton>
         </View>
 
@@ -315,9 +314,8 @@ const styles = StyleSheet.create({
   ageRow: { flexDirection: 'row', gap: SPACE.md, alignItems: 'center' },
   ageField: { gap: SPACE.hair, flex: 1 },
   sectionLabel: { color: ACCENT.base, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
-  sectionHint: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: LINE_HEIGHTS.sm },
+  sectionHint: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: LEADING.sm },
   fieldLabel: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
-  errorText: { color: COLORS.emberLight, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
   dangerWrap: { marginTop: SPACE.lg },
   signOutWrap: { marginTop: SPACE.xs },
 });

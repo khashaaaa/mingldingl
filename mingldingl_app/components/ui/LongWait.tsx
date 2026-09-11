@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { Icon } from './Icon';
 import { TorchGlow } from '../vfx/TorchGlow';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, SPACE } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { useWaitStage, type WaitKind } from '../../lib/waiting';
 
@@ -96,11 +96,11 @@ const styles = StyleSheet.create({
   wrap: { alignItems: 'center', gap: SPACE.lg, paddingVertical: SPACE.xl },
   // The pivot sits at the top of the chain, so the whole assembly swings from where it is hung.
   hang: { alignItems: 'center', transformOrigin: 'top center' },
-  chain: { width: 1, height: CHAIN_HEIGHT, backgroundColor: COLORS.brassDark },
+  chain: { width: 1, height: CHAIN_HEIGHT, backgroundColor: METAL.brassDeep },
   line: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,
-    lineHeight: LINE_HEIGHTS.lg,
+    lineHeight: LEADING.lg,
     color: INK.dim,
     textAlign: 'center',
     paddingHorizontal: SPACE.xl,

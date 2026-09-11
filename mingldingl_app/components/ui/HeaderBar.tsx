@@ -1,7 +1,8 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Tap } from './Tap';
 import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
-import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { SectionDivider } from './SectionDivider';
 import { Icon } from './Icon';
@@ -25,14 +26,14 @@ export function HeaderBar({ title, showBack = true, onBack, icon, right, childre
       <View style={styles.row}>
         <View style={styles.titleRow}>
           {showBack && (
-            <TouchableOpacity
+            <Tap
               onPress={onBack ?? (() => router.back())}
               style={styles.backBtn}
               accessibilityRole="button"
               accessibilityLabel={i18n.t('back')}
             >
               <Icon name="arrow-left" size={ICON_SIZES.xl} color={ACCENT.base} />
-            </TouchableOpacity>
+            </Tap>
           )}
           {icon && <Icon name={icon} size={ICON_SIZES.lg} style={styles.titleIcon} />}
           {/* Two lines, because `adjustsFontSizeToFit` is iOS-only: on web and Android a long
@@ -66,11 +67,11 @@ const styles = StyleSheet.create({
   titleIcon: { marginTop: SPACE.hair },
   backBtn: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
   title: {
-    fontFamily: FONTS.displayBlack,
+    fontFamily: FONTS.display,
     fontSize: FONT_SIZES.title,
     color: INK.primary,
-    letterSpacing: 1.5,
+    letterSpacing: TRACKING.eyebrow,
     flexShrink: 1,
   },
-  titleCompact: { fontSize: FONT_SIZES.xl, letterSpacing: 1 },
+  titleCompact: { fontSize: FONT_SIZES.xl, letterSpacing: TRACKING.wide },
 });

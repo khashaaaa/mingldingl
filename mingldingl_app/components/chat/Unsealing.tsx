@@ -5,8 +5,7 @@ import { ChestBurst } from '../vfx/ChestBurst';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { signal } from '../../lib/world/feedback';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
-import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { FONTS, FONT_SIZES, INK, LEADING, LINE, RADIUS, SCRIM, SPACE, SURFACE, TRACKING, overlay } from '../../lib/theme';
 import { AppModal } from '../modals/AppModal';
 
 interface Props {
@@ -163,9 +162,10 @@ export function Unsealing({ visible, onDismiss, photoUri, headline, subline }: P
 const styles = StyleSheet.create({
   scrim: {
     flex: 1,
-    // Nearly opaque on purpose: at 0.92 the chat behind stayed legible on device and the
-    // headline landed on top of a message bubble. A ceremony has to be the only thing on screen.
-    backgroundColor: overlay(0.97),
+    // `SCRIM.ceremony` is 0.97 because of this screen: at 0.92 the chat behind stayed legible
+    // on device and the headline landed on top of a message bubble. A ceremony has to be the
+    // only thing on screen, so that measurement is now what every ceremony in the app uses.
+    backgroundColor: overlay(SCRIM.ceremony),
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACE.gutter,
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: LINE.edge,
     overflow: 'hidden',
-    backgroundColor: COLORS.panelDeep,
+    backgroundColor: SURFACE.sunken,
   },
   burst: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   seal: { width: SEAL, height: SEAL },
@@ -186,14 +186,14 @@ const styles = StyleSheet.create({
   headline: {
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.display,
-    lineHeight: LINE_HEIGHTS.title,
+    lineHeight: LEADING.display,
     color: INK.primary,
     textAlign: 'center',
   },
   subline: {
-    fontFamily: FONTS.utility,
+    fontFamily: FONTS.utility, letterSpacing: TRACKING.wide,
     fontSize: FONT_SIZES.sm,
-    lineHeight: LINE_HEIGHTS.sm,
+    lineHeight: LEADING.sm,
     color: INK.dim,
     textAlign: 'center',
   },

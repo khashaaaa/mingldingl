@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, SURFACE } from '../../lib/theme';
 import type { DeepFields, PartialUser } from '../../models/match';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { deepRevealLevel, nextRevealThreshold } from '../../lib/reveal';
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.sm,
     padding: SPACE.sm,
     gap: SPACE.sm,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: LINE.edge,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: METAL.brass,
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
   },
   locked: { borderColor: LINE.edge, alignItems: 'center', justifyContent: 'center' },
   chips: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs },
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: METAL.brass,
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     maxWidth: '100%',
   },
   chipLocked: { borderColor: LINE.edge },

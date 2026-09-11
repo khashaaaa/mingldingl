@@ -2,7 +2,7 @@ import { View, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { colorForTier } from '../../lib/tiers';
-import { ACCENT, COLORS, FILL, LINE, RADIUS, glow, overlay } from '../../lib/theme';
+import { ACCENT, LINE, RADIUS, SCRIM, SURFACE, glow, overlay, tint as tintColor } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { useActiveFestival } from '../../lib/festivals';
 
@@ -24,7 +24,7 @@ export function AppCard({ children, tier, tint: tintOverride, textured, style }:
   return (
     <View style={[styles.card, glow(tint, 0.35, 12, 6), style]}>
       <LinearGradient
-        colors={[COLORS.panelRaised, COLORS.panel]}
+        colors={[SURFACE.raised, SURFACE.panel]}
         style={styles.fill}
         pointerEvents="none"
       />
@@ -38,7 +38,7 @@ export function AppCard({ children, tier, tint: tintOverride, textured, style }:
         </View>
       )}
       <View style={styles.hairline} pointerEvents="none" />
-      <View style={[styles.topHighlight, { backgroundColor: tint + '66' }]} pointerEvents="none" />
+      <View style={[styles.topHighlight, { backgroundColor: tintColor(tint, 0.4) }]} pointerEvents="none" />
       <View style={styles.bottomShadow} pointerEvents="none" />
       <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTl, knotTint]} />
       <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTr, knotTint]} />
@@ -51,7 +51,7 @@ export function AppCard({ children, tier, tint: tintOverride, textured, style }:
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: LINE.edge,
@@ -60,12 +60,12 @@ const styles = StyleSheet.create({
   texture: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS.md, overflow: 'hidden', opacity: 0.06 },
   textureImage: { width: '100%', height: '100%' },
   topHighlight: { position: 'absolute', top: 0, left: RADIUS.md, right: RADIUS.md, height: 1 },
-  bottomShadow: { position: 'absolute', bottom: 0, left: RADIUS.md, right: RADIUS.md, height: 1, backgroundColor: overlay(0.35) },
+  bottomShadow: { position: 'absolute', bottom: 0, left: RADIUS.md, right: RADIUS.md, height: 1, backgroundColor: overlay(SCRIM.edge) },
   hairline: {
     position: 'absolute',
     top: 3, left: 3, right: 3, bottom: 3,
     borderWidth: 1,
-    borderColor: FILL.hairline,
+    borderColor: ACCENT.line,
     borderRadius: RADIUS.sm,
   },
   knot: { position: 'absolute', width: 24, height: 24, pointerEvents: 'none' },

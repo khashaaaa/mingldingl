@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { Tap } from '../ui/Tap';
+import { Text, FlatList, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { scrimStyle } from './DialogSurface';
 import { AppModal } from './AppModal';
 
 interface Props {
@@ -35,8 +37,8 @@ export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSe
 
   return (
     <AppModal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onDismiss}>
-        <TouchableOpacity style={styles.sheet} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+      <Tap style={scrimStyle('sheet', 'bottom')} feedback="none" onPress={onDismiss}>
+        <Tap style={styles.sheet} feedback="none" onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>
             {showingDistricts ? i18n.t('select_district') : i18n.t('select_city')}
           </Text>
@@ -45,9 +47,9 @@ export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSe
             keyExtractor={(c) => c}
             style={styles.list}
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.row} onPress={() => handlePress(item)}>
+              <Tap style={styles.row} onPress={() => handlePress(item)}>
                 <Text style={styles.rowText}>{item}</Text>
-              </TouchableOpacity>
+              </Tap>
             )}
           />
           <GameButton
@@ -57,16 +59,15 @@ export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSe
           >
             {i18n.t('back')}
           </GameButton>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </Tap>
+      </Tap>
     </AppModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: overlay(0.6), justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderTopWidth: 1,
     borderColor: LINE.edge,
     borderTopLeftRadius: RADIUS.md,
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.md,
     color: INK.dim,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.eyebrow,
     textAlign: 'center',
     marginBottom: SPACE.sm,
     textTransform: 'uppercase',
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.lg,
     paddingHorizontal: SPACE.xxl,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.panelRaised,
+    borderBottomColor: SURFACE.raised,
   },
   rowText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: INK.primary },
 });

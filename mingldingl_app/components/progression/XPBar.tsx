@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { tierLabel } from '../../lib/tiers';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
+import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TRACKING, tint } from '../../lib/theme';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { GemTierBadge } from './GemTierBadge';
 import { CountText } from '../ui/CountText';
@@ -51,7 +51,7 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
     <View style={styles.container}>
       <View style={styles.labels}>
         <View style={styles.tierRow}>
-          <GemTierBadge tier={gemTier} size={16} />
+          <GemTierBadge tier={gemTier} size={BADGE_SIZES.inline} />
           <Text style={[styles.tier, { color }]}>{tierLabel(gemTier)}</Text>
         </View>
         {nextTier && <Text style={styles.next}>→ {tierLabel(nextTier)}</Text>}
@@ -95,11 +95,11 @@ const styles = StyleSheet.create({
   container: { gap: SPACE.sm },
   labels: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   tierRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-  tier: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: 0.5 },
+  tier: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: TRACKING.label },
   next: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   track: {
     height: 14,
-    backgroundColor: COLORS.panelDeep,
+    backgroundColor: SURFACE.sunken,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: LINE.edge,
@@ -121,5 +121,5 @@ const styles = StyleSheet.create({
   flash: { backgroundColor: ACCENT.bright },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   nextThreshold: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, flexShrink: 1 },
-  scoreText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'right', letterSpacing: 1, marginLeft: 'auto' },
+  scoreText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'right', letterSpacing: TRACKING.wide, marginLeft: 'auto' },
 });

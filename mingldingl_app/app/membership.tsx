@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { Tap } from '../components/ui/Tap';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { AlertModal } from '../components/modals/AlertModal';
 import { AppCard } from '../components/ui/AppCard';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
@@ -17,21 +12,14 @@ import { useMembership } from '../hooks/useMembership';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, METAL, SPACE } from '../lib/theme';
+import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, MEMBERSHIP_METALS, SPACE, TRACKING } from '../lib/theme';
 import { membershipLabel } from '../lib/tiers';
 import type { GemTier } from '../models/user';
 import type { MembershipPriceOption } from '../models/membership';
 import { useScrollTail } from '../hooks/useScrollTail';
 
-
 const BADGE_TIER: Record<string, GemTier> = {
   Free: 'Garnet', Silver: 'Opal', Gold: 'Emerald',
-};
-
-const BADGE_COLOR: Record<string, { color: string; shade: string }> = {
-  Free: { color: INK.muted, shade: COLORS.bronzeDark },
-  Silver: { color: COLORS.silver, shade: COLORS.silverDark },
-  Gold: { color: ACCENT.bright, shade: METAL.gold },
 };
 
 const DURATIONS = ['1', '3', '6'] as const;
@@ -76,7 +64,7 @@ export default function MembershipScreen() {
           const isSelected = selectedTier === t.level;
           const isCurrent = currentLevel === t.level;
           const gemTier = BADGE_TIER[t.level] ?? 'Garnet';
-          const badgeColor = BADGE_COLOR[t.level] ?? BADGE_COLOR.Free;
+          const badgeColor = MEMBERSHIP_METALS[t.level as keyof typeof MEMBERSHIP_METALS] ?? MEMBERSHIP_METALS.Free;
           const priceOption = priceOptionFor(t);
           const priceLabel = t.monthlyPriceMnt === null
             ? i18n.t('price_free')
@@ -85,10 +73,10 @@ export default function MembershipScreen() {
             ? i18n.t('price_total', { amount: priceOption.totalPriceMnt.toLocaleString() })
             : null;
           return (
-            <TouchableOpacity
+            <Tap
               key={t.level}
               onPress={() => setSelectedTier(t.level)}
-              activeOpacity={0.85}
+             
               style={isSelected ? styles.selectedGlow : undefined}
             >
               <AppCard
@@ -102,7 +90,7 @@ export default function MembershipScreen() {
               >
                 <View style={styles.cardHeader}>
                   <View style={styles.crestRow}>
-                    <GemTierBadge tier={gemTier} size={30} color={badgeColor.color} shade={badgeColor.shade} />
+                    <GemTierBadge tier={gemTier} size={BADGE_SIZES.row} color={badgeColor.color} shade={badgeColor.shade} />
                     <View>
                       <Text style={styles.tierName}>{membershipLabel(t.level)}</Text>
                       {isCurrent && <Text style={styles.currentBadge}>{i18n.t('current_rank')}</Text>}
@@ -134,7 +122,7 @@ export default function MembershipScreen() {
                   ))}
                 </View>
               </AppCard>
-            </TouchableOpacity>
+            </Tap>
           );
         })}
         {selectedTier !== 'Free' && (
@@ -225,14 +213,14 @@ const styles = StyleSheet.create({
     color: INK.primary,
     fontSize: FONT_SIZES.xl,
     fontFamily: FONTS.display,
-    letterSpacing: 0.3,
+    letterSpacing: TRACKING.body,
   },
   currentBadge: {
     color: ACCENT.base,
     fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.bodyMedium,
     marginTop: SPACE.hair,
-    letterSpacing: 0.5,
+    letterSpacing: TRACKING.label,
   },
   priceColumn: {
     alignItems: 'flex-end',

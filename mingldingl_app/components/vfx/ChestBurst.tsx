@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { Canvas, Circle } from '@shopify/react-native-skia';
 import { useSharedValue, withTiming, useDerivedValue, Easing, SharedValue } from 'react-native-reanimated';
-import { ACCENT, COLORS, METAL } from '../../lib/theme';
+import { ACCENT, METAL, SURFACE } from '../../lib/theme';
 import { useVfxLevel } from '../../lib/vfx';
 
 interface Props { size: number; trigger: number; }
@@ -63,7 +63,7 @@ function Particle({ p, size, progress }: { p: P; size: number; progress: SharedV
     return (
       <>
         <Circle cx={cx} cy={cy} r={p.r} color={p.color} opacity={opacity} />
-        <Circle cx={cx} cy={cy} r={p.r * 0.6} color={COLORS.panelDeep} style="stroke" strokeWidth={0.6} opacity={opacity} />
+        <Circle cx={cx} cy={cy} r={p.r * 0.6} color={SURFACE.sunken} style="stroke" strokeWidth={0.6} opacity={opacity} />
       </>
     );
   }

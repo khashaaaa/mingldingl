@@ -12,7 +12,7 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { useAuthStore } from '../../store/authStore';
 import { activeFestival } from '../../lib/festivals';
 import { i18n, tKey } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, tint } from '../../lib/theme';
 function ProgressPips({ progress, target }: { progress: number; target: number }) {
   if (target === 1) return null;
   return (
@@ -71,7 +71,7 @@ export function QuestBoard() {
         </View>
         {board.quests?.map((q) => (
           <View key={q.questId} style={styles.questRow}>
-            <View style={[styles.rune, !q.completed && { borderColor: accent + '66', backgroundColor: accent + '15' }, q.completed && styles.runeDone]}>
+            <View style={[styles.rune, !q.completed && { borderColor: tint(accent, 0.4), backgroundColor: tint(accent, 0.08) }, q.completed && styles.runeDone]}>
               {q.completed ? (
                 <Text style={[styles.runeText, styles.runeTextDone]}>✓</Text>
               ) : (
@@ -133,10 +133,10 @@ const styles = StyleSheet.create({
   questRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm },
   rune: {
     width: 28, height: 28, borderRadius: RADIUS.sm, borderWidth: 1,
-    borderColor: ACCENT.base + '66', backgroundColor: ACCENT.base + '15',
+    borderColor: ACCENT.line, backgroundColor: ACCENT.soft,
     alignItems: 'center', justifyContent: 'center',
   },
-  runeDone: { borderColor: LINE.edge, backgroundColor: COLORS.panelDeep },
+  runeDone: { borderColor: LINE.edge, backgroundColor: SURFACE.sunken },
   runeText: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.display },
   runeTextDone: { color: INK.dim },
   questInfo: { flex: 1, gap: SPACE.xs },
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   questNameDone: { color: INK.dim, textDecorationLine: 'line-through' },
   questXp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: ACCENT.base },
   pips: { flexDirection: 'row', gap: SPACE.xs },
-  pip: { width: 14, height: 4, borderRadius: RADIUS.pill, backgroundColor: COLORS.panelRaised },
+  pip: { width: 14, height: 4, borderRadius: RADIUS.pill, backgroundColor: SURFACE.raised },
   pipFilled: { backgroundColor: ACCENT.base },
   chestRow: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginTop: SPACE.md, paddingTop: SPACE.md,

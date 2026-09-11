@@ -6,10 +6,10 @@ import { HeaderBar } from '../components/ui/HeaderBar';
 import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, circle } from '../lib/theme';
+import { FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, circle } from '../lib/theme';
+import { EmptyHint, StateBlock } from '../components/ui/StateBlock';
 import type { BlockedUser } from '../models/blockedUser';
 import { useScrollTail } from '../hooks/useScrollTail';
-
 
 export default function BlockedUsersScreen() {
   const tail = useScrollTail();
@@ -29,16 +29,15 @@ export default function BlockedUsersScreen() {
           )} />
         </View>
       ) : isError ? (
-        <View style={styles.errorWrap}>
-          <Text style={styles.errorText}>{i18n.t('screen_load_error')}</Text>
+        <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('screen_load_error')}>
           <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
-        </View>
+        </StateBlock>
       ) : (
         <FlatList
           contentContainerStyle={[blockedUsers.length === 0 ? styles.listEmpty : styles.list, { paddingBottom: tail }]}
           data={blockedUsers}
           keyExtractor={(u: BlockedUser) => u.userId}
-          ListEmptyComponent={<Text style={styles.empty}>{i18n.t('blocked_users_empty')}</Text>}
+          ListEmptyComponent={<EmptyHint>{i18n.t('blocked_users_empty')}</EmptyHint>}
           renderItem={({ item }) => (
             <View style={styles.row}>
               {item.firstPhoto ? (
@@ -67,11 +66,8 @@ export default function BlockedUsersScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.md },
-  errorText: { color: INK.primary, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
-  empty: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -79,13 +75,13 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.md,
     paddingHorizontal: SPACE.md,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderWidth: 1,
     borderColor: LINE.edge,
     marginBottom: SPACE.md,
   },
   photo: circle(44),
-  photoPlaceholder: { backgroundColor: COLORS.panelRaised },
+  photoPlaceholder: { backgroundColor: SURFACE.raised },
   name: { flex: 1, color: INK.primary, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
   skeletonRow: {
     flexDirection: 'row',

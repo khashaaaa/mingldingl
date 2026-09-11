@@ -1,10 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
 import { useSharedValue, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
-import {
-  LIGHT, LIGHT_FADE_MS, LIGHT_SPRING, ROOMS, WORLD_ENABLED, applyPhase, dayPhase, roomFor,
-  type DayPhase, type LightRecipe, type RoomName,
-} from '../../lib/world';
+import { LIGHT, LIGHT_FADE_MS, LIGHT_SPRING, ROOMS, WORLD_ENABLED, applyPhase, dayPhase, roomFor, type DayPhase, type LightRecipe, type RoomName } from '../../lib/world';
 import { useWorldState } from '../../hooks/useWorldState';
 import { setFeedbackMuted, signal } from '../../lib/world/feedback';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';

@@ -7,7 +7,8 @@ import { GemTierBadge } from '../progression/GemTierBadge';
 import { i18n } from '../../lib/i18n';
 import { colorForTier, tierLabel } from '../../lib/tiers';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { BADGE_SIZES, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
+import { DIALOG_STYLES, DialogCard, DialogScrim } from './DialogSurface';
 import { AppModal } from './AppModal';
 
 interface Props {
@@ -19,7 +20,6 @@ interface Props {
   onDismiss: () => void;
 }
 
-const BADGE_SIZE = 96;
 const BURST_SIZE = 240;
 const SHAKE_STEP_MS = 60;
 const SHAKE_STEPS = 4;
@@ -112,7 +112,7 @@ export function TierUpCeremony({ visible, tier, previousTier, onDismiss }: Props
 
   return (
     <AppModal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      <View style={styles.overlay}>
+      <DialogScrim weight="ceremony" style={DIALOG_STYLES.ceremonyScrim}>
         <View style={styles.stage}>
           <View style={styles.burstWrap} pointerEvents="none">
             <ChestBurst size={BURST_SIZE} trigger={burst} />
@@ -130,14 +130,14 @@ export function TierUpCeremony({ visible, tier, previousTier, onDismiss }: Props
               },
             ]}
           >
-            <GemTierBadge tier={previousTier} size={BADGE_SIZE} />
+            <GemTierBadge tier={previousTier} size={BADGE_SIZES.ceremony} />
           </Animated.View>
           <Animated.View
             testID="tier-up-new-badge"
             style={[styles.badgeSlot, { opacity: newOpacity, transform: [{ scale: newScale }] }]}
           >
-            <TorchGlow size={BADGE_SIZE * 1.6} color={color}>
-              <GemTierBadge tier={tier} size={BADGE_SIZE} glow />
+            <TorchGlow size={BADGE_SIZES.ceremony * 1.6} color={color}>
+              <GemTierBadge tier={tier} size={BADGE_SIZES.ceremony} glow />
             </TorchGlow>
           </Animated.View>
         </View>
@@ -155,45 +155,27 @@ export function TierUpCeremony({ visible, tier, previousTier, onDismiss }: Props
         </Animated.View>
 
         {revealed && (
-          <View style={styles.footer}>
+          <DialogCard weight="ceremony">
             <GameButton variant="primary" style={styles.closeBtn} onPress={onDismiss}>
               {i18n.t('continue_btn')}
             </GameButton>
-          </View>
+          </DialogCard>
         )}
-      </View>
+      </DialogScrim>
     </AppModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: overlay(0.92),
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACE.xxl,
-    paddingHorizontal: SPACE.xl,
-  },
   stage: { width: BURST_SIZE, height: BURST_SIZE, alignItems: 'center', justifyContent: 'center' },
   burstWrap: { ...StyleSheet.absoluteFillObject },
   badgeSlot: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   words: { alignItems: 'center', gap: SPACE.sm },
   title: {
-    fontFamily: FONTS.displayBlack,
+    fontFamily: FONTS.display,
     fontSize: FONT_SIZES.xl,
     color: INK.primary,
     textAlign: 'center',
-  },
-  footer: {
-    backgroundColor: COLORS.panel,
-    borderWidth: 2,
-    borderColor: ACCENT.base,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACE.xxl,
-    paddingVertical: SPACE.lg,
-    alignItems: 'center',
-    minWidth: 260,
   },
   closeBtn: { alignSelf: 'stretch' },
 });

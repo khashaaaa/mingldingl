@@ -1,9 +1,9 @@
 import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ROOMS, type RoomTexture } from '../../lib/world';
+import { ROOMS } from '../../lib/world';
 import { useReforgedTint } from '../../lib/world/session';
-import { tint } from '../../lib/theme';
+import { GROUND, tint } from '../../lib/theme';
 import { useWorld } from './WorldProvider';
 
 /**
@@ -11,7 +11,7 @@ import { useWorld } from './WorldProvider';
  *
  * Not a texture: a tiled dungeon-brick wall read as red masonry once the warm rooms washed gold
  * over it, and it fought every card and every line of body copy for attention. What replaced it
- * was a flat colour so close to `COLORS.bg` that all six rooms became one — the ground stopped
+ * was a flat colour so close to `SURFACE.ground` that all six rooms became one — the ground stopped
  * fighting the UI by ceasing to exist.
  *
  * Both problems were about being *in front of* the content. This layer sits behind the navigator,
@@ -19,14 +19,6 @@ import { useWorld } from './WorldProvider';
  * Tavern needs without ever tinting a word of text. That is why the room's `tone` lives on this
  * layer rather than in the canopy's wash, where it twice had to be turned down to nothing.
  */
-const GROUND: Record<RoomTexture, string> = {
-  // Cold worked stone — the Gate, the Road, the Hearth, the Forge, the Hall.
-  wall: '#232C42',
-  // The Tavern. Warm dark earth: at the 0.14–0.20 opacity this layer runs at, it lands a few
-  // points off the stone rather than as the brown *screen* the old parchment floor became.
-  parchment: '#3A2C1E',
-};
-
 /**
  * Where the room's light falls off, top to bottom: gone by the top sixth, half way up, and at
  * full strength only along the very bottom edge. Full strength across a *band* would read as a

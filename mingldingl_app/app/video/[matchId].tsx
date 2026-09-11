@@ -15,7 +15,8 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { StateBlock } from '../../components/ui/StateBlock';
 import { toDroppedItem } from '../../lib/tiers';
 import { Icon } from '../../components/ui/Icon';
 
@@ -109,17 +110,19 @@ export default function VideoScreen() {
   // A failed connection used to bounce the user straight back to the chat with no explanation —
   // the same gap the Town Square round screen already closes.
   if (callFailed) return (
-    <View style={[styles.centered, styles.stack, styles.failPadding]}>
-      <Icon name="video-off" size={ICON_SIZES.hero} color={COLORS.emberLight} />
-      <Text style={styles.errorTitle}>{i18n.t('video_connect_error_title')}</Text>
-      <Text style={styles.errorBody}>{i18n.t('video_connect_error_body')}</Text>
+    <StateBlock
+      tone="danger"
+      icon="video-off"
+      title={i18n.t('video_connect_error_title')}
+      body={i18n.t('video_connect_error_body')}
+    >
       <GameButton variant="primary" onPress={() => { setCallFailed(false); setAttempt((a) => a + 1); }}>
         {i18n.t('rejoin')}
       </GameButton>
       <GameButton variant="ghost" size="compact" onPress={() => router.back()}>
         {i18n.t('back')}
       </GameButton>
-    </View>
+    </StateBlock>
   );
 
   return (
@@ -172,7 +175,7 @@ export default function VideoScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
+  screen: { flex: 1, backgroundColor: SURFACE.ground },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   stack: { gap: SPACE.lg },
   failPadding: { paddingHorizontal: SPACE.huge },
@@ -190,13 +193,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.md,
     color: ACCENT.base,
-    letterSpacing: 0.5,
+    letterSpacing: TRACKING.label,
   },
   riteFramingCountdown: {
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.title,
     color: INK.primary,
   },
-  errorTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: INK.primary, textAlign: 'center' },
-  errorBody: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center' },
 });

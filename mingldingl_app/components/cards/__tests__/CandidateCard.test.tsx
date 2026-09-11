@@ -3,6 +3,18 @@ import { render } from '@testing-library/react-native';
 import { CandidateCard } from '../CandidateCard';
 import type { Candidate } from '../../../models/user';
 
+// The card is rendered here without the navigator that mounts `WorldProvider`, so the hold has to
+// be stood up by hand. A real `useWorld()` returning null is also correct — that is the unlit
+// route — and `components/world/__tests__/roomLight.test.tsx` covers that case.
+jest.mock('../../world/WorldProvider', () => ({
+  useWorld: () => ({
+    room: 'road',
+    recipe: { edge: 'rgba(10,11,16,0.9)', vignette: [0.5, 0.32] },
+    light: { value: 0 },
+    phase: 'day',
+  }),
+}));
+
 /**
  * WCAG contrast math, kept local rather than imported from `lib/__tests__/palette.test.ts` — that
  * file asserts theme roles against flat surfaces; this asserts one component's dot against its own
@@ -68,5 +80,43 @@ describe('CandidateCard photo dots', () => {
     const activeRatio = contrastRgb(hexToRgb(activeStyle.backgroundColor), bg);
     const inactiveRatio = contrastRgb(hexToRgb(inactiveStyle.backgroundColor), bg);
     expect(activeRatio).toBeGreaterThanOrEqual(inactiveRatio);
+  });
+});
+
+/**
+ * The Road's light reaches the card now (`RoomLight`), which means a layer sits over a stranger's
+ * photograph and gets darker as the day's match budget is spent. That is the point — but a design
+ * idea does not get to make the one decision this screen exists for harder, so the falloff is
+ * pinned to the edges and the face band stays clear at every light level.
+ */
+describe('CandidateCard under the room light', () => {
+  it('is lit by the room it stands in', () => {
+    expect(renderCard().getByTestId('room-light')).toBeTruthy();
+  });
+
+  it('never swallows a tap meant for the photo underneath', () => {
+    expect(renderCard().getByTestId('room-light').props.pointerEvents).toBe('none');
+  });
+
+  it('leaves the middle of the card clear however dark the room gets', () => {
+    const light = renderCard().getByTestId('room-light');
+    // One gradient, not two: an animated alpha over more than one child forces Android to
+    // composite the card offscreen for the whole transition.
+    const gradients = light.findAllByType('ViewManagerAdapter_ExpoLinearGradient' as never);
+    expect(gradients.length).toBe(1);
+    for (const g of gradients) {
+      const { colors, locations } = g.props as { colors: unknown[]; locations: number[] };
+      // Both stops bounding the centre band are fully transparent, and that band covers the
+      // middle of the card in each axis.
+      const clear = locations
+        .map((at, i) => ({ at, colour: colors[i] }))
+        .filter((s) => s.at > 0 && s.at < 1);
+      expect(clear).toHaveLength(2);
+      expect(clear[0].at).toBeLessThanOrEqual(0.4);
+      expect(clear[1].at).toBeGreaterThanOrEqual(0.6);
+      // The native view takes processed colours, not strings, and `processColor('transparent')`
+      // is 0 — so 0 here is the assertion that the stop is fully clear.
+      for (const stop of clear) expect(stop.colour).toBe(0);
+    }
   });
 });

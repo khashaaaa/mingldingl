@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier, shadeForTier, presenceForTier } from '../../lib/tiers';
-import { INK, tint } from '../../lib/theme';
+import { BADGE_SIZES, INK, tint } from '../../lib/theme';
 import { TorchGlow } from '../vfx/TorchGlow';
 
 interface Props {
@@ -27,7 +27,7 @@ interface Props {
  * made tiers 1-3 identical to each other and tiers 4-6 identical to each other: the ladder was
  * six rungs of data rendered as two.
  */
-export function GemTierBadge({ tier, size = 40, glow = false, color: colorOverride, shade: shadeOverride }: Props) {
+export function GemTierBadge({ tier, size = BADGE_SIZES.hero, glow = false, color: colorOverride, shade: shadeOverride }: Props) {
   const color = colorOverride ?? colorForTier(tier);
   const shade = shadeOverride ?? shadeForTier(tier);
   const presence = presenceForTier(tier, size);

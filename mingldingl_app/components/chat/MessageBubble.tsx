@@ -1,6 +1,7 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import type { Message } from '../../hooks/useChat';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, tint } from '../../lib/theme';
+import { PRESS, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, STATUS, SURFACE, tint } from '../../lib/theme';
+import { FieldError } from '../ui/StateBlock';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 
@@ -35,8 +36,8 @@ export function MessageBubble({ message, myId, onRetry }: Props) {
         <Pressable onPress={() => onRetry?.(message.id)} accessibilityLabel={i18n.t('message_tap_to_retry')}>
           {bubble}
           <View style={styles.retryRow}>
-            <Icon name="alert-circle" size={ICON_SIZES.sm} color={COLORS.emberLight} />
-            <Text style={styles.retryText}>{i18n.t('message_tap_to_retry')}</Text>
+            <Icon name="alert-circle" size={ICON_SIZES.sm} color={STATUS.danger} />
+            <FieldError>{i18n.t('message_tap_to_retry')}</FieldError>
           </View>
         </Pressable>
       ) : bubble}
@@ -51,13 +52,13 @@ const styles = StyleSheet.create({
   bubble: { borderRadius: RADIUS.lg, padding: SPACE.md, maxWidth: '100%' },
   bubbleMine: { alignSelf: 'flex-end', backgroundColor: tint(ACCENT.base, 0.9), borderBottomRightRadius: RADIUS.sm },
   // The chat screen is transparent so the world floor shows through, and that floor sits at very
-  // nearly COLORS.panel — an incoming bubble's fill was scoring 1.03:1 against what was actually
+  // nearly SURFACE.panel — an incoming bubble's fill was scoring 1.03:1 against what was actually
   // behind it, so a received message read as bare text with no bubble at all. Fill alone cannot
   // carry the edge in a palette this dark (panelRaised only reaches 1.09:1); the hairline is what
   // defines it, at ~3:1, and it is the same LINE.edge every other panel in the app uses.
   bubbleTheirs: {
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     borderBottomLeftRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: LINE.edge,
@@ -67,9 +68,8 @@ const styles = StyleSheet.create({
   // that marks a message as landed. Kept well above bubbleFailed's opacity below — sending and
   // failed must read as different states, not two shades of the same fade.
   bubbleSending: { opacity: 0.8, borderBottomRightRadius: RADIUS.lg },
-  bubbleFailed: { opacity: 0.55 },
+  bubbleFailed: { opacity: PRESS.dimmed },
   text: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: INK.primary },
-  textMine: { color: COLORS.panelDeep },
+  textMine: { color: SURFACE.sunken },
   retryRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginTop: SPACE.xs, alignSelf: 'flex-end' },
-  retryText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: COLORS.emberLight },
 });

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { Tap } from './ui/Tap';
+import { Platform, View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import { useAuthStore } from '../store/authStore';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { Icon } from './ui/Icon';
 import { AlertModal } from './modals/AlertModal';
@@ -9,7 +9,7 @@ import { SheetModal } from './modals/SheetModal';
 import { GameButton } from './ui/GameButton';
 import { Waiting } from './ui/Waiting';
 import { i18n } from '../lib/i18n';
-import { COLORS, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle, overlay } from '../lib/theme';
+import { ICON_SIZES, INK, LINE, METAL, RADIUS, SCRIM, SPACE, SURFACE, circle, overlay } from '../lib/theme';
 interface Props {
   photoUrls: string[];
   maxPhotos?: number;
@@ -51,8 +51,7 @@ export function applyUploaded(current: string[], uploaded: Map<string, string>):
 }
 
 export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChange }: Props) {
-  const session = useAuthStore((s) => s.session);
-  const { pickPhoto, takePhoto, uploadPhoto, uploading, lastError, clearLastError, permissionDenied, clearPermissionDenied } = usePhotoUpload(session?.user.id);
+  const { pickPhoto, takePhoto, uploadPhoto, uploading, lastError, clearLastError, permissionDenied, clearPermissionDenied } = usePhotoUpload();
   const [sourceModalVisible, setSourceModalVisible] = useState(false);
   const [failedAlert, setFailedAlert] = useState(false);
   const [pendingLocalUris, setPendingLocalUris] = useState<string[]>([]);
@@ -106,37 +105,37 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
           )}
           {i === 0 && (
             <View style={styles.primaryBadge}>
-              <Icon name="star" size={ICON_SIZES.xs} color={COLORS.bg} />
+              <Icon name="star" size={ICON_SIZES.xs} color={SURFACE.ground} />
             </View>
           )}
-          <TouchableOpacity
+          <Tap
             style={styles.deleteButton}
             accessibilityLabel={i18n.t('remove_photo')}
             onPress={() => setPendingDeleteUrl(url)}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <Icon name="close" size={ICON_SIZES.sm} color={INK.primary} />
-          </TouchableOpacity>
+          </Tap>
           {i !== 0 && (
-            <TouchableOpacity
+            <Tap
               style={styles.primaryButton}
               accessibilityLabel={i18n.t('set_as_primary')}
               onPress={() => handleSetPrimary(url)}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <Icon name="star-outline" size={ICON_SIZES.sm} color={INK.primary} />
-            </TouchableOpacity>
+            </Tap>
           )}
         </View>
       ))}
       {photoUrls.length < maxPhotos && (
-        <TouchableOpacity
+        <Tap
           style={[styles.tile, styles.addTile]}
           disabled={uploading}
           onPress={() => setSourceModalVisible(true)}
         >
           {uploading ? <Waiting size={ICON_SIZES.md} /> : <Icon name="image-plus" size={ICON_SIZES.xxl} color={INK.dim} />}
-        </TouchableOpacity>
+        </Tap>
       )}
 
       <SheetModal visible={sourceModalVisible} onClose={() => setSourceModalVisible(false)}>
@@ -204,7 +203,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },
-  tile: { width: TILE, height: TILE, borderRadius: RADIUS.sm, overflow: 'hidden', backgroundColor: COLORS.panel },
+  tile: { width: TILE, height: TILE, borderRadius: RADIUS.sm, overflow: 'hidden', backgroundColor: SURFACE.panel },
   image: { width: '100%', height: '100%' },
   addTile: {
     alignItems: 'center', justifyContent: 'center',
@@ -212,7 +211,7 @@ const styles = StyleSheet.create({
   },
   uploadOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: overlay(0.55),
+    backgroundColor: overlay(SCRIM.veil),
     alignItems: 'center', justifyContent: 'center',
   },
   primaryBadge: {
@@ -224,7 +223,7 @@ const styles = StyleSheet.create({
   deleteButton: {
     position: 'absolute', top: 4, right: 4,
     ...circle(22),
-    backgroundColor: overlay(0.75),
+    backgroundColor: overlay(SCRIM.veilStrong),
     alignItems: 'center', justifyContent: 'center',
   },
   // Same corner as primaryBadge: exactly one of the two renders per tile (badge when it already
@@ -233,7 +232,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     position: 'absolute', top: 4, left: 4,
     ...circle(22),
-    backgroundColor: overlay(0.75),
+    backgroundColor: overlay(SCRIM.veilStrong),
     alignItems: 'center', justifyContent: 'center',
   },
 });

@@ -76,7 +76,7 @@ describe('ProfileAvatar', () => {
     mockUpdate.mockResolvedValue({ id: 'u1', displayName: 'Bat', photoUrls: ['https://cdn/new.jpg', 'B', 'C'] });
 
     const view = renderAvatar();
-    const { getByText, qc } = view;
+    const { qc } = view;
     await pickFromLibrary(view);
 
     expect(mockUpdate).toHaveBeenCalledWith({ photoUrls: ['https://cdn/new.jpg', 'B', 'C'] });
@@ -128,7 +128,7 @@ describe('ProfileAvatar', () => {
     mockPickPhoto.mockResolvedValue([]);
 
     const view = renderAvatar();
-    const { getByText, qc } = view;
+    const { qc } = view;
     await pickFromLibrary(view);
 
     expect(mockUploadPhoto).not.toHaveBeenCalled();

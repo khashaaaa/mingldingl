@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { EmberField } from '../vfx/EmberField';
 import { FogDrift } from '../vfx/FogDrift';
-import { PHASE_EDGE, ROOMS } from '../../lib/world';
+import { ROOM_VIGNETTE_STOPS, ROOMS } from '../../lib/world';
 import { useWorld } from './WorldProvider';
+import { Vignette } from './Vignette';
 
 /**
  * Everything painted *over* the navigator: the vignette that closes a dark room in, and whatever
@@ -27,35 +26,19 @@ export function WorldCanopy() {
   const world = useWorld();
   const [size, setSize] = useState({ w: 0, h: 0 });
   const recipe = world?.recipe ?? null;
-  const light = world?.light;
   const vfx = world?.room ? ROOMS[world.room].vfx : null;
-  // By day the room keeps its own temperature; at other hours the sky lends the vignette its own.
-  const edge = (world?.phase ? PHASE_EDGE[world.phase] : null) ?? recipe?.edge ?? null;
-
-  const vignetteStyle = useAnimatedStyle(() => {
-    if (!recipe || !light) return { opacity: 0 };
-    const t = Math.min(1, Math.max(0, light.value));
-    const [a, b] = recipe.vignette;
-    return { opacity: a + (b - a) * t };
-  }, [recipe]);
 
   function onLayout(e: LayoutChangeEvent) {
     const { width, height } = e.nativeEvent.layout;
     setSize({ w: width, h: height });
   }
 
-  if (!recipe || !edge) return null;
+  if (!recipe) return null;
   const bandHeight = size.h * 0.45;
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill} onLayout={onLayout} testID="world-canopy">
-      <Animated.View style={[StyleSheet.absoluteFill, vignetteStyle]}>
-        <LinearGradient
-          colors={[edge, 'transparent', 'transparent', edge]}
-          locations={[0, 0.3, 0.68, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
+      <Vignette range={recipe.vignette} locations={ROOM_VIGNETTE_STOPS} />
       {vfx && size.w > 0 && (
         <View style={[styles.band, { height: bandHeight }]}>
           {vfx === 'ember'

@@ -4,7 +4,7 @@ import type { LayoutChangeEvent } from 'react-native';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
-import { ACCENT, COLORS, FILL, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, METAL, RADIUS, SPACE, glow, tint } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, HEAT, INK, METAL, RADIUS, SPACE, SURFACE, circle, glow, tint } from '../../lib/theme';
 export type GateState = 'closed' | 'opening' | 'barred';
 
 interface Props {
@@ -115,9 +115,9 @@ const styles = StyleSheet.create({
     height: HEIGHT,
     borderRadius: RADIUS.md,
     overflow: 'hidden',
-    backgroundColor: COLORS.bg,
+    backgroundColor: SURFACE.ground,
     borderWidth: 1,
-    borderColor: COLORS.brassDark,
+    borderColor: METAL.brassDeep,
   },
   glow: {
     position: 'absolute',
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: '50%',
-    backgroundColor: COLORS.panelDeep,
+    backgroundColor: SURFACE.sunken,
     borderColor: METAL.brass,
   },
   leftHalf: { left: 0, borderRightWidth: 2 },
@@ -151,17 +151,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: SPACE.sm, bottom: SPACE.sm, left: SPACE.sm, right: SPACE.sm,
     borderWidth: 1,
-    borderColor: FILL.hairline,
+    borderColor: ACCENT.line,
     borderRadius: RADIUS.sm,
   },
   // The ring-pull, one per leaf, sitting where a hand would reach for it.
   stud: {
     position: 'absolute',
     top: HEIGHT / 2 - 7,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: COLORS.brassDark,
+    ...circle(14),
+    backgroundColor: METAL.brassDeep,
     borderWidth: 1.5,
     borderColor: METAL.brass,
   },
@@ -176,23 +174,23 @@ const styles = StyleSheet.create({
     left: -SPACE.lg,
     right: -SPACE.lg,
     height: 16,
-    backgroundColor: COLORS.emberLight,
+    backgroundColor: HEAT.flame,
     borderRadius: RADIUS.sm,
     transform: [{ rotate: '-4deg' }],
-    ...glow(COLORS.emberLight, 0.6, 10, 4),
+    ...glow(HEAT.flame, 0.6, 10, 4),
   },
   crossbarEdge: {
     position: 'absolute',
     left: 0, right: 0, bottom: 0,
     height: 4,
-    backgroundColor: COLORS.emberDark,
+    backgroundColor: METAL.emberDeep,
     borderBottomLeftRadius: RADIUS.sm,
     borderBottomRightRadius: RADIUS.sm,
   },
   caption: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.md,
-    lineHeight: LINE_HEIGHTS.md,
+    lineHeight: LEADING.md,
     color: INK.dim,
     textAlign: 'center',
     fontStyle: 'italic',

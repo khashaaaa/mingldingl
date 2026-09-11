@@ -1,8 +1,9 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Tap } from '../ui/Tap';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ACCENT, COLORS, ICON_SIZES, INK, LINE, METAL, SPACE, circle } from '../../lib/theme';
+import { ACCENT, ICON_SIZES, INK, LINE, METAL, PRESS, SPACE, SURFACE, circle } from '../../lib/theme';
 /** Geometry the round prompt above these controls has to clear. */
 export const VIDEO_CONTROLS_BOTTOM = 24;
 export const VIDEO_CONTROLS_SIZE = 60;
@@ -20,16 +21,16 @@ export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, 
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.bar, { bottom: VIDEO_CONTROLS_BOTTOM + insets.bottom }]}>
-      <TouchableOpacity
+      <Tap
         style={[styles.button, muted ? styles.buttonActive : styles.buttonIdle]}
         onPress={onToggleMute}
         accessibilityRole="button"
         accessibilityState={{ selected: muted }}
         accessibilityLabel={i18n.t(muted ? 'unmute' : 'mute')}
       >
-        <Icon name={muted ? 'microphone-off' : 'microphone'} size={ICON_SIZES.xl} color={muted ? COLORS.panelDeep : INK.primary} />
-      </TouchableOpacity>
-      <TouchableOpacity
+        <Icon name={muted ? 'microphone-off' : 'microphone'} size={ICON_SIZES.xl} color={muted ? SURFACE.sunken : INK.primary} />
+      </Tap>
+      <Tap
         style={[styles.button, styles.buttonEnd, endDisabled && styles.buttonBusy]}
         onPress={onEnd}
         disabled={endDisabled}
@@ -38,16 +39,16 @@ export function VideoControls({ muted, cameraOff, onToggleMute, onToggleCamera, 
         accessibilityLabel={i18n.t('end_call')}
       >
         <Icon name="phone-hangup" size={ICON_SIZES.xl} color={INK.primary} />
-      </TouchableOpacity>
-      <TouchableOpacity
+      </Tap>
+      <Tap
         style={[styles.button, cameraOff ? styles.buttonActive : styles.buttonIdle]}
         onPress={onToggleCamera}
         accessibilityRole="button"
         accessibilityState={{ selected: cameraOff }}
         accessibilityLabel={i18n.t(cameraOff ? 'camera_on' : 'camera_off')}
       >
-        <Icon name={cameraOff ? 'video-off' : 'video'} size={ICON_SIZES.xl} color={cameraOff ? COLORS.panelDeep : INK.primary} />
-      </TouchableOpacity>
+        <Icon name={cameraOff ? 'video-off' : 'video'} size={ICON_SIZES.xl} color={cameraOff ? SURFACE.sunken : INK.primary} />
+      </Tap>
     </View>
   );
 }
@@ -60,8 +61,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonIdle: { borderColor: LINE.edge, backgroundColor: COLORS.panelRaised },
+  buttonIdle: { borderColor: LINE.edge, backgroundColor: SURFACE.raised },
   buttonActive: { borderColor: ACCENT.bright, backgroundColor: METAL.gold },
-  buttonEnd: { borderColor: COLORS.emberDark, backgroundColor: METAL.ember },
-  buttonBusy: { opacity: 0.5 },
+  buttonEnd: { borderColor: METAL.emberDeep, backgroundColor: METAL.ember },
+  buttonBusy: { opacity: PRESS.disabled },
 });

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Tap } from '../ui/Tap';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppCard } from '../ui/AppCard';
 import { CardEyebrow } from '../ui/CardEyebrow';
@@ -16,15 +17,12 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { useHonourProgress, type HonourProgress } from '../../hooks/useHonourProgress';
 import { useIgnition } from '../../hooks/useIgnition';
 import { useAuthStore } from '../../store/authStore';
-import {
-  HONOUR_DEED_KEYS, HONOUR_ICONS, HONOUR_IDS, HONOUR_LORE_KEYS, METAL_COLORS, THREAD_HONOUR_IDS,
-  itemLabel, type HonourId,
-} from '../../lib/tiers';
+import { HONOUR_DEED_KEYS, HONOUR_ICONS, HONOUR_IDS, HONOUR_LORE_KEYS, METAL_COLORS, THREAD_HONOUR_IDS, itemLabel, type HonourId } from '../../lib/tiers';
 import { formatDate } from '../../lib/formatDate';
 import { i18n, tKey } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { signal } from '../../lib/world/feedback';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, METAL, RADIUS, SPACE, circle, tint } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, SURFACE, TRACKING, circle, tint } from '../../lib/theme';
 interface HeldHonour {
   itemId?: string | null;
   rarity?: string | null;
@@ -147,11 +145,11 @@ export function HonourCase() {
           <SectionDivider />
           <CardEyebrow>{i18n.t('milestones')}</CardEyebrow>
           {unopened.map((m) => (
-            <TouchableOpacity key={m.id} disabled={isOpening} onPress={() => handleOpenMilestone(m.id!)} style={styles.milestoneRow}>
+            <Tap key={m.id} disabled={isOpening} onPress={() => handleOpenMilestone(m.id!)} style={styles.milestoneRow}>
               <Icon name="treasure-chest-outline" size={ICON_SIZES.lg} color={ACCENT.base} />
               <Text style={styles.milestoneName}>{tKey(m.nameKey)}</Text>
               <Text style={styles.milestoneXp}>+{m.xp}</Text>
-            </TouchableOpacity>
+            </Tap>
           ))}
         </>
       )}
@@ -277,7 +275,7 @@ function HonourSlot({ id, held, ignited, progress, animate, onPress, onLongPress
   const ringScale = lit.interpolate({ inputRange: [0, 1], outputRange: [1.08, 1] });
 
   return (
-    <TouchableOpacity
+    <Tap
       testID={`honour-${id}`}
       // Not `disabled` for a dark slot: RN's Touchable reads `accessibilityState.disabled` as
       // `disabled`, which would swallow the long press that opens its story.
@@ -286,7 +284,7 @@ function HonourSlot({ id, held, ignited, progress, animate, onPress, onLongPress
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={350}
-      activeOpacity={0.8}
+     
       style={[styles.slot, held?.equipped && styles.slotEquipped]}
     >
       <Animated.View style={[styles.slotBody, { opacity: held ? litOpacity : 0.55 }]}>
@@ -342,7 +340,7 @@ function HonourSlot({ id, held, ignited, progress, animate, onPress, onLongPress
         )}
       </Animated.View>
       {burst > 0 && <ChestBurst size={96} trigger={burst} />}
-    </TouchableOpacity>
+    </Tap>
   );
 }
 
@@ -358,31 +356,31 @@ const styles = StyleSheet.create({
   threadLit: { backgroundColor: ACCENT.base, opacity: 1 },
   slot: {
     flex: 1, minWidth: 92, borderWidth: 2, borderColor: INK.muted, borderRadius: RADIUS.md,
-    backgroundColor: COLORS.panelDeep,
+    backgroundColor: SURFACE.sunken,
   },
-  slotEquipped: { backgroundColor: COLORS.panelRaised },
+  slotEquipped: { backgroundColor: SURFACE.raised },
   slotBody: { alignItems: 'center', paddingVertical: SPACE.md, paddingHorizontal: SPACE.sm, gap: SPACE.xs },
   ring: { ...StyleSheet.absoluteFillObject, margin: -2, borderWidth: 2, borderRadius: RADIUS.md },
   slotIconChip: {
     ...circle(CHIP),
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     overflow: 'hidden',
   },
   chipCentre: { alignItems: 'center', justifyContent: 'center' },
   sweep: { position: 'absolute', top: -CHIP / 2, left: 0, width: CHIP * 0.5, height: CHIP * 2 },
   slotName: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.xs, color: INK.primary, textAlign: 'center' },
   slotNameDark: { color: INK.dim },
-  equippedTag: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: ACCENT.base, letterSpacing: 1 },
+  equippedTag: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: ACCENT.base, letterSpacing: TRACKING.wide },
   dateTag: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, textAlign: 'center' },
   deedTag: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, textAlign: 'center' },
   progress: { alignSelf: 'stretch', alignItems: 'center', gap: SPACE.hair, marginTop: SPACE.hair },
-  progressTrack: { alignSelf: 'stretch', height: 3, borderRadius: 2, backgroundColor: tint(INK.primary, 0.1), overflow: 'hidden' },
+  progressTrack: { alignSelf: 'stretch', height: 3, borderRadius: RADIUS.pill, backgroundColor: tint(INK.primary, 0.1), overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: ACCENT.base },
-  progressText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: INK.dim },
+  progressText: { fontFamily: FONTS.utility, letterSpacing: TRACKING.wide, fontSize: FONT_SIZES.xs, color: INK.dim },
   story: { alignItems: 'center', gap: SPACE.md },
-  storyChip: { ...circle(72), borderWidth: 2, backgroundColor: COLORS.panelDeep, alignItems: 'center', justifyContent: 'center' },
+  storyChip: { ...circle(72), borderWidth: 2, backgroundColor: SURFACE.sunken, alignItems: 'center', justifyContent: 'center' },
   storyName: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary, textAlign: 'center' },
-  storyLore: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, lineHeight: LINE_HEIGHTS.md, color: INK.primary, textAlign: 'center' },
+  storyLore: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, lineHeight: LEADING.md, color: INK.primary, textAlign: 'center' },
   storyMeta: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center' },
   milestoneRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm },
   milestoneName: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.primary },

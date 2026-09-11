@@ -1,7 +1,8 @@
 import { Text, View, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../../lib/theme';
+import { DialogCard, DialogScrim } from './DialogSurface';
 import { Icon } from '../ui/Icon';
 import { AppModal } from './AppModal';
 
@@ -17,8 +18,8 @@ interface Props {
 export function AttendanceCheckModal({ visible, activityTitle, onYes, onNo, isSubmitting, onDismiss }: Props) {
   return (
     <AppModal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      <View style={styles.overlay}>
-        <View style={styles.card}>
+      <DialogScrim>
+        <DialogCard>
           <Icon name="calendar-check" size={ICON_SIZES.xxl} color={ACCENT.base} />
           <Text style={styles.title}>{i18n.t('attendance_check_title')}</Text>
           <Text style={styles.question}>
@@ -32,33 +33,14 @@ export function AttendanceCheckModal({ visible, activityTitle, onYes, onNo, isSu
               {i18n.t('attendance_check_yes')}
             </GameButton>
           </View>
-        </View>
-      </View>
+        </DialogCard>
+      </DialogScrim>
     </AppModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: overlay(0.88),
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACE.xxl,
-  },
-  card: {
-    backgroundColor: COLORS.panel,
-    borderWidth: 2,
-    borderColor: ACCENT.base,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACE.xxxl,
-    paddingVertical: SPACE.xxxl,
-    alignItems: 'center',
-    gap: SPACE.sm,
-    maxWidth: 340,
-    width: '100%',
-  },
   title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary, textAlign: 'center' },
-  question: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center', lineHeight: LINE_HEIGHTS.md },
+  question: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center', lineHeight: LEADING.md },
   btnRow: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.md, alignSelf: 'stretch' },
 });

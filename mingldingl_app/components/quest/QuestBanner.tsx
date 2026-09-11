@@ -1,5 +1,6 @@
-import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import { Tap } from '../ui/Tap';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE, circle, tint as tintColor } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { Icon } from '../ui/Icon';
 
@@ -19,8 +20,8 @@ interface Props {
 export function QuestBanner({ icon, title, onPress, disabled = false, tint = ACCENT.base, medallion = 'icon' }: Props) {
   const colour = disabled ? INK.dim : tint;
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8} disabled={disabled || !onPress}>
-      <View style={[styles.row, { borderColor: colour + '88' }]}>
+    <Tap onPress={onPress} disabled={disabled || !onPress}>
+      <View style={[styles.row, { borderColor: tintColor(colour, 0.53) }]}>
         <View style={[styles.medallion, { borderColor: colour }]}>
           {medallion === 'knot' && !disabled ? (
             <Image source={ORNAMENTS.knotGold} testID="ulzii-medallion" style={styles.knot} />
@@ -31,7 +32,7 @@ export function QuestBanner({ icon, title, onPress, disabled = false, tint = ACC
         <Text style={[styles.title, { color: colour }]} numberOfLines={2}>{title}</Text>
         {!disabled && <Text style={[styles.chevron, { color: colour }]}>›</Text>}
       </View>
-    </TouchableOpacity>
+    </Tap>
   );
 }
 
@@ -47,14 +48,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.md,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
   },
   medallion: {
-    width: 32,
-    height: 32,
-    borderRadius: RADIUS.lg,
+    ...circle(32),
     borderWidth: 2,
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     alignItems: 'center',
     justifyContent: 'center',
   },

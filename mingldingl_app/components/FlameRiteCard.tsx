@@ -1,13 +1,14 @@
 import { useState } from 'react';
+import { Tap } from './ui/Tap';
 import { useMutation } from '@tanstack/react-query';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppCard } from './ui/AppCard';
 import { AlertModal } from './modals/AlertModal';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
-import { ACCENT, COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, METAL, RADIUS, SPACE } from '../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, SURFACE, TRACKING } from '../lib/theme';
 import { Icon } from './ui/Icon';
 
 export interface FlameRiteState {
@@ -65,12 +66,12 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
       <AppCard style={styles.card}>
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_ready')}</Text>
-        <TouchableOpacity
+        <Tap
           style={[styles.btn, styles.joinBtn]}
           onPress={() => router.push(`/video/${id}`)}
         >
           <Text style={styles.joinText}>{i18n.t('start_video_call')}</Text>
-        </TouchableOpacity>
+        </Tap>
       </AppCard>
     );
   } else if (proposedByMe) {
@@ -86,20 +87,20 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_incoming')}</Text>
         <View style={styles.actions}>
-          <TouchableOpacity
+          <Tap
             style={[styles.btn, styles.declineBtn]}
             disabled={decline.isPending}
             onPress={() => decline.mutate()}
           >
             <Text style={styles.declineText}>{i18n.t('rite_decline_cta')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Tap>
+          <Tap
             style={[styles.btn, styles.acceptBtn]}
             disabled={accept.isPending}
             onPress={() => accept.mutate()}
           >
             <Text style={styles.acceptText}>{i18n.t('rite_accept_cta')}</Text>
-          </TouchableOpacity>
+          </Tap>
         </View>
       </AppCard>
     );
@@ -108,13 +109,13 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
       <AppCard style={styles.card}>
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_explainer', { minutes: state.durationMinutes })}</Text>
-        <TouchableOpacity
+        <Tap
           style={[styles.btn, styles.proposeBtn]}
           disabled={propose.isPending}
           onPress={() => propose.mutate()}
         >
           <Text style={styles.proposeText}>{i18n.t('rite_propose_cta')}</Text>
-        </TouchableOpacity>
+        </Tap>
       </AppCard>
     );
   }
@@ -135,17 +136,17 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginTop: SPACE.sm, marginBottom: SPACE.sm, padding: SPACE.lg, gap: SPACE.sm },
-  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, letterSpacing: 1 },
-  body: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, lineHeight: LINE_HEIGHTS.md },
+  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, letterSpacing: TRACKING.wide },
+  body: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, lineHeight: LEADING.md },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.xs },
   btn: { paddingVertical: SPACE.md, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
-  proposeBtn: { borderColor: ACCENT.base, backgroundColor: FILL.gold, marginTop: SPACE.xs },
+  proposeBtn: { borderColor: ACCENT.base, backgroundColor: ACCENT.soft, marginTop: SPACE.xs },
   proposeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
-  declineBtn: { flex: 1, borderColor: LINE.edge, backgroundColor: COLORS.panelRaised },
+  declineBtn: { flex: 1, borderColor: LINE.edge, backgroundColor: SURFACE.raised },
   declineText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.dim },
-  acceptBtn: { flex: 1, borderColor: ACCENT.base, backgroundColor: FILL.gold },
+  acceptBtn: { flex: 1, borderColor: ACCENT.base, backgroundColor: ACCENT.soft },
   acceptText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
-  joinBtn: { borderColor: ACCENT.base, backgroundColor: FILL.gold, marginTop: SPACE.xs },
+  joinBtn: { borderColor: ACCENT.base, backgroundColor: ACCENT.soft, marginTop: SPACE.xs },
   joinText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
   completeRow: {
     flexDirection: 'row',
@@ -159,8 +160,8 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: ACCENT.base,
-    backgroundColor: FILL.gold,
+    backgroundColor: ACCENT.soft,
     alignSelf: 'flex-start',
   },
-  completeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: ACCENT.base, letterSpacing: 0.5 },
+  completeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: ACCENT.base, letterSpacing: TRACKING.label },
 });

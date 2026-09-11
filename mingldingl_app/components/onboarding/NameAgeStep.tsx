@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { Keyboard, TextInput, View, Text, StyleSheet } from 'react-native';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
+import { FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
+import { FieldError } from '../ui/StateBlock';
 import { StepScaffold } from './StepScaffold';
 import { FIELD_LIMITS } from '../../lib/fieldLimits';
 import { GameButton } from '../ui/GameButton';
@@ -43,7 +44,7 @@ export function NameAgeStep({ initialName, initialAge, initialGender, onNext }: 
           returnKeyType="done" onSubmitEditing={Keyboard.dismiss}
         />
         {showAgeError && (
-          <Text style={styles.error}>{i18n.t('age_invalid')}</Text>
+          <FieldError>{i18n.t('age_invalid')}</FieldError>
         )}
         <View style={styles.genderGroup}>
           <Text style={styles.label}>{i18n.t('gender')}</Text>
@@ -76,7 +77,6 @@ export function NameAgeStep({ initialName, initialAge, initialGender, onNext }: 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: SPACE.huge, gap: SPACE.lg },
   heading: { color: INK.primary, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
-  error: { color: COLORS.emberLight, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   genderGroup: { gap: SPACE.sm },
   label: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   genderRow: { flexDirection: 'row', gap: SPACE.sm },

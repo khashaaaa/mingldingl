@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import { COLORS, LINE, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { Platform, StyleSheet } from 'react-native';
+import { SPACE } from '../../lib/theme';
+import { DialogCard, DialogScrim } from './DialogSurface';
 import { AppModal } from './AppModal';
 
 /**
@@ -42,31 +43,17 @@ export function SheetModal({ visible, onClose, children }: Props) {
         action?.();
       }}
     >
-      <View style={styles.overlay}>
-        <View style={styles.sheet}>
+      <DialogScrim weight="sheet">
+        <DialogCard weight="sheet" style={styles.sheet}>
           {typeof children === 'function' ? children(closeThen) : children}
-        </View>
-      </View>
+        </DialogCard>
+      </DialogScrim>
     </AppModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: overlay(0.88),
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACE.xxl,
-  },
-  sheet: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: COLORS.panel,
-    borderWidth: 1,
-    borderColor: LINE.edge,
-    borderRadius: RADIUS.md,
-    padding: SPACE.lg,
-    gap: SPACE.md,
-  },
+  // Everything else a sheet is comes from `DialogCard weight="sheet"`; the only thing left that
+  // is this sheet's own is that its rows stack with a gap rather than centring.
+  sheet: { alignItems: 'stretch', gap: SPACE.md },
 });

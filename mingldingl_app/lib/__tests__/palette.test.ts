@@ -1,9 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import {
-  ACCENT, COLORS, GEM_COLORS, GEM_SHADES, INK, LINE, STATUS, STATUS_SOFT, SURFACE, TIER_PRESENCE,
+  ACCENT, COLORS, GEM_COLORS, GEM_SHADES, HEAT, INK, LINE, MEMBERSHIP_METALS, METAL, STATUS,
+  STATUS_DEEP, STATUS_SOFT, SURFACE, TIER_PRESENCE, TONE,
 } from '../theme';
 import { TIER_ORDER } from '../tiers';
+import { APP_ROOT, appSources as sourceFiles } from '../testing/sourceTree';
 
 /**
  * The palette's guarantees, as arithmetic rather than as good intentions.
@@ -139,28 +141,54 @@ describe('muted marks', () => {
 
 describe('the pigment layer stays private', () => {
   /**
-   * `COLORS.bronze` sat under the contrast floor on all 36 of its border uses and on twelve
-   * empty-state icons. It has been replaced by `LINE.edge` and `INK.muted`. This test is what
-   * stops the next person from reaching past the roles and picking the broken pigment again.
+   * This test used to name one pigment. `COLORS.bronze` sat under the contrast floor on all 36
+   * of its border uses and on twelve empty-state icons, it was replaced by `LINE.edge` and
+   * `INK.muted`, and a grep was left behind to stop it coming back.
+   *
+   * Guarding one pigment guarded one mistake. 104 references to `COLORS.panel`, `panelRaised`,
+   * `panelDeep` and `bg` walked straight past it while `SURFACE` — the role written for exactly
+   * those four — sat at zero call sites, and `COLORS.emberLight` answered twenty questions in
+   * three unrelated languages. The rule the file states at the top of the role layer is
+   * "components import roles; only this file is allowed to know which pigment fills a role",
+   * so that is what is tested: the whole box of paint is private, not one tube of it.
+   *
+   * The companion test below checks *keys*, not objects. Checking the object name passed while
+   * `STATUS.warning`, `STATUS.info`, `STATUS_SOFT.success` and `PRESS.disabled` were all dead —
+   * a role's name being mentioned somewhere says nothing about the colour underneath it.
    */
-  it('nothing outside the theme reaches for the retired bronze pigment', () => {
-    const root = path.resolve(__dirname, '../..');
-    const skip = new Set(['node_modules', '.expo', 'android', 'ios', 'dist', '.git']);
-    const offenders: string[] = [];
-
-    (function walk(dir: string) {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (skip.has(entry.name)) continue;
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) { walk(full); continue; }
-        if (!/\.tsx?$/.test(entry.name)) continue;
-        const rel = path.relative(root, full);
-        if (rel === path.join('lib', 'theme.ts') || rel.includes('__tests__')) continue;
-        if (/\bCOLORS\.bronze\b/.test(fs.readFileSync(full, 'utf8'))) offenders.push(rel);
-      }
-    })(root);
+  it('nothing outside the theme reaches into COLORS at all', () => {
+    const offenders = sourceFiles()
+      .filter((f) => /\bCOLORS\./.test(f.text))
+      .map((f) => f.rel);
 
     expect(offenders).toEqual([]);
+  });
+
+  /**
+   * A role that nothing renders is not a role, it is a comment with a contrast test attached.
+   * `SURFACE`, `STATUS` and `STATUS_SOFT` were each fully specified, documented and covered by
+   * the assertions above while having zero call sites — so every guarantee in this file applied
+   * to colours no screen drew. Error and success states were improvised at the call site the
+   * whole time, which is the exact problem `STATUS` was added to solve.
+   */
+  it('every colour role is actually reached for somewhere', () => {
+    // `theme.ts` counts here, unlike in the privacy test above: a key composed into another role
+    // (`INK.onAccent` into a button's label) does reach a screen, just not directly.
+    const text = sourceFiles().map((f) => f.text).join('\n')
+      + fs.readFileSync(path.join(APP_ROOT, 'lib/theme.ts'), 'utf8');
+    const roles: Record<string, object> = {
+      SURFACE, INK, ACCENT, LINE, STATUS, STATUS_SOFT, STATUS_DEEP, METAL, HEAT, TONE,
+      MEMBERSHIP_METALS,
+    };
+    // A table read by a runtime key (`MEMBERSHIP_METALS[level]`) is consumed whole; checking its
+    // keys would only ever find them all missing.
+    const whole = ['MEMBERSHIP_METALS'];
+    const unused = Object.entries(roles)
+      .filter(([role]) => !whole.includes(role))
+      .flatMap(([role, table]) => Object.keys(table).map((key) => `${role}.${key}`))
+      .filter((ref) => !text.includes(ref));
+
+    expect(unused).toEqual([]);
   });
 });
 
@@ -170,9 +198,8 @@ describe('lines', () => {
     expect(contrast(COLORS.bronze, SURFACE.panel)).toBeLessThan(3);
   });
 
-  it('climbs from decorative to selected', () => {
+  it('climbs from decorative to standard', () => {
     expect(luminance(LINE.hairline)).toBeLessThan(luminance(LINE.edge));
-    expect(luminance(LINE.edge)).toBeLessThan(luminance(LINE.strong));
   });
 });
 
@@ -183,17 +210,10 @@ describe('status', () => {
     }
   });
 
-  it('keeps danger, success and info clear of the accent and of each other', () => {
-    const distinct = { success: STATUS.success, danger: STATUS.danger, info: STATUS.info };
-    for (const colour of Object.values(distinct)) {
-      expect(hueGap(colour, ACCENT.base)).toBeGreaterThan(25);
-    }
-    const vals = Object.values(distinct);
-    for (let i = 0; i < vals.length; i++) {
-      for (let j = i + 1; j < vals.length; j++) {
-        expect(hueGap(vals[i], vals[j])).toBeGreaterThan(25);
-      }
-    }
+  it('keeps danger clear of the accent', () => {
+    // `warning` is the documented exception below and cannot take part in a hue test.
+    expect(hueGap(STATUS.danger, ACCENT.base)).toBeGreaterThan(25);
+    expect(hueGap(STATUS.danger, STATUS.warning)).toBeGreaterThan(25);
   });
 
   it('documents the one collision instead of pretending it is solved', () => {
@@ -204,13 +224,22 @@ describe('status', () => {
     expect(contrast(STATUS.warning, ACCENT.base)).toBeGreaterThan(1.5);
   });
 
-  it('shares its green with the Emerald tier on purpose', () => {
-    expect(STATUS.success).toBe(GEM_COLORS.Emerald);
-  });
-
-  it('gives every status a soft fill', () => {
+  it('gives every status a soft fill, and no fill a status that no longer exists', () => {
+    expect(Object.keys(STATUS_SOFT).sort()).toEqual(Object.keys(STATUS).sort());
     for (const key of Object.keys(STATUS) as (keyof typeof STATUS)[]) {
       expect(STATUS_SOFT[key]).toMatch(/^rgba\(/);
+    }
+  });
+
+  /**
+   * An opaque bar sits over the app rather than inside a page, so it carries body ink itself
+   * rather than borrowing the panel's. The theme's docstring claimed this was held by test and
+   * for a while it was not; this is the assertion it was describing.
+   */
+  it('carries body ink on every deep status bar', () => {
+    for (const key of Object.keys(STATUS_DEEP) as (keyof typeof STATUS_DEEP)[]) {
+      expect({ key, ratio: contrast(STATUS_DEEP[key], INK.primary) }).toMatchObject({ key });
+      expect(contrast(STATUS_DEEP[key], INK.primary)).toBeGreaterThanOrEqual(4.5);
     }
   });
 });

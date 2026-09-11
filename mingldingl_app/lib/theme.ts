@@ -71,10 +71,11 @@ export const TIER_PRESENCE = {
   Emerald:  { ring: 3, glow: 0.80 },
 } as const;
 
+// One name per face. `displayBlack` and `displayRegular` used to sit beside `display` and
+// resolve to the very same file, so fourteen call sites were asking for a weight that does not
+// exist and getting `display` anyway. A token that cannot change what is drawn is not a token.
 export const FONTS = {
   display: 'YesevaOne_400Regular',
-  displayBlack: 'YesevaOne_400Regular',
-  displayRegular: 'YesevaOne_400Regular',
   body: 'Alegreya_400Regular',
   bodyMedium: 'Alegreya_500Medium',
   bodyBold: 'Alegreya_700Bold',
@@ -83,6 +84,8 @@ export const FONTS = {
   utility: 'AlegreyaSC_700Bold',
 } as const;
 
+const XL = 20;
+
 // 4px grid. gutter/scrollTail are named for the layout role they always play.
 export const SPACE = {
   hair: 2,
@@ -90,12 +93,14 @@ export const SPACE = {
   sm: 8,
   md: 12,
   lg: 16,
-  xl: 20,
+  xl: XL,
   xxl: 24,
   xxxl: 28,
   huge: 32,
   giant: 40,
-  gutter: 20,
+  // A page gutter is one xl step. Stated as a role so "the page edge" and "an xl gap" stay
+  // separate decisions that happen to agree, rather than two spellings of the number 20.
+  gutter: XL,
   scrollTail: 40,
 } as const;
 
@@ -126,6 +131,13 @@ export const FONT_SIZES = {
   xl: 18,
   title: 22,
   display: 28,
+  /**
+   * One step above display, for the single loudest thing on a screen. It exists because the app
+   * had no such thing: the scale stopped at 28 and almost nothing reached it, so a person's own
+   * name on their character sheet was set at `title` — the same size as the word "Honours" three
+   * cards below it. A design that never raises its voice has no way to say what matters.
+   */
+  hero: 34,
   wordmark: 40,
 } as const;
 
@@ -138,25 +150,115 @@ export const LINE_HEIGHTS = {
   md: 20,
   lg: 22,
   title: 30,
+  display: 34,
+  hero: 40,
+  wordmark: 46,
 } as const;
 
-// Translucent affordance fills. One alpha per role, so a "selected" surface
-// looks the same everywhere instead of drifting between 0.1 and 0.22.
-export const FILL = {
-  gold: tint(COLORS.gold, 0.15),
-  goldSoft: tint(COLORS.goldBright, 0.12),
-  bronze: tint(COLORS.bronze, 0.16),
-  hairline: tint(COLORS.gold, 0.22),
+/**
+ * Which leading belongs to which type step. The ladder above promised that "the same size never
+ * gets two different line heights" and could not keep it: `FONT_SIZES.xs` was set with both
+ * `LINE_HEIGHTS.xs` and `LINE_HEIGHTS.sm` on two different screens, and the top two steps —
+ * `display` and `wordmark` — had no leading to reach for at all. This map is the promise made
+ * mechanical: `leading(size)` is the only correct answer, so the pair cannot drift apart.
+ *
+ * It is a default, not a law. Two styles deviate from it with a reason written next to them —
+ * the tab bar's label takes full leading at `xs` because the display face's descenders were
+ * shearing off against the bar, and the report sheet's `sm` label takes the snug `xs` step
+ * because it is a single line and full leading was dead space. A deviation carrying its reason
+ * is a decision; a deviation that carries none is the drift.
+ */
+export const LEADING = {
+  xs: LINE_HEIGHTS.xs,
+  sm: LINE_HEIGHTS.sm,
+  md: LINE_HEIGHTS.md,
+  lg: LINE_HEIGHTS.lg,
+  xl: LINE_HEIGHTS.lg,
+  title: LINE_HEIGHTS.title,
+  display: LINE_HEIGHTS.display,
+  hero: LINE_HEIGHTS.hero,
+  wordmark: LINE_HEIGHTS.wordmark,
+} as const satisfies Record<keyof typeof FONT_SIZES, number>;
+
+/**
+ * Tracking. The last axis to get a ladder, and the worst of it was inside `FONTS.utility` — the
+ * small-caps face whose entire job is tracked labels, and which was being set at four different
+ * widths, so the same eyebrow was a different shape depending on which screen you were on.
+ */
+export const TRACKING = {
+  none: 0,
+  /** A whisper of air in running copy. */
+  body: 0.3,
+  /** A button or a chip label. */
+  label: 0.5,
+  /** The standing setting for the small-caps utility face. */
+  wide: 1,
+  /** A card or section eyebrow — the widest a label goes before it stops reading as a word. */
+  eyebrow: 1.5,
+  /** Ceremony only: a tier-up, the Gate, a wordmark. */
+  ceremony: 3,
 } as const;
 
-// Hand-tuned metal surfaces for GameButton. They live here, not in the component,
-// so the palette file stays the single place any colour value is written down.
-export const BUTTON_METALS = {
-  primary: { gradient: ['#F2A03D', COLORS.gold, '#8A4310'], border: '#8A4310', highlight: tint(COLORS.goldBright, 0.4), label: '#1A1406' },
-  ghost:   { gradient: ['#2A241C', COLORS.panelRaised, '#14100C'], border: COLORS.bronze, highlight: tint(COLORS.text, 0.1), label: COLORS.text },
-  danger:  { gradient: ['#934C2C', COLORS.emberDark, '#5E2E17'], border: '#7E3D1F', highlight: tint(COLORS.emberLight, 0.4), label: COLORS.text },
-  brass:   { gradient: metalGradient(COLORS.brass), border: COLORS.brassDark, highlight: tint(COLORS.brass, 0.5), label: '#241704' },
-} as const satisfies Record<string, { gradient: readonly [string, string, string]; border: string; highlight: string; label: string }>;
+/**
+ * How dark it gets behind a layer that sits over the app. `overlay()` takes a bare number and so
+ * grew nine of them; these are the three that mean something. A dialog and a ceremony were being
+ * scrimmed at 0.88 and 0.92 more or less at random, and the Atlas at 0.86 for no reason at all.
+ *
+ * `ceremony` is 0.97 rather than the 0.92 most ceremonies used because 0.92 was measured on
+ * device and found wanting — see the note in `components/chat/Unsealing.tsx`, where the chat
+ * behind the seal stayed legible and pulled the eye off the reveal.
+ */
+export const SCRIM = {
+  /** A one-pixel shadow under a raised edge. */
+  edge: 0.35,
+  /** A wash over a photograph, so text can sit on it. */
+  veil: 0.55,
+  /** A sheet or picker rising over a screen still meant to be read behind it. */
+  sheet: 0.6,
+  /** The heavier wash for where a control, and not just text, sits on a photograph. */
+  veilStrong: 0.75,
+  /** A dialog. What is behind is context, not content. */
+  dialog: 0.88,
+  /** A ceremony, and the foot of a full-bleed photo gradient. Nothing behind it competes. */
+  ceremony: 0.97,
+} as const;
+
+/**
+ * What a tap looks like, and how present a control is.
+ *
+ * React Native's default `activeOpacity` is 0.2 — the row does not acknowledge the touch so much
+ * as briefly leave. Nothing reaches for these directly: `components/ui/Tap` owns the press and
+ * `ladders.test.ts` holds it there, which is what keeps this from going back to a value every
+ * call site writes out for itself.
+ */
+export const PRESS = {
+  /** The standard acknowledgement. */
+  opacity: 0.8,
+  /** For a control that animates its own press, where a fade would double up. */
+  none: 1,
+  /** A control that is present but cannot be used — disabled, or busy with a request. */
+  disabled: 0.4,
+  /** Content that is present but not current: a cleared room, a message that failed to send. */
+  dimmed: 0.55,
+} as const;
+
+/**
+ * The gem badge's size ladder. It is the first thing anyone learns about a stranger here and it
+ * was being called at a spread of sizes including 28, 30 and 32 — three steps nobody can tell
+ * apart. The badge draws everything from `size`, so the spread bought nothing at all.
+ */
+export const BADGE_SIZES = {
+  /** Inside a bar or a HUD slab. */
+  inline: 16,
+  /** Beside a line of text. */
+  chip: 20,
+  /** A list row, or a card's corner. */
+  row: 28,
+  /** A profile or progression header. */
+  hero: 44,
+  /** The tier-up stage, where the badge is the whole screen rather than part of a layout. */
+  ceremony: 96,
+} as const;
 
 /**
  * THE ROLE LAYER.
@@ -165,7 +267,7 @@ export const BUTTON_METALS = {
  * like. Everything below is a *role* — named after the job it does. Components import roles;
  * only this file is allowed to know which pigment fills a role.
  *
- * The split exists because `COLORS.gold` was being asked 178 questions and giving one answer. It
+ * The split exists because `COLORS.gold` was answering every question with one answer. It
  * was the heading colour, the icon colour, the card border, the button fill and the shadow, all
  * at once — so nothing on a screen could be more important than anything else, and the palette
  * could not be re-tuned without moving six unrelated things together. After the split those are
@@ -209,13 +311,15 @@ export const ACCENT = {
  * Rules and edges, as a ramp rather than one value. `bronze` used to serve every border at
  * 2.60:1 — under the 3:1 that WCAG requires of a UI boundary, so card edges were invisible to
  * low-vision users and in daylight, which matters for a phone used outdoors. Each step here is
- * solved against `panel`: decorative, standard, and selected.
+ * solved against `panel`: decorative and standard.
+ *
+ * There were two more, `strong` and `focus`, and nothing ever climbed to them — React Native
+ * draws no focus ring for `focus` to colour, and no surface asked for a third weight. Add a rung
+ * when something needs to stand on it.
  */
 export const LINE = {
   hairline: '#394553',
   edge: '#526476',
-  strong: '#698097',
-  focus: COLORS.goldBright,
 } as const;
 
 /**
@@ -223,10 +327,11 @@ export const LINE = {
  * error and success state in the app was improvised at its call site. All four sit in the same
  * 4.5:1 … 10:1 band as the gems.
  *
- * Two deliberate choices worth knowing before you change them:
- *
- * `success` IS the Emerald jewel, not a near-miss of it. Two greens a hair apart would read as a
- * mistake; one green that means both "good" and "the top tier" reads as a system.
+ * There were four. `success` and `info` are gone: nothing in the app ever rendered either, and a
+ * fully specified, contrast-tuned colour that no screen draws is a comment with a test attached.
+ * The app says "good" in gold, like the rest of its ceremonies. If a real success or information
+ * state ever arrives, add the colour back then — `success` was `GEM_COLORS.Emerald` on purpose,
+ * so that one green meant both "good" and "the top tier" rather than two greens a hair apart.
  *
  * `warning` sits 15.9° from `ACCENT.base` in hue, which is a collision — in an app whose accent
  * is orange, a hue-distinct warning does not exist. It separates on lightness instead (1.63:1
@@ -234,19 +339,15 @@ export const LINE = {
  * text, where nothing would distinguish it from an ordinary gold heading.
  */
 export const STATUS = {
-  success: GEM_COLORS.Emerald,
   warning: '#EAB90A',
   danger: '#E5484D',
-  info: '#5B9CF8',
 } as const;
 
 /** Banner and chip fills for each status. Text on these stays `INK.primary` — the fill is a
  *  wash, not a surface, so it never needs its own ink. */
 export const STATUS_SOFT = {
-  success: tint(STATUS.success, 0.14),
   warning: tint(STATUS.warning, 0.14),
   danger: tint(STATUS.danger, 0.14),
-  info: tint(STATUS.info, 0.14),
 } as const;
 
 /**
@@ -264,7 +365,112 @@ export const METAL = {
   gold: COLORS.gold,
   ember: COLORS.ember,
   brass: COLORS.brass,
+  /**
+   * Deep shades, for the body or bezel of a thing made of the metal above it — a lantern's
+   * unlit wick, a chain, the Gate's ironwork. These exist because `COLORS.emberDark` and
+   * `COLORS.brassDark` were being reached for directly: the shade of a metal is part of the
+   * metal, not a separate pigment anyone may pick up.
+   */
+  emberDeep: COLORS.emberDark,
+  brassDeep: COLORS.brassDark,
 } as const;
+
+/**
+ * Fire, as identity rather than alarm. The streak flame, a boss room's chip, the embers under
+ * the Gate, a call that has dropped.
+ *
+ * This is the split `COLORS.emberLight` never got. That one pigment was speaking three
+ * unrelated languages at once — form errors, a lost point, and genuine fire — so a lit streak
+ * and a failed upload were the same colour, and neither could be re-tuned without moving the
+ * other. Errors are `STATUS.danger` now. This is the fire.
+ */
+export const HEAT = {
+  flame: COLORS.emberLight,
+} as const;
+
+/**
+ * What a thing means, as the only vocabulary a call site gets to choose from.
+ *
+ * Two components had grown private tone unions with incompatible words — `StateBlock`'s
+ * `empty | error | good` and `AlertModal`'s `default | warning`, the latter resolving a warning
+ * to `METAL.ember`, a *metal*, while `STATUS.warning` sat at zero call sites. One union means a
+ * warning is a warning in both places; each component still decides how loud to draw it, because
+ * an empty-state mark and a dialog's border are not asking for the same prominence.
+ */
+export type Tone = 'neutral' | 'good' | 'warning' | 'danger';
+
+/**
+ * A pigment used as *light* — the tone a room is lit by, in `lib/world/light.ts`. These are the
+ * raw metals on purpose: a torch is gold-coloured light, not a gold button, and routing the
+ * world's six light signatures through `ACCENT` or `METAL` would tie the colour of a wall wash
+ * to the colour of a heading.
+ */
+export const TONE = {
+  silver: COLORS.silver,
+  gold: COLORS.gold,
+  brass: COLORS.brass,
+  ember: COLORS.ember,
+} as const;
+
+/**
+ * Membership tiers, which are metals of their own and not the item rarities in `METAL`. Face
+ * and body sit together as with the gems, so a re-tuned face cannot drift from its own shade.
+ */
+export const MEMBERSHIP_METALS = {
+  Free:   { color: INK.muted,     shade: COLORS.bronzeDark },
+  Silver: { color: COLORS.silver, shade: COLORS.silverDark },
+  Gold:   { color: ACCENT.bright, shade: METAL.gold },
+} as const satisfies Record<string, { color: string; shade: string }>;
+
+/**
+ * The opaque counterpart to `STATUS_SOFT`, for a bar that sits *over* the app rather than
+ * inside a page — the offline banner must not let the screen show through it, so a wash will
+ * not do. Mixed down toward the ground from the status itself rather than hand-picked, so a
+ * re-tuned status carries its bar with it, and held at 4.5:1 against `INK.primary` by test.
+ */
+export const STATUS_DEEP = {
+  warning: mix(STATUS.warning, COLORS.bg, 0.6),
+} as const;
+
+/**
+ * The dark a room's vignette closes to, and the ground its floor is made of.
+ *
+ * These were the last colour values living outside this file, in `lib/world/light.ts` and
+ * `components/world/WorldFloor.tsx`. The world layer is the one place in the app where colour is
+ * free, because nothing on it ever sits behind a word of text — but "free" is not the same as
+ * "somewhere else".
+ */
+export const NIGHT = {
+  plain: overlay(0.9),
+  blue:  'rgba(8,12,24,0.90)',
+  brown: 'rgba(20,11,6,0.90)',
+  black: 'rgba(4,4,9,0.94)',
+} as const;
+
+export const GROUND = {
+  /** Cold worked stone — the Gate, the Road, the Hearth, the Forge, the Hall. */
+  wall: '#232C42',
+  /** The Tavern. Warm dark earth, a few points off the stone at this layer's opacity. */
+  parchment: '#3A2C1E',
+} as const;
+
+/**
+ * Hand-tuned metal surfaces for GameButton. They live here, not in the component, so the
+ * palette file stays the single place any colour value is written down.
+ *
+ * `ghost` used to run warm brown → `COLORS.panelRaised` → warm brown: a cool blue-grey middle
+ * stop between two hand-picked browns, which is what a half-finished migration looks like from
+ * the outside. It is built with `metalGradient` now, the same way `brass` is, so it is one
+ * material lit from above instead of three colours in a row. Its border was `COLORS.bronze` —
+ * the retired pigment this file's own test pins below the 3:1 a UI boundary needs — which made
+ * the secondary button the one control on screen whose edge you could not see.
+ */
+export const BUTTON_METALS = {
+  primary: { gradient: ['#F2A03D', COLORS.gold, '#8A4310'], border: '#8A4310', highlight: tint(COLORS.goldBright, 0.4), label: INK.onAccent },
+  ghost:   { gradient: metalGradient(COLORS.panelRaised), border: LINE.edge, highlight: tint(INK.primary, 0.1), label: INK.primary },
+  danger:  { gradient: ['#934C2C', COLORS.emberDark, '#5E2E17'], border: '#7E3D1F', highlight: tint(COLORS.emberLight, 0.4), label: INK.primary },
+  brass:   { gradient: metalGradient(COLORS.brass), border: METAL.brassDeep, highlight: tint(COLORS.brass, 0.5), label: '#241704' },
+} as const satisfies Record<string, { gradient: readonly [string, string, string]; border: string; highlight: string; label: string }>;
 
 export function overlay(opacity: number): string {
   return `rgba(10,11,16,${opacity})`;

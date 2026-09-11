@@ -1,12 +1,6 @@
-import {
-  Text,
-  View,
-  ScrollView,
-  RefreshControl,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { Text, View, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Tap } from '../../components/ui/Tap';
 import { useActivity } from '../../hooks/useActivity';
 import type { Business } from '../../models/business';
 import { AppCard } from '../../components/ui/AppCard';
@@ -20,7 +14,8 @@ import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
-import { ACCENT, COLORS, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { EmptyHint, StateBlock } from '../../components/ui/StateBlock';
 type CategoryGlyph = React.ComponentProps<typeof Icon>['name'];
 
 // Must stay in step with mingldingl_control's BusinessForm CATEGORIES — the venues the engine
@@ -81,22 +76,16 @@ export default function ActivityScreen() {
             <Skeleton width="100%" height={110} radius={RADIUS.md} />
           )} />
         ) : isError ? (
-          <View style={styles.center}>
-            <Icon name="alert-circle-outline" size={ICON_SIZES.huge} color={INK.muted} />
-            <Text style={styles.emptyText}>{i18n.t('screen_load_error')}</Text>
-            <GameButton size="compact" onPress={() => refetch()} style={styles.retryButton}>
-              {i18n.t('retry')}
-            </GameButton>
-          </View>
+          <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('screen_load_error')}>
+            <GameButton size="compact" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
+          </StateBlock>
         ) : !businesses || businesses.length === 0 ? (
-          <View style={styles.center}>
-            <Text style={styles.emptyText}>{i18n.t('no_missions')}</Text>
-          </View>
+          <EmptyHint>{i18n.t('no_missions')}</EmptyHint>
         ) : (
           businesses.map((b, index) => (
             <Entering index={index} key={b.id}>
-              <TouchableOpacity
-                activeOpacity={0.8}
+              <Tap
+               
                 onPress={() => router.push({
                   pathname: `/business/${b.id}` as any,
                   params: {
@@ -127,7 +116,7 @@ export default function ActivityScreen() {
                     </View>
                   </View>
                 </AppCard>
-              </TouchableOpacity>
+              </Tap>
             </Entering>
           ))
         )}
@@ -145,7 +134,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.giant, gap: SPACE.sm },
   retryButton: { marginTop: SPACE.sm },
-  emptyText: { color: INK.dim, fontSize: FONT_SIZES.lg, fontFamily: FONTS.body },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail, flexGrow: 1 },
   weaveButton: { marginBottom: SPACE.lg },
   missionCard: { marginBottom: SPACE.lg, padding: SPACE.lg },
@@ -154,17 +142,17 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     alignItems: 'center',
     justifyContent: 'center',
   },
   missionIcon: { width: 26, textAlign: 'center' },
   info: { flex: 1 },
   missionTitle: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: INK.primary, marginBottom: SPACE.xs },
-  missionDesc: { fontSize: FONT_SIZES.sm, color: INK.dim, lineHeight: LINE_HEIGHTS.sm, marginBottom: SPACE.xs, fontFamily: FONTS.body },
+  missionDesc: { fontSize: FONT_SIZES.sm, color: INK.dim, lineHeight: LEADING.sm, marginBottom: SPACE.xs, fontFamily: FONTS.body },
   meta: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body },
   pointsBadge: {
-    backgroundColor: FILL.gold,
+    backgroundColor: ACCENT.soft,
     borderWidth: 1,
     borderColor: ACCENT.base,
     borderRadius: RADIUS.md,
@@ -174,5 +162,5 @@ const styles = StyleSheet.create({
     minWidth: 52,
   },
   pointsValue: { color: ACCENT.base, fontSize: FONT_SIZES.lg, fontFamily: FONTS.display },
-  pointsLabel: { color: ACCENT.base, fontSize: FONT_SIZES.xs, fontFamily: FONTS.bodyMedium, letterSpacing: 0.5 },
+  pointsLabel: { color: ACCENT.base, fontSize: FONT_SIZES.xs, fontFamily: FONTS.bodyMedium, letterSpacing: TRACKING.label },
 });

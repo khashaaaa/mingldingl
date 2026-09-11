@@ -3,8 +3,8 @@ import { PermissionsAndroid, Platform, StyleSheet, Text, View } from 'react-nati
 import Constants from 'expo-constants';
 import type { VideoToken } from '../../hooks/useVideoCall';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, ICON_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
-import { Icon } from '../ui/Icon';
+import { FONTS, INK, RADIUS, SPACE, SURFACE } from '../../lib/theme';
+import { StateBlock } from '../ui/StateBlock';
 
 interface Props {
   token: VideoToken;
@@ -128,10 +128,7 @@ export function AgoraVideoCall(props: Props) {
   if (!IS_DEV_BUILD) {
     return (
       <View style={styles.placeholder}>
-        <Icon name="video" size={ICON_SIZES.huge} color={INK.dim} />
-        <Text style={styles.placeholderText}>
-          {i18n.t('video_dev_build_required')}
-        </Text>
+        <StateBlock icon="video" title={i18n.t('video_dev_build_required')} />
       </View>
     );
   }
@@ -139,13 +136,12 @@ export function AgoraVideoCall(props: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.bg },
+  root: { flex: 1, backgroundColor: SURFACE.ground },
   waiting: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   waitingText: { color: INK.dim, fontFamily: FONTS.body },
   localPreview: {
     position: 'absolute', top: SPACE.lg, right: SPACE.lg,
     width: 100, height: 140, borderRadius: RADIUS.lg, overflow: 'hidden',
   },
-  placeholder: { flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
-  placeholderText: { color: INK.primary, fontFamily: FONTS.body, textAlign: 'center', paddingHorizontal: SPACE.huge },
+  placeholder: { flex: 1, backgroundColor: SURFACE.ground, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
 });

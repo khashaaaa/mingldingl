@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Tap } from '../ui/Tap';
+import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { apiClient } from '../../lib/api/apiClient';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { i18n } from '../../lib/i18n';
 import { REPORT_REASONS, reportReasonKey, type ReportReason } from '../../models/report';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
 import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
 import { SheetModal } from './SheetModal';
@@ -68,7 +69,7 @@ export function ReportUserSheet({ visible, reportedUserId, matchId, onClose, onR
           {REPORT_REASONS.map((option) => {
             const selected = reason === option;
             return (
-              <TouchableOpacity
+              <Tap
                 key={option}
                 style={[styles.reason, selected && styles.reasonSelected]}
                 accessibilityRole="radio"
@@ -83,7 +84,7 @@ export function ReportUserSheet({ visible, reportedUserId, matchId, onClose, onR
                 <Text style={[styles.reasonLabel, selected && styles.reasonLabelSelected]}>
                   {i18n.t(reportReasonKey(option))}
                 </Text>
-              </TouchableOpacity>
+              </Tap>
             );
           })}
         </ScrollView>
@@ -139,7 +140,7 @@ const styles = StyleSheet.create({
   },
   intro: {
     fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim,
-    lineHeight: LINE_HEIGHTS.md, textAlign: 'center', marginBottom: SPACE.md,
+    lineHeight: LEADING.md, textAlign: 'center', marginBottom: SPACE.md,
   },
   reasons: { maxHeight: 260, alignSelf: 'stretch' },
   reason: {
@@ -152,14 +153,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  reasonSelected: { borderColor: LINE.edge, backgroundColor: COLORS.panel },
+  reasonSelected: { borderColor: LINE.edge, backgroundColor: SURFACE.panel },
   reasonLabel: {
-    fontFamily: FONTS.body, fontSize: FONT_SIZES.md, lineHeight: LINE_HEIGHTS.md,
+    fontFamily: FONTS.body, fontSize: FONT_SIZES.md, lineHeight: LEADING.md,
     color: INK.dim, flexShrink: 1,
   },
   reasonLabelSelected: { color: INK.primary },
   detailsLabel: {
-    fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, lineHeight: LINE_HEIGHTS.xs,
+    fontFamily: FONTS.utility, letterSpacing: TRACKING.wide, fontSize: FONT_SIZES.sm, lineHeight: LINE_HEIGHTS.xs,
     color: INK.dim, alignSelf: 'flex-start', marginTop: SPACE.md,
   },
   details: {

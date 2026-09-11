@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, ScrollView, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { Tap } from '../../components/ui/Tap';
+import { View, Text, FlatList, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -27,7 +28,8 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SCRIM, SPACE, SURFACE, TRACKING, overlay } from '../../lib/theme';
+import { FieldError, StateBlock } from '../../components/ui/StateBlock';
 import { useAuthStore } from '../../store/authStore';
 import { useActivityGate, useRevealLadder } from '../../hooks/useRevealThresholds';
 import { messagesUntilActivities, nextRevealThreshold } from '../../lib/reveal';
@@ -38,7 +40,6 @@ const DEFAULT_RITE_DURATION_MINUTES = 5;
 
 /** How close to the newest message still counts as "following the conversation", in px. */
 const NEAR_BOTTOM_SLOP = 80;
-
 
 export default function ChatScreen() {
   useLocaleStore((s) => s.locale);
@@ -169,13 +170,13 @@ export default function ChatScreen() {
           title={revealedName || name || i18n.t('chat_title')}
           right={
             <>
-              <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.unmatchBtn} accessibilityLabel={i18n.t('chat_options_title')}>
+              <Tap onPress={() => setOptionsVisible(true)} style={styles.unmatchBtn} accessibilityLabel={i18n.t('chat_options_title')}>
                 <Icon name="dots-vertical" size={ICON_SIZES.lg} color={INK.dim} />
-              </TouchableOpacity>
+              </Tap>
               {!endedReason && (
-                <TouchableOpacity onPress={() => router.push(`/video/${matchId}`)} style={styles.videoBtn} accessibilityLabel={i18n.t('start_video_call')}>
+                <Tap onPress={() => router.push(`/video/${matchId}`)} style={styles.videoBtn} accessibilityLabel={i18n.t('start_video_call')}>
                   <Icon name="video" size={ICON_SIZES.lg} color={ACCENT.base} />
-                </TouchableOpacity>
+                </Tap>
               )}
             </>
           }
@@ -221,9 +222,9 @@ export default function ChatScreen() {
             says when one of them is actually waiting on you. Hidden entirely on a severed bond,
             where every one of them is a dead end. */}
         {!endedReason && (
-          <TouchableOpacity
+          <Tap
             onPress={() => setActivitiesVisible(true)}
-            activeOpacity={0.8}
+           
             accessibilityRole="button"
             testID="chat-activities"
           >
@@ -244,7 +245,7 @@ export default function ChatScreen() {
               )}
               <Text style={styles.activitiesChevron}>›</Text>
             </View>
-          </TouchableOpacity>
+          </Tap>
         )}
 
         {loading ? (
@@ -252,10 +253,9 @@ export default function ChatScreen() {
             <Waiting />
           </View>
         ) : isError ? (
-          <View style={styles.spinnerWrap}>
-            <Text style={styles.loadErrorText}>{i18n.t('chat_load_error')}</Text>
+          <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('chat_load_error')}>
             <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
-          </View>
+          </StateBlock>
         ) : (
           <FlatList
             ref={flatListRef}
@@ -283,23 +283,25 @@ export default function ChatScreen() {
             // just the reveal strip and activities row over a blank area, with no cue that
             // sending the first message is the way to begin.
             ListEmptyComponent={!hasMore ? (
-              <View style={styles.emptyWrap} testID="chat-empty">
-                <Icon name="message-text-outline" size={ICON_SIZES.hero} color={INK.muted} />
-                <Text style={styles.emptyTitle}>{i18n.t('chat_empty_title')}</Text>
-                <Text style={styles.emptySub}>{i18n.t('chat_empty_sub')}</Text>
-              </View>
+              <StateBlock
+                testID="chat-empty"
+                style={styles.emptyWrap}
+                icon="message-text-outline"
+                title={i18n.t('chat_empty_title')}
+                body={i18n.t('chat_empty_sub')}
+              />
             ) : null}
             ListHeaderComponent={hasMore ? (
               <>
-                <TouchableOpacity style={styles.loadEarlierBtn} onPress={() => loadEarlier()} disabled={loadingEarlier} accessibilityRole="button">
+                <Tap style={styles.loadEarlierBtn} onPress={() => loadEarlier()} disabled={loadingEarlier} accessibilityRole="button">
                   {loadingEarlier ? <Waiting size={ICON_SIZES.md} /> : (
                     <>
                       <Icon name="chevron-double-up" size={ICON_SIZES.sm} color={ACCENT.base} />
                       <Text style={styles.loadEarlierText}>{i18n.t('load_earlier')}</Text>
                     </>
                   )}
-                </TouchableOpacity>
-                {earlierError && <Text style={styles.loadErrorText}>{i18n.t('load_earlier_failed')}</Text>}
+                </Tap>
+                {earlierError && <FieldError style={styles.loadErrorText}>{i18n.t('load_earlier_failed')}</FieldError>}
               </>
             ) : null}
             renderItem={({ item }) => (
@@ -378,9 +380,9 @@ export default function ChatScreen() {
         onDismiss={() => { clearSubmitFailed(); setAttendanceModalVisible(true); }}
       />
       <AppModal visible={activitiesVisible} transparent animationType="fade" onRequestClose={() => setActivitiesVisible(false)}>
-        <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={() => setActivitiesVisible(false)}>
-          <TouchableOpacity
-            activeOpacity={1}
+        <Tap style={styles.optionsOverlay} feedback="none" onPress={() => setActivitiesVisible(false)}>
+          <Tap
+            feedback="none"
             onPress={() => {}}
             style={[styles.optionsSheet, { paddingBottom: SPACE.lg + insets.bottom }]}
           >
@@ -413,14 +415,14 @@ export default function ChatScreen() {
                   onPress={() => { setActivitiesVisible(false); setAttendanceModalVisible(true); }} />
               )}
             </ScrollView>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </Tap>
+        </Tap>
       </AppModal>
       <AppModal visible={optionsVisible} transparent animationType="fade" onRequestClose={() => setOptionsVisible(false)}>
-        <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={() => setOptionsVisible(false)}>
+        <Tap style={styles.optionsOverlay} feedback="none" onPress={() => setOptionsVisible(false)}>
           {/* Swallows taps so pressing the sheet's own padding or title does not dismiss it. */}
-          <TouchableOpacity
-            activeOpacity={1}
+          <Tap
+            feedback="none"
             onPress={() => {}}
             style={[styles.optionsSheet, { paddingBottom: SPACE.lg + insets.bottom }]}
           >
@@ -434,8 +436,8 @@ export default function ChatScreen() {
             <GameButton variant="danger" icon="flag" onPress={() => { setOptionsVisible(false); setReportVisible(true); }}>
               {i18n.t('report_user')}
             </GameButton>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </Tap>
+        </Tap>
       </AppModal>
       {match && (
         <ReportUserSheet
@@ -479,37 +481,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: SPACE.md,
   },
-  loadErrorText: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.lg,
-    color: INK.dim,
-    textAlign: 'center',
-    paddingHorizontal: SPACE.huge,
-  },
+  loadErrorText: { textAlign: 'center', paddingHorizontal: SPACE.huge },
   messageList: {
     paddingHorizontal: SPACE.gutter,
     paddingVertical: SPACE.lg,
     flexGrow: 1,
   },
-  emptyWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACE.md,
-    paddingHorizontal: SPACE.huge,
-  },
-  emptyTitle: {
-    fontFamily: FONTS.display,
-    fontSize: FONT_SIZES.title,
-    color: INK.primary,
-    textAlign: 'center',
-  },
-  emptySub: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.lg,
-    color: INK.dim,
-    textAlign: 'center',
-  },
+  emptyWrap: { flex: 1, paddingHorizontal: SPACE.huge },
   activitiesRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -523,7 +501,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: METAL.brass,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
   },
   activitiesLabel: { flex: 1 },
   activitiesTitle: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
@@ -548,7 +526,7 @@ const styles = StyleSheet.create({
     gap: SPACE.sm,
     paddingHorizontal: SPACE.lg,
     paddingVertical: SPACE.lg,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderTopColor: LINE.edge,
     borderTopWidth: 1,
   },
@@ -570,21 +548,21 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     borderColor: METAL.brass,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
   },
   loadEarlierText: {
     fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.sm,
     color: ACCENT.base,
-    letterSpacing: 0.5,
+    letterSpacing: TRACKING.label,
   },
   optionsOverlay: {
     flex: 1,
-    backgroundColor: overlay(0.6),
+    backgroundColor: overlay(SCRIM.sheet),
     justifyContent: 'flex-end',
   },
   optionsSheet: {
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderTopWidth: 1,
     borderColor: LINE.edge,
     borderTopLeftRadius: RADIUS.md,
@@ -596,7 +574,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.sm,
     color: INK.dim,
-    letterSpacing: 2,
+    letterSpacing: TRACKING.eyebrow,
     textAlign: 'center',
     marginBottom: SPACE.xs,
     textTransform: 'uppercase',

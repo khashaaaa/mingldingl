@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { Tap } from '../ui/Tap';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, INK, PRESS, RADIUS, SPACE } from '../../lib/theme';
+import { FieldError } from '../ui/StateBlock';
 import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { StepScaffold } from './StepScaffold';
@@ -29,9 +31,9 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
         {OATH_VALUES.map((oath) => {
           const isSelected = selected === oath;
           return (
-            <TouchableOpacity
+            <Tap
               key={oath}
-              activeOpacity={0.85}
+             
               onPress={() => setSelected(oath)}
               accessibilityRole="button"
               accessibilityLabel={i18n.t(OATH_NAME_KEYS[oath])}
@@ -47,12 +49,12 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
                   <Text style={styles.cardDesc}>{i18n.t(OATH_DESC_KEYS[oath])}</Text>
                 </View>
               </AppCard>
-            </TouchableOpacity>
+            </Tap>
           );
         })}
       </View>
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && <FieldError>{error}</FieldError>}
 
       <View style={styles.actions}>
         <GameButton variant="ghost" flex={1} disabled={loading} onPress={onBack}>
@@ -76,7 +78,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: SPACE.huge, gap: SPACE.lg },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: 'auto' },
   heading: { color: INK.primary, fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
-  help: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
+  help: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LEADING.md },
   cardList: { gap: SPACE.md },
   card: { flexDirection: 'row', alignItems: 'center', padding: SPACE.lg, gap: SPACE.lg },
   cardSelected: { borderColor: ACCENT.base, borderWidth: 2 },
@@ -89,9 +91,8 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
   },
   glyphImg: { width: 34, height: 34 },
-  glyphImgDim: { opacity: 0.45 },
+  glyphImgDim: { opacity: PRESS.disabled },
   cardText: { flex: 1, gap: SPACE.xs },
   cardName: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: INK.primary },
-  cardDesc: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.dim, lineHeight: LINE_HEIGHTS.md },
-  error: { color: COLORS.emberLight, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
+  cardDesc: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.dim, lineHeight: LEADING.md },
 });

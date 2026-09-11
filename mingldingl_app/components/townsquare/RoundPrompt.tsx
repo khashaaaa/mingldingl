@@ -1,8 +1,9 @@
-import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
+import { Tap } from '../ui/Tap';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VIDEO_CONTROLS_BOTTOM, VIDEO_CONTROLS_SIZE } from '../video/VideoControls';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, LINE, METAL, RADIUS, SPACE, tint } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, LINE, METAL, PRESS, RADIUS, SPACE, SURFACE, TRACKING, tint } from '../../lib/theme';
 interface Props {
   icebreakerText: string;
   roundNumber: number;
@@ -47,7 +48,7 @@ export function RoundPrompt({ icebreakerText, roundNumber, secondsLeft, hasRespo
         )
       ) : (
         <View style={styles.buttonRow}>
-          <TouchableOpacity
+          <Tap
             style={[styles.button, styles.noButton, isResponding && styles.buttonBusy]}
             disabled={isResponding}
             accessibilityRole="button"
@@ -55,8 +56,8 @@ export function RoundPrompt({ icebreakerText, roundNumber, secondsLeft, hasRespo
             onPress={() => onRespond('No')}
           >
             <Text style={[styles.buttonText, styles.noButtonText]}>{i18n.t('town_square_no')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Tap>
+          <Tap
             style={[styles.button, styles.yesButton, isResponding && styles.buttonBusy]}
             disabled={isResponding}
             accessibilityRole="button"
@@ -64,7 +65,7 @@ export function RoundPrompt({ icebreakerText, roundNumber, secondsLeft, hasRespo
             onPress={() => onRespond('Yes')}
           >
             <Text style={[styles.buttonText, styles.yesButtonText]}>{i18n.t('town_square_yes')}</Text>
-          </TouchableOpacity>
+          </Tap>
         </View>
       )}
     </View>
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    backgroundColor: tint(COLORS.panel, 0.92),
+    backgroundColor: tint(SURFACE.panel, 0.92),
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: LINE.edge,
@@ -85,18 +86,18 @@ const styles = StyleSheet.create({
     gap: SPACE.sm,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  roundLabel: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: INK.dim, letterSpacing: 1 },
-  clock: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.lg, color: ACCENT.bright },
+  roundLabel: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: INK.dim, letterSpacing: TRACKING.wide },
+  clock: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.bright },
   question: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary },
   waitingText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
-  matchText: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, color: ACCENT.bright },
+  matchText: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: ACCENT.bright },
   buttonRow: { flexDirection: 'row', gap: SPACE.md },
   button: { flex: 1, borderRadius: RADIUS.sm, paddingVertical: SPACE.md, alignItems: 'center', borderWidth: 1 },
-  buttonBusy: { opacity: 0.5 },
+  buttonBusy: { opacity: PRESS.disabled },
   yesButton: { backgroundColor: METAL.gold, borderColor: ACCENT.bright },
-  noButton: { backgroundColor: COLORS.panelRaised, borderColor: LINE.edge },
-  buttonText: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, letterSpacing: 1 },
+  noButton: { backgroundColor: SURFACE.raised, borderColor: LINE.edge },
+  buttonText: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, letterSpacing: TRACKING.wide },
   // Light-on-gold reads at 2.4:1; the rest of the app puts a dark label on this slab (as GameButton does).
-  yesButtonText: { color: COLORS.panelDeep },
+  yesButtonText: { color: SURFACE.sunken },
   noButtonText: { color: INK.primary },
 });

@@ -1,6 +1,6 @@
 import { View, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, INK, SPACE, metalGradient } from '../../lib/theme';
+import { INK, SPACE, metalGradient } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { useActiveFestival } from '../../lib/festivals';
 

@@ -1,5 +1,5 @@
 import { Text, StyleSheet, type StyleProp, type TextStyle } from 'react-native';
-import { FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
+import { FONTS, FONT_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
 interface Props {
   children: string;
   color?: string;
@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontFamily: FONTS.utility,
     fontSize: FONT_SIZES.xs,
-    letterSpacing: 1.5,
+    letterSpacing: TRACKING.eyebrow,
     marginBottom: SPACE.sm,
   },
 });

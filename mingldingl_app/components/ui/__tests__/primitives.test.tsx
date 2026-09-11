@@ -4,7 +4,7 @@ import { StyleSheet, Text, TextInput } from 'react-native';
 import { CardEyebrow } from '../CardEyebrow';
 import { TextField } from '../TextField';
 import { HeaderBar } from '../HeaderBar';
-import { COLORS, FONTS, FONT_SIZES, LINE } from '../../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, LINE, SURFACE } from '../../../lib/theme';
 
 const mockBack = jest.fn();
 
@@ -29,10 +29,10 @@ describe('CardEyebrow', () => {
 
   it('defaults to dim text and accepts an accent colour', () => {
     const { getByText, rerender } = render(<CardEyebrow>quests</CardEyebrow>);
-    expect(StyleSheet.flatten(getByText('QUESTS').props.style).color).toBe(COLORS.textDim);
+    expect(StyleSheet.flatten(getByText('QUESTS').props.style).color).toBe(INK.dim);
 
-    rerender(<CardEyebrow color={COLORS.gold}>quests</CardEyebrow>);
-    expect(StyleSheet.flatten(getByText('QUESTS').props.style).color).toBe(COLORS.gold);
+    rerender(<CardEyebrow color={ACCENT.base}>quests</CardEyebrow>);
+    expect(StyleSheet.flatten(getByText('QUESTS').props.style).color).toBe(ACCENT.base);
   });
 
   it('uppercases Mongolian Cyrillic labels', () => {
@@ -45,7 +45,7 @@ describe('TextField', () => {
   it('is a panel-coloured field with a contrast-passing edge, in the body face', () => {
     const { getByPlaceholderText } = render(<TextField placeholder="name" />);
     const style = StyleSheet.flatten(getByPlaceholderText('name').props.style);
-    expect(style.backgroundColor).toBe(COLORS.panel);
+    expect(style.backgroundColor).toBe(SURFACE.panel);
     expect(style.borderColor).toBe(LINE.edge);
     expect(style.fontFamily).toBe(FONTS.body);
     expect(style.height).toBe(52);
@@ -66,7 +66,7 @@ describe('TextField', () => {
     const onChangeText = jest.fn();
     const { getByPlaceholderText } = render(<TextField ref={ref} placeholder="age" onChangeText={onChangeText} />);
     const input = getByPlaceholderText('age');
-    expect(input.props.placeholderTextColor).toBe(COLORS.textDim);
+    expect(input.props.placeholderTextColor).toBe(INK.dim);
     fireEvent.changeText(input, '27');
     expect(onChangeText).toHaveBeenCalledWith('27');
     expect(ref.current).toBeTruthy();

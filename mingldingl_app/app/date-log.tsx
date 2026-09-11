@@ -9,11 +9,11 @@ import { Entering } from '../components/ui/Entering';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE } from '../lib/theme';
+import { EmptyHint, StateBlock } from '../components/ui/StateBlock';
 import type { Trophy } from '../models/trophy';
 import { Icon } from '../components/ui/Icon';
 import { useScrollTail } from '../hooks/useScrollTail';
-
 
 function TrophyRow({ trophy }: { trophy: Trophy }) {
   const photo = trophy.myMomentPhotoUrl ?? trophy.businessPhoto;
@@ -73,17 +73,15 @@ export default function DateLogScreen() {
           )} />
         </View>
       ) : isError ? (
-        <View style={styles.errorWrap}>
-          <Icon name="alert-circle-outline" size={ICON_SIZES.huge} color={INK.muted} />
-          <Text style={styles.errorText}>{i18n.t('screen_load_error')}</Text>
+        <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('screen_load_error')}>
           <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
-        </View>
+        </StateBlock>
       ) : (
         <FlatList
           contentContainerStyle={[(trophies ?? []).length === 0 ? styles.listEmpty : styles.list, { paddingBottom: tail }]}
           data={trophies ?? []}
           keyExtractor={(t) => t.matchId}
-          ListEmptyComponent={<Text style={styles.empty}>{i18n.t('date_log_empty')}</Text>}
+          ListEmptyComponent={<EmptyHint>{i18n.t('date_log_empty')}</EmptyHint>}
           renderItem={({ item, index }) => (
             <Entering index={index}>
               <TrophyRow trophy={item} />
@@ -97,15 +95,12 @@ export default function DateLogScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
-  errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.md },
-  errorText: { color: INK.primary, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
-  empty: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, textAlign: 'center' },
   card: { padding: SPACE.md, marginBottom: SPACE.md },
   row: { flexDirection: 'row', gap: SPACE.md },
   photo: { width: 64, height: 64, borderRadius: RADIUS.md },
-  photoPlaceholder: { backgroundColor: COLORS.panelRaised, alignItems: 'center', justifyContent: 'center' },
+  photoPlaceholder: { backgroundColor: SURFACE.raised, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1, justifyContent: 'center', gap: SPACE.xs },
   title: { color: INK.primary, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg },
   subtitle: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },

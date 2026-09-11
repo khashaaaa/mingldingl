@@ -4,7 +4,8 @@ import { GameButton } from '../ui/GameButton';
 import { ChestBurst } from '../vfx/ChestBurst';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SPACE, overlay } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
+import { DIALOG_STYLES, DialogCard, DialogScrim } from './DialogSurface';
 import { AppModal } from './AppModal';
 
 interface Props { visible: boolean; xp: number; onDismiss: () => void; }
@@ -42,7 +43,7 @@ export function ChestModal({ visible, xp, onDismiss }: Props) {
 
   return (
     <AppModal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      <View style={styles.overlay}>
+      <DialogScrim weight="ceremony" style={DIALOG_STYLES.ceremonyScrim}>
         <Animated.View
           style={{
             transform: [
@@ -57,22 +58,17 @@ export function ChestModal({ visible, xp, onDismiss }: Props) {
           <ChestBurst size={220} trigger={burst} />
         </View>
         {revealed && (
-          <View style={styles.rewardCard}>
+          <DialogCard weight="ceremony">
             <Text style={styles.xp}>+{xp} {i18n.t('pts')}</Text>
             <GameButton variant="primary" style={styles.closeBtn} onPress={onDismiss}>{i18n.t('take_bounty')}</GameButton>
-          </View>
+          </DialogCard>
         )}
-      </View>
+      </DialogScrim>
     </AppModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: overlay(0.92), alignItems: 'center', justifyContent: 'center', gap: SPACE.xxl },
-  rewardCard: {
-    backgroundColor: COLORS.panel, borderWidth: 2, borderColor: ACCENT.base, borderRadius: RADIUS.md,
-    paddingHorizontal: SPACE.huge, paddingVertical: SPACE.xxl, alignItems: 'center', gap: SPACE.sm, minWidth: 260,
-  },
-  xp: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.display, color: ACCENT.base },
+  xp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.display, color: ACCENT.base },
   closeBtn: { marginTop: SPACE.md, alignSelf: 'stretch' },
 });

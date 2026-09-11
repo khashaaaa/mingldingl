@@ -3,7 +3,8 @@ import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { formatCountdown } from '../../lib/townSquareTime';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
+import { StateBlock } from '../ui/StateBlock';
 import type { TownSquareNextSession } from '../../hooks/useTownSquareSession';
 import { Icon } from '../ui/Icon';
 import { CardEyebrow } from '../ui/CardEyebrow';
@@ -24,11 +25,12 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
   if (!session?.sessionId) {
     return (
       <View style={styles.emptyWrap}>
-        <View style={styles.emptyCard}>
-          <Icon name="bank" size={ICON_SIZES.xxl} color={INK.muted} />
-          <Text style={styles.emptyTitle}>{i18n.t('town_square_empty_title')}</Text>
-          <Text style={styles.emptySub}>{i18n.t('town_square_empty_sub')}</Text>
-        </View>
+        <StateBlock
+          framed
+          icon="bank"
+          title={i18n.t('town_square_empty_title')}
+          body={i18n.t('town_square_empty_sub')}
+        />
       </View>
     );
   }
@@ -90,19 +92,8 @@ const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg, gap: SPACE.sm },
   festivalRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
   festivalText: { marginBottom: 0 },
-  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, letterSpacing: 1 },
+  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, letterSpacing: TRACKING.wide },
   hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
-  countdown: { fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.title, color: INK.primary },
+  countdown: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: INK.primary },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.gutter },
-  emptyCard: {
-    backgroundColor: COLORS.panel,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: LINE.edge,
-    padding: SPACE.giant,
-    alignItems: 'center',
-    gap: SPACE.md,
-  },
-  emptyTitle: { fontSize: FONT_SIZES.title, fontFamily: FONTS.display, color: INK.primary },
-  emptySub: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: INK.dim, textAlign: 'center' },
 });

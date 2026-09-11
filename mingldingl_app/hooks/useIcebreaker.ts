@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { apiClient } from '../lib/api/apiClient';
-import { useAuthStore } from '../store/authStore';
 import { queryKeys } from '../lib/api/queryKeys';
 import { useMyUserId } from './useMyUserId';
 

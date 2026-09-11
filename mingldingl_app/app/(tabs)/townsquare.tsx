@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { GameButton } from '../../components/ui/GameButton';
@@ -8,7 +8,8 @@ import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { i18n } from '../../lib/i18n';
 import { getApiErrorMessage, isApiError } from '../../lib/api/errors';
 import { useLocaleStore } from '../../store/localeStore';
-import { FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
+import { SPACE } from '../../lib/theme';
+import { StateBlock } from '../../components/ui/StateBlock';
 const autoNavigatedSessions = new Set<string>();
 
 export default function TownSquareScreen() {
@@ -48,10 +49,9 @@ export default function TownSquareScreen() {
       <GameHeader title={i18n.t('town_square_title')} icon="account-group" />
       <View style={styles.content}>
         {closed || (isError && !session) ? (
-          <View style={styles.errorWrap}>
-            <Text style={styles.errorText}>{getApiErrorMessage(error, i18n.t('screen_load_error'))}</Text>
+          <StateBlock tone="danger" icon="alert-circle-outline" title={getApiErrorMessage(error, i18n.t('screen_load_error'))}>
             <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
-          </View>
+          </StateBlock>
         ) : (
           <SessionStatusCard
             session={session}
@@ -71,6 +71,4 @@ export default function TownSquareScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   content: { flex: 1, paddingTop: SPACE.lg },
-  errorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.md },
-  errorText: { color: INK.primary, fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, textAlign: 'center' },
 });

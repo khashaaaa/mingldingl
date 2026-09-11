@@ -1,9 +1,10 @@
-import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
+import { Tap } from '../ui/Tap';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { AppCard } from '../ui/AppCard';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, SURFACE } from '../../lib/theme';
 interface Props {
   isProfileComplete: boolean;
 
@@ -30,7 +31,7 @@ function StepRow({ step }: { step: Step }) {
     </View>
   );
   if (!step.onPress) return row;
-  return <TouchableOpacity onPress={step.onPress}>{row}</TouchableOpacity>;
+  return <Tap onPress={step.onPress}>{row}</Tap>;
 }
 
 export function GettingStartedCard({ isProfileComplete, achievedMilestoneIds, onCompleteProfile }: Props) {
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.sm,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: LINE.edge,

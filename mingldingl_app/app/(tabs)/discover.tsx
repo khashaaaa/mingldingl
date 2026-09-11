@@ -1,4 +1,4 @@
-import { View, Text as RNText, StyleSheet, type LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { isAxiosError } from 'axios';
@@ -17,12 +17,10 @@ import { GameHeader } from '../../components/ui/GameHeader';
 import { PanelReveal } from '../../components/modals/PanelReveal';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { EmberField } from '../../components/vfx/EmberField';
-import { FogDrift } from '../../components/vfx/FogDrift';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE } from '../../lib/theme';
-import { Icon } from '../../components/ui/Icon';
-
+import { RADIUS, SPACE } from '../../lib/theme';
+import { StateBlock } from '../../components/ui/StateBlock';
 
 export default function DiscoverScreen() {
   useLocaleStore((s) => s.locale);
@@ -37,17 +35,11 @@ export default function DiscoverScreen() {
   const dailyBudget = useDailyMatchBudget();
   const budgetSpent = dailyBudget !== null && dailyBudget.remaining <= 0;
   const [deckSize, setDeckSize] = useState({ w: 0, h: 0 });
-  const [emptySize, setEmptySize] = useState({ w: 0, h: 0 });
   const [loadingCardHeight, setLoadingCardHeight] = useState(0);
 
   function onDeckLayout(e: LayoutChangeEvent) {
     const { width, height } = e.nativeEvent.layout;
     setDeckSize({ w: width, h: height });
-  }
-
-  function onEmptyLayout(e: LayoutChangeEvent) {
-    const { width, height } = e.nativeEvent.layout;
-    setEmptySize({ w: width, h: height });
   }
 
   // Matches the deck's own `cardArea` box (same padding), so the placeholder occupies exactly the
@@ -70,11 +62,9 @@ export default function DiscoverScreen() {
 
   if (isError) return (
     <View style={styles.center}>
-      <View style={styles.emptyCard}>
-        <Icon name="wifi-off" size={ICON_SIZES.hero} color={INK.muted} />
-        <RNText style={styles.emptyTitle}>{i18n.t('discover_load_error')}</RNText>
+      <StateBlock framed tone="danger" icon="wifi-off" title={i18n.t('discover_load_error')}>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
-      </View>
+      </StateBlock>
     </View>
   );
 
@@ -82,15 +72,17 @@ export default function DiscoverScreen() {
 
   if (!candidate) return (
     <View style={styles.center}>
-      <View style={styles.emptyCard} onLayout={onEmptyLayout}>
-        {emptySize.w > 0 && <FogDrift width={emptySize.w} height={emptySize.h} />}
-        <Icon name="weather-night" size={ICON_SIZES.hero} color={INK.muted} />
-        <RNText style={styles.emptyTitle}>{i18n.t('empty_seek_title')}</RNText>
-        <RNText style={styles.emptySub}>{i18n.t('empty_seek_sub')}</RNText>
+      <StateBlock
+        framed
+        fog
+        icon="weather-night"
+        title={i18n.t('empty_seek_title')}
+        body={i18n.t('empty_seek_sub')}
+      >
         <GameButton variant="ghost" size="compact" icon="refresh" onPress={() => refetch()}>
           {i18n.t('refresh')}
         </GameButton>
-      </View>
+      </StateBlock>
     </View>
   );
 
@@ -164,15 +156,4 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
   cardArea: { flex: 1, paddingHorizontal: SPACE.gutter, paddingBottom: SPACE.lg },
-  emptyCard: {
-    backgroundColor: COLORS.panel,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: LINE.edge,
-    padding: SPACE.giant,
-    alignItems: 'center',
-    gap: SPACE.md,
-  },
-  emptyTitle: { fontSize: FONT_SIZES.title, fontFamily: FONTS.display, color: INK.primary },
-  emptySub: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.body, color: INK.dim, textAlign: 'center' },
 });

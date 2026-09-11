@@ -8,9 +8,9 @@ import { selectContentPageLocale } from '../models/content';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { FONTS, FONT_SIZES, INK, LINE_HEIGHTS, SPACE } from '../lib/theme';
+import { LEADING, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
+import { StateBlock } from './ui/StateBlock';
 import { useScrollTail } from '../hooks/useScrollTail';
-
 
 interface Props {
   slug: string;
@@ -29,13 +29,16 @@ export function ContentPageScreen({ slug }: Props) {
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
         {isLoading && <Waiting />}
         {isError && (
-          <View style={styles.errorWrap}>
-            <Text style={styles.errorTitle}>{i18n.t('error_boundary_title')}</Text>
-            <Text style={styles.errorMessage}>{i18n.t('error_boundary_message')}</Text>
+          <StateBlock
+            tone="danger"
+            icon="alert-circle-outline"
+            title={i18n.t('error_boundary_title')}
+            body={i18n.t('error_boundary_message')}
+          >
             <GameButton variant="ghost" onPress={() => refetch()}>
               {i18n.t('error_boundary_retry')}
             </GameButton>
-          </View>
+          </StateBlock>
         )}
         {page && formatDate(page.updatedAt) ? (
           <Text style={styles.updatedAt}>
@@ -57,22 +60,10 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     marginBottom: SPACE.md,
   },
-  errorWrap: { gap: SPACE.md, paddingVertical: SPACE.xl, alignItems: 'flex-start' },
-  errorTitle: {
-    color: INK.primary,
-    fontSize: FONT_SIZES.xl,
-    fontFamily: FONTS.displayBlack,
-  },
-  errorMessage: {
-    color: INK.dim,
-    fontSize: FONT_SIZES.md,
-    lineHeight: LINE_HEIGHTS.md,
-    fontFamily: FONTS.body,
-  },
   body: {
     color: INK.primary,
     fontSize: FONT_SIZES.md,
-    lineHeight: LINE_HEIGHTS.md,
+    lineHeight: LEADING.md,
     fontFamily: FONTS.body,
   },
 });

@@ -1,4 +1,4 @@
-import { COLORS, overlay } from '../theme';
+import { NIGHT, TONE } from '../theme';
 
 /**
  * Six light signatures, not free-form values per room. A room picks one the way a button picks a
@@ -40,27 +40,36 @@ export interface LightRecipe {
 
 /** Night, at four temperatures. Alpha is carried here rather than by the layer so a room can be
  *  closed in harder as well as colder — the Deep is both. */
-const NIGHT = {
-  blue:  'rgba(8,12,24,0.90)',
-  plain: overlay(0.9),
-  brown: 'rgba(20,11,6,0.90)',
-  black: 'rgba(4,4,9,0.94)',
-} as const;
-
 export const LIGHT: Record<LightSignature, LightRecipe> = {
   // Stone with no fire in it. The Gate and the Hall — places that record rather than warm.
-  cold:    { floor: [0.10, 0.16], vignette: [0.55, 0.40], edge: NIGHT.blue,  tone: COLORS.silver, toneAlpha: [0.00, 0.07] },
+  cold:    { floor: [0.10, 0.16], vignette: [0.55, 0.40], edge: NIGHT.blue,  tone: TONE.silver, toneAlpha: [0.00, 0.07] },
   // The default room. Open, unremarkable, no opinion.
-  neutral: { floor: [0.12, 0.18], vignette: [0.50, 0.32], edge: NIGHT.plain, tone: COLORS.silver, toneAlpha: [0.00, 0.09] },
+  neutral: { floor: [0.12, 0.18], vignette: [0.50, 0.32], edge: NIGHT.plain, tone: TONE.silver, toneAlpha: [0.00, 0.09] },
   // Fire and people. The Tavern — the most open room in the hold, so the dark closes in least.
-  warm:    { floor: [0.14, 0.20], vignette: [0.45, 0.26], edge: NIGHT.brown, tone: COLORS.gold,   toneAlpha: [0.00, 0.22] },
+  warm:    { floor: [0.14, 0.20], vignette: [0.45, 0.26], edge: NIGHT.brown, tone: TONE.gold,   toneAlpha: [0.00, 0.22] },
   // A banked fire — quieter than warm, still inhabited. The Hearth.
-  soft:    { floor: [0.12, 0.17], vignette: [0.50, 0.34], edge: NIGHT.brown, tone: COLORS.brass,  toneAlpha: [0.00, 0.14] },
+  soft:    { floor: [0.12, 0.17], vignette: [0.50, 0.34], edge: NIGHT.brown, tone: TONE.brass,  toneAlpha: [0.00, 0.14] },
   // Underground. Starts nearly black and is lit only by what the pair has cleared.
-  dark:    { floor: [0.16, 0.22], vignette: [0.72, 0.42], edge: NIGHT.black, tone: COLORS.ember,  toneAlpha: [0.00, 0.11] },
+  dark:    { floor: [0.16, 0.22], vignette: [0.72, 0.42], edge: NIGHT.black, tone: TONE.ember,  toneAlpha: [0.00, 0.11] },
   // Worked metal. The Forge keeps a lifted floor even when idle, and burns hottest when full.
-  hot:     { floor: [0.14, 0.19], vignette: [0.48, 0.30], edge: NIGHT.brown, tone: COLORS.ember,  toneAlpha: [0.00, 0.26] },
+  hot:     { floor: [0.14, 0.19], vignette: [0.48, 0.30], edge: NIGHT.brown, tone: TONE.ember,  toneAlpha: [0.00, 0.26] },
 };
+
+/**
+ * How hard the dark closes on a candidate card, from unlit to fully lit. Weaker than a room's own
+ * vignette because it lands on a photograph rather than on a margin.
+ */
+/** Where a room's own vignette clears, leaving the middle of the screen untouched. */
+export const ROOM_VIGNETTE_STOPS: readonly [number, number, number, number] = [0, 0.3, 0.68, 1];
+
+export const CARD_VIGNETTE: readonly [number, number] = [0.8, 0];
+
+/**
+ * Where the card's clear band starts and ends. Weighted high on purpose: a portrait's face sits
+ * above the centre, so the clear band has to open well before halfway. The foot of the card is
+ * already under the plaque's own gradient.
+ */
+export const CARD_VIGNETTE_STOPS: readonly [number, number, number, number] = [0, 0.18, 0.66, 1];
 
 /** The neutral vignette colour. Rooms carry their own in `edge`; this is the fallback. */
 export const VIGNETTE_EDGE = NIGHT.plain;

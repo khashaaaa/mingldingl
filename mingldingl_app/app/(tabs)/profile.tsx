@@ -1,11 +1,6 @@
-import {
-  Text,
-  View,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { Text, View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Tap } from '../../components/ui/Tap';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { useProfile } from '../../hooks/useProfile';
@@ -17,6 +12,7 @@ import { CardEyebrow } from '../../components/ui/CardEyebrow';
 import { CountText } from '../../components/ui/CountText';
 import { GameButton } from '../../components/ui/GameButton';
 import { GameHeader } from '../../components/ui/GameHeader';
+import { Icon } from '../../components/ui/Icon';
 import { SectionDivider } from '../../components/ui/SectionDivider';
 import { XPBar } from '../../components/progression/XPBar';
 import { GemTierBadge } from '../../components/progression/GemTierBadge';
@@ -30,9 +26,8 @@ import { OathCard } from '../../components/profile/OathCard';
 import { DeletionPendingBanner } from '../../components/profile/DeletionPendingBanner';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCancelDeletion } from '../../hooks/useCancelDeletion';
-import { ACCENT, FONTS, FONT_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, RADIUS, SPACE, TRACKING } from '../../lib/theme';
 import type { GemTier } from '../../models/user';
-
 
 export default function ProfileScreen() {
   useLocaleStore((s) => s.locale);
@@ -76,18 +71,18 @@ export default function ProfileScreen() {
 
         <View style={styles.nameRow}>
           <View style={styles.nameBlock}>
-            <Text style={styles.displayName}>{profile.displayName}</Text>
+            <Text style={styles.displayName} numberOfLines={2}>{profile.displayName}</Text>
             {profile.equippedTitleId && (
               <Text style={styles.equippedTitle}>{itemLabel(profile.equippedTitleId)}</Text>
             )}
             <Text style={styles.subText}>{profile.age} · {profile.city}</Text>
           </View>
-          <GemTierBadge tier={gemTier} size={44} glow />
+          <GemTierBadge tier={gemTier} size={BADGE_SIZES.hero} glow />
         </View>
 
         <NextActionCard />
 
-        <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={() => router.push('/progression')}>
+        <Tap style={styles.card} onPress={() => router.push('/progression')}>
           <AppCard tier={gemTier} textured style={styles.cardPadding}>
             <XPBar
               gemTier={gemTier}
@@ -96,19 +91,19 @@ export default function ProfileScreen() {
               nextTier={nextTier}
             />
           </AppCard>
-        </TouchableOpacity>
+        </Tap>
 
         <AppCard tier={gemTier} textured style={[styles.card, styles.cardPadding]}>
           <CardEyebrow>{i18n.t('total_score')}</CardEyebrow>
           <Text style={styles.scoreValue}><CountText value={scoreDetail.totalScore ?? 0} /> {i18n.t('pts')}</Text>
           <SectionDivider />
-          <TouchableOpacity onPress={() => router.push('/membership')}>
+          <Tap onPress={() => router.push('/membership')}>
             <CardEyebrow>{i18n.t('guild_rank')}</CardEyebrow>
             <View style={styles.membershipRow}>
               <Text style={styles.membershipValue}>{membershipLabel(profile.membershipLevel)}</Text>
-              <Text style={styles.membershipArrow}>→</Text>
+              <Icon name="chevron-right" size={ICON_SIZES.lg} color={ACCENT.base} />
             </View>
-          </TouchableOpacity>
+          </Tap>
         </AppCard>
 
         <OathCard
@@ -121,7 +116,6 @@ export default function ProfileScreen() {
         />
 
         <AppCard style={[styles.card, styles.cardPadding]}>
-          <CardEyebrow>{i18n.t('bio')}</CardEyebrow>
           <Text style={styles.bioText}>{profile.bio}</Text>
         </AppCard>
 
@@ -180,32 +174,29 @@ const styles = StyleSheet.create({
   },
   nameBlock: { flex: 1 },
   displayName: {
-    fontSize: FONT_SIZES.title,
+    fontSize: FONT_SIZES.hero,
+    lineHeight: LEADING.hero,
     fontFamily: FONTS.display,
     color: INK.primary,
     marginBottom: SPACE.xs,
   },
-  equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: ACCENT.base, letterSpacing: 1, marginTop: SPACE.hair },
+  equippedTitle: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.utility, color: ACCENT.base, letterSpacing: TRACKING.wide, marginTop: SPACE.hair },
   subText: { fontSize: FONT_SIZES.md, color: INK.dim, fontFamily: FONTS.body },
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   cardPadding: { padding: SPACE.lg },
   scoreValue: {
     fontSize: FONT_SIZES.display,
-    fontFamily: FONTS.displayBlack,
+    fontFamily: FONTS.display,
     color: ACCENT.base,
   },
   membershipRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   // Both halves carry the same size and leading, or `alignItems: center` centres two line boxes
   // of different heights and the arrow reads as having slipped below the word.
   membershipValue: {
-    fontSize: FONT_SIZES.lg, lineHeight: LINE_HEIGHTS.lg,
+    fontSize: FONT_SIZES.lg, lineHeight: LEADING.lg,
     fontFamily: FONTS.bodyBold, color: INK.primary,
   },
-  membershipArrow: {
-    fontSize: FONT_SIZES.lg, lineHeight: LINE_HEIGHTS.lg,
-    color: ACCENT.base, fontFamily: FONTS.body,
-  },
-  bioText: { fontSize: FONT_SIZES.md, color: INK.dim, lineHeight: LINE_HEIGHTS.md, fontFamily: FONTS.body },
+  bioText: { fontSize: FONT_SIZES.md, color: INK.dim, lineHeight: LEADING.md, fontFamily: FONTS.body },
   editButtonWrapper: { marginHorizontal: SPACE.gutter, marginTop: SPACE.sm },
   signOutWrapper: { marginHorizontal: SPACE.gutter, marginTop: SPACE.md },
 });

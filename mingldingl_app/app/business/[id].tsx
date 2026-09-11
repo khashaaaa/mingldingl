@@ -8,10 +8,10 @@ import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { EmptyHint, StateBlock } from '../../components/ui/StateBlock';
 import { Icon } from '../../components/ui/Icon';
 import { useScrollTail } from '../../hooks/useScrollTail';
-
 
 // The two waits on this screen need different shapes, not the same one: this one stands in for
 // the whole screen (nothing else has painted yet, so it can take the hero's own box), while
@@ -99,11 +99,11 @@ export default function BusinessDetailScreen() {
     return (
       <View style={styles.screen}>
         <HeaderBar title="" />
-        <View style={styles.centered}>
-          <Icon name="map-marker-off" size={ICON_SIZES.huge} color={INK.muted} />
-          <Text style={styles.missingTitle}>{i18n.t('venue_missing_title')}</Text>
-          <Text style={styles.emptyText}>{i18n.t('venue_missing_body')}</Text>
-        </View>
+        <StateBlock
+          icon="map-marker-off"
+          title={i18n.t('venue_missing_title')}
+          body={i18n.t('venue_missing_body')}
+        />
       </View>
     );
   }
@@ -139,7 +139,7 @@ export default function BusinessDetailScreen() {
         {isLoading ? (
           <ReviewsSkeleton />
         ) : !reviews || reviews.length === 0 ? (
-          <Text style={styles.emptyText}>{i18n.t('no_moments_yet')}</Text>
+          <EmptyHint>{i18n.t('no_moments_yet')}</EmptyHint>
         ) : (
           <View style={styles.reviewList}>
             {reviews.map((r, i) => (
@@ -168,26 +168,25 @@ const styles = StyleSheet.create({
   content: { paddingBottom: SPACE.scrollTail },
   hero: { width: '100%', height: 200 },
   // Venues routinely have no photo — a bare 200px slab read as a broken image.
-  heroPlaceholder: { backgroundColor: COLORS.panelRaised, alignItems: 'center', justifyContent: 'center' },
+  heroPlaceholder: { backgroundColor: SURFACE.raised, alignItems: 'center', justifyContent: 'center' },
   metaRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: SPACE.gutter, marginTop: SPACE.md,
   },
   meta: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
   rating: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
-  description: { color: INK.primary, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md, paddingHorizontal: SPACE.gutter, marginTop: SPACE.md },
+  description: { color: INK.primary, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LEADING.md, paddingHorizontal: SPACE.gutter, marginTop: SPACE.md },
   hours: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter, marginTop: SPACE.sm },
   sectionTitle: {
-    color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.display, letterSpacing: 1,
+    color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.display, letterSpacing: TRACKING.wide,
     textTransform: 'uppercase', paddingHorizontal: SPACE.gutter, marginTop: SPACE.xxl, marginBottom: SPACE.md,
   },
-  emptyText: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter, textAlign: 'center' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.md, paddingHorizontal: SPACE.xxxl },
   missingTitle: { color: INK.primary, fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, textAlign: 'center' },
   reviewList: { paddingHorizontal: SPACE.gutter, gap: SPACE.md },
   reviewCard: { padding: SPACE.md, gap: SPACE.sm },
   reviewPhoto: { width: '100%', height: 160, borderRadius: RADIUS.sm },
   reviewStarsRow: { flexDirection: 'row', gap: SPACE.hair },
-  reviewText: { color: INK.primary, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
+  reviewText: { color: INK.primary, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LEADING.md },
   skeletonText: { paddingHorizontal: SPACE.gutter, marginTop: SPACE.md, gap: SPACE.sm },
 });

@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { Waiting } from '../Waiting';
-import { COLORS, ICON_SIZES } from '../../../lib/theme';
+import { ICON_SIZES, INK } from '../../../lib/theme';
 
 let mockLevel: 'full' | 'plain' | 'still' | 'off' = 'plain';
 jest.mock('../../../lib/vfx', () => ({
@@ -17,9 +17,9 @@ describe('Waiting', () => {
   afterEach(() => jest.useRealTimers());
 
   it('draws the knot at the requested size and tint', () => {
-    const { getByTestId } = render(<Waiting size={ICON_SIZES.xl} color={COLORS.text} />);
+    const { getByTestId } = render(<Waiting size={ICON_SIZES.xl} color={INK.primary} />);
     expect(StyleSheet.flatten(getByTestId('waiting-knot').props.style)).toEqual(
-      expect.objectContaining({ width: ICON_SIZES.xl, height: ICON_SIZES.xl, tintColor: COLORS.text }),
+      expect.objectContaining({ width: ICON_SIZES.xl, height: ICON_SIZES.xl, tintColor: INK.primary }),
     );
   });
 

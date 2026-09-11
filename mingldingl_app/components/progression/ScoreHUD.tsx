@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, Text, Animated, Easing, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, metalGradient, tint } from '../../lib/theme';
+import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, HEAT, ICON_SIZES, INK, METAL, RADIUS, SPACE, STATUS, SURFACE, TRACKING, metalGradient, tint } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { GemTierBadge } from './GemTierBadge';
 import { CountText } from '../ui/CountText';
@@ -54,10 +54,10 @@ export function ScoreHUD({ score, tier = 'Garnet', streak }: Props) {
     // The slab clips to its rounded edge, so the delta lives on this unclipped wrapper and is
     // free to rise out of the top.
     <View style={styles.wrap}>
-      <View style={[styles.slab, { borderColor: color + '66' }]}>
-        <LinearGradient colors={metalGradient(COLORS.panelDeep)} style={StyleSheet.absoluteFill} />
+      <View style={[styles.slab, { borderColor: tint(color, 0.4) }]}>
+        <LinearGradient colors={metalGradient(SURFACE.sunken)} style={StyleSheet.absoluteFill} />
         <View style={styles.topHighlight} pointerEvents="none" />
-        <GemTierBadge tier={tier} size={16} />
+        <GemTierBadge tier={tier} size={BADGE_SIZES.inline} />
         <CountText value={score} style={[styles.score, { color }]} onLayout={onScoreLayout} />
         <Text style={styles.pts}>XP</Text>
         {streak !== undefined && streak >= 2 && (
@@ -78,7 +78,7 @@ export function ScoreHUD({ score, tier = 'Garnet', streak }: Props) {
             styles.delta,
             scoreBox ? { left: scoreBox.x, width: scoreBox.width } : styles.deltaUnmeasured,
             {
-              color: delta.n > 0 ? ACCENT.base : COLORS.emberLight,
+              color: delta.n > 0 ? ACCENT.base : STATUS.danger,
               opacity: float.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 1, 0] }),
               transform: [{ translateY: float.interpolate({ inputRange: [0, 1], outputRange: [0, -FLOAT_RISE] }) }],
             },
@@ -104,17 +104,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   topHighlight: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: tint(INK.primary, 0.14) },
-  score: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: 0.5 },
-  pts: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: INK.dim, letterSpacing: 1 },
+  score: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: TRACKING.label },
+  pts: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: INK.dim, letterSpacing: TRACKING.wide },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginLeft: SPACE.xs },
-  streak: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: COLORS.emberLight, letterSpacing: 1 },
+  streak: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: HEAT.flame, letterSpacing: TRACKING.wide },
   delta: {
     position: 'absolute',
     top: 0,
     textAlign: 'center',
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.md,
-    letterSpacing: 0.5,
+    letterSpacing: TRACKING.label,
   },
   deltaUnmeasured: { left: 0, right: 0 },
 });

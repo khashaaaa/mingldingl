@@ -5,7 +5,9 @@ import { apiClient } from '../lib/api/apiClient';
 import { getApiErrorMessage } from '../lib/api/errors';
 import { i18n } from '../lib/i18n';
 
-export function usePhotoUpload(userId: string | undefined) {
+// No `userId` argument: the engine takes the owner from the bearer token on every upload
+// endpoint, so the one this hook used to accept was read by nothing and passed by three callers.
+export function usePhotoUpload() {
   const [uploadCount, setUploadCount] = useState(0);
 
   const [permissionDenied, setPermissionDenied] = useState(false);

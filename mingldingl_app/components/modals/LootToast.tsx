@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { Animated, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Tap } from '../ui/Tap';
+import { Animated, View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
 import { METAL_COLORS } from '../../lib/tiers';
 import { Icon } from '../ui/Icon';
 
@@ -61,7 +62,7 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
         { bottom: insets.bottom + 20 + bottomOffset, transform: [{ translateY }, { scale }], opacity },
       ]}
     >
-      <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={dismissNow} accessibilityLabel={i18n.t('alert_dismiss')}>
+      <Tap style={styles.card} onPress={dismissNow} accessibilityLabel={i18n.t('alert_dismiss')}>
         <View style={styles.iconWrap}>
           {RAY_ANGLES.map((deg) => (
             <Animated.View
@@ -80,7 +81,7 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
             </Text>
           )}
         </View>
-      </TouchableOpacity>
+      </Tap>
     </Animated.View>
   );
 }
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.lg,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderRadius: RADIUS.md,
     borderWidth: 2,
     borderColor: ACCENT.base,
@@ -107,6 +108,6 @@ const styles = StyleSheet.create({
   ray: { position: 'absolute', width: 36, height: 2, backgroundColor: ACCENT.bright },
   textCol: { flex: 1, gap: SPACE.hair },
   title: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md, color: INK.primary },
-  points: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: ACCENT.base, letterSpacing: 1 },
+  points: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: ACCENT.base, letterSpacing: TRACKING.wide },
   itemLine: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm },
 });

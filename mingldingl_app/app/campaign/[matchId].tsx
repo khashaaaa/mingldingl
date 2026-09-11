@@ -12,11 +12,10 @@ import { i18n } from '../../lib/i18n';
 import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
 import { toDroppedItem } from '../../lib/tiers';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle } from '../../lib/theme';
+import { PRESS, ACCENT, FONTS, FONT_SIZES, HEAT, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, TRACKING, circle } from '../../lib/theme';
+import { StateBlock } from '../../components/ui/StateBlock';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { useScrollTail } from '../../hooks/useScrollTail';
-
-
 
 type IconName = React.ComponentProps<typeof Icon>['name'];
 
@@ -143,14 +142,9 @@ export default function CampaignScreen() {
           <Skeleton width="100%" height={240} radius={RADIUS.md} />
         </View>
       ) : unavailable ? (
-        <View style={styles.centered}>
-          <Icon name="door-closed-lock" size={ICON_SIZES.hero} color={INK.dim} />
-          <Text style={styles.emptyText}>{i18n.t('campaign_unavailable')}</Text>
-        </View>
+        <StateBlock icon="door-closed-lock" title={i18n.t('campaign_unavailable')} />
       ) : error || !campaign ? (
-        <View style={styles.centered}>
-          <Text style={styles.emptyText}>{i18n.t('campaign_load_error')}</Text>
-        </View>
+        <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('campaign_load_error')} />
       ) : (
         <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tail }]}>
           <Text style={styles.progress}>
@@ -171,12 +165,6 @@ export default function CampaignScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.md, padding: SPACE.xxl },
-  emptyText: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.lg,
-    color: INK.dim,
-    textAlign: 'center',
-  },
   scrollContent: { padding: SPACE.lg, paddingBottom: SPACE.scrollTail },
   progress: {
     fontFamily: FONTS.display,
@@ -188,7 +176,7 @@ const styles = StyleSheet.create({
   completeText: {
     fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.md,
-    color: COLORS.emberLight,
+    color: HEAT.flame,
     textAlign: 'center',
     marginBottom: SPACE.xs,
   },
@@ -214,7 +202,7 @@ const styles = StyleSheet.create({
     paddingLeft: SPACE.sm,
     paddingBottom: SPACE.xl,
   },
-  roomBodyDimmed: { opacity: 0.55 },
+  roomBodyDimmed: { opacity: PRESS.dimmed },
   roomTitleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, minHeight: 40 },
   roomName: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, flexShrink: 1 },
   bossChip: {
@@ -224,8 +212,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.sm,
     paddingVertical: SPACE.hair,
   },
-  bossChipText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, letterSpacing: 1, color: COLORS.emberLight },
+  bossChipText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, letterSpacing: TRACKING.wide, color: HEAT.flame },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, marginTop: SPACE.hair },
-  statusText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, letterSpacing: 1, color: INK.dim },
+  statusText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, letterSpacing: TRACKING.wide, color: INK.dim },
   claimButton: { alignSelf: 'flex-start', marginTop: SPACE.xs },
 });

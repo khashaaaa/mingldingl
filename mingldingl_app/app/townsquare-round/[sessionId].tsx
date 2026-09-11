@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Tap } from '../../components/ui/Tap';
+import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AgoraVideoCall } from '../../components/video/AgoraVideoCall';
@@ -11,7 +12,8 @@ import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { LongWait } from '../../components/ui/LongWait';
 import { useTownSquareRound, useTownSquareSessionSummary } from '../../hooks/useTownSquareRound';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, circle, overlay } from '../../lib/theme';
+import { FONTS, FONT_SIZES, ICON_SIZES, INK, SCRIM, SPACE, circle, overlay } from '../../lib/theme';
+import { StateBlock } from '../../components/ui/StateBlock';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 
@@ -50,12 +52,12 @@ export default function TownSquareRoundScreen() {
   // matches made in it were never surfaced anywhere at all.
   if (error && summary?.status === 'Completed') {
     return (
-      <View style={[styles.screen, styles.center]}>
-        <Icon name="party-popper" size={ICON_SIZES.hero} color={ACCENT.base} />
-        <Text style={styles.errorTitle}>{i18n.t('round_over_title')}</Text>
-        <Text style={styles.status}>
-          {i18n.t('round_over_body', { count: summary.roundsPlayed })}
-        </Text>
+      <StateBlock
+        tone="good"
+        icon="party-popper"
+        title={i18n.t('round_over_title')}
+        body={i18n.t('round_over_body', { count: summary.roundsPlayed })}
+      >
 
         {summary.matches.length === 0 ? (
           <Text style={styles.status}>{i18n.t('round_over_no_matches')}</Text>
@@ -79,7 +81,7 @@ export default function TownSquareRoundScreen() {
         <GameButton variant="ghost" size="compact" onPress={leave}>
           {i18n.t('town_square_rejoin')}
         </GameButton>
-      </View>
+      </StateBlock>
     );
   }
 
@@ -111,10 +113,12 @@ export default function TownSquareRoundScreen() {
     <View style={styles.screen}>
       {/* #15: a failed connection used to leave a blank screen with no way forward. */}
       {callFailed ? (
-        <View style={[styles.screen, styles.center]}>
-          <Icon name="video-off" size={ICON_SIZES.hero} color={COLORS.emberLight} />
-          <Text style={styles.errorTitle}>{i18n.t('round_connect_error_title')}</Text>
-          <Text style={styles.status}>{i18n.t('round_connect_error_body')}</Text>
+        <StateBlock
+          tone="danger"
+            icon="video-off"
+          title={i18n.t('round_connect_error_title')}
+          body={i18n.t('round_connect_error_body')}
+        >
           <GameButton
             variant="primary"
             onPress={() => { setCallFailed(false); setAttempt((a) => a + 1); }}
@@ -124,7 +128,7 @@ export default function TownSquareRoundScreen() {
           <GameButton variant="ghost" size="compact" onPress={leave}>
             {i18n.t('round_leave_confirm')}
           </GameButton>
-        </View>
+        </StateBlock>
       ) : (
         <AgoraVideoCall
           key={attempt}
@@ -148,14 +152,14 @@ export default function TownSquareRoundScreen() {
       {/* A Town Square partner is a stranger with no match to reach them through, so this is the
           only place they can be reported from. Reporting also blocks them, which keeps the
           round-robin from ever seating the two of them together again. */}
-      <TouchableOpacity
+      <Tap
         style={[styles.reportButton, { top: insets.top + SPACE.sm }]}
         accessibilityLabel={i18n.t('report_user')}
         onPress={() => setReportVisible(true)}
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
         <Icon name="flag" size={ICON_SIZES.sm} color={INK.primary} />
-      </TouchableOpacity>
+      </Tap>
 
       <VideoControls
         muted={muted}
@@ -207,14 +211,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: SPACE.md,
     ...circle(36),
-    backgroundColor: overlay(0.75),
+    backgroundColor: overlay(SCRIM.veilStrong),
     alignItems: 'center',
     justifyContent: 'center',
   },
-  screen: { flex: 1, backgroundColor: COLORS.bg },
+  // Transparent, not `SURFACE.ground`: this route is in the tavern room (`lib/world/rooms.ts`),
+  // so the world's floor, light ramp and vfx render beneath it. It was the one lit screen
+  // painting an opaque ground over all three.
+  screen: { flex: 1, backgroundColor: 'transparent' },
   waitGround: { backgroundColor: 'transparent' },
   center: { alignItems: 'center', justifyContent: 'center', gap: SPACE.lg, paddingHorizontal: SPACE.xxxl },
   status: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center' },
-  errorTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: INK.primary, textAlign: 'center' },
   matchList: { alignSelf: 'stretch', gap: SPACE.sm },
 });

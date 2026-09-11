@@ -5,7 +5,7 @@ import { TIER_ORDER, colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { AppCard } from '../ui/AppCard';
 import { GemTierBadge } from './GemTierBadge';
-import { FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
+import { BADGE_SIZES, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 interface Props {
   gemTier: GemTier;
   tierBonus: number;
@@ -22,7 +22,7 @@ export function TierPerkCard({ gemTier, tierBonus, nextTier, dailyMatchBudget }:
     <AppCard tier={gemTier} textured style={styles.card}>
       <CardEyebrow>{i18n.t('tier_perk_label')}</CardEyebrow>
       <View style={styles.row}>
-        <GemTierBadge tier={gemTier} size={20} />
+        <GemTierBadge tier={gemTier} size={BADGE_SIZES.chip} />
         <Text style={[styles.bonus, { color }]}>+{tierBonus} {i18n.t('daily_matches')}</Text>
       </View>
       {dailyMatchBudget != null && (
@@ -40,7 +40,7 @@ export function TierPerkCard({ gemTier, tierBonus, nextTier, dailyMatchBudget }:
 const styles = StyleSheet.create({
   card: { padding: SPACE.lg, marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
-  bonus: { fontSize: FONT_SIZES.title, fontFamily: FONTS.displayBlack },
+  bonus: { fontSize: FONT_SIZES.title, fontFamily: FONTS.display },
   budget: { fontSize: FONT_SIZES.md, color: INK.primary, fontFamily: FONTS.bodyMedium, marginTop: SPACE.sm },
   preview: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body, marginTop: SPACE.sm },
 });

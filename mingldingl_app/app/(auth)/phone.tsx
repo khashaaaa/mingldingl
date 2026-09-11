@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-  type LayoutChangeEvent,
-} from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isPhoneValid, useAuth } from '../../hooks/useAuth';
@@ -19,7 +11,8 @@ import { DismissKeyboardView } from '../../components/ui/DismissKeyboardView';
 import { GlowText } from '../../components/vfx/GlowText';
 import { EmberField } from '../../components/vfx/EmberField';
 import { SectionDivider } from '../../components/ui/SectionDivider';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { FieldError } from '../../components/ui/StateBlock';
 export default function PhoneScreen() {
   useLocaleStore((s) => s.locale);
   const [phone, setPhone] = useState('');
@@ -86,7 +79,7 @@ export default function PhoneScreen() {
               onSubmitEditing={handleSend}
             />
           </View>
-          {!!error && <Text style={styles.error}>{error}</Text>}
+          {!!error && <FieldError style={styles.error}>{error}</FieldError>}
           <GameButton
             variant="primary"
             onPress={handleSend}
@@ -116,14 +109,14 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.wordmark,
     color: ACCENT.base,
     textAlign: 'center',
-    letterSpacing: 0,
+    letterSpacing: TRACKING.none,
     fontFamily: FONTS.wordmark,
   },
   subtitle: {
     fontSize: FONT_SIZES.lg,
     color: INK.dim,
     textAlign: 'center',
-    letterSpacing: 0.5,
+    letterSpacing: TRACKING.label,
     fontFamily: FONTS.body,
   },
   divider: {
@@ -133,7 +126,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FONT_SIZES.md,
     color: INK.dim,
-    letterSpacing: 0.3,
+    letterSpacing: TRACKING.body,
     marginBottom: SPACE.xs,
     fontFamily: FONTS.body,
   },
@@ -146,7 +139,7 @@ const styles = StyleSheet.create({
   prefixBadge: {
     height: 52,
     paddingHorizontal: SPACE.lg,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderWidth: 1,
     borderColor: ACCENT.base,
     borderRadius: RADIUS.md,
@@ -159,10 +152,5 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyBold,
   },
   input: { flex: 1 },
-  error: {
-    color: COLORS.emberLight,
-    fontSize: FONT_SIZES.md,
-    marginBottom: SPACE.xs,
-    fontFamily: FONTS.body,
-  },
+  error: { marginBottom: SPACE.xs },
 });

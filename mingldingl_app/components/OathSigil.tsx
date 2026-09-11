@@ -1,6 +1,6 @@
 import { View as RNView, Text as RNText, Image as RNImage, StyleSheet } from 'react-native';
 import { i18n, tKey } from '../lib/i18n';
-import { ACCENT, FILL, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, glow } from '../lib/theme';
+import { tint as tintColor, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, TRACKING, glow } from '../lib/theme';
 import { ORNAMENTS } from '../lib/ornaments';
 import type { Oath } from '../models/user';
 
@@ -60,7 +60,7 @@ export default function OathSigil({ oath, proven, size = 'md', progress }: Props
           paddingHorizontal: sz.padH,
           paddingVertical: sz.padV,
           gap: sz.gap,
-          backgroundColor: proven ? FILL.goldSoft : FILL.bronze,
+          backgroundColor: proven ? tintColor(ACCENT.bright, 0.12) : tintColor(INK.muted, 0.16),
         },
         proven && glow(ACCENT.bright, 0.4),
       ]}
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: RADIUS.md,
   },
-  name: { fontFamily: FONTS.bodyBold, color: INK.primary, letterSpacing: 0.3 },
-  state: { fontFamily: FONTS.utility, letterSpacing: 0.5, textTransform: 'uppercase' },
+  name: { fontFamily: FONTS.bodyBold, color: INK.primary, letterSpacing: TRACKING.body },
+  state: { fontFamily: FONTS.utility, letterSpacing: TRACKING.label, textTransform: 'uppercase' },
   progress: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, marginTop: SPACE.hair },
 });

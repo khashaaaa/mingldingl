@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Tap } from '../ui/Tap';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { AlertModal } from '../modals/AlertModal';
 import { SheetModal } from '../modals/SheetModal';
@@ -9,9 +10,8 @@ import { Waiting } from '../ui/Waiting';
 import { TorchGlow } from '../vfx/TorchGlow';
 import { usePhotoUpload } from '../../hooks/usePhotoUpload';
 import { useUpdateProfile } from '../../hooks/useProfile';
-import { useAuthStore } from '../../store/authStore';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, ICON_SIZES, METAL, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
+import { ACCENT, ICON_SIZES, METAL, RADIUS, SCRIM, SPACE, SURFACE, circle, overlay } from '../../lib/theme';
 interface Props {
   /** The whole list, not just the first: replacing the portrait rewrites slot 0 and keeps the rest. */
   photoUrls: string[];
@@ -21,9 +21,8 @@ interface Props {
 
 /** The character portrait, and the picker + upload flow behind tapping it. */
 export function ProfileAvatar({ photoUrls, tierColor }: Props) {
-  const session = useAuthStore((s) => s.session);
   const { pickPhoto, takePhoto, uploadPhoto, uploading, lastError, clearLastError, permissionDenied, clearPermissionDenied } =
-    usePhotoUpload(session?.user.id);
+    usePhotoUpload();
   const { mutateAsync: saveProfile, previewPatch } = useUpdateProfile();
   // Remembering *which* URL failed, rather than a boolean, means a new URL is always tried.
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
@@ -58,7 +57,7 @@ export function ProfileAvatar({ photoUrls, tierColor }: Props) {
 
   return (
     <>
-      <TouchableOpacity
+      <Tap
         style={styles.avatarTouchable}
         onPress={() => setSourceModalVisible(true)}
         disabled={uploading}
@@ -89,11 +88,11 @@ export function ProfileAvatar({ photoUrls, tierColor }: Props) {
               </View>
             </View>
             <View style={styles.avatarEditBadge}>
-              <Icon name="pencil" size={ICON_SIZES.sm} color={COLORS.bg} />
+              <Icon name="pencil" size={ICON_SIZES.sm} color={SURFACE.ground} />
             </View>
           </View>
         </TorchGlow>
-      </TouchableOpacity>
+      </Tap>
 
       <SheetModal visible={sourceModalVisible} onClose={() => setSourceModalVisible(false)}>
         {(closeThen) => (
@@ -166,7 +165,7 @@ const styles = StyleSheet.create({
   avatarClip: {
     ...circle(100),
     overflow: 'hidden',
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
   },
   avatarEditBadge: {
     position: 'absolute',
@@ -175,7 +174,7 @@ const styles = StyleSheet.create({
     ...circle(26),
     backgroundColor: METAL.gold,
     borderWidth: 2,
-    borderColor: COLORS.bg,
+    borderColor: SURFACE.ground,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -185,6 +184,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: overlay(0.55),
+    backgroundColor: overlay(SCRIM.veil),
   },
 });

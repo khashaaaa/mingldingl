@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useScoreDetail } from '../hooks/useScoreDetail';
 import { useScoreHistory } from '../hooks/useScoreHistory';
@@ -12,11 +12,10 @@ import { GameButton } from '../components/ui/GameButton';
 import { Skeleton } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
+import { BADGE_SIZES, FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
+import { StateBlock } from '../components/ui/StateBlock';
 import type { GemTier } from '../models/user';
-import { Icon } from '../components/ui/Icon';
 import { CardEyebrow } from '../components/ui/CardEyebrow';
-
 
 export default function ProgressionScreen() {
   useLocaleStore((s) => s.locale);
@@ -39,12 +38,10 @@ export default function ProgressionScreen() {
 
   if (error || !detail) {
     return (
-      <View style={styles.centered}>
-        <Icon name="trending-down" size={ICON_SIZES.huge} color={INK.muted} />
-        <Text style={styles.errorTitle}>{i18n.t('progression_load_error')}</Text>
+      <StateBlock tone="danger" icon="trending-down" title={i18n.t('progression_load_error')}>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
         <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
-      </View>
+      </StateBlock>
     );
   }
 
@@ -55,7 +52,7 @@ export default function ProgressionScreen() {
     <View style={styles.screen}>
       <GameHeader title={i18n.t('progression_title')} icon="chart-line" showBack />
       <View style={styles.headerRow}>
-        <GemTierBadge tier={gemTier} size={44} glow />
+        <GemTierBadge tier={gemTier} size={BADGE_SIZES.hero} glow />
         <View style={styles.xpBarWrap}>
           <XPBar
             gemTier={gemTier}
@@ -89,7 +86,6 @@ export default function ProgressionScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
-  errorTitle: { color: INK.primary, fontFamily: FONTS.displayBlack, fontSize: FONT_SIZES.xl, textAlign: 'center' },
   loadingBody: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.giant, gap: SPACE.lg },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   xpBarWrap: { flex: 1 },

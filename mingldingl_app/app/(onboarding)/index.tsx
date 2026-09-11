@@ -1,14 +1,14 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Tap } from '../../components/ui/Tap';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import { useAuth } from '../../hooks/useAuth';
 import { NameAgeStep } from '../../components/onboarding/NameAgeStep';
 import { AboutStep } from '../../components/onboarding/AboutStep';
 import { PhotosStep } from '../../components/onboarding/PhotosStep';
 import { OathStep } from '../../components/onboarding/OathStep';
-import { ACCENT, FONTS, FONT_SIZES, INK, LINE, SPACE, circle } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, LINE, SPACE, TRACKING, circle } from '../../lib/theme';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-
 
 const STEP_COUNT = 4;
 
@@ -25,7 +25,7 @@ export default function OnboardingScreen() {
           fontSize: FONT_SIZES.xl,
           color: ACCENT.base,
           textAlign: 'center',
-          letterSpacing: 1.5,
+          letterSpacing: TRACKING.eyebrow,
           paddingTop: SPACE.md,
         }}
       >
@@ -44,9 +44,9 @@ export default function OnboardingScreen() {
               />
             ))}
           </View>
-          <TouchableOpacity onPress={signOut} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Tap onPress={signOut} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Text style={styles.signOutLink}>{i18n.t('sign_out')}</Text>
-          </TouchableOpacity>
+          </Tap>
         </View>
         <Text style={styles.stepLabel}>
           {i18n.t('step_of', { n: state.currentStep + 1, total: STEP_COUNT })}
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   signOutLink: {
     fontSize: FONT_SIZES.sm,
     color: INK.dim,
-    letterSpacing: 0.3,
+    letterSpacing: TRACKING.body,
     fontFamily: FONTS.body,
     textDecorationLine: 'underline',
   },
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   stepLabel: {
     fontSize: FONT_SIZES.sm,
     color: INK.dim,
-    letterSpacing: 0.3,
+    letterSpacing: TRACKING.body,
     fontFamily: FONTS.body,
   },
 });

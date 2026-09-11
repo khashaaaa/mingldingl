@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
+import { Tap } from '../ui/Tap';
+import { Animated, View, Text, Image, StyleSheet } from 'react-native';
 import { colorForTier } from '../../lib/tiers';
 import { useRevealLadder } from '../../hooks/useRevealThresholds';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, SURFACE, circle, tint } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import OathSigil from '../OathSigil';
 import type { Match } from '../../models/match';
@@ -49,14 +50,14 @@ export function QuestTile({ match, onPress }: Props) {
   }, [blurred, reveal]);
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+    <Tap onPress={onPress}>
       <View style={styles.row}>
-        <View style={[styles.runeStrip, { backgroundColor: status.color + '22', borderColor: status.color + '66' }]}>
+        <View style={[styles.runeStrip, { backgroundColor: tint(status.color, 0.13), borderColor: tint(status.color, 0.4) }]}>
           <View style={[styles.runeCorner, styles.runeCornerTl, { borderColor: status.color }]} />
           <View style={[styles.runeCorner, styles.runeCornerBr, { borderColor: status.color }]} />
           <Icon name={status.icon} size={ICON_SIZES.md} color={status.color} />
         </View>
-        <View style={[styles.avatarRing, { borderColor: tierColor + '80' }]}>
+        <View style={[styles.avatarRing, { borderColor: tint(tierColor, 0.5) }]}>
           {showPhoto ? (
             <>
               <Image
@@ -95,7 +96,7 @@ export function QuestTile({ match, onPress }: Props) {
           <Text style={[styles.status, { color: status.color }]}>{status.label}</Text>
         </View>
       </View>
-    </TouchableOpacity>
+    </Tap>
   );
 }
 
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.md,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: LINE.edge,
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
   avatarSharpOverlay: { position: 'absolute', top: 0, left: 0 },
   avatarPlaceholder: {
     flex: 1,
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     alignItems: 'center',
     justifyContent: 'center',
   },

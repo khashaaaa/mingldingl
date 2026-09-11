@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import {
-  Image, Pressable, StyleSheet, Text, View, type LayoutChangeEvent,
-} from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { ROOMS, PASSAGES, type RoomName } from '../../lib/world';
@@ -9,7 +7,8 @@ import { useWorldState } from '../../hooks/useWorldState';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { AppModal } from '../modals/AppModal';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, circle, glow, overlay, tint } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TRACKING, circle, glow, tint } from '../../lib/theme';
+import { scrimStyle } from '../modals/DialogSurface';
 const COLS = 3;
 const ROWS = 5;
 const MEDALLION = 46;
@@ -57,7 +56,7 @@ export function AtlasOverlay({ visible, onClose }: Props) {
 
   return (
     <AppModal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel={i18n.t('hold_close')}>
+      <Pressable style={scrimStyle()} onPress={onClose} accessibilityLabel={i18n.t('hold_close')}>
         {/* Swallow presses on the panel itself so only the scrim dismisses. */}
         <Pressable style={styles.panel} onPress={() => {}} accessibilityViewIsModal>
           <Text style={styles.title}>{i18n.t('hold_title')}</Text>
@@ -122,16 +121,15 @@ export function AtlasOverlay({ visible, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-  scrim: { flex: 1, backgroundColor: overlay(0.86), alignItems: 'center', justifyContent: 'center', padding: SPACE.gutter },
   panel: {
     width: '100%', maxWidth: 380,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
     borderWidth: 1, borderColor: LINE.edge, borderRadius: RADIUS.lg,
     paddingVertical: SPACE.xl, paddingHorizontal: SPACE.lg,
     gap: SPACE.sm,
   },
   title: {
-    fontFamily: FONTS.display, fontSize: FONT_SIZES.title, lineHeight: LINE_HEIGHTS.title,
+    fontFamily: FONTS.display, fontSize: FONT_SIZES.title, lineHeight: LEADING.title,
     color: INK.primary, textAlign: 'center',
   },
   fret: { width: FRET_HEIGHT * FRET_ASPECT, height: FRET_HEIGHT, alignSelf: 'center', opacity: 0.8 },
@@ -145,7 +143,7 @@ const styles = StyleSheet.create({
   room: { position: 'absolute', width: MEDALLION * 2, alignItems: 'center' },
   medallion: {
     ...circle(MEDALLION),
-    backgroundColor: COLORS.panelDeep,
+    backgroundColor: SURFACE.sunken,
     borderWidth: 1, borderColor: LINE.edge,
     alignItems: 'center', justifyContent: 'center',
   },
@@ -156,7 +154,7 @@ const styles = StyleSheet.create({
   },
   label: {
     marginTop: SPACE.xs,
-    fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, lineHeight: LINE_HEIGHTS.xs,
+    fontFamily: FONTS.utility, letterSpacing: TRACKING.wide, fontSize: FONT_SIZES.xs, lineHeight: LEADING.xs,
     color: INK.primary, textAlign: 'center', width: '100%',
   },
   labelDim: { color: INK.dim },

@@ -4,7 +4,7 @@ import { Icon } from '../ui/Icon';
 import { signal } from '../../lib/world/feedback';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { i18n } from '../../lib/i18n';
-import { COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, METAL, RADIUS, SPACE, tint } from '../../lib/theme';
+import { LEADING, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, SURFACE, TRACKING, tint } from '../../lib/theme';
 interface Props {
   /** Called once the wax has broken and the card has unfolded; the real bubble takes over. */
   onOpen: () => void;
@@ -79,13 +79,13 @@ export function SealedLetter({ onOpen, sealColor = METAL.gold }: Props) {
           <Animated.View
             style={[styles.seal, {
               backgroundColor: sealColor,
-              borderColor: tint(COLORS.panelDeep, 0.35),
+              borderColor: tint(SURFACE.sunken, 0.35),
               opacity: seal,
               transform: [{ scale: seal.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }],
             }]}
             testID="sealed-letter-wax"
           >
-            <Icon name="seal" size={ICON_SIZES.md} color={tint(COLORS.panelDeep, 0.75)} />
+            <Icon name="seal" size={ICON_SIZES.md} color={tint(SURFACE.sunken, 0.75)} />
           </Animated.View>
           <Text style={styles.hint} numberOfLines={2}>{hint}</Text>
         </Animated.View>
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: LINE.edge,
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     alignItems: 'center',
     overflow: 'visible',
   },
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: RADIUS.lg,
     borderBottomWidth: 1,
     borderBottomColor: LINE.edge,
-    backgroundColor: COLORS.panel,
+    backgroundColor: SURFACE.panel,
   },
   seal: {
     position: 'absolute',
@@ -132,9 +132,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   hint: {
-    fontFamily: FONTS.utility,
+    fontFamily: FONTS.utility, letterSpacing: TRACKING.wide,
     fontSize: FONT_SIZES.sm,
-    lineHeight: LINE_HEIGHTS.sm,
+    lineHeight: LEADING.sm,
     color: INK.dim,
     textAlign: 'center',
   },

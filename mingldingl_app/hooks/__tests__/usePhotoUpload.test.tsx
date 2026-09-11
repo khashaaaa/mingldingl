@@ -30,7 +30,7 @@ describe('usePhotoUpload pickPhoto', () => {
 
   it('returns an empty array and never opens the library when permission is denied', async () => {
     mockRequestMediaLibrary.mockResolvedValue({ granted: false });
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let uris: string[] = ['unset'];
     await act(async () => {
@@ -44,7 +44,7 @@ describe('usePhotoUpload pickPhoto', () => {
   it('returns an empty array when the user cancels the picker', async () => {
     mockRequestMediaLibrary.mockResolvedValue({ granted: true });
     mockLaunchLibrary.mockResolvedValue({ canceled: true, assets: null });
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let uris: string[] = ['unset'];
     await act(async () => {
@@ -60,7 +60,7 @@ describe('usePhotoUpload pickPhoto', () => {
       canceled: false,
       assets: [{ uri: 'file://local/a.jpg' }, { uri: 'file://local/b.jpg' }],
     });
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let uris: string[] = [];
     await act(async () => {
@@ -73,7 +73,7 @@ describe('usePhotoUpload pickPhoto', () => {
   it('passes selectionLimit through to the picker call', async () => {
     mockRequestMediaLibrary.mockResolvedValue({ granted: true });
     mockLaunchLibrary.mockResolvedValue({ canceled: false, assets: [{ uri: 'file://local/a.jpg' }] });
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     await act(async () => {
       await result.current.pickPhoto(3);
@@ -90,7 +90,7 @@ describe('usePhotoUpload takePhoto', () => {
 
   it('returns null and never opens the camera when permission is denied', async () => {
     mockRequestCamera.mockResolvedValue({ granted: false });
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let uri: string | null = 'unset';
     await act(async () => {
@@ -104,7 +104,7 @@ describe('usePhotoUpload takePhoto', () => {
   it('returns null when the user cancels', async () => {
     mockRequestCamera.mockResolvedValue({ granted: true });
     mockLaunchCamera.mockResolvedValue({ canceled: true, assets: null });
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let uri: string | null = 'unset';
     await act(async () => {
@@ -117,7 +117,7 @@ describe('usePhotoUpload takePhoto', () => {
   it('returns the captured asset uri on success', async () => {
     mockRequestCamera.mockResolvedValue({ granted: true });
     mockLaunchCamera.mockResolvedValue({ canceled: false, assets: [{ uri: 'file://local/b.jpg' }] });
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let uri: string | null = null;
     await act(async () => {
@@ -146,7 +146,7 @@ describe('usePhotoUpload uploadPhoto on native — streams the uri directly, nev
   it('returns the server-hosted url on success, without ever calling fetch on the local uri', async () => {
     const fetchSpy = jest.spyOn(global, 'fetch');
     mockUploadUri.mockResolvedValue({ url: 'https://cdn.example.com/photo123.jpg' });
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let url: string | null = null;
     await act(async () => {
@@ -160,7 +160,7 @@ describe('usePhotoUpload uploadPhoto on native — streams the uri directly, nev
 
   it('returns null — NOT the local uri — when the engine upload rejects', async () => {
     mockUploadUri.mockRejectedValue(new Error('500 server error'));
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let url: string | null = 'unset';
     await act(async () => {
@@ -173,7 +173,7 @@ describe('usePhotoUpload uploadPhoto on native — streams the uri directly, nev
 
   it('returns null when the server responds without a url', async () => {
     mockUploadUri.mockResolvedValue({ url: undefined });
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let url: string | null = 'unset';
     await act(async () => {
@@ -186,7 +186,7 @@ describe('usePhotoUpload uploadPhoto on native — streams the uri directly, nev
   it('toggles uploading true during the request and back to false afterward, on both success and failure', async () => {
     let resolveUpload!: (v: unknown) => void;
     mockUploadUri.mockReturnValue(new Promise((resolve) => { resolveUpload = resolve; }));
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let uploadPromise!: Promise<string | null>;
     act(() => {
@@ -222,7 +222,7 @@ describe('usePhotoUpload uploadPhoto on web — reads the picked blob: URI into 
 
   it('returns the server-hosted url on success', async () => {
     mockUpload.mockResolvedValue({ url: 'https://cdn.example.com/photo123.jpg' });
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let url: string | null = null;
     await act(async () => {
@@ -235,7 +235,7 @@ describe('usePhotoUpload uploadPhoto on web — reads the picked blob: URI into 
 
   it('returns null — NOT the local blob: uri — when the engine upload rejects', async () => {
     mockUpload.mockRejectedValue(new Error('500 server error'));
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let url: string | null = 'unset';
     await act(async () => {
@@ -248,7 +248,7 @@ describe('usePhotoUpload uploadPhoto on web — reads the picked blob: URI into 
 
   it('returns null — NOT the local blob: uri — when fetching the local uri itself fails', async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('failed to read local uri')) as unknown as typeof fetch;
-    const { result } = renderHook(() => usePhotoUpload('u1'));
+    const { result } = renderHook(() => usePhotoUpload());
 
     let url: string | null = 'unset';
     await act(async () => {

@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
 import { Icon } from '../../components/ui/Icon';
 import { i18n } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
@@ -83,7 +83,7 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: COLORS.panelDeep,
+    backgroundColor: SURFACE.sunken,
     borderTopWidth: 1,
     borderTopColor: LINE.edge,
     paddingTop: SPACE.sm,
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     // "Quest Log" had both of them sheared flat against the bottom of the bar.
     lineHeight: LINE_HEIGHTS.sm,
     // 0.5 pushed the widest label ("Character", "Тохиргоо") to the screen edge inside an 86px tab.
-    letterSpacing: 0.2,
+    letterSpacing: TRACKING.body,
     textAlign: 'center',
   },
 });

@@ -2,7 +2,7 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GemTierBadge } from '../progression/GemTierBadge';
 import { colorForTier, tierLabel } from '../../lib/tiers';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, circle } from '../../lib/theme';
+import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, SURFACE, TRACKING, circle } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
 import type { GemTier } from '../../models/user';
@@ -23,7 +23,7 @@ export function CharacterCard({ displayName, photoUrl, gemTier, totalScore, curr
   const tierColor = colorForTier(gemTier);
   return (
     <View style={styles.card}>
-      <LinearGradient colors={[COLORS.panelRaised, COLORS.bg]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[SURFACE.raised, SURFACE.ground]} style={StyleSheet.absoluteFill} />
       <View style={[styles.border, { borderColor: tierColor }]} />
       <Image source={ORNAMENTS.fretGold} testID="ulzii-frame-edge" style={[styles.frameEdge, styles.frameTop]} />
       <Image source={ORNAMENTS.fretGold} testID="ulzii-frame-edge" style={[styles.frameEdge, styles.frameBottom]} />
@@ -40,7 +40,7 @@ export function CharacterCard({ displayName, photoUrl, gemTier, totalScore, curr
       )}
       <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
       <View style={styles.tierRow}>
-        <GemTierBadge tier={gemTier} size={40} />
+        <GemTierBadge tier={gemTier} size={BADGE_SIZES.hero} />
         <Text
           style={[
             styles.tierName,
@@ -85,10 +85,10 @@ const styles = StyleSheet.create({
   fkBl: { bottom: 5, left: 5, transform: [{ scaleY: -1 }] },
   fkBr: { bottom: 5, right: 5, transform: [{ scaleX: -1 }, { scaleY: -1 }] },
   avatar: { ...circle(140), marginBottom: SPACE.xl },
-  avatarPlaceholder: { backgroundColor: COLORS.panelRaised },
+  avatarPlaceholder: { backgroundColor: SURFACE.raised },
   name: { fontFamily: FONTS.display, fontSize: FONT_SIZES.display, color: INK.primary, marginBottom: SPACE.lg },
   tierRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginBottom: SPACE.md },
-  tierName: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, letterSpacing: 0 },
+  tierName: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, letterSpacing: TRACKING.none },
   score: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, marginBottom: SPACE.sm },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginBottom: SPACE.xl },
   streak: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.dim },
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     bottom: 24,
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.md,
-    letterSpacing: 3,
+    letterSpacing: TRACKING.ceremony,
     color: INK.dim,
   },
 });

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Tap } from '../ui/Tap';
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { AlertModal } from '../modals/AlertModal';
 import { SheetModal } from '../modals/SheetModal';
@@ -9,7 +10,7 @@ import { GameButton } from '../ui/GameButton';
 import OathSigil, { OATH_VALUES, OATH_SIGILS, OATH_NAME_KEYS, OATH_DESC_KEYS } from '../OathSigil';
 import { useSwearOath } from '../../hooks/useOath';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, INK, LINE, PRESS, RADIUS, SPACE, SURFACE } from '../../lib/theme';
 import type { CloseThen } from '../modals/SheetModal';
 import type { GemTier, Oath } from '../../models/user';
 
@@ -43,7 +44,7 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
 
   return (
     <>
-      <TouchableOpacity activeOpacity={0.85} onPress={() => setPickerVisible(true)}>
+      <Tap onPress={() => setPickerVisible(true)}>
         <AppCard tier={gemTier} textured style={style}>
           <CardEyebrow>{i18n.t('oath_title')}</CardEyebrow>
           {oath ? (
@@ -63,7 +64,7 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
             <Text style={styles.oathPrompt}>{i18n.t('oath_prompt_banner')}</Text>
           )}
         </AppCard>
-      </TouchableOpacity>
+      </Tap>
 
       <SheetModal visible={pickerVisible} onClose={() => setPickerVisible(false)}>
         {(closeThen) => (
@@ -72,9 +73,9 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
             {OATH_VALUES.map((option) => {
               const isCurrent = oath === option;
               return (
-                <TouchableOpacity
+                <Tap
                   key={option}
-                  activeOpacity={0.85}
+                 
                   disabled={isSwearing}
                   onPress={() => (isCurrent ? setPickerVisible(false) : handleSwear(closeThen, option))}
                   style={[styles.option, isCurrent && styles.optionCurrent]}
@@ -87,7 +88,7 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
                     <Text style={styles.optionName}>{i18n.t(OATH_NAME_KEYS[option])}</Text>
                     <Text style={styles.optionDesc}>{i18n.t(OATH_DESC_KEYS[option])}</Text>
                   </View>
-                </TouchableOpacity>
+                </Tap>
               );
             })}
             <Text style={styles.sheetHelp}>{i18n.t('oath_step_help')}</Text>
@@ -126,9 +127,9 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
 
 const styles = StyleSheet.create({
   oathRow: { marginTop: SPACE.hair },
-  oathPrompt: { fontSize: FONT_SIZES.md, color: ACCENT.base, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.md },
+  oathPrompt: { fontSize: FONT_SIZES.md, color: ACCENT.base, fontFamily: FONTS.body, lineHeight: LEADING.md },
   sheetTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, color: INK.primary, marginBottom: SPACE.hair },
-  sheetHelp: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body, lineHeight: LINE_HEIGHTS.sm },
+  sheetHelp: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body, lineHeight: LEADING.sm },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -137,12 +138,12 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: LINE.edge,
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
   },
   optionCurrent: { borderColor: ACCENT.base, borderWidth: 2 },
   optionSigil: { width: 30, height: 30 },
-  optionSigilDim: { opacity: 0.5 },
+  optionSigilDim: { opacity: PRESS.disabled },
   optionText: { flex: 1, gap: SPACE.hair },
   optionName: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: INK.primary },
-  optionDesc: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, color: INK.dim, lineHeight: LINE_HEIGHTS.sm },
+  optionDesc: { fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, color: INK.dim, lineHeight: LEADING.sm },
 });

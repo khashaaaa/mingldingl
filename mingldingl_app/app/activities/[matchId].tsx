@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Share, StyleSheet } from 'react-native';
+import { Tap } from '../../components/ui/Tap';
+import { View, Text, ScrollView, Share, StyleSheet } from 'react-native';
+import { StateBlock } from '../../components/ui/StateBlock';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useActivitySuggestions } from '../../hooks/useActivitySuggestions';
 import { useMatches } from '../../hooks/useMatches';
 import { usePhotoUpload } from '../../hooks/usePhotoUpload';
-import { useAuthStore } from '../../store/authStore';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { AppCard } from '../../components/ui/AppCard';
 import { GameButton } from '../../components/ui/GameButton';
@@ -15,9 +16,8 @@ import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
-import { ACCENT, COLORS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, circle, overlay } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SCRIM, SPACE, SURFACE, circle, overlay } from '../../lib/theme';
 import { useScrollTail } from '../../hooks/useScrollTail';
-
 
 export default function ActivitiesScreen() {
   const tail = useScrollTail();
@@ -34,8 +34,7 @@ export default function ActivitiesScreen() {
   const match = matches?.find((m) => m.matchId === matchId);
   const riteLocked = (match?.flameRiteRequired ?? true) && !match?.flameRiteCompletedAt;
 
-  const session = useAuthStore((s) => s.session);
-  const { pickPhoto, uploadPhoto, uploading, lastError, clearLastError } = usePhotoUpload(session?.user.id);
+  const { pickPhoto, uploadPhoto, uploading, lastError, clearLastError } = usePhotoUpload();
   const [localPhotoUri, setLocalPhotoUri] = useState<string | null>(null);
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const [uploadFailedAlert, setUploadFailedAlert] = useState(false);
@@ -82,12 +81,13 @@ export default function ActivitiesScreen() {
   );
 
   if (error || !suggestions || suggestions.length === 0) return (
-    <View style={styles.centered}>
-      <Icon name="calendar" size={ICON_SIZES.huge} color={INK.muted} />
-      <Text style={styles.title}>{i18n.t('no_date_ideas')}</Text>
-      <Text style={styles.subtitle}>{i18n.t('keep_chatting')}</Text>
+    <StateBlock
+      icon="calendar"
+      title={i18n.t('no_date_ideas')}
+      body={i18n.t('keep_chatting')}
+    >
       <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
-    </View>
+    </StateBlock>
   );
 
   if (completed) {
@@ -107,7 +107,7 @@ export default function ActivitiesScreen() {
           <Text style={styles.thanks}>{i18n.t('thanks_for_rating')}</Text>
         ) : (
           <View style={styles.rateRow}>
-            <TouchableOpacity
+            <Tap
               style={styles.momentPhoto}
               disabled={uploading}
               onPress={handleAddMomentPhoto}
@@ -122,19 +122,19 @@ export default function ActivitiesScreen() {
                   <Waiting size={ICON_SIZES.md} />
                 </View>
               )}
-            </TouchableOpacity>
+            </Tap>
             <Text style={styles.momentHint}>{i18n.t('moment_photo_hint')}</Text>
             <Text style={styles.rateLabel}>{i18n.t('rate_your_date')}</Text>
             <View style={styles.stars}>
               {[1, 2, 3, 4, 5].map((n) => (
-                <TouchableOpacity
+                <Tap
                   key={n}
                   style={styles.starTouchable}
                   disabled={isRating || uploading}
                   onPress={() => rateBusiness(n, uploadedPhotoUrl)}
                 >
                   <Icon name="star" size={ICON_SIZES.md} color={ACCENT.base} />
-                </TouchableOpacity>
+                </Tap>
               ))}
             </View>
           </View>
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   sealRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginBottom: SPACE.sm },
   seal: {
     ...circle(34),
-    backgroundColor: COLORS.panelRaised,
+    backgroundColor: SURFACE.raised,
     borderWidth: 2, borderColor: METAL.ember,
     alignItems: 'center', justifyContent: 'center',
   },
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   partnerPledgedBanner: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
-    borderRadius: RADIUS.md, borderWidth: 1, borderColor: METAL.brass, backgroundColor: COLORS.panel,
+    borderRadius: RADIUS.md, borderWidth: 1, borderColor: METAL.brass, backgroundColor: SURFACE.panel,
   },
   partnerPledgedText: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
   title: { color: INK.primary, fontSize: FONT_SIZES.title, fontFamily: FONTS.display, textAlign: 'center' },
@@ -238,13 +238,13 @@ const styles = StyleSheet.create({
   rateRow: { alignItems: 'center', gap: SPACE.md },
   momentPhoto: {
     width: 72, height: 72, borderRadius: RADIUS.md,
-    backgroundColor: COLORS.panelRaised, borderWidth: 1, borderColor: LINE.edge,
+    backgroundColor: SURFACE.raised, borderWidth: 1, borderColor: LINE.edge,
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
   momentPhotoImage: { width: '100%', height: '100%' },
   momentPhotoOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: overlay(0.55), alignItems: 'center', justifyContent: 'center',
+    backgroundColor: overlay(SCRIM.veil), alignItems: 'center', justifyContent: 'center',
   },
   momentHint: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body, textAlign: 'center', maxWidth: 220 },
   rateLabel: { color: ACCENT.base, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyMedium, marginTop: SPACE.sm },

@@ -4,7 +4,6 @@ import { isAxiosError } from 'axios';
 import { supabase } from '../lib/supabase';
 import { subscribeWithRetry } from '../lib/realtime/subscribeWithRetry';
 import { apiClient } from '../lib/api/apiClient';
-import { useAuthStore } from '../store/authStore';
 import type { components } from '../lib/api/api.generated';
 import { queryKeys } from '../lib/api/queryKeys';
 import { useMyUserId } from './useMyUserId';

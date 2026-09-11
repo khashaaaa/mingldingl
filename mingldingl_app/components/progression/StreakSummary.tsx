@@ -37,5 +37,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   longestLabel: { marginBottom: 0 },
-  value: { fontSize: FONT_SIZES.title, fontFamily: FONTS.displayBlack, color: ACCENT.base },
+  value: { fontSize: FONT_SIZES.title, fontFamily: FONTS.display, color: ACCENT.base },
 });
