@@ -79,6 +79,33 @@ including the lock screen.
     away.
 14. **Notifications in the voice.** Rewrite `PushCopy` EN lines in the app's register.
 
+### The dials, adopted after the first review (2026-09-11, late)
+
+The user asked "what if more fierce" and chose three dials: **law** up, **furnace** a little,
+**frost** as a second pole; then asked for cave, creatures and the night sky. Adopted:
+
+- **Temperature.** Fire is what is alive, answered and kept; frost is silence, absence and what
+  was left. Five tokens in `lib/theme.ts`: `furnace` #FF7A1A, `furnaceBright` #FFB347, `rime`
+  #E8F4FA, `ice` #BFE3F2, `glacier` #7FB6D6. One frost drawing reused as an edge overlay wherever
+  silence is: a frozen thread in Letters, the Frozen Gate (Banished), the War Room, the offline
+  strip, a meeting not kept, White Moon for three days. Break the Ice is literal.
+- **Furnace, a little.** The two hot tokens only on the Fire, the Oath, the Ascension, the Square's
+  bell and the Hall of Names; glows bleed further there and corners square off. Elsewhere gold and
+  rounded stay.
+- **Law.** Two words per button, short sentences with full stops; the app commands the world and
+  states the law, never scolds the person. EN rewrites: Summon / Dismiss / Choose / Decide; oaths
+  become A Bond / Fate / Kin; "Your turn. Two dawns. Judged at the third."
+- **The sky belongs to time.** The hearth's window shows the real sky from the existing day phases
+  (`lib/world/light.ts` `DayPhase`); the Ascent is drawn as a climb through the night sky with the
+  gems as stars. No new mechanic.
+- **The cave belongs to the Campaign.** Torchlight, caverns, the dragon at the threshold. Nowhere
+  else.
+
+Dropped: **monsters and bats** as a category (sketch-level creature art is worse than none, and
+creatures outside the Campaign make the other person read as one); **iron** as a dial (shapes stay
+soft except where furnace is). Boards: canvas page "Fire and frost"; the report's screens use the
+adopted versions.
+
 ### Every screen (screens page), grouped by flow
 
 Arrival: The Gate (phone + OTP under one arch), The Naming (steps 1–3 as candles), The Oath (step 4,
@@ -159,6 +186,10 @@ Order matters only where noted. Each task: TDD where a test can see it, then `./
    (`CloisterBlack-Light`, `app/_layout.tsx`); `components/ui/HeaderBar.tsx` uses it for the title when `i18n.locale ===
    'en'` and the title is Latin, else `FONTS.display`. Test: EN renders blackletter, MN renders
    Yeseva.
+7b. **Temperature tokens and law strings.** Add the five tokens to `lib/theme.ts` (and the palette
+   test); a `FrostEdge` SVG overlay component; the EN law rewrites of button and oath labels (existing
+   keys, no new ones). Furnace appears only on the five screens named above; a source-tree test
+   guards that `furnace` is not imported elsewhere.
 8. **Chrome off Seek.** `app/(tabs)/discover.tsx`: remove `GettingStartedCard`, `DailyBudgetMeter`
    and `NextGatheringPill` from above the card; move the first two to the Character sheet for now
    (the hearth takes them in Wave 4) and the pill into the Town Square tab. Tests already cover the
@@ -195,16 +226,20 @@ on `AWAITING_MN_TRANSLATION` in this wave.
   seal-break rows from the reveal ladder, wax-seal send); `PushCopy` EN rewrite; time-in-world
   formatting helpers with exact time on tap. Verify on device with a seeded match across a reveal
   threshold.
-- **Wave 3 — the place.** Embers in the Quest Log from the ghosting state the engine already
-  exposes; the Guild House; the Hall of Names; the keepsake card via the existing share button.
+- **Wave 3 — the place.** Embers and frost in the Quest Log from the ghosting state the engine
+  already exposes; the Guild House; the Hall of Names; the Ascent as a night sky; the Campaign as a
+  cave (the cave frame and the dragon need an illustrator; placement is drawn); the keepsake card
+  via the existing share button.
 - **Wave 4 — the hearth and the square.** The hearth home (behind a kill switch like
-  `WORLD_ENABLED`), candle-stub budget, the plaza with lantern RSVPs, the round as The Second Bell.
+  `WORLD_ENABLED`) with the real sky in its window from the day phases, candle-stub budget, the
+  plaza with lantern RSVPs, the round as The Second Bell.
 - **Every wave** adds its EN strings only; every new MN string goes on `AWAITING_MN_TRANSLATION`.
   The translator's list grows by roughly 120 lines across the four waves.
 
 ### Readiness checklist (what "ready to build" means here)
 
-- [x] Every route, every modal/sheet/toast/banner, and every copy-key family has a board (61 boards,
+- [x] Every route, every modal/sheet/toast/banner, and every copy-key family has a board (71 boards
+      including the adopted dials,
       audited 2026-09-11 from three angles: `app/`, `components/`, `lib/i18n/en.ts`).
 - [x] Every board uses only existing tokens (`lib/theme.ts`), the two shipped faces, and the
       Ulzii knot asset; the blackletter face is the one addition and is decided separately.
@@ -220,8 +255,9 @@ on `AWAITING_MN_TRANSLATION` in this wave.
 
 ### Out of scope
 
-Traditional Mongolian script (removed on purpose 2026-09-05); a new icon library dependency; any
-change to score deltas, thresholds or ghosting rules; the admin panel.
+Traditional Mongolian script (removed on purpose 2026-09-05); monsters, bats and any creature
+outside the Campaign; iron as a dial; a new icon library dependency; any change to score deltas,
+thresholds or ghosting rules; the admin panel.
 
 ---
 

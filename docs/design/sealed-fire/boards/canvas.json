@@ -11,6 +11,10 @@
   {
    "id": "system",
    "name": "The kit"
+  },
+  {
+   "id": "fire-frost",
+   "name": "Fire and frost"
   }
  ],
  "artboards": [
@@ -562,6 +566,96 @@
    "h": 844,
    "title": "The Flame Rite's states and failures",
    "page": "screens"
+  },
+  {
+   "file": "FireFurnace.dc.html",
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "The Fire, furnace and law",
+   "page": "fire-frost"
+  },
+  {
+   "file": "OathFire.dc.html",
+   "x": 480,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "The Oath, on the iron",
+   "page": "fire-frost"
+  },
+  {
+   "file": "SquareLaw.dc.html",
+   "x": 960,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "The Second Bell, law",
+   "page": "fire-frost"
+  },
+  {
+   "file": "LettersFrost.dc.html",
+   "x": 0,
+   "y": 980,
+   "w": 390,
+   "h": 844,
+   "title": "Letters, a thread frozen",
+   "page": "fire-frost"
+  },
+  {
+   "file": "BanishedFrozen.dc.html",
+   "x": 480,
+   "y": 980,
+   "w": 390,
+   "h": 844,
+   "title": "The Frozen Gate",
+   "page": "fire-frost"
+  },
+  {
+   "file": "WhiteMoonHearth.dc.html",
+   "x": 960,
+   "y": 980,
+   "w": 390,
+   "h": 844,
+   "title": "The Hearth at White Moon",
+   "page": "fire-frost"
+  },
+  {
+   "file": "Temperature.dc.html",
+   "x": 1500,
+   "y": 0,
+   "w": 1180,
+   "h": 640,
+   "title": "Fire and frost: the rules",
+   "page": "fire-frost"
+  },
+  {
+   "file": "DawnHearth.dc.html",
+   "x": 0,
+   "y": 1960,
+   "w": 390,
+   "h": 844,
+   "title": "The Hearth at dawn (the sky is real)",
+   "page": "fire-frost"
+  },
+  {
+   "file": "AscentSky.dc.html",
+   "x": 480,
+   "y": 1960,
+   "w": 390,
+   "h": 844,
+   "title": "The Ascent as a night sky",
+   "page": "fire-frost"
+  },
+  {
+   "file": "CampaignCave.dc.html",
+   "x": 960,
+   "y": 1960,
+   "w": 390,
+   "h": 844,
+   "title": "The Campaign as a cave, bats and the dragon",
+   "page": "fire-frost"
   }
  ],
  "annotations": [
@@ -668,10 +762,26 @@
    "w": 560,
    "text": "Coverage audit 2026-09-11: every route in app/, every modal, sheet, toast and banner in components/ has a board on this page or the kit page.",
    "page": "screens"
+  },
+  {
+   "id": "ff-intro",
+   "x": 1500,
+   "y": 760,
+   "w": 560,
+   "text": "Adopted 2026-09-11: law, a little furnace, frost, the real sky, the cave for the Campaign. Dropped: monsters and bats. These boards replace their counterparts on 'Every screen' in the report.",
+   "page": "fire-frost"
+  },
+  {
+   "id": "ff-sky",
+   "x": 1500,
+   "y": 1864,
+   "w": 560,
+   "text": "Third row: sky and cave, adopted. Creatures beyond the dragon: dropped.",
+   "page": "fire-frost"
   }
  ],
  "launch": {
   "view": "canvas",
-  "page": "screens"
+  "page": "fire-frost"
  }
 }
