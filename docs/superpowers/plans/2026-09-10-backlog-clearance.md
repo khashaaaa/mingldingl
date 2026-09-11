@@ -266,33 +266,54 @@ empty.
 
 ---
 
-### Task 7: Stop the card promising a lock that does not exist
+### Task 7: Retire the lock glyph on an unstarted quest
 
-Closes: *"`icebreakerComplete` gates the video button and nothing else. Neither the app nor the
-engine stops you messaging before the icebreaker, so the character sheet's `next_action_icebreaker`
-('Break the ice with X to unlock chat') promises a lock that does not exist."*
+Closes (partially stale — see below): *"`icebreakerComplete` gates the video button and nothing
+else... the character sheet's `next_action_icebreaker` ('Break the ice with X to unlock chat')
+promises a lock that does not exist."*
 
-**Ruling carried from the controller:** reword the card; do NOT gate the endpoint. Gating now would
-strand every active match that skipped the icebreaker.
+**Controller finding — verify this before you start, then act on it.** The COPY half of this entry
+is already fixed. `next_action_icebreaker` currently reads *"Break the ice with %{name} — trade
+answers to the same question"* in `en.ts` and its Mongolian counterpart matches. Nothing in
+`lib/i18n/en.ts` promises the icebreaker unlocks chat. Confirm that yourself with
+`grep -rn "unlock" mingldingl_app/lib/i18n/en.ts`.
+
+What survives is the same false promise expressed as a **symbol**:
+`mingldingl_app/components/quest/QuestTile.tsx:23` renders a `lock` icon whenever
+`!match.icebreakerComplete`. A padlock states that the thread is locked. It is not — messaging is
+never gated, in the app or the engine (`icebreakerComplete` is read at
+`app/chat/[matchId].tsx:385` for the video button, and nowhere else; verify with
+`grep -rn "icebreakerComplete"`).
 
 **Files:**
-- Modify: `mingldingl_app/lib/i18n/en.ts` (and `mn.ts` — see below)
-- Test: whichever test asserts on `next_action_icebreaker`
+- Modify: `mingldingl_app/components/quest/QuestTile.tsx`
+- Test: `mingldingl_app/components/quest/__tests__/` if a QuestTile test exists — check first
 
-- [ ] **Step 1: Read the current key in both locales**
+**Interfaces:**
+- Consumes: `StatusIconName` (= `Icon`'s `name` prop) — the glyph must be a real
+  MaterialCommunityIcons name.
+- Produces: no API change, no copy change, **no new i18n key** — which is the point of doing it
+  this way rather than rewording.
 
-`next_action_icebreaker` exists in `en.ts` AND `mn.ts` — it is already translated. The reword must
-therefore either (a) keep the Mongolian true to the new English, which needs a native speaker, or
-(b) choose new English that the EXISTING Mongolian still describes accurately.
+- [ ] **Step 1: Confirm both halves of the finding**
 
-Prefer (b): find English wording that says what the icebreaker actually unlocks (the video call)
-and check whether the existing Mongolian still reads correctly for it. If it does not, leave the
-Mongolian alone, put the new English key on `AWAITING_MN_TRANSLATION`, and report that the
-Mongolian now needs rewriting — do not guess at it.
+Run both greps above. If the copy DOES still promise a lock somewhere, stop and report — the fix
+would then be larger than this task describes.
 
-- [ ] **Step 2: Update the copy and its test, run the suite, commit**
+- [ ] **Step 2: Write the failing test**
 
----
+Assert that a match with `icebreakerComplete: false` does NOT render the `lock` glyph, and still
+renders the `quest_new` label. If no QuestTile test file exists, create one following the
+conventions in `components/progression/__tests__/`.
+
+- [ ] **Step 3: Change the glyph**
+
+Replace `lock` with a glyph that means "not begun" rather than "forbidden". `script-text` (an
+unopened quest scroll) fits this app's world language and is confirmed present in the
+MaterialCommunityIcons glyph map; `flag-outline` and `book-open-variant` are also available if you
+judge one of them better. Keep the label and colour exactly as they are — only the icon changes.
+
+- [ ] **Step 4: Run the suite, commit**
 
 ### Task 8: Fix the first-run discover card
 
