@@ -84,6 +84,16 @@ Thread. The Mirror: the character sheet, editing as three seals, The Ascent, The
 hooks), Hall of Names, The Guild House. The War Room: settings as steel, The Banished, The Codex
 (guides + privacy + terms as one book).
 
+Also drawn after a coverage audit of every route in `app/` and every modal, sheet, toast and
+banner in `components/`: Your Likeness (onboarding step 3 with the ally's word), The Hold (the
+existing atlas overlay, redrawn), festival days and the First Dawns (the First Steps card moved to
+the hearth's mantel), the Square's closed / under-way / quiet states, Leaving the realm (deletion
+confirm and the pending banner), the sealed first letter with embers and a severed ending, The
+Seals (the reveal strip expanded, with locked chips and the deep seal for Hall and High Table),
+The Unsealing ceremony, a thread arriving (Fated Threads accept/pass) with threads woven and the
+ally invite, the toasts (reward, honour, streak, nudges), the offline strip and the crash screen,
+and the four small sheets (honour story, report, city picker, change number).
+
 The kit page: three voices of type (blackletter / Yeseva / Alegreya), one forged button + ink links
 + chips + seals, one hero panel then rows; the three states (waiting = candle, empty = a place,
 wrong = ember); the five interruptions (chest and ascension as full-screen ceremonies; reckoning,
@@ -120,6 +130,21 @@ warning and faltering as bottom parchment strips, never a floating card).
   `WORLD_ENABLED`), candle-stub budget, the plaza with lantern RSVPs, the round as The Second Bell.
 - **Every wave** adds its EN strings only; every new MN string goes on `AWAITING_MN_TRANSLATION`.
   The translator's list grows by roughly 120 lines across the four waves.
+
+### Readiness checklist (what "ready to build" means here)
+
+- [x] Every route and every modal/sheet/toast/banner has a board (59 boards, audited 2026-09-11).
+- [x] Every board uses only existing tokens (`lib/theme.ts`), the two shipped faces, and the
+      Ulzii knot asset; the blackletter face is the one addition and is decided separately.
+- [x] Every state a screen has today (waiting, empty, wrong, completed, ended) has a drawn form.
+- [x] Every mechanic is unchanged: score deltas, tier thresholds, reveal ladder, ghosting rules,
+      budgets, prices. The four product decisions above are the only behaviour questions.
+- [ ] The four decisions answered by the user.
+- [ ] The glyph set drawn as final SVGs (the boards show the style, not the finished set).
+- [ ] The hearth, plaza and Hold scenes drawn as final assets or Skia scenes.
+- [ ] Mongolian for every new string, from the translator, before any wave is called done for
+      an `mn` user (EN ships first; keys go on `AWAITING_MN_TRANSLATION`).
+- [ ] Wave 1 verified on the Galaxy A51 before Wave 2 starts, and so on.
 
 ### Out of scope
 
