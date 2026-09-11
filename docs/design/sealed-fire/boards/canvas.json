@@ -1,0 +1,659 @@
+{
+ "pages": [
+  {
+   "id": "report",
+   "name": "The report"
+  },
+  {
+   "id": "screens",
+   "name": "Every screen"
+  },
+  {
+   "id": "system",
+   "name": "The kit"
+  }
+ ],
+ "artboards": [
+  {
+   "file": "Main.dc.html",
+   "x": 0,
+   "y": 0,
+   "w": 520,
+   "h": 940,
+   "title": "Weird enough?",
+   "page": "report"
+  },
+  {
+   "file": "Now.dc.html",
+   "x": 620,
+   "y": 0,
+   "w": 2340,
+   "h": 860,
+   "title": "How it is now",
+   "page": "report"
+  },
+  {
+   "file": "SeekSealed.dc.html",
+   "x": 0,
+   "y": 1078.0,
+   "w": 390,
+   "h": 844,
+   "title": "1 \u00b7 Seek, sealed",
+   "page": "report"
+  },
+  {
+   "file": "ChatLedger.dc.html",
+   "x": 480,
+   "y": 1078.0,
+   "w": 390,
+   "h": 844,
+   "title": "2 \u00b7 Chat as letters",
+   "page": "report"
+  },
+  {
+   "file": "MissionsRestraint.dc.html",
+   "x": 960,
+   "y": 1078.0,
+   "w": 390,
+   "h": 844,
+   "title": "5 \u00b7 Missions, one hero",
+   "page": "report"
+  },
+  {
+   "file": "Glyphs.dc.html",
+   "x": 1450,
+   "y": 1080,
+   "w": 1180,
+   "h": 520,
+   "title": "3 \u00b7 Woodcut glyphs",
+   "page": "report"
+  },
+  {
+   "file": "Rooms.dc.html",
+   "x": 1450,
+   "y": 1720,
+   "w": 1180,
+   "h": 560,
+   "title": "4 \u00b7 Room colours",
+   "page": "report"
+  },
+  {
+   "file": "Hearth.dc.html",
+   "x": 0,
+   "y": 2077.6,
+   "w": 390,
+   "h": 844,
+   "title": "6 \u00b7 The hearth (home)",
+   "page": "report"
+  },
+  {
+   "file": "Embers.dc.html",
+   "x": 480,
+   "y": 2077.6,
+   "w": 390,
+   "h": 844,
+   "title": "7 \u00b7 Fires that go out",
+   "page": "report"
+  },
+  {
+   "file": "GuildHall.dc.html",
+   "x": 960,
+   "y": 2077.6,
+   "w": 390,
+   "h": 844,
+   "title": "8 \u00b7 The Guild House",
+   "page": "report"
+  },
+  {
+   "file": "Plaza.dc.html",
+   "x": 0,
+   "y": 3077.2000000000003,
+   "w": 390,
+   "h": 844,
+   "title": "9 \u00b7 The Square as a plaza",
+   "page": "report"
+  },
+  {
+   "file": "Keepsake.dc.html",
+   "x": 480,
+   "y": 3077.2000000000003,
+   "w": 390,
+   "h": 844,
+   "title": "10 \u00b7 The keepsake card",
+   "page": "report"
+  },
+  {
+   "file": "HallOfNames.dc.html",
+   "x": 960,
+   "y": 3077.2000000000003,
+   "w": 390,
+   "h": 844,
+   "title": "11 \u00b7 Hall of Names",
+   "page": "report"
+  },
+  {
+   "file": "Blackletter.dc.html",
+   "x": 1450,
+   "y": 2400,
+   "w": 1180,
+   "h": 460,
+   "title": "12 \u00b7 Blackletter titles",
+   "page": "report"
+  },
+  {
+   "file": "WorldTime.dc.html",
+   "x": 1450,
+   "y": 2980,
+   "w": 1180,
+   "h": 580,
+   "title": "13 \u00b7 Time in the world's units",
+   "page": "report"
+  },
+  {
+   "file": "Voice.dc.html",
+   "x": 1450,
+   "y": 3680,
+   "w": 1180,
+   "h": 480,
+   "title": "14 \u00b7 Notifications in the voice",
+   "page": "report"
+  },
+  {
+   "file": "Gate.dc.html",
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "The Gate (phone + OTP)",
+   "page": "screens"
+  },
+  {
+   "file": "Naming.dc.html",
+   "x": 480,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "The Naming (steps 1 to 3)",
+   "page": "screens"
+  },
+  {
+   "file": "Oath.dc.html",
+   "x": 960,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "The Oath (step 4)",
+   "page": "screens"
+  },
+  {
+   "file": "Home.dc.html",
+   "x": 0,
+   "y": 980,
+   "w": 390,
+   "h": 844,
+   "title": "The Hearth (home)",
+   "page": "screens"
+  },
+  {
+   "file": "Fire.dc.html",
+   "x": 480,
+   "y": 980,
+   "w": 390,
+   "h": 844,
+   "title": "The Fire (Seek)",
+   "page": "screens"
+  },
+  {
+   "file": "Card.dc.html",
+   "x": 960,
+   "y": 980,
+   "w": 390,
+   "h": 844,
+   "title": "The keepsake card (share)",
+   "page": "screens"
+  },
+  {
+   "file": "Letters.dc.html",
+   "x": 0,
+   "y": 1960,
+   "w": 390,
+   "h": 844,
+   "title": "Letters (Quest Log)",
+   "page": "screens"
+  },
+  {
+   "file": "Thread.dc.html",
+   "x": 480,
+   "y": 1960,
+   "w": 390,
+   "h": 844,
+   "title": "A thread (chat)",
+   "page": "screens"
+  },
+  {
+   "file": "ChatSheet.dc.html",
+   "x": 960,
+   "y": 1960,
+   "w": 390,
+   "h": 844,
+   "title": "Things to do together",
+   "page": "screens"
+  },
+  {
+   "file": "Icebreaker.dc.html",
+   "x": 1440,
+   "y": 1960,
+   "w": 390,
+   "h": 844,
+   "title": "Break the Ice",
+   "page": "screens"
+  },
+  {
+   "file": "Trial.dc.html",
+   "x": 1920,
+   "y": 1960,
+   "w": 390,
+   "h": 844,
+   "title": "The Rune Chamber (quiz)",
+   "page": "screens"
+  },
+  {
+   "file": "FlameRite.dc.html",
+   "x": 2400,
+   "y": 1960,
+   "w": 390,
+   "h": 844,
+   "title": "The Flame Rite (call)",
+   "page": "screens"
+  },
+  {
+   "file": "CampaignMap.dc.html",
+   "x": 2880,
+   "y": 1960,
+   "w": 390,
+   "h": 844,
+   "title": "The Campaign",
+   "page": "screens"
+  },
+  {
+   "file": "Encounter.dc.html",
+   "x": 3360,
+   "y": 1960,
+   "w": 390,
+   "h": 844,
+   "title": "Under Open Sky (plan)",
+   "page": "screens"
+  },
+  {
+   "file": "Square.dc.html",
+   "x": 0,
+   "y": 2940,
+   "w": 390,
+   "h": 844,
+   "title": "The Square (Town Square)",
+   "page": "screens"
+  },
+  {
+   "file": "Round.dc.html",
+   "x": 480,
+   "y": 2940,
+   "w": 390,
+   "h": 844,
+   "title": "The Second Bell (a round)",
+   "page": "screens"
+  },
+  {
+   "file": "Forge.dc.html",
+   "x": 0,
+   "y": 3920,
+   "w": 390,
+   "h": 844,
+   "title": "The Forge (Missions)",
+   "page": "screens"
+  },
+  {
+   "file": "Venue.dc.html",
+   "x": 480,
+   "y": 3920,
+   "w": 390,
+   "h": 844,
+   "title": "A place worth the walk",
+   "page": "screens"
+  },
+  {
+   "file": "EncounterLog.dc.html",
+   "x": 960,
+   "y": 3920,
+   "w": 390,
+   "h": 844,
+   "title": "Meetings Sworn (log)",
+   "page": "screens"
+  },
+  {
+   "file": "Weave.dc.html",
+   "x": 1440,
+   "y": 3920,
+   "w": 390,
+   "h": 844,
+   "title": "Weave a Thread",
+   "page": "screens"
+  },
+  {
+   "file": "CharacterSheet.dc.html",
+   "x": 0,
+   "y": 4900,
+   "w": 390,
+   "h": 844,
+   "title": "The Mirror (Character)",
+   "page": "screens"
+  },
+  {
+   "file": "EditCharacter.dc.html",
+   "x": 480,
+   "y": 4900,
+   "w": 390,
+   "h": 844,
+   "title": "The Mirror, editing",
+   "page": "screens"
+  },
+  {
+   "file": "Ascent.dc.html",
+   "x": 960,
+   "y": 4900,
+   "w": 390,
+   "h": 844,
+   "title": "The Ascent",
+   "page": "screens"
+  },
+  {
+   "file": "Honours.dc.html",
+   "x": 1440,
+   "y": 4900,
+   "w": 390,
+   "h": 844,
+   "title": "The Hall of Honours",
+   "page": "screens"
+  },
+  {
+   "file": "Names.dc.html",
+   "x": 1920,
+   "y": 4900,
+   "w": 390,
+   "h": 844,
+   "title": "Hall of Names",
+   "page": "screens"
+  },
+  {
+   "file": "Guild.dc.html",
+   "x": 2400,
+   "y": 4900,
+   "w": 390,
+   "h": 844,
+   "title": "The Guild House",
+   "page": "screens"
+  },
+  {
+   "file": "WarRoom.dc.html",
+   "x": 0,
+   "y": 5880,
+   "w": 390,
+   "h": 844,
+   "title": "The War Room",
+   "page": "screens"
+  },
+  {
+   "file": "Banished.dc.html",
+   "x": 480,
+   "y": 5880,
+   "w": 390,
+   "h": 844,
+   "title": "The Banished",
+   "page": "screens"
+  },
+  {
+   "file": "Codex.dc.html",
+   "x": 960,
+   "y": 5880,
+   "w": 390,
+   "h": 844,
+   "title": "The Codex (guides, privacy, terms)",
+   "page": "screens"
+  },
+  {
+   "file": "Components.dc.html",
+   "x": 0,
+   "y": 0,
+   "w": 1180,
+   "h": 760,
+   "title": "The kit",
+   "page": "system"
+  },
+  {
+   "file": "States.dc.html",
+   "x": 0,
+   "y": 880,
+   "w": 1180,
+   "h": 620,
+   "title": "Waiting, empty, wrong",
+   "page": "system"
+  },
+  {
+   "file": "Ceremonies.dc.html",
+   "x": 0,
+   "y": 1620,
+   "w": 1180,
+   "h": 720,
+   "title": "Ceremonies and interruptions",
+   "page": "system"
+  },
+  {
+   "file": "Likenesses.dc.html",
+   "x": 1440,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Your Likeness (step 3)",
+   "page": "screens"
+  },
+  {
+   "file": "Hold.dc.html",
+   "x": 1920,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "The Hold (map behind the sigil)",
+   "page": "screens"
+  },
+  {
+   "file": "FestivalHearth.dc.html",
+   "x": 1440,
+   "y": 980,
+   "w": 390,
+   "h": 844,
+   "title": "Festival days and First Dawns",
+   "page": "screens"
+  },
+  {
+   "file": "SquareAfter.dc.html",
+   "x": 960,
+   "y": 2940,
+   "w": 390,
+   "h": 844,
+   "title": "The Square: closed, under way, quiet",
+   "page": "screens"
+  },
+  {
+   "file": "Leaving.dc.html",
+   "x": 2880,
+   "y": 4900,
+   "w": 390,
+   "h": 844,
+   "title": "Leaving the realm",
+   "page": "screens"
+  },
+  {
+   "file": "LettersMoments.dc.html",
+   "x": 0,
+   "y": 6860,
+   "w": 390,
+   "h": 844,
+   "title": "Sealed first letter, embers, a severed end",
+   "page": "screens"
+  },
+  {
+   "file": "Seals.dc.html",
+   "x": 480,
+   "y": 6860,
+   "w": 390,
+   "h": 844,
+   "title": "The seals (reveal strip)",
+   "page": "screens"
+  },
+  {
+   "file": "Unsealing.dc.html",
+   "x": 960,
+   "y": 6860,
+   "w": 390,
+   "h": 844,
+   "title": "The Unsealing (ceremony)",
+   "page": "screens"
+  },
+  {
+   "file": "ThreadArrives.dc.html",
+   "x": 1440,
+   "y": 6860,
+   "w": 390,
+   "h": 844,
+   "title": "A thread arrives, threads woven, an ally",
+   "page": "screens"
+  },
+  {
+   "file": "Toasts.dc.html",
+   "x": 1300,
+   "y": 880,
+   "w": 1180,
+   "h": 620,
+   "title": "Things that appear and leave",
+   "page": "system"
+  },
+  {
+   "file": "Sheets.dc.html",
+   "x": 1300,
+   "y": 1620,
+   "w": 1180,
+   "h": 620,
+   "title": "The small sheets",
+   "page": "system"
+  }
+ ],
+ "annotations": [
+  {
+   "id": "row-now",
+   "x": 620,
+   "y": -110,
+   "w": 420,
+   "text": "Top row: today's screens, straight off the Galaxy A51, with what drags each one down.",
+   "page": "report"
+  },
+  {
+   "id": "row-proposed",
+   "x": 0,
+   "y": 920,
+   "w": 460,
+   "text": "Below: the fourteen moves as mockups. Same tokens, same fonts, same knots, spent differently.",
+   "page": "report"
+  },
+  {
+   "id": "screens-intro",
+   "x": 1450,
+   "y": -96,
+   "w": 560,
+   "text": "Every screen of the app in the new direction, one row per flow, in the order a traveller meets them. Nothing here has shipped.",
+   "page": "screens"
+  },
+  {
+   "id": "system-intro",
+   "x": 1250,
+   "y": 0,
+   "w": 420,
+   "text": "The kit: three voices of type, one forged button, chips, seals, one hero panel then rows; the three states; the five interruptions. Rooms and glyphs are on the report page.",
+   "page": "system"
+  },
+  {
+   "id": "flow-arrival",
+   "x": 0,
+   "y": -96,
+   "w": 260,
+   "text": "Arrival",
+   "page": "screens"
+  },
+  {
+   "id": "flow-home-and-the-fire",
+   "x": 0,
+   "y": 884,
+   "w": 260,
+   "text": "Home and the fire",
+   "page": "screens"
+  },
+  {
+   "id": "flow-letters",
+   "x": 0,
+   "y": 1864,
+   "w": 260,
+   "text": "Letters",
+   "page": "screens"
+  },
+  {
+   "id": "flow-the-square",
+   "x": 0,
+   "y": 2844,
+   "w": 260,
+   "text": "The Square",
+   "page": "screens"
+  },
+  {
+   "id": "flow-the-forge",
+   "x": 0,
+   "y": 3824,
+   "w": 260,
+   "text": "The Forge",
+   "page": "screens"
+  },
+  {
+   "id": "flow-the-mirror",
+   "x": 0,
+   "y": 4804,
+   "w": 260,
+   "text": "The Mirror",
+   "page": "screens"
+  },
+  {
+   "id": "flow-the-war-room",
+   "x": 0,
+   "y": 5784,
+   "w": 260,
+   "text": "The War Room",
+   "page": "screens"
+  },
+  {
+   "id": "flow-moments",
+   "x": 0,
+   "y": 6764,
+   "w": 260,
+   "text": "Moments of a thread",
+   "page": "screens"
+  },
+  {
+   "id": "screens-audit",
+   "x": 1450,
+   "y": -40,
+   "w": 560,
+   "text": "Coverage audit 2026-09-11: every route in app/, every modal, sheet, toast and banner in components/ has a board on this page or the kit page.",
+   "page": "screens"
+  }
+ ],
+ "launch": {
+  "view": "canvas",
+  "page": "screens"
+ }
+}

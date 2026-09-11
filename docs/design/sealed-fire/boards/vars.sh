@@ -1,0 +1,9 @@
+PH='width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; color: #EDE4D3; font-family: '"'"'Alegreya'"'"', Georgia, serif; display: flex; flex-direction: column; padding: 56px 20px 0 20px;'
+Y="font-family: 'Yeseva One', Georgia, serif;"
+BK="<svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#D97F1F\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M15 5l-7 7 7 7\"></path></svg>"
+KNOT4='<img src="knot.png" style="position: absolute; left: -8px; top: -8px; width: 26px; height: 26px; display: block;"><img src="knot.png" style="position: absolute; right: -8px; top: -8px; width: 26px; height: 26px; display: block; transform: scaleX(-1);"><img src="knot.png" style="position: absolute; left: -8px; bottom: -8px; width: 26px; height: 26px; display: block; transform: scaleY(-1);"><img src="knot.png" style="position: absolute; right: -8px; bottom: -8px; width: 26px; height: 26px; display: block; transform: scale(-1, -1);">'
+FORGED='height: 56px; border-radius: 8px; background: linear-gradient(180deg, #F5A83C 0%, #D97F1F 55%, #9c5a12 100%); border: 1px solid #F5A83C; box-shadow: 0 0 22px rgba(217,127,31,0.45); display: flex; align-items: center; justify-content: center; font-family: '"'"'Yeseva One'"'"', Georgia, serif; font-size: 16px; letter-spacing: 2px; color: #1A1406;'
+LINK='font-size: 16px; color: #8F97A3; text-decoration: underline; text-decoration-color: #394553; text-underline-offset: 4px;'
+CHIP='padding: 8px 14px; border-radius: 999px; border: 1px solid #526476; background: #12141C; font-size: 15px; color: #8F97A3; letter-spacing: 0.5px;'
+CHIPON='padding: 8px 14px; border-radius: 999px; border: 1px solid #D97F1F; background: rgba(217,127,31,0.15); font-size: 15px; color: #F5A83C; letter-spacing: 0.5px;'
+EYE="font-family: 'Yeseva One', Georgia, serif; font-size: 12px; letter-spacing: 2px; color: #8F97A3;"

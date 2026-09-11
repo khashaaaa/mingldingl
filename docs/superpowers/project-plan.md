@@ -17,9 +17,17 @@ ships, move its record over rather than leaving it in this file.
 
 ## The Sealed Fire: a redesign that makes the app strange on purpose (2026-09-11)
 
-**Status:** designed, not started. Every screen is drawn on the canvas
-<https://claude.ai/code/artifact/0697f213-d884-4ed5-b8b8-e62616403fb1> (three pages: *The report*,
-*Every screen*, *The kit*). Nothing below has shipped; the app still runs the 2026-09-11 design.
+**Status:** designed, ready, waiting for the user's order to start. Nothing below has shipped.
+The one-page report is <https://claude.ai/code/artifact/c2542b0e-1c65-48ec-be04-e85b7caa61d3>
+(Export gives the PDF); the working canvas with all 59 boards is
+<https://claude.ai/code/artifact/0697f213-d884-4ed5-b8b8-e62616403fb1>. Sources are in the repo under
+`docs/design/sealed-fire/` (`boards/*.dc.html` + `canvas.json` + `boards.txt` for the canvas,
+`report/Main.dc.html` + `report/img/` for the report) so any session can re-seed either with the
+`design` skill's helper without this session's scratchpad.
+
+**To start:** the user says so; then run Wave 1 below as written. It needs none of the four
+decisions. If the user gives the order without answering the decisions, use the defaults in that
+table and say so once.
 
 ### Why
 
@@ -99,18 +107,76 @@ The kit page: three voices of type (blackletter / Yeseva / Alegreya), one forged
 wrong = ember); the five interruptions (chest and ascension as full-screen ceremonies; reckoning,
 warning and faltering as bottom parchment strips, never a floating card).
 
-### Decisions this needs before code (product, not paint)
+### Decisions (product, not paint) and the default used if none is given
 
-- **Level-zero reveal.** Sealed Seek hides the likeness at level 0. Today level 0 grants one photo.
-  Either the ladder shifts (photo at level 1) or the seal is a blur of the level-0 photo. Recommended:
-  blur, so no engine change and the Unsealing ceremony already fits.
-- **Embers in the open.** Showing "your turn, two dawns unanswered, one more and the fire is yours to
-  have let die" exposes the ghosting judgement before it lands. Intentional per the accountability
-  thesis; confirm the copy tone with the user.
-- **The hearth replaces navigation.** Slower than a tab bar; needs a one-gesture way home (swipe down
-  or a persistent small hearth glyph). Decide before building move 6; moves 1–5 do not depend on it.
-- **Blackletter and Cyrillic.** Latin-only titles mean two hands for two languages. Accept, or drop
-  move 12.
+- **Level-zero reveal.** Sealed Seek hides the likeness at level 0; today level 0 grants one photo.
+  *Default:* blur the level-0 photo under the seal. No engine change; the Unsealing ceremony fits.
+- **Embers in the open.** The Quest Log shows the ghosting judgement before it lands. *Default:*
+  show it, with the report's copy ("Your turn, two dawns unanswered. One more and the fire is judged
+  yours to have let die."). Accountability is the thesis.
+- **The hearth replaces navigation.** *Default:* build it behind a kill switch (`HEARTH_ENABLED`,
+  like `WORLD_ENABLED`) with a small hearth glyph in every header as the way home; the tab bar stays
+  until the switch flips. Waves 1–3 do not depend on it.
+- **Blackletter and Cyrillic.** *Default:* Latin titles in blackletter, Mongolian titles stay in
+  Yeseva; revisit if a Cyrillic cut is commissioned.
+
+### Wave 1, as tasks (the kit; no behaviour change; no decision needed)
+
+Order matters only where noted. Each task: TDD where a test can see it, then `./scripts/check-all.sh
+--fast`, then the full suite before the wave's commit. Files are the ones read on 2026-09-11.
+
+1. **Glyphs.** `components/ui/Glyph.tsx`: a stroke-based SVG set. `react-native-svg` is **not** in
+   `package.json` (only Skia is): add it with `npx expo install react-native-svg`, which is a native
+   module, so **one new EAS development build** (`eas build --profile development --platform
+   android`, ~15 min) and `adb install` before the device pass. Names `fire, letters, lantern, forge, gem, ice,
+   seals, knot, flame, pledge, seal, candle, bell, hearth`, stroke 2.4, square caps, mitre joins,
+   default colour `ACCENT.base`. Keep `components/ui/Icon.tsx` for everything else. Replace the five
+   tab glyphs in `app/(tabs)/_layout.tsx` and `QUEST_ICONS` in `components/quest/QuestBoard.tsx`.
+   Test: every name renders; the tab layout uses `Glyph`, not `Icon`.
+2. **Rooms.** `lib/world/light.ts`: raise the six recipes so the floor alpha and tone read on a
+   phone (`warm`/`hot` toneAlpha to ~0.45, `cold` tone to `NIGHT.blue` ink, `dark` to soot). The
+   existing "no two signatures render identically" test stays; add a minimum-contrast-between-rooms
+   assertion on the resolved floor colours.
+3. **One hero.** `components/ui/AppCard.tsx`: add `hero?: boolean`; knots and texture render only
+   when `hero`. Every current `AppCard` call site gets `hero` on exactly one card per screen (the
+   report's boards say which). Test: a source-tree test (like `sourceTree` in `lib/testing`) that no
+   screen file has two `hero` cards.
+4. **One forged button.** `components/ui/GameButton.tsx`: add variant `ink` (underlined hairline
+   text, no metal); keep `primary` as the forged one. Convert secondary actions per screen to `ink`
+   (Skip → "Let them pass", Back, Cancel RSVP, Weave a new thread, View leaderboard, etc.). Test:
+   no screen file has two `variant="primary"` buttons outside a modal.
+5. **States.** `components/ui/StateBlock.tsx` + `Waiting.tsx` + `LongWait.tsx`: the candle for
+   waiting, a drawn place for empty (a small SVG per `icon` name), ember tone for wrong. Copy
+   unchanged. Test: snapshot-free assertions on which drawing renders per tone.
+6. **Interruptions.** `components/modals/AlertModal.tsx` + `DialogSurface.tsx`: questions and
+   failures become a bottom strip (parchment gradient, 2px top rule, no scrim over the room);
+   `ChestModal` and `TierUpCeremony` unchanged. `SheetModal` already is a bottom sheet; align its
+   surface. Test: `AlertModal` renders without a full-screen scrim.
+7. **Blackletter titles (EN only).** The face is already loaded as `FONTS.wordmark`
+   (`CloisterBlack-Light`, `app/_layout.tsx`); `components/ui/HeaderBar.tsx` uses it for the title when `i18n.locale ===
+   'en'` and the title is Latin, else `FONTS.display`. Test: EN renders blackletter, MN renders
+   Yeseva.
+8. **Chrome off Seek.** `app/(tabs)/discover.tsx`: remove `GettingStartedCard`, `DailyBudgetMeter`
+   and `NextGatheringPill` from above the card; move the first two to the Character sheet for now
+   (the hearth takes them in Wave 4) and the pill into the Town Square tab. Tests already cover the
+   components; update the discover test.
+9. **Device pass** on the A51 for every tab and one of each modal; then commit, push, CI, and move
+   the record of Wave 1 to `shipped-log.md`.
+
+Copy: Wave 1 adds no strings except the `ink` button labels that already exist as keys. Nothing goes
+on `AWAITING_MN_TRANSLATION` in this wave.
+
+### Gaps found while writing the report (settle before the wave that touches them)
+
+- Mongolian strings run 20–40% longer than English; chips, eyebrows and plaza labels need a
+  Mongolian width pass (Wave 1 for chips and eyebrows, Wave 4 for the plaza).
+- Sound and haptics: `lib/world/feedback.ts` gains seal break, candle lit, bell, fire dying
+  (Wave 2 and 4). Sound stays opt-in.
+- Reduced motion: the new ceremonies and the hearth's embers must respect the existing switch.
+- Contrast: the blackletter face and ember-on-dark toasts need a check at real sizes (Wave 1, 3).
+- Accessibility labels for every glyph and seal (Wave 1 for glyphs, Wave 2 for seals).
+- The keepsake card must export only the sharer's own portrait (Wave 3).
+- Admin panel and web build are out of scope; web renders the new screens without Skia, as today.
 
 ### Build order (waves; each ends committed, pushed, CI green, device-checked on the A51)
 

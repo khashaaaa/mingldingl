@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yeseva+One&family=Alegreya:ital,wght@0,400;0,500;1,400&family=UnifrakturMaguntia&display=swap">
+  <style>
+    body { margin: 0; background: #12141C; }
+    a { color: #D97F1F; } a:hover { color: #F5A83C; }
+  </style>
+</helmet>
+<div style="width: 1180px; min-height: 760px; box-sizing: border-box; padding: 32px; background: #12141C; color: #EDE4D3; font-family: 'Alegreya', Georgia, serif; display: flex; flex-direction: column; gap: 24px;">
+  <div style="display: flex; flex-direction: column; gap: 6px;"><div style="font-family: 'Yeseva One', Georgia, serif; font-size: 24px;">The kit, and the one rule per piece</div><div style="font-size: 16px; color: #8F97A3;">Same tokens as lib/theme.ts. What changes is how often each piece may appear on a screen.</div></div>
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;">
+    <div style="border-radius: 10px; background: #0A0B10; border: 1px solid #394553; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-family: 'Yeseva One', Georgia, serif; font-size: 12px; letter-spacing: 2px; color: #8F97A3; color: #D97F1F;">TYPE · THREE VOICES</div>
+      <div style="font-family: 'UnifrakturMaguntia', 'Yeseva One', serif; font-size: 34px; line-height: 1;">The Fire</div><div style="font-size: 13px; color: #8F97A3;">Blackletter: the room's name. Once per screen, never in Cyrillic.</div>
+      <div style="font-family: 'Yeseva One', Georgia, serif; font-size: 22px;">Эрдэнэбат, 33</div><div style="font-size: 13px; color: #8F97A3;">Yeseva One: names, numbers, eyebrows, buttons. Carries both alphabets.</div>
+      <div style="font-size: 17px; line-height: 1.45;">Мал эмнэлгийн эмч. Долоо хоногт нэг удаа муур намайг хазна.</div><div style="font-size: 13px; color: #8F97A3;">Alegreya: everything read. Italic is the app speaking; roman is the person.</div>
+    </div>
+    <div style="border-radius: 10px; background: #0A0B10; border: 1px solid #394553; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-family: 'Yeseva One', Georgia, serif; font-size: 12px; letter-spacing: 2px; color: #8F97A3; color: #D97F1F;">ACTIONS · ONE FORGED, THE REST INK</div>
+      <div style="height: 56px; border-radius: 8px; background: linear-gradient(180deg, #F5A83C 0%, #D97F1F 55%, #9c5a12 100%); border: 1px solid #F5A83C; box-shadow: 0 0 22px rgba(217,127,31,0.45); display: flex; align-items: center; justify-content: center; font-family: 'Yeseva One', Georgia, serif; font-size: 16px; letter-spacing: 2px; color: #1A1406;">SEND SUMMONS</div><div style="font-size: 13px; color: #8F97A3;">The forged button. One per screen, on the deed that matters. Its glow is the only glow.</div>
+      <div style="font-size: 16px; color: #8F97A3; text-decoration: underline; text-decoration-color: #394553; text-underline-offset: 4px;">Let them pass</div><div style="font-size: 13px; color: #8F97A3;">Ink link: every other action. Underlined in hairline, sentence case.</div>
+      <div style="display: flex; flex-direction: row; gap: 8px;"><div style="padding: 8px 14px; border-radius: 999px; border: 1px solid #D97F1F; background: rgba(217,127,31,0.15); font-size: 15px; color: #F5A83C; letter-spacing: 0.5px;">Seated</div><div style="padding: 8px 14px; border-radius: 999px; border: 1px solid #526476; background: #12141C; font-size: 15px; color: #8F97A3; letter-spacing: 0.5px;">Away</div></div><div style="font-size: 13px; color: #8F97A3;">Chips: a state you choose, never a deed.</div>
+      <div style="width: 48px; height: 48px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #d6552a, #913416 70%, #5a1f0c); display: flex; align-items: center; justify-content: center;"><img src="knot.png" style="width: 26px; height: 26px; display: block; opacity: 0.9;"></div><div style="font-size: 13px; color: #8F97A3;">The seal: anything that binds. Sending a letter, pledging, sealing your mirror.</div>
+    </div>
+    <div style="border-radius: 10px; background: #0A0B10; border: 1px solid #394553; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="font-family: 'Yeseva One', Georgia, serif; font-size: 12px; letter-spacing: 2px; color: #8F97A3; color: #D97F1F;">SURFACES · ONE HERO, THEN ROWS</div>
+      <div style="position: relative; border: 1px solid #5C4720; border-radius: 6px; background: #12141C; padding: 16px; font-size: 15px;"> knotted panel. One per screen: the thing the screen is for.</div>
+      <div style="display: flex; flex-direction: column;"><div style="padding: 12px 0; border-top: 1px solid #26303B; font-size: 15px;">A row.</div><div style="padding: 12px 0; border-top: 1px solid #26303B; border-bottom: 1px solid #26303B; font-size: 15px;">Another row. Hairline above, nothing else.</div></div>
+      <div style="font-size: 13px; color: #8F97A3;">Everything that is not the hero is a row on the floor. No second panel, no nested card, no shadow.</div>
+      <div style="display: flex; flex-direction: row; gap: 8px; align-items: center;"><div style="width: 16px; height: 16px; border-radius: 50%; background: #913416; border: 1px solid #D77951;"></div><div style="width: 16px; height: 16px; border-radius: 50%; background: #1A1E2A; border: 1px solid #526476; display: flex; align-items: center; justify-content: center;"><svg width="10" height="10" viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8" stroke="#D77951" stroke-width="1.6"></path></svg></div><div style="font-size: 13px; color: #8F97A3;">Seal intact, seal broken. The reveal ladder, everywhere it appears.</div></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

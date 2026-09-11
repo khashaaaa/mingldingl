@@ -54,3 +54,34 @@ description: How to run + drive MingldIngl end-to-end (engine API with real Supa
   - **Integration tests share this database** (each wraps itself in a rolled-back transaction, but reads see committed rows). Assertions must be scoped to their own fixtures — a bare `Assert.Single(page.Items)` or `Assert.Empty(Db.Ships)` only holds on an empty database.
   - `ScoreEvents` has a **partial** unique index, `ix_score_events_once_per_day`, on `("UserId","EventType",(("CreatedAt" AT TIME ZONE 'UTC')::date))` `WHERE "EventType" IN ('DailyLogin','QuestChest')`. It's an index, not a named constraint — `ON CONFLICT ON CONSTRAINT ix_score_events_once_per_day` fails ("constraint ... does not exist"); you need `ON CONFLICT ("UserId","EventType",((("CreatedAt" AT TIME ZONE 'UTC')::date))) WHERE "EventType" = ANY (ARRAY['DailyLogin','QuestChest']) DO NOTHING` — the expression and the WHERE clause both have to match the index exactly.
   - Reassigning a seeded row's PK to a real Supabase auth UID (so you can log in as a user with pre-built match/message history) is **not** a plain `UPDATE "Users" SET "Id"=...` — `Match`'s FKs use `DeleteBehavior.Restrict` and nothing here is a deferrable constraint, so a direct ID swap violates FK checks mid-transaction. Do it as: INSERT a copy of the row under the new ID (set `PhoneNumber` to NULL on the copy first — it's unique-indexed and the old row still holds the real value) → UPDATE every child table's FK column from old ID to new ID → DELETE the old row.
+
+## Real phone (development build), the fast path
+
+Worked end to end on 2026-09-11 with the Galaxy A51 (`SM-A515F`, 1080x2400). Expo Go cannot run
+this app; only the EAS development build can (`eas build --profile development --platform android`,
+`adb install` the APK once; the installed build survives JS changes because Metro serves the JS).
+
+1. **Connect.** Wireless debugging, same LAN. Ask the user for the pairing IP:port + code and the
+   connect IP:port (different ports; both change per toggle). `adb pair <ip>:<pairPort> <code>`, then
+   `adb connect <ip>:<port>`, `export ANDROID_SERIAL=<ip>:<port>`. Do not port-scan or rely on
+   `adb mdns services`; neither found the phone.
+2. **Serve.** `./mingldingl_engine/scripts/start-engine.sh` (binds 0.0.0.0:5150) and
+   `cd mingldingl_app && npx expo start --lan` (Metro on 8081; the dev client fetches the bundle).
+3. **Launch into Metro.** `adb shell am start -a android.intent.action.VIEW -d
+   "mingldingl://expo-development-client/?url=http%3A%2F%2F192.168.1.32%3A8081"`. First launch shows
+   the dev-menu sheet: tap Continue (540,2191) then the X (969,241). Deep links
+   `mingldingl://settings`, `mingldingl://chat/<matchId>` etc. navigate the running app.
+4. **Sign in without SMS.** Create/sign in a Supabase user pinned to a seeded `Users.Id` (see "Real
+   test users" above; keep the session JSON). Then inject it through the Hermes inspector: `curl
+   localhost:8081/json/list`, take the `page=1` target, open a websocket and send
+   `Runtime.evaluate` (do not `Runtime.enable` first). The expression walks
+   `__REACT_DEVTOOLS_GLOBAL_HOOK__.getFiberRoots(1)` iteratively (the tree is ~350 fibers, deep),
+   finds a hook whose `memoizedState.value` is a function named `setSession` (the zustand selector
+   result in `useAuth`), and calls it with the session. The app routes to Seek at once; a
+   notification permission dialog follows (Allow at 540,1985).
+5. **Drive and look.** `adb exec-out screencap -p > shot.png` then Read it (900x2000 display, x1.20
+   for real coordinates); `adb shell input tap X Y`; `adb shell input text`; keyboard state
+   `adb shell dumpsys input_method | grep mInputShown`; close the keyboard with
+   `input keyevent 111` (keyevent 4 pops the screen when no keyboard is up); wait between steps
+   with `adb shell sleep N` inside one command. JS log: `adb logcat -d -t 300 | grep ReactNativeJS`.
+6. **Fast Refresh applies edits** to the running app in a few seconds; re-screenshot after ~6s.
