@@ -48,8 +48,13 @@ jobs:
         env:
           ASPNETCORE_ENVIRONMENT: Development
           ConnectionStrings__DefaultConnection: "Host=127.0.0.1;Database=mingldingl;Username=postgres;Password=1234;Port=5432"
+      # The env block belongs to this step: when the swagger check below was added it was
+      # inserted between `dotnet test` and this env, which silently moved the connection
+      # string onto the new step and broke the tests that boot the real Program.
       - run: dotnet test
         working-directory: mingldingl_engine
+        env:
+          ConnectionStrings__DefaultConnection: "Host=127.0.0.1;Database=mingldingl;Username=postgres;Password=1234;Port=5432"
       # Both frontends generate their API types from the committed swagger.json, so a
       # controller/DTO change that forgot to re-export it fails here, not on a phone.
       - run: ./mingldingl_engine/scripts/export-swagger.sh --check

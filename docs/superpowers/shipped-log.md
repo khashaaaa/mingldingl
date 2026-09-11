@@ -702,3 +702,8 @@ Gathering pill) push the candidate below a third of the screen; "Seek Companions
 lines on web (Android/iOS shrink it via `adjustsFontSizeToFit`); "Sound" in The War Room is still
 English in Mongolian (on `AWAITING_MN_TRANSLATION`); leaderboard rows show gem and points only.
 Not yet seen on hardware.
+
+Also found while watching CI: the engine job had been red since the swagger-export commit, which
+inserted its check step between `dotnet test` and that step's `env:` block, so the connection
+string moved and `PhoneStartRateLimitTests` (the three that boot the real `Program`) died with
+"Host can't be null". The env is back on the test step.
