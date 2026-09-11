@@ -19,11 +19,13 @@ ships, move its record over rather than leaving it in this file.
 
 **Status:** designed, ready, waiting for the user's order to start. Nothing below has shipped.
 The one-page report is <https://claude.ai/code/artifact/c2542b0e-1c65-48ec-be04-e85b7caa61d3>
-(Export gives the PDF); the working canvas with all 59 boards is
-<https://claude.ai/code/artifact/0697f213-d884-4ed5-b8b8-e62616403fb1>. Sources are in the repo under
-`docs/design/sealed-fire/` (`boards/*.dc.html` + `canvas.json` + `boards.txt` for the canvas,
-`report/Main.dc.html` + `report/img/` for the report) so any session can re-seed either with the
-`design` skill's helper without this session's scratchpad.
+(Export gives the PDF); the working canvas is
+<https://claude.ai/code/artifact/0697f213-d884-4ed5-b8b8-e62616403fb1> (pages: *Every screen*,
+*The kit*, *Before*; 52 boards, one per screen or sheet, superseded variants removed). Sources are
+in the repo under `docs/design/sealed-fire/` (`boards/*.dc.html` + `canvas.json` + `boards.txt`
+for the canvas; `report/Main.dc.html` + `report/img/` for the report). Re-seed either with the
+`design` skill's helper: `node <helper> --template <payload> --out x.html --title "..." $(cat
+boards.txt) --image ... --canvas canvas.json`. Nothing here depends on a session's scratchpad.
 
 **To start:** the user says so; then run Wave 1 below as written. It needs none of the four
 decisions. If the user gives the order without answering the decisions, use the defaults in that
@@ -103,8 +105,7 @@ The user asked "what if more fierce" and chose three dials: **law** up, **furnac
 
 Dropped: **monsters and bats** as a category (sketch-level creature art is worse than none, and
 creatures outside the Campaign make the other person read as one); **iron** as a dial (shapes stay
-soft except where furnace is). Boards: canvas page "Fire and frost"; the report's screens use the
-adopted versions.
+soft except where furnace is). Boards: the adopted versions are the only ones kept on the canvas and in the report.
 
 ### Every screen (screens page), grouped by flow
 

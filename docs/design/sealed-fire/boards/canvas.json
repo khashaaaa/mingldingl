@@ -1,20 +1,16 @@
 {
  "pages": [
   {
-   "id": "report",
-   "name": "The report"
-  },
-  {
    "id": "screens",
    "name": "Every screen"
   },
   {
-   "id": "system",
+   "id": "kit",
    "name": "The kit"
   },
   {
-   "id": "fire-frost",
-   "name": "Fire and frost"
+   "id": "before",
+   "name": "Before"
   }
  ],
  "artboards": [
@@ -22,153 +18,9 @@
    "file": "Main.dc.html",
    "x": 0,
    "y": 0,
-   "w": 520,
-   "h": 940,
-   "title": "Weird enough?",
-   "page": "report"
-  },
-  {
-   "file": "Now.dc.html",
-   "x": 620,
-   "y": 0,
-   "w": 2340,
-   "h": 860,
-   "title": "How it is now",
-   "page": "report"
-  },
-  {
-   "file": "SeekSealed.dc.html",
-   "x": 0,
-   "y": 1078.0,
    "w": 390,
    "h": 844,
-   "title": "1 \u00b7 Seek, sealed",
-   "page": "report"
-  },
-  {
-   "file": "ChatLedger.dc.html",
-   "x": 480,
-   "y": 1078.0,
-   "w": 390,
-   "h": 844,
-   "title": "2 \u00b7 Chat as letters",
-   "page": "report"
-  },
-  {
-   "file": "MissionsRestraint.dc.html",
-   "x": 960,
-   "y": 1078.0,
-   "w": 390,
-   "h": 844,
-   "title": "5 \u00b7 Missions, one hero",
-   "page": "report"
-  },
-  {
-   "file": "Glyphs.dc.html",
-   "x": 1450,
-   "y": 1080,
-   "w": 1180,
-   "h": 520,
-   "title": "3 \u00b7 Woodcut glyphs",
-   "page": "report"
-  },
-  {
-   "file": "Rooms.dc.html",
-   "x": 1450,
-   "y": 1720,
-   "w": 1180,
-   "h": 560,
-   "title": "4 \u00b7 Room colours",
-   "page": "report"
-  },
-  {
-   "file": "Hearth.dc.html",
-   "x": 0,
-   "y": 2077.6,
-   "w": 390,
-   "h": 844,
-   "title": "6 \u00b7 The hearth (home)",
-   "page": "report"
-  },
-  {
-   "file": "Embers.dc.html",
-   "x": 480,
-   "y": 2077.6,
-   "w": 390,
-   "h": 844,
-   "title": "7 \u00b7 Fires that go out",
-   "page": "report"
-  },
-  {
-   "file": "GuildHall.dc.html",
-   "x": 960,
-   "y": 2077.6,
-   "w": 390,
-   "h": 844,
-   "title": "8 \u00b7 The Guild House",
-   "page": "report"
-  },
-  {
-   "file": "Plaza.dc.html",
-   "x": 0,
-   "y": 3077.2000000000003,
-   "w": 390,
-   "h": 844,
-   "title": "9 \u00b7 The Square as a plaza",
-   "page": "report"
-  },
-  {
-   "file": "Keepsake.dc.html",
-   "x": 480,
-   "y": 3077.2000000000003,
-   "w": 390,
-   "h": 844,
-   "title": "10 \u00b7 The keepsake card",
-   "page": "report"
-  },
-  {
-   "file": "HallOfNames.dc.html",
-   "x": 960,
-   "y": 3077.2000000000003,
-   "w": 390,
-   "h": 844,
-   "title": "11 \u00b7 Hall of Names",
-   "page": "report"
-  },
-  {
-   "file": "Blackletter.dc.html",
-   "x": 1450,
-   "y": 2400,
-   "w": 1180,
-   "h": 460,
-   "title": "12 \u00b7 Blackletter titles",
-   "page": "report"
-  },
-  {
-   "file": "WorldTime.dc.html",
-   "x": 1450,
-   "y": 2980,
-   "w": 1180,
-   "h": 580,
-   "title": "13 \u00b7 Time in the world's units",
-   "page": "report"
-  },
-  {
-   "file": "Voice.dc.html",
-   "x": 1450,
-   "y": 3680,
-   "w": 1180,
-   "h": 480,
-   "title": "14 \u00b7 Notifications in the voice",
-   "page": "report"
-  },
-  {
-   "file": "Gate.dc.html",
-   "x": 0,
-   "y": 0,
-   "w": 390,
-   "h": 844,
-   "title": "The Gate (phone + OTP)",
+   "title": "The Gate",
    "page": "screens"
   },
   {
@@ -177,67 +29,121 @@
    "y": 0,
    "w": 390,
    "h": 844,
-   "title": "The Naming (steps 1 to 3)",
+   "title": "The Naming",
    "page": "screens"
   },
   {
-   "file": "Oath.dc.html",
+   "file": "Likenesses.dc.html",
    "x": 960,
    "y": 0,
    "w": 390,
    "h": 844,
-   "title": "The Oath (step 4)",
+   "title": "Your Likeness",
    "page": "screens"
   },
   {
-   "file": "Home.dc.html",
+   "file": "OathFire.dc.html",
+   "x": 1440,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "The Oath",
+   "page": "screens"
+  },
+  {
+   "file": "DawnHearth.dc.html",
    "x": 0,
    "y": 980,
    "w": 390,
    "h": 844,
-   "title": "The Hearth (home)",
+   "title": "The Hearth",
    "page": "screens"
   },
   {
-   "file": "Fire.dc.html",
+   "file": "WhiteMoonHearth.dc.html",
    "x": 480,
    "y": 980,
    "w": 390,
    "h": 844,
-   "title": "The Fire (Seek)",
+   "title": "The Hearth at White Moon",
    "page": "screens"
   },
   {
-   "file": "Card.dc.html",
+   "file": "Hold.dc.html",
    "x": 960,
    "y": 980,
    "w": 390,
    "h": 844,
-   "title": "The keepsake card (share)",
+   "title": "The Hold",
    "page": "screens"
   },
   {
-   "file": "Letters.dc.html",
+   "file": "FireFurnace.dc.html",
    "x": 0,
    "y": 1960,
    "w": 390,
    "h": 844,
-   "title": "Letters (Quest Log)",
+   "title": "The Fire",
    "page": "screens"
   },
   {
-   "file": "Thread.dc.html",
-   "x": 480,
-   "y": 1960,
+   "file": "LettersFrost.dc.html",
+   "x": 0,
+   "y": 2940,
    "w": 390,
    "h": 844,
-   "title": "A thread (chat)",
+   "title": "Letters",
+   "page": "screens"
+  },
+  {
+   "file": "ThreadArrives.dc.html",
+   "x": 480,
+   "y": 2940,
+   "w": 390,
+   "h": 844,
+   "title": "A thread arrives",
+   "page": "screens"
+  },
+  {
+   "file": "ChatLedger.dc.html",
+   "x": 960,
+   "y": 2940,
+   "w": 390,
+   "h": 844,
+   "title": "A thread",
+   "page": "screens"
+  },
+  {
+   "file": "LettersMoments.dc.html",
+   "x": 1440,
+   "y": 2940,
+   "w": 390,
+   "h": 844,
+   "title": "Moments of a thread",
+   "page": "screens"
+  },
+  {
+   "file": "Seals.dc.html",
+   "x": 1920,
+   "y": 2940,
+   "w": 390,
+   "h": 844,
+   "title": "The Seals",
+   "page": "screens"
+  },
+  {
+   "file": "Unsealing.dc.html",
+   "x": 2400,
+   "y": 2940,
+   "w": 390,
+   "h": 844,
+   "title": "The Unsealing",
    "page": "screens"
   },
   {
    "file": "ChatSheet.dc.html",
-   "x": 960,
-   "y": 1960,
+   "x": 2880,
+   "y": 2940,
    "w": 390,
    "h": 844,
    "title": "Things to do together",
@@ -245,8 +151,8 @@
   },
   {
    "file": "Icebreaker.dc.html",
-   "x": 1440,
-   "y": 1960,
+   "x": 3360,
+   "y": 2940,
    "w": 390,
    "h": 844,
    "title": "Break the Ice",
@@ -254,26 +160,35 @@
   },
   {
    "file": "Trial.dc.html",
-   "x": 1920,
-   "y": 1960,
+   "x": 3840,
+   "y": 2940,
    "w": 390,
    "h": 844,
-   "title": "The Rune Chamber (quiz)",
+   "title": "The Rune Chamber",
+   "page": "screens"
+  },
+  {
+   "file": "RiteStates.dc.html",
+   "x": 4320,
+   "y": 2940,
+   "w": 390,
+   "h": 844,
+   "title": "The Flame Rite, before",
    "page": "screens"
   },
   {
    "file": "FlameRite.dc.html",
-   "x": 2400,
-   "y": 1960,
+   "x": 4800,
+   "y": 2940,
    "w": 390,
    "h": 844,
-   "title": "The Flame Rite (call)",
+   "title": "The Flame Rite",
    "page": "screens"
   },
   {
-   "file": "CampaignMap.dc.html",
-   "x": 2880,
-   "y": 1960,
+   "file": "CampaignCave.dc.html",
+   "x": 5280,
+   "y": 2940,
    "w": 390,
    "h": 844,
    "title": "The Campaign",
@@ -281,44 +196,62 @@
   },
   {
    "file": "Encounter.dc.html",
-   "x": 3360,
-   "y": 1960,
-   "w": 390,
-   "h": 844,
-   "title": "Under Open Sky (plan)",
-   "page": "screens"
-  },
-  {
-   "file": "Square.dc.html",
-   "x": 0,
+   "x": 5760,
    "y": 2940,
    "w": 390,
    "h": 844,
-   "title": "The Square (Town Square)",
+   "title": "Under Open Sky",
    "page": "screens"
   },
   {
-   "file": "Round.dc.html",
-   "x": 480,
+   "file": "AfterMeeting.dc.html",
+   "x": 6240,
    "y": 2940,
    "w": 390,
    "h": 844,
-   "title": "The Second Bell (a round)",
+   "title": "After the meeting",
    "page": "screens"
   },
   {
-   "file": "Forge.dc.html",
+   "file": "Plaza.dc.html",
    "x": 0,
    "y": 3920,
    "w": 390,
    "h": 844,
-   "title": "The Forge (Missions)",
+   "title": "The Square",
+   "page": "screens"
+  },
+  {
+   "file": "SquareLaw.dc.html",
+   "x": 480,
+   "y": 3920,
+   "w": 390,
+   "h": 844,
+   "title": "The Second Bell",
+   "page": "screens"
+  },
+  {
+   "file": "SquareAfter.dc.html",
+   "x": 960,
+   "y": 3920,
+   "w": 390,
+   "h": 844,
+   "title": "The Square, after",
+   "page": "screens"
+  },
+  {
+   "file": "MissionsRestraint.dc.html",
+   "x": 0,
+   "y": 4900,
+   "w": 390,
+   "h": 844,
+   "title": "The Forge",
    "page": "screens"
   },
   {
    "file": "Venue.dc.html",
    "x": 480,
-   "y": 3920,
+   "y": 4900,
    "w": 390,
    "h": 844,
    "title": "A place worth the walk",
@@ -327,16 +260,16 @@
   {
    "file": "EncounterLog.dc.html",
    "x": 960,
-   "y": 3920,
+   "y": 4900,
    "w": 390,
    "h": 844,
-   "title": "Meetings Sworn (log)",
+   "title": "Meetings Sworn",
    "page": "screens"
   },
   {
    "file": "Weave.dc.html",
    "x": 1440,
-   "y": 3920,
+   "y": 4900,
    "w": 390,
    "h": 844,
    "title": "Weave a Thread",
@@ -345,25 +278,25 @@
   {
    "file": "CharacterSheet.dc.html",
    "x": 0,
-   "y": 4900,
+   "y": 5880,
    "w": 390,
    "h": 844,
-   "title": "The Mirror (Character)",
+   "title": "The Mirror",
    "page": "screens"
   },
   {
    "file": "EditCharacter.dc.html",
    "x": 480,
-   "y": 4900,
+   "y": 5880,
    "w": 390,
    "h": 844,
    "title": "The Mirror, editing",
    "page": "screens"
   },
   {
-   "file": "Ascent.dc.html",
+   "file": "AscentSky.dc.html",
    "x": 960,
-   "y": 4900,
+   "y": 5880,
    "w": 390,
    "h": 844,
    "title": "The Ascent",
@@ -372,55 +305,73 @@
   {
    "file": "Honours.dc.html",
    "x": 1440,
-   "y": 4900,
+   "y": 5880,
    "w": 390,
    "h": 844,
    "title": "The Hall of Honours",
    "page": "screens"
   },
   {
-   "file": "Names.dc.html",
+   "file": "HallOfNames.dc.html",
    "x": 1920,
-   "y": 4900,
+   "y": 5880,
    "w": 390,
    "h": 844,
    "title": "Hall of Names",
    "page": "screens"
   },
   {
-   "file": "Guild.dc.html",
+   "file": "GuildHall.dc.html",
    "x": 2400,
-   "y": 4900,
+   "y": 5880,
    "w": 390,
    "h": 844,
    "title": "The Guild House",
    "page": "screens"
   },
   {
+   "file": "Keepsake.dc.html",
+   "x": 2880,
+   "y": 5880,
+   "w": 390,
+   "h": 844,
+   "title": "The keepsake card",
+   "page": "screens"
+  },
+  {
    "file": "WarRoom.dc.html",
    "x": 0,
-   "y": 5880,
+   "y": 6860,
    "w": 390,
    "h": 844,
    "title": "The War Room",
    "page": "screens"
   },
   {
-   "file": "Banished.dc.html",
+   "file": "BanishedFrozen.dc.html",
    "x": 480,
-   "y": 5880,
+   "y": 6860,
    "w": 390,
    "h": 844,
-   "title": "The Banished",
+   "title": "The Frozen Gate",
    "page": "screens"
   },
   {
    "file": "Codex.dc.html",
    "x": 960,
-   "y": 5880,
+   "y": 6860,
    "w": 390,
    "h": 844,
-   "title": "The Codex (guides, privacy, terms)",
+   "title": "The Codex",
+   "page": "screens"
+  },
+  {
+   "file": "Leaving.dc.html",
+   "x": 1440,
+   "y": 6860,
+   "w": 390,
+   "h": 844,
+   "title": "Leaving the realm",
    "page": "screens"
   },
   {
@@ -429,268 +380,110 @@
    "y": 0,
    "w": 1180,
    "h": 760,
-   "title": "The kit",
-   "page": "system"
+   "title": "Components",
+   "page": "kit"
   },
   {
-   "file": "States.dc.html",
+   "file": "Temperature.dc.html",
+   "x": 1300,
+   "y": 0,
+   "w": 1180,
+   "h": 640,
+   "title": "Temperature",
+   "page": "kit"
+  },
+  {
+   "file": "Glyphs.dc.html",
    "x": 0,
    "y": 880,
    "w": 1180,
+   "h": 520,
+   "title": "Glyphs",
+   "page": "kit"
+  },
+  {
+   "file": "Rooms.dc.html",
+   "x": 1300,
+   "y": 880,
+   "w": 1180,
+   "h": 560,
+   "title": "Rooms",
+   "page": "kit"
+  },
+  {
+   "file": "Blackletter.dc.html",
+   "x": 0,
+   "y": 1760,
+   "w": 1180,
+   "h": 460,
+   "title": "Blackletter",
+   "page": "kit"
+  },
+  {
+   "file": "WorldTime.dc.html",
+   "x": 1300,
+   "y": 1760,
+   "w": 1180,
+   "h": 580,
+   "title": "WorldTime",
+   "page": "kit"
+  },
+  {
+   "file": "Voice.dc.html",
+   "x": 0,
+   "y": 2640,
+   "w": 1180,
+   "h": 480,
+   "title": "Voice",
+   "page": "kit"
+  },
+  {
+   "file": "States.dc.html",
+   "x": 1300,
+   "y": 2640,
+   "w": 1180,
    "h": 620,
-   "title": "Waiting, empty, wrong",
-   "page": "system"
+   "title": "States",
+   "page": "kit"
   },
   {
    "file": "Ceremonies.dc.html",
    "x": 0,
-   "y": 1620,
+   "y": 3520,
    "w": 1180,
    "h": 720,
-   "title": "Ceremonies and interruptions",
-   "page": "system"
-  },
-  {
-   "file": "Likenesses.dc.html",
-   "x": 1440,
-   "y": 0,
-   "w": 390,
-   "h": 844,
-   "title": "Your Likeness (step 3)",
-   "page": "screens"
-  },
-  {
-   "file": "Hold.dc.html",
-   "x": 1920,
-   "y": 0,
-   "w": 390,
-   "h": 844,
-   "title": "The Hold (map behind the sigil)",
-   "page": "screens"
-  },
-  {
-   "file": "FestivalHearth.dc.html",
-   "x": 1440,
-   "y": 980,
-   "w": 390,
-   "h": 844,
-   "title": "Festival days and First Dawns",
-   "page": "screens"
-  },
-  {
-   "file": "SquareAfter.dc.html",
-   "x": 960,
-   "y": 2940,
-   "w": 390,
-   "h": 844,
-   "title": "The Square: closed, under way, quiet",
-   "page": "screens"
-  },
-  {
-   "file": "Leaving.dc.html",
-   "x": 2880,
-   "y": 4900,
-   "w": 390,
-   "h": 844,
-   "title": "Leaving the realm",
-   "page": "screens"
-  },
-  {
-   "file": "LettersMoments.dc.html",
-   "x": 0,
-   "y": 6860,
-   "w": 390,
-   "h": 844,
-   "title": "Sealed first letter, embers, a severed end",
-   "page": "screens"
-  },
-  {
-   "file": "Seals.dc.html",
-   "x": 480,
-   "y": 6860,
-   "w": 390,
-   "h": 844,
-   "title": "The seals (reveal strip)",
-   "page": "screens"
-  },
-  {
-   "file": "Unsealing.dc.html",
-   "x": 960,
-   "y": 6860,
-   "w": 390,
-   "h": 844,
-   "title": "The Unsealing (ceremony)",
-   "page": "screens"
-  },
-  {
-   "file": "ThreadArrives.dc.html",
-   "x": 1440,
-   "y": 6860,
-   "w": 390,
-   "h": 844,
-   "title": "A thread arrives, threads woven, an ally",
-   "page": "screens"
+   "title": "Ceremonies",
+   "page": "kit"
   },
   {
    "file": "Toasts.dc.html",
    "x": 1300,
-   "y": 880,
+   "y": 3520,
    "w": 1180,
    "h": 620,
-   "title": "Things that appear and leave",
-   "page": "system"
+   "title": "Toasts",
+   "page": "kit"
   },
   {
    "file": "Sheets.dc.html",
-   "x": 1300,
-   "y": 1620,
+   "x": 0,
+   "y": 4400,
    "w": 1180,
    "h": 620,
-   "title": "The small sheets",
-   "page": "system"
+   "title": "Sheets",
+   "page": "kit"
   },
   {
-   "file": "AfterMeeting.dc.html",
-   "x": 1920,
-   "y": 3920,
-   "w": 390,
-   "h": 844,
-   "title": "After the meeting",
-   "page": "screens"
-  },
-  {
-   "file": "RiteStates.dc.html",
-   "x": 1920,
-   "y": 6860,
-   "w": 390,
-   "h": 844,
-   "title": "The Flame Rite's states and failures",
-   "page": "screens"
-  },
-  {
-   "file": "FireFurnace.dc.html",
+   "file": "Now.dc.html",
    "x": 0,
    "y": 0,
-   "w": 390,
-   "h": 844,
-   "title": "The Fire, furnace and law",
-   "page": "fire-frost"
-  },
-  {
-   "file": "OathFire.dc.html",
-   "x": 480,
-   "y": 0,
-   "w": 390,
-   "h": 844,
-   "title": "The Oath, on the iron",
-   "page": "fire-frost"
-  },
-  {
-   "file": "SquareLaw.dc.html",
-   "x": 960,
-   "y": 0,
-   "w": 390,
-   "h": 844,
-   "title": "The Second Bell, law",
-   "page": "fire-frost"
-  },
-  {
-   "file": "LettersFrost.dc.html",
-   "x": 0,
-   "y": 980,
-   "w": 390,
-   "h": 844,
-   "title": "Letters, a thread frozen",
-   "page": "fire-frost"
-  },
-  {
-   "file": "BanishedFrozen.dc.html",
-   "x": 480,
-   "y": 980,
-   "w": 390,
-   "h": 844,
-   "title": "The Frozen Gate",
-   "page": "fire-frost"
-  },
-  {
-   "file": "WhiteMoonHearth.dc.html",
-   "x": 960,
-   "y": 980,
-   "w": 390,
-   "h": 844,
-   "title": "The Hearth at White Moon",
-   "page": "fire-frost"
-  },
-  {
-   "file": "Temperature.dc.html",
-   "x": 1500,
-   "y": 0,
-   "w": 1180,
-   "h": 640,
-   "title": "Fire and frost: the rules",
-   "page": "fire-frost"
-  },
-  {
-   "file": "DawnHearth.dc.html",
-   "x": 0,
-   "y": 1960,
-   "w": 390,
-   "h": 844,
-   "title": "The Hearth at dawn (the sky is real)",
-   "page": "fire-frost"
-  },
-  {
-   "file": "AscentSky.dc.html",
-   "x": 480,
-   "y": 1960,
-   "w": 390,
-   "h": 844,
-   "title": "The Ascent as a night sky",
-   "page": "fire-frost"
-  },
-  {
-   "file": "CampaignCave.dc.html",
-   "x": 960,
-   "y": 1960,
-   "w": 390,
-   "h": 844,
-   "title": "The Campaign as a cave, bats and the dragon",
-   "page": "fire-frost"
+   "w": 2340,
+   "h": 860,
+   "title": "How it was on 11 September 2026",
+   "page": "before"
   }
  ],
  "annotations": [
-  {
-   "id": "row-now",
-   "x": 620,
-   "y": -110,
-   "w": 420,
-   "text": "Top row: today's screens, straight off the Galaxy A51, with what drags each one down.",
-   "page": "report"
-  },
-  {
-   "id": "row-proposed",
-   "x": 0,
-   "y": 920,
-   "w": 460,
-   "text": "Below: the fourteen moves as mockups. Same tokens, same fonts, same knots, spent differently.",
-   "page": "report"
-  },
-  {
-   "id": "screens-intro",
-   "x": 1450,
-   "y": -96,
-   "w": 560,
-   "text": "Every screen of the app in the new direction, one row per flow, in the order a traveller meets them. Nothing here has shipped.",
-   "page": "screens"
-  },
-  {
-   "id": "system-intro",
-   "x": 1250,
-   "y": 0,
-   "w": 420,
-   "text": "The kit: three voices of type, one forged button, chips, seals, one hero panel then rows; the three states; the five interruptions. Rooms and glyphs are on the report page.",
-   "page": "system"
-  },
   {
    "id": "flow-arrival",
    "x": 0,
@@ -700,17 +493,25 @@
    "page": "screens"
   },
   {
-   "id": "flow-home-and-the-fire",
+   "id": "flow-home",
    "x": 0,
    "y": 884,
    "w": 260,
-   "text": "Home and the fire",
+   "text": "Home",
+   "page": "screens"
+  },
+  {
+   "id": "flow-the-fire",
+   "x": 0,
+   "y": 1864,
+   "w": 260,
+   "text": "The Fire",
    "page": "screens"
   },
   {
    "id": "flow-letters",
    "x": 0,
-   "y": 1864,
+   "y": 2844,
    "w": 260,
    "text": "Letters",
    "page": "screens"
@@ -718,7 +519,7 @@
   {
    "id": "flow-the-square",
    "x": 0,
-   "y": 2844,
+   "y": 3824,
    "w": 260,
    "text": "The Square",
    "page": "screens"
@@ -726,7 +527,7 @@
   {
    "id": "flow-the-forge",
    "x": 0,
-   "y": 3824,
+   "y": 4804,
    "w": 260,
    "text": "The Forge",
    "page": "screens"
@@ -734,7 +535,7 @@
   {
    "id": "flow-the-mirror",
    "x": 0,
-   "y": 4804,
+   "y": 5784,
    "w": 260,
    "text": "The Mirror",
    "page": "screens"
@@ -742,46 +543,22 @@
   {
    "id": "flow-the-war-room",
    "x": 0,
-   "y": 5784,
+   "y": 6764,
    "w": 260,
    "text": "The War Room",
    "page": "screens"
   },
   {
-   "id": "flow-moments",
-   "x": 0,
-   "y": 6764,
-   "w": 260,
-   "text": "Moments of a thread",
+   "id": "screens-intro",
+   "x": 2400,
+   "y": -96,
+   "w": 520,
+   "text": "The Sealed Fire, final set: every screen once, start to finish, dials adopted. Superseded boards were removed on 11 September 2026. The report: claude.ai/code/artifact/c2542b0e-1c65-48ec-be04-e85b7caa61d3",
    "page": "screens"
-  },
-  {
-   "id": "screens-audit",
-   "x": 1450,
-   "y": -40,
-   "w": 560,
-   "text": "Coverage audit 2026-09-11: every route in app/, every modal, sheet, toast and banner in components/ has a board on this page or the kit page.",
-   "page": "screens"
-  },
-  {
-   "id": "ff-intro",
-   "x": 1500,
-   "y": 760,
-   "w": 560,
-   "text": "Adopted 2026-09-11: law, a little furnace, frost, the real sky, the cave for the Campaign. Dropped: monsters and bats. These boards replace their counterparts on 'Every screen' in the report.",
-   "page": "fire-frost"
-  },
-  {
-   "id": "ff-sky",
-   "x": 1500,
-   "y": 1864,
-   "w": 560,
-   "text": "Third row: sky and cave, adopted. Creatures beyond the dragon: dropped.",
-   "page": "fire-frost"
   }
  ],
  "launch": {
   "view": "canvas",
-  "page": "fire-frost"
+  "page": "screens"
  }
 }
