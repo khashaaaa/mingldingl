@@ -100,7 +100,10 @@ confirm and the pending banner), the sealed first letter with embers and a sever
 Seals (the reveal strip expanded, with locked chips and the deep seal for Hall and High Table),
 The Unsealing ceremony, a thread arriving (Fated Threads accept/pass) with threads woven and the
 ally invite, the toasts (reward, honour, streak, nudges), the offline strip and the crash screen,
-and the four small sheets (honour story, report, city picker, change number).
+and the four small sheets (honour story, report, city picker, change number). A final sweep by
+copy-key family added: After the meeting (both seals on it, send word to a friend, rate the place,
+leave a memory), the Flame Rite card's five states with the camera-refused and could-not-connect
+strips, and a plain sign-out row in the War Room beside deletion.
 
 The kit page: three voices of type (blackletter / Yeseva / Alegreya), one forged button + ink links
 + chips + seals, one hero panel then rows; the three states (waiting = candle, empty = a place,
@@ -176,6 +179,8 @@ on `AWAITING_MN_TRANSLATION` in this wave.
 - Contrast: the blackletter face and ember-on-dark toasts need a check at real sizes (Wave 1, 3).
 - Accessibility labels for every glyph and seal (Wave 1 for glyphs, Wave 2 for seals).
 - The keepsake card must export only the sharer's own portrait (Wave 3).
+- "Deleted User" and "Unknown" (`deleted_user`, `unknown_name`) still appear as names in threads and
+  on the wall; in the voice they become "A name struck" and "A sealed one" (Wave 2, EN only).
 - Admin panel and web build are out of scope; web renders the new screens without Skia, as today.
 
 ### Build order (waves; each ends committed, pushed, CI green, device-checked on the A51)
@@ -199,7 +204,8 @@ on `AWAITING_MN_TRANSLATION` in this wave.
 
 ### Readiness checklist (what "ready to build" means here)
 
-- [x] Every route and every modal/sheet/toast/banner has a board (59 boards, audited 2026-09-11).
+- [x] Every route, every modal/sheet/toast/banner, and every copy-key family has a board (61 boards,
+      audited 2026-09-11 from three angles: `app/`, `components/`, `lib/i18n/en.ts`).
 - [x] Every board uses only existing tokens (`lib/theme.ts`), the two shipped faces, and the
       Ulzii knot asset; the blackletter face is the one addition and is decided separately.
 - [x] Every state a screen has today (waiting, empty, wrong, completed, ended) has a drawn form.
