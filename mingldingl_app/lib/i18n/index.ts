@@ -41,6 +41,10 @@ export const AWAITING_MN_TRANSLATION = [
   // The empty-thread state (a match with zero messages). Nothing already translated fit without
   // implying a gate that doesn't exist (see next_action_icebreaker's neighbouring fix).
   'chat_empty_title', 'chat_empty_sub',
+  // Time in the world's units (Wave 2). Until these are translated, `mn` keeps the exact clock.
+  'when_candle', 'when_today', 'when_tomorrow', 'when_dawns',
+  'ordinal_1', 'ordinal_2', 'ordinal_3', 'ordinal_4', 'ordinal_5', 'ordinal_6',
+  'ordinal_7', 'ordinal_8', 'ordinal_9', 'ordinal_10', 'ordinal_11', 'ordinal_12',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

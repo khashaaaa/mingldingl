@@ -492,6 +492,15 @@ export const en = {
   countdown_hm: '%{hours}h %{minutes}m',
   countdown_ms: '%{minutes}m %{seconds}s',
   countdown_s: '%{seconds}s',
+  // Time in the world's units (Sealed Fire move 13). English-only until the translator's lines
+  // land; `worldTimeSpoken()` keeps Mongolian on the exact clock rather than mixing languages.
+  when_candle: 'before this candle burns down',
+  when_today: 'today at %{time}',
+  when_tomorrow: 'tomorrow at %{time}',
+  when_dawns: 'in %{count} dawns',
+  ordinal_1: 'first', ordinal_2: 'second', ordinal_3: 'third', ordinal_4: 'fourth',
+  ordinal_5: 'fifth', ordinal_6: 'sixth', ordinal_7: 'seventh', ordinal_8: 'eighth',
+  ordinal_9: 'ninth', ordinal_10: 'tenth', ordinal_11: 'eleventh', ordinal_12: 'twelfth',
   candidate_unavailable_body: 'This traveller has already gone on their way.',
   age_invalid: 'Enter an age between 18 and 99',
   video_end_confirm_title: 'End the Rite?',
