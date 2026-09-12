@@ -41,6 +41,18 @@ function hueGap(a: string, b: string): number {
   return Math.min(d, 360 - d);
 }
 
+/**
+ * Every hex-colour leaf under a role, however deeply nested (`MEMBERSHIP_METALS.Gold.color`).
+ * Skips anything that is not a 6-digit hex string — an `rgba(...)` from `tint()`/`mix()`, or a
+ * bare number like `TIER_PRESENCE`'s `ring`/`glow` — so a table that mixes colour with other data
+ * can be folded in without hand-picking its colour fields out first.
+ */
+function hexLeaves(value: unknown): string[] {
+  if (typeof value === 'string') return /^#[0-9A-Fa-f]{6}$/.test(value) ? [value] : [];
+  if (value && typeof value === 'object') return Object.values(value).flatMap(hexLeaves);
+  return [];
+}
+
 describe('gem tiers', () => {
   it('keeps every jewel readable — the old Sapphire and Garnet were not', () => {
     for (const [tier, jewel] of Object.entries(GEM_COLORS)) {
@@ -260,12 +272,15 @@ describe('temperature', () => {
   });
 
   it('keeps all five tokens distinct from every existing pigment in the palette', () => {
+    // Every role that can hold a colour, not just the eight flat ones: `STATUS_SOFT`/`STATUS_DEEP`
+    // are `rgba(...)` from `tint()`/`mix()` (skipped by `hexLeaves`, not by hand), `MEMBERSHIP_METALS`
+    // nests `color`/`shade` per tier, and `TIER_PRESENCE` mixes colour with `ring`/`glow` numbers —
+    // `hexLeaves` walks all of them the same way rather than trusting a hand-picked list.
     const existing = new Set(
-      [
-        ...Object.values(COLORS), ...Object.values(GEM_COLORS), ...Object.values(GEM_SHADES),
-        ...Object.values(LINE), ...Object.values(STATUS), ...Object.values(HEAT),
-        ...Object.values(TONE), ...Object.values(GROUND),
-      ].map((v) => v.toUpperCase()),
+      hexLeaves([
+        COLORS, GEM_COLORS, GEM_SHADES, LINE, STATUS, HEAT, TONE, GROUND,
+        INK, STATUS_SOFT, STATUS_DEEP, MEMBERSHIP_METALS, TIER_PRESENCE, ACCENT,
+      ]).map((v) => v.toUpperCase()),
     );
     for (const [name, hex] of Object.entries(TEMPERATURE)) {
       expect({ name, collides: existing.has(hex.toUpperCase()) }).toEqual({ name, collides: false });
