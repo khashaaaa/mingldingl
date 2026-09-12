@@ -1,15 +1,9 @@
 import { View, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
 import { isAxiosError } from 'axios';
 import { useDiscover, useRequestMatch } from '../../hooks/useDiscover';
-import { useProfile } from '../../hooks/useProfile';
-import { useMilestones } from '../../hooks/useMilestones';
 import { useDailyMatchBudget } from '../../hooks/useScore';
-import { DailyBudgetMeter } from '../../components/progression/DailyBudgetMeter';
-import { NextGatheringPill } from '../../components/townsquare/NextGatheringPill';
 import { CandidateCard } from '../../components/cards/CandidateCard';
-import { GettingStartedCard } from '../../components/progression/GettingStartedCard';
 import { LootToast } from '../../components/modals/LootToast';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
@@ -24,14 +18,11 @@ import { StateBlock } from '../../components/ui/StateBlock';
 
 export default function DiscoverScreen() {
   useLocaleStore((s) => s.locale);
-  const router = useRouter();
   const [toast, setToast] = useState(false);
   const [toastPoints, setToastPoints] = useState(0);
   const [failAlert, setFailAlert] = useState<'generic' | 'dailyBudget' | 'unavailable' | null>(null);
   const { candidates, isLoading, isError, refetch, markSeen } = useDiscover();
   const { mutate: requestMatch, isPending: isRequesting } = useRequestMatch();
-  const { data: profile } = useProfile();
-  const { milestones } = useMilestones();
   const dailyBudget = useDailyMatchBudget();
   const budgetSpent = dailyBudget !== null && dailyBudget.remaining <= 0;
   const [deckSize, setDeckSize] = useState({ w: 0, h: 0 });
@@ -86,18 +77,9 @@ export default function DiscoverScreen() {
     </View>
   );
 
-  const achievedMilestoneIds = milestones.filter((m) => m.achievedAt).map((m) => m.id ?? '');
-
   return (
     <View style={styles.screen}>
       <GameHeader title={i18n.t('seek_title')} icon="sword-cross" showScore />
-      <GettingStartedCard
-        isProfileComplete={profile?.isProfileComplete ?? false}
-        achievedMilestoneIds={achievedMilestoneIds}
-        onCompleteProfile={() => router.push('/edit-profile')}
-      />
-      {dailyBudget && <DailyBudgetMeter budget={dailyBudget} />}
-      <NextGatheringPill />
       <View style={styles.cardArea} onLayout={onDeckLayout}>
         <PanelReveal style={{ flex: 1 }}>
           <CandidateCard

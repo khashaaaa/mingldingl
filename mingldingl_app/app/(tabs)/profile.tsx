@@ -6,6 +6,8 @@ import { useLocaleStore } from '../../store/localeStore';
 import { useProfile } from '../../hooks/useProfile';
 import { useScoreDetail } from '../../hooks/useScoreDetail';
 import { useInventory } from '../../hooks/useInventory';
+import { useMilestones } from '../../hooks/useMilestones';
+import { useDailyMatchBudget } from '../../hooks/useScore';
 import { colorForTier, itemLabel, membershipLabel } from '../../lib/tiers';
 import { AppCard } from '../../components/ui/AppCard';
 import { CardEyebrow } from '../../components/ui/CardEyebrow';
@@ -16,6 +18,8 @@ import { Icon } from '../../components/ui/Icon';
 import { SectionDivider } from '../../components/ui/SectionDivider';
 import { XPBar } from '../../components/progression/XPBar';
 import { GemTierBadge } from '../../components/progression/GemTierBadge';
+import { GettingStartedCard } from '../../components/progression/GettingStartedCard';
+import { DailyBudgetMeter } from '../../components/progression/DailyBudgetMeter';
 import { InviteAllyCard } from '../../components/progression/InviteAllyCard';
 import { ThreadLog } from '../../components/progression/ThreadLog';
 import { HonourCase } from '../../components/progression/HonourCase';
@@ -36,6 +40,8 @@ export default function ProfileScreen() {
   const { data: profile } = useProfile();
   const { data: scoreDetail } = useScoreDetail();
   const { items } = useInventory();
+  const { milestones } = useMilestones();
+  const dailyBudget = useDailyMatchBudget();
 
   if (!profile || !scoreDetail) {
     return (
@@ -53,6 +59,7 @@ export default function ProfileScreen() {
   const nextTier = scoreDetail.nextTier as GemTier | null;
   const firstPhoto = profile.photoUrls?.[0];
   const tierColor = colorForTier(gemTier);
+  const achievedMilestoneIds = milestones.filter((m) => m.achievedAt).map((m) => m.id ?? '');
 
   return (
     <View style={styles.screen}>
@@ -118,6 +125,16 @@ export default function ProfileScreen() {
         <AppCard style={[styles.card, styles.cardPadding]}>
           <Text style={styles.bioText}>{profile.bio}</Text>
         </AppCard>
+
+        {/* Moved off Seek (task-8): below the character's own identity/stat cards, above the rest
+            of the sheet. Both keep their own visibility logic — GettingStartedCard hides itself
+            once every step is done, DailyBudgetMeter only when a budget is known. */}
+        <GettingStartedCard
+          isProfileComplete={profile.isProfileComplete}
+          achievedMilestoneIds={achievedMilestoneIds}
+          onCompleteProfile={() => router.push('/edit-profile')}
+        />
+        {dailyBudget && <DailyBudgetMeter budget={dailyBudget} />}
 
         <InviteAllyCard referralCode={profile.referralCode} />
 

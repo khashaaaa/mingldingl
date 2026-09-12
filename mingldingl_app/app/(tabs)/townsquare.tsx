@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { GameButton } from '../../components/ui/GameButton';
 import { SessionStatusCard } from '../../components/townsquare/SessionStatusCard';
+import { NextGatheringPill } from '../../components/townsquare/NextGatheringPill';
 import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { i18n } from '../../lib/i18n';
 import { getApiErrorMessage, isApiError } from '../../lib/api/errors';
@@ -63,6 +64,11 @@ export default function TownSquareScreen() {
             isCancelling={isCancelling}
           />
         )}
+        {/* Moved off Seek (task-8). The brief's default spot is "above the session card," but this
+            card already spells out the same countdown (SessionStatusCard's RSVP/starts-in copy),
+            so the pill rides beside it here — right after the card — instead of duplicating that
+            copy at the top of the screen. Renders its own null when there's nothing to show. */}
+        <NextGatheringPill />
       </View>
     </View>
   );

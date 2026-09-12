@@ -1,8 +1,9 @@
-import { render } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DiscoverScreen from '../../../app/(tabs)/discover';
 import { WorldProvider } from '../WorldProvider';
 import { WithSafeArea } from '../../../lib/testing/safeArea';
+import { apiClient } from '../../../lib/api/apiClient';
 
 /**
  * Regression guard for a backlog entry claiming React logs "Cannot update a component
@@ -21,20 +22,24 @@ jest.mock('expo-router', () => ({
   useGlobalSearchParams: () => ({}),
 }));
 
-// Pulls in Supabase realtime wiring that needs env config this test has no reason to provide;
-// irrelevant to the atlas/world tree under test.
-jest.mock('../../townsquare/NextGatheringPill', () => ({
-  NextGatheringPill: () => null,
-}));
-
 jest.mock('../../../lib/api/apiClient', () => ({
   apiClient: {
-    matches: { candidates: jest.fn(() => new Promise(() => {})) },
-    milestones: { list: jest.fn(() => new Promise(() => {})) },
-    scores: { detail: jest.fn(() => new Promise(() => {})) },
-    users: { me: jest.fn(() => new Promise(() => {})) },
+    matches: { candidates: jest.fn() },
+    scores: { me: jest.fn() },
   },
 }));
+
+const mockCandidates = apiClient.matches.candidates as jest.Mock;
+const mockScore = apiClient.scores.me as jest.Mock;
+
+function pending() {
+  return new Promise(() => {});
+}
+
+beforeEach(() => {
+  mockCandidates.mockReset().mockImplementation(pending);
+  mockScore.mockReset().mockImplementation(pending);
+});
 
 function renderScreen() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -58,5 +63,27 @@ describe('Discover mount', () => {
     );
     spy.mockRestore();
     expect(offenders).toEqual([]);
+  });
+});
+
+describe('Discover chrome (task 8: moved off Seek)', () => {
+  // The three chrome strips (First Steps, the summons budget meter, the gathering pill) used to
+  // sit above the candidate deck. GettingStartedCard and DailyBudgetMeter moved to the Character
+  // sheet, NextGatheringPill to the Town Square tab — Discover keeps only its header and the deck.
+  it('renders the loaded deck without the getting-started card, budget meter, or gathering pill', async () => {
+    mockCandidates.mockResolvedValueOnce({
+      items: [{ id: 'c1', displayName: 'Amara', age: 28, photoUrls: ['c1.jpg'] }],
+      page: 1,
+      hasMore: false,
+    });
+    mockScore.mockResolvedValueOnce({ dailyMatchBudget: 5, dailyMatchesUsed: 2, dailyMatchesRemaining: 3 });
+
+    const { findByText, queryByText, queryByTestId } = renderScreen();
+    await waitFor(() => expect(findByText('Amara, 28')).resolves.toBeTruthy());
+
+    // CardEyebrow uppercases its own children — this is the literal rendered text, not a style.
+    expect(queryByText('FIRST STEPS')).toBeNull();
+    expect(queryByTestId('daily-budget-meter')).toBeNull();
+    expect(queryByTestId('next-gathering-pill')).toBeNull();
   });
 });
