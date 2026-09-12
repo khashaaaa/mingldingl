@@ -3,19 +3,17 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
-import { Icon } from '../../components/ui/Icon';
+import { Glyph, type GlyphName } from '../../components/ui/Glyph';
 import { i18n } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { useLocaleStore } from '../../store/localeStore';
-
-type TabGlyph = React.ComponentProps<typeof Icon>['name'];
 
 /**
  * The label goes through React Navigation's own label slot rather than being drawn inside
  * `tabBarIcon`. The icon slot is sized to the glyph (~31px against an 84px tab), so a label
  * nested in it resolved `width: '100%'` against 31px and clipped every tab to "Se…"/"Ха…".
  */
-const TabGlyphIcon = ({ glyph, color, focused }: { glyph: TabGlyph; color: string; focused: boolean }) => {
+const TabGlyphIcon = ({ glyph, color, focused }: { glyph: GlyphName; color: string; focused: boolean }) => {
   const animate = motionAllowed(useVfxLevel());
   const lit = useRef(new Animated.Value(focused ? 1 : 0)).current;
 
@@ -36,12 +34,12 @@ const TabGlyphIcon = ({ glyph, color, focused }: { glyph: TabGlyph; color: strin
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
-      <Icon name={glyph} size={ICON_SIZES.xl} color={color} style={styles.glyph} />
+      <Glyph name={glyph} size={ICON_SIZES.xl} color={color} />
     </Animated.View>
   );
 };
 
-const tabIcon = (glyph: TabGlyph) => ({ color, focused }: { color: string; focused: boolean }) => (
+const tabIcon = (glyph: GlyphName) => ({ color, focused }: { color: string; focused: boolean }) => (
   <TabGlyphIcon glyph={glyph} color={color} focused={focused} />
 );
 
@@ -68,15 +66,15 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="discover"
-        options={{ title: i18n.t('tab_seek'), tabBarIcon: tabIcon('compass-rose') }} />
+        options={{ title: i18n.t('tab_seek'), tabBarIcon: tabIcon('fire') }} />
       <Tabs.Screen name="matches"
-        options={{ title: i18n.t('tab_quest_log'), tabBarIcon: tabIcon('message-text') }} />
+        options={{ title: i18n.t('tab_quest_log'), tabBarIcon: tabIcon('letters') }} />
       <Tabs.Screen name="townsquare"
-        options={{ title: i18n.t('tab_town_square'), tabBarIcon: tabIcon('account-group') }} />
+        options={{ title: i18n.t('tab_town_square'), tabBarIcon: tabIcon('lantern') }} />
       <Tabs.Screen name="activity"
-        options={{ title: i18n.t('tab_missions'), tabBarIcon: tabIcon('sword-cross') }} />
+        options={{ title: i18n.t('tab_missions'), tabBarIcon: tabIcon('forge') }} />
       <Tabs.Screen name="profile"
-        options={{ title: i18n.t('tab_character'), tabBarIcon: tabIcon('shield') }} />
+        options={{ title: i18n.t('tab_character'), tabBarIcon: tabIcon('gem') }} />
     </Tabs>
   );
 }
@@ -90,7 +88,6 @@ const styles = StyleSheet.create({
   },
   scene: { backgroundColor: 'transparent' },
   item: { paddingHorizontal: SPACE.hair },
-  glyph: { textAlign: 'center' },
   label: {
     fontFamily: FONTS.display,
     // xs, not sm: the display face's small caps are wide, and at sm a nine-character Mongolian

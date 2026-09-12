@@ -140,7 +140,7 @@ describe('marks', () => {
   it('sizes every icon from the icon ladder', () => {
     const hits: string[] = [];
     for (const { rel, text } of sources()) {
-      for (const m of text.matchAll(/<Icon\b[^>]*?size=\{([^}]*)\}/g)) {
+      for (const m of text.matchAll(/<(?:Icon|Glyph)\b[^>]*?size=\{([^}]*)\}/g)) {
         if (/^\s*[\d.]+\s*$/.test(m[1])) hits.push(`${rel}  size={${m[1]}}`);
       }
     }

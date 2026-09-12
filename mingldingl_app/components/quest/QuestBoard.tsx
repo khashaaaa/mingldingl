@@ -6,6 +6,7 @@ import { GameButton } from '../ui/GameButton';
 import { AlertModal } from '../modals/AlertModal';
 import { ChestModal } from '../modals/ChestModal';
 import { Icon } from '../ui/Icon';
+import { Glyph, type GlyphName } from '../ui/Glyph';
 import { EmberField } from '../vfx/EmberField';
 import { useQuests } from '../../hooks/useQuests';
 import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
@@ -13,20 +14,23 @@ import { useAuthStore } from '../../store/authStore';
 import { activeFestival } from '../../lib/festivals';
 import { i18n, tKey } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, tint } from '../../lib/theme';
-type IconName = React.ComponentProps<typeof Icon>['name'];
 
 /**
  * Each quest is a different deed, so each rune shows that deed — three crossed swords in a row
  * said nothing about which quest was which. Keyed by the engine's `nameKey`; an unknown quest
  * falls back to the generic rune rather than an empty box.
+ *
+ * Cut by hand (`Glyph`) rather than taken from the icon font, and drawn one ladder step larger
+ * than the font icon was: a cut line is 2.4 units on a 24 grid, which at the `sm` step came out
+ * under a pixel and a half inside the 28px rune box.
  */
-const QUEST_ICONS: Record<string, IconName> = {
-  quest_send_summons: 'bugle',
-  quest_break_ice: 'snowflake',
-  quest_exchange_words: 'forum-outline',
-  quest_trial: 'brain',
-  quest_face_flame: 'fire',
-  quest_pledge: 'handshake-outline',
+const QUEST_ICONS: Record<string, GlyphName> = {
+  quest_send_summons: 'seal',
+  quest_break_ice: 'ice',
+  quest_exchange_words: 'letters',
+  quest_trial: 'knot',
+  quest_face_flame: 'flame',
+  quest_pledge: 'pledge',
 };
 
 function ProgressPips({ progress, target }: { progress: number; target: number }) {
@@ -91,7 +95,7 @@ export function QuestBoard() {
               {q.completed ? (
                 <Text style={[styles.runeText, styles.runeTextDone]}>✓</Text>
               ) : (
-                <Icon name={QUEST_ICONS[q.nameKey ?? ''] ?? 'sword-cross'} size={ICON_SIZES.sm} color={accent} />
+                <Glyph name={QUEST_ICONS[q.nameKey ?? ''] ?? 'knot'} size={ICON_SIZES.md} color={accent} />
               )}
             </View>
             <View style={styles.questInfo}>
