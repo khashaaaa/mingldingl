@@ -1,63 +1,32 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import { Icon } from './Icon';
+import { type ReactNode } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { Waiting } from './Waiting';
 import { TorchGlow } from '../vfx/TorchGlow';
 import { i18n } from '../../lib/i18n';
-import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE } from '../../lib/theme';
-import { motionAllowed, useVfxLevel } from '../../lib/vfx';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../../lib/theme';
 import { useWaitStage, type WaitKind } from '../../lib/waiting';
 
-const SWING_MS = 2200;
-const SWING_DEG = 7;
-const CHAIN_HEIGHT = SPACE.lg;
-const LAMP_SIZE = ICON_SIZES.huge;
+/** The long wait is the same candle a button burns, at the size of a thing you sit with. */
+const CANDLE_SIZE = ICON_SIZES.hero;
 
 /**
- * A lamp hung from a chain, swinging.
+ * A candle, kept alight for as long as the wait lasts.
  *
- * `Lantern` is not reused here: that one is the streak's seven flames and means something
- * specific. This is the same visual language at a smaller size and says only "someone is still
- * holding a light for you". MaterialCommunityIcons has no `lantern` glyph, so `lamp` stands in.
- *
- * The pivot is the top of the chain rather than the lamp itself — a lamp that rotates about its
- * own centre wobbles, where one swinging from its chain reads as hanging.
+ * This was a lamp swinging from a chain, which said "hanging" more than it said "waiting", and
+ * said it in a different drawing from the one every button was already using. One candle across
+ * the app: the same flame, bigger, with the torch glow left under it because a light with no
+ * warmth around it reads as an icon rather than as a flame.
  */
-function WaitLantern() {
-  const level = useVfxLevel();
-  const animate = motionAllowed(level);
-  const swing = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (!animate) {
-      swing.setValue(0);
-      return;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(swing, { toValue: 1, duration: SWING_MS, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(swing, { toValue: -1, duration: SWING_MS, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [animate, swing]);
-
-  const rotate = swing.interpolate({
-    inputRange: [-1, 1],
-    outputRange: [`-${SWING_DEG}deg`, `${SWING_DEG}deg`],
-  });
-
+function WaitCandle() {
   return (
-    <Animated.View style={[styles.hang, { transform: [{ rotate }] }]}>
-      <View style={styles.chain} />
-      <TorchGlow size={LAMP_SIZE} color={ACCENT.base}>
-        {/* `Icon` takes only name/size/color/style — it does not forward `testID`, and widening
-            that shared primitive's API for one test hook is the larger change. */}
-        <View testID="longwait-lamp">
-          <Icon name="lamp" size={LAMP_SIZE} color={ACCENT.base} />
-        </View>
-      </TorchGlow>
-    </Animated.View>
+    <TorchGlow size={CANDLE_SIZE} color={ACCENT.base}>
+      {/* The block around it is already the progressbar, and it announces the line being read
+          out as well — so the candle's own `busy` role is silenced here rather than announced
+          twice, one of them unlabelled. */}
+      <View importantForAccessibility="no-hide-descendants" aria-hidden>
+        <Waiting size={CANDLE_SIZE} color={ACCENT.base} />
+      </View>
+    </TorchGlow>
   );
 }
 
@@ -85,7 +54,7 @@ export function LongWait({ kind, action }: Props) {
 
   return (
     <View style={styles.wrap} accessible accessibilityRole="progressbar" accessibilityLabel={line}>
-      <WaitLantern />
+      <WaitCandle />
       <Text testID="longwait-line" style={styles.line}>{line}</Text>
       {stage.isFinal && action}
     </View>
@@ -94,9 +63,6 @@ export function LongWait({ kind, action }: Props) {
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', gap: SPACE.lg, paddingVertical: SPACE.xl },
-  // The pivot sits at the top of the chain, so the whole assembly swings from where it is hung.
-  hang: { alignItems: 'center', transformOrigin: 'top center' },
-  chain: { width: 1, height: CHAIN_HEIGHT, backgroundColor: METAL.brassDeep },
   line: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,

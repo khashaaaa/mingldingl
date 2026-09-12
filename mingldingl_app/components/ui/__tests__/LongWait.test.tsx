@@ -1,14 +1,18 @@
 import { act, render } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { LongWait } from '../LongWait';
 import { STAGE_TWO_MS, STAGE_THREE_MS } from '../../../lib/waiting';
 import { i18n } from '../../../lib/i18n';
+import { ICON_SIZES } from '../../../lib/theme';
 
 let mockLevel: 'full' | 'plain' | 'still' | 'off' = 'plain';
 jest.mock('../../../lib/vfx', () => ({
   ...jest.requireActual('../../../lib/vfx'),
   useVfxLevel: () => mockLevel,
 }));
+
+/** The candle is decorative inside the block, so the queries have to say they want it. */
+const HIDDEN = { includeHiddenElements: true };
 
 describe('LongWait', () => {
   beforeEach(() => {
@@ -51,9 +55,19 @@ describe('LongWait', () => {
     expect(getByText('Send it again')).toBeTruthy();
   });
 
-  it('renders the lamp at every level, so the wait is never a bare line of text', () => {
+  // The block is the progressbar and reads its own line out, so the candle inside it is
+  // decorative — hidden from the screen reader, which is why the queries below say so.
+  it('renders the candle at every level, so the wait is never a bare line of text', () => {
     mockLevel = 'still';
     const { getByTestId } = render(<LongWait kind="squareRound" />);
-    expect(getByTestId('longwait-lamp')).toBeTruthy();
+    expect(getByTestId('waiting-candle', HIDDEN)).toBeTruthy();
+  });
+
+  // The long wait is the same candle the buttons burn, only bigger — one drawing for waiting,
+  // not a lamp here and a candle there.
+  it('burns the candle larger than a button would', () => {
+    const { getByTestId } = render(<LongWait kind="squareRound" />);
+    expect(StyleSheet.flatten(getByTestId('waiting-candle', HIDDEN).props.style).width)
+      .toBeGreaterThan(ICON_SIZES.lg);
   });
 });

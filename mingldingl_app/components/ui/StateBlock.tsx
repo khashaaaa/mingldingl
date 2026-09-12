@@ -3,8 +3,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import type { ReactNode } from 'react';
 import type { LayoutChangeEvent, StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { FogDrift } from '../vfx/FogDrift';
-import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, LINE, RADIUS, SPACE, STATUS, SURFACE, type Tone } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, HEAT, ICON_SIZES, INK, LEADING, LINE, RADIUS, SPACE, STATUS, SURFACE, type Tone } from '../../lib/theme';
 import { Icon } from './Icon';
+import { PLACES, type PlaceName } from './Places';
+
+type IconName = React.ComponentProps<typeof Icon>['name'];
 
 /**
  * How loudly this block's mark is drawn, per `Tone` — the shared vocabulary in `theme.ts`, so a
@@ -18,9 +21,57 @@ const TONE_COLORS: Record<Tone, string> = {
   danger: STATUS.danger,
 };
 
+/**
+ * The pigment the ember burns in, per tone — and the answer to "is this state a wrong?". A wrong
+ * is the tone, never the icon name: the same `wifi-off` names an empty room on one screen and a
+ * failed load on another, and only the tone can tell them apart.
+ *
+ * Danger is `HEAT.flame` rather than `STATUS.danger`: an ember, never a red error. The red stays
+ * where it belongs, on `FieldError` under the field that refused the input.
+ */
+const EMBER_COLORS: Partial<Record<Tone, string>> = {
+  warning: STATUS.warning,
+  danger: HEAT.flame,
+};
+
+/**
+ * The stock names the 27 call sites still pass, and the drawing each one stood for. A screen may
+ * also pass a `PlaceName` directly — the two are one prop — but nothing had to be rewritten for
+ * the costume to change.
+ */
+const ICON_PLACES: Partial<Record<string, PlaceName>> = {
+  'door-closed-lock': 'gate',
+  'wifi-off': 'window-dark',
+  video: 'empty-stage',
+  'help-circle-outline': 'signpost',
+  'trending-down': 'cold-hearth',
+  'alert-circle-outline': 'ember',
+};
+
+/**
+ * The one mark this block draws: the ember when something went wrong, the place when a room is
+ * simply empty, and the stock icon for the names that have no drawing yet — twenty-one of the
+ * twenty-seven — so that adding a place is an addition and never a breakage.
+ */
+function Mark({ tone, icon }: { tone: Tone; icon: PlaceName | IconName }) {
+  const place = icon in PLACES ? (icon as PlaceName) : ICON_PLACES[icon as string];
+  const ember = EMBER_COLORS[tone];
+
+  if (ember || place === 'ember') {
+    const Ember = PLACES.ember;
+    return <Ember size={ICON_SIZES.hero} color={ember} />;
+  }
+  if (place) {
+    const Place = PLACES[place];
+    return <Place size={ICON_SIZES.hero} color={TONE_COLORS[tone]} />;
+  }
+  // Everything `PLACES` and `ICON_PLACES` both missed is, by construction, a stock icon name.
+  return <Icon name={icon as IconName} size={ICON_SIZES.hero} color={TONE_COLORS[tone]} />;
+}
+
 interface Props {
   tone?: Tone;
-  icon?: React.ComponentProps<typeof Icon>['name'];
+  icon?: PlaceName | IconName;
   title: string;
   body?: string;
 
@@ -54,10 +105,11 @@ interface Props {
  * rest. A reader cannot tell "the leaderboard failed" from "the chat failed" by looking, so the
  * two should not look different, and the way to guarantee that is to stop writing it out.
  *
- * A call site picks a `tone`, never a colour. An empty state's mark is `INK.muted` — already
- * the role tuned to be quiet but still perceptible at 4.49:1, so the `opacity: 0.6` two call
- * sites layered on top of it was pushing the mark back under the floor the role exists to
- * clear — a failure's is `STATUS.danger`, and a finished ceremony's is the accent.
+ * A call site picks a `tone`, never a colour, and the tone picks the drawing: a wrong is the
+ * ember, anything else is the place the screen names. An empty state's mark is `INK.muted` —
+ * already the role tuned to be quiet but still perceptible at 4.49:1, so the `opacity: 0.6` two
+ * call sites layered on top of it was pushing the mark back under the floor the role exists to
+ * clear — and a finished ceremony's is the accent.
  */
 export function StateBlock({
   tone = 'neutral', icon, title, body, children, fog, framed, testID, style,
@@ -73,7 +125,7 @@ export function StateBlock({
   return (
     <View style={[styles.wrap, framed && styles.framed, style]} onLayout={onLayout} testID={testID}>
       {fog && size.w > 0 ? <FogDrift width={size.w} height={size.h} /> : null}
-      {icon ? <Icon name={icon} size={ICON_SIZES.hero} color={TONE_COLORS[tone]} /> : null}
+      {icon ? <Mark tone={tone} icon={icon} /> : null}
       <Text style={styles.title}>{title}</Text>
       {body ? <Text style={styles.body}>{body}</Text> : null}
       {children ? <View style={styles.actions}>{children}</View> : null}
