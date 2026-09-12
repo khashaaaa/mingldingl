@@ -102,6 +102,13 @@ export default function ChatScreen() {
   const broken = sealsBroken(match?.revealLevel);
   // Only rungs 2-4 carry a seal-breaking ceremony; the floor every match starts on (1) has none.
   const unsealedLevel = Math.min(Math.max(match?.revealLevel ?? 2, 2), 4);
+  // The sheet draws this line lowercase, as a fragment under its own eyebrow — but the ceremony
+  // reads it as the second sentence of a two-sentence subline, so here it needs the capital and
+  // full stop that make it one. Only the ceremony's copy changes; the keys stay as written.
+  const unsealedTail = unsealedNextAt !== null
+    ? i18n.t('seals_next_at', { count: unsealedNextAt })
+    : i18n.t('seals_left_0');
+  const unsealedTailSentence = `${unsealedTail.charAt(0).toUpperCase()}${unsealedTail.slice(1)}.`;
 
   const insets = useSafeAreaInsets();
   const keyboardHeight = useAndroidKeyboardHeight();
@@ -210,9 +217,7 @@ export default function ChatScreen() {
             onDismiss={dismissUnsealing}
             photoUri={unsealedPhoto}
             headline={i18n.t(`seal_breaks_${unsealedLevel}`)}
-            subline={`${i18n.t(`seal_broke_${unsealedLevel}`)} ${unsealedNextAt !== null
-              ? i18n.t('seals_next_at', { count: unsealedNextAt })
-              : i18n.t('seals_left_0')}`}
+            subline={`${i18n.t(`seal_broke_${unsealedLevel}`)} ${unsealedTailSentence}`}
           />
         )}
       </View>

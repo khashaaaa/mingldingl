@@ -8,7 +8,7 @@ const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 
 /**
- * Ported from the deleted `RevealStrip.test.tsx` (see git history): same fixtures, same seven
+ * Ported from the deleted `RevealStrip.test.tsx` (see git history): same fixtures, same
  * behaviours, now against a sheet rather than an inline strip, with the seal copy in place of the
  * old reveal-strip strings.
  */
@@ -48,6 +48,38 @@ describe('SealsSheet', () => {
     expect(getByText('District')).toBeTruthy();
     expect(getByText('Deep profile')).toBeTruthy();
     expect(getByText(i18n.t('seals_next_at', { count: 5 }))).toBeTruthy();
+  });
+
+  it('does not put a wax seal on a photo slot the other person will never fill', () => {
+    // photoCount is what the engine says they actually have. Without it a two-photo profile shows
+    // a wax third slot that no amount of conversation can ever resolve.
+    const { queryByTestId, getByTestId } = render(
+      <SealsSheet
+        visible
+        onClose={onClose}
+        otherUser={{ ...freshMatch, secondPhoto: 'https://x/2.jpg', photoCount: 2 }}
+        messageCount={7}
+        revealLevel={1}
+      />,
+    );
+
+    expect(getByTestId('seal-photo-1')).toBeTruthy();
+    expect(queryByTestId('seal-photo-wax-2')).toBeNull();
+  });
+
+  it('still puts a wax seal on a slot that exists but has not been earned yet', () => {
+    const { getByTestId } = render(
+      <SealsSheet
+        visible
+        onClose={onClose}
+        otherUser={{ ...freshMatch, photoCount: 3 }}
+        messageCount={0}
+        revealLevel={1}
+      />,
+    );
+
+    expect(getByTestId('seal-photo-wax-1')).toBeTruthy();
+    expect(getByTestId('seal-photo-wax-2')).toBeTruthy();
   });
 
   it('renders revealed age/district values and the second photo at the mid stage', () => {
