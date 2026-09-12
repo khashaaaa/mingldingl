@@ -28,7 +28,7 @@ for the canvas; `report/Main.dc.html` + `report/img/` for the report). Re-seed e
 `design` skill's helper: `node <helper> --template <payload> --out x.html --title "..." $(cat
 boards.txt) --image ... --canvas canvas.json`. Nothing here depends on a session's scratchpad.
 
-**To continue:** run Wave 2 from the build order below. Its record follows Wave 1's into
+**To continue:** Wave 2's task list is below ("Wave 2 — the thesis"). Its record follows Wave 1's into
 `shipped-log.md` when it lands.
 
 ### Why
@@ -168,6 +168,1054 @@ left for later waves: header room icons in the glyph set (Wave 2), `SheetModal`'
 `AlertModal`'s slide, a shared parchment layer for `AppCard` and `DialogStrip`, per-route (not
 per-file) hero/forged rules, `FrostEdge` mounted (Wave 3), the pill and First Steps card onto the
 hearth (Wave 4).
+
+### Wave 2 — the thesis (task list, written 2026-09-12)
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Make the three differentiators *felt*: the candidate arrives sealed, the chat is a ledger of letters with seal-break rows, the lock screen and the clocks speak in the app's voice.
+
+**Architecture:** Pure helpers first (`lib/worldTime.ts`, `lib/letters.ts`) so every rendering task is a thin view over tested functions. The chat's reveal strip becomes a seal-dots row in the header plus a parchment sheet; the bubble becomes a ledger row; the send button becomes a wax seal. The engine changes twice, both small: `MatchResponse.CreatedAt` (day headings) and the English `PushCopy` table. Nothing about score, thresholds, the ladder, budgets or ghosting changes.
+
+**Tech Stack:** React Native 0.81 / Expo 54, `react-native-svg` (already in the dev build), jest + `@testing-library/react-native`; ASP.NET Core 8 + xUnit.
+
+**Spec:** this file, "The Sealed Fire" section above (the fourteen moves 1, 2, 13, 14; the dials; "Gaps found"; "Build order — Wave 2"). Boards: `docs/design/sealed-fire/boards/FireFurnace.dc.html`, `ChatLedger.dc.html`, `LettersMoments.dc.html`, `Seals.dc.html`, `Unsealing.dc.html`, `Voice.dc.html`, `WorldTime.dc.html`, `Glyphs.dc.html`, `Components.dc.html`.
+
+#### Global constraints (every task's requirements include these)
+
+- **English only.** Every new i18n key is added to `lib/i18n/en.ts` *and* to `AWAITING_MN_TRANSLATION` in `lib/i18n/index.ts`, never to `mn.ts`. Changing the English *value* of an existing key is allowed and leaves `mn.ts` alone. Never write a Mongolian string. A key no longer referenced anywhere must be deleted from **both** `en.ts` and `mn.ts` (`lib/__tests__/i18nCoverage.test.ts` fails on orphans; `lib/__tests__/i18n.test.ts` enforces parity and that awaiting keys are absent from `mn`).
+- **The law.** Buttons two words at most; sentences short, with full stops; the app commands the world and states the law, never scolds the person. Italic is the app speaking (`FONTS.bodyItalic`, added in Task 6); roman is the person.
+- **The kit's counts are tested.** One `AppCard hero` per file (`lib/__tests__/hero.test.ts`), one forged `GameButton` (`primary` / no variant) per file outside `components/modals/` (`lib/__tests__/forged.test.ts`), no raw `COLORS` outside `lib/theme.ts` (`palette.test.ts`), `TEMPERATURE.furnace*` only in the eight allow-listed files (`furnace.test.ts` — `CandidateCard.tsx` and `discover.tsx` are on it; `components/chat/**` is not).
+- **Screens are transparent** (`backgroundColor: 'transparent'` on containers — the world floor paints). Every route already exists; no new route in this wave.
+- **Reduced motion:** any new animation goes through `motionAllowed(useVfxLevel())` from `lib/vfx.ts`, as `SealedLetter` does.
+- **Accessibility:** every seal drawn has an `accessibilityLabel`; a decorative glyph has none (the `Glyph` component hides an unlabelled one).
+- **No new native module.** `react-native-svg`, `expo-image`, `expo-linear-gradient`, `expo-haptics`, `expo-audio` are already in the dev build. A new one would force a new EAS build — do not add one.
+- **No mechanic changes.** Reveal ladder, mutual-count formula, score deltas, budgets, ghosting: untouched.
+- **Verification per task.** App tasks: `cd mingldingl_app && npm test && npm run typecheck && npm run lint` all clean. Engine tasks: `cd mingldingl_engine && dotnet test` green (needs local Postgres on 5432; `DOTNET_ROOT=$HOME/.dotnet`, `$HOME/.dotnet/dotnet`). Task 1 also runs `./mingldingl_engine/scripts/export-swagger.sh` and both frontends' `npm run generate:api` and commits all three.
+- **Git:** single branch `master`, no worktree, no branches. Each task ends in one commit (`git add -A && git commit`), message prefixed `Sealed Fire W2:`. Do not push; the controller pushes at the end of the wave.
+- **Comments in code** explain *why*, in the repo's existing register (read three neighbouring files before writing one).
+
+---
+
+### Task 1: `MatchResponse.CreatedAt` — the thread knows its first day
+
+The chat's day headings ("The third day") count from the day the match was made. The app has no such date today.
+
+**Files:**
+- Modify: `mingldingl_engine/src/MinglDingl.Engine/DTOs/MatchDto.cs` (`MatchResponse` record)
+- Modify: `mingldingl_engine/src/MinglDingl.Engine/Controllers/MatchesController.cs` (`BuildMatchResponse`)
+- Modify: the existing integration test that lists matches (grep `tests/MinglDingl.Engine.Tests/Integration` for `/matches` and `MatchResponse`; add the assertion there — do not create a new test class)
+- Regenerate: `mingldingl_engine/swagger.json`, `mingldingl_app/lib/api/api.generated.d.ts`, `mingldingl_control/src/lib/api/api.generated.d.ts`
+- Modify: `mingldingl_app/models/match.ts` (`Match.createdAt`, `parseMatch`)
+- Test: `mingldingl_app/lib/__tests__/matchModel.test.ts` (create)
+
+**Interfaces:**
+- Produces: `Match.createdAt: string | undefined` (ISO, UTC from the engine) — read by Task 4 (`letterMarks`) and Task 7 (chat screen).
+
+- [ ] **Step 1: Add the field at the end of the record, defaulted, so no positional caller breaks**
+
+```csharp
+public record MatchResponse(
+    Guid MatchId,
+    Guid OtherUserId,
+    string Status,
+    int RevealLevel,
+    int MessageCount,
+    bool IcebreakerComplete,
+    bool VideoCallUnlocked,
+    PartialUserProfile OtherUser,
+    string? WeaverDisplayName = null,
+    Guid? FlameRiteProposedById = null,
+    DateTime? FlameRiteProposedAt = null,
+    DateTime? FlameRiteAcceptedAt = null,
+    DateTime? FlameRiteCompletedAt = null,
+    int FlameRiteDurationMinutes = 5,
+    bool FlameRiteRequired = true,
+    bool VideoEnabled = true,
+    /// <summary>
+    /// When the match was made. The app's letters count their days from it ("The third day"), so
+    /// a thread's first heading is the day of the summons, not the day of the first word.
+    /// </summary>
+    DateTime? CreatedAt = null);
+```
+
+- [ ] **Step 2: Pass it in `BuildMatchResponse`** — append `, m.CreatedAt` as the last argument after `_config.GetBool("video.enabled", true)`.
+
+- [ ] **Step 3: Assert it in the existing list-matches integration test** — after the response is deserialised, add:
+
+```csharp
+Assert.NotNull(dto.CreatedAt);
+```
+
+(`dto` being whatever that test already calls the parsed `MatchResponse`; if the test reads raw JSON, assert the `createdAt` property is present and non-null.)
+
+- [ ] **Step 4: Run engine tests**
+
+Run: `cd mingldingl_engine && DOTNET_ROOT=$HOME/.dotnet $HOME/.dotnet/dotnet test --filter FullyQualifiedName~Matches`
+Expected: PASS.
+
+- [ ] **Step 5: Regenerate the contract**
+
+```bash
+./mingldingl_engine/scripts/export-swagger.sh
+(cd mingldingl_app && npm run generate:api)
+(cd mingldingl_control && npm run generate:api)
+./mingldingl_engine/scripts/export-swagger.sh --check
+```
+
+- [ ] **Step 6: Write the failing app test**
+
+`mingldingl_app/lib/__tests__/matchModel.test.ts`:
+
+```ts
+import { parseMatch } from '../../models/match';
+
+describe('parseMatch', () => {
+  it('carries the day the match was made, and tolerates its absence', () => {
+    const base = { matchId: 'm', otherUserId: 'u', status: 'Active', otherUser: {} };
+    expect(parseMatch({ ...base, createdAt: '2026-09-10T02:00:00Z' } as never).createdAt).toBe('2026-09-10T02:00:00Z');
+    expect(parseMatch(base as never).createdAt).toBeUndefined();
+  });
+});
+```
+
+Run: `cd mingldingl_app && npx jest lib/__tests__/matchModel.test.ts` — Expected: FAIL (`createdAt` is not a known property / undefined).
+
+- [ ] **Step 7: Add the field to the model**
+
+In `models/match.ts`, inside `interface Match` after `videoEnabled`:
+
+```ts
+  /** ISO time the match was made; the letters count their days from it. Absent from older caches. */
+  createdAt?: string;
+```
+
+and in `parseMatch`, after `videoEnabled: d.videoEnabled ?? true,`:
+
+```ts
+    createdAt: d.createdAt ?? undefined,
+```
+
+- [ ] **Step 8: Verify** — `cd mingldingl_app && npm test && npm run typecheck && npm run lint`; `cd mingldingl_control && npm run lint && npm run build`.
+
+- [ ] **Step 9: Commit** — `git add -A && git commit -m "Sealed Fire W2: MatchResponse.CreatedAt, the thread knows its first day"`.
+
+---
+
+### Task 2: `PushCopy` English in the voice (move 14)
+
+**Files:**
+- Modify: `mingldingl_engine/src/MinglDingl.Engine/Services/PushCopy.cs` (`English(...)` only)
+- Modify: `mingldingl_engine/tests/MinglDingl.Engine.Tests/Integration/PushNotificationServiceIntegrationTests.cs` (three literal assertions: lines asserting `"New Match!"` and `"Bat sent you a summons."`)
+- Modify: `mingldingl_engine/tests/MinglDingl.Engine.Tests/Services/PushCopyTests.cs` (add the law test)
+
+**Interfaces:** none new. Wire types, placeholders (`{0}` sender name for `NewMatch`; `{0}` name / `{1}` body for `NewMessage`) and the Mongolian table are unchanged.
+
+- [ ] **Step 1: Write the failing law test** in `PushCopyTests.cs`:
+
+```csharp
+    /// <summary>
+    /// The lock screen is the one place the app speaks outside its own walls, so it speaks the
+    /// way it does inside: short sentences that end, no exclamation, the world commanded and the
+    /// law stated. NewMessage is the sender's own words and is exempt.
+    /// </summary>
+    [Fact]
+    public void EnglishCopy_SpeaksInTheVoice()
+    {
+        foreach (PushKind kind in Enum.GetValues<PushKind>())
+        {
+            if (kind == PushKind.NewMessage) continue;
+            var (title, body) = PushCopy.For(kind, "en", "Bat");
+            Assert.DoesNotContain("!", title);
+            Assert.DoesNotContain("!", body);
+            Assert.EndsWith(".", title);
+            Assert.EndsWith(".", body);
+            Assert.True(title.Split(' ').Length <= 4, $"{kind} title is not short: \"{title}\"");
+        }
+    }
+```
+
+Run: `dotnet test --filter EnglishCopy_SpeaksInTheVoice` — Expected: FAIL on `"New Match!"`.
+
+- [ ] **Step 2: Replace the `English` table verbatim**
+
+```csharp
+    private static (string, string) English(PushKind kind) => kind switch
+    {
+        PushKind.NewMatch => ("A summons.", "{0} has summoned you. A new fire is lit."),
+        PushKind.NewMessage => ("{0}", "{1}"),
+        PushKind.ThreadSparked => ("A thread took.", "A thread woven for you has caught. A new fire is lit."),
+        PushKind.TownSquareMatch => ("A lantern answered.", "You both said yes in the square. A new fire is lit."),
+        PushKind.FlameRiteProposed => ("The Flame Rite.", "Your match asks to meet across the glass before swearing to meet."),
+        PushKind.FlameRiteAccepted => ("The rite is accepted.", "Your match will meet you across the glass. Light the call when you are ready."),
+        PushKind.DateConfirmed => ("A meeting sworn.", "You both swore to meet under open sky. The place and hour are in the thread."),
+        PushKind.MatchGhosted => ("A fire went out.", "A thread fell silent too long. It is closed."),
+        PushKind.MatchGhostedByYou => ("A fire went out.", "You let a thread fall silent. It is closed, and your score and standing paid for it."),
+        PushKind.TownSquareStarting => ("The bell rings.", "The square is open and your round has begun. Step in."),
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
+```
+
+- [ ] **Step 3: Fix the integration test literals** — `"New Match!"` → `"A summons."`, `"Bat sent you a summons."` → `"Bat has summoned you. A new fire is lit."`.
+
+- [ ] **Step 4: Run** `dotnet test --filter "FullyQualifiedName~PushCopy|FullyQualifiedName~PushNotification"` — Expected: PASS. Then the full `dotnet test`.
+
+- [ ] **Step 5: Commit** — `Sealed Fire W2: the lock screen speaks in the voice (PushCopy EN)`.
+
+---
+
+### Task 3: `lib/worldTime.ts` — time in the world's units (move 13, helpers)
+
+Pure functions; no component yet (Task 10 mounts them). Countdowns become "tomorrow at 13:00", "in 3 dawns", "before this candle burns down"; ordinals and thread days feed the chat's day headings.
+
+**Files:**
+- Create: `mingldingl_app/lib/worldTime.ts`
+- Modify: `mingldingl_app/lib/i18n/en.ts`, `mingldingl_app/lib/i18n/index.ts` (`AWAITING_MN_TRANSLATION`)
+- Test: `mingldingl_app/lib/__tests__/worldTime.test.ts`
+
+**Interfaces:**
+- Produces:
+  ```ts
+  export type WorldWhen =
+    | { kind: 'passed' }
+    | { kind: 'candle'; minutes: number }   // under an hour away
+    | { kind: 'today'; time: string }       // same local calendar day, an hour or more away
+    | { kind: 'tomorrow'; time: string }
+    | { kind: 'dawns'; dawns: number };     // two or more local midnights away
+  export function worldWhen(targetIso: string | null, nowMs: number): WorldWhen;
+  export function worldWhenText(when: WorldWhen): string;          // the i18n phrase
+  export function worldTimeSpoken(): boolean;                      // i18n.locale === 'en'
+  export function ordinalWord(n: number): string;                  // 'first' … 'twelfth', then '13th', '21st', '22nd', '23rd', '111th'
+  export function threadDay(iso: string, threadStartIso: string): number; // 1 on the start's local calendar day, 2 the next, …; never below 1
+  ```
+
+- [ ] **Step 1: Add the keys** to `en.ts` (a new block after the `countdown_*` keys):
+
+```ts
+  // Time in the world's units (Sealed Fire move 13). English-only until the translator's lines
+  // land; `worldTimeSpoken()` keeps Mongolian on the exact clock rather than mixing languages.
+  when_candle: 'before this candle burns down',
+  when_today: 'today at %{time}',
+  when_tomorrow: 'tomorrow at %{time}',
+  when_dawns: 'in %{count} dawns',
+  ordinal_1: 'first', ordinal_2: 'second', ordinal_3: 'third', ordinal_4: 'fourth',
+  ordinal_5: 'fifth', ordinal_6: 'sixth', ordinal_7: 'seventh', ordinal_8: 'eighth',
+  ordinal_9: 'ninth', ordinal_10: 'tenth', ordinal_11: 'eleventh', ordinal_12: 'twelfth',
+```
+
+and to `AWAITING_MN_TRANSLATION`:
+
+```ts
+  // Time in the world's units (Wave 2). Until these are translated, `mn` keeps the exact clock.
+  'when_candle', 'when_today', 'when_tomorrow', 'when_dawns',
+  'ordinal_1', 'ordinal_2', 'ordinal_3', 'ordinal_4', 'ordinal_5', 'ordinal_6',
+  'ordinal_7', 'ordinal_8', 'ordinal_9', 'ordinal_10', 'ordinal_11', 'ordinal_12',
+```
+
+- [ ] **Step 2: Write the failing tests** — `lib/__tests__/worldTime.test.ts`. Build every instant from *local* components so the machine's zone cannot move a midnight.
+
+```ts
+import { i18n } from '../i18n';
+import { ordinalWord, threadDay, worldWhen, worldWhenText, worldTimeSpoken } from '../worldTime';
+
+const at = (y: number, m: number, d: number, h = 0, min = 0) => new Date(y, m - 1, d, h, min).getTime();
+const iso = (ms: number) => new Date(ms).toISOString();
+
+describe('worldWhen', () => {
+  const now = at(2026, 9, 12, 9, 0);
+  it('is passed at or before now', () => {
+    expect(worldWhen(iso(now), now)).toEqual({ kind: 'passed' });
+    expect(worldWhen(null, now)).toEqual({ kind: 'passed' });
+  });
+  it('is a candle under an hour away', () => {
+    expect(worldWhen(iso(at(2026, 9, 12, 9, 40)), now)).toEqual({ kind: 'candle', minutes: 40 });
+  });
+  it('is today at a clock time an hour or more away on the same local day', () => {
+    expect(worldWhen(iso(at(2026, 9, 12, 21, 5)), now)).toEqual({ kind: 'today', time: '21:05' });
+  });
+  it('is tomorrow across one local midnight, however few hours away', () => {
+    expect(worldWhen(iso(at(2026, 9, 13, 1, 0)), at(2026, 9, 12, 23, 30))).toEqual({ kind: 'tomorrow', time: '01:00' });
+  });
+  it('counts dawns across two or more midnights', () => {
+    expect(worldWhen(iso(at(2026, 9, 15, 20, 0)), now)).toEqual({ kind: 'dawns', dawns: 3 });
+  });
+});
+
+describe('worldWhenText', () => {
+  const originalLocale = i18n.locale;
+  afterEach(() => { i18n.locale = originalLocale; });
+  it('speaks each rung', () => {
+    i18n.locale = 'en';
+    expect(worldWhenText({ kind: 'passed' })).toBe('Any moment');
+    expect(worldWhenText({ kind: 'candle', minutes: 7 })).toBe('before this candle burns down');
+    expect(worldWhenText({ kind: 'today', time: '21:05' })).toBe('today at 21:05');
+    expect(worldWhenText({ kind: 'tomorrow', time: '01:00' })).toBe('tomorrow at 01:00');
+    expect(worldWhenText({ kind: 'dawns', dawns: 3 })).toBe('in 3 dawns');
+  });
+  it('is only spoken in English until the translator delivers', () => {
+    i18n.locale = 'en';
+    expect(worldTimeSpoken()).toBe(true);
+    i18n.locale = 'mn';
+    expect(worldTimeSpoken()).toBe(false);
+  });
+});
+
+describe('ordinalWord', () => {
+  it('uses words to twelve and suffixed numerals beyond', () => {
+    expect(ordinalWord(1)).toBe('first');
+    expect(ordinalWord(3)).toBe('third');
+    expect(ordinalWord(12)).toBe('twelfth');
+    expect(ordinalWord(13)).toBe('13th');
+    expect(ordinalWord(21)).toBe('21st');
+    expect(ordinalWord(22)).toBe('22nd');
+    expect(ordinalWord(23)).toBe('23rd');
+    expect(ordinalWord(111)).toBe('111th');
+    expect(ordinalWord(112)).toBe('112th');
+  });
+});
+
+describe('threadDay', () => {
+  const start = iso(at(2026, 9, 10, 23, 50));
+  it('is day one on the start day, day two after the first local midnight', () => {
+    expect(threadDay(iso(at(2026, 9, 10, 23, 55)), start)).toBe(1);
+    expect(threadDay(iso(at(2026, 9, 11, 0, 5)), start)).toBe(2);
+    expect(threadDay(iso(at(2026, 9, 12, 12, 0)), start)).toBe(3);
+  });
+  it('never goes below one for a message that predates the start by clock skew', () => {
+    expect(threadDay(iso(at(2026, 9, 10, 23, 40)), start)).toBe(1);
+  });
+});
+```
+
+Run: `npx jest lib/__tests__/worldTime.test.ts` — Expected: FAIL (module not found).
+
+- [ ] **Step 3: Implement `lib/worldTime.ts`**
+
+```ts
+import { i18n } from './i18n';
+
+/**
+ * Time in the world's units (Sealed Fire move 13).
+ *
+ * A countdown is the most modern thing on every screen. These helpers turn "in 19h 6m" into
+ * "tomorrow at 13:00" and "in 3 dawns", the way the streak already counts in dawns and the
+ * festivals already run on a calendar. The exact clock is never removed — `WorldClock` shows it
+ * on a tap — and Mongolian keeps the exact clock outright until the translator's lines land.
+ */
+export type WorldWhen =
+  | { kind: 'passed' }
+  | { kind: 'candle'; minutes: number }
+  | { kind: 'today'; time: string }
+  | { kind: 'tomorrow'; time: string }
+  | { kind: 'dawns'; dawns: number };
+
+const HOUR_MS = 60 * 60 * 1000;
+
+/** Local calendar day as a whole number, so two instants compare by the midnights between them. */
+function localDayIndex(ms: number): number {
+  const d = new Date(ms);
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / (24 * HOUR_MS));
+}
+
+function clockTime(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+export function worldWhen(targetIso: string | null, nowMs: number): WorldWhen {
+  if (!targetIso) return { kind: 'passed' };
+  const target = new Date(targetIso).getTime();
+  if (Number.isNaN(target) || target <= nowMs) return { kind: 'passed' };
+  const diff = target - nowMs;
+  if (diff < HOUR_MS) return { kind: 'candle', minutes: Math.max(1, Math.floor(diff / 60000)) };
+  const dawns = localDayIndex(target) - localDayIndex(nowMs);
+  if (dawns <= 0) return { kind: 'today', time: clockTime(target) };
+  if (dawns === 1) return { kind: 'tomorrow', time: clockTime(target) };
+  return { kind: 'dawns', dawns };
+}
+
+export function worldWhenText(when: WorldWhen): string {
+  switch (when.kind) {
+    case 'passed': return i18n.t('countdown_any_moment');
+    case 'candle': return i18n.t('when_candle');
+    case 'today': return i18n.t('when_today', { time: when.time });
+    case 'tomorrow': return i18n.t('when_tomorrow', { time: when.time });
+    case 'dawns': return i18n.t('when_dawns', { count: when.dawns });
+  }
+}
+
+/**
+ * The world's phrases exist in English only for now. Rendering them inside a Mongolian sentence
+ * would mix languages mid-line, so `mn` keeps the exact countdown it already has.
+ */
+export function worldTimeSpoken(): boolean {
+  return i18n.locale === 'en';
+}
+
+export function ordinalWord(n: number): string {
+  if (n >= 1 && n <= 12) return i18n.t(`ordinal_${n}`);
+  const rem100 = n % 100;
+  const rem10 = n % 10;
+  const suffix = rem100 >= 11 && rem100 <= 13 ? 'th' : rem10 === 1 ? 'st' : rem10 === 2 ? 'nd' : rem10 === 3 ? 'rd' : 'th';
+  return `${n}${suffix}`;
+}
+
+/** Which day of a thread an instant falls on, counting local midnights since the thread began. */
+export function threadDay(iso: string, threadStartIso: string): number {
+  const day = localDayIndex(new Date(iso).getTime()) - localDayIndex(new Date(threadStartIso).getTime()) + 1;
+  return Math.max(1, day);
+}
+```
+
+- [ ] **Step 4: Run the tests** — Expected: PASS. Then `npm test && npm run typecheck && npm run lint`. (The `ordinal_${n}` template is matched by `i18nCoverage.test.ts`'s dynamic-prefix rule because it is inside `i18n.t(`; keep that exact call shape.)
+
+- [ ] **Step 5: Commit** — `Sealed Fire W2: time in the world's units (helpers)`.
+
+---
+
+### Task 4: `lib/letters.ts` — where the days turn and the seals broke
+
+Pure: given a thread, which message starts a new day, and after which message a seal broke. Uses the engine's own mutual-count formula (`RevealService.MutualMessageCount`: `min(total, 2·min(mine, theirs) + 1)`) walked forward over the loaded history, and the hydrated ladder.
+
+**Files:**
+- Create: `mingldingl_app/lib/letters.ts`
+- Test: `mingldingl_app/lib/__tests__/letters.test.ts`
+
+**Interfaces:**
+- Consumes: `threadDay` from Task 3; `Message` from `hooks/useChat.ts`.
+- Produces:
+  ```ts
+  export interface DayStart { day: number | null; iso: string }   // day null → the caller shows the date instead
+  export interface LetterMarks {
+    dayStarts: Map<string, DayStart>;   // message id → this message opens that day
+    sealBreaks: Map<string, number>;    // message id → the reveal level reached right after it (2, 3 or 4)
+  }
+  export function letterMarks(
+    messages: readonly Message[],
+    myId: string | null | undefined,
+    opts: { threadStartIso?: string; ladder: readonly number[]; complete: boolean },
+  ): LetterMarks;
+  ```
+
+- [ ] **Step 1: Write the failing tests**
+
+```ts
+import { letterMarks } from '../letters';
+import type { Message } from '../../hooks/useChat';
+
+const LADDER = [1, 5, 15, 30];
+const at = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h).toISOString();
+let n = 0;
+const msg = (senderId: string, createdAt: string): Message => ({ id: `m${++n}`, matchId: 'x', senderId, content: 'hi', createdAt });
+
+describe('letterMarks · days', () => {
+  beforeEach(() => { n = 0; });
+  it('marks the first message and each message that opens a new local day, counted from the thread start', () => {
+    const start = at(2026, 9, 10, 8);
+    const ms = [msg('a', at(2026, 9, 10, 9)), msg('b', at(2026, 9, 10, 20)), msg('a', at(2026, 9, 12, 7))];
+    const { dayStarts } = letterMarks(ms, 'a', { threadStartIso: start, ladder: LADDER, complete: true });
+    expect([...dayStarts.entries()]).toEqual([
+      ['m1', { day: 1, iso: ms[0].createdAt }],
+      ['m3', { day: 3, iso: ms[2].createdAt }],
+    ]);
+  });
+  it('still turns the day without a thread start, with no ordinal to give', () => {
+    const ms = [msg('a', at(2026, 9, 10)), msg('b', at(2026, 9, 11))];
+    const { dayStarts } = letterMarks(ms, 'a', { ladder: LADDER, complete: true });
+    expect(dayStarts.get('m1')).toEqual({ day: null, iso: ms[0].createdAt });
+    expect(dayStarts.get('m2')).toEqual({ day: null, iso: ms[1].createdAt });
+  });
+});
+
+describe('letterMarks · seals', () => {
+  beforeEach(() => { n = 0; });
+  const alternating = (count: number) => Array.from({ length: count }, (_, i) => msg(i % 2 === 0 ? 'me' : 'them', at(2026, 9, 10, 1 + i)));
+  it('breaks the first seal on the fifth mutual letter of a balanced exchange', () => {
+    const { sealBreaks } = letterMarks(alternating(6), 'me', { ladder: LADDER, complete: true });
+    expect([...sealBreaks.entries()]).toEqual([['m5', 2]]);
+  });
+  it('never breaks a seal for a monologue', () => {
+    const ms = Array.from({ length: 12 }, (_, i) => msg('me', at(2026, 9, 10, 1 + i)));
+    expect(letterMarks(ms, 'me', { ladder: LADDER, complete: true }).sealBreaks.size).toBe(0);
+  });
+  it('counts an optimistic "me" sender as mine', () => {
+    const ms = [msg('me', at(2026, 9, 10, 1)), msg('them', at(2026, 9, 10, 2)), msg('me', at(2026, 9, 10, 3)), msg('them', at(2026, 9, 10, 4)), msg('me', at(2026, 9, 10, 5))];
+    ms[4].senderId = 'me';
+    expect(letterMarks(ms, 'user-1', { ladder: LADDER, complete: true }).sealBreaks.get('m5')).toBe(2);
+  });
+  it('places nothing while earlier history is still unloaded', () => {
+    expect(letterMarks(alternating(6), 'me', { ladder: LADDER, complete: false }).sealBreaks.size).toBe(0);
+  });
+  it('reads the hydrated ladder, not a literal', () => {
+    const { sealBreaks } = letterMarks(alternating(4), 'me', { ladder: [1, 3, 15, 30], complete: true });
+    expect([...sealBreaks.entries()]).toEqual([['m3', 2]]);
+  });
+});
+```
+
+Run: `npx jest lib/__tests__/letters.test.ts` — Expected: FAIL.
+
+- [ ] **Step 2: Implement `lib/letters.ts`**
+
+```ts
+import type { Message } from '../hooks/useChat';
+import { threadDay } from './worldTime';
+
+export interface DayStart { day: number | null; iso: string }
+
+export interface LetterMarks {
+  dayStarts: Map<string, DayStart>;
+  sealBreaks: Map<string, number>;
+}
+
+/** The engine's `RevealService.MutualMessageCount`: one ahead of the quieter side, never more. */
+function mutualCount(total: number, mine: number, theirs: number): number {
+  return Math.min(total, 2 * Math.min(mine, theirs) + 1);
+}
+
+/** Rungs of the ladder reached by a mutual count: the ladder's first rung is level 1. */
+function levelFor(mutual: number, ladder: readonly number[]): number {
+  let level = 0;
+  ladder.forEach((needed, i) => { if (mutual >= needed) level = i + 1; });
+  return level;
+}
+
+/**
+ * Where the ledger draws a day heading and where it draws "a seal broke here".
+ *
+ * Seal rows are only placed on a fully loaded thread: the count that breaks a seal is the whole
+ * history's, and a page that begins mid-conversation cannot know how many letters came before
+ * it. Once the last page is in, the rows appear where the rungs were crossed. A match born above
+ * the first rung (a floor set at creation) still shows its rows at the crossings — they mark
+ * where the letters earned the level, which is what the ledger records.
+ */
+export function letterMarks(
+  messages: readonly Message[],
+  myId: string | null | undefined,
+  opts: { threadStartIso?: string; ladder: readonly number[]; complete: boolean },
+): LetterMarks {
+  const dayStarts = new Map<string, DayStart>();
+  const sealBreaks = new Map<string, number>();
+
+  let lastDayKey: string | null = null;
+  let total = 0, mine = 0, theirs = 0;
+  let level = 0;
+
+  for (const m of messages) {
+    const d = new Date(m.createdAt);
+    const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    if (dayKey !== lastDayKey) {
+      dayStarts.set(m.id, {
+        day: opts.threadStartIso ? threadDay(m.createdAt, opts.threadStartIso) : null,
+        iso: m.createdAt,
+      });
+      lastDayKey = dayKey;
+    }
+
+    if (!opts.complete) continue;
+    total += 1;
+    if (m.senderId === 'me' || (!!myId && m.senderId === myId)) mine += 1; else theirs += 1;
+    const next = levelFor(mutualCount(total, mine, theirs), opts.ladder);
+    if (next > level) {
+      if (next >= 2) sealBreaks.set(m.id, next);
+      level = next;
+    }
+  }
+
+  return { dayStarts, sealBreaks };
+}
+```
+
+- [ ] **Step 3: Run the tests** — PASS; then the full app check.
+- [ ] **Step 4: Commit** — `Sealed Fire W2: where the days turn and the seals broke (helpers)`.
+
+---
+
+### Task 5: `SealDots` and `SealsSheet` replace the reveal strip
+
+The three seal-dots sit under the name in the chat header; tapping them opens a parchment sheet (the Seals board). `RevealStrip` and its test go away; its logic (chips, the membership gate) moves into the sheet.
+
+**Files:**
+- Create: `components/chat/SealDots.tsx`, `components/chat/SealsSheet.tsx`
+- Delete: `components/chat/RevealStrip.tsx`, `components/chat/__tests__/RevealStrip.test.tsx`
+- Modify: `app/chat/[matchId].tsx` (header children + the sheet; the `Unsealing` headline/subline)
+- Modify: `lib/i18n/en.ts`, `lib/i18n/mn.ts` (delete orphans only), `lib/i18n/index.ts`
+- Test: `components/chat/__tests__/SealDots.test.tsx`, `components/chat/__tests__/SealsSheet.test.tsx`
+
+**Interfaces:**
+- Consumes: `deepRevealLevel`, `nextRevealThreshold` from `lib/reveal.ts`; `useRevealLadder` from `hooks/useRevealThresholds.ts`; `SheetModal` from `components/modals/SheetModal.tsx`; `OathSigil`; `Glyph name="seal"`.
+- Produces:
+  ```ts
+  // SealDots
+  interface Props { broken: number; color?: string; size?: number; style?: StyleProp<ViewStyle> }
+  export const SEAL_COUNT = 3;
+  export function sealsBroken(revealLevel: number | undefined): number; // clamp(level - 1, 0, 3)
+  export function SealDots(props: Props): JSX.Element;   // accessibilityRole="image", label from seals_broken_N; testIDs seal-dot-broken / seal-dot-intact
+  // SealsSheet
+  interface Props { visible: boolean; onClose: () => void; otherUser: PartialUser; messageCount: number; revealLevel: number }
+  export function SealsSheet(props: Props): JSX.Element;
+  ```
+
+- [ ] **Step 1: Keys.** Add to `en.ts`:
+
+```ts
+  // The seals (Sealed Fire move 1/2): the reveal ladder as three wax seals.
+  seals_title: 'The seals',
+  seals_broken_0: 'Three seals, all intact',
+  seals_broken_1: 'One of three seals broken',
+  seals_broken_2: 'Two of three seals broken',
+  seals_broken_3: 'All three seals broken',
+  seals_left_0: 'nothing left under wax',
+  seals_left_1: 'one seal left',
+  seals_left_2: 'two seals left',
+  seals_left_3: 'three seals left',
+  seals_next_at: 'the next at %{count} letters',
+  seal_under_wax: 'Under wax',
+  age_winters: '%{age} winters',
+  seals_deep_membership: 'The deep seal opens for the Hall and the High Table.',
+  seals_climb: 'Climb',
+  seals_law: 'Only letters you both send count toward the seals. Talking into silence never opens anyone.',
+  seal_breaks_2: 'The first seal breaks',
+  seal_breaks_3: 'The second seal breaks',
+  seal_breaks_4: 'The deep seal breaks',
+  seal_broke_2: 'A seal broke here. Their age and second likeness are yours now.',
+  seal_broke_3: 'A seal broke here. Their district and third likeness are yours now.',
+  seal_broke_4: 'The deep seal broke here. What they keep and believe is yours now.',
+```
+
+All of them to `AWAITING_MN_TRANSLATION` under a `// The seals (Wave 2).` comment. Then delete from **both** `en.ts` and `mn.ts` every `reveal_*` key that has no remaining reference after this task (expected: `reveal_title`, `reveal_locked`, `reveal_summary`, `reveal_next_at`, `reveal_complete`; keep `reveal_age`, `reveal_district`, `reveal_deep_profile`, `reveal_deep_membership` only if the sheet still uses them — run the coverage test and follow it).
+
+- [ ] **Step 2: Write the failing `SealDots` test**
+
+```tsx
+import { render } from '@testing-library/react-native';
+import { SealDots, sealsBroken } from '../SealDots';
+
+describe('SealDots', () => {
+  it('maps the reveal level to broken seals: level 1 breaks none, level 4 breaks all', () => {
+    expect(sealsBroken(undefined)).toBe(0);
+    expect(sealsBroken(1)).toBe(0);
+    expect(sealsBroken(2)).toBe(1);
+    expect(sealsBroken(4)).toBe(3);
+    expect(sealsBroken(9)).toBe(3);
+  });
+  it('draws three seals, the broken ones first, and says how many are broken', () => {
+    const { getAllByTestId, getByLabelText } = render(<SealDots broken={2} />);
+    expect(getAllByTestId('seal-dot-broken')).toHaveLength(2);
+    expect(getAllByTestId('seal-dot-intact')).toHaveLength(1);
+    expect(getByLabelText('Two of three seals broken')).toBeTruthy();
+  });
+});
+```
+
+- [ ] **Step 3: Implement `SealDots.tsx`**
+
+```tsx
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { i18n } from '../../lib/i18n';
+import { METAL, SPACE, SURFACE, tint } from '../../lib/theme';
+
+export const SEAL_COUNT = 3;
+
+/** Level 1 is the floor every match is born with; the three seals are rungs 2, 3 and 4. */
+export function sealsBroken(revealLevel: number | undefined): number {
+  return Math.max(0, Math.min(SEAL_COUNT, (revealLevel ?? 1) - 1));
+}
+
+interface Props {
+  broken: number;
+  /** The wax. Gold everywhere but the Fire, which passes the furnace. */
+  color?: string;
+  size?: number;
+  style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * The reveal ladder as three wax seals. An intact seal is a filled disc of wax; a broken one is
+ * the ring the wax left. One image for accessibility — three dots read aloud one by one say
+ * nothing — with the count as its label.
+ */
+export function SealDots({ broken, color = METAL.gold, size = 10, style }: Props) {
+  return (
+    <View
+      style={[styles.row, style]}
+      accessibilityRole="image"
+      accessibilityLabel={i18n.t(`seals_broken_${broken}`)}
+    >
+      {Array.from({ length: SEAL_COUNT }, (_, i) => {
+        const isBroken = i < broken;
+        return (
+          <View
+            key={i}
+            testID={isBroken ? 'seal-dot-broken' : 'seal-dot-intact'}
+            style={[
+              { width: size, height: size, borderRadius: size / 2 },
+              isBroken
+                ? { borderWidth: 1.5, borderColor: tint(color, 0.7), backgroundColor: 'transparent' }
+                : { backgroundColor: color, borderWidth: 1, borderColor: tint(SURFACE.sunken, 0.35) },
+            ]}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+});
+```
+
+(`i18n.t(\`seals_broken_${broken}\`)` — keep the template inside the `i18n.t(` call so the coverage test sees the family.)
+
+- [ ] **Step 4: Port the reveal-strip tests to `SealsSheet.test.tsx`** — same fixtures and the same seven behaviours as the deleted file (ladder hydration, fresh match, mid stage, deep fields, membership upsell → `/membership`, plain padlock while unearned, no upsell once deep arrived), rendered with `visible` and read by text/testID. New assertions to add: the eyebrow reads `Two of three seals broken` at `revealLevel={3}`; the progress line reads `the next at 15 letters` at `messageCount={7}`; every unrevealed photo tile and every unrevealed chip carries `accessibilityLabel="Under wax"`; the age chip reads `33 winters`; the law line is present. Mock `expo-router` as the old test did. Run: FAIL (module not found).
+
+- [ ] **Step 5: Implement `SealsSheet.tsx`.** Structure (reuse the chip-building code from `RevealStrip.tsx`, moved here verbatim except for the copy):
+
+```tsx
+<SheetModal visible={visible} onClose={onClose}>
+  <CardEyebrow>{i18n.t(`seals_broken_${broken}`)}</CardEyebrow>
+  <Text style={styles.next}>{nextAt !== null ? i18n.t('seals_next_at', { count: nextAt }) : i18n.t('seals_left_0')}</Text>
+  <View style={styles.row}>{/* photo tiles: revealed → <Image testID={`seal-photo-${i}`}/>; else a wax tile: <View accessibilityLabel={i18n.t('seal_under_wax')} testID={`seal-photo-wax-${i}`}><Glyph name="seal" size={ICON_SIZES.sm} /></View> */}</View>
+  <View style={styles.chips}>{/* chips as before; a locked chip: accessibilityLabel={i18n.t('seal_under_wax')}, the label alone in INK.dim with a small seal glyph; the age chip renders i18n.t('age_winters', { age }) */}</View>
+  {otherUser.oath && <OathSigil oath={otherUser.oath} proven={!!otherUser.oathProven} size="sm" />}
+  {deepGatedByMembership && (
+    <View style={styles.climbRow}>
+      <Text style={styles.law}>{i18n.t('seals_deep_membership')}</Text>
+      <GameButton variant="ink" size="compact" onPress={() => { onClose(); router.push('/membership'); }} testID="seals-climb">{i18n.t('seals_climb')}</GameButton>
+    </View>
+  )}
+  <Text style={styles.law}>{i18n.t('seals_law')}</Text>
+</SheetModal>
+```
+
+`styles.law` is `FONTS.bodyItalic` once Task 6 lands; until then use `FONTS.body` and leave a `// italic: the app speaking (Task 6 adds FONTS.bodyItalic)` note — the Task 7 implementer switches it. `GameButton` does not take `testID`; use a wrapping `View testID` or find by text. Keep the `deepGatedByMembership` derivation and comment from the old strip.
+
+- [ ] **Step 6: Wire the chat header.** In `app/chat/[matchId].tsx`: remove the `RevealStrip` import and element; add `const [sealsVisible, setSealsVisible] = useState(false);` and `const broken = sealsBroken(match?.revealLevel);`. Give `HeaderBar` children:
+
+```tsx
+{match && (
+  <Tap onPress={() => setSealsVisible(true)} accessibilityRole="button" accessibilityLabel={i18n.t('seals_title')} style={styles.sealsRow} testID="seals-toggle">
+    <SealDots broken={broken} />
+    <Text style={styles.sealsLeft}>{i18n.t(`seals_left_${SEAL_COUNT - broken}`)}</Text>
+  </Tap>
+)}
+```
+
+(`sealsRow`: row, centred, gap `SPACE.sm`, `paddingVertical: SPACE.xs`; `sealsLeft`: `FONTS.utility`, `FONT_SIZES.sm`, `INK.dim`, `TRACKING.wide`.) Mount `<SealsSheet visible={sealsVisible} onClose={() => setSealsVisible(false)} otherUser={match.otherUser} messageCount={match.messageCount} revealLevel={match.revealLevel} />` beside the other modals. Change the `Unsealing` props: `headline` becomes `i18n.t(\`seal_breaks_${level}\`)` and `subline` becomes the matching `seal_broke_${level}` line followed by a space and either `seals_next_at` (with `count: unsealedNextAt`) or `seals_left_0` when the ladder is complete — where `level` is `match.revealLevel` clamped to 2–4 (only those rungs reach the ceremony). Keep both template literals inside `i18n.t(` calls. Delete `RevealStrip.tsx` and its test.
+
+- [ ] **Step 7: Verify** — `npm test && npm run typecheck && npm run lint` (the coverage test tells you which `reveal_*` keys to delete from both tables).
+- [ ] **Step 8: Commit** — `Sealed Fire W2: the seals — dots in the header, a parchment sheet`.
+
+---
+
+### Task 6: The ledger's pieces — `LetterRow`, `DayHeading`, `SealBreakRow`, `WaxSealButton`, the italic
+
+Components only; Task 7 mounts them. Adds the italic body face ("italic is the app speaking").
+
+**Files:**
+- Modify: `lib/theme.ts` (`FONTS.bodyItalic`), `app/_layout.tsx` (load `Alegreya_400Regular_Italic` from `@expo-google-fonts/alegreya/400Regular_Italic` — confirm the file exists under `node_modules/@expo-google-fonts/alegreya/`; it ships with the package already installed)
+- Create: `components/chat/LetterRow.tsx`, `components/chat/DayHeading.tsx`, `components/chat/SealBreakRow.tsx`, `components/chat/WaxSealButton.tsx`
+- Modify: `lib/i18n/en.ts`, `lib/i18n/index.ts`; `components/chat/SealsSheet.tsx` (`styles.law` → `FONTS.bodyItalic`)
+- Test: `components/chat/__tests__/LetterRow.test.tsx`, `DayHeading.test.tsx`, `SealBreakRow.test.tsx`, `WaxSealButton.test.tsx`
+
+**Interfaces:**
+- Produces:
+  ```ts
+  // LetterRow — one line of the ledger. `initial`: the sigil letter for this sender.
+  interface Props { message: Message; myId: string | undefined; initial: string; onRetry?: (id: string) => void }
+  // DayHeading — "THE THIRD DAY", or the date when `day` is null.
+  interface Props { day: number | null; iso: string }
+  // SealBreakRow — italic, level 2 | 3 | 4.
+  interface Props { level: number }
+  // WaxSealButton — the send seal.
+  interface Props { onPress: () => void; disabled?: boolean }
+  ```
+
+- [ ] **Step 1: Keys** (`en.ts` + `AWAITING_MN_TRANSLATION`):
+
+```ts
+  thread_day: 'The %{ordinal} day',
+  letter_seal: 'Seal and send',
+```
+
+Change existing English values (leave `mn.ts`): `type_message: 'Write your line…'`, `deleted_user: 'A name struck'`, `unknown_name: 'A sealed one'`, `match_ended_notice: 'The bond was severed. This thread is kept as it was; no more letters can be written on it.'`, `match_quiet_body: 'The fire went out. Silence ran too long, and this thread is judged cold.'`.
+
+- [ ] **Step 2: Failing tests.** One file each; the assertions that matter:
+
+```tsx
+// LetterRow.test.tsx
+const base: Message = { id: 'm1', matchId: 'x', senderId: 'me', content: 'A line', createdAt: new Date().toISOString() };
+it('sets my line in italic gold and theirs in roman', () => {
+  const mine = render(<LetterRow message={base} myId="me" initial="Х" />);
+  expect(StyleSheet.flatten(mine.getByText('A line').props.style)).toEqual(expect.objectContaining({ fontFamily: FONTS.bodyItalic, color: ACCENT.base }));
+  const theirs = render(<LetterRow message={{ ...base, senderId: 'other' }} myId="me" initial="С" />);
+  expect(StyleSheet.flatten(theirs.getByText('A line').props.style)).toEqual(expect.objectContaining({ fontFamily: FONTS.body, color: INK.primary }));
+});
+it('shows the sigil initial', () => { expect(render(<LetterRow message={base} myId="me" initial="Х" />).getByText('Х')).toBeTruthy(); });
+it('dims a sending line and offers retry on a failed one', () => {
+  expect(StyleSheet.flatten(render(<LetterRow message={{ ...base, status: 'sending' }} myId="me" initial="Х" />).getByTestId('letter').props.style)).toEqual(expect.objectContaining({ opacity: 0.8 }));
+  const onRetry = jest.fn();
+  const { getByLabelText } = render(<LetterRow message={{ ...base, status: 'failed' }} myId="me" initial="Х" onRetry={onRetry} />);
+  fireEvent.press(getByLabelText('Tap to retry'));   // use the existing message_tap_to_retry English value verbatim
+  expect(onRetry).toHaveBeenCalledWith('m1');
+});
+
+// DayHeading.test.tsx
+it('names the day in words, uppercased, and falls back to the date', () => {
+  expect(render(<DayHeading day={3} iso="2026-09-12T00:00:00Z" />).getByText('THE THIRD DAY')).toBeTruthy();
+  const { getByText } = render(<DayHeading day={null} iso="2026-09-12T00:00:00Z" />);
+  expect(getByText(formatDate('2026-09-12T00:00:00Z').toUpperCase())).toBeTruthy();
+});
+
+// SealBreakRow.test.tsx
+it('speaks in italic, per level', () => {
+  const { getByText } = render(<SealBreakRow level={3} />);
+  const t = getByText('A seal broke here. Their district and third likeness are yours now.');
+  expect(StyleSheet.flatten(t.props.style).fontFamily).toBe(FONTS.bodyItalic);
+});
+
+// WaxSealButton.test.tsx
+it('is a labelled button that ticks and fires, and is inert when disabled', () => {
+  const onPress = jest.fn();
+  const { getByLabelText } = render(<WaxSealButton onPress={onPress} />);
+  fireEvent(getByLabelText('Seal and send'), 'pressIn');
+  fireEvent.press(getByLabelText('Seal and send'));
+  expect(onPress).toHaveBeenCalledTimes(1);
+  expect(Haptics.impactAsync).toHaveBeenCalled();   // jest.mock('expo-haptics') as components/ui/__tests__/GameButton.test.tsx does
+  const off = render(<WaxSealButton onPress={onPress} disabled />);
+  expect(off.getByLabelText('Seal and send').props.accessibilityState).toEqual(expect.objectContaining({ disabled: true }));
+});
+```
+
+Run: FAIL (modules not found).
+
+- [ ] **Step 3: The italic.** `lib/theme.ts` `FONTS`: add `bodyItalic: 'Alegreya_400Regular_Italic',` with the comment `// Italic is the app speaking; roman is the person (Sealed Fire, three voices).` `app/_layout.tsx`: import `{ Alegreya_400Regular_Italic } from '@expo-google-fonts/alegreya/400Regular_Italic'` and add it to `useFonts`.
+
+- [ ] **Step 4: `LetterRow.tsx`** — layout: a row; left a 28px ring (`borderWidth: 1`, `borderColor: LINE.edge`, `borderRadius: 14`) holding `initial` in `FONTS.display` `FONT_SIZES.sm` (`ACCENT.base` for mine, `INK.dim` for theirs); right the text, `flex: 1`. Mine: `fontFamily: FONTS.bodyItalic, color: ACCENT.base`; theirs: `FONTS.body, INK.primary`; both `FONT_SIZES.lg`, `lineHeight: LEADING.lg`. `testID="letter"` on the row; `status === 'sending'` → `opacity: 0.8`; `failed` → `opacity: PRESS.dimmed` and, under the text, the same retry row `MessageBubble` had (`Pressable` with `accessibilityLabel={i18n.t('message_tap_to_retry')}`, `Icon alert-circle`, `FieldError`). No bubble, no fill, no border on the row: the ledger is text on the floor. Row `marginBottom: SPACE.md`, `gap: SPACE.sm`, `alignItems: 'flex-start'`.
+
+- [ ] **Step 5: `DayHeading.tsx`** — centred row: hairline, text, hairline (`View` `height: 1`, `flex: 1`, `backgroundColor: LINE.edge`); text `FONTS.utility`, `FONT_SIZES.xs`, `TRACKING.eyebrow`, `INK.dim`, uppercased: `day !== null ? i18n.t('thread_day', { ordinal: ordinalWord(day) }) : formatDate(iso)`. `marginVertical: SPACE.lg`.
+
+- [ ] **Step 6: `SealBreakRow.tsx`** — centred, `Glyph name="seal" size={ICON_SIZES.sm}` then text `i18n.t(\`seal_broke_${level}\`)` in `FONTS.bodyItalic`, `FONT_SIZES.sm`, `ACCENT.base`, `textAlign: 'center'`, `flexShrink: 1`. `marginBottom: SPACE.md`, `paddingHorizontal: SPACE.lg`.
+
+- [ ] **Step 7: `WaxSealButton.tsx`** — a 48px disc: `Pressable` with `accessibilityRole="button"`, `accessibilityLabel={i18n.t('letter_seal')}`, `accessibilityState={{ disabled: !!disabled }}`, `testID="wax-seal-send"`; `onPressIn` → `if (!disabled) signal('press')` and a scale-to-0.94 `Animated.timing` (60 ms, native driver) as `GameButton` does, spring back on out; `disabled` → `opacity: PRESS.disabled`. Fill `METAL.gold`, `borderWidth: 2`, `borderColor: tint(SURFACE.sunken, 0.35)`, inside `<Glyph name="seal" size={ICON_SIZES.md} color={tint(SURFACE.sunken, 0.75)} />`. No furnace tokens (this file is not on the allowlist).
+
+- [ ] **Step 8: `SealsSheet.styles.law`** → `FONTS.bodyItalic`; remove the placeholder note.
+- [ ] **Step 9: Verify** — tests PASS; full app check.
+- [ ] **Step 10: Commit** — `Sealed Fire W2: the ledger's pieces, and the italic voice`.
+
+---
+
+### Task 7: Chat as letters (move 2) — the screen
+
+**Files:**
+- Modify: `app/chat/[matchId].tsx`, `components/chat/MessageInput.tsx`
+- Delete: `components/chat/MessageBubble.tsx`, `components/chat/__tests__/MessageBubble.test.tsx`
+- Test: `app/__tests__/chatLedger.test.tsx` (create; render the pieces through a small harness rather than the whole screen if the screen's hooks are too heavy to mount — see Step 4)
+
+**Interfaces:**
+- Consumes: `letterMarks` (Task 4), `LetterRow`/`DayHeading`/`SealBreakRow`/`WaxSealButton` (Task 6), `Match.createdAt` (Task 1), `useRevealLadder`.
+
+- [ ] **Step 1: `MessageInput`** — replace the `GameButton variant="primary"` with `<WaxSealButton onPress={handleSend} disabled={!text.trim()} />`; drop the `GameButton` import. Bar background becomes `'transparent'` with the top hairline kept (the ledger sits on the floor). The placeholder key is unchanged (`type_message`, now "Write your line…").
+
+- [ ] **Step 2: The screen.** Imports: drop `MessageBubble`; add `LetterRow`, `DayHeading`, `SealBreakRow`, `letterMarks`. Compute:
+
+```tsx
+const marks = useMemo(
+  () => letterMarks(messages, myId, { threadStartIso: match?.createdAt, ladder: revealLadder, complete: !hasMore }),
+  [messages, myId, match?.createdAt, revealLadder, hasMore],
+);
+const theirInitial = (revealedName ?? name ?? '?').trim().charAt(0).toUpperCase() || '?';
+const myInitial = (myProfile?.displayName ?? '').trim().charAt(0).toUpperCase() || '·';
+```
+
+(`myProfile` from whatever hook `app/(tabs)/profile.tsx` reads the signed-in user's profile with — grep it; do not add a new query.) `renderItem`:
+
+```tsx
+renderItem={({ item }) => {
+  const day = marks.dayStarts.get(item.id);
+  const broke = marks.sealBreaks.get(item.id);
+  const mine = item.senderId === 'me' || (!!myId && item.senderId === myId);
+  return (
+    <>
+      {day && <DayHeading day={day.day} iso={day.iso} />}
+      {item.id === sealedMessageId
+        ? <SealedLetter onOpen={unseal} sealColor={METAL.gold} />
+        : <LetterRow message={item} myId={myId ?? undefined} initial={mine ? myInitial : theirInitial} onRetry={retryMessage} />}
+      {broke != null && <SealBreakRow level={broke} />}
+    </>
+  );
+}}
+```
+
+- [ ] **Step 3: The dashed thread.** Wrap the `FlatList` in a `View style={styles.ledger}` (`flex: 1`) with, before the list, `<View pointerEvents="none" style={styles.thread} />` — `position: 'absolute', top: 0, bottom: 0, left: SPACE.gutter + 14, width: 1, borderWidth: 1, borderStyle: 'dashed', borderColor: LINE.edge, borderRadius: 1` (Android draws a dashed border only when every side has a width, hence a 1px-wide box rather than `borderLeftWidth`). The `messageList` content keeps `paddingHorizontal: SPACE.gutter`. `endedNotice` text: keep the element, its copy changed in Task 6; set its background transparent.
+
+- [ ] **Step 4: Test.** If `app/chat/[matchId].tsx` cannot be rendered under jest without mocking a dozen hooks, test the composition instead: a harness component in the test file that takes `messages`, `myId`, `createdAt`, `ladder`, `hasMore` and renders the same `renderItem` body over a `FlatList`. Assert: the first message is preceded by `THE FIRST DAY`; the fifth message of an alternating six-message thread is followed by the level-2 seal row; with `hasMore` true no seal row renders; my lines are italic. (Extract the `renderItem` body into `components/chat/LedgerItem.tsx` if that makes the harness honest — then the screen and the test render the same component.)
+
+- [ ] **Step 5: Verify** — full app check; `lib/__tests__/forged.test.ts` must still pass (the chat file no longer holds a forged button; the retry button in `StateBlock` error branch stays `primary` — that is now the file's one).
+- [ ] **Step 6: Commit** — `Sealed Fire W2: chat as letters — the ledger, the dashed thread, the wax seal`.
+
+---
+
+### Task 8: Seek, sealed (move 1) — `CandidateCard`
+
+**Files:**
+- Modify: `components/cards/CandidateCard.tsx`, `components/cards/__tests__/CandidateCard.test.tsx` (rewrite), `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Read first: `lib/tiers.ts` (the tier-name helper and its keys), `components/OathSigil.tsx` (`oathLabel`), `lib/ornaments.ts` (`ORNAMENTS.knotGold`), `lib/theme.ts` (`TEMPERATURE`, `SCRIM`, `overlay`, `tint`).
+
+**Interfaces:** props unchanged (`candidate`, `onRequest`, `onSkip`, `requesting`, `requestDisabled`). Consumes `SealDots` (Task 5).
+
+- [ ] **Step 1: Keys** (`en.ts` + awaiting):
+
+```ts
+  seek_sealed_hint: 'Three seals. Earn the face.',
+  seek_sealed_a11y: 'Their likeness, under wax',
+  oath_sworn_to: 'Sworn to %{oath}',
+  oath_seeking: 'Seeking %{oath}',
+```
+
+Delete `previous_photo` / `next_photo` from both tables if nothing else references them (the coverage test will say).
+
+- [ ] **Step 2: Rewrite the test.** Keep the `WorldProvider` mock; drop the contrast helpers and the dot tests. New cases:
+
+```tsx
+const candidate: Candidate = { ...fields the model needs..., displayName: 'Эрдэнэбат', age: 33, city: 'Songinokhairkhan', gemTier: 'Ruby', oath: 'Bond', oathProven: true, bio: 'Vet.', photoUrls: ['https://x/1.jpg', 'https://x/2.jpg'] };
+it('blurs the likeness under a labelled seal and offers no way to page the photos', () => {
+  const { getByTestId, getByLabelText, queryByLabelText } = render(<CandidateCard candidate={candidate} onRequest={jest.fn()} onSkip={jest.fn()} />);
+  expect(getByTestId('sealed-likeness').props.blurRadius).toBe(26);
+  expect(getByLabelText('Their likeness, under wax')).toBeTruthy();
+  expect(getByLabelText('Three seals, all intact')).toBeTruthy();
+  expect(queryByLabelText('Next photo')).toBeNull();
+});
+it('says the name, the age, and one eyebrow of gem · district · oath', () => {
+  const { getByText } = render(<CandidateCard candidate={candidate} onRequest={jest.fn()} onSkip={jest.fn()} />);
+  expect(getByText('Эрдэнэбат, 33')).toBeTruthy();
+  expect(getByText(/RUBY · SONGINOKHAIRKHAN · SWORN TO A BOND/)).toBeTruthy();
+  expect(getByText('Three seals. Earn the face.')).toBeTruthy();
+});
+it('keeps one forged Summon and an ink Dismiss', () => {
+  const onRequest = jest.fn(); const onSkip = jest.fn();
+  const { getByText } = render(<CandidateCard candidate={candidate} onRequest={onRequest} onSkip={onSkip} />);
+  fireEvent.press(getByText('SUMMON')); fireEvent.press(getByText('Dismiss'));
+  expect(onRequest).toHaveBeenCalled(); expect(onSkip).toHaveBeenCalled();
+});
+```
+
+(The forged button uppercases its label; the ink one does not. Use the tier label exactly as `lib/tiers.ts` renders "Ruby" in English — check the key before asserting.)
+
+- [ ] **Step 3: Rewrite the card.** Remove: `photoIndex`, `advancePhoto`, the dots, their scrim, both tap targets, `placeholderIcon` sizing. Keep: `cardHeight`/`infoHeight` measurement and the plaque gradient. Render:
+
+```tsx
+<View style={styles.card} onLayout=…>
+  {showPhoto
+    ? <Image source={{ uri: photo }} style={styles.photo} contentFit="cover" blurRadius={26} onError={() => setFailedUrl(photo)} testID="sealed-likeness" />
+    : <View style={styles.photoPlaceholder} />}
+  <View style={StyleSheet.absoluteFill} pointerEvents="none"><LinearGradient colors={[overlay(SCRIM.veil), overlay(SCRIM.veilStrong)]} style={StyleSheet.absoluteFill} /></View>
+  <View style={[styles.sealArea, { paddingBottom: infoHeight }]} pointerEvents="none">
+    <Image source={ORNAMENTS.knotGold} style={styles.seal} contentFit="contain" accessibilityRole="image" accessibilityLabel={i18n.t('seek_sealed_a11y')} />
+    <SealDots broken={0} color={TEMPERATURE.furnace} size={12} />
+    <Text style={styles.sealHint}>{i18n.t('seek_sealed_hint')}</Text>
+  </View>
+  <LinearGradient … the existing plaque gradient … />
+  <RoomLight />
+  <View style={styles.info} onLayout=…>
+    <View style={styles.plaqueRule} />
+    <View style={styles.nameRow}><Text style={styles.name}>{candidate.displayName}, {candidate.age}</Text><GemTierBadge tier={candidate.gemTier} size={BADGE_SIZES.row} /></View>
+    <CardEyebrow color={ACCENT.base} style={styles.eyebrow}>{eyebrow}</CardEyebrow>
+    {candidate.equippedTitleId && <Text style={styles.equippedTitle}>{itemLabel(candidate.equippedTitleId)}</Text>}
+    {candidate.bio ? <Text style={styles.bio} numberOfLines={2}>{candidate.bio}</Text> : null}
+    <View style={styles.actions}>…unchanged…</View>
+  </View>
+</View>
+```
+
+`eyebrow = [tierName, candidate.city, oathPhrase].filter(Boolean).join(' · ')` where `oathPhrase = candidate.oath ? i18n.t(candidate.oathProven ? 'oath_sworn_to' : 'oath_seeking', { oath: oathLabel(candidate.oath) }) : null`. `SCRIM.veil` — use whichever two rungs of `SCRIM` exist below `ceremony` (read the ladder; do not add a rung). Styles: `sealArea` absolute-fill, centred, `gap: SPACE.sm`; `seal` 120×120; `sealHint` `FONTS.bodyItalic`, `FONT_SIZES.sm`, `INK.dim`; `plaqueRule` `tint(TEMPERATURE.furnace, 0.6)` (furnace: the Fire is on the allowlist); `card.borderRadius: RADIUS.sm` (corners square off at the furnace); `eyebrow` `marginBottom: 0`. `OathSigil` is no longer rendered on this card — the eyebrow carries the oath; remove the import.
+
+- [ ] **Step 4: Verify** — full app check (`furnace.test.ts` allows this file; `palette.test.ts` must stay clean).
+- [ ] **Step 5: Commit** — `Sealed Fire W2: Seek, sealed — the likeness under wax`.
+
+---
+
+### Task 9: Header room glyphs (Wave 1's carry-over)
+
+**Files:**
+- Modify: `components/ui/HeaderBar.tsx`, `components/ui/GameHeader.tsx`, `app/(tabs)/discover.tsx`, `app/(tabs)/matches.tsx`, `app/(tabs)/townsquare.tsx`, `app/(tabs)/activity.tsx`, `app/(tabs)/profile.tsx`
+- Test: `components/ui/__tests__/HeaderBar.test.tsx` (add a case)
+
+- [ ] **Step 1: Failing test** — `it('draws a room glyph beside the title when given one', () => { const { UNSAFE_getByType } = render(<HeaderBar title="The Fire" glyph="fire" showBack={false} />); expect(UNSAFE_getByType(Glyph).props.name).toBe('fire'); });` (import `Glyph` from `../Glyph`).
+- [ ] **Step 2: `HeaderBar`** — add `glyph?: GlyphName` to `Props`; render `{glyph && <Glyph name={glyph} size={ICON_SIZES.lg} color={ACCENT.base} style={styles.titleIcon} />}` where the `icon` renders (an unlabelled glyph is hidden from accessibility; the title carries the name). `GameHeader` passes `glyph` through.
+- [ ] **Step 3: The five tabs** — replace `icon="sword-cross"` with `glyph="fire"` (both sites in `discover.tsx`), `icon="script-text"` → `glyph="letters"`, `icon="account-group"` → `glyph="lantern"`, `icon="anvil"` → `glyph="forge"`, `icon="shield-sword"` → `glyph="gem"`. Other screens keep `icon`.
+- [ ] **Step 4: Verify; commit** — `Sealed Fire W2: room glyphs in the five headers`.
+
+---
+
+### Task 10: `WorldClock` and the three clocks (move 13, on screen)
+
+**Files:**
+- Create: `components/ui/WorldClock.tsx`
+- Modify: `components/townsquare/SessionStatusCard.tsx`, `components/townsquare/NextGatheringPill.tsx`, `app/(auth)/otp.tsx`, `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Test: `components/ui/__tests__/WorldClock.test.tsx`; update any existing tests of the pill/card/otp that assert the old countdown sentences (grep `RSVP closes in`, `Starts in`, `Code expires`).
+
+**Interfaces:**
+- Consumes: `worldWhen`, `worldWhenText`, `worldTimeSpoken` (Task 3), `formatCountdown` (`lib/townSquareTime.ts`).
+- Produces:
+  ```ts
+  interface Props { targetIso: string | null; nowMs: number; worldKey: string; exactKey: string; style?: StyleProp<TextStyle>; testID?: string }
+  export function WorldClock(props: Props): JSX.Element;
+  ```
+
+- [ ] **Step 1: Keys** (`en.ts` + awaiting): `gates_close: 'Gates close %{when}.'`, `first_bell: 'The first bell rings %{when}.'`, `verify_match_burns: 'The gatekeeper waits while this match burns.'`.
+
+- [ ] **Step 2: Failing test**
+
+```tsx
+it('speaks the world in English and shows the clock itself on a tap, then returns', () => {
+  jest.useFakeTimers();
+  i18n.locale = 'en';
+  const now = new Date(2026, 8, 12, 9, 0).getTime();
+  const target = new Date(2026, 8, 13, 13, 0).toISOString();
+  const { getByText, getByRole } = render(<WorldClock targetIso={target} nowMs={now} worldKey="first_bell" exactKey="town_square_starts_in" />);
+  expect(getByText('The first bell rings tomorrow at 13:00.')).toBeTruthy();
+  fireEvent.press(getByRole('button'));
+  expect(getByText('Starts in 1d 4h')).toBeTruthy();
+  act(() => { jest.advanceTimersByTime(4000); });
+  expect(getByText('The first bell rings tomorrow at 13:00.')).toBeTruthy();
+});
+it('keeps the exact clock for Mongolian', () => {
+  i18n.locale = 'mn';
+  const { queryByText } = render(<WorldClock targetIso={target} nowMs={now} worldKey="first_bell" exactKey="town_square_starts_in" />);
+  expect(queryByText(/first bell/)).toBeNull();
+});
+```
+
+- [ ] **Step 3: Implement** — state `showExact`; `Pressable accessibilityRole="button"` whose label is `${world} ${exact}`; on press set `showExact` and a 4000 ms timeout back (cleared on unmount); text = `showExact || !worldTimeSpoken() ? i18n.t(exactKey, { time: formatCountdown(targetIso, nowMs) }) : i18n.t(worldKey, { when: worldWhenText(worldWhen(targetIso, nowMs)) })`. Style passthrough.
+
+- [ ] **Step 4: Sites.** `SessionStatusCard`: the RSVP hint → `<WorldClock targetIso={session.rsvpClosesAt} nowMs={now} worldKey="gates_close" exactKey="town_square_rsvp_closes_in" style={styles.hint} />`; the starts line → `worldKey="first_bell" exactKey="town_square_starts_in" style={styles.countdown}`. `NextGatheringPill`: the whole pill navigates, so no toggle — when `worldTimeSpoken()`, `label = i18n.t(session.status === 'Open' ? 'gates_close' : 'first_bell', { when: worldWhenText(worldWhen(…)) })`, else the existing sentences; `accessibilityLabel` = label plus the exact countdown. `otp.tsx`: when `worldTimeSpoken()`, render `<Text style={styles.meta}>{i18n.t('verify_match_burns')}</Text>` followed by `<Text style={styles.metaSmall}>{mmss}</Text>` (`metaSmall`: `FONTS.utility`, `FONT_SIZES.xs`, `INK.dim`, `TRACKING.wide`); otherwise the existing `verify_expires_in` line.
+
+- [ ] **Step 5: Verify; commit** — `Sealed Fire W2: the clocks speak — candles, bells and dawns`.
+
+---
+
+### Task 11: Mongolian width pass for chips and eyebrows (Wave 1's carry-over)
+
+Mongolian runs 20–40% longer. A chip or eyebrow must shrink and wrap rather than clip.
+
+**Files:**
+- Modify: `components/ui/CardEyebrow.tsx`, `components/ui/ChoiceRow.tsx`, `components/chat/SealsSheet.tsx`
+- Test: `components/ui/__tests__/primitives.test.tsx` (add cases)
+
+- [ ] **Step 1: Failing tests** — render `CardEyebrow` and assert the flattened style has `flexShrink: 1`; render `ChoiceRow` with `i18n.locale = 'mn'` and the real `mn.ts` labels for `habit_*` (import `translations.mn`), assert every chip text's flattened style has `flexShrink: 1` and no `numberOfLines`, and the options container has `flexWrap: 'wrap'`.
+- [ ] **Step 2: Fix** — `CardEyebrow.styles.eyebrow`: add `flexShrink: 1`. `ChoiceRow`: `chip` gets `maxWidth: '100%'`; `chipText` gets `flexShrink: 1`. `SealsSheet`: every chip `maxWidth: '100%'`, chip text `flexShrink: 1` (already the pattern from the old strip — confirm).
+- [ ] **Step 3: Verify; commit** — `Sealed Fire W2: Mongolian width pass for chips and eyebrows`.
+
+---
+
+### Task 0 — the Wave 2 list ends here
+
+(Sentinel heading for the brief-extraction script. After Task 11 the controller runs the final whole-wave review, the A51 device pass, moves this list's record into `shipped-log.md`, and pushes.)
+
+**Deliberately left for later waves (write into the shipped record):** `feedback.ts` rows for candle lit, bell and fire dying — added in the wave that first fires them (3 and 4), a row with no caller being dead code; the chronicle's "thirteenth dawn" — the profile carries no joining date; the Flame Rite's candle clock (`app/video/[matchId].tsx`) — Wave 3 with the rite card's five states; `mystery_match_name` wording; `SheetModal`'s entrance, the shared parchment layer, per-route rules — unchanged from Wave 1's list.
+
 
 ### Gaps found while writing the report (settle before the wave that touches them)
 
