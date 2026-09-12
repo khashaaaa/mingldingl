@@ -48,20 +48,31 @@ describe('NextGatheringPill', () => {
     expect(queryByTestId('next-gathering-pill')).toBeNull();
   });
 
-  it('shows the RSVP-closes countdown for an open session and ticks each second', () => {
+  it('shows the RSVP-closes countdown for an open session in the world\'s words, and ticks the exact clock in its accessibility label each second', () => {
     mockUseTownSquareSession.mockReturnValue({ session: session() });
-    const { getByText, queryByTestId } = render(<NextGatheringPill />);
-    expect(getByText('Gathering · RSVP closes in 2h 30m')).toBeTruthy();
+    const { getByText, getByTestId, queryByTestId } = render(<NextGatheringPill />);
+    // The pill navigates on any tap, so there's no toggle here (unlike SessionStatusCard's
+    // WorldClock) — the world's phrasing is what's on screen, and the exact number a screen
+    // reader gets lives in the accessibility label instead.
+    expect(getByText('Gates close today at 20:30.')).toBeTruthy();
+    expect(getByTestId('next-gathering-pill').props.accessibilityLabel).toBe(
+      'Gates close today at 20:30. Gathering · RSVP closes in 2h 30m',
+    );
     expect(queryByTestId('next-gathering-rsvpd')).toBeNull();
 
     act(() => { jest.advanceTimersByTime(60 * 1000); });
-    expect(getByText('Gathering · RSVP closes in 2h 29m')).toBeTruthy();
+    expect(getByTestId('next-gathering-pill').props.accessibilityLabel).toBe(
+      'Gates close today at 20:30. Gathering · RSVP closes in 2h 29m',
+    );
   });
 
   it('counts down to the start once RSVP has closed', () => {
     mockUseTownSquareSession.mockReturnValue({ session: session({ status: 'Locked' }) });
-    const { getByText } = render(<NextGatheringPill />);
-    expect(getByText('Gathering in 10h 0m')).toBeTruthy();
+    const { getByText, getByTestId } = render(<NextGatheringPill />);
+    expect(getByText('The first bell rings tomorrow at 04:00.')).toBeTruthy();
+    expect(getByTestId('next-gathering-pill').props.accessibilityLabel).toBe(
+      'The first bell rings tomorrow at 04:00. Gathering in 10h 0m',
+    );
   });
 
   it('shows the under-way copy while the session runs', () => {

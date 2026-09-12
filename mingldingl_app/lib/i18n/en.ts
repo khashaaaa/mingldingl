@@ -515,6 +515,14 @@ export const en = {
   when_today: 'today at %{time}',
   when_tomorrow: 'tomorrow at %{time}',
   when_dawns: 'in %{count} dawns',
+  // WorldClock's two sentences (move 13): the RSVP-hint and starts-line world forms. Each pairs
+  // with an existing exact-clock key (town_square_rsvp_closes_in / _starts_in, gathering_rsvp_closes
+  // / _starts_in) that a tap still reveals.
+  gates_close: 'Gates close %{when}.',
+  first_bell: 'The first bell rings %{when}.',
+  // The OTP screen's world-speak line, replacing the exact "Code expires in" sentence when the
+  // world is spoken; the exact mm:ss sits beneath it in its own small line either way.
+  verify_match_burns: 'The gatekeeper waits while this match burns.',
   ordinal_1: 'first', ordinal_2: 'second', ordinal_3: 'third', ordinal_4: 'fourth',
   ordinal_5: 'fifth', ordinal_6: 'sixth', ordinal_7: 'seventh', ordinal_8: 'eighth',
   ordinal_9: 'ninth', ordinal_10: 'tenth', ordinal_11: 'eleventh', ordinal_12: 'twelfth',

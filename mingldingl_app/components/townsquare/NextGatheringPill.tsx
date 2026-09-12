@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Icon } from '../ui/Icon';
 import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { formatCountdown } from '../../lib/townSquareTime';
+import { worldWhen, worldWhenText, worldTimeSpoken } from '../../lib/worldTime';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, METAL, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
 // The Town Square tab already shows the full session state; this is the same countdown boiled
@@ -23,13 +24,24 @@ export function NextGatheringPill() {
 
   if (!session || !hasSession) return null;
 
+  // The whole pill navigates, so there's no tap-to-reveal toggle here the way SessionStatusCard's
+  // WorldClock has one — the world's phrasing is the only thing on screen, and the accessibility
+  // label carries the exact clock alongside it so a screen reader still gets the precise number.
   let label: string;
+  let accessibilityLabel: string;
   if (session.status === 'InProgress') {
     label = i18n.t('gathering_under_way');
-  } else if (session.status === 'Open') {
-    label = i18n.t('gathering_rsvp_closes', { time: formatCountdown(session.rsvpClosesAt, now) });
+    accessibilityLabel = label;
   } else {
-    label = i18n.t('gathering_starts_in', { time: formatCountdown(session.scheduledStartAt, now) });
+    const isOpen = session.status === 'Open';
+    const targetIso = isOpen ? session.rsvpClosesAt : session.scheduledStartAt;
+    const exact = i18n.t(isOpen ? 'gathering_rsvp_closes' : 'gathering_starts_in', {
+      time: formatCountdown(targetIso, now),
+    });
+    label = worldTimeSpoken()
+      ? i18n.t(isOpen ? 'gates_close' : 'first_bell', { when: worldWhenText(worldWhen(targetIso, now)) })
+      : exact;
+    accessibilityLabel = `${label} ${exact}`;
   }
 
   return (
@@ -37,7 +49,7 @@ export function NextGatheringPill() {
       style={({ pressed }) => [styles.wrap, pressed && styles.pressed]}
       onPress={() => router.push('/(tabs)/townsquare')}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel}
       testID="next-gathering-pill"
     >
       <Icon name="bugle" size={ICON_SIZES.sm} color={ACCENT.base} />

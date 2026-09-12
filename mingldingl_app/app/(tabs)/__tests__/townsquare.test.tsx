@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TownSquareScreen from '../townsquare';
 import { useTownSquareSession } from '../../../hooks/useTownSquareSession';
@@ -73,12 +73,20 @@ function renderScreen() {
 
 describe('TownSquareScreen chrome (task 8: moved from Seek)', () => {
   it('renders the gathering pill beside the session card, alongside its own countdown copy', () => {
-    const { getByTestId, getByText } = renderScreen();
+    const { getByTestId, getByText, getAllByText } = renderScreen();
     expect(getByTestId('next-gathering-pill')).toBeTruthy();
-    // SessionStatusCard already shows this same countdown, in its own words — the pill sits
-    // beside it rather than replacing it (task-8-report.md), so both copies coexist.
+    // SessionStatusCard already shows this same countdown — the pill sits beside it rather than
+    // replacing it (task-8-report.md), so both copies coexist. Move 13: both now speak the
+    // world's units by default and in the same words, since they share a worldKey; a tap on the
+    // card's own clock (unlike the pill, which has no toggle — the whole thing navigates) still
+    // bares the exact numbers the pill carries in its accessibility label.
+    const worldClocks = getAllByText('Gates close today at 20:30.');
+    expect(worldClocks).toHaveLength(2);
+    fireEvent.press(worldClocks[0]);
     expect(getByText('RSVP closes in 2h 30m')).toBeTruthy();
-    expect(getByText('Gathering · RSVP closes in 2h 30m')).toBeTruthy();
+    expect(getByTestId('next-gathering-pill').props.accessibilityLabel).toBe(
+      'Gates close today at 20:30. Gathering · RSVP closes in 2h 30m',
+    );
   });
 
   it('hides the pill when there is no upcoming session, same as it did on Seek', () => {

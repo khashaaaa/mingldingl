@@ -43,6 +43,9 @@ export const AWAITING_MN_TRANSLATION = [
   'chat_empty_title', 'chat_empty_sub',
   // Time in the world's units (Wave 2). Until these are translated, `mn` keeps the exact clock.
   'when_candle', 'when_today', 'when_tomorrow', 'when_dawns',
+  // WorldClock and the three clocks (Wave 2 move 13): the two world sentences and the OTP
+  // screen's world-speak line. Same reason as above — `mn` keeps the exact clock outright.
+  'gates_close', 'first_bell', 'verify_match_burns',
   'ordinal_1', 'ordinal_2', 'ordinal_3', 'ordinal_4', 'ordinal_5', 'ordinal_6',
   'ordinal_7', 'ordinal_8', 'ordinal_9', 'ordinal_10', 'ordinal_11', 'ordinal_12',
   // The seals (Wave 2).

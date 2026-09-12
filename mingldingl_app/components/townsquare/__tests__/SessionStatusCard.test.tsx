@@ -50,10 +50,12 @@ describe('SessionStatusCard', () => {
     expect(onCancelRsvp).toHaveBeenCalledWith('s1');
   });
 
-  it('shows the RSVP countdown for an Open session', () => {
+  it('shows the RSVP countdown for an Open session, in the world\'s words by default and the exact clock on a tap', () => {
     const { getByText } = render(
       <SessionStatusCard session={openSession()} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
+    const clock = getByText('Gates close tomorrow at 02:00.');
+    fireEvent.press(clock);
     expect(getByText(/8h 0m/)).toBeTruthy();
   });
 

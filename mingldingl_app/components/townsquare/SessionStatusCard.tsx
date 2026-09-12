@@ -1,7 +1,7 @@
 import { Text, View, StyleSheet } from 'react-native';
 import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
-import { formatCountdown } from '../../lib/townSquareTime';
+import { WorldClock } from '../ui/WorldClock';
 import { formatDateTime } from '../../lib/formatDate';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
@@ -47,7 +47,6 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
 
   const isOpen = session.status === 'Open';
   const isInProgress = session.status === 'InProgress';
-  const startsCountdown = formatCountdown(session.scheduledStartAt, now);
 
   // An in-progress session used to render a frozen countdown with no way back in, which stranded
   // anyone who left a round (or was bumped out) for the rest of the session.
@@ -73,9 +72,21 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
           names — the one fact the countdown below does not carry. */}
       <Text style={styles.title}>{formatDateTime(session.scheduledStartAt)}</Text>
       {isOpen && (
-        <Text style={styles.hint}>{i18n.t('town_square_rsvp_closes_in', { time: formatCountdown(session.rsvpClosesAt, now) })}</Text>
+        <WorldClock
+          targetIso={session.rsvpClosesAt}
+          nowMs={now}
+          worldKey="gates_close"
+          exactKey="town_square_rsvp_closes_in"
+          style={styles.hint}
+        />
       )}
-      <Text style={styles.countdown}>{i18n.t('town_square_starts_in', { time: startsCountdown })}</Text>
+      <WorldClock
+        targetIso={session.scheduledStartAt}
+        nowMs={now}
+        worldKey="first_bell"
+        exactKey="town_square_starts_in"
+        style={styles.countdown}
+      />
       {isOpen && (
         session.isRsvpd ? (
           <GameButton variant="ink" onPress={() => onCancelRsvp(session.sessionId!)} loading={isCancelling}>

@@ -3,6 +3,7 @@ import { ScrollView, View, Text, StyleSheet, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth, VERIFICATION_POLL_MS } from '../../hooks/useAuth';
 import { i18n } from '../../lib/i18n';
+import { worldTimeSpoken } from '../../lib/worldTime';
 import { useLocaleStore } from '../../store/localeStore';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
@@ -156,7 +157,14 @@ export default function OtpScreen() {
             />
           )}
 
-          <Text style={styles.meta}>{i18n.t('verify_expires_in', { time: mmss })}</Text>
+          {worldTimeSpoken() ? (
+            <>
+              <Text style={styles.meta}>{i18n.t('verify_match_burns')}</Text>
+              <Text style={styles.metaSmall}>{mmss}</Text>
+            </>
+          ) : (
+            <Text style={styles.meta}>{i18n.t('verify_expires_in', { time: mmss })}</Text>
+          )}
           <Text style={styles.meta}>{i18n.t('verify_sms_cost')}</Text>
         </>
       )}
@@ -199,5 +207,12 @@ const styles = StyleSheet.create({
   manual: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center' },
   waiting: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   meta: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center' },
+  metaSmall: {
+    fontFamily: FONTS.utility,
+    fontSize: FONT_SIZES.xs,
+    color: INK.dim,
+    letterSpacing: TRACKING.wide,
+    textAlign: 'center',
+  },
   error: { textAlign: 'center' },
 });
