@@ -17,7 +17,8 @@ ships, move its record over rather than leaving it in this file.
 
 ## The Sealed Fire: a redesign that makes the app strange on purpose (2026-09-11)
 
-**Status:** designed, ready, waiting for the user's order to start. Nothing below has shipped.
+**Status:** Wave 1 (the kit) shipped 2026-09-12 — see `shipped-log.md`. Waves 2–4 below are
+open; the four decisions still stand on their defaults.
 The one-page report is <https://claude.ai/code/artifact/c2542b0e-1c65-48ec-be04-e85b7caa61d3>
 (Export gives the PDF); the working canvas is
 <https://claude.ai/code/artifact/0697f213-d884-4ed5-b8b8-e62616403fb1> (pages: *Every screen*,
@@ -27,9 +28,8 @@ for the canvas; `report/Main.dc.html` + `report/img/` for the report). Re-seed e
 `design` skill's helper: `node <helper> --template <payload> --out x.html --title "..." $(cat
 boards.txt) --image ... --canvas canvas.json`. Nothing here depends on a session's scratchpad.
 
-**To start:** the user says so; then run Wave 1 below as written. It needs none of the four
-decisions. If the user gives the order without answering the decisions, use the defaults in that
-table and say so once.
+**To continue:** run Wave 2 from the build order below. Its record follows Wave 1's into
+`shipped-log.md` when it lands.
 
 ### Why
 
@@ -161,65 +161,23 @@ warning and faltering as bottom parchment strips, never a floating card).
 - **Blackletter and Cyrillic.** *Default:* Latin titles in blackletter, Mongolian titles stay in
   Yeseva; revisit if a Cyrillic cut is commissioned.
 
-### Wave 1, as tasks (the kit; no behaviour change; no decision needed)
+### Wave 1 — shipped 2026-09-12
 
-Order matters only where noted. Each task: TDD where a test can see it, then `./scripts/check-all.sh
---fast`, then the full suite before the wave's commit. Files are the ones read on 2026-09-11.
-
-1. **Glyphs.** `components/ui/Glyph.tsx`: a stroke-based SVG set. `react-native-svg` is **not** in
-   `package.json` (only Skia is): add it with `npx expo install react-native-svg`, which is a native
-   module, so **one new EAS development build** (`eas build --profile development --platform
-   android`, ~15 min) and `adb install` before the device pass. Names `fire, letters, lantern, forge, gem, ice,
-   seals, knot, flame, pledge, seal, candle, bell, hearth`, stroke 2.4, square caps, mitre joins,
-   default colour `ACCENT.base`. Keep `components/ui/Icon.tsx` for everything else. Replace the five
-   tab glyphs in `app/(tabs)/_layout.tsx` and `QUEST_ICONS` in `components/quest/QuestBoard.tsx`.
-   Test: every name renders; the tab layout uses `Glyph`, not `Icon`.
-2. **Rooms.** `lib/world/light.ts`: raise the six recipes so the floor alpha and tone read on a
-   phone (`warm`/`hot` toneAlpha to ~0.45, `cold` tone to `NIGHT.blue` ink, `dark` to soot). The
-   existing "no two signatures render identically" test stays; add a minimum-contrast-between-rooms
-   assertion on the resolved floor colours.
-3. **One hero.** `components/ui/AppCard.tsx`: add `hero?: boolean`; knots and texture render only
-   when `hero`. Every current `AppCard` call site gets `hero` on exactly one card per screen (the
-   report's boards say which). Test: a source-tree test (like `sourceTree` in `lib/testing`) that no
-   screen file has two `hero` cards.
-4. **One forged button.** `components/ui/GameButton.tsx`: add variant `ink` (underlined hairline
-   text, no metal); keep `primary` as the forged one. Convert secondary actions per screen to `ink`
-   (Skip → "Let them pass", Back, Cancel RSVP, Weave a new thread, View leaderboard, etc.). Test:
-   no screen file has two `variant="primary"` buttons outside a modal.
-5. **States.** `components/ui/StateBlock.tsx` + `Waiting.tsx` + `LongWait.tsx`: the candle for
-   waiting, a drawn place for empty (a small SVG per `icon` name), ember tone for wrong. Copy
-   unchanged. Test: snapshot-free assertions on which drawing renders per tone.
-6. **Interruptions.** `components/modals/AlertModal.tsx` + `DialogSurface.tsx`: questions and
-   failures become a bottom strip (parchment gradient, 2px top rule, no scrim over the room);
-   `ChestModal` and `TierUpCeremony` unchanged. `SheetModal` already is a bottom sheet; align its
-   surface. Test: `AlertModal` renders without a full-screen scrim.
-7. **Blackletter titles (EN only).** The face is already loaded as `FONTS.wordmark`
-   (`CloisterBlack-Light`, `app/_layout.tsx`); `components/ui/HeaderBar.tsx` uses it for the title when `i18n.locale ===
-   'en'` and the title is Latin, else `FONTS.display`. Test: EN renders blackletter, MN renders
-   Yeseva.
-7b. **Temperature tokens and law strings.** Add the five tokens to `lib/theme.ts` (and the palette
-   test); a `FrostEdge` SVG overlay component; the EN law rewrites of button and oath labels (existing
-   keys, no new ones). Furnace appears only on the five screens named above; a source-tree test
-   guards that `furnace` is not imported elsewhere.
-8. **Chrome off Seek.** `app/(tabs)/discover.tsx`: remove `GettingStartedCard`, `DailyBudgetMeter`
-   and `NextGatheringPill` from above the card; move the first two to the Character sheet for now
-   (the hearth takes them in Wave 4) and the pill into the Town Square tab. Tests already cover the
-   components; update the discover test.
-9. **Device pass** on the A51 for every tab and one of each modal; then commit, push, CI, and move
-   the record of Wave 1 to `shipped-log.md`.
-
-Copy: Wave 1 adds no strings except the `ink` button labels that already exist as keys. Nothing goes
-on `AWAITING_MN_TRANSLATION` in this wave.
+The task list lived here; its outcome is in `shipped-log.md` ("Sealed Fire — Wave 1"). What it
+left for later waves: header room icons in the glyph set (Wave 2), `SheetModal`'s entrance to match
+`AlertModal`'s slide, a shared parchment layer for `AppCard` and `DialogStrip`, per-route (not
+per-file) hero/forged rules, `FrostEdge` mounted (Wave 3), the pill and First Steps card onto the
+hearth (Wave 4).
 
 ### Gaps found while writing the report (settle before the wave that touches them)
 
 - Mongolian strings run 20–40% longer than English; chips, eyebrows and plaza labels need a
-  Mongolian width pass (Wave 1 for chips and eyebrows, Wave 4 for the plaza).
+  Mongolian width pass (chips and eyebrows carried from Wave 1 to Wave 2; Wave 4 for the plaza).
 - Sound and haptics: `lib/world/feedback.ts` gains seal break, candle lit, bell, fire dying
   (Wave 2 and 4). Sound stays opt-in.
 - Reduced motion: the new ceremonies and the hearth's embers must respect the existing switch.
-- Contrast: the blackletter face and ember-on-dark toasts need a check at real sizes (Wave 1, 3).
-- Accessibility labels for every glyph and seal (Wave 1 for glyphs, Wave 2 for seals).
+- Contrast: the blackletter face read at 44px on the A51 (Wave 1, done); ember-on-dark toasts still need the check (Wave 3).
+- Accessibility labels for every glyph and seal (glyphs done in Wave 1: labelled = image role, unlabelled = hidden; Wave 2 for seals).
 - The keepsake card must export only the sharer's own portrait (Wave 3).
 - "Deleted User" and "Unknown" (`deleted_user`, `unknown_name`) still appear as names in threads and
   on the wall; in the voice they become "A name struck" and "A sealed one" (Wave 2, EN only).
@@ -227,12 +185,7 @@ on `AWAITING_MN_TRANSLATION` in this wave.
 
 ### Build order (waves; each ends committed, pushed, CI green, device-checked on the A51)
 
-- **Wave 1 — the kit, no behaviour change.** Glyph set as SVG components; room colours in
-  `lib/world/light.ts`; `AppCard` knots limited to one hero per screen (a `hero` prop, default off);
-  `GameButton` forged variant on one action per screen with ink links elsewhere; the three states'
-  drawings in `StateBlock`; interruptions as bottom strips in `AlertModal`; blackletter titles in
-  `HeaderBar` for EN. Tests: route-coverage and palette tests keep passing; a test that no screen
-  mounts two `hero` cards.
+- **Wave 1 — the kit, no behaviour change.** Shipped 2026-09-12 (`shipped-log.md`).
 - **Wave 2 — the thesis.** Sealed `CandidateCard`; chat as letters (`MessageBubble` → ledger rows,
   seal-break rows from the reveal ladder, wax-seal send); `PushCopy` EN rewrite; time-in-world
   formatting helpers with exact time on tap. Verify on device with a seeded match across a reveal
@@ -259,11 +212,11 @@ on `AWAITING_MN_TRANSLATION` in this wave.
 - [x] Every mechanic is unchanged: score deltas, tier thresholds, reveal ladder, ghosting rules,
       budgets, prices. The four product decisions above are the only behaviour questions.
 - [ ] The four decisions answered by the user.
-- [ ] The glyph set drawn as final SVGs (the boards show the style, not the finished set).
+- [x] The glyph set drawn as final SVGs (`components/ui/Glyph.tsx`, Wave 1).
 - [ ] The hearth, plaza and Hold scenes drawn as final assets or Skia scenes.
 - [ ] Mongolian for every new string, from the translator, before any wave is called done for
       an `mn` user (EN ships first; keys go on `AWAITING_MN_TRANSLATION`).
-- [ ] Wave 1 verified on the Galaxy A51 before Wave 2 starts, and so on.
+- [x] Wave 1 verified on the Galaxy A51 (2026-09-12); Wave 2 before Wave 3, and so on.
 
 ### Out of scope
 

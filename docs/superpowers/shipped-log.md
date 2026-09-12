@@ -10,6 +10,50 @@ written, not by date.
 
 ---
 
+## Sealed Fire — Wave 1, the kit (2026-09-12)
+
+Sixteen commits `c422a4a..e4399b7`, no behaviour change, no new i18n key, nothing written in
+Mongolian. Verified on the Galaxy A51 dev build (Seek, Quest Log, Town Square, Missions, Character,
+War Room, the photo-source sheet, the phone-change strip with the keyboard up).
+
+- **Glyphs.** `components/ui/Glyph.tsx`: fourteen woodcut SVG glyphs (`react-native-svg`
+  15.12.1 — a native module, so a new EAS dev build was made and installed), stroke 2.4, square
+  caps, mitre joins, on the five tabs and six quests. `Icon` (MaterialCommunityIcons) stays for
+  everything else, including header room icons — a Wave 2 candidate.
+- **Rooms.** `lib/world/light.ts` recipes pushed (`warm`/`hot` tone alpha 0.45, `cold` on
+  `TONE.ink`, `dark` on `TONE.soot`); a room-distinctness test resolves floors through
+  `resolveFloorColor`, a model of `WorldFloor`'s compositing, and asserts an RGB distance floor.
+- **One hero.** `AppCard hero` replaces `textured`: knots, parchment and glow only on the one
+  hero per screen (four heroes; eleven screens have none because their board draws no knot).
+  `lib/__tests__/hero.test.ts` caps `hero` at one per file via the JSX scanner now exported
+  from `lib/testing/sourceTree.ts`.
+- **One forged button.** `GameButton ink` (underlined hairline text, no metal). Exactly one
+  forged (`primary`/no-variant) button per file outside `components/modals/**`, and every
+  `ghost`/`brass` secondary outside modals is ink except sheet-picker rows and the gender
+  chip pair (a state). `lib/__tests__/forged.test.ts` guards both, with a `BRANCHED` allowlist
+  for `PhoneChangeModal` (two primaries in mutually exclusive branches).
+- **States.** `Waiting` is a flickering candle (still under reduced motion); `LongWait` burns the
+  same candle; `StateBlock` draws a place per icon name from `components/ui/Places.tsx` (ten
+  drawings) or the ember for danger/warning — tone beats name.
+- **Interruptions.** `AlertModal` and `SheetModal` are bottom parchment strips (`DialogStrip`:
+  2px top rule, parchment gradient, transparent backdrop, keyboard clearance via
+  `useAndroidKeyboardHeight` on Android and `KeyboardAvoidingView` on iOS). The dismiss goes
+  ink when a child deed is present. Chest and Ascension ceremonies unchanged.
+- **Blackletter titles.** `HeaderBar` uses `FONTS.wordmark` at `FONT_SIZES.roomName` (44, compact
+  34) for EN Latin titles (`isLatin` in `lib/i18n`); Mongolian stays in Yeseva.
+- **Temperature and law.** `TEMPERATURE` tokens (`furnace`, `furnaceBright`, `rime`, `ice`,
+  `glacier`) with palette assertions and a furnace-allowlist test; `components/vfx/FrostEdge.tsx`
+  drawn but unmounted until Wave 3; EN law rewrites on existing keys (`Summon`, `Dismiss`,
+  `A Bond`/`Fate`/`Kin`, `Light it`/`Dismiss` for the Square round, `Pledge`). The Square pair and
+  the pledge follow their boards, not the plan's "Choose/Decide" word list.
+- **Chrome off Seek.** `GettingStartedCard` and `DailyBudgetMeter` sit on the Character sheet
+  below its cards, `NextGatheringPill` on the Town Square tab (where its own tap is a no-op; Wave
+  4's hearth takes all three).
+- **Deliberately left:** header room icons still MCI; `SheetModal` fades while `AlertModal`
+  slides; `DialogStrip` repeats `AppCard`'s parchment layer; the hero/forged rules are per file,
+  not per route; `FrostEdge` still `importantForAccessibility="no"` until mounted; the dropped
+  fills on the fire/flame glyphs vs the board. Test count 931 → 1020.
+
 ## The design system finished — pigments, ladders, shared surfaces (2026-09-10 → 11)
 
 - **No component knows a pigment.** Every raw `COLORS` reference outside `lib/theme.ts` was mapped
