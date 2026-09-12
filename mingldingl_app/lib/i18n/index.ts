@@ -45,6 +45,12 @@ export const AWAITING_MN_TRANSLATION = [
   'when_candle', 'when_today', 'when_tomorrow', 'when_dawns',
   'ordinal_1', 'ordinal_2', 'ordinal_3', 'ordinal_4', 'ordinal_5', 'ordinal_6',
   'ordinal_7', 'ordinal_8', 'ordinal_9', 'ordinal_10', 'ordinal_11', 'ordinal_12',
+  // The seals (Wave 2).
+  'seals_title', 'seals_broken_0', 'seals_broken_1', 'seals_broken_2', 'seals_broken_3',
+  'seals_left_0', 'seals_left_1', 'seals_left_2', 'seals_left_3', 'seals_next_at',
+  'seal_under_wax', 'age_winters', 'seals_deep_membership', 'seals_climb', 'seals_law',
+  'seal_breaks_2', 'seal_breaks_3', 'seal_breaks_4',
+  'seal_broke_2', 'seal_broke_3', 'seal_broke_4',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

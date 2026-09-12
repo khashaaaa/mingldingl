@@ -122,11 +122,16 @@ describe('ChatScreen', () => {
     expect(getByText('Plan an Encounter')).toBeTruthy();
   });
 
-  it('opens the reveal strip collapsed, with the progress line still showing', () => {
-    const { queryByTestId, getByText } = renderScreen();
+  it('shows the seal dots and how many seals are left under the header, closed until tapped', () => {
+    const { queryByTestId, getByText, getByTestId } = renderScreen();
 
-    expect(getByText('Next reveal at 15 messages')).toBeTruthy();
-    expect(queryByTestId('reveal-photo-locked-0')).toBeNull();
+    // revealLevel 2 has broken the first of three seals.
+    expect(getByText('two seals left')).toBeTruthy();
+    expect(queryByTestId('seal-photo-wax-0')).toBeNull();
+
+    fireEvent.press(getByTestId('seals-toggle'));
+
+    expect(getByTestId('seal-photo-wax-0')).toBeTruthy();
   });
 
   it('counts an attendance check as waiting on you', () => {

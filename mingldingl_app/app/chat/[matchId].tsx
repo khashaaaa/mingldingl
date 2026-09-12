@@ -19,7 +19,8 @@ import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
 import { MessageBubble } from '../../components/chat/MessageBubble';
 import { MessageInput } from '../../components/chat/MessageInput';
-import { RevealStrip } from '../../components/chat/RevealStrip';
+import { SealDots, SEAL_COUNT, sealsBroken } from '../../components/chat/SealDots';
+import { SealsSheet } from '../../components/chat/SealsSheet';
 import { SealedLetter } from '../../components/chat/SealedLetter';
 import { Unsealing } from '../../components/chat/Unsealing';
 import { QuestBanner } from '../../components/quest/QuestBanner';
@@ -69,6 +70,7 @@ export default function ChatScreen() {
   const [endedAcknowledged, setEndedAcknowledged] = useState(false);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [activitiesVisible, setActivitiesVisible] = useState(false);
+  const [sealsVisible, setSealsVisible] = useState(false);
   const activityGate = useActivityGate();
   const [confirmUnmatch, setConfirmUnmatch] = useState(false);
   const [unmatching, setUnmatching] = useState(false);
@@ -97,6 +99,9 @@ export default function ChatScreen() {
   // Reveals arrive in order, so the last one present is the one that just broke its seal.
   const unsealedPhoto = revealedPhotos[revealedPhotos.length - 1] ?? null;
   const unsealedNextAt = nextRevealThreshold(match?.messageCount ?? 0, revealLadder);
+  const broken = sealsBroken(match?.revealLevel);
+  // Only rungs 2-4 carry a seal-breaking ceremony; the floor every match starts on (1) has none.
+  const unsealedLevel = Math.min(Math.max(match?.revealLevel ?? 2, 2), 4);
 
   const insets = useSafeAreaInsets();
   const keyboardHeight = useAndroidKeyboardHeight();
@@ -182,31 +187,32 @@ export default function ChatScreen() {
               )}
             </>
           }
-        />
+        >
+          {match && (
+            <Tap
+              onPress={() => setSealsVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={i18n.t('seals_title')}
+              style={styles.sealsRow}
+              testID="seals-toggle"
+            >
+              <SealDots broken={broken} />
+              <Text style={styles.sealsLeft}>{i18n.t(`seals_left_${SEAL_COUNT - broken}`)}</Text>
+            </Tap>
+          )}
+        </HeaderBar>
         {!!wovenBy && (
           <Text style={styles.wovenByBanner}>{i18n.t('woven_by', { name: wovenBy })}</Text>
-        )}
-        {match && (
-          <RevealStrip
-            otherUser={match.otherUser}
-            messageCount={match.messageCount}
-            revealLevel={match.revealLevel}
-            defaultExpanded={false}
-          />
         )}
         {match && (
           <Unsealing
             visible={unsealed}
             onDismiss={dismissUnsealing}
             photoUri={unsealedPhoto}
-            // Level 2 is the rung that hands over a name, and a name is the whole headline it
-            // needs. Above that the reveal is another photo, so the count carries it.
-            headline={match.revealLevel === 2
-              ? (match.otherUser.displayName ?? i18n.t('unknown_name'))
-              : i18n.t('reveal_summary', { shown: revealedPhotos.length, total: match.otherUser.photoCount ?? revealedPhotos.length })}
-            subline={unsealedNextAt !== null
-              ? i18n.t('reveal_next_at', { count: unsealedNextAt })
-              : i18n.t('reveal_complete')}
+            headline={i18n.t(`seal_breaks_${unsealedLevel}`)}
+            subline={`${i18n.t(`seal_broke_${unsealedLevel}`)} ${unsealedNextAt !== null
+              ? i18n.t('seals_next_at', { count: unsealedNextAt })
+              : i18n.t('seals_left_0')}`}
           />
         )}
       </View>
@@ -459,6 +465,15 @@ export default function ChatScreen() {
           onReported={() => router.back()}
         />
       )}
+      {match && (
+        <SealsSheet
+          visible={sealsVisible}
+          onClose={() => setSealsVisible(false)}
+          otherUser={match.otherUser}
+          messageCount={match.messageCount}
+          revealLevel={match.revealLevel}
+        />
+      )}
     </View>
   );
 }
@@ -476,6 +491,19 @@ const styles = StyleSheet.create({
   },
   videoBtn: {
     padding: SPACE.md,
+  },
+  sealsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.sm,
+    paddingVertical: SPACE.xs,
+  },
+  sealsLeft: {
+    fontFamily: FONTS.utility,
+    fontSize: FONT_SIZES.sm,
+    color: INK.dim,
+    letterSpacing: TRACKING.wide,
   },
   wovenByBanner: {
     fontFamily: FONTS.body,
