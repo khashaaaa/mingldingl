@@ -160,6 +160,9 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         Assert.NotNull(response.OtherUser.Deep);
         Assert.Equal(false, response.OtherUser.Deep!.HasKids);
         Assert.Equal("Never", response.OtherUser.Deep!.SmokingHabit);
+        // The chat's day headings ("The third day") count from the day the match was made, so the
+        // thread needs its birth date, not just its most recent activity.
+        Assert.NotNull(response.CreatedAt);
     }
 
     [Fact]

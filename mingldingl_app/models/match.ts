@@ -53,6 +53,8 @@ export interface Match {
   flameRiteRequired: boolean;
   /** False while the admin has switched video off: no rite can be proposed, so the card hides. */
   videoEnabled: boolean;
+  /** ISO time the match was made; the letters count their days from it. Absent from older caches. */
+  createdAt?: string;
 }
 
 export function parseMatch(d: components['schemas']['MatchResponse']): Match {
@@ -94,5 +96,6 @@ export function parseMatch(d: components['schemas']['MatchResponse']): Match {
     flameRiteDurationMinutes: d.flameRiteDurationMinutes ?? 5,
     flameRiteRequired: d.flameRiteRequired ?? true,
     videoEnabled: d.videoEnabled ?? true,
+    createdAt: d.createdAt ?? undefined,
   };
 }

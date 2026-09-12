@@ -352,7 +352,8 @@ public class MatchesController : ControllerBase
             m.FlameRiteCompletedAt,
             (int)_config.GetNumber("dating.flamerite.duration_minutes", 5),
             _config.FlameRiteRequired(),
-            _config.GetBool("video.enabled", true));
+            _config.GetBool("video.enabled", true),
+            m.CreatedAt);
     }
 }
 

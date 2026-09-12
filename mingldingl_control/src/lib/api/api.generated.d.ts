@@ -6476,6 +6476,8 @@ export interface components {
             flameRiteDurationMinutes?: number;
             flameRiteRequired?: boolean;
             videoEnabled?: boolean;
+            /** Format: date-time */
+            createdAt?: string | null;
         };
         MatchResponsePagedResponse: {
             items?: components["schemas"]["MatchResponse"][] | null;

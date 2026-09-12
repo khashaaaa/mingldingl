@@ -42,7 +42,12 @@ public record MatchResponse(
     DateTime? FlameRiteCompletedAt = null,
     int FlameRiteDurationMinutes = 5,
     bool FlameRiteRequired = true,
-    bool VideoEnabled = true);
+    bool VideoEnabled = true,
+    /// <summary>
+    /// When the match was made. The app's letters count their days from it ("The third day"), so
+    /// a thread's first heading is the day of the summons, not the day of the first word.
+    /// </summary>
+    DateTime? CreatedAt = null);
 
 public record PartialUserProfile(
     string? DisplayName,
