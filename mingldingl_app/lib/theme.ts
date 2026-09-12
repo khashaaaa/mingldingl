@@ -400,6 +400,31 @@ export const HEAT = {
 } as const;
 
 /**
+ * The app's temperature, `docs/design/sealed-fire/boards/Temperature.dc.html`: fire is what is
+ * alive, answered and kept; frost is silence, absence and what was left.
+ *
+ * `furnace`/`furnaceBright` are not the gold accent turned up — they are a second, hotter
+ * identity, and stay rare on purpose: only the Fire, the Oath, the Ascension, the Square's bell
+ * and the Hall of Names may reach for them (`lib/__tests__/furnace.test.ts` guards the allowlist
+ * by file). Everywhere else keeps gold and rounded corners.
+ *
+ * `rime`/`ice`/`glacier` are the second pole, ordered light to dark: a thread gone quiet, a shut
+ * gate, a meeting not kept. `components/vfx/FrostEdge.tsx` draws them as the one frost drawing,
+ * reused wherever a screen needs to say silence rather than describe it.
+ *
+ * Kept as one flat object, `furnace`/`furnaceBright`/`rime`/`ice`/`glacier`, rather than split
+ * fire/frost tables: the guard test greps for the bare token names, and the design board already
+ * treats all five as one dial with two ends.
+ */
+export const TEMPERATURE = {
+  furnace: '#FF7A1A',
+  furnaceBright: '#FFB347',
+  rime: '#E8F4FA',
+  ice: '#BFE3F2',
+  glacier: '#7FB6D6',
+} as const;
+
+/**
  * What a thing means, as the only vocabulary a call site gets to choose from.
  *
  * Two components had grown private tone unions with incompatible words — `StateBlock`'s

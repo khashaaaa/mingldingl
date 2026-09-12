@@ -23,13 +23,13 @@ describe('RoundPrompt', () => {
     expect(getByText(/1:30|90/)).toBeTruthy();
   });
 
-  it('calls onRespond("Yes") when the Yes button is pressed', () => {
+  it('calls onRespond("Yes") when the Choose button is pressed', () => {
     const onRespond = jest.fn();
     const { getByText } = renderPrompt(
       <RoundPrompt icebreakerText="Favorite trip?" roundNumber={1} secondsLeft={60}
         hasResponded={false} matchId={null} isResponding={false} onRespond={onRespond} />,
     );
-    fireEvent.press(getByText(/^Yes$/i));
+    fireEvent.press(getByText(/^Choose$/i));
     expect(onRespond).toHaveBeenCalledWith('Yes');
   });
 
@@ -43,12 +43,12 @@ describe('RoundPrompt', () => {
     expect(onRespond).toHaveBeenCalledWith('No');
   });
 
-  it('hides the Yes/No buttons and shows a waiting message once responded', () => {
+  it('hides the Choose/No buttons and shows a waiting message once responded', () => {
     const { queryByText, getByText } = renderPrompt(
       <RoundPrompt icebreakerText="Favorite trip?" roundNumber={1} secondsLeft={60}
         hasResponded matchId={null} isResponding={false} onRespond={jest.fn()} />,
     );
-    expect(queryByText(/^Yes$/i)).toBeNull();
+    expect(queryByText(/^Choose$/i)).toBeNull();
     expect(queryByText(/^No$/i)).toBeNull();
     expect(getByText(/Waiting/i)).toBeTruthy();
   });
@@ -80,7 +80,7 @@ describe('RoundPrompt', () => {
       <RoundPrompt icebreakerText="Q" roundNumber={1} secondsLeft={30} hasResponded={false}
         matchId={null} isResponding onRespond={onRespond} />,
     );
-    fireEvent.press(getByText('Yes'));
+    fireEvent.press(getByText('Choose'));
     fireEvent.press(getByText('No'));
     expect(onRespond).not.toHaveBeenCalled();
   });

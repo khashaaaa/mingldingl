@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import {
-  ACCENT, COLORS, GEM_COLORS, GEM_SHADES, HEAT, INK, LINE, MEMBERSHIP_METALS, METAL, STATUS,
-  STATUS_DEEP, STATUS_SOFT, SURFACE, TIER_PRESENCE, TONE,
+  ACCENT, COLORS, GEM_COLORS, GEM_SHADES, GROUND, HEAT, INK, LINE, MEMBERSHIP_METALS, METAL,
+  STATUS, STATUS_DEEP, STATUS_SOFT, SURFACE, TEMPERATURE, TIER_PRESENCE, TONE,
 } from '../theme';
 import { TIER_ORDER } from '../tiers';
 import { APP_ROOT, appSources as sourceFiles } from '../testing/sourceTree';
@@ -222,5 +222,66 @@ describe('status', () => {
       expect({ key, ratio: contrast(STATUS_DEEP[key], INK.primary) }).toMatchObject({ key });
       expect(contrast(STATUS_DEEP[key], INK.primary)).toBeGreaterThanOrEqual(4.5);
     }
+  });
+});
+
+/**
+ * Temperature: fire and frost, `docs/design/sealed-fire/boards/Temperature.dc.html`.
+ *
+ * `ACCENT.base` (gold, `#D97F1F`) is already a warm hue, so "the furnace is warmer than the
+ * accent" cannot mean a wildly different hue family — both `furnace` and `furnaceBright` sit
+ * within a few degrees of it. What separates the furnace from the gold accent is intensity:
+ * gold is a *metal* at 75% saturation, the furnace is fire at 100% — fully saturated, the
+ * hottest a colour can read in HSL. That is the sense in which the two furnace tokens are
+ * "warmer": not a different family, the same family turned up to its limit.
+ */
+describe('temperature', () => {
+  it('keeps the furnace in the accent\'s warm hue family', () => {
+    expect(hueGap(TEMPERATURE.furnace, ACCENT.base)).toBeLessThan(15);
+    expect(hueGap(TEMPERATURE.furnaceBright, ACCENT.base)).toBeLessThan(15);
+  });
+
+  it('burns hotter than the gold accent — fully saturated, where gold is a tempered metal', () => {
+    expect(saturation(TEMPERATURE.furnace)).toBeGreaterThan(saturation(ACCENT.base));
+    expect(saturation(TEMPERATURE.furnaceBright)).toBeGreaterThan(saturation(ACCENT.base));
+  });
+
+  it('keeps frost blue-ish and clear of the furnace entirely', () => {
+    for (const frost of [TEMPERATURE.rime, TEMPERATURE.ice, TEMPERATURE.glacier]) {
+      expect(hue(frost)).toBeGreaterThan(180);
+      expect(hue(frost)).toBeLessThan(220);
+      expect(hueGap(frost, TEMPERATURE.furnace)).toBeGreaterThan(100);
+    }
+  });
+
+  it('orders frost light to dark — rime the lightest, glacier the darkest', () => {
+    expect(luminance(TEMPERATURE.rime)).toBeGreaterThan(luminance(TEMPERATURE.ice));
+    expect(luminance(TEMPERATURE.ice)).toBeGreaterThan(luminance(TEMPERATURE.glacier));
+  });
+
+  it('keeps all five tokens distinct from every existing pigment in the palette', () => {
+    const existing = new Set(
+      [
+        ...Object.values(COLORS), ...Object.values(GEM_COLORS), ...Object.values(GEM_SHADES),
+        ...Object.values(LINE), ...Object.values(STATUS), ...Object.values(HEAT),
+        ...Object.values(TONE), ...Object.values(GROUND),
+      ].map((v) => v.toUpperCase()),
+    );
+    for (const [name, hex] of Object.entries(TEMPERATURE)) {
+      expect({ name, collides: existing.has(hex.toUpperCase()) }).toEqual({ name, collides: false });
+    }
+    // And distinct from one another.
+    const own = Object.values(TEMPERATURE).map((v) => v.toUpperCase());
+    expect(new Set(own).size).toBe(own.length);
+  });
+
+  it('matches the exact hexes named in the design board', () => {
+    expect(TEMPERATURE).toEqual({
+      furnace: '#FF7A1A',
+      furnaceBright: '#FFB347',
+      rime: '#E8F4FA',
+      ice: '#BFE3F2',
+      glacier: '#7FB6D6',
+    });
   });
 });
