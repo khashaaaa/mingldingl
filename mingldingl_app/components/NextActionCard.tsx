@@ -44,7 +44,7 @@ export function NextActionCard() {
   }
 
   return (
-    <AppCard style={styles.card}>
+    <AppCard hero style={styles.card}>
       <CardEyebrow>{i18n.t('next_action_heading')}</CardEyebrow>
       {onPress ? (
         <QuestBanner icon={icon} title={title} onPress={onPress} />

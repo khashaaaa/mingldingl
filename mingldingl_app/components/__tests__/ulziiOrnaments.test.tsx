@@ -10,8 +10,8 @@ import OathSigil from '../OathSigil';
 jest.mock('../progression/GemTierBadge', () => ({ GemTierBadge: () => null }));
 
 describe('ulzii ornament layer', () => {
-  it('AppCard seals its four corners with knots instead of brackets', () => {
-    const { getAllByTestId } = render(<AppCard><Text>content</Text></AppCard>);
+  it('AppCard seals the hero panel’s four corners with knots instead of brackets', () => {
+    const { getAllByTestId } = render(<AppCard hero><Text>content</Text></AppCard>);
     expect(getAllByTestId('ulzii-corner')).toHaveLength(4);
   });
 

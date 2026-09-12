@@ -83,7 +83,6 @@ export default function MembershipScreen() {
               <AppCard
                 tier={gemTier}
                 tint={badgeColor.color}
-                textured
                 style={[
                   styles.tierCard,
                   isSelected && styles.tierCardSelected,

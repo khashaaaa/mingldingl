@@ -90,7 +90,7 @@ export default function ProfileScreen() {
         <NextActionCard />
 
         <Tap style={styles.card} onPress={() => router.push('/progression')}>
-          <AppCard tier={gemTier} textured style={styles.cardPadding}>
+          <AppCard tier={gemTier} style={styles.cardPadding}>
             <XPBar
               gemTier={gemTier}
               totalScore={scoreDetail.totalScore ?? 0}
@@ -100,7 +100,7 @@ export default function ProfileScreen() {
           </AppCard>
         </Tap>
 
-        <AppCard tier={gemTier} textured style={[styles.card, styles.cardPadding]}>
+        <AppCard tier={gemTier} style={[styles.card, styles.cardPadding]}>
           <CardEyebrow>{i18n.t('total_score')}</CardEyebrow>
           <Text style={styles.scoreValue}><CountText value={scoreDetail.totalScore ?? 0} /> {i18n.t('pts')}</Text>
           <SectionDivider />

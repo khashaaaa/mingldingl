@@ -97,7 +97,7 @@ export default function IcebreakerScreen() {
       {/* The submit button sits at the bottom of a non-scrolling body, so it owns the navigation
           bar inset itself — a bare SPACE.xxl left it half-swallowed by a three-button bar. */}
       <View style={[styles.body, { paddingBottom: tail }]}>
-        <AppCard style={styles.questionCard}>
+        <AppCard hero style={styles.questionCard}>
           <Text style={styles.questionText}>{question.questionText}</Text>
         </AppCard>
 

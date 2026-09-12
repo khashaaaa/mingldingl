@@ -19,7 +19,7 @@ export function TierPerkCard({ gemTier, tierBonus, nextTier, dailyMatchBudget }:
   const nextBonus = nextTier ? TIER_ORDER.indexOf(nextTier) : null;
 
   return (
-    <AppCard tier={gemTier} textured style={styles.card}>
+    <AppCard tier={gemTier} style={styles.card}>
       <CardEyebrow>{i18n.t('tier_perk_label')}</CardEyebrow>
       <View style={styles.row}>
         <GemTierBadge tier={gemTier} size={BADGE_SIZES.chip} />

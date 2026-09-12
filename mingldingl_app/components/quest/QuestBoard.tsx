@@ -81,7 +81,7 @@ export function QuestBoard() {
 
   return (
     <>
-      <AppCard textured style={styles.card}>
+      <AppCard hero style={styles.card}>
         <View style={styles.headingRow} onLayout={onHeadingLayout}>
           <View style={styles.headingLabel}>
             <Icon name={headingIcon} size={ICON_SIZES.md} color={accent} />

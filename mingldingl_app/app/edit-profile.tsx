@@ -127,7 +127,7 @@ export default function EditProfileScreen() {
       <View style={styles.screen}>
       <HeaderBar title={i18n.t('edit_profile')} onBack={() => router.back()} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: SPACE.gutter, paddingVertical: SPACE.xxl, gap: SPACE.lg }}>
-        <AppCard textured style={{ padding: SPACE.lg }}>
+        <AppCard style={{ padding: SPACE.lg }}>
           <View style={styles.cardBody}>
             <Text style={styles.sectionTitle}>{i18n.t('your_photos')}</Text>
             <PhotoGrid photoUrls={photoUrls} onChange={setPhotoUrls} onUploadingChange={setPhotosUploading} />
@@ -137,7 +137,7 @@ export default function EditProfileScreen() {
           </View>
         </AppCard>
 
-        <AppCard textured style={{ padding: SPACE.lg }}>
+        <AppCard hero style={{ padding: SPACE.lg }}>
           <View style={styles.cardBodyLoose}>
             {/* Labelled like every field in the deep-profile card below. These two carried only a
                 placeholder, which a filled-in field does not show — so a returning user saw two
@@ -163,7 +163,7 @@ export default function EditProfileScreen() {
           </View>
         </AppCard>
 
-        <AppCard textured style={{ padding: SPACE.lg }}>
+        <AppCard style={{ padding: SPACE.lg }}>
           <View style={styles.cardBodyLoose}>
             <View style={styles.titleBlock}>
               <Text style={styles.sectionTitle}>{i18n.t('deep_profile_title')}</Text>
@@ -213,7 +213,7 @@ export default function EditProfileScreen() {
           </View>
         </AppCard>
 
-        <AppCard textured style={{ padding: SPACE.lg }}>
+        <AppCard style={{ padding: SPACE.lg }}>
           <View style={styles.cardBody}>
             <Text style={styles.sectionTitle}>{i18n.t('your_area')}</Text>
             {isCapturing ? (

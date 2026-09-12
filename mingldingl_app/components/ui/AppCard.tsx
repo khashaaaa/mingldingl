@@ -11,11 +11,17 @@ interface Props {
   tier?: string;
 
   tint?: string;
-  textured?: boolean;
+  /**
+   * The one panel a screen is *for*. Knots and parchment are its alone — the kit's rule is
+   * "one hero panel, then rows", so every other card on the screen keeps the panel fill, the
+   * hairline and the border and gives up the ornament. At most one per screen; the rule is
+   * enforced in `lib/__tests__/hero.test.ts`.
+   */
+  hero?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
-export function AppCard({ children, tier, tint: tintOverride, textured, style }: Props) {
+export function AppCard({ children, tier, tint: tintOverride, hero, style }: Props) {
   const tint = tintOverride ?? (tier ? colorForTier(tier) : ACCENT.base);
   // On a festival day the gold knots take the festival's colour. The PNGs are metal-shaded over
   // alpha, so tintColor flattens them to one colour while keeping their shape.
@@ -28,8 +34,8 @@ export function AppCard({ children, tier, tint: tintOverride, textured, style }:
         style={styles.fill}
         pointerEvents="none"
       />
-      {textured && (
-        <View style={styles.texture} pointerEvents="none">
+      {hero && (
+        <View style={styles.texture} testID="parchment-texture" pointerEvents="none">
           <Image
             source={require('../../assets/textures/parchment.png')}
             style={styles.textureImage}
@@ -40,10 +46,14 @@ export function AppCard({ children, tier, tint: tintOverride, textured, style }:
       <View style={styles.hairline} pointerEvents="none" />
       <View style={[styles.topHighlight, { backgroundColor: tintColor(tint, 0.4) }]} pointerEvents="none" />
       <View style={styles.bottomShadow} pointerEvents="none" />
-      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTl, knotTint]} />
-      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTr, knotTint]} />
-      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotBl, knotTint]} />
-      <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotBr, knotTint]} />
+      {hero && (
+        <>
+          <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTl, knotTint]} />
+          <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTr, knotTint]} />
+          <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotBl, knotTint]} />
+          <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotBr, knotTint]} />
+        </>
+      )}
       {children}
     </View>
   );

@@ -111,7 +111,7 @@ export function HonourCase() {
   }
 
   return (
-    <AppCard textured style={styles.card}>
+    <AppCard style={styles.card}>
       <View style={styles.eyebrowRow}>
         <CardEyebrow>{i18n.t('honours')}</CardEyebrow>
         <Text style={styles.count} testID="honour-count">{heldIds.length} / {HONOUR_IDS.length}</Text>

@@ -45,7 +45,7 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
   return (
     <>
       <Tap onPress={() => setPickerVisible(true)}>
-        <AppCard tier={gemTier} textured style={style}>
+        <AppCard tier={gemTier} style={style}>
           <CardEyebrow>{i18n.t('oath_title')}</CardEyebrow>
           {oath ? (
             <View style={styles.oathRow}>

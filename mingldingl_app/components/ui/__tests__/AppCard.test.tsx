@@ -12,17 +12,27 @@ const NAADAM = { key: 'naadam-2026', nameKey: 'festival_naadam', icon: 'bow-arro
 describe('AppCard ornaments', () => {
   beforeEach(() => mockFestival.mockReturnValue(null));
 
-  it('draws four untinted gold corner knots on an ordinary day', () => {
-    const { getAllByTestId, getByText } = render(<AppCard><Text>body</Text></AppCard>);
+  it('draws four untinted gold corner knots on the hero panel on an ordinary day', () => {
+    const { getAllByTestId, getByText } = render(<AppCard hero><Text>body</Text></AppCard>);
     const corners = getAllByTestId('ulzii-corner');
     expect(corners).toHaveLength(4);
     for (const corner of corners) expect(StyleSheet.flatten(corner.props.style).tintColor).toBeUndefined();
     expect(getByText('body')).toBeTruthy();
   });
 
+  it('gives the hero panel the parchment, and an ordinary card neither knots nor parchment', () => {
+    const hero = render(<AppCard hero><Text>body</Text></AppCard>);
+    expect(hero.getByTestId('parchment-texture')).toBeTruthy();
+
+    const row = render(<AppCard><Text>body</Text></AppCard>);
+    expect(row.queryAllByTestId('ulzii-corner')).toHaveLength(0);
+    expect(row.queryByTestId('parchment-texture')).toBeNull();
+    expect(row.getByText('body')).toBeTruthy();
+  });
+
   it('tints every corner knot with the festival colour while a festival is on', () => {
     mockFestival.mockReturnValue(NAADAM);
-    const { getAllByTestId } = render(<AppCard><Text>body</Text></AppCard>);
+    const { getAllByTestId } = render(<AppCard hero><Text>body</Text></AppCard>);
     for (const corner of getAllByTestId('ulzii-corner')) {
       expect(StyleSheet.flatten(corner.props.style).tintColor).toBe(NAADAM.color);
     }
