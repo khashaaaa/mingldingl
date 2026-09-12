@@ -1,4 +1,4 @@
-import { appSources } from '../testing/sourceTree';
+import { appSources, hasProp, openingTags } from '../testing/sourceTree';
 
 /**
  * One hero per screen.
@@ -11,38 +11,31 @@ import { appSources } from '../testing/sourceTree';
  * what stops a second hero from appearing on a screen later.
  *
  * Counted per file rather than per route: every component holding an `AppCard` is rendered on
- * exactly one screen, so a file is a screen's worth of surface.
+ * exactly one screen, so a file is a screen's worth of surface. The JSX scanner it counts with
+ * lives in `lib/testing/sourceTree.ts`, because the same rule is owed to the forged button next.
  */
 
-/** The props text of every `<Component ...>` opening tag in a source file, with its line number. */
-function openingTags(text: string, component: string): { props: string; line: number }[] {
-  const out: { props: string; line: number }[] = [];
-  const open = new RegExp(`<${component}(?![A-Za-z0-9_])`, 'g');
-  let m: RegExpExecArray | null;
-  while ((m = open.exec(text)) !== null) {
-    // Scan to the `>` that closes the opening tag, ignoring any inside a JSX expression
-    // (`{...}`) or a string, so `style={[a, b]}` and `onPress={() => x}` do not end it early.
-    let depth = 0;
-    let quote: string | null = null;
-    let i = open.lastIndex;
-    for (; i < text.length; i++) {
-      const c = text[i];
-      if (quote) { if (c === quote) quote = null; continue; }
-      if (c === '"' || c === "'" || c === '`') { quote = c; continue; }
-      if (c === '{') { depth++; continue; }
-      if (c === '}') { depth--; continue; }
-      if (c === '>' && depth === 0) break;
-    }
-    out.push({
-      props: text.slice(open.lastIndex, i),
-      line: text.slice(0, m.index).split('\n').length,
-    });
-  }
-  return out;
-}
-
-const hasProp = (props: string, name: string) =>
-  new RegExp(`(^|[\\s{])${name}(\\s|=|$|/)`).test(props);
+describe('the JSX opening-tag scanner', () => {
+  it('reads a whole multi-line opening, and is not ended by a `>` in a string or an arrow', () => {
+    const src = [
+      'const a = (',
+      '  <AppCard',
+      '    hero',
+      '    label="a > b"',
+      '    onPress={() => go({ deep: true })}',
+      '  >',
+      '    <AppCardish />',
+      '  </AppCard>',
+      ');',
+    ].join('\n');
+    const tags = openingTags(src, 'AppCard');
+    expect(tags).toHaveLength(1);
+    expect(tags[0].line).toBe(2);
+    expect(hasProp(tags[0].props, 'hero')).toBe(true);
+    expect(hasProp(tags[0].props, 'onPress')).toBe(true);
+    expect(hasProp(tags[0].props, 'tier')).toBe(false);
+  });
+});
 
 describe('one hero panel per screen', () => {
   const withCards = appSources()

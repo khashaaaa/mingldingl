@@ -34,6 +34,50 @@ export function blankComments(src: string): string {
     .replace(/\/\/.*$/gm, (m) => ' '.repeat(m.length));
 }
 
+/** One JSX opening tag found in a source file: everything between the name and its closing `>`. */
+export interface OpeningTag {
+  /** The props text, e.g. ` hero style={styles.card}`. */
+  props: string;
+  /** 1-based line of the `<` that opened the tag, for a failure message that points somewhere. */
+  line: number;
+}
+
+/**
+ * Every `<Component ...>` opening tag in a file, for the design rules that count call sites — how
+ * many panels a screen knots, how many forged buttons it carries. A regex up to the next `>` is
+ * wrong often enough to matter: props hold arrow functions (`onPress={() => x}`), comparisons and
+ * strings, any of which ends a naive match early and hides the props that follow. So this scans
+ * forward from the tag name, tracking `{}` depth and quote state, and stops at the first `>` that
+ * is genuinely outside both. It lives here rather than in one test because the next rule that
+ * counts a component would otherwise copy it — which is how this file's own walk came to exist
+ * in four places.
+ */
+export function openingTags(text: string, component: string): OpeningTag[] {
+  const out: OpeningTag[] = [];
+  const open = new RegExp(`<${component}(?![A-Za-z0-9_])`, 'g');
+  let m: RegExpExecArray | null;
+  while ((m = open.exec(text)) !== null) {
+    let depth = 0;
+    let quote: string | null = null;
+    let i = open.lastIndex;
+    for (; i < text.length; i++) {
+      const c = text[i];
+      if (quote) { if (c === quote) quote = null; continue; }
+      if (c === '"' || c === "'" || c === '`') { quote = c; continue; }
+      if (c === '{') { depth++; continue; }
+      if (c === '}') { depth--; continue; }
+      if (c === '>' && depth === 0) break;
+    }
+    out.push({ props: text.slice(open.lastIndex, i), line: text.slice(0, m.index).split('\n').length });
+  }
+  return out;
+}
+
+/** Whether an opening tag passes a given prop, shorthand (`hero`) or not (`hero={x}`). */
+export function hasProp(props: string, name: string): boolean {
+  return new RegExp(`(^|[\\s{])${name}(\\s|=|$|/)`).test(props);
+}
+
 function walk(): SourceFile[] {
   const out: SourceFile[] = [];
   (function descend(dir: string) {

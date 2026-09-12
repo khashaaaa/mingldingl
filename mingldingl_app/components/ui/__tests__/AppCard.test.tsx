@@ -2,6 +2,7 @@ import { render } from '@testing-library/react-native';
 import { StyleSheet, Text } from 'react-native';
 import { AppCard } from '../AppCard';
 import { SectionDivider } from '../SectionDivider';
+import { SURFACE } from '../../../lib/theme';
 import { useActiveFestival } from '../../../lib/festivals';
 
 jest.mock('../../../lib/festivals', () => ({ useActiveFestival: jest.fn() }));
@@ -28,6 +29,27 @@ describe('AppCard ornaments', () => {
     expect(row.queryAllByTestId('ulzii-corner')).toHaveLength(0);
     expect(row.queryByTestId('parchment-texture')).toBeNull();
     expect(row.getByText('body')).toBeTruthy();
+  });
+
+  it('lets the hero cast the only shadow — an ordinary card is flat on the floor', () => {
+    // "Its glow is the only glow", and "no second panel, no nested card, no shadow" — the kit
+    // board's rule for everything that is not the hero. The glow lives on the card's own style,
+    // the bottom edge is a separate hairline View.
+    const hero = render(<AppCard hero><Text>body</Text></AppCard>);
+    const heroCard = StyleSheet.flatten(hero.getByTestId('app-card').props.style);
+    expect(heroCard.shadowOpacity).toBeGreaterThan(0);
+    expect(heroCard.elevation).toBeGreaterThan(0);
+    expect(hero.getByTestId('card-bottom-shadow')).toBeTruthy();
+
+    const row = render(<AppCard><Text>body</Text></AppCard>);
+    const rowCard = StyleSheet.flatten(row.getByTestId('app-card').props.style);
+    expect(rowCard.shadowOpacity).toBeUndefined();
+    expect(rowCard.elevation).toBeUndefined();
+    expect(rowCard.shadowColor).toBeUndefined();
+    expect(row.queryByTestId('card-bottom-shadow')).toBeNull();
+    // The panel itself survives — fill and border are what still make it a card.
+    expect(rowCard.borderWidth).toBe(1);
+    expect(rowCard.backgroundColor).toBe(SURFACE.panel);
   });
 
   it('tints every corner knot with the festival colour while a festival is on', () => {

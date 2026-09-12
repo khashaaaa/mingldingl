@@ -12,10 +12,11 @@ interface Props {
 
   tint?: string;
   /**
-   * The one panel a screen is *for*. Knots and parchment are its alone — the kit's rule is
-   * "one hero panel, then rows", so every other card on the screen keeps the panel fill, the
-   * hairline and the border and gives up the ornament. At most one per screen; the rule is
-   * enforced in `lib/__tests__/hero.test.ts`.
+   * The one panel a screen is *for*. Knots, parchment and the glow are its alone — the kit's
+   * rule is "one hero panel, then rows", and "its glow is the only glow". Every other card keeps
+   * the panel fill, the hairline, the top highlight and the border, and gives up the ornament
+   * and both shadows, so it lies flat on the floor. At most one per screen; the rule is enforced
+   * in `lib/__tests__/hero.test.ts`.
    */
   hero?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -28,7 +29,7 @@ export function AppCard({ children, tier, tint: tintOverride, hero, style }: Pro
   const festival = useActiveFestival();
   const knotTint = festival ? { tintColor: festival.color } : undefined;
   return (
-    <View style={[styles.card, glow(tint, 0.35, 12, 6), style]}>
+    <View testID="app-card" style={[styles.card, hero && glow(tint, 0.35, 12, 6), style]}>
       <LinearGradient
         colors={[SURFACE.raised, SURFACE.panel]}
         style={styles.fill}
@@ -45,7 +46,7 @@ export function AppCard({ children, tier, tint: tintOverride, hero, style }: Pro
       )}
       <View style={styles.hairline} pointerEvents="none" />
       <View style={[styles.topHighlight, { backgroundColor: tintColor(tint, 0.4) }]} pointerEvents="none" />
-      <View style={styles.bottomShadow} pointerEvents="none" />
+      {hero && <View style={styles.bottomShadow} testID="card-bottom-shadow" pointerEvents="none" />}
       {hero && (
         <>
           <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTl, knotTint]} />
