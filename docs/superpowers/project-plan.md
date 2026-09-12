@@ -28,8 +28,8 @@ for the canvas; `report/Main.dc.html` + `report/img/` for the report). Re-seed e
 `design` skill's helper: `node <helper> --template <payload> --out x.html --title "..." $(cat
 boards.txt) --image ... --canvas canvas.json`. Nothing here depends on a session's scratchpad.
 
-**To continue:** write Wave 3's task list under its build-order entry below, the way Wave 2's was,
-and run it with the same loop; its record follows into `shipped-log.md` when it lands.
+**To continue:** Wave 3's task list is below ("Wave 3 — the place"). Its record follows Wave 2's into
+`shipped-log.md` when it lands.
 
 ### Why
 
@@ -178,6 +178,287 @@ Flame Rite's candle clock (Wave 3, with the rite card's five states); `mystery_m
 blackletter; an engine-side crop or blur for the sealed Seek photo (the client-side blur ships the
 full URLs); and, from Wave 1, `SheetModal`'s entrance, the shared parchment layer, per-route rules,
 `FrostEdge` (Wave 3), the pill and First Steps card onto the hearth (Wave 4).
+
+### Wave 3 — the place (task list, written 2026-09-12)
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Make the app a place: fires that visibly burn down and freeze in the Quest Log, the Guild House, the Hall of Names, the Ascent as a night sky, the Campaign as a cave, the keepsake poster — and frost mounted wherever silence is.
+
+**Architecture:** One small engine addition (the thread's last letter time and sender on `MatchResponse`, the two ghosting windows on the thresholds response) feeds one pure helper, `lib/fire.ts`, that every fire surface reads. `FrostEdge` (drawn in Wave 1) is finally mounted. The four room screens are redrawn over their existing hooks and DTOs; no mechanic changes. The keepsake becomes a Wanted poster with a preview.
+
+**Tech Stack:** React Native 0.81 / Expo 54, `react-native-svg` (in the dev build), `react-native-view-shot` + `expo-sharing` (already installed), jest + `@testing-library/react-native`; ASP.NET Core 8 + xUnit.
+
+**Spec:** this file, "The Sealed Fire" section (moves 7, 8, 9's neighbour 11, 10, the Campaign cave, the dials — temperature and law; "Gaps found": ember-on-dark toasts, `FrostEdge` mounted, keepsake exports only the sharer's portrait). Boards: `docs/design/sealed-fire/boards/LettersFrost.dc.html`, `LettersMoments.dc.html`, `GuildHall.dc.html`, `HallOfNames.dc.html`, `AscentSky.dc.html`, `CampaignCave.dc.html`, `Keepsake.dc.html`, `BanishedFrozen.dc.html`, `Toasts.dc.html`, `RiteStates.dc.html`, `FlameRite.dc.html`, `Temperature.dc.html`.
+
+#### Global constraints (every task's requirements include these)
+
+- **English only.** Every new i18n key goes in `lib/i18n/en.ts` *and* `AWAITING_MN_TRANSLATION` in `lib/i18n/index.ts`, never in `mn.ts`. Changing an existing key's English value leaves `mn.ts` alone. A key no longer referenced must be deleted from **both** tables (`i18nCoverage.test.ts`; `i18n.test.ts` for parity). Template-literal key families are written directly inside `i18n.t(` so the coverage test sees them.
+- **The law.** Buttons two words at most; short sentences with full stops; the app commands the world and states the law, never scolds the person. Italic (`FONTS.bodyItalic`) is the app speaking; in the chat it is also my own letters — do not change either.
+- **Temperature.** Fire is what is alive, answered and kept; frost is silence, absence and what was left. `TEMPERATURE.furnace*` only in the eight allow-listed files (`lib/__tests__/furnace.test.ts` — `app/leaderboard.tsx` is on it); the frost tokens (`rime`, `ice`, `glacier`) and `components/vfx/FrostEdge.tsx` may be used anywhere silence is. The cave belongs to the Campaign only; no creature art anywhere (an illustrator's job — leave the placement, draw nothing sketch-level).
+- **The kit's counts are tested:** one `AppCard hero` per file (`hero.test.ts`), one forged `GameButton` per file outside `components/modals/` (`forged.test.ts`), no raw `COLORS` outside `lib/theme.ts` (`palette.test.ts`), every route in a room (`lib/world/__tests__/world.test.ts`). Screen containers stay `backgroundColor: 'transparent'`.
+- **Reduced motion:** any new animation goes through `motionAllowed(useVfxLevel())` from `lib/vfx.ts`.
+- **Accessibility:** every drawn state (a frost edge, a torch, a star) is either labelled or hidden (`accessible={false}` / `importantForAccessibility="no"`); text carries the meaning.
+- **No new native module** (a new EAS build would be needed). `react-native-svg`, `react-native-view-shot`, `expo-sharing`, `expo-haptics`, `expo-audio` are in the build. No `expo-media-library`.
+- **No mechanic changes.** Ghosting windows, penalties, thresholds, prices, perks: read from the engine, never re-derived. `lib/fire.ts` only *describes* what the engine will judge.
+- **Tests are TZ-safe:** every fixture instant is built from local components (`new Date(y, m-1, d, h)`), never a UTC literal asserted against a local string. The whole-wave review runs the suite under `TZ=UTC`.
+- **Verification per task.** App: `cd mingldingl_app && npm test && npm run typecheck && npm run lint`. Engine: `dotnet test` (needs Postgres; `DOTNET_ROOT=$HOME/.dotnet $HOME/.dotnet/dotnet`). Task 1 also runs `./mingldingl_engine/scripts/export-swagger.sh`, both `npm run generate:api`, and `export-swagger.sh --check`.
+- **Git:** single branch `master`, no worktree. One commit per task, `git add -A && git commit`, message prefixed `Sealed Fire W3:`. Do not push.
+- **Comments** explain *why*, in the repo's register (read three neighbouring files first).
+
+---
+
+### Task 1: The engine says when the last letter was, and by whom
+
+`Match` already stores `LastMessageAt` and `LastMessageSenderId`; `MatchResponse` does not send them, and the app cannot know whose turn it is or how long a thread has been quiet without opening it. The two ghosting windows are admin config the app has never seen.
+
+**Files:**
+- Modify: `mingldingl_engine/src/MinglDingl.Engine/DTOs/MatchDto.cs` (`MatchResponse`), `mingldingl_engine/src/MinglDingl.Engine/DTOs/ScoreDto.cs` (`RevealThresholdsResponse`)
+- Modify: `mingldingl_engine/src/MinglDingl.Engine/Controllers/MatchesController.cs` (`BuildMatchResponse`), `Controllers/EngagementController.cs` (`GetRevealThresholds`)
+- Modify: the existing list-matches integration test (the one Task 1 of Wave 2 extended — grep `CreatedAt` in `tests/MinglDingl.Engine.Tests/Integration/MatchesControllerIntegrationTests.cs`) and the existing reveal-thresholds test (grep `reveal-thresholds` under `tests/`)
+- Regenerate: `mingldingl_engine/swagger.json`, `mingldingl_app/lib/api/api.generated.d.ts`, `mingldingl_control/src/lib/api/api.generated.d.ts`
+- Modify: `mingldingl_app/models/match.ts`, `mingldingl_app/lib/reveal.ts` (hydrate the two windows beside the activity gate), `mingldingl_app/hooks/useRevealThresholds.ts`
+- Test: `mingldingl_app/lib/__tests__/matchModel.test.ts` (extend), `mingldingl_app/lib/__tests__/reveal.test.ts` (extend)
+
+**Interfaces:**
+- Produces (engine): `MatchResponse.LastMessageAt: DateTime?`, `MatchResponse.LastMessageSenderId: Guid?` (appended, defaulted null); `RevealThresholdsResponse.GhostingStaleHours: int = 48`, `RevealThresholdsResponse.GhostingUnansweredHours: int = 168` (appended, defaulted; `GhostingService.StaleAfter` / `UnansweredAfter` are instance properties reading `_config`; add `public static TimeSpan StaleAfterFor(ConfigService config)` / `UnansweredAfterFor(ConfigService config)` beside them, make the instance properties delegate, and call the statics from `EngagementController`).
+- Produces (app): `Match.lastMessageAt?: string`, `Match.lastMessageSenderId?: string`; `lib/reveal.ts` gains `ghostingWindowsSnapshot(): { staleHours: number; unansweredHours: number }` (defaults 48 / 168), hydrated by `hydrateRevealThresholds(raw, activitySuggestionMessages, ghosting?: { staleHours?: number; unansweredHours?: number })`, and a hook-side `useGhostingWindows()` exported from `hooks/useRevealThresholds.ts` that subscribes like `useRevealLadder`.
+
+- [ ] **Step 1: Engine DTOs.** Append to `MatchResponse`:
+
+```csharp
+    DateTime? CreatedAt = null,
+    /// <summary>When the last letter was sent and by whom, so the app can say whose turn it is and
+    /// how long a fire has been quiet without opening the thread. Null until the first letter.</summary>
+    DateTime? LastMessageAt = null,
+    Guid? LastMessageSenderId = null);
+```
+
+and to `RevealThresholdsResponse`:
+
+```csharp
+    int ActivitySuggestionMessages = 15,
+    /// <summary>The ghosting windows (<c>ghosting.stale_hours</c>, <c>ghosting.unanswered_hours</c>),
+    /// served so the app can show a fire burning down before the engine judges it, in the engine's
+    /// own numbers rather than a pinned copy.</summary>
+    int GhostingStaleHours = 48,
+    int GhostingUnansweredHours = 168);
+```
+
+- [ ] **Step 2: Builders.** `BuildMatchResponse` passes `m.CreatedAt, m.LastMessageAt, m.LastMessageSenderId`. `GetRevealThresholds` passes `(int)GhostingService.StaleAfterFor(_config).TotalHours, (int)GhostingService.UnansweredAfterFor(_config).TotalHours`.
+- [ ] **Step 3: Tests.** In the list-matches test, after a message has been sent in the fixture (or add one), assert `dto.LastMessageAt` is not null and `dto.LastMessageSenderId` equals the sender; in the thresholds test assert both windows are present and positive. Run the two filtered tests, then `dotnet test`.
+- [ ] **Step 4: Regenerate** (`export-swagger.sh`, both `generate:api`, `--check`).
+- [ ] **Step 5: App model + hydration.** `models/match.ts`: add the two optional strings and parse them (`d.lastMessageAt ?? undefined`, `d.lastMessageSenderId ?? undefined`). `lib/reveal.ts`: module state `ghosting = { staleHours: 48, unansweredHours: 168 }`, hydrated when the third argument carries positive numbers, notifying listeners; export `ghostingWindowsSnapshot()`. `hooks/useRevealThresholds.ts`: pass `{ staleHours: data.ghostingStaleHours, unansweredHours: data.ghostingUnansweredHours }`; export `useGhostingWindows()` via the same `useSyncExternalStore` pattern as `useRevealLadder`. Tests: `parseMatch` carries and tolerates the two fields; `hydrateRevealThresholds` updates the windows and ignores non-positive ones; `resetRevealThresholdsForTests` resets them.
+- [ ] **Step 6: Verify** (`npm test && npm run typecheck && npm run lint`; `cd mingldingl_control && npm run lint && npm run build`). **Commit** — `Sealed Fire W3: the engine says when the last letter was, and by whom`.
+
+---
+
+### Task 2: `lib/fire.ts` — the state of a fire
+
+Pure: given a match, who I am, now, and the engine's windows, what state the fire is in and what the ledger should say. This is description, not judgement: the engine judges.
+
+**Files:**
+- Create: `mingldingl_app/lib/fire.ts`
+- Modify: `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Test: `mingldingl_app/lib/__tests__/fire.test.ts`
+
+**Interfaces:**
+- Consumes: `Match` (`status`, `createdAt`, `lastMessageAt`, `lastMessageSenderId`, `messageCount`), `threadDay`/`ordinalWord` from `lib/worldTime.ts`.
+- Produces:
+  ```ts
+  export type FireState = 'unlit' | 'burning' | 'embers' | 'frozen';
+  export interface Fire {
+    state: FireState;
+    /** true = mine, false = theirs, null = no letter yet */
+    myTurn: boolean | null;
+    /** local midnights since the last letter (or since the match, when no letter) */
+    dawns: number;
+    /** the dawn at which the engine judges: floor(staleHours / 24) + 1 (48h → 3) */
+    judgedAtDawn: number;
+    /** which day of the thread today is (1-based), null without a start */
+    day: number | null;
+    /** for a frozen fire: whether I am the one who let it (null when nobody ever spoke or the thread was severed, not judged) */
+    iLetIt: boolean | null;
+    /** 'ghosted' | 'severed' | null — why a fire is frozen */
+    frozenBy: 'ghosted' | 'severed' | null;
+  }
+  export function fireOf(match: Pick<Match, 'status' | 'createdAt' | 'lastMessageAt' | 'lastMessageSenderId' | 'messageCount'>, myId: string | null | undefined, nowMs: number, windows: { staleHours: number; unansweredHours: number }): Fire;
+  export function fireLine(fire: Fire): string;      // the one line under the name
+  export function fireEyebrow(fire: Fire): string;   // BURNING / EMBERS / FROZEN / (unlit → the existing quest_new)
+  ```
+  Rules: `status` in `Ghosted` → `frozen`, `frozenBy: 'ghosted'`, `iLetIt = lastMessageSenderId != null && lastMessageSenderId !== myId ? true : lastMessageSenderId === myId ? false : null` (the at-fault party is whoever did *not* send the last letter — `GhostingService.GetGhostAtFaultUserId`); `Unmatched`/`Completed` → `frozen`, `frozenBy: 'severed'`, `iLetIt: null`. Otherwise: no `lastMessageAt` → `unlit`, `myTurn: null`, `dawns` counted from `createdAt`. Else `myTurn = lastMessageSenderId !== myId`; `dawns` = local midnights since `lastMessageAt` (reuse `threadDay(nowIso, lastMessageAt) - 1`); `embers` when `myTurn && dawns >= 1`; else `burning`. `judgedAtDawn = Math.floor(windows.staleHours / 24) + 1`.
+  Copy (all EN, awaiting):
+  ```ts
+  fire_burning: 'Burning', fire_embers: 'Embers', fire_frozen: 'Frozen',
+  fire_line_their_turn: '%{day} day. Their turn.',        // day = ordinalWord, capitalised: "Fourth day. Their turn."
+  fire_line_my_turn: '%{day} day. Your turn.',
+  fire_line_embers: 'Your turn. %{dawns} dawns. Judged at the %{judged}.',   // "Your turn. Two dawns. Judged at the third."
+  fire_line_embers_one: 'Your turn. One dawn. Judged at the %{judged}.',
+  fire_line_frozen: '%{dawns} dawns of silence. Judged at the %{judged}.',
+  fire_line_frozen_they: 'They let it freeze. Their standing paid.',
+  fire_line_frozen_you: 'You let it freeze. Your standing paid.',
+  fire_line_severed: 'The bond was severed.',
+  fire_law: "A fire is judged at dawn. Whoever's turn it was when it froze is the one who let it.",
+  fire_embers_strip: 'The fire is down to embers. %{dawns} dawns without a word from you. At the %{judged} it is yours to have let die.',
+  ```
+  Numbers in words: `dawns` rendered through a small `countWord(n)` (one…twelve, else the numeral) added to `lib/worldTime.ts` (exported), and `judged` through `ordinalWord`. `fireLine` for `frozen` + `ghosted` returns the silence line; the second line (`fire_line_frozen_they/you`) is a separate export `fireVerdict(fire): string | null`.
+
+- [ ] **Step 1: Keys** as above (+ `countWord`'s `count_1..12` keys: one, two, three, four, five, six, seven, eight, nine, ten, eleven, twelve) into `en.ts` and the awaiting list.
+- [ ] **Step 2: Failing tests** — with `windows = { staleHours: 48, unansweredHours: 168 }`, local-component instants, `myId = 'me'`:
+  - no letters, created 2 days ago → `unlit`, `myTurn null`, `dawns 2`; eyebrow is `quest_new`'s text.
+  - last letter by them yesterday → `embers`, `myTurn true`, `dawns 1`, `judgedAtDawn 3`; line "Your turn. One dawn. Judged at the third."
+  - last letter by them two days ago → line "Your turn. Two dawns. Judged at the third."
+  - last letter by me today, thread started 3 days ago → `burning`, `myTurn false`, line "Fourth day. Their turn."
+  - last letter by me, `Ghosted`, five dawns → `frozen`, `iLetIt false`, line "Five dawns of silence. Judged at the third.", verdict "They let it freeze. Their standing paid."
+  - last letter by them, `Ghosted` → `iLetIt true`, verdict "You let it freeze. Your standing paid."
+  - `Unmatched` → `frozen`, `frozenBy 'severed'`, line "The bond was severed.", verdict null.
+  - `staleHours 72` → `judgedAtDawn 4`.
+- [ ] **Step 3: Implement**; keep `fireOf` free of React and i18n; `fireLine`/`fireEyebrow`/`fireVerdict` are the only i18n readers.
+- [ ] **Step 4: Verify; commit** — `Sealed Fire W3: the state of a fire (helpers)`.
+
+---
+
+### Task 3: Fires that go out — the Quest Log (move 7), frost mounted
+
+**Files:**
+- Modify: `components/quest/QuestTile.tsx`, `app/(tabs)/matches.tsx`, `components/vfx/FrostEdge.tsx` (only if a prop is missing), `lib/world/feedback.ts`, `scripts/gen-sounds.js`, `assets/sounds/` (regenerated), `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Test: `components/quest/__tests__/QuestTile.test.tsx` (create or extend), `lib/world/__tests__/feedback.test.ts` (extend)
+
+**Interfaces:** consumes `fireOf`/`fireLine`/`fireEyebrow`/`fireVerdict` (Task 2), `useGhostingWindows` (Task 1), `useMyUserId`, `FrostEdge { edge, length, opacity }`, `Glyph` (`flame`, `ice`), `TEMPERATURE.rime/ice/glacier`, `METAL.ember`.
+
+- [ ] **Step 1: `QuestTile`.** Replace `questStatus` with the fire: the status line becomes a `CardEyebrow`-style eyebrow (`fireEyebrow`) plus the `fireLine` in `FONTS.body` `INK.dim`; `frozen` adds the verdict line in italic. Colours: burning → `ACCENT.bright` eyebrow with a small `flame` glyph; embers → `METAL.ember` eyebrow with the `ember` place mark (`Places` `ember` at `ICON_SIZES.sm`) and the row's hairline tinted `tint(METAL.ember, 0.6)`; frozen → `TEMPERATURE.glacier` eyebrow with the `ice` glyph, a `FrostEdge edge="left" length={ROW_HEIGHT}` absolutely on the row's left edge, the portrait desaturated by a `TEMPERATURE.ice` overlay at 0.35, name in `INK.dim`; unlit → the existing `quest_new` treatment. The tile takes `fire: Fire` as a prop (computed by the list from `fireOf(match, myId, now, windows)`), so the tile stays pure. A11y: the row's label is `${name}. ${eyebrow}. ${line}`; the frost edge and glyphs are hidden.
+- [ ] **Step 2: The list.** `matches.tsx` computes `now` once per render (a 60 s interval — dawns change at midnight, not every second), `myId` from `useMyUserId`, `windows` from `useGhostingWindows`, and passes `fire`. Sort stays as the engine's. Below the list (as `ListFooterComponent`) the law: `fire_law` in italic, `INK.dim`, centred, `SPACE.lg` padding. Empty state unchanged.
+- [ ] **Step 3: The fire dying.** `lib/world/feedback.ts`: add `fireDying: { haptic: 'soft', sound: require('../../assets/sounds/dying.wav') }` to `WorldEvent`/`SIGNALS`. `scripts/gen-sounds.js`: add `dying()` — a low crackle (lowpass noise at 240 Hz, seed of your choice) under a 90 Hz sine, 0.6 s, both decaying with `k = 7`, amplitude 0.5 — following the file's own conventions; rerun it and commit the regenerated WAVs (all of them will be byte-identical except the new one; if the script rewrites others differently, stop and report). The signal fires in Task 4, not here; the feedback test asserts the row exists and loads nothing until sound is on.
+- [ ] **Step 4: Tests.** `QuestTile`: renders each of the four fires with the right eyebrow/line; the frost edge is present only when frozen (`getByTestId('frost-edge-left')`), the ember mark only when embers; the a11y label carries eyebrow and line. Fixtures with local-component instants. `matches.tsx` test if one exists: the law footer renders.
+- [ ] **Step 5: Verify; commit** — `Sealed Fire W3: fires that go out — the Quest Log burns, embers, freezes`.
+
+---
+
+### Task 4: The thread knows its fire — embers strip, frozen ending
+
+**Files:**
+- Modify: `app/chat/[matchId].tsx`, `hooks/useFireDying.ts` (create), `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Test: `app/chat/__tests__/[matchId].test.tsx` (extend), `hooks/__tests__/useFireDying.test.tsx` (create)
+
+- [ ] **Step 1: Embers strip.** Above the composer (inside the `KeyboardAvoidingView`, after the list, before `MessageInput`), when `fire.state === 'embers'`: a one-row parchment strip — `DialogStrip` is a modal surface, so draw an inline row: 2px top rule in `tint(METAL.ember, 0.6)`, `SURFACE.panel` at 0.6, the `ember` place mark at `ICON_SIZES.sm`, and `fire_embers_strip` (`dawns` via `countWord`, `judged` via `ordinalWord`) in italic `INK.primary`. `testID="embers-strip"`.
+- [ ] **Step 2: Frozen ending.** The existing `endedNotice` gains a `FrostEdge edge="top" length={width}` along its top (absolute; measure width with `onLayout`, hidden from a11y) and its text becomes: ghosted → `fireLine(fire)` + `fireVerdict(fire)` (two lines; the verdict in italic), severed → the existing `match_ended_notice`. The `AlertModal` for `endedReason === 'ghosted'` keeps its title; its message becomes `fireVerdict(fire) ?? match_quiet_body`.
+- [ ] **Step 3: `useFireDying(matchId, fireState)`** — fires `signal('fireDying')` once per match when the thread is first seen at `embers` (a `useRef<Set<string>>` like `useSealedLetter`'s `opened`). Test: fires once for embers, never for burning, not again on rerender.
+- [ ] **Step 4: Tests.** Chat screen: a match whose last letter is theirs from two local days ago renders the embers strip with "Two dawns"; a `Ghosted` match renders the frost edge and both lines. Both fixtures local-component instants; `staleHours` from the hydrated default.
+- [ ] **Step 5: Verify; commit** — `Sealed Fire W3: the thread knows its fire`.
+
+---
+
+### Task 5: Frost wherever silence is — the Frozen Gate, the road out, the War Room; ember toasts checked
+
+**Files:**
+- Modify: `app/blocked-users.tsx`, `components/OfflineBanner.tsx`, `app/settings.tsx` (header only), `components/modals/LootToast.tsx`, `lib/__tests__/palette.test.ts`, `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Test: `app/__tests__/blockedUsers.test.tsx` (create), `components/__tests__/OfflineBanner.test.tsx` (create or extend)
+
+- [ ] **Step 1: The Frozen Gate.** `blocked_users_title` → `'The Frozen Gate'` (EN value change), new `frozen_gate_sub: 'Names shut out in the cold. They cannot see you, summon you, or find you in the square.'` (italic under the header), each row: name, a line `shut_out_dawn: 'Shut out on the %{day} dawn'` (`ordinalWord(threadDay(nowIso, item.blockedAt))` — `BlockedUserResponse.BlockedAt` exists and `models/blockedUser.ts` parses it as `blockedAt`), the ink button `unblock` → `'Thaw'`; a `FrostEdge edge="left"` on each row (hidden from a11y). Empty: `blocked_users_empty` → `'No one is shut out. The gate is warm.'` on the `door` place drawing (`StateBlock icon="door"`).
+- [ ] **Step 2: The road out.** `OfflineBanner`: `offline_banner` → `'The road is out. What is here stays; nothing new arrives until it returns.'`; the `ice` glyph at `ICON_SIZES.sm` before the text; a `FrostEdge edge="bottom"` along its lower edge; colours `TEMPERATURE.rime` text on the existing dark strip (check ≥ 4.5:1 in the palette test below). Keep `accessibilityLiveRegion`.
+- [ ] **Step 3: The War Room.** `settings.tsx`: a `FrostEdge edge="top" length={width}` under the `HeaderBar`'s divider (absolute, measured, hidden from a11y). Nothing else changes.
+- [ ] **Step 4: Ember toasts.** `LootToast`: the leading mark becomes the `flame` glyph in `METAL.ember` (was whatever icon it used); `palette.test.ts` gains assertions `contrast(METAL.ember, SURFACE.panel) >= 3` (a glyph is non-text) and `contrast(TEMPERATURE.rime, <the offline strip's background token>) >= 4.5`. If either fails, choose the nearest passing rung (`furnaceBright` is not allowed in these files; `ACCENT.bright` or `INK.primary` are) and say so in the report.
+- [ ] **Step 5: Tests; verify; commit** — `Sealed Fire W3: frost wherever silence is`.
+
+---
+
+### Task 6: The Guild House (move 8)
+
+**Files:**
+- Modify: `app/membership.tsx`, `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Test: `app/__tests__/membership.test.tsx` (create; mock `useMembership` with three tiers and the engine's price options)
+
+**Interfaces:** consumes `useMembership()` unchanged (`tiers`, `currentLevel`, `upgrade`, `isUpgrading`), `MEMBERSHIP_METALS`, `ChoiceRow`, `AppCard hero`, `GameButton`.
+
+- [ ] **Step 1: Keys** (EN, awaiting): `guild_house: 'The Guild House'`, `guild_house_sub: 'You stand in the yard. The doors above are open to anyone who pays the keep.'` (the sub changes with the floor you stand on: `guild_house_sub_hall: 'You sit in the Hall. The High Table is one door up.'`, `guild_house_sub_high: 'You sit at the High Table. There is nothing above.'`), `floor_Free: 'The Yard'`, `floor_Silver: 'The Hall'`, `floor_Gold: 'The High Table'`, `you_are_here: 'You are here'`, `price_a_month: '₮%{price} a month'`, `perk_summons_night: '%{count} summons a night.'`, `climb_to: 'Climb to %{floor}'`, `guild_terms: 'One month, three or six. Nothing changes below you.'`. EN value changes on existing keys: `perk_deep_profile_view: 'The deep profile.'`, `perk_priority_matching: 'First seat when the pairing is drawn.'`, `perk_icebreakers_quizzes: 'The fire, icebreakers and trials.'`, `perk_basic_profile: 'Everything that matters is free.'`. Delete `guild_ranks`/`guild_ranks_sub`/`current_rank` from both tables if orphaned.
+- [ ] **Step 2: The building.** One `AppCard hero` holds three floors stacked top-to-bottom: High Table, Hall, Yard — each a row with the floor name in `FONTS.display`, the price line (`price_a_month` with `monthlyPriceMnt.toLocaleString()`; the Yard has none), the perks as one sentence run (`perk_summons_night` with `dailyMatches` + the tier's `featureKeys` mapped through `perk_*`, joined with spaces), and on the floor you stand on a `you_are_here` eyebrow in the tier's `MEMBERSHIP_METALS` colour; floors above you are lit (`INK.primary`), floors below dim (`INK.dim`). Hairlines between floors; no second card. Tapping a floor above you selects it (`accessibilityRole="button"`, `accessibilityState={{ selected }}`).
+- [ ] **Step 3: The climb.** Below the building: the duration `ChoiceRow` (unchanged behaviour) with `guild_terms` in italic under it, then one forged `GameButton` `climb_to` (floor name) → `upgrade(selectedTier, duration)`; when you already stand on the top floor the button is absent and the sub says so. Errors keep the existing `AlertModal`. `membership_active_until` line stays (through `formatDate`).
+- [ ] **Step 4: Tests.** Renders three floors in order; the Yard shows "You are here" for a Free member; the button reads "Climb to The Hall" when the Hall is selected and calls `upgrade('Silver', 1)`; a Gold member sees no button.
+- [ ] **Step 5: Verify; commit** — `Sealed Fire W3: the Guild House`.
+
+---
+
+### Task 7: The Hall of Names (move 11)
+
+**Files:**
+- Create: `lib/numerals.ts` (`romanNumeral(n: number): string` — 1..3999, tests for 1, 4, 9, 14, 40, 90, 400, 1994, 3999)
+- Modify: `app/leaderboard.tsx`, `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Test: `lib/__tests__/numerals.test.ts`, `app/__tests__/leaderboard.test.tsx` (create; mock `useLeaderboard`)
+
+- [ ] **Step 1: Keys**: `hall_of_names: 'Hall of Names'`, `hall_sub: '%{city}. Carved, not listed. Names are hidden by the rules of the house, so the stone holds sigils.'`, `your_mark: 'Your mark'`, `hall_law: 'The wall reads highest to lowest. Yours is the only torch.'`. `leaderboard_title` (with `%{city}`) becomes unused → delete from both tables; `leaderboard_you` likewise if unused after this.
+- [ ] **Step 2: The wall.** Header `hall_of_names` (blackletter, Latin); `hall_sub` italic under it. Rows are stone: `romanNumeral(rank)` in `FONTS.display` `FONT_SIZES.lg` `INK.dim`, the tier as a `GemTierBadge size={BADGE_SIZES.row}` plus the tier name in `FONTS.utility` uppercase, the score `toLocaleString()` in `FONTS.display` right-aligned; hairlines between rows, `SURFACE.raised` at 0.4 as the stone. Your row: a `TorchGlow` (`components/vfx/TorchGlow`, `strength 0.8`, `color TEMPERATURE.furnaceBright` — this file is on the furnace allowlist) behind the row and the eyebrow `RUBY · YOUR MARK` (tier name + `your_mark`, uppercase, `TEMPERATURE.furnace`). The detached own-row-beyond-50 behaviour stays. Footer: `hall_law` italic centred. A11y: each row's label is `${numeral}. ${tier}. ${score} points` and your row appends `your_mark`.
+- [ ] **Step 3: Tests.** Renders numerals I, II, III for ranks 1–3; your row carries "Your mark"; the sub carries the city.
+- [ ] **Step 4: Verify; commit** — `Sealed Fire W3: the Hall of Names`.
+
+---
+
+### Task 8: The Ascent as a night sky
+
+**Files:**
+- Create: `components/progression/AscentSky.tsx`
+- Modify: `app/progression.tsx`, `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Test: `components/progression/__tests__/AscentSky.test.tsx`
+
+**Interfaces:**
+- Consumes: `TIER_ORDER` and a new `export function tierThresholdsSnapshot(): readonly number[]` added to `lib/tiers.ts` (the module keeps `tierThresholds` private today; `tierProgress` reads it), `GEM_COLORS`/`GEM_SHADES`, `NIGHT` tokens, `react-native-svg`, `useVfxLevel`/`motionAllowed`.
+- Produces: `AscentSky({ gemTier, totalScore, currentStreak, width }: { gemTier: GemTier; totalScore: number; currentStreak: number; width: number })`.
+
+- [ ] **Step 1: Keys**: `ascent_sub: 'The tiers as a climb through the night sky. Each gem is a star you reach; the one you hold burns brightest.'`, `ascent_you: 'you, %{score}'`, `ascent_to_go: '%{points} to go'`, `ascent_beyond: 'the sky beyond'`, `ascent_dawns: 'dawns in a row'`.
+- [ ] **Step 2: The sky.** An `Svg` `width × 420`: background gradient `NIGHT.black → NIGHT.blue`; a faint path (`LINE.edge`, dashed) climbing from bottom-left to top-right through six points; at each point a star: an `r=4` circle in the gem's `GEM_COLORS` for tiers at or below yours (reached), `r=3` in `INK.muted` for tiers above; your tier's star is `r=7` with a soft halo (a second circle at `r=14`, opacity 0.25) and, when motion is allowed, a slow opacity pulse via `Animated` (2.4 s, no native driver needed for SVG props — use `Animated.createAnimatedComponent(Circle)` or a plain `useEffect` interval at reduced cost; if that is awkward, a static halo is acceptable and say so). Labels beside each star (`SvgText`, `FONTS.utility`): `Garnet`, `Opal · 100`, … (name · threshold), yours `Ruby · you, 1,595`, the next `Emerald · 405 to go`; above the top star, `ascent_beyond` in `INK.muted` italic. Under the sky, in RN `Text`: the streak as a big numeral (`FONT_SIZES.display`) with `ascent_dawns` under it. The component is `accessible` with a label `${tierName}. ${score}. ${next ? toGo : beyond}. ${streak} dawns in a row`.
+- [ ] **Step 3: The screen.** `progression.tsx`: header stays `progression_title` ("The Ascent"); the hero becomes `AppCard hero` wrapping `AscentSky` (measure width with `onLayout`); remove `XPBar` and the `GemTierBadge` hero (the sky carries both); keep `TierPerkCard` (as a plain row), `StreakSummary` is replaced by the sky's streak (delete the component if this was its only site — grep; otherwise leave it), the `view_leaderboard` button becomes ink and reads `hall_of_names`, then the chronicle as before.
+- [ ] **Step 4: Tests.** Six stars render (`getAllByTestId('ascent-star')`), the held tier's star carries `testID="ascent-star-held"`, the labels for the next tier read "405 to go" for the fixture (Ruby at 1,595 with Emerald at 2,000), and the a11y label carries the streak.
+- [ ] **Step 5: Verify; commit** — `Sealed Fire W3: the Ascent as a night sky`.
+
+---
+
+### Task 9: The Campaign as a cave
+
+**Files:**
+- Modify: `app/campaign/[matchId].tsx`, `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Test: `app/campaign/__tests__/campaign.test.tsx` (create; mock `useCampaign`)
+
+- [ ] **Step 1: Copy.** EN value changes: `campaign_room_gate: 'The Meeting Cave'`, `campaign_room_echoes: 'The Hall of Echoes'`, `campaign_room_voices: 'The Gate of Voices'`, `campaign_hint_runes: 'Both face the trial. The bats are listening.'`, `campaign_claim: 'Claim'` (the call site already appends ` +${room.bonusScore}`; tighten it to one space so it reads "Claim +5"), `campaign_room_sealed: 'sealed'`. New: `campaign_sub: 'Seven caverns. The dragon at the last threshold.'`, `campaign_dragon_sleeps: 'It sleeps until the sixth cavern is cleared.'`, `campaign_frame_owed: ''` — no: draw nothing for the frame; leave a `{/* cave frame and dragon: illustrator's job (CampaignCave board); placement is this column */}` comment instead.
+- [ ] **Step 2: The caverns.** Each room row: `romanNumeral(index + 1)` (Task 7's helper) in `FONTS.display` `INK.dim` at the left, the name, and the state: cleared+unclaimed → the claim as the screen's one forged button *only on the first claimable room*, ink on any others (the rule is one forged per screen; the first claimable is the deed); cleared+claimed → `campaign_claimed` in `INK.dim`; current → the hint in italic (`FONTS.bodyItalic`); locked → ` · sealed` appended to the name in `INK.muted` (no lock icon). The boss row shows `campaign_dragon_sleeps` in italic while locked. The `TorchGlow` already in the room's light stays; add a `FogDrift` at the top of the list if not present (the room already has `vfx: 'fog'` — check `WorldFloor` draws it and do not double it).
+- [ ] **Step 3: Tests.** Seven rows in order with numerals I–VII; exactly one `primary` button when two rooms are claimable; the boss row shows the sleeping line while locked.
+- [ ] **Step 4: Verify** (`forged.test.ts` counts per file: if the claim button is rendered in a loop, the scanner sees one call site — the runtime rule above is what the test in Step 3 guards); **commit** — `Sealed Fire W3: the Campaign as a cave`.
+
+---
+
+### Task 10: The keepsake card (move 10)
+
+**Files:**
+- Modify: `components/cards/CharacterCard.tsx`, `components/cards/ShareCharacterButton.tsx`, `app/(tabs)/profile.tsx` (pass `oath`), `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Test: `components/cards/__tests__/ShareCharacterButton.test.tsx` (create), `components/cards/__tests__/CharacterCard.test.tsx` (create)
+
+**Interfaces:** `CharacterCard` gains `oath: Oath | null` and `oathProven: boolean`; `ShareCharacterButton` gains the same two props and a preview.
+
+- [ ] **Step 1: Keys**: `wanted: 'Wanted'`, `wanted_for: 'For %{oath}, honestly kept'`, `wanted_for_none: 'For a fire, honestly kept'`, `keepsake_line: '%{dawns} dawns and burning. Never let a fire die.'`, `keepsake_line_none: 'A fire lately lit. Never let it die.'`, `post_it: 'Post it'`, `keep_it: 'Keep it'`, `keepsake_preview: 'Your keepsake'`. `share_character` stays as the button.
+- [ ] **Step 2: The poster.** `CharacterCard` (360×520, captured off-screen as today): parchment ground (`SURFACE.raised` under a `LinearGradient` to `SURFACE.panel`), `wanted` in `FONTS.wordmark` at `FONT_SIZES.roomName` centred at the top, the `wanted_for` eyebrow (`oathLabel(oath)` uppercase; `wanted_for_none` without an oath), the portrait in a `RADIUS.sm` frame with the knot at its corner, the name in `FONTS.display`, `GEM · SCORE` eyebrow (tier name · `totalScore.toLocaleString()`), the streak line in italic (`keepsake_line` with `countWord(currentStreak)`, or `_none` at 0), the wordmark small at the foot, and a wax `SealDots`-style single seal (reuse `Glyph name="seal"` in `METAL.gold`) at the bottom-right. **The portrait is the sharer's own**: the component receives `photoUrl` only from the signed-in profile (`profile.tsx`) — assert in the test that `ShareCharacterButton` renders the card with exactly the `photoUrl` it was given and nothing from a match.
+- [ ] **Step 3: The preview.** `ShareCharacterButton`: tapping the ink button opens an `AppModal` (full-screen ceremony scrim, `SCRIM.ceremony`) showing the live `CharacterCard` scaled to fit (`transform: [{ scale }]` from the measured width), with one forged `post_it` (capture + `Sharing.shareAsync`, errors as today) and an ink `keep_it` that closes the preview. The off-screen `ViewShot` stays the capture source (the preview is a second render of the same props). Keep `share_failed`/`share_unavailable`.
+- [ ] **Step 4: Tests.** The preview opens on the button, shows "Wanted" and the oath eyebrow, "Post it" calls the mocked `Sharing.shareAsync` with the captured uri (mock `react-native-view-shot`'s `capture`), "Keep it" closes it; the portrait is the given `photoUrl`.
+- [ ] **Step 5: Verify; commit** — `Sealed Fire W3: the keepsake card`.
+
+---
+
+### Task 11: The Flame Rite's five states, in the voice
+
+**Files:**
+- Modify: `components/FlameRiteCard.tsx`, `app/video/[matchId].tsx`, `lib/i18n/en.ts`, `lib/i18n/index.ts`
+- Test: `components/__tests__/FlameRiteCard.test.tsx` (create or extend), `app/video/__tests__` (extend only if a test exists)
+
+- [ ] **Step 1: Copy** (EN value changes on existing keys; `mn.ts` untouched): `rite_explainer: 'Five minutes by the fire before you meet. Ask, and they answer.'` (drop `%{minutes}` only if the call site can pass it unchanged — variable parity with `mn` must hold, so keep `%{minutes}` and write `'%{minutes} minutes by the fire before you meet. Ask, and they answer.'`), `rite_propose_cta: 'Ask'`, `rite_waiting: 'You have asked. A candle until they answer.'`, `rite_incoming: 'They have asked for it.'`, `rite_ready: 'The rite is open. Step in when you are both ready.'`, `start_video_call: 'Step in'`, `rite_complete: 'Flame-tested'` + new `rite_complete_sub: 'Two faces met across the glass. The seal on the likeness is gone for good.'`, `video_end_confirm_title: 'Douse the fire?'`, `video_end_confirm_body: 'Dousing ends the rite for both of you. It cannot be relit.'`, `video_end_confirm: 'Douse it'`, `video_connect_error_title: 'The way would not open.'`, `video_connect_error_body: 'We could not connect the call. Try again, or go back to the thread; nothing was lost.'`, new `rite_try_again: 'Try again'` for the video screen's retry (`rejoin` stays as the Square round's "Rejoin").
+- [ ] **Step 2: The card.** Waiting state shows the `Waiting` candle (`components/ui/Waiting`) beside `rite_waiting`; the complete state shows the `flame` glyph in `METAL.ember` and the new sub in italic; the incoming state's two buttons: ink `rite_decline_cta` ("Not yet"), forged `rite_accept_cta` ("Accept") — one forged per file holds because the propose/ready/incoming states are exclusive branches — add the file to `forged.test.ts`'s `BRANCHED` set with the branches named if the scanner counts more than one.
+- [ ] **Step 3: The call.** `video/[matchId].tsx`: the `candle` glyph (`Glyph name="candle"`, `ICON_SIZES.lg`, `METAL.ember`) beside the m:ss countdown; the hang-up button's confirm uses the new copy. No countdown format change.
+- [ ] **Step 4: Tests; verify; commit** — `Sealed Fire W3: the Flame Rite's five states, in the voice`.
+
+---
+
+### Task 0 — the Wave 3 list ends here
+
+(Sentinel heading for the brief-extraction script. After Task 11 the controller runs the final whole-wave review under `TZ=UTC`, the A51 device pass, moves this list's record into `shipped-log.md`, and pushes.)
+
+**Deliberately left for Wave 4 (write into the shipped record):** the hearth, the plaza, the Second Bell, the Satchel, candle-lit and bell feedback rows; the cave frame and the dragon and the bats (illustrator); a Cyrillic blackletter; White Moon frost for three days (needs the festival calendar's hook — check `lib/festivals.ts` before Wave 4).
+
 
 ### Gaps found while writing the report (settle before the wave that touches them)
 
