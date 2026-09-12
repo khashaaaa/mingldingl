@@ -143,8 +143,10 @@ const styles = StyleSheet.create({
     gap: SPACE.sm,
   },
   seal: { width: SEAL, height: SEAL },
-  // Italic is the app speaking; the rest of the card is the person.
-  sealHint: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.sm, color: INK.dim },
+  // Italic is the app speaking; the rest of the card is the person. Full ink, not `INK.dim`: the
+  // blur smears a bright portrait, it does not darken it, so under the veil alone this line landed
+  // at 2.3:1 on a white-wall photo. See the contrast assertion in this component's test.
+  sealHint: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.sm, color: INK.primary },
   info: {
     position: 'absolute',
     bottom: 0,
