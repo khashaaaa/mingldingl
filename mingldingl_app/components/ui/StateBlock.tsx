@@ -38,20 +38,30 @@ const EMBER_COLORS: Partial<Record<Tone, string>> = {
  * The stock names the 27 call sites still pass, and the drawing each one stood for. A screen may
  * also pass a `PlaceName` directly — the two are one prop — but nothing had to be rewritten for
  * the costume to change.
+ *
+ * `wifi-off`, `trending-down` and `video-off` are absent on purpose rather than by omission: every
+ * call site that passes one is `tone="danger"`, and a wrong is the ember whatever it is named. A
+ * drawing mapped to them would be a drawing nothing ever renders.
  */
 const ICON_PLACES: Partial<Record<string, PlaceName>> = {
   'door-closed-lock': 'gate',
-  'wifi-off': 'window-dark',
   video: 'empty-stage',
   'help-circle-outline': 'signpost',
-  'trending-down': 'cold-hearth',
+  'map-marker-off': 'signpost',
+  calendar: 'calendar-page',
+  'message-text-outline': 'letter',
+  'skull-outline': 'empty-chair',
+  'weather-night': 'moon',
+  'party-popper': 'lantern',
+  bank: 'door',
   'alert-circle-outline': 'ember',
 };
 
 /**
  * The one mark this block draws: the ember when something went wrong, the place when a room is
- * simply empty, and the stock icon for the names that have no drawing yet — twenty-one of the
- * twenty-seven — so that adding a place is an addition and never a breakage.
+ * simply empty, and the stock icon for any name with no drawing — every name the call sites pass
+ * has one now, but the prop still takes the whole stock library, so a screen written tomorrow
+ * renders something rather than nothing.
  */
 function Mark({ tone, icon }: { tone: Tone; icon: PlaceName | IconName }) {
   const place = icon in PLACES ? (icon as PlaceName) : ICON_PLACES[icon as string];
@@ -59,7 +69,9 @@ function Mark({ tone, icon }: { tone: Tone; icon: PlaceName | IconName }) {
 
   if (ember || place === 'ember') {
     const Ember = PLACES.ember;
-    return <Ember size={ICON_SIZES.hero} color={ember} />;
+    // The ember is only *hot* when the tone says a wrong happened. Named under the default tone
+    // it is just this block's mark, and it stays as quiet as any other place.
+    return <Ember size={ICON_SIZES.hero} color={ember ?? TONE_COLORS[tone]} />;
   }
   if (place) {
     const Place = PLACES[place];

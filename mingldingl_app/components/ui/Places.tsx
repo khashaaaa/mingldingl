@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { Glyph } from './Glyph';
+import { Glyph, type GlyphName } from './Glyph';
 import { HEAT, ICON_SIZES, INK, METAL } from '../../lib/theme';
 
 /**
@@ -30,7 +30,10 @@ interface Cuts {
 }
 
 /** Every drawing in the set, so a test can walk all of them. */
-export const PLACE_NAMES = ['gate', 'window-dark', 'empty-stage', 'signpost', 'cold-hearth', 'ember'] as const;
+export const PLACE_NAMES = [
+  'gate', 'empty-stage', 'signpost', 'calendar-page', 'letter', 'empty-chair', 'moon', 'lantern',
+  'door', 'ember',
+] as const;
 
 export type PlaceName = typeof PLACE_NAMES[number];
 
@@ -41,7 +44,8 @@ export interface PlaceProps {
 
 export type PlaceDrawing = (props: PlaceProps) => React.JSX.Element;
 
-const CUTS: Record<Exclude<PlaceName, 'cold-hearth'>, Cuts> = {
+/** The places cut here. `letter` and `lantern` are already in `Glyph` and are reused below. */
+const CUTS: Record<Exclude<PlaceName, 'letter' | 'lantern'>, Cuts> = {
   /** A shut gate: two posts, a lintel, and the ring that holds it closed. */
   gate: {
     lines: [
@@ -49,11 +53,6 @@ const CUTS: Record<Exclude<PlaceName, 'cold-hearth'>, Cuts> = {
     ],
     rings: [[12, 14, 2]],
     ground: 'M2 21h20',
-  },
-  /** A window with nobody behind it — the lantern in that room has gone out. */
-  'window-dark': {
-    lines: ['M5 3h14v15H5z', 'M12 3v15', 'M5 10.5h14'],
-    ground: 'M3 18h18',
   },
   /** An empty stage: the arch, the curtains tied back, and nobody on the boards. */
   'empty-stage': {
@@ -64,6 +63,34 @@ const CUTS: Record<Exclude<PlaceName, 'cold-hearth'>, Cuts> = {
   signpost: {
     lines: ['M12 3v18', 'M12 5h6l3 3-3 3h-6z', 'M12 12H6l-3 3 3 3h6z'],
     ground: 'M4 21h16',
+  },
+  /** A day with nothing written on it: the page on its nail, ruled and blank. */
+  'calendar-page': {
+    lines: ['M5 4h14v16H5z', 'M8 13h8', 'M8 16.5h8'],
+    rings: [[12, 8, 1.2]],
+  },
+  /**
+   * A chair with nobody in it. The stock name here was a skull, and the kit keeps no monsters —
+   * an empty seat says "they did not come" without drawing a corpse to say it.
+   */
+  'empty-chair': {
+    lines: ['M8 3v18', 'M8 12h8', 'M16 12v9', 'M8 6h5', 'M8 9h5'],
+    ground: 'M4 21h16',
+  },
+  /**
+   * Night, and nothing happening under it: a full moon over the hill. The ridge is left open at
+   * both ends so the brass horizon closes it, rather than drawing the ground twice.
+   */
+  moon: {
+    lines: ['M3 21l6-7 4 4 3-3 5 6'],
+    rings: [[16, 6, 3]],
+    ground: 'M2 21h20',
+  },
+  /** A shut door under its lintel — the room is there, it is simply not open. */
+  door: {
+    lines: ['M2 6h20', 'M5 21V6', 'M19 21V6', 'M7 21V8h10v13'],
+    rings: [[15, 15, 1]],
+    ground: 'M2 21h20',
   },
   /**
    * The wrong state. An ember, upright on the hearthstone: the mark glows warm and the ground
@@ -133,10 +160,6 @@ function Gate(props: PlaceProps) {
   return <Cut cuts={CUTS.gate} testID="state-place-gate" {...props} />;
 }
 
-function WindowDark(props: PlaceProps) {
-  return <Cut cuts={CUTS['window-dark']} testID="state-place-window-dark" {...props} />;
-}
-
 function EmptyStage(props: PlaceProps) {
   return <Cut cuts={CUTS['empty-stage']} testID="state-place-empty-stage" {...props} />;
 }
@@ -145,29 +168,63 @@ function Signpost(props: PlaceProps) {
   return <Cut cuts={CUTS.signpost} testID="state-place-signpost" {...props} />;
 }
 
+function CalendarPage(props: PlaceProps) {
+  return <Cut cuts={CUTS['calendar-page']} testID="state-place-calendar-page" {...props} />;
+}
+
+function EmptyChair(props: PlaceProps) {
+  return <Cut cuts={CUTS['empty-chair']} testID="state-place-empty-chair" {...props} />;
+}
+
+function Moon(props: PlaceProps) {
+  return <Cut cuts={CUTS.moon} testID="state-place-moon" {...props} />;
+}
+
+function Door(props: PlaceProps) {
+  return <Cut cuts={CUTS.door} testID="state-place-door" {...props} />;
+}
+
 function Ember({ size, color = HEAT.flame }: PlaceProps) {
   return <Cut cuts={CUTS.ember} testID="state-ember" size={size} color={color} />;
 }
 
 /**
- * The cold hearth is already cut, in `Glyph` — the same room's fire, unlit. `Glyph` takes only
- * name/size/color/style and does not forward a testID, and widening that shared primitive's API
- * for one test hook is the larger change, so the wrapper carries the name instead. It is hidden
- * from assistive tech like every other drawing here.
+ * Two of these places are already cut, in `Glyph`: the folded letter and the carried lantern. They
+ * are reused rather than re-cut — a second drawing of the same object is a second hand. `Glyph`
+ * takes only name/size/color/style and does not forward a testID, and widening that shared
+ * primitive's API for one test hook is the larger change, so the wrapper carries the name. It is
+ * hidden from assistive tech like every other drawing here.
  */
-function ColdHearth({ size = ICON_SIZES.hero, color = INK.muted }: PlaceProps) {
+function GlyphPlace({ name, testID, size = ICON_SIZES.hero, color = INK.muted }: {
+  name: GlyphName;
+  testID: string;
+} & PlaceProps) {
   return (
-    <View testID="state-place-cold-hearth" importantForAccessibility="no-hide-descendants" aria-hidden>
-      <Glyph name="hearth" size={size} color={color} />
+    <View testID={testID} importantForAccessibility="no-hide-descendants" aria-hidden>
+      <Glyph name={name} size={size} color={color} />
     </View>
   );
 }
 
+/** Nothing said yet: the letter still folded, its seal unbroken. */
+function Letter(props: PlaceProps) {
+  return <GlyphPlace name="letters" testID="state-place-letter" {...props} />;
+}
+
+/** Nobody gathered: the lantern is lit and carried, and there is no one at the square. */
+function Lantern(props: PlaceProps) {
+  return <GlyphPlace name="lantern" testID="state-place-lantern" {...props} />;
+}
+
 export const PLACES: Record<PlaceName, PlaceDrawing> = {
   gate: Gate,
-  'window-dark': WindowDark,
   'empty-stage': EmptyStage,
   signpost: Signpost,
-  'cold-hearth': ColdHearth,
+  'calendar-page': CalendarPage,
+  letter: Letter,
+  'empty-chair': EmptyChair,
+  moon: Moon,
+  lantern: Lantern,
+  door: Door,
   ember: Ember,
 };
