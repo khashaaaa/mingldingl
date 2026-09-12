@@ -1,7 +1,7 @@
 import { useRef, type ReactNode } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { SPACE } from '../../lib/theme';
-import { DialogCard, DialogScrim } from './DialogSurface';
+import { DialogScrim, DialogStrip } from './DialogSurface';
 import { AppModal } from './AppModal';
 
 /**
@@ -43,17 +43,17 @@ export function SheetModal({ visible, onClose, children }: Props) {
         action?.();
       }}
     >
-      <DialogScrim weight="sheet">
-        <DialogCard weight="sheet" style={styles.sheet}>
+      <DialogScrim weight="sheet" align="bottom">
+        <DialogStrip style={styles.sheet}>
           {typeof children === 'function' ? children(closeThen) : children}
-        </DialogCard>
+        </DialogStrip>
       </DialogScrim>
     </AppModal>
   );
 }
 
 const styles = StyleSheet.create({
-  // Everything else a sheet is comes from `DialogCard weight="sheet"`; the only thing left that
-  // is this sheet's own is that its rows stack with a gap rather than centring.
+  // Everything else a sheet is comes from `DialogStrip`; the only thing left that is this
+  // sheet's own is that its rows stack with a gap rather than centring.
   sheet: { alignItems: 'stretch', gap: SPACE.md },
 });

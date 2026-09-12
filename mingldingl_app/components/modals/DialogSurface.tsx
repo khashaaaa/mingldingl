@@ -1,4 +1,7 @@
-import { View, StyleSheet } from 'react-native';
+import { useContext } from 'react';
+import { View, Image, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { ACCENT, LINE, RADIUS, SCRIM, SPACE, SURFACE, overlay } from '../../lib/theme';
@@ -8,9 +11,10 @@ import { ACCENT, LINE, RADIUS, SCRIM, SPACE, SURFACE, overlay } from '../../lib/
  *
  * `sheet` rises over a screen still meant to be read behind it; `dialog` asks a question, so
  * what is behind is context rather than content; `ceremony` is a tier-up or a chest, where
- * nothing behind it should compete.
+ * nothing behind it should compete; `strip` also asks a question, or reports a failure, but
+ * keeps the room lit and does not dim it at all — the interruption is a note, not a takeover.
  */
-export type DialogWeight = 'sheet' | 'dialog' | 'ceremony';
+export type DialogWeight = 'sheet' | 'dialog' | 'ceremony' | 'strip';
 
 /**
  * The backdrop and the surface, once each.
@@ -28,6 +32,12 @@ export type DialogWeight = 'sheet' | 'dialog' | 'ceremony';
  * is a 380-wide map panel. Those are different objects, not stragglers — forcing either into
  * `DialogCard` would mean a prop that exists for one caller, which is how this file's own list
  * of five got written in the first place.
+ *
+ * `DialogStrip` is a third surface for the same reason: a question or a failure is no longer a
+ * floating card, it is parchment rising from the bottom edge with a coloured rule at its top and
+ * no card border at all — genuinely a different object from `DialogCard`, not a variant of it.
+ * `AlertModal` uses it under the new transparent `strip` scrim weight; `SheetModal` uses it too,
+ * under its own `sheet` weight, because the shape moved but a sheet's dimming did not.
  */
 /**
  * The scrim as a style rather than an element, for the two layers that need theirs to be
@@ -47,15 +57,17 @@ export function DialogScrim({ weight = 'dialog', align = 'center', children, sty
   style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <View style={[scrimStyle(weight, align), style]}>{children}</View>
+    <View testID="dialog-scrim" style={[scrimStyle(weight, align), style]}>{children}</View>
   );
 }
 
-/** Built once rather than per render — three weights, two alignments, none of them dynamic. */
+/** Built once rather than per render — four weights, two alignments, none of them dynamic. */
 const SCRIM_STYLES: Record<DialogWeight, ViewStyle> = {
   sheet: { backgroundColor: overlay(SCRIM.sheet) },
   dialog: { backgroundColor: overlay(SCRIM.dialog) },
   ceremony: { backgroundColor: overlay(SCRIM.ceremony) },
+  // A question or a failure, not a takeover: the room stays exactly as lit as it was.
+  strip: { backgroundColor: 'transparent' },
 };
 
 const ALIGN: Record<'center' | 'bottom', ViewStyle> = {
@@ -65,7 +77,8 @@ const ALIGN: Record<'center' | 'bottom', ViewStyle> = {
 };
 
 export function DialogCard({ weight = 'dialog', accent, children, style }: {
-  weight?: DialogWeight;
+  /** `strip` has no card — see `DialogStrip` below, which is a different shape entirely. */
+  weight?: Exclude<DialogWeight, 'strip'>;
 
   /** The edge colour, for a dialog whose tone changes it. Ignored by `sheet`, which is quiet. */
   accent?: string;
@@ -74,6 +87,53 @@ export function DialogCard({ weight = 'dialog', accent, children, style }: {
 }) {
   const edge = weight === 'sheet' ? { borderColor: LINE.edge } : { borderColor: accent ?? ACCENT.base };
   return <View style={[DIALOG_STYLES.card, DIALOG_STYLES[weight], edge, style]}>{children}</View>;
+}
+
+/**
+ * A question or a failure, as parchment rising from the bottom edge rather than a card floating
+ * in the dark: full width, square-to-round top corners, a 2px rule in `accent` where a card would
+ * have had a border on every side, and the same gradient + texture `AppCard`'s hero panel draws.
+ *
+ * `wash` is the one thing a tone still needs beyond the rule: `STATUS_SOFT` colours are already a
+ * translucent wash rather than a surface (see `theme.ts`), so laid over the parchment rather than
+ * under it, it tints the strip without hiding the parchment it tints.
+ *
+ * Falls back to zero insets outside a `SafeAreaProvider` (there is one at the app root, always,
+ * but not every test tree bothers to add one) rather than the throwing `useSafeAreaInsets`, so a
+ * caller far from here — `SheetModal` reaches every report and picker screen — cannot fail a test
+ * that was never about safe areas at all.
+ */
+export function DialogStrip({ accent, wash, children, style }: {
+  /** The top rule's colour. A warning strip passes `STATUS.warning`; everything else, the brand. */
+  accent?: string;
+
+  /** A translucent tone over the parchment. Omit it for a strip with no tone of its own. */
+  wash?: string;
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const insets = useContext(SafeAreaInsetsContext);
+  return (
+    <View
+      testID="dialog-strip"
+      style={[
+        DIALOG_STYLES.strip,
+        { borderTopColor: accent ?? ACCENT.base, paddingBottom: SPACE.xl + (insets?.bottom ?? 0) },
+        style,
+      ]}
+    >
+      <LinearGradient colors={[SURFACE.raised, SURFACE.panel]} style={StyleSheet.absoluteFillObject} pointerEvents="none" />
+      <View style={DIALOG_STYLES.stripTexture} pointerEvents="none">
+        <Image
+          source={require('../../assets/textures/parchment.png')}
+          style={DIALOG_STYLES.stripTextureImage}
+          resizeMode="cover"
+        />
+      </View>
+      {!!wash && <View style={[StyleSheet.absoluteFillObject, { backgroundColor: wash }]} pointerEvents="none" />}
+      {children}
+    </View>
+  );
 }
 
 export const DIALOG_STYLES = StyleSheet.create({
@@ -106,4 +166,16 @@ export const DIALOG_STYLES = StyleSheet.create({
     minWidth: 260,
     maxWidth: 340,
   },
+  strip: {
+    width: '100%',
+    borderTopWidth: 2,
+    borderTopLeftRadius: RADIUS.sm,
+    borderTopRightRadius: RADIUS.sm,
+    overflow: 'hidden',
+    alignItems: 'center',
+    gap: SPACE.sm,
+    padding: SPACE.xl,
+  },
+  stripTexture: { ...StyleSheet.absoluteFillObject, opacity: 0.06 },
+  stripTextureImage: { width: '100%', height: '100%' },
 });
