@@ -19,5 +19,8 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     letterSpacing: TRACKING.eyebrow,
     marginBottom: SPACE.sm,
+    // Mongolian runs longer than English at the same tracking; shrink inside a flex
+    // row rather than clip against a sibling.
+    flexShrink: 1,
   },
 });

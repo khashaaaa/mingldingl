@@ -56,9 +56,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: LINE.edge,
     backgroundColor: SURFACE.panel,
+    // A Mongolian label runs 20-40% longer than its English source; wrap the row (see
+    // `options` above) and let a chip itself shrink rather than push past its neighbours.
+    maxWidth: '100%',
   },
   chipCompact: { paddingVertical: SPACE.xs, paddingHorizontal: SPACE.sm },
   chipSelected: { borderColor: ACCENT.base, backgroundColor: ACCENT.soft },
-  chipText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.dim, letterSpacing: TRACKING.label },
+  chipText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: FONT_SIZES.md,
+    color: INK.dim,
+    letterSpacing: TRACKING.label,
+    flexShrink: 1,
+  },
   chipTextSelected: { color: ACCENT.bright },
 });

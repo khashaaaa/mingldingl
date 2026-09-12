@@ -4,6 +4,8 @@ import { StyleSheet, Text, TextInput } from 'react-native';
 import { CardEyebrow } from '../CardEyebrow';
 import { TextField } from '../TextField';
 import { HeaderBar } from '../HeaderBar';
+import { ChoiceRow } from '../ChoiceRow';
+import { i18n, translations } from '../../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, INK, LINE, SURFACE } from '../../../lib/theme';
 
 const mockBack = jest.fn();
@@ -38,6 +40,49 @@ describe('CardEyebrow', () => {
   it('uppercases Mongolian Cyrillic labels', () => {
     const { getByText } = render(<CardEyebrow>Өдрийн даалгавар</CardEyebrow>);
     expect(getByText('ӨДРИЙН ДААЛГАВАР')).toBeTruthy();
+  });
+
+  it('shrinks rather than clips a long Mongolian label', () => {
+    const { getByText } = render(<CardEyebrow>Өдрийн даалгавар</CardEyebrow>);
+    const style = StyleSheet.flatten(getByText('ӨДРИЙН ДААЛГАВАР').props.style);
+    expect(style.flexShrink).toBe(1);
+  });
+});
+
+describe('ChoiceRow', () => {
+  const originalLocale = i18n.locale;
+  afterEach(() => {
+    i18n.locale = originalLocale;
+  });
+
+  it('wraps and shrinks Mongolian chip labels instead of clipping them', () => {
+    i18n.locale = 'mn';
+    const options = ['never', 'occasionally', 'regularly'] as const;
+    const { getByText, getAllByRole } = render(
+      <ChoiceRow
+        label="Smoking"
+        value="occasionally"
+        options={options}
+        optionLabel={(opt) => translations.mn[`habit_${opt}`]}
+        onChange={() => {}}
+      />
+    );
+
+    // Climb past the chip's own `Tap`/`TouchableOpacity` wrapper layers to the row
+    // that actually holds `flexWrap`.
+    let optionsContainer = getAllByRole('button')[0];
+    while (optionsContainer && StyleSheet.flatten(optionsContainer.props?.style)?.flexWrap !== 'wrap') {
+      optionsContainer = optionsContainer.parent;
+    }
+    expect(StyleSheet.flatten(optionsContainer?.props?.style).flexWrap).toBe('wrap');
+
+    for (const opt of options) {
+      const label = translations.mn[`habit_${opt}`];
+      const textNode = getByText(label);
+      const style = StyleSheet.flatten(textNode.props.style);
+      expect(style.flexShrink).toBe(1);
+      expect(textNode.props.numberOfLines).toBeUndefined();
+    }
   });
 });
 
