@@ -38,8 +38,8 @@ public class PushNotificationServiceIntegrationTests : IntegrationTestBase
 
         var envelope = Assert.Single(dispatcher.Envelopes);
         Assert.Equal([token], envelope.Tokens);
-        Assert.Equal("New Match!", envelope.Title);
-        Assert.Equal("Bat sent you a summons.", envelope.Body);
+        Assert.Equal("A summons.", envelope.Title);
+        Assert.Equal("Bat has summoned you. A new fire is lit.", envelope.Body);
         Assert.Equal("match", envelope.Data["type"]);
         Assert.Equal("m1", envelope.Data["matchId"]);
     }
@@ -78,7 +78,7 @@ public class PushNotificationServiceIntegrationTests : IntegrationTestBase
 
         var sent = System.Text.Json.JsonDocument.Parse(handler.LastRequestBody!).RootElement[0];
         Assert.Equal(PushCopy.For(PushKind.NewMatch, "en", "Bat").Title, sent.GetProperty("title").GetString());
-        Assert.Equal("New Match!", sent.GetProperty("title").GetString());
+        Assert.Equal("A summons.", sent.GetProperty("title").GetString());
     }
 
     [Fact]

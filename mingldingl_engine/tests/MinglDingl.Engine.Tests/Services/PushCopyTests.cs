@@ -80,4 +80,24 @@ public class PushCopyTests
         if (System.Text.RegularExpressions.Regex.Replace(en, @"\{\d+\}", "").Trim().Length == 0) return;
         Assert.False(en == mn, $"{kind} {field} is untranslated: both languages read \"{en}\"");
     }
+
+    /// <summary>
+    /// The lock screen is the one place the app speaks outside its own walls, so it speaks the
+    /// way it does inside: short sentences that end, no exclamation, the world commanded and the
+    /// law stated. NewMessage is the sender's own words and is exempt.
+    /// </summary>
+    [Fact]
+    public void EnglishCopy_SpeaksInTheVoice()
+    {
+        foreach (PushKind kind in Enum.GetValues<PushKind>())
+        {
+            if (kind == PushKind.NewMessage) continue;
+            var (title, body) = PushCopy.For(kind, "en", "Bat");
+            Assert.DoesNotContain("!", title);
+            Assert.DoesNotContain("!", body);
+            Assert.EndsWith(".", title);
+            Assert.EndsWith(".", body);
+            Assert.True(title.Split(' ').Length <= 4, $"{kind} title is not short: \"{title}\"");
+        }
+    }
 }

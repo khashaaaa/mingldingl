@@ -106,16 +106,16 @@ public static class PushCopy
 
     private static (string, string) English(PushKind kind) => kind switch
     {
-        PushKind.NewMatch => ("New Match!", "{0} sent you a summons."),
+        PushKind.NewMatch => ("A summons.", "{0} has summoned you. A new fire is lit."),
         PushKind.NewMessage => ("{0}", "{1}"),
-        PushKind.ThreadSparked => ("Thread Sparked!", "A thread you accepted just became a match."),
-        PushKind.TownSquareMatch => ("New Match!", "You both said yes in the Town Square."),
-        PushKind.FlameRiteProposed => ("Flame Rite Proposed", "Your match wants to video-screen before pledging to meet."),
-        PushKind.FlameRiteAccepted => ("Flame Rite Accepted", "Your match accepted the Flame Rite. Light the call when you are ready."),
-        PushKind.DateConfirmed => ("Encounter Pledged", "You both pledged to meet. Open the activity for the details."),
-        PushKind.MatchGhosted => ("A Thread Went Cold", "A match stayed silent too long and has been closed."),
-        PushKind.MatchGhostedByYou => ("A Thread Went Cold", "You left a conversation unanswered. It has closed, and your score and standing have taken the cost."),
-        PushKind.TownSquareStarting => ("The Town Square Is Open", "Your session has begun. Step in now."),
+        PushKind.ThreadSparked => ("A thread took.", "A thread woven for you has caught. A new fire is lit."),
+        PushKind.TownSquareMatch => ("A lantern answered.", "You both said yes in the square. A new fire is lit."),
+        PushKind.FlameRiteProposed => ("The Flame Rite.", "Your match asks to meet across the glass before swearing to meet."),
+        PushKind.FlameRiteAccepted => ("The rite is accepted.", "Your match will meet you across the glass. Light the call when you are ready."),
+        PushKind.DateConfirmed => ("A meeting sworn.", "You both swore to meet under open sky. The place and hour are in the thread."),
+        PushKind.MatchGhosted => ("A fire went out.", "A thread fell silent too long. It is closed."),
+        PushKind.MatchGhostedByYou => ("A fire went out.", "You let a thread fall silent. It is closed, and your score and standing paid for it."),
+        PushKind.TownSquareStarting => ("The bell rings.", "The square is open and your round has begun. Step in."),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
