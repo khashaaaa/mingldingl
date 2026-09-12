@@ -8,10 +8,11 @@ import { appSources } from '../testing/sourceTree';
  * is a limit on identity, not a style choice any screen gets to make for itself, so it is held by
  * an allowlist rather than a convention.
  *
- * Nothing reaches for the tokens yet — Wave 1 adds the pigment, not the call sites — so this test
- * only guards the list stays empty of everything else. The second test proves the guard would
- * actually catch a violation, the same way `hero.test.ts`'s scanner test proves its own regex
- * before trusting it against the real tree.
+ * `components/cards/CandidateCard.tsx` is the first call site — the Fire's plaque rule and its
+ * wax seals burn — and the rest of the list is still pigment waiting on its screen, so this test
+ * mostly guards that the list stays empty of everything else. The second test proves the guard
+ * would actually catch a violation, the same way `hero.test.ts`'s scanner test proves its own
+ * regex before trusting it against the real tree.
  */
 
 const ALLOWED = new Set([
@@ -30,8 +31,8 @@ const FURNACE_TOKEN = /furnace/i;
 
 describe('furnace guard', () => {
   it('finds the allowed screens at all — a walk that saw nothing would pass by accident', () => {
-    // `lib/theme.ts` itself is excluded by `appSources`, and nothing in Wave 1 reaches for the
-    // token yet, so the allowlist exists ahead of its first real user.
+    // `lib/theme.ts` itself is excluded by `appSources`; the list still runs ahead of its call
+    // sites, so the count is pinned rather than derived from what happens to use the token today.
     expect(ALLOWED.size).toBe(8);
   });
 

@@ -53,6 +53,8 @@ export const AWAITING_MN_TRANSLATION = [
   'seal_broke_2', 'seal_broke_3', 'seal_broke_4',
   // The ledger's pieces (Wave 2 move 2): the day heading and the send seal's label.
   'thread_day', 'letter_seal',
+  // The Fire's sealed likeness (Wave 2 move 1), and the oath as a phrase in the card's eyebrow.
+  'seek_sealed_hint', 'seek_sealed_a11y', 'oath_sworn_to', 'oath_seeking',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

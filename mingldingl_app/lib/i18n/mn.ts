@@ -48,8 +48,6 @@ export const mn = {
   end_call: 'Дуудлага дуусгах',
   camera_on: 'Камер асаах',
   camera_off: 'Камер унтраах',
-  previous_photo: 'Өмнөх зураг',
-  next_photo: 'Дараагийн зураг',
   seek_title: 'Хамтрагч хайх',
   send_summons: 'Урилга илгээх',
   skip: 'Алгасах',
