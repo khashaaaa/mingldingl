@@ -3,8 +3,8 @@ import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../../lib/i18n';
 import { LINE, SPACE, SURFACE } from '../../lib/theme';
-import { GameButton } from '../ui/GameButton';
 import { TextField } from '../ui/TextField';
+import { WaxSealButton } from './WaxSealButton';
 
 interface Props { onSend: (text: string) => void; }
 
@@ -52,9 +52,7 @@ export function MessageInput({ onSend }: Props) {
         style={styles.field}
         blurOnSubmit={false}
       />
-      <GameButton variant="primary" disabled={!text.trim()} onPress={handleSend}>
-        {i18n.t('send')}
-      </GameButton>
+      <WaxSealButton onPress={handleSend} disabled={!text.trim()} />
     </View>
   );
 }
@@ -66,7 +64,9 @@ const styles = StyleSheet.create({
     paddingTop: SPACE.md,
     alignItems: 'flex-end',
     gap: SPACE.sm,
-    backgroundColor: SURFACE.panel,
+    // The ledger stands on the world floor, so the composer does too — a panel fill under it cut
+    // the thread off with a slab. The hairline stays: it is what separates writing from reading.
+    backgroundColor: 'transparent',
     borderTopColor: LINE.edge,
     borderTopWidth: 1,
   },

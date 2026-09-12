@@ -23,7 +23,7 @@ export function LetterRow({ message, myId, initial, onRetry }: Props) {
   const isFailed = message.status === 'failed';
   const isSending = message.status === 'sending';
 
-  return (
+  const row = (
     <View
       testID="letter"
       style={[styles.row, isSending && styles.sending, isFailed && styles.failed]}
@@ -34,16 +34,22 @@ export function LetterRow({ message, myId, initial, onRetry }: Props) {
       <View style={styles.body}>
         <Text style={[styles.text, isMine ? styles.textMine : styles.textTheirs]}>{message.content}</Text>
         {isFailed && (
-          <Pressable onPress={() => onRetry?.(message.id)} accessibilityLabel={i18n.t('message_tap_to_retry')}>
-            <View style={styles.retryRow}>
-              <Icon name="alert-circle" size={ICON_SIZES.sm} color={STATUS.danger} />
-              <FieldError>{i18n.t('message_tap_to_retry')}</FieldError>
-            </View>
-          </Pressable>
+          <View style={styles.retryRow}>
+            <Icon name="alert-circle" size={ICON_SIZES.sm} color={STATUS.danger} />
+            <FieldError>{i18n.t('message_tap_to_retry')}</FieldError>
+          </View>
         )}
       </View>
     </View>
   );
+
+  // The whole failed letter is the retry target, not the small line under it: the line you are
+  // trying to send again is the thing on screen, and a two-word strip is a hard thing to hit.
+  return isFailed ? (
+    <Pressable onPress={() => onRetry?.(message.id)} accessibilityLabel={i18n.t('message_tap_to_retry')}>
+      {row}
+    </Pressable>
+  ) : row;
 }
 
 const RING = 28;

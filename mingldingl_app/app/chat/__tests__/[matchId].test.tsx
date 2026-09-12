@@ -1,7 +1,9 @@
 import { act, render, fireEvent } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ChatScreen from '../[matchId]';
 import { WithSafeArea } from '../../../lib/testing/safeArea';
+import { FONTS } from '../../../lib/theme';
 
 
 const mockPush = jest.fn();
@@ -18,11 +20,12 @@ jest.mock('../../../hooks/useMatchStatus', () => ({
 
 type MockMessage = { id: string; matchId: string; senderId: string; content: string; createdAt: string; status: 'sent' };
 let mockMessages: MockMessage[] = [];
+let mockHasMore = false;
 jest.mock('../../../hooks/useChat', () => ({
   useChat: () => ({
     messages: mockMessages, loading: false, isError: false, refetch: jest.fn(),
     sendMessage: jest.fn(), retryMessage: jest.fn(), myId: 'me1',
-    loadEarlier: jest.fn(), hasMore: false, loadingEarlier: false,
+    loadEarlier: jest.fn(), hasMore: mockHasMore, loadingEarlier: false,
     earlierError: false, justLoadedEarlier: false, acknowledgeEarlierLoaded: jest.fn(),
   }),
 }));
@@ -41,6 +44,7 @@ jest.mock('../../../hooks/useMatches', () => ({
   useMatches: () => ({
     data: [{
       matchId: 'm1', otherUserId: 'u2', status: 'Active', revealLevel: 2, messageCount: mockMatchMessageCount,
+      createdAt: '2026-09-10T12:00:00Z',
       icebreakerComplete: false, videoCallUnlocked: false, otherUser: { displayName: 'Riley' },
       flameRiteDurationMinutes: 5, flameRiteRequired: false, videoEnabled: true,
     }],
@@ -62,16 +66,102 @@ function renderScreen() {
   );
 }
 
+/**
+ * The ledger's own copy, so an assertion below reads as the line on screen rather than a key.
+ * `SEAL_BROKE_2` is `seal_broke_2`, which the second rung of the default ladder ([1, 5, 15, 30])
+ * lands on.
+ */
+const FIRST_DAY = 'THE FIRST DAY';
+const SEAL_BROKE_2 = 'A seal broke here. Their age and second likeness are yours now.';
+
+/**
+ * Six letters, theirs first, all inside one local day whatever the machine's zone: they span five
+ * minutes, and the thread starts on the first of them, so no offset can push one onto another day
+ * or the ledger onto its second. Alternating is what earns the second seal on the fifth letter —
+ * the mutual count runs one ahead of the quieter side, so five letters make a mutual five.
+ */
+function alternatingThread(count: number): MockMessage[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `msg${i + 1}`,
+    matchId: 'm1',
+    senderId: i % 2 === 0 ? 'u2' : 'me1',
+    content: `line ${i + 1}`,
+    createdAt: `2026-09-10T12:0${i}:00Z`,
+    status: 'sent' as const,
+  }));
+}
+
+/** Every string the tree draws, in the order it draws them. */
+function drawnText(node: unknown): string[] {
+  if (typeof node === 'string') return [node];
+  if (Array.isArray(node)) return node.flatMap(drawnText);
+  // Stringifying the tree instead would be shorter, but a rendered node's props carry a context
+  // Provider that closes a circle on itself.
+  if (node && typeof node === 'object' && 'children' in node) {
+    return drawnText((node as { children?: unknown }).children);
+  }
+  return [];
+}
+
+/** Where each piece of copy sits in the rendered tree, so "above" and "below" can be asserted. */
+function positions(tree: unknown, ...texts: string[]): number[] {
+  const drawn = drawnText(tree);
+  return texts.map((t) => drawn.findIndex((line) => line.includes(t)));
+}
+
 describe('ChatScreen', () => {
   beforeEach(() => {
     mockEndedReason = null;
     mockAttendanceDue = false;
     mockMatchMessageCount = 7;
     mockMessages = [];
+    mockHasMore = false;
     mockPush.mockClear();
   });
 
-  it('renders a lone incoming first word as a sealed letter, and the bubble once opened', () => {
+  it('opens the thread with the day it began', () => {
+    mockMessages = alternatingThread(6);
+    const { toJSON } = renderScreen();
+
+    const [heading, first] = positions(toJSON(), FIRST_DAY, 'line 1');
+    expect(heading).toBeGreaterThan(-1);
+    expect(heading).toBeLessThan(first);
+  });
+
+  it('marks where the second seal broke, between the letter that broke it and the next', () => {
+    mockMessages = alternatingThread(6);
+    const { toJSON } = renderScreen();
+
+    const [fifth, seal, sixth] = positions(toJSON(), 'line 5', SEAL_BROKE_2, 'line 6');
+    expect(seal).toBeGreaterThan(fifth);
+    expect(seal).toBeLessThan(sixth);
+  });
+
+  it('marks no seal at all while earlier letters are still unloaded', () => {
+    // The count that breaks a seal is the whole history's, and a page that begins mid-conversation
+    // cannot know how many letters came before it.
+    mockMessages = alternatingThread(6);
+    mockHasMore = true;
+    const { getByText, queryByText } = renderScreen();
+
+    // The same six letters that earn the row above still draw; only the mark is withheld.
+    expect(getByText('line 5')).toBeTruthy();
+    expect(queryByText(SEAL_BROKE_2)).toBeNull();
+  });
+
+  it('sets my own letters in the app\'s italic and theirs in their own hand', () => {
+    mockMessages = alternatingThread(6);
+    const { getByText } = renderScreen();
+
+    expect(StyleSheet.flatten(getByText('line 2').props.style)).toEqual(
+      expect.objectContaining({ fontFamily: FONTS.bodyItalic }),
+    );
+    expect(StyleSheet.flatten(getByText('line 1').props.style)).toEqual(
+      expect.objectContaining({ fontFamily: FONTS.body }),
+    );
+  });
+
+  it('renders a lone incoming first word as a sealed letter, and the line once opened', () => {
     jest.useFakeTimers();
     mockMessages = [{ id: 'msg1', matchId: 'm1', senderId: 'u2', content: 'Сайн уу', createdAt: '2026-09-10T10:00:00Z', status: 'sent' }];
     const { getByTestId, queryByText, getByText, queryByTestId } = renderScreen();

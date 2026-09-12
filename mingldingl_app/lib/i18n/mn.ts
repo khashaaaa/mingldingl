@@ -26,7 +26,6 @@ export const mn = {
   referral_code_field_label: 'Холбоотны код байна уу?',
   referral_code_field_placeholder: 'Код оруулах (заавал биш)',
   match_requested: 'Хүсэлт илгээлээ!',
-  send: 'Илгээх',
   break_ice: 'Мөс хагалах',
   trial_compat: 'Нийцлийн сорил',
   encounter_locked: 'Болзоо төлөвлөх · дахин %{count} мессеж',

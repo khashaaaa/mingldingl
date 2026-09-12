@@ -26,7 +26,6 @@ export const en = {
   referral_code_field_label: "Got an ally's code?",
   referral_code_field_placeholder: 'Enter code (optional)',
   match_requested: 'Match Requested!',
-  send: 'Send',
   break_ice: 'Break the Ice',
   trial_compat: 'Trial of Compatibility',
   encounter_locked: 'Plan an Encounter · %{count} more messages',

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Tap } from '../../components/ui/Tap';
 import { View, Text, FlatList, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,8 +17,10 @@ import { ReportUserSheet } from '../../components/modals/ReportUserSheet';
 import FlameRiteCard, { type FlameRiteState } from '../../components/FlameRiteCard';
 import { GameButton } from '../../components/ui/GameButton';
 import { Icon } from '../../components/ui/Icon';
-import { MessageBubble } from '../../components/chat/MessageBubble';
+import { DayHeading } from '../../components/chat/DayHeading';
+import { LetterRow } from '../../components/chat/LetterRow';
 import { MessageInput } from '../../components/chat/MessageInput';
+import { SealBreakRow } from '../../components/chat/SealBreakRow';
 import { SealDots, SEAL_COUNT, sealsBroken } from '../../components/chat/SealDots';
 import { SealsSheet } from '../../components/chat/SealsSheet';
 import { SealedLetter } from '../../components/chat/SealedLetter';
@@ -35,6 +37,8 @@ import { FieldError, StateBlock } from '../../components/ui/StateBlock';
 import { useAuthStore } from '../../store/authStore';
 import { useActivityGate, useRevealLadder } from '../../hooks/useRevealThresholds';
 import { messagesUntilActivities, nextRevealThreshold } from '../../lib/reveal';
+import { letterMarks } from '../../lib/letters';
+import { useProfile } from '../../hooks/useProfile';
 import { useUnsealing } from '../../hooks/useUnsealing';
 import { useSealedLetter } from '../../hooks/useSealedLetter';
 
@@ -93,6 +97,16 @@ export default function ChatScreen() {
   const { unsealed, dismiss: dismissUnsealing } = useUnsealing(matchId, match?.revealLevel);
   // The other side's first word arrives as a sealed letter, once, until you break the wax.
   const { sealedMessageId, unseal } = useSealedLetter(matchId, messages, myId, hasMore);
+  // Where the ledger rules a day off and where it records a broken seal. Both are read off the
+  // thread itself rather than stored, so a page of history loading in re-rules the whole ledger.
+  const marks = useMemo(
+    () => letterMarks(messages, myId, { threadStartIso: match?.createdAt, ladder: revealLadder, complete: !hasMore }),
+    // The compiler cannot prove the matches list this date was found in is never mutated, so it
+    // declines to preserve the memo and says so. Keep it anyway: a fully loaded history is a pass
+    // over every message, and every modal and sheet on this screen re-renders it.
+    // oxlint-disable-next-line react/preserve-manual-memoization
+    [messages, myId, match?.createdAt, revealLadder, hasMore],
+  );
   const revealedPhotos = match
     ? [match.otherUser.firstPhoto, match.otherUser.secondPhoto, match.otherUser.thirdPhoto].filter(Boolean)
     : [];
@@ -110,6 +124,7 @@ export default function ChatScreen() {
     : i18n.t('seals_left_0');
   const unsealedTailSentence = `${unsealedTail.charAt(0).toUpperCase()}${unsealedTail.slice(1)}.`;
 
+  const { data: myProfile } = useProfile();
   const insets = useSafeAreaInsets();
   const keyboardHeight = useAndroidKeyboardHeight();
   const router = useRouter();
@@ -176,6 +191,12 @@ export default function ChatScreen() {
         ? (match.otherUser.displayName ?? i18n.t('unknown_name'))
         : i18n.t('mystery_match_name')
     : null;
+
+  // The sigil beside each line, standing in for a portrait there is no room for. A masked match
+  // has no name to take a letter from, so theirs falls back to the question mark the header uses;
+  // mine falls back to a mid dot rather than a letter I have not given yet.
+  const theirInitial = (revealedName ?? name ?? '?').trim().charAt(0).toUpperCase() || '?';
+  const myInitial = (myProfile?.displayName ?? '').trim().charAt(0).toUpperCase() || '·';
 
   return (
     <View style={styles.container}>
@@ -277,60 +298,75 @@ export default function ChatScreen() {
             <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
           </StateBlock>
         ) : (
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(m) => m.id}
-            contentContainerStyle={styles.messageList}
-            onScroll={(e) => {
-              const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-              nearBottomRef.current =
-                contentSize.height - contentOffset.y - layoutMeasurement.height <= NEAR_BOTTOM_SLOP;
-            }}
-            scrollEventThrottle={16}
-            // Prepending a page of history otherwise leaves the scroll offset where it was, so the
-            // 50 new rows above it shove the message you were reading off-screen.
-            maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-            // Prepending a page of history otherwise leaves the scroll offset where it was, so the
-            // 50 new rows above it shove the message you were reading off-screen.
-            onContentSizeChange={() => {
-              if (loadingEarlier || justLoadedEarlier) { acknowledgeEarlierLoaded(); return; }
-              if (!nearBottomRef.current) return;
-              scrollToEndSoon();
-            }}
-            onLayout={scrollToEndSoon}
-            // A brand-new match has nothing to scroll through yet — without this the thread was
-            // just the reveal strip and activities row over a blank area, with no cue that
-            // sending the first message is the way to begin.
-            ListEmptyComponent={!hasMore ? (
-              <StateBlock
-                testID="chat-empty"
-                style={styles.emptyWrap}
-                icon="message-text-outline"
-                title={i18n.t('chat_empty_title')}
-                body={i18n.t('chat_empty_sub')}
-              />
-            ) : null}
-            ListHeaderComponent={hasMore ? (
-              <>
-                <Tap style={styles.loadEarlierBtn} onPress={() => loadEarlier()} disabled={loadingEarlier} accessibilityRole="button">
-                  {loadingEarlier ? <Waiting size={ICON_SIZES.md} /> : (
-                    <>
-                      <Icon name="chevron-double-up" size={ICON_SIZES.sm} color={ACCENT.base} />
-                      <Text style={styles.loadEarlierText}>{i18n.t('load_earlier')}</Text>
-                    </>
-                  )}
-                </Tap>
-                {earlierError && <FieldError style={styles.loadErrorText}>{i18n.t('load_earlier_failed')}</FieldError>}
-              </>
-            ) : null}
-            renderItem={({ item }) => (
-              item.id === sealedMessageId
-                // The match carries no tier for the other side, so the wax is gold.
-                ? <SealedLetter onOpen={unseal} sealColor={METAL.gold} />
-                : <MessageBubble message={item} myId={myId ?? ''} onRetry={retryMessage} />
-            )}
-          />
+          <View style={styles.ledger}>
+            {/* The thread the letters are strung on, running through the centre of every sigil ring.
+                Android draws a dashed border only when all four sides have a width, so this is a
+                1px-wide box rather than a lone borderLeftWidth. */}
+            <View pointerEvents="none" style={styles.thread} />
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              keyExtractor={(m) => m.id}
+              contentContainerStyle={styles.messageList}
+              onScroll={(e) => {
+                const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+                nearBottomRef.current =
+                  contentSize.height - contentOffset.y - layoutMeasurement.height <= NEAR_BOTTOM_SLOP;
+              }}
+              scrollEventThrottle={16}
+              // Prepending a page of history otherwise leaves the scroll offset where it was, so the
+              // 50 new rows above it shove the message you were reading off-screen.
+              maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+              // Prepending a page of history otherwise leaves the scroll offset where it was, so the
+              // 50 new rows above it shove the message you were reading off-screen.
+              onContentSizeChange={() => {
+                if (loadingEarlier || justLoadedEarlier) { acknowledgeEarlierLoaded(); return; }
+                if (!nearBottomRef.current) return;
+                scrollToEndSoon();
+              }}
+              onLayout={scrollToEndSoon}
+              // A brand-new match has nothing to scroll through yet — without this the thread was
+              // just the reveal strip and activities row over a blank area, with no cue that
+              // sending the first message is the way to begin.
+              ListEmptyComponent={!hasMore ? (
+                <StateBlock
+                  testID="chat-empty"
+                  style={styles.emptyWrap}
+                  icon="message-text-outline"
+                  title={i18n.t('chat_empty_title')}
+                  body={i18n.t('chat_empty_sub')}
+                />
+              ) : null}
+              ListHeaderComponent={hasMore ? (
+                <>
+                  <Tap style={styles.loadEarlierBtn} onPress={() => loadEarlier()} disabled={loadingEarlier} accessibilityRole="button">
+                    {loadingEarlier ? <Waiting size={ICON_SIZES.md} /> : (
+                      <>
+                        <Icon name="chevron-double-up" size={ICON_SIZES.sm} color={ACCENT.base} />
+                        <Text style={styles.loadEarlierText}>{i18n.t('load_earlier')}</Text>
+                      </>
+                    )}
+                  </Tap>
+                  {earlierError && <FieldError style={styles.loadErrorText}>{i18n.t('load_earlier_failed')}</FieldError>}
+                </>
+              ) : null}
+              renderItem={({ item }) => {
+                const day = marks.dayStarts.get(item.id);
+                const broke = marks.sealBreaks.get(item.id);
+                const mine = item.senderId === 'me' || (!!myId && item.senderId === myId);
+                return (
+                  <>
+                    {day && <DayHeading day={day.day} iso={day.iso} />}
+                    {item.id === sealedMessageId
+                      // The match carries no tier for the other side, so the wax is gold.
+                      ? <SealedLetter onOpen={unseal} sealColor={METAL.gold} />
+                      : <LetterRow message={item} myId={myId ?? undefined} initial={mine ? myInitial : theirInitial} onRetry={retryMessage} />}
+                    {broke != null && <SealBreakRow level={broke} />}
+                  </>
+                );
+              }}
+            />
+          </View>
         )}
         {endedReason ? (
           <View style={styles.endedNotice}>
@@ -524,6 +560,19 @@ const styles = StyleSheet.create({
     gap: SPACE.md,
   },
   loadErrorText: { textAlign: 'center', paddingHorizontal: SPACE.huge },
+  ledger: { flex: 1 },
+  // Half of LetterRow's 28px sigil ring, so the thread passes through its centre.
+  thread: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: SPACE.gutter + 14,
+    width: 1,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: LINE.edge,
+    borderRadius: 1,
+  },
   messageList: {
     paddingHorizontal: SPACE.gutter,
     paddingVertical: SPACE.lg,
@@ -568,7 +617,8 @@ const styles = StyleSheet.create({
     gap: SPACE.sm,
     paddingHorizontal: SPACE.lg,
     paddingVertical: SPACE.lg,
-    backgroundColor: SURFACE.panel,
+    // Transparent for the same reason the composer it replaces is: the ledger ends on the floor.
+    backgroundColor: 'transparent',
     borderTopColor: LINE.edge,
     borderTopWidth: 1,
   },

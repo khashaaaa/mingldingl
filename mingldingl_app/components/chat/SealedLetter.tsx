@@ -6,7 +6,7 @@ import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { i18n } from '../../lib/i18n';
 import { LEADING, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, SURFACE, TRACKING, tint } from '../../lib/theme';
 interface Props {
-  /** Called once the wax has broken and the card has unfolded; the real bubble takes over. */
+  /** Called once the wax has broken and the card has unfolded; the real letter takes over. */
   onOpen: () => void;
   /** The sender's tier colour when the match carries one; gold otherwise. */
   sealColor?: string;
@@ -22,7 +22,7 @@ const UNFOLD_MS = 280;
  * The first word someone sends you is the one message in the whole conversation that deserves a
  * beat before it is read, and a bubble gives it none. This is a parchment card with a round wax
  * seal on it; tapping it ticks (`press`), the seal shrinks and fades, the card folds away on its
- * top edge and `onOpen` hands the row back to `MessageBubble`. Reduce-motion skips straight to
+ * top edge and `onOpen` hands the row back to `LetterRow`. Reduce-motion skips straight to
  * the open letter — the tick still fires, it is not motion.
  */
 export function SealedLetter({ onOpen, sealColor = METAL.gold }: Props) {
