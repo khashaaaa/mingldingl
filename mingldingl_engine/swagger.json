@@ -7509,6 +7509,16 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "lastMessageAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastMessageSenderId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -8159,6 +8169,14 @@
             "nullable": true
           },
           "activitySuggestionMessages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ghostingStaleHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ghostingUnansweredHours": {
             "type": "integer",
             "format": "int32"
           }

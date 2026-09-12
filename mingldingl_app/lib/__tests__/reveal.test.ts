@@ -8,6 +8,7 @@ import {
   revealLadderSnapshot,
   activityGateSnapshot,
   messagesUntilActivities,
+  ghostingWindowsSnapshot,
 } from '../reveal';
 
 describe('reveal ladder', () => {
@@ -123,5 +124,38 @@ describe('the activity-suggestion gate', () => {
       [{ level: 1, messages: 1 }, { level: 2, messages: 5 }, { level: 3, messages: 15 }, { level: 4, messages: 30 }],
     );
     expect(activityGateSnapshot()).toBe(15);
+  });
+});
+
+describe('the ghosting windows', () => {
+  beforeEach(() => resetRevealThresholdsForTests());
+  afterEach(() => resetRevealThresholdsForTests());
+
+  const LADDER = [{ level: 1, messages: 1 }, { level: 2, messages: 5 }, { level: 3, messages: 15 }, { level: 4, messages: 30 }];
+
+  it('falls back to the engine defaults before the thresholds have been fetched', () => {
+    expect(ghostingWindowsSnapshot()).toEqual({ staleHours: 48, unansweredHours: 168 });
+  });
+
+  it('hydrates from the same response the reveal ladder comes on', () => {
+    hydrateRevealThresholds(LADDER, 9, { staleHours: 72, unansweredHours: 200 });
+    expect(ghostingWindowsSnapshot()).toEqual({ staleHours: 72, unansweredHours: 200 });
+  });
+
+  it('ignores non-positive windows and keeps what is already loaded', () => {
+    hydrateRevealThresholds(LADDER, 9, { staleHours: 72, unansweredHours: 200 });
+    hydrateRevealThresholds(LADDER, 9, { staleHours: 0, unansweredHours: -1 });
+    expect(ghostingWindowsSnapshot()).toEqual({ staleHours: 72, unansweredHours: 200 });
+  });
+
+  it('keeps the standing windows when the field is missing, so an older engine does not zero them', () => {
+    hydrateRevealThresholds(LADDER, 9);
+    expect(ghostingWindowsSnapshot()).toEqual({ staleHours: 48, unansweredHours: 168 });
+  });
+
+  it('resetRevealThresholdsForTests restores the defaults', () => {
+    hydrateRevealThresholds(LADDER, 9, { staleHours: 72, unansweredHours: 200 });
+    resetRevealThresholdsForTests();
+    expect(ghostingWindowsSnapshot()).toEqual({ staleHours: 48, unansweredHours: 168 });
   });
 });

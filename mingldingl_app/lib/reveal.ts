@@ -15,14 +15,23 @@ const LEVELS = [1, 2, 3, 4] as const;
  */
 const DEFAULT_ACTIVITY_GATE = 15;
 
+/**
+ * The two ghosting windows (`ghosting.stale_hours`, `ghosting.unanswered_hours`), served alongside
+ * the reveal ladder so a fire can be shown burning down before the engine ever judges it — `lib/fire.ts`
+ * only describes what the engine will decide, never re-derives the cutoff itself.
+ */
+const DEFAULT_GHOSTING = { staleHours: 48, unansweredHours: 168 };
+
 let ladder: number[] = DEFAULT_LADDER;
 let activityGate = DEFAULT_ACTIVITY_GATE;
+let ghosting = { ...DEFAULT_GHOSTING };
 let hydrated = false;
 const listeners = new Set<() => void>();
 
 export function hydrateRevealThresholds(
   raw: readonly { level?: number; messages?: number }[],
   activitySuggestionMessages?: number,
+  ghostingWindows?: { staleHours?: number; unansweredHours?: number },
 ): void {
   const byLevel = new Map(raw.map((t) => [t.level, t.messages]));
   const ordered = LEVELS.map((level) => byLevel.get(level));
@@ -31,10 +40,26 @@ export function hydrateRevealThresholds(
   const nextGate = typeof activitySuggestionMessages === 'number' && activitySuggestionMessages > 0
     ? activitySuggestionMessages
     : activityGate;
+  const nextGhosting = {
+    staleHours: typeof ghostingWindows?.staleHours === 'number' && ghostingWindows.staleHours > 0
+      ? ghostingWindows.staleHours
+      : ghosting.staleHours,
+    unansweredHours: typeof ghostingWindows?.unansweredHours === 'number' && ghostingWindows.unansweredHours > 0
+      ? ghostingWindows.unansweredHours
+      : ghosting.unansweredHours,
+  };
   hydrated = true;
-  if (next.every((v, i) => v === ladder[i]) && nextGate === activityGate) return;
+  if (
+    next.every((v, i) => v === ladder[i]) &&
+    nextGate === activityGate &&
+    nextGhosting.staleHours === ghosting.staleHours &&
+    nextGhosting.unansweredHours === ghosting.unansweredHours
+  ) {
+    return;
+  }
   ladder = next;
   activityGate = nextGate;
+  ghosting = nextGhosting;
   for (const notify of listeners) notify();
 }
 
@@ -45,6 +70,10 @@ export function messagesUntilActivities(messageCount: number, gate: number = act
 
 export function activityGateSnapshot(): number {
   return activityGate;
+}
+
+export function ghostingWindowsSnapshot(): { staleHours: number; unansweredHours: number } {
+  return ghosting;
 }
 
 export function areRevealThresholdsHydrated(): boolean {
@@ -87,6 +116,7 @@ export function deepProfileThreshold(from: number[] = ladder): number {
 export function resetRevealThresholdsForTests(): void {
   ladder = DEFAULT_LADDER;
   activityGate = DEFAULT_ACTIVITY_GATE;
+  ghosting = { ...DEFAULT_GHOSTING };
   hydrated = false;
   listeners.clear();
 }

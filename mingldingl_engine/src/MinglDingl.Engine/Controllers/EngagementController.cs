@@ -28,7 +28,11 @@ public class EngagementController : ControllerBase
         var levels = RevealService.EffectiveThresholds(_config)
             .Select(t => new RevealThresholdDto(t.Level, t.Messages))
             .ToList();
-        return Ok(new RevealThresholdsResponse(levels, ActivitiesController.SuggestionThreshold(_config)));
+        return Ok(new RevealThresholdsResponse(
+            levels,
+            ActivitiesController.SuggestionThreshold(_config),
+            (int)GhostingService.StaleAfterFor(_config).TotalHours,
+            (int)GhostingService.UnansweredAfterFor(_config).TotalHours));
     }
 
     /// <summary>

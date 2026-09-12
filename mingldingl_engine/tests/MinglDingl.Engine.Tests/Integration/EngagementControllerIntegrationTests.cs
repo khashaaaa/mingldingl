@@ -577,4 +577,24 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
         // offered the door unconditionally and had no countdown to put next to it.
         Assert.Equal(9, body.ActivitySuggestionMessages);
     }
+
+    /// <summary>
+    /// The app can show a fire burning down before the engine ever judges it, but only if it reads
+    /// the engine's own admin-tunable windows rather than pinning a copy of them.
+    /// </summary>
+    [Fact]
+    public void GetRevealThresholds_AlsoServesTheGhostingWindows()
+    {
+        var config = new ConfigService();
+        config.Set("ghosting.stale_hours", "72");
+        config.Set("ghosting.unanswered_hours", "200");
+
+        var result = Assert.IsType<OkObjectResult>(BuildController(Guid.NewGuid(), config).GetRevealThresholds());
+        var body = Assert.IsType<RevealThresholdsResponse>(result.Value);
+
+        Assert.True(body.GhostingStaleHours > 0);
+        Assert.True(body.GhostingUnansweredHours > 0);
+        Assert.Equal(72, body.GhostingStaleHours);
+        Assert.Equal(200, body.GhostingUnansweredHours);
+    }
 }

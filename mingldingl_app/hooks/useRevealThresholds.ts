@@ -5,6 +5,7 @@ import { queryKeys } from '../lib/api/queryKeys';
 import { useAuthStore } from '../store/authStore';
 import {
   activityGateSnapshot,
+  ghostingWindowsSnapshot,
   hydrateRevealThresholds,
   revealLadderSnapshot,
   subscribeToRevealThresholds,
@@ -20,7 +21,12 @@ export function useRevealThresholds(): void {
   });
 
   useEffect(() => {
-    if (data?.levels) hydrateRevealThresholds(data.levels, data.activitySuggestionMessages);
+    if (data?.levels) {
+      hydrateRevealThresholds(data.levels, data.activitySuggestionMessages, {
+        staleHours: data.ghostingStaleHours,
+        unansweredHours: data.ghostingUnansweredHours,
+      });
+    }
   }, [data]);
 }
 
@@ -36,4 +42,9 @@ export function useRevealLadder(): number[] {
 /** The live activity-suggestion gate, hydrated and re-rendered the same way the ladder is. */
 export function useActivityGate(): number {
   return useSyncExternalStore(subscribeToRevealThresholds, activityGateSnapshot, activityGateSnapshot);
+}
+
+/** The live ghosting windows, hydrated and re-rendered the same way the ladder is. */
+export function useGhostingWindows(): { staleHours: number; unansweredHours: number } {
+  return useSyncExternalStore(subscribeToRevealThresholds, ghostingWindowsSnapshot, ghostingWindowsSnapshot);
 }

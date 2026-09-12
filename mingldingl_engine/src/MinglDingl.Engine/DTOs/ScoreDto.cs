@@ -64,4 +64,9 @@ public record RevealThresholdDto(int Level, int Messages);
 /// </param>
 public record RevealThresholdsResponse(
     IReadOnlyList<RevealThresholdDto> Levels,
-    int ActivitySuggestionMessages = 15);
+    int ActivitySuggestionMessages = 15,
+    /// <summary>The ghosting windows (<c>ghosting.stale_hours</c>, <c>ghosting.unanswered_hours</c>),
+    /// served so the app can show a fire burning down before the engine judges it, in the engine's
+    /// own numbers rather than a pinned copy.</summary>
+    int GhostingStaleHours = 48,
+    int GhostingUnansweredHours = 168);

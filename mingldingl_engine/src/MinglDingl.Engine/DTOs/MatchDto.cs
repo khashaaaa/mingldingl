@@ -47,7 +47,11 @@ public record MatchResponse(
     /// When the match was made. The app's letters count their days from it ("The third day"), so
     /// a thread's first heading is the day of the summons, not the day of the first word.
     /// </summary>
-    DateTime? CreatedAt = null);
+    DateTime? CreatedAt = null,
+    /// <summary>When the last letter was sent and by whom, so the app can say whose turn it is and
+    /// how long a fire has been quiet without opening the thread. Null until the first letter.</summary>
+    DateTime? LastMessageAt = null,
+    Guid? LastMessageSenderId = null);
 
 public record PartialUserProfile(
     string? DisplayName,

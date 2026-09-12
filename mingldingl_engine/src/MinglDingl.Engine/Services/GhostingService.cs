@@ -80,15 +80,22 @@ public class GhostingService
             new { matchId, status = "Ghosted", userId = atFaultUserId });
 
     /// <summary>Exposed so the sweep can push the same cutoff into SQL instead of filtering in memory.</summary>
-    public TimeSpan StaleAfter => TimeSpan.FromHours(Math.Max(1, _config.GetNumber("ghosting.stale_hours", 48)));
+    public TimeSpan StaleAfter => StaleAfterFor(_config);
 
     /// <summary>
     /// How long a match nobody has said anything in stays open. Its own window, and a longer one:
     /// a summons the other person has not answered yet is not the same as a conversation that
     /// stopped, and the target never asked for it.
     /// </summary>
-    public TimeSpan UnansweredAfter =>
-        TimeSpan.FromHours(Math.Max(1, _config.GetNumber("ghosting.unanswered_hours", 168)));
+    public TimeSpan UnansweredAfter => UnansweredAfterFor(_config);
+
+    /// <summary>Static so callers with only a <see cref="ConfigService"/> (no live match to check) can
+    /// read the same window — <c>EngagementController</c> serves it to the app without a <c>GhostingService</c>.</summary>
+    public static TimeSpan StaleAfterFor(ConfigService config) =>
+        TimeSpan.FromHours(Math.Max(1, config.GetNumber("ghosting.stale_hours", 48)));
+
+    public static TimeSpan UnansweredAfterFor(ConfigService config) =>
+        TimeSpan.FromHours(Math.Max(1, config.GetNumber("ghosting.unanswered_hours", 168)));
 
     /// <summary>
     /// Both clocks a match can run out on. Reading only <see cref="Match.LastMessageAt"/> left a

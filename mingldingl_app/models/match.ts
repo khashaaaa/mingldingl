@@ -55,6 +55,10 @@ export interface Match {
   videoEnabled: boolean;
   /** ISO time the match was made; the letters count their days from it. Absent from older caches. */
   createdAt?: string;
+  /** ISO time of the last letter sent in this thread. Null/absent until the first letter. */
+  lastMessageAt?: string;
+  /** Who sent the last letter, so the app can say whose turn it is. Null/absent until the first letter. */
+  lastMessageSenderId?: string;
 }
 
 export function parseMatch(d: components['schemas']['MatchResponse']): Match {
@@ -97,5 +101,7 @@ export function parseMatch(d: components['schemas']['MatchResponse']): Match {
     flameRiteRequired: d.flameRiteRequired ?? true,
     videoEnabled: d.videoEnabled ?? true,
     createdAt: d.createdAt ?? undefined,
+    lastMessageAt: d.lastMessageAt ?? undefined,
+    lastMessageSenderId: d.lastMessageSenderId ?? undefined,
   };
 }

@@ -149,6 +149,8 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
             MessageCount = 30,
             InitiatorMessageCount = 15,
             ReceiverMessageCount = 15,
+            LastMessageAt = new DateTime(2026, 9, 12, 10, 0, 0, DateTimeKind.Utc),
+            LastMessageSenderId = otherId,
         });
         await Db.SaveChangesAsync();
 
@@ -163,6 +165,9 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         // The chat's day headings ("The third day") count from the day the match was made, so the
         // thread needs its birth date, not just its most recent activity.
         Assert.NotNull(response.CreatedAt);
+        // Whose turn it is, and how long the fire has been quiet, without opening the thread.
+        Assert.NotNull(response.LastMessageAt);
+        Assert.Equal(otherId, response.LastMessageSenderId);
     }
 
     [Fact]

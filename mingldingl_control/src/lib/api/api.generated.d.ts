@@ -6478,6 +6478,10 @@ export interface components {
             videoEnabled?: boolean;
             /** Format: date-time */
             createdAt?: string | null;
+            /** Format: date-time */
+            lastMessageAt?: string | null;
+            /** Format: uuid */
+            lastMessageSenderId?: string | null;
         };
         MatchResponsePagedResponse: {
             items?: components["schemas"]["MatchResponse"][] | null;
@@ -6706,6 +6710,10 @@ export interface components {
             levels?: components["schemas"]["RevealThresholdDto"][] | null;
             /** Format: int32 */
             activitySuggestionMessages?: number;
+            /** Format: int32 */
+            ghostingStaleHours?: number;
+            /** Format: int32 */
+            ghostingUnansweredHours?: number;
         };
         ScoreDetailResponse: {
             /** Format: int32 */
