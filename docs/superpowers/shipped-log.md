@@ -10,6 +10,65 @@ written, not by date.
 
 ---
 
+## Sealed Fire — Wave 2, the thesis (2026-09-12)
+
+Fifteen commits `c24ce8c..4819acc` (the task list, eleven tasks, two fix rounds, one final batch),
+one small engine change, EN strings only — 48 new keys on `AWAITING_MN_TRANSLATION`. Verified on the
+Galaxy A51 dev build the same evening: the sealed Seek card, the Quest Log and Square headers, a
+34-letter ledger with its seal rows, the seals sheet, the Square's clocks and the exact-clock tap,
+and a live crossing (four letters by API, the fifth from the wax seal) that fired the ceremony,
+named the stranger, hollowed the first ring and dropped the seal row after my line.
+
+- **Seek, sealed** (`components/cards/CandidateCard.tsx`). The likeness is the level-0 photo under
+  `blurRadius 26` and a veil; the knot is the seal, three furnace `SealDots` under it, the hint in
+  italic; the plaque is name and age, one eyebrow `GEM · DISTRICT · OATH` (`oath_sworn_to` /
+  `oath_seeking` over `oathLabel`), the bio, ink Dismiss and forged Summon. No paging, no tap
+  targets; `previous_photo`/`next_photo` deleted from both tables. The hint went to `INK.primary`
+  after the review measured `INK.dim` at 2.27:1 on a white plate; the card's contrast test is back,
+  asserting 4.59:1 at veil alpha 0.63 (hand-derived from the seal stack's geometry — it drifts
+  silently if the stack changes, and says so).
+- **Chat as letters.** `RevealStrip` is gone; `SealDots` (one image, labelled with the count) sit
+  under the name in the header with "N seals left", and tap into `SealsSheet` (the old strip's
+  chips and membership gate moved verbatim, "27 winters", wax tiles and chips labelled "Under
+  wax", the law in italic, "Climb" to membership, "Back to the letters" to close). `MessageBubble`
+  is gone: `LetterRow` (sigil initial in a ring, mine italic gold, theirs roman, sending dimmed,
+  the whole failed row the retry target and its label carrying the text), `DayHeading` ("THE THIRD
+  DAY" via `ordinalWord`, counted from `Match.createdAt`, the date when a cache predates it),
+  `SealBreakRow` (italic, per rung; at rung 4 for a Free member it states the membership law
+  instead of a gift the engine withholds), `WaxSealButton` replaces the forged send (a `Pressable`
+  the forged scanner cannot see — noted in the test as deliberate). A 1px dashed box is the thread.
+  `lib/letters.ts` places the rows: the engine's `min(total, 2·min(mine, theirs) + 1)` walked over
+  the loaded history against the hydrated ladder, only once the whole thread is loaded (a page cut
+  cannot know its past). `FONTS.bodyItalic` (Alegreya italic, already in the package) is the
+  app's voice — and also my own letters, so italic carries two meanings on the busiest screen;
+  Wave 3 should not "fix" either without deciding.
+- **The engine.** `MatchResponse.CreatedAt` (defaulted, appended; swagger and both generated files
+  regenerated). `PushCopy` English rewritten in the voice with a law test (full stops, no
+  exclamation, titles ≤ 4 words; `MatchGhostedByYou` still names the person — the cost of silence
+  is the thesis).
+- **Time in the world's units.** `lib/worldTime.ts` (`worldWhen` → candle / today / tomorrow /
+  dawns, `ordinalWord`, `threadDay`) and `components/ui/WorldClock.tsx` (a button: the world
+  sentence, the exact clock for four seconds on a tap, the label carrying both). Mounted on the
+  Square's card and pill and the OTP step ("The gatekeeper waits while this match burns." with mm:ss
+  under it). **Mongolian keeps the exact clock** (`worldTimeSpoken()` is locale `en`) until the
+  translator's lines land — the ledger's headings and seal lines, by contrast, fall back to English
+  the ordinary way; the translator's batch should cover both at once.
+- **Carry-overs.** `HeaderBar glyph` on the five tabs; a Mongolian width pass (eyebrows
+  `flexShrink`, chips `maxWidth` + `flexShrink`); "A name struck" / "A sealed one" for
+  `deleted_user` / `unknown_name`; the composer says "Write your line…"; the severed and cold
+  threads say so in the voice.
+- **Review findings worth keeping.** Three town-square tests asserted local wall-clock strings
+  against UTC fixtures — green at +08, red in CI's UTC — caught by the whole-wave review running
+  the suite under `TZ=UTC`; fixtures now build from local components like every other new test.
+  The first inline `oxlint-disable` (`preserve-manual-memoization` on the ledger's `useMemo`)
+  stands with its why-comment.
+- **Deliberately left:** feedback rows for candle / bell / fire dying (the wave that fires them);
+  the chronicle's "thirteenth dawn" (no joining date on the profile); the Flame Rite's candle clock
+  (Wave 3); `mystery_match_name` in blackletter; the `mine` predicate in three places; the dashed
+  thread running behind the empty state; Seek still ships every photo URL to the client and the
+  blur is client-side — "faces are earned" is true of the UI, not the wire (Outstanding
+  Follow-ups). Test count 1020 → 1063.
+
 ## Sealed Fire — Wave 1, the kit (2026-09-12)
 
 Sixteen commits `c422a4a..e4399b7`, no behaviour change, no new i18n key, nothing written in
