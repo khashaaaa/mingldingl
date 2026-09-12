@@ -80,7 +80,7 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
             <Text style={{ color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.md }}>
               {i18n.t('location_permission_denied')}
             </Text>
-            <GameButton variant="ghost" onPress={() => setPickerVisible(true)}>
+            <GameButton variant="ink" onPress={() => setPickerVisible(true)}>
               {i18n.t('choose_your_city')}
             </GameButton>
           </View>
@@ -92,7 +92,7 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
           returnKeyType="done" onSubmitEditing={Keyboard.dismiss} blurOnSubmit
         />
         <View style={styles.actions}>
-          <GameButton variant="ghost" flex={1} onPress={() => { Keyboard.dismiss(); onBack(); }}>
+          <GameButton variant="ink" flex={1} onPress={() => { Keyboard.dismiss(); onBack(); }}>
             {i18n.t('back')}
           </GameButton>
           <GameButton

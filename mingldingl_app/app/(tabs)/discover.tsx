@@ -70,7 +70,7 @@ export default function DiscoverScreen() {
         title={i18n.t('empty_seek_title')}
         body={i18n.t('empty_seek_sub')}
       >
-        <GameButton variant="ghost" size="compact" icon="refresh" onPress={() => refetch()}>
+        <GameButton variant="ink" size="compact" icon="refresh" onPress={() => refetch()}>
           {i18n.t('refresh')}
         </GameButton>
       </StateBlock>

@@ -234,7 +234,7 @@ function AppContent() {
       <View style={styles.splash}>
         <Text style={styles.splashTitle}>{i18n.t('account_suspended_title')}</Text>
         <Text style={styles.splashBody}>{i18n.t('err_account_suspended')}</Text>
-        <GameButton variant="brass" onPress={() => signOut()}>{i18n.t('sign_out')}</GameButton>
+        <GameButton variant="ink" onPress={() => signOut()}>{i18n.t('sign_out')}</GameButton>
       </View>
     );
   }

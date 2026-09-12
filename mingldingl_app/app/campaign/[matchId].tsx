@@ -104,7 +104,7 @@ export default function CampaignScreen() {
               </View>
             ) : (
               <GameButton
-                variant={isBoss ? 'danger' : 'brass'}
+                variant={isBoss ? 'danger' : 'ink'}
                 size="compact"
                 icon="treasure-chest"
                 loading={isClaiming && claimingRoomId === room.roomId}

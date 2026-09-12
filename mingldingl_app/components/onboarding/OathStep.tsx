@@ -57,7 +57,7 @@ export function OathStep({ initialOath, loading, error, onSubmit, onBack }: Prop
       {error && <FieldError>{error}</FieldError>}
 
       <View style={styles.actions}>
-        <GameButton variant="ghost" flex={1} disabled={loading} onPress={onBack}>
+        <GameButton variant="ink" flex={1} disabled={loading} onPress={onBack}>
           {i18n.t('back')}
         </GameButton>
         <GameButton

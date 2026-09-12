@@ -71,3 +71,69 @@ describe('one forged button per screen', () => {
     expect(inked.length).toBeGreaterThan(5);
   });
 });
+
+/**
+ * …and the other half of the same rule: the secondary actions actually went there.
+ *
+ * "One forged, the rest ink" is two claims, and the count above only checks the first. A screen
+ * could satisfy it forever while its remaining actions sat in `ghost` or `brass` — which is what
+ * fifty of them did: a bordered slab reads as a button of a lower rank, not as "not the deed", so
+ * settings looked like a stack of eleven equal commands and an encounter offered two slabs to
+ * choose between. `danger` is untouched: destroying something is allowed to look like a thing you
+ * can do wrong.
+ *
+ * Two surfaces are exempt by shape rather than by exception. A `components/modals/**` file is its
+ * own surface with its own one deed. And a `SheetModal` picker is a *list* — its rows are a menu
+ * of equal choices with no deed among them, and ink links stacked full-width read as prose, not as
+ * a list to pick from; those four files hold their sheet rows and nothing else.
+ */
+describe('the rest are ink', () => {
+  /** Picker sheets: every `GameButton` in these files is a row inside a `SheetModal`. */
+  const SHEETS = [
+    path.join('components', 'profile', 'ProfileAvatar.tsx'),
+    path.join('components', 'PhotoGrid.tsx'),
+    path.join('components', 'progression', 'HonourCase.tsx'),
+    path.join('components', 'profile', 'OathCard.tsx'),
+  ];
+
+  /**
+   * Screens whose board draws a metal there deliberately. Keep it empty unless a board says
+   * otherwise, and name the board line beside each entry.
+   *
+   * `NameAgeStep` is not an action at all: `Naming.dc.html:43-47` draws "YOU ARE · Man / Woman" as
+   * a chip pair, the chosen one lit — a state, not a deed. Ink has no chosen half, so inking both
+   * would delete the answer from the screen. Its home is `ChoiceRow`, which is exactly that
+   * drawing; moving it there is a layout change and waits for a wave that is allowed to make one.
+   */
+  const ALLOWED = new Set([path.join('components', 'onboarding', 'NameAgeStep.tsx')]);
+
+  const held = appSources()
+    .filter((f) => f.rel.startsWith('app' + path.sep) || f.rel.startsWith('components' + path.sep))
+    .filter((f) => !f.rel.startsWith(MODALS) && !SHEETS.includes(f.rel));
+
+  it('still has the sheets and the modals it exempts', () => {
+    // A renamed file would otherwise widen the rule to nothing, silently.
+    const all = new Set(appSources().map((f) => f.rel));
+    expect(SHEETS.filter((s) => !all.has(s))).toEqual([]);
+    expect([...ALLOWED].filter((s) => !all.has(s))).toEqual([]);
+  });
+
+  it('leaves no ghost or brass on a screen outside the allowlist', () => {
+    const offenders = held
+      .filter((f) => !ALLOWED.has(f.rel))
+      .flatMap((f) =>
+        openingTags(f.text, 'GameButton')
+          .filter((t) => /['"](ghost|brass)['"]/.test(t.props))
+          .map((t) => `${f.rel}:${t.line}`),
+      );
+    expect(offenders).toEqual([]);
+  });
+
+  it('keeps the allowlist honest — an entry with nothing left to excuse is a stale entry', () => {
+    const stale = [...ALLOWED].filter((rel) => {
+      const file = held.find((f) => f.rel === rel);
+      return !file || !openingTags(file.text, 'GameButton').some((t) => /['"](ghost|brass)['"]/.test(t.props));
+    });
+    expect(stale).toEqual([]);
+  });
+});

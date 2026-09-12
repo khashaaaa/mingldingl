@@ -195,7 +195,7 @@ export default function SettingsScreen() {
             </View>
           </View>
           {!!ageRangeMessage && <FieldError>{ageRangeMessage}</FieldError>}
-          <GameButton variant="brass" size="compact" onPress={handleSaveAgeRange}>{i18n.t('save')}</GameButton>
+          <GameButton variant="ink" size="compact" onPress={handleSaveAgeRange}>{i18n.t('save')}</GameButton>
         </View>
 
         <View style={styles.section}>
@@ -210,24 +210,24 @@ export default function SettingsScreen() {
           <Text style={styles.sectionHint}>{i18n.t('pause_profile_hint')}</Text>
         </View>
 
-        <GameButton variant="brass" size="compact" icon="account-off-outline" onPress={() => router.push('/blocked-users')}>
+        <GameButton variant="ink" size="compact" icon="account-off-outline" onPress={() => router.push('/blocked-users')}>
           {i18n.t('view_blocked_users')}
         </GameButton>
 
-        <GameButton variant="brass" size="compact" icon="crown-outline" onPress={() => router.push('/membership')}>
+        <GameButton variant="ink" size="compact" icon="crown-outline" onPress={() => router.push('/membership')}>
           {i18n.t('manage_membership')}
         </GameButton>
 
         <SectionDivider />
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{i18n.t('help_and_legal')}</Text>
-          <GameButton variant="brass" size="compact" icon="book-open-variant" onPress={() => router.push('/guides')}>
+          <GameButton variant="ink" size="compact" icon="book-open-variant" onPress={() => router.push('/guides')}>
             {i18n.t('guides')}
           </GameButton>
-          <GameButton variant="brass" size="compact" icon="file-document-outline" onPress={() => router.push('/terms')}>
+          <GameButton variant="ink" size="compact" icon="file-document-outline" onPress={() => router.push('/terms')}>
             {i18n.t('terms_of_service')}
           </GameButton>
-          <GameButton variant="brass" size="compact" icon="shield-lock-outline" onPress={() => router.push('/privacy')}>
+          <GameButton variant="ink" size="compact" icon="shield-lock-outline" onPress={() => router.push('/privacy')}>
             {i18n.t('privacy_policy')}
           </GameButton>
         </View>
@@ -236,7 +236,7 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{i18n.t('phone_number')}</Text>
           <Text style={styles.sectionHint}>{profile?.phoneNumber ?? '—'}</Text>
-          <GameButton variant="brass" size="compact" icon="phone-outline" onPress={() => setChangingPhone(true)}>
+          <GameButton variant="ink" size="compact" icon="phone-outline" onPress={() => setChangingPhone(true)}>
             {i18n.t('change_phone')}
           </GameButton>
         </View>
@@ -265,7 +265,7 @@ export default function SettingsScreen() {
           )}
         </View>
         <View style={styles.signOutWrap}>
-          <GameButton variant="brass" size="compact" icon="skull-crossbones" onPress={signOut}>{i18n.t('sign_out')}</GameButton>
+          <GameButton variant="ink" size="compact" icon="skull-crossbones" onPress={signOut}>{i18n.t('sign_out')}</GameButton>
         </View>
       </ScrollView>
 

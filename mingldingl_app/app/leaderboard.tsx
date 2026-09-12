@@ -45,7 +45,7 @@ export default function LeaderboardScreen() {
     return (
       <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('leaderboard_load_error')}>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
-        <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
+        <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
       </StateBlock>
     );
   }

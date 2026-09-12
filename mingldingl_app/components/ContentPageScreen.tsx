@@ -35,7 +35,7 @@ export function ContentPageScreen({ slug }: Props) {
             title={i18n.t('error_boundary_title')}
             body={i18n.t('error_boundary_message')}
           >
-            <GameButton variant="ghost" onPress={() => refetch()}>
+            <GameButton variant="ink" onPress={() => refetch()}>
               {i18n.t('error_boundary_retry')}
             </GameButton>
           </StateBlock>

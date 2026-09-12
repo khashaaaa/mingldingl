@@ -62,7 +62,7 @@ export default function ActivityScreen() {
         scrollEventThrottle={200}
       >
         <GameButton
-          variant="ghost"
+          variant="ink"
           icon="bow-arrow"
           onPress={() => router.push('/ship/new')}
           style={styles.weaveButton}

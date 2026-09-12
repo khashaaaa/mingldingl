@@ -143,13 +143,13 @@ export default function ProfileScreen() {
         <HonourCase />
 
         <View style={styles.editButtonWrapper}>
-          <GameButton variant="brass" size="compact" icon="book-heart" onPress={() => router.push('/date-log')}>
+          <GameButton variant="ink" size="compact" icon="book-heart" onPress={() => router.push('/date-log')}>
             {i18n.t('view_date_log')}
           </GameButton>
         </View>
 
         <View style={styles.editButtonWrapper}>
-          <GameButton variant="brass" size="compact" onPress={() => router.push('/edit-profile')}>
+          <GameButton variant="ink" size="compact" onPress={() => router.push('/edit-profile')}>
             {i18n.t('edit_profile')}
           </GameButton>
         </View>
@@ -165,7 +165,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.signOutWrapper}>
-          <GameButton variant="brass" size="compact" icon="cog-outline" onPress={() => router.push('/settings')}>
+          <GameButton variant="ink" size="compact" icon="cog-outline" onPress={() => router.push('/settings')}>
             {i18n.t('settings_title')}
           </GameButton>
         </View>

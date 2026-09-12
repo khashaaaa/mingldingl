@@ -436,7 +436,7 @@ export default function ChatScreen() {
             style={[styles.optionsSheet, { paddingBottom: SPACE.lg + insets.bottom }]}
           >
             <Text style={styles.optionsTitle}>{i18n.t('chat_options_title')}</Text>
-            <GameButton variant="ghost" icon="heart-broken" onPress={() => { setOptionsVisible(false); setConfirmUnmatch(true); }}>
+            <GameButton variant="ink" icon="heart-broken" onPress={() => { setOptionsVisible(false); setConfirmUnmatch(true); }}>
               {i18n.t('unmatch')}
             </GameButton>
             <GameButton variant="danger" icon="account-cancel" onPress={() => { setOptionsVisible(false); setConfirmBlock(true); }}>

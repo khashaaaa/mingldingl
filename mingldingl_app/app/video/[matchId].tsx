@@ -119,7 +119,7 @@ export default function VideoScreen() {
       <GameButton variant="primary" onPress={() => { setCallFailed(false); setAttempt((a) => a + 1); }}>
         {i18n.t('rejoin')}
       </GameButton>
-      <GameButton variant="ghost" size="compact" onPress={() => router.back()}>
+      <GameButton variant="ink" size="compact" onPress={() => router.back()}>
         {i18n.t('back')}
       </GameButton>
     </StateBlock>

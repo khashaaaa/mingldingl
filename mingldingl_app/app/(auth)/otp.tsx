@@ -149,7 +149,7 @@ export default function OtpScreen() {
             <LongWait
               kind="verifySms"
               action={
-                <GameButton variant="ghost" size="compact" icon="message-text" onPress={openSmsApp} disabled={loading}>
+                <GameButton variant="ink" size="compact" icon="message-text" onPress={openSmsApp} disabled={loading}>
                   {i18n.t('verify_sms_open')}
                 </GameButton>
               }
@@ -163,7 +163,7 @@ export default function OtpScreen() {
 
       {!!error && <FieldError style={styles.error}>{error}</FieldError>}
 
-      <GameButton variant="ghost" size="compact" onPress={restart}>{i18n.t('back')}</GameButton>
+      <GameButton variant="ink" size="compact" onPress={restart}>{i18n.t('back')}</GameButton>
     </ScrollView>
   );
 }

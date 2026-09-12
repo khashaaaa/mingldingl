@@ -1,4 +1,4 @@
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, Text } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 import { AlertModal } from '../AlertModal';
 import { SCRIM, SPACE, overlay } from '../../../lib/theme';
@@ -81,6 +81,48 @@ describe('AlertModal', () => {
     const modal = UNSAFE_getByType(require('react-native').Modal);
     modal.props.onRequestClose();
     expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The kit forges one button per surface, and a strip that carries its own content carries its
+   * own deed with it — `PhoneChangeModal` puts "open the SMS app" inside this component. Forging
+   * the dismiss as well would put two gold slabs on one strip and rank the way out above the
+   * thing the strip is for, so a strip with children demotes its lone dismiss to ink.
+   */
+  describe('the lone dismiss', () => {
+    it('stays forged when the strip is only a title and a message', () => {
+      const { getByText, queryByTestId } = render(
+        <AlertModal visible title="Noted" onDismiss={() => {}} />,
+      );
+      // Metal upper-cases its label; ink does not, and draws a hairline under it instead.
+      expect(getByText('UNDERSTOOD')).toBeTruthy();
+      expect(queryByTestId('ink-underline')).toBeNull();
+    });
+
+    it('becomes ink when the strip carries children of its own', () => {
+      const { getByText, queryByText, getByTestId } = render(
+        <AlertModal visible title="Change my number" onDismiss={() => {}}>
+          <Text>The deed lives here.</Text>
+        </AlertModal>,
+      );
+      expect(queryByText('UNDERSTOOD')).toBeNull();
+      expect(getByText('Understood')).toBeTruthy();
+      expect(getByTestId('ink-underline')).toBeTruthy();
+    });
+
+    it('is still the cancel half of a two-button question, children or not', () => {
+      // A confirm pair is a different shape: the forged (or danger) slab is the confirm, and the
+      // cancel beside it was never the forged one, so children change nothing here.
+      const onDismiss = jest.fn();
+      const { getByText } = render(
+        <AlertModal visible title="Sever this bond?" onDismiss={onDismiss} onConfirm={() => {}} confirmLabel="Sever">
+          <Text>The deed lives here.</Text>
+        </AlertModal>,
+      );
+      fireEvent.press(getByText('CANCEL'));
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+      expect(getByText('SEVER')).toBeTruthy();
+    });
   });
 
   it('renders nothing when not visible', () => {

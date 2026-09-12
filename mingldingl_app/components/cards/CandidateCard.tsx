@@ -138,7 +138,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
         ) : null}
 
         <View style={styles.actions}>
-          <GameButton variant="ghost" flex={1} disabled={requesting} onPress={onSkip}>{i18n.t('skip')}</GameButton>
+          <GameButton variant="ink" flex={1} disabled={requesting} onPress={onSkip}>{i18n.t('skip')}</GameButton>
           <GameButton variant="primary" flex={1.5} loading={requesting} disabled={requestDisabled} onPress={onRequest}>{i18n.t('send_summons')}</GameButton>
         </View>
       </View>

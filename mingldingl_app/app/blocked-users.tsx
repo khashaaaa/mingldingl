@@ -49,7 +49,7 @@ export default function BlockedUsersScreen() {
                 {item.displayName || i18n.t('deleted_user')}
               </Text>
               <GameButton
-                variant="ghost"
+                variant="ink"
                 loading={unblockingUserId === item.userId}
                 onPress={() => unblock(item.userId)}
               >

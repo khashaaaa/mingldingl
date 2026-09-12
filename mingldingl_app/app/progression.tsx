@@ -40,7 +40,7 @@ export default function ProgressionScreen() {
     return (
       <StateBlock tone="danger" icon="trending-down" title={i18n.t('progression_load_error')}>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
-        <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
+        <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
       </StateBlock>
     );
   }
@@ -66,7 +66,7 @@ export default function ProgressionScreen() {
       <TierPerkCard gemTier={gemTier} tierBonus={detail.tierBonus ?? 0} nextTier={nextTier} dailyMatchBudget={detail.dailyMatchBudget} />
       <StreakSummary currentStreak={detail.currentStreak ?? 0} longestStreak={detail.longestStreak ?? 0} />
       <View style={styles.leaderboardButtonWrap}>
-        <GameButton variant="ghost" icon="podium-gold" onPress={() => router.push('/leaderboard')}>
+        <GameButton variant="ink" icon="podium-gold" onPress={() => router.push('/leaderboard')}>
           {i18n.t('view_leaderboard')}
         </GameButton>
       </View>

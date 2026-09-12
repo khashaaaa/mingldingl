@@ -46,7 +46,7 @@ export function ShareCharacterButton({ displayName, photoUrl, gemTier, totalScor
 
   return (
     <>
-      <GameButton variant="brass" size="compact" icon="share-variant" loading={sharing} onPress={handleShare}>
+      <GameButton variant="ink" size="compact" icon="share-variant" loading={sharing} onPress={handleShare}>
         {i18n.t('share_character')}
       </GameButton>
       {!!error && <FieldError style={styles.error}>{error}</FieldError>}

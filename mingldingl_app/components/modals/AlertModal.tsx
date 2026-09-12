@@ -59,7 +59,13 @@ export function AlertModal({
               </GameButton>
             </View>
           ) : (
-            <GameButton variant="primary" style={styles.btnWrap} onPress={onDismiss}>{i18n.t('alert_dismiss')}</GameButton>
+            // One forged button per surface. A strip given children carries its own deed inside
+            // them — `PhoneChangeModal` puts "open the SMS app" there — so the way out is ink, or
+            // the gold would rank leaving above the thing the strip was raised to do. With nothing
+            // but a title and a message, the dismiss *is* the deed and keeps the slab.
+            <GameButton variant={children ? 'ink' : 'primary'} style={styles.btnWrap} onPress={onDismiss}>
+              {i18n.t('alert_dismiss')}
+            </GameButton>
           )}
         </DialogStrip>
       </DialogScrim>

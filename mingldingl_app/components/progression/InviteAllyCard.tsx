@@ -23,7 +23,7 @@ export function InviteAllyCard({ referralCode }: Props) {
       <View style={styles.codeRow}>
         <Text style={styles.code}>{referralCode}</Text>
       </View>
-      <GameButton variant="ghost" icon="share-variant" onPress={handleShare}>
+      <GameButton variant="ink" icon="share-variant" onPress={handleShare}>
         {i18n.t('invite_ally_title')}
       </GameButton>
     </AppCard>

@@ -78,7 +78,7 @@ export default function TownSquareRoundScreen() {
           </View>
         )}
 
-        <GameButton variant="ghost" size="compact" onPress={leave}>
+        <GameButton variant="ink" size="compact" onPress={leave}>
           {i18n.t('town_square_rejoin')}
         </GameButton>
       </StateBlock>
@@ -125,7 +125,7 @@ export default function TownSquareRoundScreen() {
           >
             {i18n.t('rejoin')}
           </GameButton>
-          <GameButton variant="ghost" size="compact" onPress={leave}>
+          <GameButton variant="ink" size="compact" onPress={leave}>
             {i18n.t('round_leave_confirm')}
           </GameButton>
         </StateBlock>

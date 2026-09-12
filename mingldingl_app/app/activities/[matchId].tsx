@@ -102,7 +102,7 @@ export default function ActivitiesScreen() {
           <Text style={styles.subtitle}>{completed.title}</Text>
         </AppCard>
         {completed.business && (
-          <GameButton variant="ghost" icon="shield-alert-outline" onPress={handleShareSafetyInfo}>
+          <GameButton variant="ink" icon="shield-alert-outline" onPress={handleShareSafetyInfo}>
             {i18n.t('share_safety_info')}
           </GameButton>
         )}
@@ -185,7 +185,7 @@ export default function ActivitiesScreen() {
             )}
             <View style={styles.confirmWrap}>
               <GameButton
-                variant="ghost"
+                variant="ink"
                 loading={confirmingId === s.id}
                 disabled={s.myConfirmed || riteLocked || isConfirming}
                 onPress={() => { signal('pledgeKept'); confirmDate(s.id); }}

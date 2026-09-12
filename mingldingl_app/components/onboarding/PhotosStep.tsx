@@ -38,7 +38,7 @@ export function PhotosStep({ photoUrls, onPhotosChange, referralCode, onReferral
         maxLength={6}
       />
       <View style={styles.actions}>
-        <GameButton variant="ghost" flex={1} onPress={onBack}>
+        <GameButton variant="ink" flex={1} onPress={onBack}>
           {i18n.t('back')}
         </GameButton>
         <GameButton

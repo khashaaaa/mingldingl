@@ -226,7 +226,7 @@ export default function EditProfileScreen() {
             ) : (
               <Text style={styles.city}>{city || '—'}</Text>
             )}
-            <GameButton variant="brass" size="compact" icon="crosshairs-gps" loading={isCapturing} onPress={handleRefreshLocation}>
+            <GameButton variant="ink" size="compact" icon="crosshairs-gps" loading={isCapturing} onPress={handleRefreshLocation}>
               {i18n.t('refresh_location')}
             </GameButton>
             {error && <FieldError>{error}</FieldError>}
@@ -235,7 +235,7 @@ export default function EditProfileScreen() {
                 <Text style={styles.hint}>
                   {i18n.t('location_permission_denied')}
                 </Text>
-                <GameButton variant="brass" size="compact" onPress={() => setCityPickerVisible(true)}>
+                <GameButton variant="ink" size="compact" onPress={() => setCityPickerVisible(true)}>
                   {i18n.t('choose_your_city')}
                 </GameButton>
               </View>
@@ -253,7 +253,7 @@ export default function EditProfileScreen() {
       />
 
       <View style={[styles.footer, { paddingBottom: SPACE.huge + insets.bottom }]}>
-        <GameButton variant="brass" size="compact" flex={1} onPress={() => { Keyboard.dismiss(); router.back(); }}>
+        <GameButton variant="ink" size="compact" flex={1} onPress={() => { Keyboard.dismiss(); router.back(); }}>
           {i18n.t('back')}
         </GameButton>
         <GameButton

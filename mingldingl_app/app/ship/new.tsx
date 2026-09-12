@@ -65,7 +65,7 @@ export default function NewShipScreen() {
               {i18n.t('share_thread_invite_b')}
             </GameButton>
           )}
-          <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
+          <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
         </View>
       </View>
     );
