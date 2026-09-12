@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Pressable, Text, Animated, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { PRESS, ACCENT, BUTTON_METALS, FONTS, FONT_SIZES, ICON_SIZES, RADIUS, SCRIM, SPACE, TRACKING, overlay } from '../../lib/theme';
+import { PRESS, ACCENT, BUTTON_METALS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SCRIM, SPACE, TRACKING, overlay } from '../../lib/theme';
 import { Icon } from './Icon';
 import { Waiting } from './Waiting';
 import { signal } from '../../lib/world/feedback';
@@ -10,7 +10,15 @@ import { signal } from '../../lib/world/feedback';
 interface Props {
   children: string;
   onPress: () => void;
-  variant?: 'primary' | 'ghost' | 'danger' | 'brass';
+  /**
+   * `ink` is not a fifth metal — it is the absence of one. The kit forges exactly one button per
+   * screen, so every other action needs a shape that is unmistakably *not* the deed: no gradient,
+   * no border, no glow, sentence case rather than the forge's caps, and a drawn hairline under the
+   * label. The underline is a `View` rather than `textDecorationLine`, which Android renders at the
+   * wrong offset and clips under `adjustsFontSizeToFit`. Everything that makes it a control — the
+   * 52pt target, the press tick, `loading`, `disabled`, `icon`, `size`, `flex` — is unchanged.
+   */
+  variant?: 'primary' | 'ghost' | 'danger' | 'brass' | 'ink';
   size?: 'default' | 'compact';
   icon?: React.ComponentProps<typeof Icon>['name'];
   disabled?: boolean;
@@ -30,6 +38,8 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
   const pressY = useRef(new Animated.Value(0)).current;
   const pressScale = useRef(new Animated.Value(1)).current;
   const isMetal = METAL_VARIANTS.has(variant);
+  const metal = variant === 'ink' ? null : BUTTON_METALS[variant];
+  const labelColor = metal ? metal.label : INK.primary;
   const sz = SIZES[size];
 
   function pressIn() {
@@ -65,27 +75,30 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
         accessibilityState={{ disabled: !!(disabled || loading), busy: !!loading }}
         style={[
           styles.slab,
-          { borderColor: BUTTON_METALS[variant].border },
+          metal ? { borderColor: metal.border } : styles.inkSlab,
           { minHeight: sz.minHeight, paddingVertical: sz.paddingVertical, paddingHorizontal: sz.paddingHorizontal },
         ]}
       >
-        <LinearGradient colors={BUTTON_METALS[variant].gradient} style={StyleSheet.absoluteFill} />
-        <View style={[styles.topHighlight, { backgroundColor: BUTTON_METALS[variant].highlight }]} />
+        {metal && <LinearGradient colors={metal.gradient} style={StyleSheet.absoluteFill} />}
+        {metal && <View style={[styles.topHighlight, { backgroundColor: metal.highlight }]} />}
         {isMetal && <View style={styles.bottomShadow} />}
         {loading ? (
-          <Waiting color={BUTTON_METALS[variant].label} />
+          <Waiting color={labelColor} />
         ) : (
           <View style={styles.labelRow}>
-            {icon && <Icon name={icon} size={sz.iconSize} color={BUTTON_METALS[variant].label} />}
-            <Text
-              style={[styles.label, { color: BUTTON_METALS[variant].label }, { fontSize: sz.fontSize, letterSpacing: sz.letterSpacing }]}
+            {icon && <Icon name={icon} size={sz.iconSize} color={labelColor} />}
+            <View style={styles.labelStack}>
+              <Text
+                style={[styles.label, { color: labelColor }, { fontSize: sz.fontSize, letterSpacing: sz.letterSpacing }]}
 
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
-            >
-              {children.toUpperCase()}
-            </Text>
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                {metal ? children.toUpperCase() : children}
+              </Text>
+              {!metal && <View testID="ink-underline" style={styles.inkUnderline} />}
+            </View>
           </View>
         )}
       </Pressable>
@@ -122,6 +135,11 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: overlay(SCRIM.edge),
   },
+  inkSlab: { borderColor: 'transparent', backgroundColor: 'transparent' },
+  // Stretched rather than centred: the rule is the width of the label it underlines, and a `Text`
+  // shrunk by `adjustsFontSizeToFit` still lays out at its measured width inside this stack.
+  labelStack: { alignItems: 'stretch', flexShrink: 1 },
+  inkUnderline: { height: 1, marginTop: SPACE.hair, backgroundColor: LINE.edge },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, maxWidth: '100%' },
   label: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: TRACKING.wide, flexShrink: 1, textAlign: 'center' },
   disabled: { opacity: PRESS.disabled },

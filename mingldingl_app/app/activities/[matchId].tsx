@@ -88,7 +88,7 @@ export default function ActivitiesScreen() {
         title={i18n.t('no_date_ideas')}
         body={i18n.t('keep_chatting')}
       >
-        <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+        <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
       </StateBlock>
     </View>
   );

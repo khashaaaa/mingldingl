@@ -52,7 +52,7 @@ export function NameAgeStep({ initialName, initialAge, initialGender, onNext }: 
             {(['Male', 'Female'] as const).map((g) => (
               <GameButton
                 key={g} flex={1}
-                variant={gender === g ? 'primary' : 'ghost'}
+                variant={gender === g ? 'brass' : 'ghost'}
                 onPress={() => { Keyboard.dismiss(); setGender(g); }}
               >
                 {i18n.t(`gender_${g.toLowerCase()}`)}

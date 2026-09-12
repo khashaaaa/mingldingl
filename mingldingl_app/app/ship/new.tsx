@@ -56,12 +56,12 @@ export default function NewShipScreen() {
           {/* A nominee who already has an account is invited in-app and gets no code, so there is
               nothing to share for that slot. */}
           {codes.slotACode !== null && (
-            <GameButton variant="primary" onPress={() => shareInvite(codes.slotACode!)}>
+            <GameButton variant="ink" onPress={() => shareInvite(codes.slotACode!)}>
               {i18n.t('share_thread_invite_a')}
             </GameButton>
           )}
           {codes.slotBCode !== null && (
-            <GameButton variant="primary" onPress={() => shareInvite(codes.slotBCode!)}>
+            <GameButton variant="ink" onPress={() => shareInvite(codes.slotBCode!)}>
               {i18n.t('share_thread_invite_b')}
             </GameButton>
           )}

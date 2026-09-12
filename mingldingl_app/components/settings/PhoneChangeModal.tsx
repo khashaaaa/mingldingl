@@ -128,7 +128,7 @@ export function PhoneChangeModal({ visible, onDismiss, onChanged }: Props) {
           />
           <Text style={styles.hint}>{i18n.t('phone_change_verify_hint')}</Text>
           <GameButton
-            variant="primary"
+            variant="ink"
             size="compact"
             onPress={start}
             disabled={!isPhoneValid(phone) || busy}

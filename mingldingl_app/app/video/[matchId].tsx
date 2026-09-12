@@ -101,7 +101,7 @@ export default function VideoScreen() {
       <Text style={styles.unavailable}>
         {error ?? i18n.t('video_unavailable')}
       </Text>
-      <GameButton variant="primary" onPress={() => router.back()}>
+      <GameButton variant="ink" onPress={() => router.back()}>
         {i18n.t('back')}
       </GameButton>
     </View>

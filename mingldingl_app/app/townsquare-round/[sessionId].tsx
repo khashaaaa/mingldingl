@@ -67,7 +67,7 @@ export default function TownSquareRoundScreen() {
             {summary.matches.map((m) => (
               <GameButton
                 key={m.matchId}
-                variant="primary"
+                variant="ink"
                 size="compact"
                 icon="chat"
                 onPress={() => router.replace(`/chat/${m.matchId}` as any)}

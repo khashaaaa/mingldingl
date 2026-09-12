@@ -47,7 +47,7 @@ export default function IcebreakerScreen() {
 
   if (!question) return (
     <StateBlock icon="help-circle-outline" title={i18n.t('no_icebreaker')}>
-      <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+      <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
     </StateBlock>
   );
 
@@ -63,7 +63,7 @@ export default function IcebreakerScreen() {
           <Text style={styles.matchCount}>{i18n.t('they_said', { answer: partnerAnswer })}</Text>
           {isMatch && <Text style={styles.ptsEarned}>{i18n.t('you_matched')}</Text>}
         </AppCard>
-        <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+        <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
       </View>
     );
   }
@@ -73,7 +73,7 @@ export default function IcebreakerScreen() {
       <View style={styles.centered}>
         <Waiting />
         <Text style={styles.completionTitle}>{i18n.t('waiting_partner')}</Text>
-        <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+        <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
       </View>
     );
   }

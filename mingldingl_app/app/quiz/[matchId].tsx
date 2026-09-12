@@ -64,14 +64,14 @@ export default function QuizScreen() {
 
   if (isLoadError) return (
     <StateBlock tone="danger" icon="wifi-off" title={i18n.t('quiz_load_error')}>
-      <GameButton variant="primary" onPress={() => refetchQuiz()}>{i18n.t('retry')}</GameButton>
-      <GameButton variant="ghost" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+      <GameButton variant="ink" onPress={() => refetchQuiz()}>{i18n.t('retry')}</GameButton>
+      <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
     </StateBlock>
   );
 
   if (!quiz) return (
     <StateBlock icon="help-circle-outline" title={i18n.t('no_quiz')}>
-      <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+      <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
     </StateBlock>
   );
 

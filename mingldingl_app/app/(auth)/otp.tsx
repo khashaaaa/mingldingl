@@ -123,7 +123,7 @@ export default function OtpScreen() {
           <Icon name="timer-sand-empty" size={ICON_SIZES.xxl} color={STATUS.danger} />
           <Text style={styles.cardTitle}>{i18n.t('verify_expired_title')}</Text>
           <Text style={styles.instruction}>{i18n.t('verify_expired_body')}</Text>
-          <GameButton variant="primary" onPress={restart}>{i18n.t('verify_start_over')}</GameButton>
+          <GameButton variant="ink" onPress={restart}>{i18n.t('verify_start_over')}</GameButton>
         </View>
       ) : (
         <>

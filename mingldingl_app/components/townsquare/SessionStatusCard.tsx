@@ -58,7 +58,7 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
         <Text style={styles.title}>{formatDateTime(session.scheduledStartAt)}</Text>
         <Text style={styles.countdown}>{i18n.t('town_square_in_progress')}</Text>
         {session.isRsvpd && (
-          <GameButton variant="primary" icon="bank" onPress={() => onEnter(session.sessionId!)}>
+          <GameButton variant="ink" icon="bank" onPress={() => onEnter(session.sessionId!)}>
             {i18n.t('town_square_rejoin')}
           </GameButton>
         )}
@@ -78,7 +78,7 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
       <Text style={styles.countdown}>{i18n.t('town_square_starts_in', { time: startsCountdown })}</Text>
       {isOpen && (
         session.isRsvpd ? (
-          <GameButton variant="ghost" onPress={() => onCancelRsvp(session.sessionId!)} loading={isCancelling}>
+          <GameButton variant="ink" onPress={() => onCancelRsvp(session.sessionId!)} loading={isCancelling}>
             {i18n.t('town_square_cancel_rsvp')}
           </GameButton>
         ) : (

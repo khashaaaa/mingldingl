@@ -130,7 +130,9 @@ describe('TownSquareRoundScreen — the session ending', () => {
 
     // A match made in the square used to be surfaced nowhere once the gathering ended.
     expect(getByText('You matched with:')).toBeTruthy();
-    expect(getByText('NOMIN')).toBeTruthy();
+    // Their own name, in their own case: the list is ink links now, not a row of forged slabs,
+    // and the forge's caps were shouting a stranger's name back at them.
+    expect(getByText('Nomin')).toBeTruthy();
   });
 
   it('says so plainly when nobody said yes back', () => {
