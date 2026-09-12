@@ -404,12 +404,20 @@ export type Tone = 'neutral' | 'good' | 'warning' | 'danger';
  * raw metals on purpose: a torch is gold-coloured light, not a gold button, and routing the
  * world's six light signatures through `ACCENT` or `METAL` would tie the colour of a wall wash
  * to the colour of a heading.
+ *
+ * `ink` and `soot` exist only so the cold and dark signatures can carry `NIGHT.blue` and
+ * `NIGHT.black` as a *tone* — `WorldFloor`'s gradient composites `tone` through `tint()`, which
+ * parses a hex string, so an rgba string (`NIGHT`'s own shape) would parse as nothing and paint
+ * black regardless of alpha. Same RGB as their `NIGHT` counterpart, opaque, so the maths still
+ * works: `ink` is `NIGHT.blue`'s rgb(8,12,24), `soot` is `NIGHT.black`'s rgb(4,4,9).
  */
 export const TONE = {
   silver: COLORS.silver,
   gold: COLORS.gold,
   brass: COLORS.brass,
   ember: COLORS.ember,
+  ink: '#080C18',
+  soot: '#040409',
 } as const;
 
 /**

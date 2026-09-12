@@ -1,4 +1,4 @@
-import { NIGHT, TONE } from '../theme';
+import { GROUND, NIGHT, SURFACE, TONE, mix } from '../theme';
 
 /**
  * Six light signatures, not free-form values per room. A room picks one the way a button picks a
@@ -22,6 +22,20 @@ import { NIGHT, TONE } from '../theme';
  *
  * Every alpha still starts at 0, so an unlit room has no film on it at all — that rule survived
  * both regressions and is the one worth keeping.
+ *
+ * A third pass pushed the numbers themselves: at their original strength every recipe read as a
+ * whisper on an actual phone screen, which is a third way to arrive at "the Gate and the Tavern
+ * are the same room" — this time because neither was visible enough to compare. `warm` and `hot`
+ * now run their tone to ~0.45 at full light, `cold`'s tone is `TONE.ink` (the same rgb as
+ * `NIGHT.blue`, opaque so `tint()` can still parse it) rather than a generic silver, `dark`'s is
+ * `TONE.soot` (`NIGHT.black`'s rgb) rather than a stray ember, and `dark`'s floor climbs highest
+ * of all six — the Deep is the one room whose *edges* stay darkest (its vignette never opens past
+ * `warm`'s or `cold`'s) while its actual floor, once torches are lit, burns the most visible stone
+ * in the hold. Distinctness is checked by resolving each signature's floor colour the way
+ * `WorldFloor` composites it (`resolveFloorColor`, below) and comparing every pair — WCAG contrast
+ * turned out to be the wrong instrument for two colours that are both nearly black; two of these
+ * signatures can sit at 1.005:1 contrast while a person could plainly tell them apart, so the test
+ * measures RGB distance instead.
  */
 export type LightSignature = 'cold' | 'neutral' | 'warm' | 'soft' | 'dark' | 'hot';
 
@@ -41,19 +55,42 @@ export interface LightRecipe {
 /** Night, at four temperatures. Alpha is carried here rather than by the layer so a room can be
  *  closed in harder as well as colder — the Deep is both. */
 export const LIGHT: Record<LightSignature, LightRecipe> = {
-  // Stone with no fire in it. The Gate and the Hall — places that record rather than warm.
-  cold:    { floor: [0.10, 0.16], vignette: [0.55, 0.40], edge: NIGHT.blue,  tone: TONE.silver, toneAlpha: [0.00, 0.07] },
+  // Stone with no fire in it. The Gate and the Hall — places that record rather than warm. Ink,
+  // not silver, now: a night-blue wash rather than a colourless one.
+  cold:    { floor: [0.12, 0.18], vignette: [0.55, 0.40], edge: NIGHT.blue,  tone: TONE.ink,   toneAlpha: [0.00, 0.25] },
   // The default room. Open, unremarkable, no opinion.
-  neutral: { floor: [0.12, 0.18], vignette: [0.50, 0.32], edge: NIGHT.plain, tone: TONE.silver, toneAlpha: [0.00, 0.09] },
+  neutral: { floor: [0.14, 0.22], vignette: [0.50, 0.32], edge: NIGHT.plain, tone: TONE.silver, toneAlpha: [0.00, 0.14] },
   // Fire and people. The Tavern — the most open room in the hold, so the dark closes in least.
-  warm:    { floor: [0.14, 0.20], vignette: [0.45, 0.26], edge: NIGHT.brown, tone: TONE.gold,   toneAlpha: [0.00, 0.22] },
+  warm:    { floor: [0.18, 0.26], vignette: [0.45, 0.26], edge: NIGHT.brown, tone: TONE.gold,   toneAlpha: [0.00, 0.45] },
   // A banked fire — quieter than warm, still inhabited. The Hearth.
-  soft:    { floor: [0.12, 0.17], vignette: [0.50, 0.34], edge: NIGHT.brown, tone: TONE.brass,  toneAlpha: [0.00, 0.14] },
-  // Underground. Starts nearly black and is lit only by what the pair has cleared.
-  dark:    { floor: [0.16, 0.22], vignette: [0.72, 0.42], edge: NIGHT.black, tone: TONE.ember,  toneAlpha: [0.00, 0.11] },
+  soft:    { floor: [0.16, 0.23], vignette: [0.50, 0.34], edge: NIGHT.brown, tone: TONE.brass,  toneAlpha: [0.00, 0.20] },
+  // Underground. The vignette barely opens even at full light — this room never feels safe — but
+  // the stone floor itself is the most present of any room once it is lit: soot-black between the
+  // torches, not a stray ember.
+  dark:    { floor: [0.36, 0.48], vignette: [0.72, 0.42], edge: NIGHT.black, tone: TONE.soot,  toneAlpha: [0.00, 0.10] },
   // Worked metal. The Forge keeps a lifted floor even when idle, and burns hottest when full.
-  hot:     { floor: [0.14, 0.19], vignette: [0.48, 0.30], edge: NIGHT.brown, tone: TONE.ember,  toneAlpha: [0.00, 0.26] },
+  hot:     { floor: [0.18, 0.25], vignette: [0.48, 0.30], edge: NIGHT.brown, tone: TONE.ember, toneAlpha: [0.00, 0.45] },
 };
+
+/**
+ * The floor colour a room actually shows, composited the way `WorldFloor` draws it: the ground
+ * layer's own opacity blended against the screen's base (`SURFACE.ground`, what `ScreenGround`
+ * paints behind it), then the room's tone blended over *that* at its own alpha. Evaluated at the
+ * gradient's brightest stop — the bottom edge, where the tone reaches its opaque colour — so a
+ * whole room can be compared by one swatch instead of a gradient. `texture` takes `GROUND`'s own
+ * keys rather than `RoomTexture` from `./rooms` to avoid importing the module that imports this
+ * one; the two are the same two strings.
+ *
+ * `t` is 0 (no light) to 1 (full light), same as every other function in this file.
+ */
+export function resolveFloorColor(
+  recipe: LightRecipe,
+  texture: keyof typeof GROUND,
+  t: number,
+): string {
+  const ground = mix(SURFACE.ground, GROUND[texture], lerp(recipe.floor, t));
+  return mix(ground, recipe.tone, lerp(recipe.toneAlpha, t));
+}
 
 /**
  * How hard the dark closes on a candidate card, from unlit to fully lit. Weaker than a room's own

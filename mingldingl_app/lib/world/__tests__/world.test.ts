@@ -6,8 +6,9 @@ import {
 import {
   HEARTH_FULL, HONOUR_TOTAL, LIGHT, PHASE_EDGE, PHASE_OFFSET, WARMTH_FLOOR, applyPhase, clamp01,
   conversationWarmth, dayPhase, delveLight, forgeLight, hallLight, hearthLight, lerp,
-  profileCompleteness, roadLight, tavernLight, type WorldState,
+  profileCompleteness, resolveFloorColor, roadLight, tavernLight, type WorldState,
 } from '../light';
+import { rgbDistance } from '../../testing/color';
 
 const NOW = Date.parse('2026-09-10T12:00:00Z');
 
@@ -166,6 +167,41 @@ describe('light ramps', () => {
   it('leaves an unlit room with no light of its own', () => {
     for (const recipe of Object.values(LIGHT)) {
       expect(recipe.toneAlpha[0]).toBe(0);
+    }
+  });
+
+  /**
+   * The fingerprint test above stops two signatures being *specified* identically; it says
+   * nothing about whether they look the same once actually drawn — which is exactly how the
+   * lighting system twice went to nothing (see the file's own history above). This resolves each
+   * room's floor colour the way `WorldFloor` really composites it and checks every distinctly-lit
+   * room clears a minimum separation from every other. Rooms that intentionally share a signature
+   * *and* a texture (the Gate and the Hall both run `cold` on a `wall` floor) collapse to one
+   * swatch first — they are meant to render the same, so they are not "distinct rooms" here.
+   */
+  it('keeps every distinctly-lit room apart from every other, once resolved the way the floor draws it', () => {
+    // Below this, two colours read as the same floor on a phone; the closest pair this table
+    // actually produces sits at 16.6, so 15 leaves a real margin rather than pinning the exact
+    // current numbers.
+    const MIN_ROOM_DISTANCE = 15;
+
+    const swatchOf = new Map<string, string>(); // resolved colour -> the first room that made it
+    for (const [name, room] of Object.entries(ROOMS)) {
+      const colour = resolveFloorColor(LIGHT[room.base], room.texture, 1);
+      if (!swatchOf.has(colour)) swatchOf.set(colour, name);
+    }
+
+    const swatches = [...swatchOf.entries()];
+    expect(swatches.length).toBeGreaterThan(1);
+    for (let i = 0; i < swatches.length; i++) {
+      for (let j = i + 1; j < swatches.length; j++) {
+        const [colourA, roomA] = swatches[i];
+        const [colourB, roomB] = swatches[j];
+        const distance = rgbDistance(colourA, colourB);
+        // The object wrapper is so a failure names the two rooms instead of just the numbers.
+        expect({ roomA, roomB, tooClose: distance < MIN_ROOM_DISTANCE })
+          .toEqual({ roomA, roomB, tooClose: false });
+      }
     }
   });
 });
