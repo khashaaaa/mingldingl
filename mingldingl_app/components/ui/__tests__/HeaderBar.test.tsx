@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react-native';
 import { StyleSheet, Text } from 'react-native';
 import { HeaderBar } from '../HeaderBar';
+import { Glyph } from '../Glyph';
 import { i18n } from '../../../lib/i18n';
 import { FONTS, FONT_SIZES } from '../../../lib/theme';
 
@@ -55,5 +56,10 @@ describe('HeaderBar blackletter titles', () => {
     const { getByText } = render(<HeaderBar title="The Fire" showBack={false} />);
     const style = StyleSheet.flatten(getByText('The Fire').props.style);
     expect(style.letterSpacing).toBeLessThan(1);
+  });
+
+  it('draws a room glyph beside the title when given one', () => {
+    const { UNSAFE_getByType } = render(<HeaderBar title="The Fire" glyph="fire" showBack={false} />);
+    expect(UNSAFE_getByType(Glyph).props.name).toBe('fire');
   });
 });

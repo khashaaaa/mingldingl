@@ -6,6 +6,7 @@ import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../
 import { i18n, isLatin } from '../../lib/i18n';
 import { SectionDivider } from './SectionDivider';
 import { Icon } from './Icon';
+import { Glyph, type GlyphName } from './Glyph';
 import { AtlasSigil } from '../world/AtlasSigil';
 
 interface Props {
@@ -13,13 +14,14 @@ interface Props {
   showBack?: boolean;
   onBack?: () => void;
   icon?: React.ComponentProps<typeof Icon>['name'];
+  glyph?: GlyphName;
 
   right?: ReactNode;
 
   children?: ReactNode;
 }
 
-export function HeaderBar({ title, showBack = true, onBack, icon, right, children }: Props) {
+export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, children }: Props) {
   const router = useRouter();
   // Move 12: a room name in blackletter, once per screen, Latin only — no Google blackletter
   // carries Cyrillic, so Mongolian titles (and any Cyrillic title shown while the locale happens
@@ -40,6 +42,8 @@ export function HeaderBar({ title, showBack = true, onBack, icon, right, childre
             </Tap>
           )}
           {icon && <Icon name={icon} size={ICON_SIZES.lg} style={styles.titleIcon} />}
+          {/* Unlabelled: the title text right beside it already names the room. */}
+          {glyph && <Glyph name={glyph} size={ICON_SIZES.lg} color={ACCENT.base} style={styles.titleIcon} />}
           {/* Two lines, because `adjustsFontSizeToFit` is iOS-only: on web and Android a long
               title (interpolated city names, the longer Mongolian copy) simply clipped —
               "Ulaanbaatar Leaderboard" rendered as "Ulaanbaatar Leaderb…". */}

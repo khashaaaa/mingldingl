@@ -39,7 +39,7 @@ export default function DiscoverScreen() {
   // only the card area swaps when the deck lands — the header itself never jumps into place.
   if (isLoading) return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('seek_title')} icon="sword-cross" showScore />
+      <GameHeader title={i18n.t('seek_title')} glyph="fire" showScore />
       <View
         style={styles.cardArea}
         onLayout={(e) => setLoadingCardHeight(e.nativeEvent.layout.height)}
@@ -79,7 +79,7 @@ export default function DiscoverScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('seek_title')} icon="sword-cross" showScore />
+      <GameHeader title={i18n.t('seek_title')} glyph="fire" showScore />
       <View style={styles.cardArea} onLayout={onDeckLayout}>
         <PanelReveal style={{ flex: 1 }}>
           <CandidateCard

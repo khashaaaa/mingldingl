@@ -18,7 +18,7 @@ export default function MatchesScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('tab_quest_log')} icon="script-text" showScore />
+      <GameHeader title={i18n.t('tab_quest_log')} glyph="letters" showScore />
       <NextGatheringPill />
       {isLoading && (
         <View style={styles.list}>

@@ -64,7 +64,7 @@ export default function ProfileScreen() {
   return (
     <View style={styles.screen}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <GameHeader title={i18n.t('character_sheet')} icon="shield-sword" />
+        <GameHeader title={i18n.t('character_sheet')} glyph="gem" />
 
         {profile.deletionRequestedAt && (
           <DeletionPendingBanner

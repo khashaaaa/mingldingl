@@ -47,7 +47,7 @@ export default function TownSquareScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('town_square_title')} icon="account-group" />
+      <GameHeader title={i18n.t('town_square_title')} glyph="lantern" />
       <View style={styles.content}>
         {closed || (isError && !session) ? (
           <StateBlock tone="danger" icon="alert-circle-outline" title={getApiErrorMessage(error, i18n.t('screen_load_error'))}>
