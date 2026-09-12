@@ -1,4 +1,4 @@
-import { translations, normalizeLocale, AWAITING_MN_TRANSLATION, SUPPORTED_LOCALES } from '../i18n';
+import { translations, normalizeLocale, isLatin, AWAITING_MN_TRANSLATION, SUPPORTED_LOCALES } from '../i18n';
 
 describe('i18n key parity', () => {
   it('has the same keys in en and mn, bar the ones awaiting a native speaker', () => {
@@ -30,6 +30,24 @@ describe('i18n key parity', () => {
       }
     }
     expect(mismatches).toEqual([]);
+  });
+});
+
+describe('isLatin', () => {
+  // The blackletter face (`HeaderBar`'s room-name titles) carries no Cyrillic glyphs, so this is
+  // the gate for which titles may render in it — see the brief for Task 7.
+  it('accepts English room names', () => {
+    expect(isLatin('The Fire')).toBe(true);
+    expect(isLatin('Ulaanbaatar Leaderboard')).toBe(true);
+  });
+
+  it('rejects Mongolian Cyrillic room names', () => {
+    expect(isLatin('Гал')).toBe(false);
+    expect(isLatin('Дархны газар')).toBe(false);
+  });
+
+  it('rejects a title that mixes Latin and Cyrillic', () => {
+    expect(isLatin('The Гал')).toBe(false);
   });
 });
 

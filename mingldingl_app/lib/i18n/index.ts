@@ -54,6 +54,16 @@ export function normalizeLocale(locale: string | null | undefined): SupportedLoc
   return SUPPORTED_LOCALES.includes(locale as SupportedLocale) ? (locale as SupportedLocale) : 'en';
 }
 
+/**
+ * Whether `text` contains no Cyrillic character. No Google blackletter face carries Cyrillic
+ * glyphs, so this gates which titles `HeaderBar` may set in `FONTS.wordmark` — a Mongolian title,
+ * or any Cyrillic text shown while the locale happens to be `en`, must fail this and fall back to
+ * `FONTS.display` (Yeseva) instead. See Task 7 / Move 12 (`docs/design/sealed-fire/boards/Blackletter.dc.html`).
+ */
+export function isLatin(text: string): boolean {
+  return !/[Ѐ-ӿ]/.test(text);
+}
+
 export const i18n = new I18n(translations);
 i18n.locale = normalizeLocale(getLocales()[0]?.languageCode);
 i18n.enableFallback = true;

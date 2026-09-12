@@ -3,7 +3,7 @@ import { Tap } from './Tap';
 import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
-import { i18n } from '../../lib/i18n';
+import { i18n, isLatin } from '../../lib/i18n';
 import { SectionDivider } from './SectionDivider';
 import { Icon } from './Icon';
 import { AtlasSigil } from '../world/AtlasSigil';
@@ -21,6 +21,10 @@ interface Props {
 
 export function HeaderBar({ title, showBack = true, onBack, icon, right, children }: Props) {
   const router = useRouter();
+  // Move 12: a room name in blackletter, once per screen, Latin only — no Google blackletter
+  // carries Cyrillic, so Mongolian titles (and any Cyrillic title shown while the locale happens
+  // to be `en`) stay in `FONTS.display` (Yeseva) until a Cyrillic cut is commissioned.
+  const blackletter = i18n.locale === 'en' && isLatin(title);
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
@@ -40,7 +44,11 @@ export function HeaderBar({ title, showBack = true, onBack, icon, right, childre
               title (interpolated city names, the longer Mongolian copy) simply clipped —
               "Ulaanbaatar Leaderboard" rendered as "Ulaanbaatar Leaderb…". */}
           <Text
-            style={[styles.title, right ? styles.titleCompact : null]}
+            style={[
+              styles.title,
+              blackletter && styles.titleBlackletter,
+              right ? (blackletter ? styles.titleBlackletterCompact : styles.titleCompact) : null,
+            ]}
             numberOfLines={2}
             adjustsFontSizeToFit
             minimumFontScale={0.8}
@@ -74,4 +82,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   titleCompact: { fontSize: FONT_SIZES.xl, letterSpacing: TRACKING.wide },
+  // Blackletter must not be letter-spaced (`TRACKING.body`, a whisper rather than the eyebrow's
+  // wide air) — the hand already carries its own rhythm. Compact reuses `hero` rather than a
+  // second dedicated blackletter step; see the note on `FONT_SIZES.roomName`.
+  titleBlackletter: {
+    fontFamily: FONTS.wordmark,
+    fontSize: FONT_SIZES.roomName,
+    letterSpacing: TRACKING.body,
+  },
+  titleBlackletterCompact: { fontSize: FONT_SIZES.hero, letterSpacing: TRACKING.body },
 });

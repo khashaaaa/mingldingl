@@ -139,6 +139,14 @@ export const FONT_SIZES = {
    */
   hero: 34,
   wordmark: 40,
+  /**
+   * The blackletter face at one size, once per screen — `HeaderBar`'s room-name title (Task 7,
+   * Move 12). Set above `wordmark` because a thin blackletter stroke needs more size than a
+   * regular face to stay legible at all; matches the size shown on the `Blackletter.dc.html`
+   * board. The compact variant (`right` set on `HeaderBar`) reuses `hero` rather than adding a
+   * second dedicated step, at the same ratio `xl` already sits below `title` (0.818).
+   */
+  roomName: 44,
 } as const;
 
 // Leading, one step per type size, so the same size never gets two different line heights.
@@ -153,6 +161,8 @@ export const LINE_HEIGHTS = {
   display: 34,
   hero: 40,
   wordmark: 46,
+  /** Board shows 1.1× the room-name size, rounded to the 4px grid. */
+  roomName: 48,
 } as const;
 
 /**
@@ -178,6 +188,7 @@ export const LEADING = {
   display: LINE_HEIGHTS.display,
   hero: LINE_HEIGHTS.hero,
   wordmark: LINE_HEIGHTS.wordmark,
+  roomName: LINE_HEIGHTS.roomName,
 } as const satisfies Record<keyof typeof FONT_SIZES, number>;
 
 /**
