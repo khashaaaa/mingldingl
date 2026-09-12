@@ -11,6 +11,7 @@ import { YesevaOne_400Regular } from '@expo-google-fonts/yeseva-one/400Regular';
 import { Alegreya_400Regular } from '@expo-google-fonts/alegreya/400Regular';
 import { Alegreya_500Medium } from '@expo-google-fonts/alegreya/500Medium';
 import { Alegreya_700Bold } from '@expo-google-fonts/alegreya/700Bold';
+import { Alegreya_400Regular_Italic } from '@expo-google-fonts/alegreya/400Regular_Italic';
 import { AlegreyaSC_700Bold } from '@expo-google-fonts/alegreya-sc/700Bold';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAuthStore } from '../store/authStore';
@@ -129,7 +130,7 @@ function AppContent() {
   const [mounted, setMounted] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
     YesevaOne_400Regular,
-    Alegreya_400Regular, Alegreya_500Medium, Alegreya_700Bold, AlegreyaSC_700Bold,
+    Alegreya_400Regular, Alegreya_500Medium, Alegreya_700Bold, Alegreya_400Regular_Italic, AlegreyaSC_700Bold,
     'CloisterBlack-Light': require('../assets/fonts/CloisterBlack.ttf'),
     ...MaterialCommunityIcons.font,
   });

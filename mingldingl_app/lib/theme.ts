@@ -79,6 +79,8 @@ export const FONTS = {
   body: 'Alegreya_400Regular',
   bodyMedium: 'Alegreya_500Medium',
   bodyBold: 'Alegreya_700Bold',
+  // Italic is the app speaking; roman is the person (Sealed Fire, three voices).
+  bodyItalic: 'Alegreya_400Regular_Italic',
   wordmark: 'CloisterBlack-Light',
   // Small-caps utility face for tiny labels, where a display face turns to mush.
   utility: 'AlegreyaSC_700Bold',

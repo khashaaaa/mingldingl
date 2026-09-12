@@ -51,6 +51,8 @@ export const AWAITING_MN_TRANSLATION = [
   'seal_under_wax', 'age_winters', 'seals_deep_membership', 'seals_climb', 'seals_law',
   'seal_breaks_2', 'seal_breaks_3', 'seal_breaks_4',
   'seal_broke_2', 'seal_broke_3', 'seal_broke_4',
+  // The ledger's pieces (Wave 2 move 2): the day heading and the send seal's label.
+  'thread_day', 'letter_seal',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

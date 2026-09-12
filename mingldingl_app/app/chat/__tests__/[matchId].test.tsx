@@ -146,7 +146,7 @@ describe('ChatScreen', () => {
     const { queryByTestId, getByText } = renderScreen();
 
     expect(queryByTestId('chat-activities')).toBeNull();
-    expect(getByText('This bond has been severed — you can no longer send messages.')).toBeTruthy();
+    expect(getByText('The bond was severed. This thread is kept as it was; no more letters can be written on it.')).toBeTruthy();
   });
 
   it('shows an empty state instead of a blank scroll area for a thread with no messages', () => {

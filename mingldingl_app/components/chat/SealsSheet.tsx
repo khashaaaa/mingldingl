@@ -156,6 +156,6 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.primary, flexShrink: 1 },
   chipTextLocked: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, flexShrink: 1 },
   climbRow: { gap: SPACE.sm },
-  // italic: the app speaking (Task 6 adds FONTS.bodyItalic) — plain body until then.
-  law: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim },
+  // The law is italic: this is the app speaking, not either person in the thread.
+  law: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.sm, color: INK.dim },
 });
