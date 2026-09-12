@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { Glyph, type GlyphName } from './Glyph';
+import { Glyph, STROKE, type GlyphName } from './Glyph';
 import { HEAT, ICON_SIZES, INK, METAL } from '../../lib/theme';
 
 /**
@@ -17,9 +17,6 @@ import { HEAT, ICON_SIZES, INK, METAL } from '../../lib/theme';
  * a place standing beside a cut glyph looks like it came from the same knife. Where a place
  * already exists in that set — the hearth — it is reused rather than re-cut.
  */
-
-/** The cut. One weight across the set, `Glyph`'s weight. */
-const STROKE = 2.4;
 
 interface Cuts {
   readonly lines: readonly string[];
@@ -192,15 +189,16 @@ function Ember({ size, color = HEAT.flame }: PlaceProps) {
  * Two of these places are already cut, in `Glyph`: the folded letter and the carried lantern. They
  * are reused rather than re-cut — a second drawing of the same object is a second hand. `Glyph`
  * takes only name/size/color/style and does not forward a testID, and widening that shared
- * primitive's API for one test hook is the larger change, so the wrapper carries the name. It is
- * hidden from assistive tech like every other drawing here.
+ * primitive's API for one test hook is the larger change, so the wrapper carries the name — and
+ * nothing else: an unlabelled `Glyph` now hides its own descendants, so the wrapper no longer
+ * repeats that.
  */
 function GlyphPlace({ name, testID, size = ICON_SIZES.hero, color = INK.muted }: {
   name: GlyphName;
   testID: string;
 } & PlaceProps) {
   return (
-    <View testID={testID} importantForAccessibility="no-hide-descendants" aria-hidden>
+    <View testID={testID}>
       <Glyph name={name} size={size} color={color} />
     </View>
   );

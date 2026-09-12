@@ -2,26 +2,13 @@ import { render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { Waiting } from '../Waiting';
 import { ICON_SIZES, INK } from '../../../lib/theme';
+import { marks, packed } from '../../../lib/testing/svg';
 
 let mockLevel: 'full' | 'plain' | 'still' | 'off' = 'plain';
 jest.mock('../../../lib/vfx', () => ({
   ...jest.requireActual('../../../lib/vfx'),
   useVfxLevel: () => mockLevel,
 }));
-
-/** Every drawn mark in a rendered tree. */
-function marks(node: unknown): { type?: string; props?: Record<string, unknown> }[] {
-  if (Array.isArray(node)) return node.flatMap(marks);
-  if (!node || typeof node !== 'object') return [];
-  const el = node as { type?: string; props?: Record<string, unknown>; children?: unknown };
-  const here = /path|rect|circle|line/i.test(el.type ?? '') ? [el] : [];
-  return [...here, ...marks(el.children)];
-}
-
-/** react-native-svg packs a colour into an ARGB int before it reaches the native view. */
-function packed(hex: string) {
-  return { type: 0, payload: 0xff000000 + parseInt(hex.slice(1), 16) };
-}
 
 describe('Waiting', () => {
   beforeEach(() => {

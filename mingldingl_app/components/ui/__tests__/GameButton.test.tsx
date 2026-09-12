@@ -110,11 +110,11 @@ describe('GameButton, inked', () => {
 
   it('swaps the label for the wait, and cannot be pressed while it waits', () => {
     const onPress = jest.fn();
-    const { queryByText, getByRole } = render(
+    const { queryByText, queryByTestId, getByRole } = render(
       <GameButton variant="ink" onPress={onPress} loading>Let them pass</GameButton>,
     );
     expect(queryByText('Let them pass')).toBeNull();
-    expect(queryByText('ink-underline')).toBeNull();
+    expect(queryByTestId('ink-underline')).toBeNull();
     fireEvent(getByRole('button'), 'pressIn');
     expect(signalMock).not.toHaveBeenCalled();
     expect(getByRole('button').props.accessibilityState.busy).toBe(true);

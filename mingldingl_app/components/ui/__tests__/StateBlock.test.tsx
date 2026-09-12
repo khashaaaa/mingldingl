@@ -2,36 +2,13 @@ import { render } from '@testing-library/react-native';
 import { StateBlock } from '../StateBlock';
 import { PLACES, PLACE_NAMES } from '../Places';
 import { ACCENT, HEAT, ICON_SIZES, INK, STATUS } from '../../../lib/theme';
+import { marks, packed, paints } from '../../../lib/testing/svg';
 
 /**
  * The three states are drawings now, so the tests look at what was drawn rather than at a
  * snapshot: which mark the block puts on the screen, and in what pigment. A snapshot would
  * happily record the day the ember stopped being drawn at all.
  */
-interface TreeNode {
-  type?: string;
-  props?: Record<string, unknown>;
-  children?: unknown;
-}
-
-/** Every drawn mark in a rendered tree — the cuts themselves, never the wrapper. */
-function marks(node: unknown): TreeNode[] {
-  if (Array.isArray(node)) return node.flatMap(marks);
-  if (!node || typeof node !== 'object') return [];
-  const el = node as TreeNode;
-  const here = /path|rect|circle|line|polygon|polyline/i.test(el.type ?? '') ? [el] : [];
-  return [...here, ...marks(el.children)];
-}
-
-/** What each mark was painted in. */
-function paints(tree: unknown): unknown[] {
-  return marks(tree).map((mark) => mark.props?.stroke ?? mark.props?.fill);
-}
-
-/** react-native-svg packs a colour into an ARGB int before it reaches the native view. */
-function packed(hex: string) {
-  return { type: 0, payload: 0xff000000 + parseInt(hex.slice(1), 16) };
-}
 
 /** A drawing carries no meaning a screen reader needs — the title does — so it is hidden. */
 const HIDDEN = { includeHiddenElements: true };

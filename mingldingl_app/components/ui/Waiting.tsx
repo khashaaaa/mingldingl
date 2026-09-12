@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { STROKE } from './Glyph';
 import { ACCENT, ICON_SIZES } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
@@ -10,8 +11,7 @@ interface Props {
   color?: string;
 }
 
-/** The cut, and the cuts: `Glyph`'s candle, split so the flame can move without the wax. */
-const STROKE = 2.4;
+/** The cuts: `Glyph`'s candle, split so the flame can move without the wax — in `Glyph`'s weight. */
 const WAX = ['M9 8h6v11H9z', 'M7 19h10v2H7z'];
 const FLAME = 'M12 2l2 3-2 3-2-3z';
 

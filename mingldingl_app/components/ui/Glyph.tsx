@@ -15,8 +15,14 @@ import { ACCENT, ICON_SIZES } from '../../lib/theme';
  * The forms are the drawings in `docs/design/sealed-fire/boards/Glyphs.dc.html`.
  */
 
-/** The cut. One weight across the set — a second weight is a second hand. */
-const STROKE = 2.4;
+/**
+ * The cut. One weight across the set — a second weight is a second hand.
+ *
+ * Exported because the hand does not stop at this file: `Places` and `Waiting` draw in the same
+ * ink and used to each declare their own 2.4, so changing the weight of the set meant finding
+ * three copies of it and any drawing that missed the change simply looked slightly wrong.
+ */
+export const STROKE = 2.4;
 /** A seal, drawn as the smallest mark that still reads as pressed wax. */
 const DOT = 4;
 
@@ -132,9 +138,12 @@ interface Props {
 
 export function Glyph({ name, size = ICON_SIZES.lg, color = ACCENT.base, label, style }: Props) {
   const { lines, rings, dots } = GLYPHS[name];
+  // `no` hides this view and nothing under it, so TalkBack walked straight past the `<Svg>` and
+  // announced its paths one by one — a decorative glyph read out as a dozen unnamed shapes.
+  // `no-hide-descendants` takes the whole drawing out of the tree, which is what decorative means.
   const a11y = label
     ? { accessible: true, accessibilityRole: 'image' as const, accessibilityLabel: label }
-    : { accessible: false, importantForAccessibility: 'no' as const, 'aria-hidden': true };
+    : { accessible: false, importantForAccessibility: 'no-hide-descendants' as const, 'aria-hidden': true };
 
   return (
     <Svg

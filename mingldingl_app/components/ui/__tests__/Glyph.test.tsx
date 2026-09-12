@@ -2,6 +2,7 @@ import { render } from '@testing-library/react-native';
 import path from 'path';
 import { Glyph, GLYPH_NAMES } from '../Glyph';
 import { appSources } from '../../../lib/testing/sourceTree';
+import { marks, packed, type TreeNode } from '../../../lib/testing/svg';
 import { ACCENT, ICON_SIZES, INK } from '../../../lib/theme';
 
 /**
@@ -9,27 +10,8 @@ import { ACCENT, ICON_SIZES, INK } from '../../../lib/theme';
  * empty `<Svg />` satisfies "it renders" and shows the user nothing, which is exactly the
  * failure a hand-cut set is prone to — a name added to the table with no path behind it.
  */
-interface TreeNode {
-  type?: string;
-  props?: Record<string, unknown>;
-  children?: unknown;
-}
 
-/** Every drawn mark in a rendered tree: the strokes and seals, never the wrapper. */
-function marks(node: unknown): TreeNode[] {
-  if (Array.isArray(node)) return node.flatMap(marks);
-  if (!node || typeof node !== 'object') return [];
-  const el = node as TreeNode;
-  const here = /path|rect|circle|line|polygon|polyline/i.test(el.type ?? '') ? [el] : [];
-  return [...here, ...marks(el.children)];
-}
-
-/** react-native-svg packs a colour into an ARGB int before it reaches the native view. */
-function packed(hex: string) {
-  return { type: 0, payload: 0xff000000 + parseInt(hex.slice(1), 16) };
-}
-
-/** …and the two joinery props into their enum positions: butt 0, round 1, square 2; miter 0. */
+/** The two joinery props reach the native view as their enum positions: butt 0, round 1, square 2; miter 0. */
 const SQUARE_CAP = 2;
 const MITER_JOIN = 0;
 
@@ -101,9 +83,10 @@ describe('Glyph', () => {
   it('hides an unlabelled glyph from the screen reader', () => {
     const { getByTestId, queryByTestId } = render(<Glyph name="bell" />);
 
+    // `no` would hide the `<Svg>` and leave its paths in the tree, to be read out one by one.
     expect(getByTestId('glyph-bell', HIDDEN).props).toEqual(expect.objectContaining({
       accessible: false,
-      importantForAccessibility: 'no',
+      importantForAccessibility: 'no-hide-descendants',
       'aria-hidden': true,
     }));
     expect(queryByTestId('glyph-bell')).toBeNull();
