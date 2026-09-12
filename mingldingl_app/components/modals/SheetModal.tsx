@@ -17,7 +17,7 @@ interface Props {
   children: ReactNode | ((closeThen: CloseThen) => ReactNode);
 }
 
-/** The bronze-bordered action sheet shared by the photo-source and oath pickers. */
+/** The parchment strip action sheet shared by the photo-source and oath pickers. */
 export function SheetModal({ visible, onClose, children }: Props) {
   const pendingRef = useRef<(() => void) | null>(null);
 

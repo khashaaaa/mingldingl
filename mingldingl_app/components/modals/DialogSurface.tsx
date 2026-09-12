@@ -1,9 +1,10 @@
 import { useContext } from 'react';
-import { View, Image, StyleSheet } from 'react-native';
+import { View, Image, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
+import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
 import { ACCENT, LINE, RADIUS, SCRIM, SPACE, SURFACE, overlay } from '../../lib/theme';
 
 /**
@@ -102,6 +103,14 @@ export function DialogCard({ weight = 'dialog', accent, children, style }: {
  * but not every test tree bothers to add one) rather than the throwing `useSafeAreaInsets`, so a
  * caller far from here — `SheetModal` reaches every report and picker screen — cannot fail a test
  * that was never about safe areas at all.
+ *
+ * Pinned to the bottom edge, a strip sits exactly where the keyboard rises — the phone number
+ * field in `PhoneChangeModal` renders inside an `AlertModal` for that reason. `useAndroidKeyboardHeight`'s
+ * own header explains why `KeyboardAvoidingView` cannot be trusted on Android under edge-to-edge,
+ * and `app/chat/[matchId].tsx` already carries the split this follows: Android pads by the
+ * measured keyboard height (the event stops at the navigation bar, so that bar is added back on
+ * top of it, same as the chat composer), iOS wraps in `KeyboardAvoidingView behavior="padding"`,
+ * and web does neither.
  */
 export function DialogStrip({ accent, wash, children, style }: {
   /** The top rule's colour. A warning strip passes `STATUS.warning`; everything else, the brand. */
@@ -113,12 +122,16 @@ export function DialogStrip({ accent, wash, children, style }: {
   style?: StyleProp<ViewStyle>;
 }) {
   const insets = useContext(SafeAreaInsetsContext);
-  return (
+  const androidKeyboardHeight = useAndroidKeyboardHeight();
+  const bottomInset = insets?.bottom ?? 0;
+  const keyboardPad = androidKeyboardHeight > 0 ? androidKeyboardHeight + bottomInset : bottomInset;
+
+  const strip = (
     <View
       testID="dialog-strip"
       style={[
         DIALOG_STYLES.strip,
-        { borderTopColor: accent ?? ACCENT.base, paddingBottom: SPACE.xl + (insets?.bottom ?? 0) },
+        { borderTopColor: accent ?? ACCENT.base, paddingBottom: SPACE.xl + keyboardPad },
         style,
       ]}
     >
@@ -134,6 +147,9 @@ export function DialogStrip({ accent, wash, children, style }: {
       {children}
     </View>
   );
+
+  if (Platform.OS !== 'ios') return strip;
+  return <KeyboardAvoidingView behavior="padding">{strip}</KeyboardAvoidingView>;
 }
 
 export const DIALOG_STYLES = StyleSheet.create({
