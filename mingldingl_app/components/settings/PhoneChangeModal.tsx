@@ -127,8 +127,11 @@ export function PhoneChangeModal({ visible, onDismiss, onChanged }: Props) {
             maxLength={8}
           />
           <Text style={styles.hint}>{i18n.t('phone_change_verify_hint')}</Text>
+          {/* This branch's one deed. It is the second forged button in the file and the only one
+              in the branch — the "open the SMS app" slab above belongs to the other half of the
+              same ternary, and they never render together. See `BRANCHED` in `forged.test.ts`. */}
           <GameButton
-            variant="ink"
+            variant="primary"
             size="compact"
             onPress={start}
             disabled={!isPhoneValid(phone) || busy}

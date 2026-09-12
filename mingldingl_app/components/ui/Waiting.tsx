@@ -69,13 +69,16 @@ export function Waiting({ size = ICON_SIZES.lg, color = ACCENT.base }: Props) {
       accessibilityState={{ busy: true }}
       aria-busy
     >
+      {/* The container is the whole control — it carries the progressbar role and the busy state.
+          Both drawings leave the tree entirely: `no` would hide each `<Svg>` and leave its paths
+          behind, so a wait announced itself as "progress bar" and then four unnamed shapes. */}
       <Svg
         width={size}
         height={size}
         viewBox="0 0 24 24"
         style={StyleSheet.absoluteFill}
         accessible={false}
-        importantForAccessibility="no"
+        importantForAccessibility="no-hide-descendants"
         aria-hidden
       >
         {WAX.map((d) => (
@@ -101,7 +104,7 @@ export function Waiting({ size = ICON_SIZES.lg, color = ACCENT.base }: Props) {
           height={size}
           viewBox="0 0 24 24"
           accessible={false}
-          importantForAccessibility="no"
+          importantForAccessibility="no-hide-descendants"
           aria-hidden
         >
           <Path d={FLAME} fill={color} />

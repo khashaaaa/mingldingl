@@ -43,6 +43,22 @@ describe('what counts as forged', () => {
   });
 });
 
+/**
+ * Files whose forged buttons live in render branches that never appear together.
+ *
+ * The count is per file because a file is normally a screen's worth of action — but a file that
+ * renders one of two alternative surfaces spends its forge twice on paper and once on screen.
+ * `PhoneChangeModal` is the case: before a verification is started it draws a number field and
+ * "verify now"; once verify.mn has a session it draws the instruction and "open the SMS app"
+ * instead. Neither branch has two slabs, and holding the file to one left whichever branch lost
+ * the coin toss with no deed at all — an `AlertModal` strip whose only actions were two ink links.
+ *
+ * The cap is 2, not "one per branch": counting branches means parsing the conditionals, and a
+ * third forged button in a file that already earns this exception is exactly the regression the
+ * rule is here to catch. Add an entry only with the two branches named.
+ */
+const BRANCHED = new Set([path.join('components', 'settings', 'PhoneChangeModal.tsx')]);
+
 describe('one forged button per screen', () => {
   const screens = appSources()
     .filter((f) => f.rel.startsWith('app' + path.sep) || f.rel.startsWith('components' + path.sep))
@@ -57,9 +73,17 @@ describe('one forged button per screen', () => {
 
   it('never forges two buttons in the same file', () => {
     const offenders = screens
-      .filter((f) => f.hot.length > 1)
+      .filter((f) => f.hot.length > (BRANCHED.has(f.rel) ? 2 : 1))
       .map((f) => `${f.rel}: ${f.hot.length} forged buttons (lines ${f.hot.map((t) => t.line).join(', ')})`);
     expect(offenders).toEqual([]);
+  });
+
+  it('keeps the branched exception honest — a file down to one forge no longer needs it', () => {
+    const all = new Set(appSources().map((f) => f.rel));
+    expect([...BRANCHED].filter((rel) => !all.has(rel))).toEqual([]);
+
+    const stale = [...BRANCHED].filter((rel) => (screens.find((f) => f.rel === rel)?.hot.length ?? 0) < 2);
+    expect(stale).toEqual([]);
   });
 
   it('still forges something — the rule is a limit, not a ban', () => {

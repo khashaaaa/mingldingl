@@ -100,7 +100,11 @@ const CUTS: Record<Exclude<PlaceName, 'letter' | 'lantern'>, Cuts> = {
   },
 };
 
-/** One drawing, cut. Decorative by construction: the block's title is what carries the meaning. */
+/**
+ * One drawing, cut. Decorative by construction: the block's title is what carries the meaning,
+ * so the whole drawing leaves the accessibility tree — `no-hide-descendants` rather than `no`,
+ * which would hide the `<Svg>` and leave its paths behind to be read out one at a time.
+ */
 function Cut({ cuts, testID, size = ICON_SIZES.hero, color = INK.muted }: {
   cuts: Cuts;
   testID: string;
@@ -112,7 +116,7 @@ function Cut({ cuts, testID, size = ICON_SIZES.hero, color = INK.muted }: {
       height={size}
       viewBox="0 0 24 24"
       accessible={false}
-      importantForAccessibility="no"
+      importantForAccessibility="no-hide-descendants"
       aria-hidden
     >
       {cuts.lines.map((d) => (
