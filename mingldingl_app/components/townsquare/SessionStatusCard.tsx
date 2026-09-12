@@ -78,6 +78,7 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
           worldKey="gates_close"
           exactKey="town_square_rsvp_closes_in"
           style={styles.hint}
+          testID="session-gates-close"
         />
       )}
       <WorldClock

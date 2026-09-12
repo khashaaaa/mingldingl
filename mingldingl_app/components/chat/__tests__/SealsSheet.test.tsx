@@ -206,4 +206,13 @@ describe('SealsSheet', () => {
 
     expect(getByText(i18n.t('seals_law'))).toBeTruthy();
   });
+
+  it('offers a way back to the letters, since the backdrop is the only other one', () => {
+    const { getByText } = render(
+      <SealsSheet visible onClose={onClose} otherUser={freshMatch} messageCount={0} revealLevel={1} />,
+    );
+
+    fireEvent.press(getByText(i18n.t('seals_close')));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });

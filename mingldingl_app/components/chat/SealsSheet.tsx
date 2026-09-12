@@ -61,8 +61,7 @@ export function SealsSheet({ visible, onClose, otherUser, messageCount, revealLe
   // The engine hands out deep fields at the top rung *and* only to Silver/Gold. Once the
   // conversation has earned that rung, an absent `deep` can only be the membership gate — showing
   // it under the same wax as an unearned field reads as a bug rather than as a paywall.
-  const deepGatedByMembership =
-    revealLevel != null && revealLevel >= deepRevealLevel(revealLadder) && !otherUser.deep;
+  const deepGatedByMembership = revealLevel >= deepRevealLevel(revealLadder) && !otherUser.deep;
   const chips: Chip[] = [
     { key: 'age', label: i18n.t('reveal_age'), value: otherUser.age != null ? i18n.t('age_winters', { age: otherUser.age }) : null },
     { key: 'district', label: i18n.t('reveal_district'), value: otherUser.district ?? null },
@@ -85,6 +84,8 @@ export function SealsSheet({ visible, onClose, otherUser, messageCount, revealLe
             <View
               key={i}
               style={[styles.photo, styles.wax]}
+              // A bare View is not an accessibility element, so the label alone was never read.
+              accessible
               accessibilityLabel={i18n.t('seal_under_wax')}
               testID={`seal-photo-wax-${i}`}
             >
@@ -95,7 +96,7 @@ export function SealsSheet({ visible, onClose, otherUser, messageCount, revealLe
         <View style={styles.chips}>
           {chips.map((c) => (
             c.value === null ? (
-              <View key={c.key} style={[styles.chip, styles.chipLocked]} accessibilityLabel={i18n.t('seal_under_wax')}>
+              <View key={c.key} style={[styles.chip, styles.chipLocked]} accessible accessibilityLabel={i18n.t('seal_under_wax')}>
                 <Glyph name="seal" size={ICON_SIZES.xs} />
                 <Text style={styles.chipTextLocked} numberOfLines={1}>{c.label}</Text>
               </View>
@@ -123,6 +124,11 @@ export function SealsSheet({ visible, onClose, otherUser, messageCount, revealLe
         </View>
       )}
       <Text style={styles.law}>{i18n.t('seals_law')}</Text>
+      {/* The sheet's only other way out is the backdrop, which on a phone is a sliver above the
+          board — on device there was no visible way back to the letters at all. */}
+      <GameButton variant="ink" size="compact" onPress={onClose}>
+        {i18n.t('seals_close')}
+      </GameButton>
     </SheetModal>
   );
 }

@@ -38,10 +38,13 @@ export function NextGatheringPill() {
     const exact = i18n.t(isOpen ? 'gathering_rsvp_closes' : 'gathering_starts_in', {
       time: formatCountdown(targetIso, now),
     });
-    label = worldTimeSpoken()
+    const spoken = worldTimeSpoken();
+    label = spoken
       ? i18n.t(isOpen ? 'gates_close' : 'first_bell', { when: worldWhenText(worldWhen(targetIso, now)) })
       : exact;
-    accessibilityLabel = `${label} ${exact}`;
+    // Mongolian is already on the exact clock, so `label` *is* `exact` there — pairing them would
+    // read the same sentence out twice.
+    accessibilityLabel = spoken ? `${label} ${exact}` : exact;
   }
 
   return (

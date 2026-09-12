@@ -23,14 +23,17 @@ interface Props {
  * nothing — with the count as its label.
  */
 export function SealDots({ broken, color = METAL.gold, size = 10, style }: Props) {
+  // Callers pass this straight from the engine's reveal level. A ladder longer than three rungs,
+  // or a level of 0, would otherwise ask for a `seals_broken_4` key that does not exist.
+  const count = Math.max(0, Math.min(SEAL_COUNT, broken));
   return (
     <View
       style={[styles.row, style]}
       accessibilityRole="image"
-      accessibilityLabel={i18n.t(`seals_broken_${broken}`)}
+      accessibilityLabel={i18n.t(`seals_broken_${count}`)}
     >
       {Array.from({ length: SEAL_COUNT }, (_, i) => {
-        const isBroken = i < broken;
+        const isBroken = i < count;
         return (
           <View
             key={i}

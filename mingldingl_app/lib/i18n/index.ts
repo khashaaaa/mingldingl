@@ -42,7 +42,7 @@ export const AWAITING_MN_TRANSLATION = [
   // implying a gate that doesn't exist (see next_action_icebreaker's neighbouring fix).
   'chat_empty_title', 'chat_empty_sub',
   // Time in the world's units (Wave 2). Until these are translated, `mn` keeps the exact clock.
-  'when_candle', 'when_today', 'when_tomorrow', 'when_dawns',
+  'when_candle', 'when_today', 'when_tomorrow', 'when_dawns', 'when_passed',
   // WorldClock and the three clocks (Wave 2 move 13): the two world sentences and the OTP
   // screen's world-speak line. Same reason as above — `mn` keeps the exact clock outright.
   'gates_close', 'first_bell', 'verify_match_burns',
@@ -51,7 +51,7 @@ export const AWAITING_MN_TRANSLATION = [
   // The seals (Wave 2).
   'seals_title', 'seals_broken_0', 'seals_broken_1', 'seals_broken_2', 'seals_broken_3',
   'seals_left_0', 'seals_left_1', 'seals_left_2', 'seals_left_3', 'seals_next_at',
-  'seal_under_wax', 'age_winters', 'seals_deep_membership', 'seals_climb', 'seals_law',
+  'seal_under_wax', 'age_winters', 'seals_deep_membership', 'seals_climb', 'seals_law', 'seals_close',
   'seal_breaks_2', 'seal_breaks_3', 'seal_breaks_4',
   'seal_broke_2', 'seal_broke_3', 'seal_broke_4',
   // The ledger's pieces (Wave 2 move 2): the day heading and the send seal's label.

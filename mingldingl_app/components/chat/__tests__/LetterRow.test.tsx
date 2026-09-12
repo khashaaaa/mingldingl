@@ -31,7 +31,9 @@ describe('LetterRow', () => {
     const { getByLabelText } = render(
       <LetterRow message={{ ...base, status: 'failed' }} myId="me" initial="Х" onRetry={onRetry} />,
     );
-    fireEvent.press(getByLabelText('Failed to send — tap to retry'));
+    // The label leads with the letter's own words: the wrapper hides its children from a screen
+    // reader, so "tap to retry" alone left no way to tell which letter had failed.
+    fireEvent.press(getByLabelText('A line. Failed to send — tap to retry'));
     expect(onRetry).toHaveBeenCalledWith('m1');
   });
 });

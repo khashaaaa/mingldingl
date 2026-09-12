@@ -26,12 +26,15 @@ jest.mock('../../../hooks/useTownSquareSession', () => ({
 }));
 const mockUseSession = useTownSquareSession as jest.Mock;
 
+// Local components, not UTC literals: the world's phrasing ("today at 20:30") is read off the
+// local calendar, so a `Z` fixture names a different wall-clock hour in CI (UTC) than on a UTC+8
+// machine and the sentence asserted below went red there.
 function session(overrides: Record<string, unknown> = {}) {
   return {
     sessionId: 's1',
-    rsvpOpensAt: '2026-08-13T10:00:00Z',
-    rsvpClosesAt: '2026-08-14T12:30:00Z',
-    scheduledStartAt: '2026-08-14T20:00:00Z',
+    rsvpOpensAt: new Date(2026, 7, 13, 18, 0).toISOString(),
+    rsvpClosesAt: new Date(2026, 7, 14, 20, 30).toISOString(),
+    scheduledStartAt: new Date(2026, 7, 15, 4, 0).toISOString(),
     status: 'Open',
     isRsvpd: false,
     ...overrides,
@@ -40,7 +43,7 @@ function session(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   jest.useFakeTimers();
-  jest.setSystemTime(new Date('2026-08-14T10:00:00Z'));
+  jest.setSystemTime(new Date(2026, 7, 14, 18, 0));
   mockPush.mockClear();
   mockUseSession.mockReset().mockReturnValue({
     session: session(),
@@ -80,9 +83,11 @@ describe('TownSquareScreen chrome (task 8: moved from Seek)', () => {
     // world's units by default and in the same words, since they share a worldKey; a tap on the
     // card's own clock (unlike the pill, which has no toggle — the whole thing navigates) still
     // bares the exact numbers the pill carries in its accessibility label.
-    const worldClocks = getAllByText('Gates close today at 20:30.');
-    expect(worldClocks).toHaveLength(2);
-    fireEvent.press(worldClocks[0]);
+    expect(getAllByText('Gates close today at 20:30.')).toHaveLength(2);
+    // By testID rather than by tree order: two nodes carry that same sentence, and only the
+    // card's clock has a tap-to-reveal — picking one by index would silently start pressing the
+    // pill (which navigates instead) if the screen ever reorders them.
+    fireEvent.press(getByTestId('session-gates-close'));
     expect(getByText('RSVP closes in 2h 30m')).toBeTruthy();
     expect(getByTestId('next-gathering-pill').props.accessibilityLabel).toBe(
       'Gates close today at 20:30. Gathering · RSVP closes in 2h 30m',

@@ -42,7 +42,9 @@ export function worldWhen(targetIso: string | null, nowMs: number): WorldWhen {
 
 export function worldWhenText(when: WorldWhen): string {
   switch (when.kind) {
-    case 'passed': return i18n.t('countdown_any_moment');
+    // `countdown_any_moment` is a line on its own ("Any moment"); this one is a fragment dropped
+    // into "Gates close %{when}.", so it has to be lowercase or the sentence breaks in half.
+    case 'passed': return i18n.t('when_passed');
     case 'candle': return i18n.t('when_candle');
     case 'today': return i18n.t('when_today', { time: when.time });
     case 'tomorrow': return i18n.t('when_tomorrow', { time: when.time });

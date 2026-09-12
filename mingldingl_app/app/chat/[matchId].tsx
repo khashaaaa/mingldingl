@@ -123,6 +123,12 @@ export default function ChatScreen() {
     ? i18n.t('seals_next_at', { count: unsealedNextAt })
     : i18n.t('seals_left_0');
   const unsealedTailSentence = `${unsealedTail.charAt(0).toUpperCase()}${unsealedTail.slice(1)}.`;
+  // The deep rung is the one the conversation alone does not buy — the engine hands those fields
+  // to Silver and Gold only. A Free member's ceremony names the gate instead of promising fields
+  // the Seals sheet then shows under wax; `SealBreakRow` reads the same rule off the same fact.
+  const unsealedHead = unsealedLevel === 4 && !match?.otherUser.deep
+    ? i18n.t('seals_deep_membership')
+    : i18n.t(`seal_broke_${unsealedLevel}`);
 
   const { data: myProfile } = useProfile();
   const insets = useSafeAreaInsets();
@@ -220,7 +226,9 @@ export default function ChatScreen() {
             <Tap
               onPress={() => setSealsVisible(true)}
               accessibilityRole="button"
-              accessibilityLabel={i18n.t('seals_title')}
+              // The row's own children are hidden behind the label, so the count has to be in it:
+              // "The seals" alone told a screen reader nothing about where the thread stands.
+              accessibilityLabel={`${i18n.t('seals_title')}. ${i18n.t(`seals_broken_${broken}`)}`}
               style={styles.sealsRow}
               testID="seals-toggle"
             >
@@ -238,7 +246,7 @@ export default function ChatScreen() {
             onDismiss={dismissUnsealing}
             photoUri={unsealedPhoto}
             headline={i18n.t(`seal_breaks_${unsealedLevel}`)}
-            subline={`${i18n.t(`seal_broke_${unsealedLevel}`)} ${unsealedTailSentence}`}
+            subline={`${unsealedHead} ${unsealedTailSentence}`}
           />
         )}
       </View>
@@ -317,8 +325,6 @@ export default function ChatScreen() {
               // Prepending a page of history otherwise leaves the scroll offset where it was, so the
               // 50 new rows above it shove the message you were reading off-screen.
               maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-              // Prepending a page of history otherwise leaves the scroll offset where it was, so the
-              // 50 new rows above it shove the message you were reading off-screen.
               onContentSizeChange={() => {
                 if (loadingEarlier || justLoadedEarlier) { acknowledgeEarlierLoaded(); return; }
                 if (!nearBottomRef.current) return;
@@ -361,7 +367,7 @@ export default function ChatScreen() {
                       // The match carries no tier for the other side, so the wax is gold.
                       ? <SealedLetter onOpen={unseal} sealColor={METAL.gold} />
                       : <LetterRow message={item} myId={myId ?? undefined} initial={mine ? myInitial : theirInitial} onRetry={retryMessage} />}
-                    {broke != null && <SealBreakRow level={broke} />}
+                    {broke != null && <SealBreakRow level={broke} gated={broke === 4 && !match?.otherUser.deep} />}
                   </>
                 );
               }}
@@ -369,7 +375,9 @@ export default function ChatScreen() {
           </View>
         )}
         {endedReason ? (
-          <View style={styles.endedNotice}>
+          // Last thing on the screen where the composer used to be, so it owes the same debt to
+          // the Android gesture bar that `MessageInput` pays for its own bar.
+          <View style={[styles.endedNotice, { paddingBottom: SPACE.lg + insets.bottom }]}>
             <Icon name="link-variant-off" size={ICON_SIZES.sm} color={INK.dim} />
             <Text style={styles.endedNoticeText}>
               {endedReason === 'ghosted' ? i18n.t('match_quiet_body') : i18n.t('match_ended_notice')}

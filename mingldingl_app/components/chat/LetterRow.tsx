@@ -45,8 +45,14 @@ export function LetterRow({ message, myId, initial, onRetry }: Props) {
 
   // The whole failed letter is the retry target, not the small line under it: the line you are
   // trying to send again is the thing on screen, and a two-word strip is a hard thing to hit.
+  // The label has to carry the letter's own words too — labelling the wrapper hides everything
+  // inside it, so a screen reader heard only "tap to retry" and never which letter failed.
   return isFailed ? (
-    <Pressable onPress={() => onRetry?.(message.id)} accessibilityLabel={i18n.t('message_tap_to_retry')}>
+    <Pressable
+      onPress={() => onRetry?.(message.id)}
+      accessibilityRole="button"
+      accessibilityLabel={`${message.content}. ${i18n.t('message_tap_to_retry')}`}
+    >
       {row}
     </Pressable>
   ) : row;

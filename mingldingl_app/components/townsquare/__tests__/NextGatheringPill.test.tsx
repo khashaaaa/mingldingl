@@ -10,14 +10,18 @@ jest.mock('../../../hooks/useTownSquareSession', () => ({
   useTownSquareSession: () => mockUseTownSquareSession(),
 }));
 
-const NOW = new Date('2026-08-14T10:00:00Z').getTime();
+// The world's phrasing ("today at 20:30") is read off the *local* calendar, so every instant here
+// is built from local components rather than a UTC literal: a fixture pinned to `Z` says a
+// different wall-clock hour in CI (UTC) than on this machine, and the assertions below went red
+// there while staying green here.
+const NOW = new Date(2026, 7, 14, 18, 0).getTime();
 
 function session(overrides: Partial<TownSquareNextSession> = {}): TownSquareNextSession {
   return {
     sessionId: 's1',
-    rsvpOpensAt: '2026-08-13T10:00:00Z',
-    rsvpClosesAt: '2026-08-14T12:30:00Z',
-    scheduledStartAt: '2026-08-14T20:00:00Z',
+    rsvpOpensAt: new Date(2026, 7, 13, 18, 0).toISOString(),
+    rsvpClosesAt: new Date(2026, 7, 14, 20, 30).toISOString(),
+    scheduledStartAt: new Date(2026, 7, 15, 4, 0).toISOString(),
     status: 'Open',
     isRsvpd: false,
     ...overrides,

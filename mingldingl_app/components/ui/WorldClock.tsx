@@ -20,8 +20,9 @@ const REVEAL_MS = 4000;
  * A countdown speaks the world's units first ("tomorrow at 13:00", move 13) rather than a raw
  * "in 1d 4h" — the most modern thing on the screen. A tap bares the exact clock for four seconds
  * (nothing is actually hidden — it's one tap away), then it reverts on its own. Mongolian has no
- * translated world phrases yet, so `worldTimeSpoken()` keeps it on the exact clock outright, and
- * the accessibility label always carries both forms regardless of locale.
+ * translated world phrases yet, so `worldTimeSpoken()` keeps it on the exact clock outright — and
+ * the label with it, since reading an English sentence aloud in a Mongolian screen reader is worse
+ * than the number alone.
  */
 export function WorldClock({ targetIso, nowMs, worldKey, exactKey, style, testID }: Props) {
   const [showExact, setShowExact] = useState(false);
@@ -31,9 +32,11 @@ export function WorldClock({ targetIso, nowMs, worldKey, exactKey, style, testID
     if (revertTimer.current) clearTimeout(revertTimer.current);
   }, []);
 
+  const spoken = worldTimeSpoken();
   const exact = i18n.t(exactKey, { time: formatCountdown(targetIso, nowMs) });
   const world = i18n.t(worldKey, { when: worldWhenText(worldWhen(targetIso, nowMs)) });
-  const text = showExact || !worldTimeSpoken() ? exact : world;
+  const text = showExact || !spoken ? exact : world;
+  const label = spoken ? `${world} ${exact}` : exact;
 
   function reveal() {
     setShowExact(true);
@@ -42,7 +45,14 @@ export function WorldClock({ targetIso, nowMs, worldKey, exactKey, style, testID
   }
 
   return (
-    <Pressable onPress={reveal} accessibilityRole="button" accessibilityLabel={`${world} ${exact}`} testID={testID}>
+    <Pressable
+      onPress={reveal}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      // The line is one row of text; a finger aiming at it needs more than its own height.
+      hitSlop={{ top: 12, bottom: 12 }}
+      testID={testID}
+    >
       <Text style={style}>{text}</Text>
     </Pressable>
   );

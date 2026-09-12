@@ -217,6 +217,10 @@ describe('ChatScreen', () => {
 
     // revealLevel 2 has broken the first of three seals.
     expect(getByText('two seals left')).toBeTruthy();
+    // The row's own children are behind its label, so the label has to carry the count too.
+    expect(getByTestId('seals-toggle').props.accessibilityLabel).toBe(
+      'The seals. One of three seals broken',
+    );
     expect(queryByTestId('seal-photo-wax-0')).toBeNull();
 
     fireEvent.press(getByTestId('seals-toggle'));

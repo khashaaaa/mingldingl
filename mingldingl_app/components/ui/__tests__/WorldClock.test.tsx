@@ -41,6 +41,19 @@ describe('WorldClock', () => {
     expect(queryByText(/first bell/)).toBeNull();
   });
 
+  // The screen shows Mongolian the exact clock; a label that appended the untranslated world
+  // sentence would read an English line aloud to a Mongolian screen reader — and, since the two
+  // forms are identical there, say the same thing twice.
+  it('leaves the untranslated world sentence out of the Mongolian label', () => {
+    i18n.locale = 'mn';
+    const { getByRole } = render(
+      <WorldClock targetIso={target} nowMs={now} worldKey="first_bell" exactKey="town_square_starts_in" />,
+    );
+    const label = getByRole('button').props.accessibilityLabel;
+    expect(label).toBe('1 өдөр 4ц дараа эхэлнэ');
+    expect(label).not.toMatch(/[A-Za-z]/);
+  });
+
   it('carries both the world phrase and the exact clock in its accessibility label', () => {
     i18n.locale = 'en';
     const { getByRole } = render(

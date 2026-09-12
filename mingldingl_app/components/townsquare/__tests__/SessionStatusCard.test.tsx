@@ -7,14 +7,17 @@ jest.mock('../../../lib/festivals', () => ({ useActiveFestival: jest.fn() }));
 const mockFestival = useActiveFestival as jest.Mock;
 const NAADAM = { key: 'naadam-2026', nameKey: 'festival_naadam', icon: 'bow-arrow', color: '#E0561F', start: '2026-07-11', end: '2026-07-13' };
 
-const NOW = new Date('2026-08-14T10:00:00Z').getTime();
+// Built from local components, not UTC literals: `WorldClock` phrases an instant against the
+// local calendar, so a `Z` fixture reads as a different wall-clock hour in CI (UTC) than here and
+// the "tomorrow at 02:00" assertion below only passed at UTC+8.
+const NOW = new Date(2026, 7, 14, 18, 0).getTime();
 
 function openSession(overrides: Partial<TownSquareNextSession> = {}): TownSquareNextSession {
   return {
     sessionId: 's1',
-    rsvpOpensAt: '2026-08-13T10:00:00Z',
-    rsvpClosesAt: '2026-08-14T18:00:00Z',
-    scheduledStartAt: '2026-08-14T20:00:00Z',
+    rsvpOpensAt: new Date(2026, 7, 13, 18, 0).toISOString(),
+    rsvpClosesAt: new Date(2026, 7, 15, 2, 0).toISOString(),
+    scheduledStartAt: new Date(2026, 7, 15, 4, 0).toISOString(),
     status: 'Open',
     isRsvpd: false,
     ...overrides,

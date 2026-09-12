@@ -18,6 +18,13 @@ import { appSources, hasProp, openingTags } from '../testing/sourceTree';
  *
  * A tag with no `variant` counts: `primary` is the default, so the plainest call site in the app is
  * also the loudest button on it.
+ *
+ * The scanner reads `<GameButton>` tags, so a forged control built out of anything else is invisible
+ * to it. `components/chat/WaxSealButton.tsx` is the one such control in the app, and it is exempt on
+ * purpose rather than by oversight: sending a line is the chat's single deed, and it is drawn as a
+ * disc of wax — a gold slab in the composer would say the seal is decoration. It is a `Pressable`
+ * with `GameButton`'s own press-in and signal, it spends `app/chat/[matchId].tsx`'s forge, and no
+ * `GameButton primary` may join it on that screen.
  */
 
 const MODALS = path.join('components', 'modals') + path.sep;

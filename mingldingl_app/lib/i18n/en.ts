@@ -379,6 +379,7 @@ export const en = {
   seals_deep_membership: 'The deep seal opens for the Hall and the High Table.',
   seals_climb: 'Climb',
   seals_law: 'Only letters you both send count toward the seals. Talking into silence never opens anyone.',
+  seals_close: 'Back to the letters',
   seal_breaks_2: 'The first seal breaks',
   seal_breaks_3: 'The second seal breaks',
   seal_breaks_4: 'The deep seal breaks',
@@ -515,6 +516,9 @@ export const en = {
   when_today: 'today at %{time}',
   when_tomorrow: 'tomorrow at %{time}',
   when_dawns: 'in %{count} dawns',
+  // The world's own word for "already": "Gates close Any moment." was a sentence with a capital
+  // wedged into its middle, so the world form gets a lowercase phrase of its own.
+  when_passed: 'any moment now',
   // WorldClock's two sentences (move 13): the RSVP-hint and starts-line world forms. Each pairs
   // with an existing exact-clock key (town_square_rsvp_closes_in / _starts_in, gathering_rsvp_closes
   // / _starts_in) that a tap still reveals.

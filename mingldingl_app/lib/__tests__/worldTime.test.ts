@@ -29,7 +29,7 @@ describe('worldWhenText', () => {
   afterEach(() => { i18n.locale = originalLocale; });
   it('speaks each rung', () => {
     i18n.locale = 'en';
-    expect(worldWhenText({ kind: 'passed' })).toBe('Any moment');
+    expect(worldWhenText({ kind: 'passed' })).toBe('any moment now');
     expect(worldWhenText({ kind: 'candle', minutes: 7 })).toBe('before this candle burns down');
     expect(worldWhenText({ kind: 'today', time: '21:05' })).toBe('today at 21:05');
     expect(worldWhenText({ kind: 'tomorrow', time: '01:00' })).toBe('tomorrow at 01:00');
