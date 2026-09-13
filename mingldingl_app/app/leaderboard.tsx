@@ -9,7 +9,7 @@ import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { Entering } from '../components/ui/Entering';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { romanNumeral } from '../lib/numerals';
+import { rankNumeral } from '../lib/numerals';
 import { tierLabel } from '../lib/tiers';
 import {
   ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TEMPERATURE, TRACKING, tint,
@@ -86,7 +86,9 @@ export default function LeaderboardScreen() {
           // the top slice can still count off its own position, and the detached own row (past
           // TOP_SLICE_SIZE) has nothing but `myRank` to fall back on.
           const rank = item.rank ?? (isOwn ? data.myRank : undefined) ?? index + 1;
-          const numeral = romanNumeral(rank);
+          // A real rank has no ceiling — `rankNumeral` falls back to Arabic digits past what a
+          // Roman numeral can express, rather than throw for the person checking her own standing.
+          const numeral = rankNumeral(rank);
           const tierName = tierLabel(item.gemTier ?? 'Garnet');
           const score = item.score ?? 0;
           const label = `${numeral}. ${tierName}. ${score} points${isOwn ? `. ${i18n.t('your_mark')}` : ''}`;

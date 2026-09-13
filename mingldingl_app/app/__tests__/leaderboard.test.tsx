@@ -80,4 +80,17 @@ describe('LeaderboardScreen — the Hall of Names', () => {
     const { getByText } = renderScreen();
     expect(getByText('The wall reads highest to lowest. Yours is the only torch.')).toBeTruthy();
   });
+
+  it('renders a detached own row past 3999 without throwing', () => {
+    // A real rank has no ceiling — for a big city the current user's own standing, detached past
+    // TOP_SLICE_SIZE, can outrun what a Roman numeral can express. This must degrade to Arabic
+    // digits, not crash renderItem (fix round 1).
+    mockData.myRank = 5000;
+    mockData.entries = [
+      { rank: 1, gemTier: 'Ruby', score: 1200, isCurrentUser: false },
+      { rank: 5000, gemTier: 'Garnet', score: 10, isCurrentUser: true },
+    ];
+    const { getByText } = renderScreen();
+    expect(getByText('5,000')).toBeTruthy();
+  });
 });

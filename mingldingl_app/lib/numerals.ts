@@ -27,3 +27,22 @@ export function romanNumeral(n: number): string {
   }
   return result;
 }
+
+/**
+ * The Hall's actual, display-safe rank numeral. `romanNumeral` stays strict on purpose — it is a
+ * numeral converter, not a rank formatter, and the fix for one caller's edge case is not a reason
+ * to let it start lying about numbers it can't represent.
+ *
+ * A rank, unlike a numeral, has no ceiling: it is a user's real standing across a whole city, and
+ * `app/leaderboard.tsx` renders it for the detached own row past `TOP_SLICE_SIZE` however large it
+ * is. Before `TorchGlow`/the Hall existed that just printed `#5000`; routing it through the strict
+ * `romanNumeral` instead throws inside `renderItem`, which the app's `ErrorBoundary` turns into an
+ * error screen for exactly the person checking her own standing. This falls back to Arabic digits
+ * past the numeral's range, and to an em dash for a rank that isn't a usable number at all — a
+ * placeholder never a crash.
+ */
+export function rankNumeral(n: number): string {
+  if (Number.isInteger(n) && n >= 1 && n <= 3999) return romanNumeral(n);
+  if (Number.isFinite(n)) return n.toLocaleString();
+  return '—';
+}
