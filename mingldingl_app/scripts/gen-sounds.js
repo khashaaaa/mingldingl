@@ -1,4 +1,4 @@
-// scripts/gen-sounds.js — generates the world layer's nine event sounds.
+// scripts/gen-sounds.js — generates the world layer's event sounds.
 //
 // Same doctrine as gen-ornaments.js: assets are rendered from description, not committed as
 // opaque binaries nobody can adjust. Everything here is additive synthesis plus a one-pole
@@ -171,6 +171,36 @@ function dying() {
   });
 }
 
+/**
+ * A candle lit (Sealed Fire W4, Task 4): a soft "whoomf" as the flame catches — a low sine (the
+ * wick taking) under lowpass-filtered noise (the breath of air it catches from), both fading out
+ * within a third of a second. Quiet on purpose: this fires once per summons sent, same reasoning
+ * as `tick`.
+ */
+function candle() {
+  const dur = 0.35;
+  const breath = noiseSource(0x9c31a, 600);
+  return render(dur, (t) => {
+    const wick = sine(t, 220) * decay(t, dur, 6);
+    return wick * 0.55 + breath() * decay(t, dur, 9) * 0.55;
+  });
+}
+
+/**
+ * The Square's bell (Sealed Fire W4, Task 4): one fundamental and two overtones struck together
+ * and left to decay at the same rate, so it reads as a single strike rather than a chime — the
+ * hour, not a melody.
+ */
+function bell() {
+  const dur = 1.4;
+  const partials = [[520, 1.0], [1040, 0.5], [1560, 0.25]];
+  return render(dur, (t) => {
+    let v = 0;
+    for (const [f, amp] of partials) v += sine(t, f) * amp * decay(t, dur, 3);
+    return v;
+  });
+}
+
 // ---------- encode ----------
 
 function normalise(samples, peak = 0.82) {
@@ -216,9 +246,9 @@ function toWav(samples) {
 // The tick is the one sound that fires on every press, so it is held well below the others; the
 // dying crackle is quiet for the same reason the brief gives it — amplitude 0.5, not the ~0.82
 // peak everything else normalises to.
-const PEAKS = { tick: 0.5, dying: 0.5 };
+const PEAKS = { tick: 0.5, dying: 0.5, candle: 0.45, bell: 0.7 };
 
-const SOUNDS = { door, rise, anvil, seal, honour, pledge, tick, horn, dying };
+const SOUNDS = { door, rise, anvil, seal, honour, pledge, tick, horn, dying, candle, bell };
 
 const outDir = path.join(__dirname, '..', 'assets', 'sounds');
 fs.mkdirSync(outDir, { recursive: true });

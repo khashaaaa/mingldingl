@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SettingsScreen from '../settings';
 import { apiClient } from '../../lib/api/apiClient';
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn(), back: jest.fn() }) }));
+jest.mock('expo-router', () => ({ usePathname: () => '/test', useRouter: () => ({ push: jest.fn(), back: jest.fn() }) }));
 
 // The screen mounts PhoneChangeModal, which reaches into the same module for a helper.
 jest.mock('../../hooks/useAuth', () => ({

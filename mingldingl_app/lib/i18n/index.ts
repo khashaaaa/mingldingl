@@ -88,6 +88,8 @@ export const AWAITING_MN_TRANSLATION = [
   // The Flame Rite's five states, in the voice (Wave 3 Task 11): the complete state's second
   // line, and the video screen's own retry label.
   'rite_complete_sub', 'rite_try_again',
+  // The hearth's scaffolding (Wave 4 Task 4): the header's way-home tap and the candle row.
+  'go_home', 'candles_left',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

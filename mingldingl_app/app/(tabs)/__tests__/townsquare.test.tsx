@@ -6,6 +6,7 @@ import { WithSafeArea } from '../../../lib/testing/safeArea';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
+  usePathname: () => '/test',
   useRouter: () => ({ push: mockPush }),
   // townsquare.tsx's own ticker is irrelevant to this test; run the effect once like `useEffect`
   // would, without a real navigation focus lifecycle.

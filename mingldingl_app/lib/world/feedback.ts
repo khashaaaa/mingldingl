@@ -10,7 +10,7 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
  */
 export type WorldEvent =
   | 'enterDeep' | 'ascend' | 'tierUp' | 'sealBreak' | 'honour' | 'pledgeKept' | 'press' | 'horn'
-  | 'fireDying';
+  | 'fireDying' | 'candleLit' | 'bell';
 
 type HapticKind = 'soft' | 'light' | 'medium' | 'heavy' | 'success';
 
@@ -32,6 +32,10 @@ const SIGNALS: Record<WorldEvent, EventDef> = {
   horn:      { haptic: 'light',   sound: require('../../assets/sounds/horn.wav') },
   // A thread going cold — Task 4 (the chat screen) fires this, not the Quest Log itself.
   fireDying: { haptic: 'soft',    sound: require('../../assets/sounds/dying.wav') },
+  // A summons candle catching (Task 7) and the Square's bell (Task 8) — the row exists from this
+  // task (W4 Task 4) so both later tasks have somewhere to fire into.
+  candleLit: { haptic: 'light',   sound: require('../../assets/sounds/candle.wav') },
+  bell:      { haptic: 'medium',  sound: require('../../assets/sounds/bell.wav') },
 };
 
 const REPEAT_GAP_MS = 110;

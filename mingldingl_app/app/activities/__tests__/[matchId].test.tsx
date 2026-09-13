@@ -5,6 +5,7 @@ import { useMatches } from '../../../hooks/useMatches';
 import { WithSafeArea } from '../../../lib/testing/safeArea';
 
 jest.mock('expo-router', () => ({
+  usePathname: () => '/test',
   useLocalSearchParams: () => ({ matchId: 'm1' }),
   useRouter: () => ({ back: jest.fn() }),
 }));

@@ -1,11 +1,16 @@
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import { StyleSheet, Text } from 'react-native';
 import { HeaderBar } from '../HeaderBar';
 import { Glyph } from '../Glyph';
 import { i18n } from '../../../lib/i18n';
 import { FONTS, FONT_SIZES } from '../../../lib/theme';
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn() }) }));
+const mockPush = jest.fn();
+let mockPathname = '/matches';
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ back: jest.fn(), push: (...args: unknown[]) => mockPush(...args) }),
+  usePathname: () => mockPathname,
+}));
 
 /**
  * Move 12 (Task 7): room names render in `FONTS.wordmark` (the blackletter face) once per
@@ -59,7 +64,42 @@ describe('HeaderBar blackletter titles', () => {
   });
 
   it('draws a room glyph beside the title when given one', () => {
-    const { UNSAFE_getByType } = render(<HeaderBar title="The Fire" glyph="fire" showBack={false} />);
-    expect(UNSAFE_getByType(Glyph).props.name).toBe('fire');
+    // The hearth tap draws its own glyph (see below), so more than one may be on screen —
+    // this only cares that the title's own glyph is among them.
+    const { UNSAFE_getAllByType } = render(<HeaderBar title="The Fire" glyph="fire" showBack={false} />);
+    expect(UNSAFE_getAllByType(Glyph).some((g) => g.props.name === 'fire')).toBe(true);
+  });
+});
+
+/**
+ * The hearth tap (Task 4): the way home, at the head of the tail row on every screen except the
+ * hearth itself. `HEARTH_ENABLED` is a build-time switch (`lib/world/index.ts`); it is on, so
+ * these tests exercise the tap directly rather than the flag.
+ */
+describe('HeaderBar hearth tap', () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+    mockPathname = '/matches';
+  });
+
+  it('is present on an ordinary screen and pushes to the hearth', () => {
+    const { getByTestId } = render(<HeaderBar title="The Bond" showBack={false} />);
+    const tap = getByTestId('header-hearth');
+    expect(tap.props.accessibilityRole).toBe('button');
+    expect(tap.props.accessibilityLabel).toBe(i18n.t('go_home'));
+    fireEvent.press(tap);
+    expect(mockPush).toHaveBeenCalledWith('/hearth');
+  });
+
+  it('draws the hearth glyph', () => {
+    const { getByTestId, UNSAFE_getAllByType } = render(<HeaderBar title="The Bond" showBack={false} />);
+    getByTestId('header-hearth');
+    expect(UNSAFE_getAllByType(Glyph).some((g) => g.props.name === 'hearth')).toBe(true);
+  });
+
+  it('is absent on the hearth screen itself', () => {
+    mockPathname = '/hearth';
+    const { queryByTestId } = render(<HeaderBar title="The Hearth" showBack={false} />);
+    expect(queryByTestId('header-hearth')).toBeNull();
   });
 });

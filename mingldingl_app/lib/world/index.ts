@@ -7,6 +7,17 @@
  */
 export const WORLD_ENABLED = true;
 
+/**
+ * Build-time switch for the hearth tap as the way home (`HeaderBar`). It has nothing to gate
+ * against by the time this lands — the placeholder `/hearth` and `/satchel` routes exist from
+ * this same task, so the tap always has somewhere real to send you — but it stays a named
+ * constant rather than a bare `true` because Task 5 (the hearth screen) and Task 9 (the Satchel)
+ * are what actually give the destination a body, and a flag that already exists is how they get
+ * to build against a stable name instead of introducing their own. The tab bar is not removed by
+ * this switch; the two navigate the same way until a later task says otherwise.
+ */
+export const HEARTH_ENABLED = true;
+
 /** One speed for every light change in the hold that is *losing* light. */
 export const LIGHT_FADE_MS = 600;
 

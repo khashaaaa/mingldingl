@@ -2,7 +2,7 @@ import { render } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LeaderboardScreen from '../leaderboard';
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn() }) }));
+jest.mock('expo-router', () => ({ usePathname: () => '/test', useRouter: () => ({ back: jest.fn() }) }));
 jest.mock('../../hooks/useScrollTail', () => ({ useScrollTail: () => 0 }));
 
 // The board is anonymous — no display names come back from the engine — so a row is a rank, a

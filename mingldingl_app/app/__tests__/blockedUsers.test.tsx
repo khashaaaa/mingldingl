@@ -2,7 +2,7 @@ import { render, fireEvent } from '@testing-library/react-native';
 import BlockedUsersScreen from '../blocked-users';
 import type { BlockedUser } from '../../models/blockedUser';
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn(), back: jest.fn() }) }));
+jest.mock('expo-router', () => ({ usePathname: () => '/test', useRouter: () => ({ push: jest.fn(), back: jest.fn() }) }));
 jest.mock('../../hooks/useScrollTail', () => ({ useScrollTail: () => 0 }));
 
 const mockUnblock = jest.fn();

@@ -17,6 +17,7 @@ import { apiClient } from '../../../lib/api/apiClient';
  */
 
 jest.mock('expo-router', () => ({
+  usePathname: () => '/test',
   useRouter: () => ({ push: jest.fn(), back: jest.fn(), navigate: jest.fn() }),
   useSegments: () => ['(tabs)', 'discover'],
   useGlobalSearchParams: () => ({}),

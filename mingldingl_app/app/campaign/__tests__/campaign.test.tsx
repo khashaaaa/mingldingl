@@ -3,6 +3,7 @@ import CampaignScreen from '../[matchId]';
 import type { Campaign } from '../../../hooks/useCampaign';
 
 jest.mock('expo-router', () => ({
+  usePathname: () => '/test',
   useLocalSearchParams: () => ({ matchId: 'm1' }),
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
 }));

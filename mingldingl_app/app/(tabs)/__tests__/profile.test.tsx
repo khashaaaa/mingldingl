@@ -8,7 +8,7 @@ import { useMilestones } from '../../../hooks/useMilestones';
 import { useDailyMatchBudget } from '../../../hooks/useScore';
 import { WithSafeArea } from '../../../lib/testing/safeArea';
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+jest.mock('expo-router', () => ({ usePathname: () => '/test', useRouter: () => ({ push: jest.fn() }) }));
 
 jest.mock('../../../hooks/useProfile');
 jest.mock('../../../hooks/useScoreDetail');

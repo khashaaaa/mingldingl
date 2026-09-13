@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Tap } from './Tap';
 import type { ReactNode } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
 import { i18n, isLatin } from '../../lib/i18n';
+import { HEARTH_ENABLED } from '../../lib/world';
 import { SectionDivider } from './SectionDivider';
 import { Icon } from './Icon';
 import { Glyph, type GlyphName } from './Glyph';
@@ -23,10 +24,14 @@ interface Props {
 
 export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, children }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   // Move 12: a room name in blackletter, once per screen, Latin only — no Google blackletter
   // carries Cyrillic, so Mongolian titles (and any Cyrillic title shown while the locale happens
   // to be `en`) stay in `FONTS.display` (Yeseva) until a Cyrillic cut is commissioned.
   const blackletter = i18n.locale === 'en' && isLatin(title);
+  // The way home, everywhere but home itself — a hearth already standing on the hearth screen
+  // would just point at the room it is in.
+  const showHearthTap = HEARTH_ENABLED && pathname !== '/hearth';
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
@@ -61,6 +66,16 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
           </Text>
         </View>
         <View style={styles.tail}>
+          {showHearthTap && (
+            <Tap
+              onPress={() => router.push('/hearth')}
+              accessibilityRole="button"
+              accessibilityLabel={i18n.t('go_home')}
+              testID="header-hearth"
+            >
+              <Glyph name="hearth" size={ICON_SIZES.lg} color={ACCENT.base} />
+            </Tap>
+          )}
           <AtlasSigil />
           {right}
         </View>

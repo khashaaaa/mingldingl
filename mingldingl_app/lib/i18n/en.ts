@@ -695,4 +695,9 @@ export const en = {
   report_sent_body: 'Our moderators will review this. You will not hear from this traveler again.',
   report_failed_title: 'Report not sent',
   report_failed_body: 'We could not send that report. Check your connection and try again.',
+
+  // The hearth's scaffolding (Sealed Fire W4 Task 4): the header's way-home tap and the candle
+  // row's label. `go_home` is label-only — the tap carries no visible text, just the hearth glyph.
+  go_home: 'Home',
+  candles_left: '%{remaining} of %{budget} candles left',
 };

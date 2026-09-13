@@ -108,11 +108,26 @@ describe('world feedback', () => {
     expect(Audio.createAudioPlayer).not.toHaveBeenCalled();
   });
 
+  it('has a soft haptic for a candle lit, and loads nothing until sound is on', () => {
+    // Task 7 (the summons candle) fires this, not from here — same shape check as fireDying's.
+    signal('candleLit');
+    expect(impact).toHaveBeenCalledWith('light');
+    expect(Audio.createAudioPlayer).not.toHaveBeenCalled();
+  });
+
+  it('has a medium haptic for the bell, and loads nothing until sound is on', () => {
+    // Task 8 (the Square's bell) fires this, not from here.
+    signal('bell');
+    expect(impact).toHaveBeenCalledWith('medium');
+    expect(Audio.createAudioPlayer).not.toHaveBeenCalled();
+  });
+
   it('has a row, with a haptic and a sound, for every event in the union', () => {
     // `satisfies` makes adding a WorldEvent without extending this list a typecheck failure.
     const events = {
       enterDeep: true, ascend: true, tierUp: true, sealBreak: true,
       honour: true, pledgeKept: true, press: true, horn: true, fireDying: true,
+      candleLit: true, bell: true,
     } satisfies Record<WorldEvent, true>;
     setSoundEnabled(true);
     for (const event of Object.keys(events) as WorldEvent[]) {

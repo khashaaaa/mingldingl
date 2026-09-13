@@ -7,7 +7,7 @@ import { useTownSquareSession } from '../../../hooks/useTownSquareSession';
 import { WithSafeArea } from '../../../lib/testing/safeArea';
 import type { Match } from '../../../models/match';
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+jest.mock('expo-router', () => ({ usePathname: () => '/test', useRouter: () => ({ push: jest.fn() }) }));
 
 // Each hook is stubbed directly rather than wrapped in a QueryClientProvider — the same choice
 // `profile.test.tsx` makes — since this test cares only about the footer QuestTile's own list

@@ -56,7 +56,10 @@ export const ROOMS: Record<RoomName, RoomDef> = {
     atlas: { x: 0, y: 1 }, depth: 1, key: 'room_tavern', route: '/(tabs)/townsquare',
   },
   hearth: {
-    match: ['(tabs)/matches', 'ship'],
+    // The hearth screen (Task 5) and the Satchel (Task 9) are both reached through the hearth
+    // tap, and both live in this room — the Satchel is what you carry *to* the hearth, not a
+    // place of its own on the atlas.
+    match: ['(tabs)/matches', 'ship', 'hearth', 'satchel'],
     base: 'soft', texture: 'wall', vfx: null, light: hearthLight,
     atlas: { x: 1, y: 2 }, depth: 1, key: 'room_hearth', route: '/(tabs)/matches',
   },

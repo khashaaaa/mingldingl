@@ -6,6 +6,7 @@ import { WithSafeArea } from '../../../lib/testing/safeArea';
 
 let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({
+  usePathname: () => '/test',
   useLocalSearchParams: () => mockParams,
   useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
 }));
