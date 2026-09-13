@@ -68,6 +68,13 @@ export function ordinalWord(n: number): string {
   return `${n}${suffix}`;
 }
 
+/** A small count in words, one through twelve, falling back to the numeral beyond — the fire's
+ *  dawn counts read as prose ("Two dawns of silence"), not a digit dropped into a sentence. */
+export function countWord(n: number): string {
+  if (n >= 1 && n <= 12) return i18n.t(`count_${n}`);
+  return String(n);
+}
+
 /** Which day of a thread an instant falls on, counting local midnights since the thread began. */
 export function threadDay(iso: string, threadStartIso: string): number {
   const day = localDayIndex(new Date(iso).getTime()) - localDayIndex(new Date(threadStartIso).getTime()) + 1;

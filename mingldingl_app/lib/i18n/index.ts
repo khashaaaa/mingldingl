@@ -48,6 +48,15 @@ export const AWAITING_MN_TRANSLATION = [
   'gates_close', 'first_bell', 'verify_match_burns',
   'ordinal_1', 'ordinal_2', 'ordinal_3', 'ordinal_4', 'ordinal_5', 'ordinal_6',
   'ordinal_7', 'ordinal_8', 'ordinal_9', 'ordinal_10', 'ordinal_11', 'ordinal_12',
+  // The fire's state (Wave 3 move 2). The dawn counts and most of this copy are read by
+  // lib/fire.ts's fireLine/fireEyebrow/fireVerdict; fire_law and fire_embers_strip are read by
+  // the Quest Log and chat screens that land in the tasks right after this one.
+  'count_1', 'count_2', 'count_3', 'count_4', 'count_5', 'count_6',
+  'count_7', 'count_8', 'count_9', 'count_10', 'count_11', 'count_12',
+  'fire_burning', 'fire_embers', 'fire_frozen',
+  'fire_line_their_turn', 'fire_line_my_turn', 'fire_line_embers', 'fire_line_embers_one',
+  'fire_line_frozen', 'fire_line_frozen_they', 'fire_line_frozen_you', 'fire_line_severed',
+  'fire_law', 'fire_embers_strip',
   // The seals (Wave 2).
   'seals_title', 'seals_broken_0', 'seals_broken_1', 'seals_broken_2', 'seals_broken_3',
   'seals_left_0', 'seals_left_1', 'seals_left_2', 'seals_left_3', 'seals_next_at',
