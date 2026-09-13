@@ -78,4 +78,16 @@ describe('SheetModal closeThen', () => {
     );
     expect(getByText('plain child')).toBeTruthy();
   });
+
+  // A sheet rises from the bottom edge, which `slide` says and `fade` does not — `AlertModal`,
+  // the other bottom-edge strip, already uses it.
+  it('slides in, like AlertModal, rather than fading', () => {
+    const { UNSAFE_getByType } = render(
+      <SheetModal visible onClose={() => {}}>
+        <Text>body</Text>
+      </SheetModal>,
+    );
+    const modal = UNSAFE_getByType(require('react-native').Modal);
+    expect(modal.props.animationType).toBe('slide');
+  });
 });

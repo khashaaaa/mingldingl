@@ -1,11 +1,11 @@
 import { useContext } from 'react';
-import { View, Image, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
 import { ACCENT, LINE, RADIUS, SCRIM, SPACE, SURFACE, overlay } from '../../lib/theme';
+import { ParchmentFill } from '../ui/ParchmentFill';
 
 /**
  * How much of the app a layer is entitled to take over.
@@ -93,7 +93,8 @@ export function DialogCard({ weight = 'dialog', accent, children, style }: {
 /**
  * A question or a failure, as parchment rising from the bottom edge rather than a card floating
  * in the dark: full width, square-to-round top corners, a 2px rule in `accent` where a card would
- * have had a border on every side, and the same gradient + texture `AppCard`'s hero panel draws.
+ * have had a border on every side, and `ParchmentFill` — the same drawing `AppCard`'s hero panel
+ * uses, so a re-tuned parchment cannot drift between the two surfaces it appears on.
  *
  * `wash` is the one thing a tone still needs beyond the rule: `STATUS_SOFT` colours are already a
  * translucent wash rather than a surface (see `theme.ts`), so laid over the parchment rather than
@@ -135,14 +136,7 @@ export function DialogStrip({ accent, wash, children, style }: {
         style,
       ]}
     >
-      <LinearGradient colors={[SURFACE.raised, SURFACE.panel]} style={StyleSheet.absoluteFillObject} pointerEvents="none" />
-      <View style={DIALOG_STYLES.stripTexture} pointerEvents="none">
-        <Image
-          source={require('../../assets/textures/parchment.png')}
-          style={DIALOG_STYLES.stripTextureImage}
-          resizeMode="cover"
-        />
-      </View>
+      <ParchmentFill />
       {!!wash && <View style={[StyleSheet.absoluteFillObject, { backgroundColor: wash }]} pointerEvents="none" />}
       {children}
     </View>
@@ -192,6 +186,4 @@ export const DIALOG_STYLES = StyleSheet.create({
     gap: SPACE.sm,
     padding: SPACE.xl,
   },
-  stripTexture: { ...StyleSheet.absoluteFillObject, opacity: 0.06 },
-  stripTextureImage: { width: '100%', height: '100%' },
 });

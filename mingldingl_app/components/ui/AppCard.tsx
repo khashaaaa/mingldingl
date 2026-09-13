@@ -5,6 +5,7 @@ import { colorForTier } from '../../lib/tiers';
 import { ACCENT, LINE, RADIUS, SCRIM, SURFACE, glow, overlay, tint as tintColor } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { useActiveFestival } from '../../lib/festivals';
+import { ParchmentFill } from './ParchmentFill';
 
 interface Props {
   children: React.ReactNode;
@@ -30,19 +31,14 @@ export function AppCard({ children, tier, tint: tintOverride, hero, style }: Pro
   const knotTint = festival ? { tintColor: festival.color } : undefined;
   return (
     <View testID="app-card" style={[styles.card, hero && glow(tint, 0.35, 12, 6), style]}>
-      <LinearGradient
-        colors={[SURFACE.raised, SURFACE.panel]}
-        style={styles.fill}
-        pointerEvents="none"
-      />
-      {hero && (
-        <View style={styles.texture} testID="parchment-texture" pointerEvents="none">
-          <Image
-            source={require('../../assets/textures/parchment.png')}
-            style={styles.textureImage}
-            resizeMode="cover"
-          />
-        </View>
+      {hero ? (
+        <ParchmentFill style={styles.texture} />
+      ) : (
+        <LinearGradient
+          colors={[SURFACE.raised, SURFACE.panel]}
+          style={styles.fill}
+          pointerEvents="none"
+        />
       )}
       <View style={styles.hairline} pointerEvents="none" />
       <View style={[styles.topHighlight, { backgroundColor: tintColor(tint, 0.4) }]} pointerEvents="none" />
@@ -68,8 +64,9 @@ const styles = StyleSheet.create({
     borderColor: LINE.edge,
   },
   fill: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS.md },
-  texture: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS.md, overflow: 'hidden', opacity: 0.06 },
-  textureImage: { width: '100%', height: '100%' },
+  // Layout only — `ParchmentFill` draws its own gradient and texture; this just clips both to
+  // the card's own corners, the way `styles.fill`'s `borderRadius` already does for the plain fill.
+  texture: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS.md, overflow: 'hidden' },
   topHighlight: { position: 'absolute', top: 0, left: RADIUS.md, right: RADIUS.md, height: 1 },
   bottomShadow: { position: 'absolute', bottom: 0, left: RADIUS.md, right: RADIUS.md, height: 1, backgroundColor: overlay(SCRIM.edge) },
   hairline: {

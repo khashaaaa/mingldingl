@@ -469,6 +469,29 @@ export const MEMBERSHIP_METALS = {
 } as const satisfies Record<string, { color: string; shade: string }>;
 
 /**
+ * What each object in the kit is made of, `docs/design/sealed-fire/boards/Materials.dc.html`:
+ * "the forged feel comes from consistent materials, not from ornament. Each object has one
+ * material, drawn the same way everywhere it appears: in the Satchel, on the hearth, in a
+ * thread, on the wall." Wax is candles and seals, the one material that is consumed; wood and
+ * iron are the arrows, the gate, the hearth's mantel, things used rather than spent; bronze is
+ * the oath sigil and the ally's word, stamped once and kept; gold is the key, the forged button,
+ * the chest, what opens or rewards; parchment is letters, the card, the Codex.
+ *
+ * `bronze` and `gold` are not new pigment — the board says so itself ("the metals already exist
+ * as tokens; wax, wood and parchment are three additions") — so they alias `METAL.brass` and
+ * `METAL.gold` rather than repeating those hexes as fresh literals a re-tuned metal would drift
+ * away from. One material per object, one entry per material.
+ */
+export const MATERIAL = {
+  wax: '#E4D6B4',
+  wood: '#6B4A28',
+  iron: '#5C6470',
+  bronze: METAL.brass,
+  gold: METAL.gold,
+  parchment: '#DCD0B4',
+} as const;
+
+/**
  * The opaque counterpart to `STATUS_SOFT`, for a bar that sits *over* the app rather than
  * inside a page — the offline banner must not let the screen show through it, so a wash will
  * not do. Mixed down toward the ground from the status itself rather than hand-picked, so a

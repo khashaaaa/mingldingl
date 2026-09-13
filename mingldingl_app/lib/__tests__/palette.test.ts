@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import {
-  ACCENT, COLORS, GEM_COLORS, GEM_SHADES, GROUND, HEAT, INK, LINE, MEMBERSHIP_METALS, METAL,
-  STATUS, STATUS_DEEP, STATUS_SOFT, SURFACE, TEMPERATURE, TIER_PRESENCE, TONE,
+  ACCENT, COLORS, GEM_COLORS, GEM_SHADES, GROUND, HEAT, INK, LINE, MATERIAL, MEMBERSHIP_METALS,
+  METAL, STATUS, STATUS_DEEP, STATUS_SOFT, SURFACE, TEMPERATURE, TIER_PRESENCE, TONE,
 } from '../theme';
 import { TIER_ORDER } from '../tiers';
 import { APP_ROOT, appSources as sourceFiles } from '../testing/sourceTree';
@@ -298,6 +298,34 @@ describe('temperature', () => {
       ice: '#BFE3F2',
       glacier: '#7FB6D6',
     });
+  });
+});
+
+/**
+ * Materials: `docs/design/sealed-fire/boards/Materials.dc.html`'s six, `MaterialMark`'s colour
+ * table. `bronze` and `gold` are not new pigment — the board says the metals already exist as
+ * tokens — so the guard here is the same one `theme.ts`'s own docstring makes: they alias
+ * `METAL.brass`/`METAL.gold` rather than repeating those hexes as fresh literals, which is what
+ * let `COLORS.bronzeDark` and `COLORS.brassDark` drift apart from the metal they were shades of
+ * before that got carved into its own role. The privacy test above ("nothing outside the theme
+ * reaches into COLORS at all") already keeps every call site off `COLORS` directly; this table's
+ * own guarantee is one level up — that it was defined here, in the role layer, at all.
+ */
+describe('materials', () => {
+  it('aliases the existing metals rather than re-declaring their hexes', () => {
+    expect(MATERIAL.bronze).toBe(METAL.brass);
+    expect(MATERIAL.gold).toBe(METAL.gold);
+  });
+
+  it('gives every material its own colour', () => {
+    const values = Object.values(MATERIAL);
+    expect(new Set(values).size).toBe(values.length);
+  });
+
+  it('covers exactly the six the board names, one material per object', () => {
+    expect(Object.keys(MATERIAL).sort()).toEqual(
+      ['bronze', 'gold', 'iron', 'parchment', 'wax', 'wood'].sort(),
+    );
   });
 });
 

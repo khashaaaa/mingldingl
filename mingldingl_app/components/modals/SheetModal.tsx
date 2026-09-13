@@ -35,7 +35,7 @@ export function SheetModal({ visible, onClose, children }: Props) {
     <AppModal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="slide"
       onRequestClose={onClose}
       onDismiss={() => {
         const action = pendingRef.current;
