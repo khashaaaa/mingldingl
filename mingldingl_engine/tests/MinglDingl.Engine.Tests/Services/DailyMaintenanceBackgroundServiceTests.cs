@@ -222,11 +222,13 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         var user = NewCompleteUser();
         // The path POST /photos/upload issues: a file only counts as this user's own when it is in
         // the directory they were given, so the sweep can never reach into another account's files.
-        var url = await storage.UploadAsync(
-            LocalFileStorageService.PhotoBucket,
-            $"{LocalFileStorageService.ProfilePhotoDirectory(user.Id)}a.jpg",
-            [1, 2, 3],
-            "image/jpeg");
+        var path = $"{LocalFileStorageService.ProfilePhotoDirectory(user.Id)}a.jpg";
+        var url = await storage.UploadAsync(LocalFileStorageService.PhotoBucket, path, [1, 2, 3], "image/jpeg");
+        // Every photo this old also has a sealed sibling (either sealed at upload time or by the
+        // backfill sweep) — anonymisation must take both, or the sealed variant survives as a
+        // fetchable, unauthenticated orphan for a "deleted" user forever.
+        var sealedUrl = await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket, LocalFileStorageService.SealedPathOf(path), [4, 5, 6], "image/jpeg");
         user.PhotoUrls = [url];
         user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriodFor(new ConfigService()) - TimeSpan.FromDays(1);
         Db.Users.Add(user);
@@ -235,6 +237,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         await BuildService(storage).RunSweepAsync(CancellationToken.None);
 
         Assert.False(storage.DeleteByPublicUrl(url), "the file should already be gone");
+        Assert.False(storage.DeleteByPublicUrl(sealedUrl), "the sealed sibling should already be gone too");
         Assert.Empty((await Db.Users.FindAsync(user.Id))!.PhotoUrls);
     }
 
