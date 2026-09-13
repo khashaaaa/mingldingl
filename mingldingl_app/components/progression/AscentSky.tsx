@@ -93,7 +93,12 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
   const bodyLine = nextTier
     ? i18n.t('ascent_to_go', { points: pointsToGo!.toLocaleString() })
     : i18n.t('ascent_beyond');
-  const a11yLabel = `${tierLabel(gemTier)}. ${totalScore.toLocaleString()}. ${bodyLine}. ${currentStreak} ${i18n.t('ascent_dawns')}`;
+  // The whole drawing is one accessible group (the SVG is hidden, and an `accessible` ancestor
+  // suppresses individual announcement of its RN `Text` descendants too) — so the longest-streak
+  // line has to be said here, in words, or a screen reader never hears it at all. Reuses
+  // `streak_longest`'s own English text rather than adding a key for one more number.
+  const a11yLabel = `${tierLabel(gemTier)}. ${totalScore.toLocaleString()}. ${bodyLine}. `
+    + `${currentStreak} ${i18n.t('ascent_dawns')}. ${i18n.t('streak_longest')} ${longestStreak}.`;
 
   const topPoint = points[TOP_INDEX];
 

@@ -43,8 +43,8 @@ beforeEach(() => {
   hydrateFixtureLadder();
   mockUseVfxLevel.mockReturnValue('still');
   // Fake timers so the pulse's `Animated.loop` never actually fires between renders — real
-  // timers left it running past the end of the "motion allowed" test below, same fix as
-  // `Lantern.test.tsx` uses for its own flicker loop.
+  // timers left it running past the end of the "motion allowed" test below and produced an
+  // `act()` warning from a state update after the test had finished.
   jest.useFakeTimers();
 });
 
@@ -106,6 +106,17 @@ describe('AscentSky', () => {
       <AscentSky gemTier="Ruby" totalScore={1595} currentStreak={4} longestStreak={11} width={340} />,
     );
     expect(getByLabelText(/Ruby.*1,595.*405 to go.*4 dawns in a row/s)).toBeTruthy();
+  });
+
+  it('makes the longest streak reachable to a screen reader, not just visible', () => {
+    // The whole drawing (SVG + the RN `Text` streak block) sits under one `accessible` View, which
+    // suppresses individual announcement of its own descendants in favour of the group label — so
+    // "Longest Streak · 11" being on screen is not the same as it being heard. It has to be in the
+    // label text itself.
+    const { getByLabelText } = render(
+      <AscentSky gemTier="Ruby" totalScore={1595} currentStreak={4} longestStreak={11} width={340} />,
+    );
+    expect(getByLabelText(/Longest Streak 11/)).toBeTruthy();
   });
 
   it('renders without a running loop under reduced motion, and without crashing when motion is allowed', () => {

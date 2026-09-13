@@ -107,8 +107,6 @@ export const en = {
   ascent_to_go: '%{points} to go',
   ascent_beyond: 'the sky beyond',
   ascent_dawns: 'dawns in a row',
-  streak_of_seven: '%{days} of 7 dawns',
-  streak_beyond_seven: '%{days} dawns and burning',
   no_score_events: 'No score events yet — go make some memories.',
   event_profile_complete: 'Profile Complete',
   event_daily_login: 'Daily Login',

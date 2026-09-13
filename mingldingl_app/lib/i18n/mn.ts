@@ -82,8 +82,6 @@ export const mn = {
   tier_perk_next_preview: 'Дараагийн зэрэг: +%{bonus} өдрийн тохирол',
   streak_current: 'Одоогийн дараалал',
   streak_longest: 'Хамгийн урт дараалал',
-  streak_of_seven: '7 үүрийн %{days} нь',
-  streak_beyond_seven: '%{days} үүр — дөл асаалттай',
   no_score_events: 'Ононы түүх алга байна — дурсамж бүтээгээрэй.',
   event_profile_complete: 'Профайл дууссан',
   event_daily_login: 'Өдрийн нэвтрэлт',
