@@ -85,6 +85,9 @@ export const AWAITING_MN_TRANSLATION = [
   // full-screen preview.
   'wanted', 'wanted_for', 'wanted_for_none', 'keepsake_line', 'keepsake_line_none',
   'post_it', 'keep_it', 'keepsake_preview',
+  // The Flame Rite's five states, in the voice (Wave 3 Task 11): the complete state's second
+  // line, and the video screen's own retry label.
+  'rite_complete_sub', 'rite_try_again',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

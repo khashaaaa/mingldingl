@@ -19,6 +19,7 @@ import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE, SURFACE, TRAC
 import { StateBlock } from '../../components/ui/StateBlock';
 import { toDroppedItem } from '../../lib/tiers';
 import { Icon } from '../../components/ui/Icon';
+import { Glyph } from '../../components/ui/Glyph';
 
 const DEFAULT_RITE_DURATION_MINUTES = 5;
 
@@ -117,7 +118,7 @@ export default function VideoScreen() {
       body={i18n.t('video_connect_error_body')}
     >
       <GameButton variant="primary" onPress={() => { setCallFailed(false); setAttempt((a) => a + 1); }}>
-        {i18n.t('rejoin')}
+        {i18n.t('rite_try_again')}
       </GameButton>
       <GameButton variant="ink" size="compact" onPress={() => router.back()}>
         {i18n.t('back')}
@@ -141,7 +142,10 @@ export default function VideoScreen() {
             <Icon name="fire" size={ICON_SIZES.md} color={METAL.ember} />
             <Text style={styles.riteFramingTitle}>{i18n.t('rite_title')}</Text>
           </View>
-          <Text style={styles.riteFramingCountdown}>{formatCountdown(secondsLeft)}</Text>
+          <View style={styles.riteCountdownRow}>
+            <Glyph name="candle" size={ICON_SIZES.lg} color={METAL.ember} />
+            <Text style={styles.riteFramingCountdown}>{formatCountdown(secondsLeft)}</Text>
+          </View>
         </View>
       )}
       <VideoControls
@@ -189,6 +193,7 @@ const styles = StyleSheet.create({
     gap: SPACE.hair,
   },
   riteTitleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  riteCountdownRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   riteFramingTitle: {
     fontFamily: FONTS.bodyMedium,
     fontSize: FONT_SIZES.md,

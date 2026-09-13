@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { Tap } from './ui/Tap';
 import { useMutation } from '@tanstack/react-query';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppCard } from './ui/AppCard';
 import { AlertModal } from './modals/AlertModal';
+import { GameButton } from './ui/GameButton';
+import { Glyph } from './ui/Glyph';
+import { Waiting } from './ui/Waiting';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
-import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, SURFACE, TRACKING } from '../lib/theme';
-import { Icon } from './ui/Icon';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, TRACKING } from '../lib/theme';
 
 export interface FlameRiteState {
   matchId: string;
@@ -53,12 +54,18 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
   const proposedByMe = !!state.proposedByUserId && state.proposedByUserId === currentUserId;
   const proposedByThem = !!state.proposedByUserId && state.proposedByUserId !== currentUserId;
 
+  // Only the accept deed is forged — propose and step-in are exclusive branches of the same
+  // card, but the controller ruling for this task keeps the count to one metal call site so the
+  // file needs no BRANCHED entry in forged.test.ts.
   let content: React.ReactNode;
   if (state.completedAt) {
     content = (
       <View style={styles.completeRow}>
-        <Icon name="fire" size={ICON_SIZES.lg} color={METAL.ember} />
-        <Text style={styles.completeText}>{i18n.t('rite_complete')}</Text>
+        <Glyph name="flame" size={ICON_SIZES.lg} color={METAL.ember} />
+        <View style={styles.completeTextCol}>
+          <Text style={styles.completeText}>{i18n.t('rite_complete')}</Text>
+          <Text style={styles.completeSub}>{i18n.t('rite_complete_sub')}</Text>
+        </View>
       </View>
     );
   } else if (state.acceptedAt) {
@@ -66,19 +73,19 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
       <AppCard style={styles.card}>
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_ready')}</Text>
-        <Tap
-          style={[styles.btn, styles.joinBtn]}
-          onPress={() => router.push(`/video/${id}`)}
-        >
-          <Text style={styles.joinText}>{i18n.t('start_video_call')}</Text>
-        </Tap>
+        <GameButton variant="ink" style={styles.actionBtn} onPress={() => router.push(`/video/${id}`)}>
+          {i18n.t('start_video_call')}
+        </GameButton>
       </AppCard>
     );
   } else if (proposedByMe) {
     content = (
       <AppCard style={styles.card}>
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
-        <Text style={styles.body}>{i18n.t('rite_waiting')}</Text>
+        <View style={styles.waitingRow}>
+          <Waiting size={ICON_SIZES.md} color={ACCENT.base} />
+          <Text style={styles.body}>{i18n.t('rite_waiting')}</Text>
+        </View>
       </AppCard>
     );
   } else if (proposedByThem) {
@@ -87,20 +94,12 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_incoming')}</Text>
         <View style={styles.actions}>
-          <Tap
-            style={[styles.btn, styles.declineBtn]}
-            disabled={decline.isPending}
-            onPress={() => decline.mutate()}
-          >
-            <Text style={styles.declineText}>{i18n.t('rite_decline_cta')}</Text>
-          </Tap>
-          <Tap
-            style={[styles.btn, styles.acceptBtn]}
-            disabled={accept.isPending}
-            onPress={() => accept.mutate()}
-          >
-            <Text style={styles.acceptText}>{i18n.t('rite_accept_cta')}</Text>
-          </Tap>
+          <GameButton variant="ink" flex={1} loading={decline.isPending} onPress={() => decline.mutate()}>
+            {i18n.t('rite_decline_cta')}
+          </GameButton>
+          <GameButton variant="primary" flex={1} loading={accept.isPending} onPress={() => accept.mutate()}>
+            {i18n.t('rite_accept_cta')}
+          </GameButton>
         </View>
       </AppCard>
     );
@@ -109,13 +108,9 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
       <AppCard style={styles.card}>
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_explainer', { minutes: state.durationMinutes })}</Text>
-        <Tap
-          style={[styles.btn, styles.proposeBtn]}
-          disabled={propose.isPending}
-          onPress={() => propose.mutate()}
-        >
-          <Text style={styles.proposeText}>{i18n.t('rite_propose_cta')}</Text>
-        </Tap>
+        <GameButton variant="ink" style={styles.actionBtn} loading={propose.isPending} onPress={() => propose.mutate()}>
+          {i18n.t('rite_propose_cta')}
+        </GameButton>
       </AppCard>
     );
   }
@@ -139,18 +134,11 @@ const styles = StyleSheet.create({
   title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, letterSpacing: TRACKING.wide },
   body: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, lineHeight: LEADING.md },
   actions: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.xs },
-  btn: { paddingVertical: SPACE.md, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
-  proposeBtn: { borderColor: ACCENT.base, backgroundColor: ACCENT.soft, marginTop: SPACE.xs },
-  proposeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
-  declineBtn: { flex: 1, borderColor: LINE.edge, backgroundColor: SURFACE.raised },
-  declineText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.dim },
-  acceptBtn: { flex: 1, borderColor: ACCENT.base, backgroundColor: ACCENT.soft },
-  acceptText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
-  joinBtn: { borderColor: ACCENT.base, backgroundColor: ACCENT.soft, marginTop: SPACE.xs },
-  joinText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
+  actionBtn: { marginTop: SPACE.xs },
+  waitingRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   completeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: SPACE.sm,
     marginHorizontal: SPACE.gutter,
     marginTop: SPACE.sm,
@@ -163,5 +151,7 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT.soft,
     alignSelf: 'flex-start',
   },
+  completeTextCol: { gap: SPACE.hair, flexShrink: 1 },
   completeText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: ACCENT.base, letterSpacing: TRACKING.label },
+  completeSub: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.sm, color: INK.dim, lineHeight: LEADING.sm },
 });

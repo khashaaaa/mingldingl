@@ -71,8 +71,8 @@ function renderWithClient() {
 /** Hanging up now asks for confirmation first, so every end goes through the dialog. */
 async function endCall(view: ReturnType<typeof renderWithClient>) {
   fireEvent.press(view.getByText('End Call'));
-  await waitFor(() => view.getByText(/End the Rite\?/i));
-  fireEvent.press(view.getByText(/^END THE CALL$/i));
+  await waitFor(() => view.getByText(/Douse the fire\?/i));
+  fireEvent.press(view.getByText(/^DOUSE IT$/i));
 }
 
 describe('VideoScreen handleEnd', () => {
@@ -103,7 +103,7 @@ describe('VideoScreen handleEnd', () => {
     const { getByText } = renderWithClient();
 
     fireEvent.press(getByText('End Call'));
-    await waitFor(() => getByText(/End the Rite\?/i));
+    await waitFor(() => getByText(/Douse the fire\?/i));
     fireEvent.press(getByText(/^CANCEL$/i));
 
     expect(mockComplete).not.toHaveBeenCalled();
@@ -116,8 +116,8 @@ describe('VideoScreen handleEnd', () => {
     const { getByText } = renderWithClient();
 
     fireEvent.press(getByText('End Call'));
-    await waitFor(() => getByText(/End the Rite\?/i));
-    const confirm = getByText(/^END THE CALL$/i);
+    await waitFor(() => getByText(/Douse the fire\?/i));
+    const confirm = getByText(/^DOUSE IT$/i);
     fireEvent.press(confirm);
     fireEvent.press(confirm);
 
