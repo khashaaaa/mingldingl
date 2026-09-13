@@ -127,7 +127,7 @@ export const AWAITING_MN_TRANSLATION = [
   'satchel_honour', 'satchel_honour_none',
   'satchel_seals', 'satchel_seals_line', 'satchel_seals_one_thread', 'satchel_seals_none',
   'satchel_card', 'satchel_card_line',
-  'satchel_sum_candles', 'satchel_sum_candles_one', 'satchel_sum_arrows', 'satchel_sum_arrows_one',
+  'satchel_sum_candles', 'satchel_sum_candles_one', 'satchel_sum_candles_none', 'satchel_sum_arrows', 'satchel_sum_arrows_one',
   'satchel_sum_lantern',
   'satchel_law',
 ] as const;

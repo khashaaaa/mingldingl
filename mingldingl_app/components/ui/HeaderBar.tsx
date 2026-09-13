@@ -19,10 +19,21 @@ interface Props {
 
   right?: ReactNode;
 
+  /**
+   * False hides the way-home tap and `AtlasSigil` — the title, back arrow and `right` slot are
+   * unaffected. A screen holding a live call (Town Square's round) must not offer an exit that
+   * leaves the call mounted: `router.push` keeps the screen alive underneath, so
+   * `AgoraVideoCall`'s `leaveChannel()` cleanup never runs and the camera/mic keep publishing
+   * while the user is elsewhere with no controls. `AtlasSigil`'s own comment already says the
+   * video call is deliberately kept off the chrome for the same reason — this just extends that
+   * rule to the header's own hearth tap. Defaults to `true`: only a live-call screen opts out.
+   */
+  chrome?: boolean;
+
   children?: ReactNode;
 }
 
-export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, children }: Props) {
+export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, children, chrome = true }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   // Move 12: a room name in blackletter, once per screen, Latin only — no Google blackletter
@@ -30,8 +41,8 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
   // to be `en`) stay in `FONTS.display` (Yeseva) until a Cyrillic cut is commissioned.
   const blackletter = i18n.locale === 'en' && isLatin(title);
   // The way home, everywhere but home itself — a hearth already standing on the hearth screen
-  // would just point at the room it is in.
-  const showHearthTap = HEARTH_ENABLED && pathname !== '/hearth';
+  // would just point at the room it is in. Also gated on `chrome`: see its doc comment above.
+  const showHearthTap = HEARTH_ENABLED && pathname !== '/hearth' && chrome;
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
@@ -76,7 +87,7 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
               <Glyph name="hearth" size={ICON_SIZES.lg} color={ACCENT.base} />
             </Tap>
           )}
-          <AtlasSigil />
+          {chrome && <AtlasSigil />}
           {right}
         </View>
       </View>

@@ -12,6 +12,15 @@ jest.mock('expo-router', () => ({
   usePathname: () => mockPathname,
 }));
 
+// `AtlasSigil` reads `WorldProvider` context and mounts `AtlasOverlay` (which itself reads the
+// query cache), none of which this file wires up — its own behaviour is covered in
+// `atlasMountWarning.test.tsx`. Stood in for here as a plain tagged node so the `chrome` prop's
+// gating of it can be asserted without dragging in that whole tree.
+jest.mock('../../world/AtlasSigil', () => {
+  const { View: RNView } = require('react-native');
+  return { AtlasSigil: () => <RNView testID="atlas-sigil" /> };
+});
+
 /**
  * Move 12 (Task 7): room names render in `FONTS.wordmark` (the blackletter face) once per
  * screen, Latin titles only — a Cyrillic blackletter has not been commissioned, so a Mongolian
@@ -101,5 +110,38 @@ describe('HeaderBar hearth tap', () => {
     mockPathname = '/hearth';
     const { queryByTestId } = render(<HeaderBar title="The Hearth" showBack={false} />);
     expect(queryByTestId('header-hearth')).toBeNull();
+  });
+});
+
+/**
+ * `chrome` (final fix wave, item 1): a screen holding a live call must not offer an exit that
+ * leaves the call mounted underneath (`router.push` from the hearth tap or the atlas sigil's
+ * overlay does exactly that). Only the round screen sets `chrome={false}` — everywhere else
+ * defaults to `true`, so the title, back arrow and `right` slot are unaffected either way.
+ */
+describe('HeaderBar chrome', () => {
+  beforeEach(() => {
+    mockPathname = '/townsquare-round/x';
+  });
+
+  it('shows both the hearth tap and the atlas sigil by default', () => {
+    const { getByTestId } = render(<HeaderBar title="The Bell" showBack={false} />);
+    expect(getByTestId('header-hearth')).toBeTruthy();
+    expect(getByTestId('atlas-sigil')).toBeTruthy();
+  });
+
+  it('hides both the hearth tap and the atlas sigil when chrome is false', () => {
+    const { queryByTestId } = render(<HeaderBar title="The Bell" showBack={false} chrome={false} />);
+    expect(queryByTestId('header-hearth')).toBeNull();
+    expect(queryByTestId('atlas-sigil')).toBeNull();
+  });
+
+  it('leaves the title, back arrow and right slot alone when chrome is false', () => {
+    const { getByText, getByLabelText } = render(
+      <HeaderBar title="The Bell" chrome={false} right={<Text>flag</Text>} />,
+    );
+    expect(getByText('The Bell')).toBeTruthy();
+    expect(getByLabelText(i18n.t('back'))).toBeTruthy();
+    expect(getByText('flag')).toBeTruthy();
   });
 });

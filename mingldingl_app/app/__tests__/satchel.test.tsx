@@ -224,4 +224,13 @@ describe('the Satchel, empty', () => {
     expect(getByTestId('skeleton-rows')).toBeTruthy();
     expect(queryByLabelText('Oath sigil. No oath sworn')).toBeNull();
   });
+
+  // Final fix wave, item 5: `countWord(0)` falls back to the numeral, so a spent day used to read
+  // "0 candles." in the summary line — a rule stated as a number reading like a typo rather than
+  // a fact. `remaining === 0` now takes its own key instead of falling into the plural form.
+  it('says "No candles." rather than "0 candles." once the day\'s wax is spent', () => {
+    const { getByText, queryByText } = renderScreen();
+    expect(getByText(/No candles\./)).toBeTruthy();
+    expect(queryByText(/0 candles/)).toBeNull();
+  });
 });

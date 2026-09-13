@@ -143,6 +143,11 @@ export default function TownSquareRoundScreen() {
       <HeaderBar
         title={i18n.t('bell_title', { ordinal: cap(ordinalWord(round.roundNumber)) })}
         onBack={() => setConfirmLeave(true)}
+        // A live call is on screen: the hearth tap and the atlas sigil both `router.push` while
+        // leaving this screen mounted underneath, so the call's `leaveChannel()` cleanup would
+        // never run and the camera/mic would keep publishing with no controls on screen. Only the
+        // back arrow (already routed through the leave-confirmation dialog above) may exit.
+        chrome={false}
         right={
           // A Town Square partner is a stranger with no match to reach them through, so this is
           // the only place they can be reported from. Reporting also blocks them, which keeps
@@ -199,13 +204,17 @@ export default function TownSquareRoundScreen() {
         />
       )}
 
-      <RoundPrompt
-        icebreakerText={round.icebreakerText}
-        hasResponded={hasResponded}
-        matchId={matchId}
-        isResponding={isResponding}
-        onRespond={(response) => submitResponse(round.pairingId, response)}
-      />
+      {/* A dropped call has nothing to answer for: showing this beside the "Rejoin" state block
+          above let the user light a bell for a conversation the video side had already left. */}
+      {!callFailed && (
+        <RoundPrompt
+          icebreakerText={round.icebreakerText}
+          hasResponded={hasResponded}
+          matchId={matchId}
+          isResponding={isResponding}
+          onRespond={(response) => submitResponse(round.pairingId, response)}
+        />
+      )}
 
       <VideoControls
         muted={muted}

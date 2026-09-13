@@ -47,7 +47,12 @@ export interface SourceFile {
  * backtick toggle — safe today only because no comment marker happens to fall inside the
  * confused window, not because the nesting itself is handled. And it does not tell regex from
  * division, so an *unescaped* `//` inside a regex literal (e.g. a character class `[/]`) is still
- * misread as a comment — there is no regex-literal state, only the escape rule above.
+ * misread as a comment — there is no regex-literal state, only the escape rule above. A third
+ * limit of the same shape: it does not tell an apostrophe in JSX text from a string delimiter, so
+ * `<Text>It's here</Text>` opens a phantom `'` string state that swallows everything up to the
+ * next `'`, which can flip quote parity for the rest of the file — safe today only because no
+ * scanned file has one (all copy goes through `i18n.t`, never bare JSX text), not because this
+ * case is handled.
  */
 export function blankComments(src: string): string {
   let out = '';

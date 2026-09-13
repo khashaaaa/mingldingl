@@ -2,6 +2,7 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import TownSquareRoundScreen from '../[sessionId]';
 import { useTownSquareRound, useTownSquareSessionSummary } from '../../../hooks/useTownSquareRound';
+import { i18n } from '../../../lib/i18n';
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ sessionId: 's1' }),
@@ -15,7 +16,16 @@ jest.mock('../../../lib/supabase', () => ({
   supabase: { channel: jest.fn(), removeChannel: jest.fn() },
 }));
 jest.mock('../../../hooks/useTownSquareRound');
-jest.mock('../../../components/video/AgoraVideoCall', () => ({ AgoraVideoCall: () => null }));
+// A plain trigger rather than `() => null`: the `callFailed` tests need a way to fire the same
+// `onError` the real call would on a dropped connection.
+jest.mock('../../../components/video/AgoraVideoCall', () => {
+  const { Pressable } = require('react-native');
+  return {
+    AgoraVideoCall: ({ onError }: { onError: () => void }) => (
+      <Pressable testID="trigger-call-error" onPress={onError} />
+    ),
+  };
+});
 
 const mockUseRound = useTownSquareRound as jest.Mock;
 const mockUseSummary = useTownSquareSessionSummary as jest.Mock;
@@ -118,6 +128,45 @@ describe('TownSquareRoundScreen — the bell header', () => {
     stubRound({ round: { ...round, roundNumber: 2 } });
     const { getByText } = renderScreen();
     expect(getByText('The Second Bell')).toBeTruthy();
+  });
+});
+
+describe('TownSquareRoundScreen — a live call keeps its own door shut', () => {
+  // Final fix wave, item 1: `router.push` from the hearth tap or the atlas sigil kept this screen
+  // (and its call) mounted underneath, so `AgoraVideoCall`'s `leaveChannel()` cleanup never ran.
+  // `HeaderBar`'s `chrome={false}` here removes both; only the back arrow, already routed through
+  // the leave-confirmation dialog, may exit.
+  it('offers neither the hearth tap nor the atlas sigil while a round is live', () => {
+    stubRound();
+    const { queryByTestId } = renderScreen();
+    expect(queryByTestId('header-hearth')).toBeNull();
+    expect(queryByTestId('atlas-sigil')).toBeNull();
+  });
+
+  it('opens the leave-confirmation dialog from the header back arrow', () => {
+    stubRound();
+    const { getByLabelText, getByText } = renderScreen();
+
+    fireEvent.press(getByLabelText(i18n.t('back')));
+
+    expect(getByText(i18n.t('round_leave_title'))).toBeTruthy();
+  });
+});
+
+describe('TownSquareRoundScreen — a dropped call has nothing to answer for', () => {
+  // Final fix wave, item 3: the "Rejoin" state block and the bell's own "Light it"/"Douse it"
+  // question used to both sit on screen once the call errored — answerable for a call that had
+  // already left. `RoundPrompt` is now hidden for the duration of `callFailed`.
+  it('hides the round question once the call fails', () => {
+    stubRound();
+    const { getByTestId, getByText, queryByText } = renderScreen();
+
+    expect(getByText('Favorite trip?')).toBeTruthy();
+
+    fireEvent.press(getByTestId('trigger-call-error'));
+
+    expect(getByText(i18n.t('round_connect_error_title'))).toBeTruthy();
+    expect(queryByText('Favorite trip?')).toBeNull();
   });
 });
 

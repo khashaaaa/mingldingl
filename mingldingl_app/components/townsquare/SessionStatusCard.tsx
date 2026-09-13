@@ -109,10 +109,16 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
             style={styles.statValue}
           />
         </View>
-        <View style={styles.stat}>
-          <CardEyebrow style={styles.statLabel}>{i18n.t('plaza_rounds')}</CardEyebrow>
-          <Text style={styles.statValue}>{i18n.t('plaza_rounds_value', { count: session.roundCount })}</Text>
-        </View>
+        {/* While Open, `roundCount` is the engine's `MaxPerSide` — an upper bound, not the real
+            count. The real count (`min(men, women)`) is only fixed once the roster locks, so
+            stating it as fact while gates are still open would tell the plaza a number that has
+            not happened yet. */}
+        {!isOpen && (
+          <View style={styles.stat}>
+            <CardEyebrow style={styles.statLabel}>{i18n.t('plaza_rounds')}</CardEyebrow>
+            <Text style={styles.statValue}>{i18n.t('plaza_rounds_value', { count: session.roundCount })}</Text>
+          </View>
+        )}
       </View>
       {isOpen && (
         <WorldClock

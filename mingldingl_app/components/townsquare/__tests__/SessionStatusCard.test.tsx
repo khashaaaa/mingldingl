@@ -115,9 +115,18 @@ describe('SessionStatusCard', () => {
     expect(getByText('Gates close at the lantern-lighting. 2 lanterns lit so far.')).toBeTruthy();
   });
 
-  it('shows the first-bell and rounds stat rows', () => {
-    const { getByText } = render(
+  it('shows the first-bell stat but no rounds row while the gates are Open (roundCount is only MaxPerSide, not a real count yet)', () => {
+    const { getByText, queryByText } = render(
       <SessionStatusCard session={openSession({ roundCount: 6 })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
+    );
+    expect(getByText('FIRST BELL')).toBeTruthy();
+    expect(queryByText('ROUNDS')).toBeNull();
+    expect(queryByText('6, a bell each')).toBeNull();
+  });
+
+  it('shows the rounds stat row once the roster is Locked (the count is real from here on)', () => {
+    const { getByText } = render(
+      <SessionStatusCard session={openSession({ status: 'Locked', isRsvpd: true, roundCount: 6 })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
     expect(getByText('FIRST BELL')).toBeTruthy();
     expect(getByText('ROUNDS')).toBeTruthy();

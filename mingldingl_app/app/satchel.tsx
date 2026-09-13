@@ -208,9 +208,11 @@ export default function SatchelScreen() {
   // earns a line here when it is lit — an unlit or uncalled lantern is not news, and saying so
   // twice (once in its own row, once in the recap) would be the app repeating itself.
   const summaryParts = [
-    remaining === 1
-      ? i18n.t('satchel_sum_candles_one')
-      : i18n.t('satchel_sum_candles', { count: countText(remaining) }),
+    remaining === 0
+      ? i18n.t('satchel_sum_candles_none')
+      : remaining === 1
+        ? i18n.t('satchel_sum_candles_one')
+        : i18n.t('satchel_sum_candles', { count: countText(remaining) }),
     arrowCount === 1
       ? i18n.t('satchel_sum_arrows_one')
       : i18n.t('satchel_sum_arrows', { count: countText(arrowCount) }),

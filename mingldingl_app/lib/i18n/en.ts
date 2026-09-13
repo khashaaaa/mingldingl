@@ -815,6 +815,7 @@ export const en = {
   // spaces — never a fourth hook, only a recap of candles, arrows and the lantern.
   satchel_sum_candles: '%{count} candles.',
   satchel_sum_candles_one: 'One candle.',
+  satchel_sum_candles_none: 'No candles.',
   satchel_sum_arrows: '%{count} arrows.',
   satchel_sum_arrows_one: 'One arrow.',
   satchel_sum_lantern: 'Your lantern is lit.',
