@@ -451,5 +451,6 @@ public class UsersController : ControllerBase
         OathProven: u.OathProven,
         DeletionGraceDays: (int)DailyMaintenanceBackgroundService.GracePeriodFor(_config).TotalDays,
         PreferredLocale: u.PreferredLocale,
-        DeletionRequestedAt: u.DeletionRequestedAt);
+        DeletionRequestedAt: u.DeletionRequestedAt,
+        CreatedAt: u.CreatedAt);
 }

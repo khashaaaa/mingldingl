@@ -20,6 +20,8 @@ function openSession(overrides: Partial<TownSquareNextSession> = {}): TownSquare
     scheduledStartAt: new Date(2026, 7, 15, 4, 0).toISOString(),
     status: 'Open',
     isRsvpd: false,
+    rsvpCount: 0,
+    roundCount: 0,
     ...overrides,
   };
 }
@@ -29,7 +31,7 @@ describe('SessionStatusCard', () => {
 
   it('renders an empty state when there is no upcoming session', () => {
     const { getByText } = render(
-      <SessionStatusCard session={{ sessionId: null, rsvpOpensAt: null, rsvpClosesAt: null, scheduledStartAt: null, status: null, isRsvpd: false }}
+      <SessionStatusCard session={{ sessionId: null, rsvpOpensAt: null, rsvpClosesAt: null, scheduledStartAt: null, status: null, isRsvpd: false, rsvpCount: 0, roundCount: 0 }}
         now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
     expect(getByText(/The square stands quiet/i)).toBeTruthy();
@@ -118,7 +120,7 @@ describe('SessionStatusCard', () => {
   it('does not show the festival eyebrow when there is no session', () => {
     mockFestival.mockReturnValue(NAADAM);
     const { queryByTestId } = render(
-      <SessionStatusCard session={{ sessionId: null, rsvpOpensAt: null, rsvpClosesAt: null, scheduledStartAt: null, status: null, isRsvpd: false }}
+      <SessionStatusCard session={{ sessionId: null, rsvpOpensAt: null, rsvpClosesAt: null, scheduledStartAt: null, status: null, isRsvpd: false, rsvpCount: 0, roundCount: 0 }}
         now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
     expect(queryByTestId('festival-eyebrow')).toBeNull();

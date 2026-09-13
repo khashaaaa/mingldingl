@@ -119,6 +119,25 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task GetMe_ReturnsCreatedAt()
+    {
+        var userId = Guid.NewGuid();
+        Db.Users.Add(NewCompleteUser(userId));
+        await Db.SaveChangesAsync();
+        var controller = BuildController(userId);
+
+        var result = await controller.GetMe();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<UserResponse>(ok.Value);
+        Assert.NotNull(response.CreatedAt);
+        // NewCompleteUser doesn't set CreatedAt, so it carries the model's DateTime.UtcNow default
+        // from construction moments ago — this is "the hearth knows the day you joined", not a
+        // precise clock check.
+        Assert.True(DateTime.UtcNow - response.CreatedAt!.Value < TimeSpan.FromMinutes(1));
+    }
+
+    [Fact]
     public async Task GetMe_CalledTwice_ReturnsTheSameReferralCode()
     {
         var userId = Guid.NewGuid();

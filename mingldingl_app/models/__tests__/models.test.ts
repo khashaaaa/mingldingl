@@ -18,4 +18,14 @@ describe('parseUserProfile', () => {
     const profile = parseUserProfile({ id: 'u1' } as any);
     expect(profile.referralCode).toBeNull();
   });
+
+  it('carries createdAt through as joinedAt', () => {
+    const profile = parseUserProfile({ id: 'u1', createdAt: '2026-08-30T12:00:00Z' } as any);
+    expect(profile.joinedAt).toBe('2026-08-30T12:00:00Z');
+  });
+
+  it('defaults joinedAt to undefined when createdAt is absent', () => {
+    const profile = parseUserProfile({ id: 'u1' } as any);
+    expect(profile.joinedAt).toBeUndefined();
+  });
 });

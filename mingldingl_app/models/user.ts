@@ -42,6 +42,8 @@ export interface UserProfile {
   deletionRequestedAt: string | null;
   /** "en" | "mn" — the language the engine writes this user's push notifications in. */
   preferredLocale: string;
+  /** When the account was created — the hearth counts dawns since this. */
+  joinedAt?: string;
 }
 
 export type Candidate = UserProfile & { gemTier: GemTier };
@@ -76,5 +78,6 @@ export function parseUserProfile(d: components['schemas']['UserResponse']): User
     deletionGraceDays: d.deletionGraceDays ?? 7,
     deletionRequestedAt: d.deletionRequestedAt ?? null,
     preferredLocale: d.preferredLocale ?? 'en',
+    joinedAt: d.createdAt ?? undefined,
   };
 }

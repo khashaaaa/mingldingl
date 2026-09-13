@@ -7717,6 +7717,14 @@
           },
           "isRsvpd": {
             "type": "boolean"
+          },
+          "rsvpCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "roundCount": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -8791,6 +8799,11 @@
             "nullable": true
           },
           "deletionRequestedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true

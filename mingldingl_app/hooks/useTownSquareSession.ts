@@ -12,6 +12,10 @@ export interface TownSquareNextSession {
   scheduledStartAt: string | null;
   status: string | null;
   isRsvpd: boolean;
+  /** Seats filled so far — the plaza's lantern count. */
+  rsvpCount: number;
+  /** Rounds this gathering will run — a bell each. */
+  roundCount: number;
 }
 
 export function useTownSquareSession() {
@@ -27,6 +31,8 @@ export function useTownSquareSession() {
         scheduledStartAt: res.scheduledStartAt ?? null,
         status: res.status ?? null,
         isRsvpd: res.isRsvpd ?? false,
+        rsvpCount: res.rsvpCount ?? 0,
+        roundCount: res.roundCount ?? 0,
       };
     },
     refetchInterval: (query) => {

@@ -37,7 +37,16 @@ public class TownSquareController : ControllerBase
         if (session is null) return Ok(new NextSessionResponse(null, null, null, null, null, false));
 
         bool isRsvpd = await _db.TownSquareRsvps.AnyAsync(r => r.SessionId == session.Id && r.UserId == userId);
-        return Ok(new NextSessionResponse(session.Id, session.RsvpOpensAt, session.RsvpClosesAt, session.ScheduledStartAt, session.Status, isRsvpd));
+        int rsvpCount = await _db.TownSquareRsvps.CountAsync(r => r.SessionId == session.Id);
+
+        // LockRosterAsync generates every round (and its pairings) before flipping the session to
+        // Locked, so a Locked or InProgress session already has real TownSquareRounds rows — count
+        // those. An Open session has none yet, so the best the plaza can say ahead of time is the
+        // configured seats-per-side, which is exactly how many rounds a full round-robin produces.
+        int roundCount = await _db.TownSquareRounds.CountAsync(r => r.SessionId == session.Id);
+        if (roundCount == 0) roundCount = _townSquare.MaxPerSide;
+
+        return Ok(new NextSessionResponse(session.Id, session.RsvpOpensAt, session.RsvpClosesAt, session.ScheduledStartAt, session.Status, isRsvpd, rsvpCount, roundCount));
     }
 
     [HttpGet("session/{sessionId}/current-round")]
@@ -160,7 +169,11 @@ public class TownSquareController : ControllerBase
 }
 
 public record TownSquareRsvpDto(Guid SessionId);
-public record NextSessionResponse(Guid? SessionId, DateTime? RsvpOpensAt, DateTime? RsvpClosesAt, DateTime? ScheduledStartAt, string? Status, bool IsRsvpd);
+/// <param name="RsvpCount">Seats filled so far — the plaza's lantern count.</param>
+/// <param name="RoundCount">Rounds this gathering will run — a bell each. Exact once rounds exist
+/// (Locked/InProgress); before that (Open) it's the configured seats-per-side, the round-robin's
+/// round count for a full roster.</param>
+public record NextSessionResponse(Guid? SessionId, DateTime? RsvpOpensAt, DateTime? RsvpClosesAt, DateTime? ScheduledStartAt, string? Status, bool IsRsvpd, int RsvpCount = 0, int RoundCount = 0);
 /// <summary>
 /// <paramref name="PartnerUserId"/> is who the caller is sitting opposite. The screen needs it to
 /// offer a report: a Town Square partner is a stranger the caller has no match with, and reporting

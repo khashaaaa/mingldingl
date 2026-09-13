@@ -86,6 +86,8 @@ describe('useTownSquareSession', () => {
       scheduledStartAt: '2026-08-14T20:00:00Z',
       status: 'Open',
       isRsvpd: false,
+      rsvpCount: 3,
+      roundCount: 5,
     });
 
     const queryClient = makeQueryClient();
@@ -99,7 +101,20 @@ describe('useTownSquareSession', () => {
       scheduledStartAt: '2026-08-14T20:00:00Z',
       status: 'Open',
       isRsvpd: false,
+      rsvpCount: 3,
+      roundCount: 5,
     });
+  });
+
+  it('defaults rsvpCount and roundCount to 0 when the engine omits them', async () => {
+    mockApi.townSquare.nextSession.mockResolvedValue({ sessionId: null, isRsvpd: false });
+
+    const queryClient = makeQueryClient();
+    const { result } = renderHook(() => useTownSquareSession(), { wrapper: makeWrapper(queryClient) });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.session?.rsvpCount).toBe(0);
+    expect(result.current.session?.roundCount).toBe(0);
   });
 
   it('handles no upcoming session by mapping to a null sessionId', async () => {

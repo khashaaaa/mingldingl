@@ -97,6 +97,16 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
     {
         var user = NewCompleteUser();
         var session = NewSession();
+
+        // "The next session" is a claim about the whole table, and these tests share the dev
+        // database — so a seeded Open session (reseed-dev-db.sql creates two) can sort ahead of
+        // this fixture by ScheduledStartAt and make GetNextSession return someone else's session.
+        // Clear the live ones inside the test's own transaction, which is rolled back either way.
+        var live = await Db.TownSquareSessions
+            .Where(s => s.Status == "Open" || s.Status == "Locked" || s.Status == "InProgress")
+            .ToListAsync();
+        Db.TownSquareSessions.RemoveRange(live);
+
         Db.Users.Add(user);
         Db.TownSquareSessions.Add(session);
         Db.TownSquareRsvps.Add(new TownSquareRsvp { SessionId = session.Id, UserId = user.Id });
@@ -109,6 +119,8 @@ public class TownSquareControllerIntegrationTests : IntegrationTestBase
         var response = Assert.IsType<NextSessionResponse>(ok.Value);
         Assert.Equal(session.Id, response.SessionId);
         Assert.True(response.IsRsvpd);
+        Assert.Equal(1, response.RsvpCount);
+        Assert.True(response.RoundCount > 0);
     }
 
     [Fact]

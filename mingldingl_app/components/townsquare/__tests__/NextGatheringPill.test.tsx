@@ -24,6 +24,8 @@ function session(overrides: Partial<TownSquareNextSession> = {}): TownSquareNext
     scheduledStartAt: new Date(2026, 7, 15, 4, 0).toISOString(),
     status: 'Open',
     isRsvpd: false,
+    rsvpCount: 0,
+    roundCount: 0,
     ...overrides,
   };
 }

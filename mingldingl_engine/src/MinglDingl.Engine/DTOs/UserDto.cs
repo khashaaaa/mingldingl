@@ -68,7 +68,9 @@ public record UserResponse(
     /// cancelled only by an explicit request: with nothing on the wire, a pending deletion was
     /// invisible to the app and could not be shown, warned about, or called off deliberately.
     /// </summary>
-    DateTime? DeletionRequestedAt = null);
+    DateTime? DeletionRequestedAt = null,
+    /// <summary>When the account was created — the hearth's "the Nth dawn" counts from this.</summary>
+    DateTime? CreatedAt = null);
 
 public record OwnedItemResponse(string ItemId, string NameKey, string Rarity, string ItemType, DateTime AcquiredAt, bool Equipped);
 

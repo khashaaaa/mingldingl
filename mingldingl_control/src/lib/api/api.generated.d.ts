@@ -6553,6 +6553,10 @@ export interface components {
             scheduledStartAt?: string | null;
             status?: string | null;
             isRsvpd?: boolean;
+            /** Format: int32 */
+            rsvpCount?: number;
+            /** Format: int32 */
+            roundCount?: number;
         };
         OpenMilestoneResponse: {
             /** Format: int32 */
@@ -6921,6 +6925,8 @@ export interface components {
             preferredLocale?: string | null;
             /** Format: date-time */
             deletionRequestedAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string | null;
         };
         VideoCompleteDto: {
             /** Format: uuid */
