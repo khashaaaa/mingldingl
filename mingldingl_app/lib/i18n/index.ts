@@ -121,7 +121,7 @@ export const AWAITING_MN_TRANSLATION = [
   'satchel_candles', 'satchel_candles_line',
   'satchel_arrows', 'satchel_arrows_line', 'satchel_arrows_one', 'satchel_arrows_none',
   'satchel_lantern', 'satchel_lantern_lit', 'satchel_lantern_unlit', 'satchel_lantern_none',
-  'satchel_oath', 'satchel_oath_line', 'satchel_oath_proven', 'satchel_oath_none',
+  'satchel_oath', 'satchel_oath_line', 'satchel_oath_proven', 'satchel_oath_sworn', 'satchel_oath_none',
   'satchel_key', 'satchel_key_held', 'satchel_key_none',
   'satchel_word', 'satchel_word_none',
   'satchel_honour', 'satchel_honour_none',

@@ -7,6 +7,7 @@ import { usePendingShips } from '../../hooks/usePendingShips';
 import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { useMembership } from '../../hooks/useMembership';
 import { useInventory } from '../../hooks/useInventory';
+import { useRevealLadder } from '../../hooks/useRevealThresholds';
 import { WithSafeArea } from '../../lib/testing/safeArea';
 import type { Match } from '../../models/match';
 
@@ -20,6 +21,7 @@ jest.mock('../../hooks/usePendingShips');
 jest.mock('../../hooks/useTownSquareSession', () => ({ useTownSquareSession: jest.fn() }));
 jest.mock('../../hooks/useMembership');
 jest.mock('../../hooks/useInventory');
+jest.mock('../../hooks/useRevealThresholds', () => ({ useRevealLadder: jest.fn() }));
 
 const mockUseProfile = useProfile as jest.Mock;
 const mockUseMatches = useMatches as jest.Mock;
@@ -28,6 +30,7 @@ const mockUsePendingShips = usePendingShips as jest.Mock;
 const mockUseTownSquareSession = useTownSquareSession as jest.Mock;
 const mockUseMembership = useMembership as jest.Mock;
 const mockUseInventory = useInventory as jest.Mock;
+const mockUseRevealLadder = useRevealLadder as jest.Mock;
 
 function activeMatch(overrides: Partial<Match> = {}): Match {
   return {
@@ -59,6 +62,10 @@ beforeEach(() => {
   });
   mockUseMembership.mockReturnValue({ currentLevel: 'Silver' });
   mockUseInventory.mockReturnValue({ items: [{ itemId: 'title_oathkeeper', itemType: 'Title', equipped: true }] });
+  // Matches `lib/reveal.ts`'s `DEFAULT_LADDER`, so switching the screen from a one-off
+  // `revealLadderSnapshot()` read to the live `useRevealLadder()` hook changes nothing these
+  // existing rows already assert.
+  mockUseRevealLadder.mockReturnValue([1, 5, 15, 30]);
   mockUseProfile.mockReturnValue({
     data: {
       oath: 'Bond',
@@ -113,6 +120,22 @@ describe('the Satchel, full', () => {
     expect(getByLabelText('Oath sigil. A Bond · proven')).toBeTruthy();
   });
 
+  // Regression: a sworn, unproven oath with no encounter tally yet (both counts null, not 0 —
+  // the engine has simply not sent them) used to default both to 0 and print "0 of 5 kept",
+  // reading as fulfilled. `OathCard.tsx`/`useHonourProgress.ts` both refuse a count in this case;
+  // the Satchel must too.
+  it('names a sworn oath alone when its encounter counts are not yet known, never "0 of"', () => {
+    mockUseProfile.mockReturnValue({
+      data: { oath: 'Bond', oathProven: false, oathEncountersHeld: null, oathEncountersNeeded: null, referralCode: 'ABC123', membershipLevel: 'Silver' },
+      isLoading: false,
+    });
+    // The exact label is itself the assertion that neither "0 of" nor "kept" leaked in — the row's
+    // whole fact lives in this one string (`SatchelRow`'s accessibility contract), so any stray
+    // progress suffix would already make this not match.
+    const { getByLabelText } = renderScreen();
+    expect(getByLabelText('Oath sigil. A Bond · sworn')).toBeTruthy();
+  });
+
   it('holds the key at Silver, naming the floor it opens', () => {
     const { getByLabelText } = renderScreen();
     expect(getByLabelText('The key. Held · The Hall')).toBeTruthy();
@@ -132,6 +155,18 @@ describe('the Satchel, full', () => {
     // ladder length 4 (default), revealLevel 1 and 2 -> 3 + 2 = 5 seals across two threads.
     const { getByLabelText } = renderScreen();
     expect(getByLabelText('Seals held. five unbroken on you, across two threads')).toBeTruthy();
+  });
+
+  // Regression for reading `useRevealLadder()` rather than a one-off `revealLadderSnapshot()`
+  // call: the seals count must track whatever the *hook* currently reports, not a value read once
+  // at import time — this is the only way to observe that distinction, since `lib/reveal.ts` fixes
+  // the ladder at exactly four levels and a same-length hydration event would look identical
+  // either way.
+  it("reads the seals count off the ladder the hook reports, not a frozen one", () => {
+    mockUseRevealLadder.mockReturnValue([1, 5, 15, 30, 45, 60]);
+    // length 6, revealLevel 1 and 2 -> 5 + 4 = 9 seals across two threads.
+    const { getByLabelText } = renderScreen();
+    expect(getByLabelText('Seals held. nine unbroken on you, across two threads')).toBeTruthy();
   });
 
   it('states the card the same way regardless of who holds it', () => {

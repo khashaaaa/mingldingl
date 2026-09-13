@@ -12,7 +12,7 @@ import { usePendingShips } from '../hooks/usePendingShips';
 import { useTownSquareSession } from '../hooks/useTownSquareSession';
 import { useMembership } from '../hooks/useMembership';
 import { useInventory } from '../hooks/useInventory';
-import { revealLadderSnapshot } from '../lib/reveal';
+import { useRevealLadder } from '../hooks/useRevealThresholds';
 import { itemLabel } from '../lib/tiers';
 import { oathLabel } from '../components/OathSigil';
 import { i18n } from '../lib/i18n';
@@ -79,6 +79,13 @@ export default function SatchelScreen() {
 
   const oath = profile?.oath ?? null;
   const oathProven = profile?.oathProven ?? false;
+  const oathHeld = profile?.oathEncountersHeld ?? null;
+  const oathNeeded = profile?.oathEncountersNeeded ?? null;
+  // Both fields are nullable on purpose (`models/user.ts`) — `OathCard.tsx` and
+  // `useHonourProgress.ts` both refuse to show a count until the engine has sent both, rather
+  // than defaulting either to 0, which would read as "0 of 0 kept" — a sworn oath that looks
+  // already fulfilled instead of merely uncounted yet.
+  const hasOathProgress = oathHeld != null && oathNeeded != null;
 
   // Silver and Gold are the two floors above the Yard (`floor_Silver`/`floor_Gold`) — the key is
   // whatever opens the one the player is standing in, so a Free rank simply does not hold it.
@@ -89,7 +96,10 @@ export default function SatchelScreen() {
   // "Active" is the engine's own status for a thread that has not ghosted, completed or been
   // unmatched — the only kind a seal can still be unbroken on.
   const activeMatches = (matches ?? []).filter((m) => m.status === 'Active');
-  const ladder = revealLadderSnapshot();
+  // Live, not a one-off read: `useRevealLadder` re-renders this screen if the ladder hydrates
+  // after it is already open, the same way `SealsSheet`/`app/edit-profile.tsx`/
+  // `app/chat/[matchId].tsx` all read it.
+  const ladder = useRevealLadder();
   const totalSeals = activeMatches.reduce(
     (sum, m) => sum + Math.max(0, ladder.length - m.revealLevel),
     0,
@@ -138,11 +148,9 @@ export default function SatchelScreen() {
         ? i18n.t('satchel_oath_none')
         : oathProven
           ? i18n.t('satchel_oath_proven', { oath: oathLabel(oath) })
-          : i18n.t('satchel_oath_line', {
-              oath: oathLabel(oath),
-              held: profile?.oathEncountersHeld ?? 0,
-              needed: profile?.oathEncountersNeeded ?? 0,
-            }),
+          : hasOathProgress
+            ? i18n.t('satchel_oath_line', { oath: oathLabel(oath), held: oathHeld, needed: oathNeeded })
+            : i18n.t('satchel_oath_sworn', { oath: oathLabel(oath) }),
       to: '/(tabs)/profile',
     },
     {

@@ -794,6 +794,9 @@ export const en = {
   satchel_oath: 'Oath sigil',
   satchel_oath_line: '%{oath} · %{held} of %{needed} kept',
   satchel_oath_proven: '%{oath} · proven',
+  // The engine can send a sworn, unproven oath with no encounter tally yet (both counts null) —
+  // `satchel_oath_line` must not run then, or a null-defaulted "0 of 0" reads as already kept.
+  satchel_oath_sworn: '%{oath} · sworn',
   satchel_oath_none: 'No oath sworn',
   satchel_key: 'The key',
   satchel_key_held: 'Held · %{floor}',
