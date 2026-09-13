@@ -6,6 +6,8 @@ import { useTownSquareRound, useTownSquareSessionSummary } from '../../../hooks/
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ sessionId: 's1' }),
   useRouter: () => ({ replace: jest.fn(), back: jest.fn(), push: jest.fn() }),
+  // `HeaderBar` reads the route to decide whether to draw the hearth "way home" tap.
+  usePathname: () => '/townsquare-round/x',
 }));
 
 // The hook module pulls in lib/supabase, which builds a real client at import time.
@@ -99,6 +101,23 @@ describe('TownSquareRoundScreen — join failure', () => {
 
     expect(stub.clearJoinError).toHaveBeenCalled();
     expect(stub.markJoined).not.toHaveBeenCalled();
+  });
+});
+
+describe('TownSquareRoundScreen — the bell header', () => {
+  // The header used to carry no title at all; the round lived only in the strip's own small
+  // label. Now the round itself names the header, in words, the way every other blackletter
+  // title in the app is a place or a moment rather than a number.
+  it('names the first round "The First Bell"', () => {
+    stubRound();
+    const { getByText } = renderScreen();
+    expect(getByText('The First Bell')).toBeTruthy();
+  });
+
+  it('names the second round "The Second Bell"', () => {
+    stubRound({ round: { ...round, roundNumber: 2 } });
+    const { getByText } = renderScreen();
+    expect(getByText('The Second Bell')).toBeTruthy();
   });
 });
 

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
 import { supabase } from '../lib/supabase';
 import { subscribeWithRetry } from '../lib/realtime/subscribeWithRetry';
 import { queryKeys } from '../lib/api/queryKeys';
+import { signal } from '../lib/world/feedback';
 
 export interface TownSquareRound {
   pairingId: string;
@@ -42,6 +43,20 @@ export function useTownSquareRound(sessionId: string | undefined) {
     // round screen shows a dedicated connection-lost modal.
     meta: { silentError: true },
   });
+
+  // The Second Bell: rung the instant a round advances, never on the first paint or a poll that
+  // comes back with the round it already had. `null` (rather than 0) marks "nothing seen yet", so
+  // a session's first round — number 1, falsy-adjacent — does not read as an advance from it.
+  const lastRoundNumber = useRef<number | null>(null);
+  useEffect(() => {
+    if (!round) return;
+    const prev = lastRoundNumber.current;
+    if (prev !== null && round.roundNumber > prev) signal('bell');
+    lastRoundNumber.current = round.roundNumber;
+    // Depends on the whole object, not just `roundNumber`: the 10s poll returns a fresh object on
+    // every tick even when nothing changed, so this still re-runs then — harmlessly, since the
+    // guard above only fires on an actual increase.
+  }, [round]);
 
   useEffect(() => {
     if (!sessionId) return;

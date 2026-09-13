@@ -3,6 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useTownSquareRound } from '../useTownSquareRound';
 import { apiClient } from '../../lib/api/apiClient';
 import { supabase } from '../../lib/supabase';
+import { signal } from '../../lib/world/feedback';
 import { createAppQueryClient } from '../../lib/api/queryClient';
 import { queryKeys } from '../../lib/api/queryKeys';
 
@@ -22,6 +23,10 @@ jest.mock('../../lib/supabase', () => ({
     removeChannel: jest.fn(),
   },
 }));
+
+jest.mock('../../lib/world/feedback', () => ({ signal: jest.fn() }));
+
+const mockSignal = signal as jest.Mock;
 
 const mockApi = apiClient as unknown as {
   townSquare: {
@@ -329,5 +334,60 @@ describe('useTownSquareRound', () => {
     await act(async () => { result.current.markJoined(round1.pairingId); });
 
     await waitFor(() => expect(result.current.joinError).toBe(true));
+  });
+
+  describe('the Second Bell', () => {
+    it('does not ring on the first load of a round', async () => {
+      mockApi.townSquare.currentRound.mockResolvedValue(round1);
+
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(result.current.round?.roundNumber).toBe(1));
+      expect(mockSignal).not.toHaveBeenCalledWith('bell');
+    });
+
+    it('rings once the round number actually increases', async () => {
+      mockApi.townSquare.currentRound.mockResolvedValue(round1);
+
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+      await waitFor(() => expect(result.current.round?.roundNumber).toBe(1));
+
+      const round2 = { ...round1, pairingId: 'p2', roundNumber: 2 };
+      mockApi.townSquare.currentRound.mockResolvedValue(round2);
+      await act(async () => {
+        await queryClient.invalidateQueries();
+      });
+
+      await waitFor(() => expect(result.current.round?.roundNumber).toBe(2));
+      expect(mockSignal).toHaveBeenCalledWith('bell');
+      expect(mockSignal).toHaveBeenCalledTimes(1);
+    });
+
+    it('stays silent on a poll that comes back with the same round number', async () => {
+      mockApi.townSquare.currentRound.mockResolvedValue(round1);
+
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+      await waitFor(() => expect(result.current.round?.roundNumber).toBe(1));
+
+      const round2 = { ...round1, pairingId: 'p2', roundNumber: 2 };
+      mockApi.townSquare.currentRound.mockResolvedValue(round2);
+      await act(async () => {
+        await queryClient.invalidateQueries();
+      });
+      await waitFor(() => expect(result.current.round?.roundNumber).toBe(2));
+      expect(mockSignal).toHaveBeenCalledTimes(1);
+
+      // A refetch (the 10s poll, a retried broadcast) that returns the same round must not ring
+      // it again — a fresh object with the identical roundNumber is not an advance.
+      mockApi.townSquare.currentRound.mockResolvedValue({ ...round2 });
+      await act(async () => {
+        await queryClient.invalidateQueries();
+      });
+      await waitFor(() => expect(mockApi.townSquare.currentRound).toHaveBeenCalledTimes(3));
+      expect(mockSignal).toHaveBeenCalledTimes(1);
+    });
   });
 });

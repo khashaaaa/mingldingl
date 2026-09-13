@@ -531,8 +531,13 @@ export const en = {
   tab_town_square: 'Town Sq.',
   town_square_round_label: 'Round %{round}',
   town_square_match_after: 'They will be waiting in your Quest Log when the square closes.',
-  town_square_waiting_for_round: 'Waiting for the round to end…',
-  town_square_its_a_match: "It's a Match!",
+  // The Second Bell (Wave 4 Task 8): both lines now speak of the bell itself, since the strip
+  // that shows them sits under a header naming the round "The First/Second Bell".
+  town_square_waiting_for_round: 'Your answer is kept until the bell.',
+  town_square_its_a_match: 'Lantern lit from both sides.',
+  bell_title: 'The %{ordinal} Bell',
+  bell_question: 'The question at the bell',
+  bell_decide: 'Then the bell. Decide.',
   town_square_in_progress: 'The bells are ringing without you.',
   gathering_rsvp_closes: 'Gathering · RSVP closes in %{time}',
   gathering_starts_in: 'Gathering in %{time}',
@@ -624,7 +629,9 @@ export const en = {
   rank_silver: 'Silver',
   rank_gold: 'Gold',
   town_square_yes: 'Light it',
-  town_square_no: 'Dismiss',
+  // 'Let pass' (Wave 4 Task 8): the Square's own law is "the app commands the world," and a
+  // stranger's question that goes unanswered is let pass, not dismissed.
+  town_square_no: 'Let pass',
   weave_thread_title: 'Weave a Thread',
   weave_thread_hint: "Know two souls who'd suit each other? Loose an arrow on their behalf.",
   first_thread_label: 'First thread',

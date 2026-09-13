@@ -13,62 +13,63 @@ const renderPrompt = (ui: React.ReactElement) =>
   render(<SafeAreaProvider initialMetrics={METRICS}>{ui}</SafeAreaProvider>);
 
 describe('RoundPrompt', () => {
-  it('shows the icebreaker text, round number, and countdown', () => {
+  it('shows the eyebrow, the icebreaker text and the helper line before answering', () => {
     const { getByText } = renderPrompt(
-      <RoundPrompt icebreakerText="Favorite trip?" roundNumber={2} secondsLeft={90}
+      <RoundPrompt icebreakerText="Favorite trip?"
         hasResponded={false} matchId={null} isResponding={false} onRespond={jest.fn()} />,
     );
+    // `CardEyebrow` uppercases its own text; matched case-insensitively for that reason.
+    expect(getByText(/the question at the bell/i)).toBeTruthy();
     expect(getByText('Favorite trip?')).toBeTruthy();
-    expect(getByText(/2/)).toBeTruthy();
-    expect(getByText(/1:30|90/)).toBeTruthy();
+    expect(getByText('Then the bell. Decide.')).toBeTruthy();
   });
 
   it('calls onRespond("Yes") when the Light It button is pressed', () => {
     const onRespond = jest.fn();
     const { getByText } = renderPrompt(
-      <RoundPrompt icebreakerText="Favorite trip?" roundNumber={1} secondsLeft={60}
+      <RoundPrompt icebreakerText="Favorite trip?"
         hasResponded={false} matchId={null} isResponding={false} onRespond={onRespond} />,
     );
     fireEvent.press(getByText(/^Light it$/i));
     expect(onRespond).toHaveBeenCalledWith('Yes');
   });
 
-  it('calls onRespond("No") when the Dismiss button is pressed', () => {
+  it('calls onRespond("No") when the Let pass button is pressed', () => {
     const onRespond = jest.fn();
     const { getByText } = renderPrompt(
-      <RoundPrompt icebreakerText="Favorite trip?" roundNumber={1} secondsLeft={60}
+      <RoundPrompt icebreakerText="Favorite trip?"
         hasResponded={false} matchId={null} isResponding={false} onRespond={onRespond} />,
     );
-    fireEvent.press(getByText(/^Dismiss$/i));
+    fireEvent.press(getByText(/^Let pass$/i));
     expect(onRespond).toHaveBeenCalledWith('No');
   });
 
-  it('hides the Light It/Dismiss buttons and shows a waiting message once responded', () => {
+  it('hides the Light It/Let pass buttons and shows a waiting message once responded', () => {
     const { queryByText, getByText } = renderPrompt(
-      <RoundPrompt icebreakerText="Favorite trip?" roundNumber={1} secondsLeft={60}
+      <RoundPrompt icebreakerText="Favorite trip?"
         hasResponded matchId={null} isResponding={false} onRespond={jest.fn()} />,
     );
     expect(queryByText(/^Light it$/i)).toBeNull();
-    expect(queryByText(/^Dismiss$/i)).toBeNull();
-    expect(getByText(/Waiting/i)).toBeTruthy();
+    expect(queryByText(/^Let pass$/i)).toBeNull();
+    expect(getByText('Your answer is kept until the bell.')).toBeTruthy();
   });
 
   it('shows a match message instead of the waiting message once matched', () => {
     const { getByText, queryByText } = renderPrompt(
-      <RoundPrompt icebreakerText="Favorite trip?" roundNumber={1} secondsLeft={60}
+      <RoundPrompt icebreakerText="Favorite trip?"
         hasResponded matchId="m1" isResponding={false} onRespond={jest.fn()} />,
     );
-    expect(getByText(/Match/i)).toBeTruthy();
-    // The round's own waiting line, matched exactly: the match message carries the word "waiting"
-    // too, in the sentence saying where the match went.
-    expect(queryByText('Waiting for the round to end…')).toBeNull();
+    expect(getByText('Lantern lit from both sides.')).toBeTruthy();
+    // The round's own waiting line, matched exactly: it must not still be showing beside the
+    // match text once a lantern has actually lit.
+    expect(queryByText('Your answer is kept until the bell.')).toBeNull();
   });
 
-  it('says where a mid-round match went, rather than stopping at "It\'s a Match!"', () => {
+  it('says where a mid-round match went, rather than stopping at the lit lantern alone', () => {
     // Deliberately not a link — tapping it would end the call and forfeit the remaining rounds —
     // so it has to name the place the match can actually be found instead.
     const { getByText } = renderPrompt(
-      <RoundPrompt icebreakerText="Favorite trip?" roundNumber={1} secondsLeft={60}
+      <RoundPrompt icebreakerText="Favorite trip?"
         hasResponded matchId="m1" isResponding={false} onRespond={jest.fn()} />,
     );
     expect(getByText('They will be waiting in your Quest Log when the square closes.')).toBeTruthy();
@@ -77,11 +78,13 @@ describe('RoundPrompt', () => {
   it('locks both answers while a response is in flight', () => {
     const onRespond = jest.fn();
     const { getByText } = renderPrompt(
-      <RoundPrompt icebreakerText="Q" roundNumber={1} secondsLeft={30} hasResponded={false}
+      <RoundPrompt icebreakerText="Q" hasResponded={false}
         matchId={null} isResponding onRespond={onRespond} />,
     );
-    fireEvent.press(getByText('Light it'));
-    fireEvent.press(getByText('Dismiss'));
+    // `GameButton` uppercases a metal (forged) label, so "Light it" renders as "LIGHT IT" —
+    // matched case-insensitively for that reason, same as the press tests above.
+    fireEvent.press(getByText(/^Light it$/i));
+    fireEvent.press(getByText(/^Let pass$/i));
     expect(onRespond).not.toHaveBeenCalled();
   });
 
@@ -90,7 +93,7 @@ describe('RoundPrompt', () => {
   // navigation bar.
   it('sits clear of the call controls above the safe-area bottom', () => {
     const { getByText } = renderPrompt(
-      <RoundPrompt icebreakerText="Favorite trip?" roundNumber={1} secondsLeft={60}
+      <RoundPrompt icebreakerText="Favorite trip?"
         hasResponded={false} matchId={null} isResponding={false} onRespond={jest.fn()} />,
     );
     const wrap = getByText('Favorite trip?').parent!.parent!;

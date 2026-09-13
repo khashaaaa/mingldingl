@@ -1,37 +1,37 @@
 import { Text, View, StyleSheet } from 'react-native';
-import { Tap } from '../ui/Tap';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VIDEO_CONTROLS_BOTTOM, VIDEO_CONTROLS_SIZE } from '../video/VideoControls';
+import { GameButton } from '../ui/GameButton';
+import { ParchmentFill } from '../ui/ParchmentFill';
+import { CardEyebrow } from '../ui/CardEyebrow';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, FONTS, FONT_SIZES, INK, LINE, METAL, PRESS, RADIUS, SPACE, SURFACE, TRACKING, tint } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, METAL, SPACE, tint } from '../../lib/theme';
+
 interface Props {
   icebreakerText: string;
-  roundNumber: number;
-  secondsLeft: number;
   hasResponded: boolean;
   matchId: string | null;
   isResponding: boolean;
   onRespond: (response: 'Yes' | 'No') => void;
 }
 
-function formatClock(seconds: number): string {
-  const s = Math.max(0, seconds);
-  const m = Math.floor(s / 60);
-  const rem = s % 60;
-  return `${m}:${String(rem).padStart(2, '0')}`;
-}
-
-export function RoundPrompt({ icebreakerText, roundNumber, secondsLeft, hasResponded, matchId, isResponding, onRespond }: Props) {
+/**
+ * The question at the bell, as parchment rising off the video call rather than a floating card —
+ * the round number and its countdown moved up to the screen's own `HeaderBar` (Move 8's bell
+ * title and glyph), so this strip is the question and the deed alone. `ParchmentFill` and the
+ * square top-only corner follow `DialogStrip`'s own shape (`components/modals/DialogSurface.tsx`);
+ * it stays a plain `View` rather than that component because a strip that never dismisses and
+ * never dims the room behind it is not a dialog layer at all.
+ */
+export function RoundPrompt({ icebreakerText, hasResponded, matchId, isResponding, onRespond }: Props) {
   // The call controls are laid out from the safe-area bottom; a fixed 100 here put this card
   // underneath them on any device with a navigation bar, so Yes/No sat behind the hang-up button.
   const insets = useSafeAreaInsets();
   const bottom = insets.bottom + VIDEO_CONTROLS_BOTTOM + VIDEO_CONTROLS_SIZE + SPACE.lg;
   return (
     <View style={[styles.wrap, { bottom }]}>
-      <View style={styles.header}>
-        <Text style={styles.roundLabel}>{i18n.t('town_square_round_label', { round: roundNumber })}</Text>
-        <Text style={styles.clock}>{formatClock(secondsLeft)}</Text>
-      </View>
+      <ParchmentFill />
+      <CardEyebrow>{i18n.t('bell_question')}</CardEyebrow>
       <Text style={styles.question}>{icebreakerText}</Text>
       {hasResponded ? (
         matchId ? (
@@ -44,29 +44,22 @@ export function RoundPrompt({ icebreakerText, roundNumber, secondsLeft, hasRespo
             <Text style={styles.waitingText}>{i18n.t('town_square_match_after')}</Text>
           </View>
         ) : (
+          // `bell_waiting` would have read word-for-word the same as this key's new English, so
+          // the plan's own rule applies: reuse the key rather than add a duplicate sentence.
           <Text style={styles.waitingText}>{i18n.t('town_square_waiting_for_round')}</Text>
         )
       ) : (
-        <View style={styles.buttonRow}>
-          <Tap
-            style={[styles.button, styles.noButton, isResponding && styles.buttonBusy]}
-            disabled={isResponding}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: isResponding }}
-            onPress={() => onRespond('No')}
-          >
-            <Text style={[styles.buttonText, styles.noButtonText]}>{i18n.t('town_square_no')}</Text>
-          </Tap>
-          <Tap
-            style={[styles.button, styles.yesButton, isResponding && styles.buttonBusy]}
-            disabled={isResponding}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: isResponding }}
-            onPress={() => onRespond('Yes')}
-          >
-            <Text style={[styles.buttonText, styles.yesButtonText]}>{i18n.t('town_square_yes')}</Text>
-          </Tap>
-        </View>
+        <>
+          <Text style={styles.helper}>{i18n.t('bell_decide')}</Text>
+          <View style={styles.buttonRow}>
+            <GameButton variant="ink" flex={1} disabled={isResponding} onPress={() => onRespond('No')}>
+              {i18n.t('town_square_no')}
+            </GameButton>
+            <GameButton flex={1} disabled={isResponding} onPress={() => onRespond('Yes')}>
+              {i18n.t('town_square_yes')}
+            </GameButton>
+          </View>
+        </>
       )}
     </View>
   );
@@ -78,26 +71,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    backgroundColor: tint(SURFACE.panel, 0.92),
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: LINE.edge,
+    // The board's "nothing rounded": a two-point ember rule stands in for the card border and
+    // corner radius this strip used to carry.
+    borderRadius: 0,
+    borderTopWidth: 2,
+    borderTopColor: tint(METAL.ember, 0.8),
+    overflow: 'hidden',
     padding: SPACE.lg,
     gap: SPACE.sm,
   },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  roundLabel: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: INK.dim, letterSpacing: TRACKING.wide },
-  clock: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.bright },
-  question: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary },
+  question: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xl, color: INK.primary },
+  helper: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.md, color: INK.dim },
   waitingText: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   matchText: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: ACCENT.bright },
   buttonRow: { flexDirection: 'row', gap: SPACE.md },
-  button: { flex: 1, borderRadius: RADIUS.sm, paddingVertical: SPACE.md, alignItems: 'center', borderWidth: 1 },
-  buttonBusy: { opacity: PRESS.disabled },
-  yesButton: { backgroundColor: METAL.gold, borderColor: ACCENT.bright },
-  noButton: { backgroundColor: SURFACE.raised, borderColor: LINE.edge },
-  buttonText: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, letterSpacing: TRACKING.wide },
-  // Light-on-gold reads at 2.4:1; the rest of the app puts a dark label on this slab (as GameButton does).
-  yesButtonText: { color: SURFACE.sunken },
-  noButtonText: { color: INK.primary },
 });

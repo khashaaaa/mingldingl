@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Tap } from '../../components/ui/Tap';
 import { View, Text, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AgoraVideoCall } from '../../components/video/AgoraVideoCall';
 import { VideoControls } from '../../components/video/VideoControls';
@@ -10,13 +9,25 @@ import { AlertModal } from '../../components/modals/AlertModal';
 import { ReportUserSheet } from '../../components/modals/ReportUserSheet';
 import { GameButton } from '../../components/ui/GameButton';
 import { Glyph } from '../../components/ui/Glyph';
+import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Icon } from '../../components/ui/Icon';
 import { LongWait } from '../../components/ui/LongWait';
 import { useTownSquareRound, useTownSquareSessionSummary } from '../../hooks/useTownSquareRound';
-import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SCRIM, SPACE, circle, overlay } from '../../lib/theme';
+import { cap } from '../../lib/fire';
+import { ordinalWord } from '../../lib/worldTime';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TEMPERATURE } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
+
+/** `m:ss`, floored at zero — the round screen is on the furnace allow-list, so this is the one
+ *  place the countdown itself lives now that the bell title carries the round number. */
+function formatClock(seconds: number): string {
+  const s = Math.max(0, seconds);
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return `${m}:${String(rem).padStart(2, '0')}`;
+}
 
 export default function TownSquareRoundScreen() {
   useLocaleStore((s) => s.locale);
@@ -30,7 +41,6 @@ export default function TownSquareRoundScreen() {
   const [callFailed, setCallFailed] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
-  const insets = useSafeAreaInsets();
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -124,6 +134,42 @@ export default function TownSquareRoundScreen() {
 
   return (
     <View style={styles.screen}>
+      {/* The bell title names the round in blackletter (Latin only — `ordinalWord` under `en`,
+          never a Cyrillic variant); the back arrow now routes through the same confirm-before-
+          leaving dialog the hang-up button uses, rather than `router.back()` walking out of a
+          live call unasked. The report flag moved in here from its own floating chip: a header
+          was not on this screen before, and left where it was it would have sat over the top of
+          this one. */}
+      <HeaderBar
+        title={i18n.t('bell_title', { ordinal: cap(ordinalWord(round.roundNumber)) })}
+        onBack={() => setConfirmLeave(true)}
+        right={
+          // A Town Square partner is a stranger with no match to reach them through, so this is
+          // the only place they can be reported from. Reporting also blocks them, which keeps
+          // the round-robin from ever seating the two of them together again.
+          <Tap
+            style={styles.reportButton}
+            accessibilityLabel={i18n.t('report_user')}
+            onPress={() => setReportVisible(true)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Icon name="flag" size={ICON_SIZES.sm} color={INK.primary} />
+          </Tap>
+        }
+      >
+        {/* `town_square_round_label` still names the round for a screen reader; grouped here so
+            the label carries the seconds too (a grouped view silences its children otherwise),
+            and the bell glyph — carrying nothing the label doesn't already say — stays decorative. */}
+        <View
+          style={styles.bellRow}
+          accessible
+          accessibilityLabel={`${i18n.t('town_square_round_label', { round: round.roundNumber })}. ${formatClock(secondsLeft)}`}
+        >
+          <Glyph name="bell" size={ICON_SIZES.md} color={TEMPERATURE.furnace} />
+          <Text style={styles.countdown} importantForAccessibility="no">{formatClock(secondsLeft)}</Text>
+        </View>
+      </HeaderBar>
+
       {/* #15: a failed connection used to leave a blank screen with no way forward. */}
       {callFailed ? (
         <StateBlock
@@ -155,24 +201,11 @@ export default function TownSquareRoundScreen() {
 
       <RoundPrompt
         icebreakerText={round.icebreakerText}
-        roundNumber={round.roundNumber}
-        secondsLeft={secondsLeft}
         hasResponded={hasResponded}
         matchId={matchId}
         isResponding={isResponding}
         onRespond={(response) => submitResponse(round.pairingId, response)}
       />
-      {/* A Town Square partner is a stranger with no match to reach them through, so this is the
-          only place they can be reported from. Reporting also blocks them, which keeps the
-          round-robin from ever seating the two of them together again. */}
-      <Tap
-        style={[styles.reportButton, { top: insets.top + SPACE.sm }]}
-        accessibilityLabel={i18n.t('report_user')}
-        onPress={() => setReportVisible(true)}
-        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-      >
-        <Icon name="flag" size={ICON_SIZES.sm} color={INK.primary} />
-      </Tap>
 
       <VideoControls
         muted={muted}
@@ -219,15 +252,12 @@ export default function TownSquareRoundScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Top-right, clear of the video controls at the bottom and of the round prompt in the middle.
-  reportButton: {
-    position: 'absolute',
-    right: SPACE.md,
-    ...circle(36),
-    backgroundColor: overlay(SCRIM.veilStrong),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  // Now a plain tail icon in the header row (`HeaderBar`'s own hearth tap and atlas sigil carry
+  // no chip either), rather than a chip floating over the video — the header claimed that top-right
+  // corner first.
+  reportButton: { padding: SPACE.sm },
+  bellRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+  countdown: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: TEMPERATURE.furnaceBright },
   // Transparent, not `SURFACE.ground`: this route is in the tavern room (`lib/world/rooms.ts`),
   // so the world's floor, light ramp and vfx render beneath it. It was the one lit screen
   // painting an opaque ground over all three.

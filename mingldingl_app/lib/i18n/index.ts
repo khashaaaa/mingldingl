@@ -112,6 +112,9 @@ export const AWAITING_MN_TRANSLATION = [
   'plaza_first_bell', 'plaza_rounds', 'plaza_rounds_value',
   'plaza_closed_lit', 'plaza_closed_lit_one',
   'plaza_label', 'plaza_label_mine', 'plaza_label_none',
+  // The Second Bell (Wave 4 Task 8): the round screen's own header title and the strip's eyebrow
+  // and helper line.
+  'bell_title', 'bell_question', 'bell_decide',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
