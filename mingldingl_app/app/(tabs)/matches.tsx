@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
 import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMatches } from '../../hooks/useMatches';
 import { useMyUserId } from '../../hooks/useMyUserId';
+import { useNowTicker } from '../../hooks/useNowTicker';
 import { useGhostingWindows } from '../../hooks/useRevealThresholds';
 import { fireOf } from '../../lib/fire';
 import { QuestTile } from '../../components/quest/QuestTile';
@@ -16,21 +16,15 @@ import { useLocaleStore } from '../../store/localeStore';
 import { ACCENT, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
 
-/** Dawns turn over at local midnight, not every second — a minute's staleness on "how many
- *  dawns of silence" is invisible, so there is no reason to re-render on every tick. */
-const NOW_REFRESH_MS = 60_000;
-
 export default function MatchesScreen() {
   useLocaleStore((s) => s.locale);
   const { data: matches, isLoading, isError, isRefetching, refetch } = useMatches();
   const router = useRouter();
   const myId = useMyUserId();
   const windows = useGhostingWindows();
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), NOW_REFRESH_MS);
-    return () => clearInterval(id);
-  }, []);
+  // Fires-driven state (`lib/fire.ts`) turns over purely with time, so this screen needs `now` to
+  // actually change on its own — see `useNowTicker`'s own comment.
+  const now = useNowTicker();
 
   return (
     <View style={styles.screen}>

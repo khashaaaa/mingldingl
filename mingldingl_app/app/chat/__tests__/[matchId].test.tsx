@@ -95,6 +95,8 @@ const HIDDEN = { includeHiddenElements: true };
 /** The strip's own copy, so an assertion reads as the line on screen rather than the key. */
 const EMBERS_STRIP =
   'The fire is down to embers. Two dawns without a word from you. At the third it is yours to have let die.';
+const EMBERS_STRIP_ONE =
+  'The fire is down to embers. One dawn without a word from you. At the third it is yours to have let die.';
 
 /**
  * Six letters, theirs first, all inside one local day whatever the machine's zone: they span five
@@ -292,6 +294,20 @@ describe('ChatScreen', () => {
     jest.useRealTimers();
   });
 
+  it('shows the embers strip with the singular dawn copy after one local day of silence', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(at(2026, 9, 12, 9));
+    mockMatchCreatedAt = iso(at(2026, 9, 8, 9));
+    mockMatchLastMessageAt = iso(at(2026, 9, 11, 9));
+    mockMatchLastMessageSenderId = 'u2';
+
+    const { getByTestId, getByText } = renderScreen();
+
+    expect(getByTestId('embers-strip')).toBeTruthy();
+    expect(getByText(EMBERS_STRIP_ONE)).toBeTruthy();
+    jest.useRealTimers();
+  });
+
   it('does not show the embers strip while a fire is only burning', () => {
     jest.useFakeTimers();
     jest.setSystemTime(at(2026, 9, 12, 9));
@@ -323,6 +339,26 @@ describe('ChatScreen', () => {
     // The verdict also stands in the AlertModal's own message, so more than one copy is expected
     // on screen at once — only its presence is asserted here.
     expect(getAllByText('They let it freeze. Their standing paid.').length).toBeGreaterThan(0);
+    jest.useRealTimers();
+  });
+
+  it('trusts endedReason over a stale cached match status for the frozen ending', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(at(2026, 9, 12, 9));
+    // useMatchStatus's own ghost-check is what discovers a fresh Ghosted; useMatches' list is a
+    // separately-cached query that can still read the old status for a moment after. `mockMatchStatus`
+    // is deliberately left at its default 'Active' here to reproduce exactly that race.
+    mockEndedReason = 'ghosted';
+    mockMatchCreatedAt = iso(at(2026, 9, 1, 9));
+    mockMatchLastMessageAt = iso(at(2026, 9, 7, 9));
+    mockMatchLastMessageSenderId = 'me1';
+
+    const { getByTestId, getByText, getAllByText, queryByTestId } = renderScreen();
+
+    expect(getByTestId('frost-edge-top', HIDDEN)).toBeTruthy();
+    expect(getByText('Five dawns of silence. Judged at the third.')).toBeTruthy();
+    expect(getAllByText('They let it freeze. Their standing paid.').length).toBeGreaterThan(0);
+    expect(queryByTestId('embers-strip')).toBeNull();
     jest.useRealTimers();
   });
 });

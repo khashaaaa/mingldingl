@@ -42,10 +42,12 @@ import { messagesUntilActivities, nextRevealThreshold } from '../../lib/reveal';
 import { letterMarks } from '../../lib/letters';
 import { fireOf, fireLine, fireVerdict, cap } from '../../lib/fire';
 import { countWord, ordinalWord } from '../../lib/worldTime';
+import type { MatchStatus } from '../../models/match';
 import { useProfile } from '../../hooks/useProfile';
 import { useUnsealing } from '../../hooks/useUnsealing';
 import { useSealedLetter } from '../../hooks/useSealedLetter';
 import { useFireDying } from '../../hooks/useFireDying';
+import { useNowTicker } from '../../hooks/useNowTicker';
 
 const Ember = PLACES.ember;
 
@@ -68,15 +70,29 @@ export default function ChatScreen() {
   const { data: matches } = useMatches();
   const match = matches?.find((m) => m.matchId === matchId);
   const ghostingWindows = useGhostingWindows();
-  // Keyed on the fields fireOf actually reads, not the whole match object — useMatches hands back
-  // a fresh array on every refetch even when nothing about this one match's fire changed. Null
-  // until the match itself has loaded, same as everything else derived from it on this screen.
+  const { endedReason } = useMatchStatus(matchId);
+  // Fires-driven state (`lib/fire.ts`) turns over purely with time — burning becomes embers the
+  // moment a dawn does, with nothing else to trigger a re-render — so this needs `now` to change
+  // on its own while the thread sits open. See `useNowTicker`'s own comment.
+  const now = useNowTicker();
+  // `endedReason` is the source of truth for whether this thread is over: it comes from
+  // `useMatchStatus`'s own ghost-check, the one call that *discovers* a fresh Ghosted, while
+  // `match.status` here comes from `useMatches`' independently-cached list — invalidated once
+  // ghost-check finds Ghosted (see that hook), but a screen already open when that write lands
+  // can still read the old status for one more render. Overriding it keeps the ending's exact
+  // wording (and the embers strip's absence) right regardless of that race.
+  const effectiveStatus: MatchStatus | undefined = !match
+    ? undefined
+    : endedReason === 'ghosted'
+      ? 'Ghosted'
+      // `endedReasonFor` collapses Unmatched/Completed to the same 'ended' value, and fireOf
+      // treats them identically (frozenBy: 'severed'), so either stands in for the other here.
+      : endedReason === 'ended'
+        ? (match.status === 'Completed' ? 'Completed' : 'Unmatched')
+        : match.status;
   const fire = useMemo(
-    () => (match ? fireOf(match, myId, Date.now(), ghostingWindows) : null),
-    // Deliberately keyed on the fields fireOf reads, not the whole `match` reference — see the
-    // comment above.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-    [match?.status, match?.createdAt, match?.lastMessageAt, match?.lastMessageSenderId, myId, ghostingWindows],
+    () => (match && effectiveStatus ? fireOf({ ...match, status: effectiveStatus }, myId, now, ghostingWindows) : null),
+    [match, effectiveStatus, myId, now, ghostingWindows],
   );
   // The world only speaks the instant a thread first goes to embers, never on every render it
   // spends there — see the hook's own comment.
@@ -90,12 +106,8 @@ export default function ChatScreen() {
     completedAt: match?.flameRiteCompletedAt ?? null,
     durationMinutes: match?.flameRiteDurationMinutes ?? DEFAULT_RITE_DURATION_MINUTES,
   };
-  const { endedReason } = useMatchStatus(matchId);
   const [attendanceModalVisible, setAttendanceModalVisible] = useState(false);
   const [endedAcknowledged, setEndedAcknowledged] = useState(false);
-  // The frost drawn along the notice's own top edge has to reach exactly as far as the notice is
-  // wide, and that width isn't known until the row has laid out once.
-  const [endedNoticeWidth, setEndedNoticeWidth] = useState(0);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [activitiesVisible, setActivitiesVisible] = useState(false);
   const [sealsVisible, setSealsVisible] = useState(false);
@@ -400,26 +412,32 @@ export default function ChatScreen() {
         )}
         {/* The fire down to its last coals, said above the composer rather than inside a modal —
             a `DialogStrip` is for a moment that interrupts you; this one is just true for as
-            long as it's your turn. Gone the instant a reply is sent, same as the state itself. */}
-        {fire?.state === 'embers' && (
+            long as it's your turn. Gone the instant a reply is sent, same as the state itself.
+            `!endedReason` is belt-and-braces: `fire` is already built from `endedReason` when the
+            thread is over (see above), so this should never be true alongside the frozen ending —
+            but the strip must never be the one place that forgets to check. */}
+        {fire?.state === 'embers' && !endedReason && (
           <View style={styles.embersStrip} testID="embers-strip">
             <Ember size={ICON_SIZES.sm} color={METAL.ember} />
             <Text style={styles.embersStripText}>
-              {i18n.t('fire_embers_strip', { dawns: cap(countWord(fire.dawns)), judged: ordinalWord(fire.judgedAtDawn) })}
+              {fire.dawns === 1
+                ? i18n.t('fire_embers_strip_one', { judged: ordinalWord(fire.judgedAtDawn) })
+                : i18n.t('fire_embers_strip', { dawns: cap(countWord(fire.dawns)), judged: ordinalWord(fire.judgedAtDawn) })}
             </Text>
           </View>
         )}
         {endedReason ? (
           // Last thing on the screen where the composer used to be, so it owes the same debt to
           // the Android gesture bar that `MessageInput` pays for its own bar.
-          <View
-            style={[styles.endedNotice, { paddingBottom: SPACE.lg + insets.bottom }]}
-            onLayout={(e) => setEndedNoticeWidth(e.nativeEvent.layout.width)}
-          >
+          <View style={[styles.endedNotice, { paddingBottom: SPACE.lg + insets.bottom }]}>
             {/* A frozen fire, not just a severed link — the crystal that reads "silence" wherever
-                else it appears in this redesign, reused rather than a second way to say it. */}
+                else it appears in this redesign, reused rather than a second way to say it. Its
+                own default reach, not the notice's width: for a `top`/`bottom` edge `length` is
+                how deep the frost bites into the screen, not how wide it runs (that's already
+                100%) — passing the notice's width there once drew a block of frost as deep as the
+                row was wide. */}
             <View style={styles.endedNoticeFrost} pointerEvents="none">
-              <FrostEdge edge="top" length={endedNoticeWidth} />
+              <FrostEdge edge="top" />
             </View>
             <Icon name="link-variant-off" size={ICON_SIZES.sm} color={INK.dim} />
             <View style={styles.endedNoticeTextWrap}>

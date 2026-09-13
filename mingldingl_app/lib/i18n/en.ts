@@ -546,6 +546,7 @@ export const en = {
   fire_line_severed: 'The bond was severed.',
   fire_law: "A fire is judged at dawn. Whoever's turn it was when it froze is the one who let it.",
   fire_embers_strip: 'The fire is down to embers. %{dawns} dawns without a word from you. At the %{judged} it is yours to have let die.',
+  fire_embers_strip_one: 'The fire is down to embers. One dawn without a word from you. At the %{judged} it is yours to have let die.',
   candidate_unavailable_body: 'This traveller has already gone on their way.',
   age_invalid: 'Enter an age between 18 and 99',
   video_end_confirm_title: 'End the Rite?',

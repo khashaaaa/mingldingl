@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
@@ -40,6 +41,13 @@ export function useMatchStatus(matchId: string) {
     retry: false,
     meta: { silentError: true },
   });
+
+  // This is the one call that discovers a fresh Ghosted — `useMatches`' own list has a 5-minute
+  // staleTime and nothing else tells it to recheck, so whatever reads `match.status` off it (the
+  // chat screen's own `fire`, Task 4) would keep seeing `Active` for up to that long otherwise.
+  useEffect(() => {
+    if (status === 'Ghosted') qc.invalidateQueries({ queryKey: queryKeys.matches });
+  }, [status, qc]);
 
   return {
     status,

@@ -51,6 +51,27 @@ describe('useMatchStatus', () => {
     await waitFor(() => expect(result.current.endedReason).toBe('ghosted'));
   });
 
+  it('invalidates the matches list once ghost-check discovers a fresh Ghosted', async () => {
+    mockGhostCheck.mockResolvedValue({ status: 'Ghosted' });
+    const invalidateSpy = jest.spyOn(client, 'invalidateQueries');
+
+    renderHook(() => useMatchStatus('m1'), { wrapper });
+
+    // Otherwise the match list's own 5-minute staleTime leaves it reading the pre-ghosting status
+    // for as long as a screen reading `useMatches` stays mounted — see the hook's own comment.
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches }));
+  });
+
+  it('leaves the matches list alone for a match that is still active', async () => {
+    mockGhostCheck.mockResolvedValue({ status: 'Active' });
+    const invalidateSpy = jest.spyOn(client, 'invalidateQueries');
+
+    const { result } = renderHook(() => useMatchStatus('m1'), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('Active'));
+
+    expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+
   it('picks up a partner unmatching mid-conversation from the broadcast cache write', async () => {
     mockGhostCheck.mockResolvedValue({ status: 'Active' });
 
