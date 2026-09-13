@@ -9,11 +9,10 @@ import type { Match } from '../models/match';
  * only narrate what it will conclude. No mechanic — window, threshold, penalty — is re-derived
  * here; `windows` always comes from the live `useGhostingWindows()`.
  *
- * Two of this move's EN keys have no reader in this file: `fire_law` is the list's footer
- * ("A fire is judged at dawn…", the Quest Log screen) and `fire_embers_strip` is the chat
- * composer's embers banner (`dawns`/`judged` rendered the same way `fireLine` renders them here).
- * Both land with the rest of this move's copy so the whole ledger of new strings is in one
- * commit; the screens that read them arrive in the tasks right after this one.
+ * One of this move's EN keys has no reader in this file: `fire_law` is the Quest Log list's
+ * footer ("A fire is judged at dawn…"). `fire_embers_strip` — the chat composer's embers banner —
+ * is read by `app/chat/[matchId].tsx` instead, formatting its `dawns`/`judged` with this file's
+ * own exported `cap`/`countWord`/`ordinalWord` so the two banners never drift apart.
  */
 export type FireState = 'unlit' | 'burning' | 'embers' | 'frozen';
 
@@ -96,8 +95,10 @@ export function fireOf(
   return { state, myTurn, dawns, judgedAtDawn, day, iLetIt: null, frozenBy: null };
 }
 
-/** The word that opens a sentence needs its own capital; the same word mid-sentence stays as-is. */
-function cap(word: string): string {
+/** The word that opens a sentence needs its own capital; the same word mid-sentence stays as-is.
+ *  Exported so the embers strip (Task 4, `app/chat/[matchId].tsx`) can format `fire_embers_strip`'s
+ *  `dawns` the same way `fireLine` formats its own — one capitalisation rule, not two. */
+export function cap(word: string): string {
   return word.length ? word[0].toUpperCase() + word.slice(1) : word;
 }
 

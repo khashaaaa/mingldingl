@@ -40,11 +40,20 @@ jest.mock('../../../hooks/useAttendanceCheck', () => ({
   }),
 }));
 
+/** The fire's own inputs on the mocked match — Active/undefined until a test sets a thread going
+ *  cold or frozen. */
+let mockMatchStatus: 'Active' | 'Ghosted' | 'Unmatched' | 'Completed' = 'Active';
+let mockMatchCreatedAt = '2026-09-10T12:00:00Z';
+let mockMatchLastMessageAt: string | undefined;
+let mockMatchLastMessageSenderId: string | undefined;
+
 jest.mock('../../../hooks/useMatches', () => ({
   useMatches: () => ({
     data: [{
-      matchId: 'm1', otherUserId: 'u2', status: 'Active', revealLevel: 2, messageCount: mockMatchMessageCount,
-      createdAt: '2026-09-10T12:00:00Z',
+      matchId: 'm1', otherUserId: 'u2', status: mockMatchStatus, revealLevel: 2, messageCount: mockMatchMessageCount,
+      createdAt: mockMatchCreatedAt,
+      lastMessageAt: mockMatchLastMessageAt,
+      lastMessageSenderId: mockMatchLastMessageSenderId,
       icebreakerComplete: false, videoCallUnlocked: false, otherUser: { displayName: 'Riley' },
       flameRiteDurationMinutes: 5, flameRiteRequired: false, videoEnabled: true,
     }],
@@ -73,6 +82,19 @@ function renderScreen() {
  */
 const FIRST_DAY = 'THE FIRST DAY';
 const SEAL_BROKE_2 = 'A seal broke here. Their age and second likeness are yours now.';
+
+/** Every fixture instant is a local-component `Date`, never a UTC literal — TZ-safe per the
+ *  wave's own rule (`lib/__tests__/fire.test.ts`, which the fire fixtures below mirror). */
+const at = (y: number, m: number, d: number, h = 0) => new Date(y, m - 1, d, h).getTime();
+const iso = (ms: number) => new Date(ms).toISOString();
+
+/** Elements a frost edge/ember mark hide themselves from — same opt-in the a11y tree needs to
+ *  find them at all (see `QuestTile.test.tsx`, which this mirrors). */
+const HIDDEN = { includeHiddenElements: true };
+
+/** The strip's own copy, so an assertion reads as the line on screen rather than the key. */
+const EMBERS_STRIP =
+  'The fire is down to embers. Two dawns without a word from you. At the third it is yours to have let die.';
 
 /**
  * Six letters, theirs first, all inside one local day whatever the machine's zone: they span five
@@ -114,6 +136,10 @@ describe('ChatScreen', () => {
     mockEndedReason = null;
     mockAttendanceDue = false;
     mockMatchMessageCount = 7;
+    mockMatchStatus = 'Active';
+    mockMatchCreatedAt = '2026-09-10T12:00:00Z';
+    mockMatchLastMessageAt = undefined;
+    mockMatchLastMessageSenderId = undefined;
     mockMessages = [];
     mockHasMore = false;
     mockPush.mockClear();
@@ -248,5 +274,55 @@ describe('ChatScreen', () => {
     const { getByTestId } = renderScreen();
 
     expect(getByTestId('chat-empty')).toBeTruthy();
+  });
+
+  it('shows the embers strip once the fire is down to embers, its own turn count in words', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(at(2026, 9, 12, 9));
+    // Their last letter, two local days ago — one dawn short of the default 48h stale window,
+    // so the fire is embers rather than already frozen.
+    mockMatchCreatedAt = iso(at(2026, 9, 8, 9));
+    mockMatchLastMessageAt = iso(at(2026, 9, 10, 9));
+    mockMatchLastMessageSenderId = 'u2';
+
+    const { getByTestId, getByText } = renderScreen();
+
+    expect(getByTestId('embers-strip')).toBeTruthy();
+    expect(getByText(EMBERS_STRIP)).toBeTruthy();
+    jest.useRealTimers();
+  });
+
+  it('does not show the embers strip while a fire is only burning', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(at(2026, 9, 12, 9));
+    mockMatchCreatedAt = iso(at(2026, 9, 9, 9));
+    mockMatchLastMessageAt = iso(at(2026, 9, 12, 8));
+    mockMatchLastMessageSenderId = 'me1';
+
+    const { queryByTestId } = renderScreen();
+
+    expect(queryByTestId('embers-strip')).toBeNull();
+    jest.useRealTimers();
+  });
+
+  it('shows a frozen ending with a frost edge and the fire\'s line and verdict for a ghosted match', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(at(2026, 9, 12, 9));
+    mockEndedReason = 'ghosted';
+    mockMatchStatus = 'Ghosted';
+    // Same fixture as `lib/__tests__/fire.test.ts`'s ghosted case: I sent the last letter and they
+    // never answered, so the standing that paid for the freeze is theirs.
+    mockMatchCreatedAt = iso(at(2026, 9, 1, 9));
+    mockMatchLastMessageAt = iso(at(2026, 9, 7, 9));
+    mockMatchLastMessageSenderId = 'me1';
+
+    const { getByTestId, getByText, getAllByText } = renderScreen();
+
+    expect(getByTestId('frost-edge-top', HIDDEN)).toBeTruthy();
+    expect(getByText('Five dawns of silence. Judged at the third.')).toBeTruthy();
+    // The verdict also stands in the AlertModal's own message, so more than one copy is expected
+    // on screen at once — only its presence is asserted here.
+    expect(getAllByText('They let it freeze. Their standing paid.').length).toBeGreaterThan(0);
+    jest.useRealTimers();
   });
 });

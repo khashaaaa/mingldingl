@@ -28,19 +28,26 @@ import { Unsealing } from '../../components/chat/Unsealing';
 import { QuestBanner } from '../../components/quest/QuestBanner';
 import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Waiting } from '../../components/ui/Waiting';
+import { FrostEdge } from '../../components/vfx/FrostEdge';
+import { PLACES } from '../../components/ui/Places';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SCRIM, SPACE, SURFACE, TRACKING, overlay } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SCRIM, SPACE, SURFACE, TRACKING, overlay, tint } from '../../lib/theme';
 import { FieldError, StateBlock } from '../../components/ui/StateBlock';
 import { useAuthStore } from '../../store/authStore';
-import { useActivityGate, useRevealLadder } from '../../hooks/useRevealThresholds';
+import { useActivityGate, useGhostingWindows, useRevealLadder } from '../../hooks/useRevealThresholds';
 import { messagesUntilActivities, nextRevealThreshold } from '../../lib/reveal';
 import { letterMarks } from '../../lib/letters';
+import { fireOf, fireLine, fireVerdict, cap } from '../../lib/fire';
+import { countWord, ordinalWord } from '../../lib/worldTime';
 import { useProfile } from '../../hooks/useProfile';
 import { useUnsealing } from '../../hooks/useUnsealing';
 import { useSealedLetter } from '../../hooks/useSealedLetter';
+import { useFireDying } from '../../hooks/useFireDying';
+
+const Ember = PLACES.ember;
 
 const DEFAULT_RITE_DURATION_MINUTES = 5;
 
@@ -60,6 +67,20 @@ export default function ChatScreen() {
   } = useAttendanceCheck(matchId);
   const { data: matches } = useMatches();
   const match = matches?.find((m) => m.matchId === matchId);
+  const ghostingWindows = useGhostingWindows();
+  // Keyed on the fields fireOf actually reads, not the whole match object — useMatches hands back
+  // a fresh array on every refetch even when nothing about this one match's fire changed. Null
+  // until the match itself has loaded, same as everything else derived from it on this screen.
+  const fire = useMemo(
+    () => (match ? fireOf(match, myId, Date.now(), ghostingWindows) : null),
+    // Deliberately keyed on the fields fireOf reads, not the whole `match` reference — see the
+    // comment above.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    [match?.status, match?.createdAt, match?.lastMessageAt, match?.lastMessageSenderId, myId, ghostingWindows],
+  );
+  // The world only speaks the instant a thread first goes to embers, never on every render it
+  // spends there — see the hook's own comment.
+  useFireDying(matchId, fire?.state ?? 'unlit');
   const { campaign } = useCampaign(matchId);
   const riteState: FlameRiteState = {
     matchId,
@@ -72,6 +93,9 @@ export default function ChatScreen() {
   const { endedReason } = useMatchStatus(matchId);
   const [attendanceModalVisible, setAttendanceModalVisible] = useState(false);
   const [endedAcknowledged, setEndedAcknowledged] = useState(false);
+  // The frost drawn along the notice's own top edge has to reach exactly as far as the notice is
+  // wide, and that width isn't known until the row has laid out once.
+  const [endedNoticeWidth, setEndedNoticeWidth] = useState(0);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [activitiesVisible, setActivitiesVisible] = useState(false);
   const [sealsVisible, setSealsVisible] = useState(false);
@@ -374,14 +398,43 @@ export default function ChatScreen() {
             />
           </View>
         )}
+        {/* The fire down to its last coals, said above the composer rather than inside a modal —
+            a `DialogStrip` is for a moment that interrupts you; this one is just true for as
+            long as it's your turn. Gone the instant a reply is sent, same as the state itself. */}
+        {fire?.state === 'embers' && (
+          <View style={styles.embersStrip} testID="embers-strip">
+            <Ember size={ICON_SIZES.sm} color={METAL.ember} />
+            <Text style={styles.embersStripText}>
+              {i18n.t('fire_embers_strip', { dawns: cap(countWord(fire.dawns)), judged: ordinalWord(fire.judgedAtDawn) })}
+            </Text>
+          </View>
+        )}
         {endedReason ? (
           // Last thing on the screen where the composer used to be, so it owes the same debt to
           // the Android gesture bar that `MessageInput` pays for its own bar.
-          <View style={[styles.endedNotice, { paddingBottom: SPACE.lg + insets.bottom }]}>
+          <View
+            style={[styles.endedNotice, { paddingBottom: SPACE.lg + insets.bottom }]}
+            onLayout={(e) => setEndedNoticeWidth(e.nativeEvent.layout.width)}
+          >
+            {/* A frozen fire, not just a severed link — the crystal that reads "silence" wherever
+                else it appears in this redesign, reused rather than a second way to say it. */}
+            <View style={styles.endedNoticeFrost} pointerEvents="none">
+              <FrostEdge edge="top" length={endedNoticeWidth} />
+            </View>
             <Icon name="link-variant-off" size={ICON_SIZES.sm} color={INK.dim} />
-            <Text style={styles.endedNoticeText}>
-              {endedReason === 'ghosted' ? i18n.t('match_quiet_body') : i18n.t('match_ended_notice')}
-            </Text>
+            <View style={styles.endedNoticeTextWrap}>
+              {endedReason === 'ghosted' && fire ? (
+                <>
+                  <Text style={styles.endedNoticeText}>{fireLine(fire)}</Text>
+                  {/* Null whenever nobody spoke at all to be judged — see `fireVerdict`. */}
+                  {fireVerdict(fire) && <Text style={styles.endedNoticeVerdict}>{fireVerdict(fire)}</Text>}
+                </>
+              ) : (
+                <Text style={styles.endedNoticeText}>
+                  {endedReason === 'ghosted' ? i18n.t('match_quiet_body') : i18n.t('match_ended_notice')}
+                </Text>
+              )}
+            </View>
           </View>
         ) : (
           // Sending is an explicit request to be at the bottom: the optimistic row is appended
@@ -398,7 +451,9 @@ export default function ChatScreen() {
         visible={!!endedReason && !endedAcknowledged}
         tone="warning"
         title={endedReason === 'ghosted' ? i18n.t('match_quiet_title') : i18n.t('match_ended_title')}
-        message={endedReason === 'ghosted' ? i18n.t('match_quiet_body') : i18n.t('match_ended_body')}
+        message={endedReason === 'ghosted'
+          ? (fire ? fireVerdict(fire) : null) ?? i18n.t('match_quiet_body')
+          : i18n.t('match_ended_body')}
         onDismiss={() => setEndedAcknowledged(true)}
       />
       <AlertModal
@@ -618,6 +673,22 @@ const styles = StyleSheet.create({
   activitiesChevron: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: ACCENT.base },
   activitiesScroll: { maxHeight: 420 },
   activitiesScrollContent: { paddingBottom: SPACE.sm },
+  embersStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.sm,
+    paddingHorizontal: SPACE.gutter,
+    paddingVertical: SPACE.sm,
+    backgroundColor: tint(SURFACE.panel, 0.6),
+    borderTopWidth: 2,
+    borderTopColor: tint(METAL.ember, 0.6),
+  },
+  embersStripText: {
+    flex: 1,
+    fontFamily: FONTS.bodyItalic,
+    fontSize: FONT_SIZES.sm,
+    color: INK.primary,
+  },
   endedNotice: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -629,12 +700,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderTopColor: LINE.edge,
     borderTopWidth: 1,
+    // The frost is drawn absolutely, against this row's own edge.
+    position: 'relative',
+    overflow: 'hidden',
   },
+  endedNoticeFrost: { position: 'absolute', top: 0, left: 0, right: 0 },
+  endedNoticeTextWrap: { flexShrink: 1, gap: SPACE.xs },
   endedNoticeText: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.md,
     color: INK.dim,
     flexShrink: 1,
+  },
+  endedNoticeVerdict: {
+    fontFamily: FONTS.bodyItalic,
+    fontSize: FONT_SIZES.md,
+    color: INK.dim,
   },
   loadEarlierBtn: {
     flexDirection: 'row',
