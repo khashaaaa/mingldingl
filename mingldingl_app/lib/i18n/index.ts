@@ -90,6 +90,15 @@ export const AWAITING_MN_TRANSLATION = [
   'rite_complete_sub', 'rite_try_again',
   // The hearth's scaffolding (Wave 4 Task 4): the header's way-home tap and the candle row.
   'go_home', 'candles_left',
+  // The hearth itself (Wave 4 Task 5, move 6): the dawn eyebrow, the window's four hours, the
+  // wax's law, the White Moon, the judged fires and the six destinations.
+  'hearth_dawn', 'hearth_dawn_unknown', 'hearth_sky',
+  'sky_night', 'sky_dawn', 'sky_day', 'sky_dusk',
+  'hearth_candles', 'hearth_white_moon', 'hearth_white_moon_sub',
+  'hearth_judged', 'hearth_fire_burns', 'hearth_fire_embers', 'hearth_fire_froze',
+  'their_turn', 'your_turn', 'hearth_no_fires',
+  'dest_fire', 'dest_letters', 'dest_square', 'dest_forge', 'dest_mirror', 'dest_satchel',
+  'hearth_law',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

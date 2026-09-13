@@ -7,7 +7,6 @@ import { useGhostingWindows } from '../../hooks/useRevealThresholds';
 import { fireOf } from '../../lib/fire';
 import { QuestTile } from '../../components/quest/QuestTile';
 import { GameHeader } from '../../components/ui/GameHeader';
-import { NextGatheringPill } from '../../components/townsquare/NextGatheringPill';
 import { GameButton } from '../../components/ui/GameButton';
 import { Entering } from '../../components/ui/Entering';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
@@ -29,7 +28,6 @@ export default function MatchesScreen() {
   return (
     <View style={styles.screen}>
       <GameHeader title={i18n.t('tab_quest_log')} glyph="letters" showScore />
-      <NextGatheringPill />
       {isLoading && (
         <View style={styles.list}>
           <SkeletonRows count={5} row={() => (

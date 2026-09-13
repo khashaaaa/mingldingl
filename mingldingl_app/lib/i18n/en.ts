@@ -401,8 +401,6 @@ export const en = {
   seal_broke_4: 'The deep seal broke here. What they keep and believe is yours now.',
   thread_day: 'The %{ordinal} day',
   letter_seal: 'Seal and send',
-  daily_budget_left: '%{remaining} of %{budget} summons left today',
-  daily_budget_spent: 'Out of new matches for today — more tomorrow',
   next_tier_threshold: '%{points} pts to %{tier}',
   daily_summons_budget: 'Daily summons: %{count}',
   pledge_status_waiting: 'Pledged. Waiting on your match to confirm.',
@@ -700,4 +698,39 @@ export const en = {
   // row's label. `go_home` is label-only — the tap carries no visible text, just the hearth glyph.
   go_home: 'Home',
   candles_left: '%{remaining} of %{budget} candles left',
+
+  // The hearth itself (Sealed Fire W4 Task 5, move 6). The room's name is `room_hearth` above —
+  // the header reads it off the `ROOMS` table rather than keeping a second copy of "The Hearth".
+  //
+  // `hearth_dawn`'s `%{dawn}` is `ordinalWord(threadDay(now, joinedAt))`, so it words itself up to
+  // the twelfth dawn and falls back to the numeral past it, exactly as the fire's own dawn counts
+  // do. A `%{dawn}` with nothing behind it would read "The dawn", hence the separate unknown line.
+  hearth_dawn: 'The %{dawn} dawn',
+  hearth_dawn_unknown: 'A new dawn',
+  hearth_sky: 'The sky over the hearth is the real sky. Night while you sleep, dawn when the fires are judged, day, dusk. Your streak is counted in the dawns you were here for.',
+  sky_night: 'Night.',
+  sky_dawn: 'Dawn.',
+  sky_day: 'Day.',
+  sky_dusk: 'Dusk.',
+  hearth_candles: 'Each summons burns one. The frost takes nothing; only silence does.',
+  hearth_white_moon: 'White Moon',
+  hearth_white_moon_sub: 'Frost on the window, snow past the door. The fire is hotter for it. Three days; the knots turn white.',
+  hearth_judged: 'Judged at this dawn',
+  // One sentence per fire, rather than the Quest Log tile's eyebrow-plus-two-lines: the hearth
+  // lists what was judged, the Log is where a thread is read. `%{turn}` is its own key because
+  // `fire_line_their_turn`/`_my_turn` carry the thread's day number too, which is a fact for the
+  // Log and noise in a list.
+  hearth_fire_burns: "%{name}'s fire burns. %{turn}",
+  hearth_fire_embers: "%{name}'s fire is down to embers. %{turn}",
+  hearth_fire_froze: "%{name}'s froze. %{verdict}",
+  their_turn: 'Their turn.',
+  your_turn: 'Your turn.',
+  hearth_no_fires: 'No fires yet. The road is where they start.',
+  dest_fire: 'The Fire',
+  dest_letters: 'Letters',
+  dest_square: 'The Square',
+  dest_forge: 'The Forge',
+  dest_mirror: 'The Mirror',
+  dest_satchel: 'The Satchel',
+  hearth_law: 'A map, never a hallway. Nothing is reachable only from here.',
 };

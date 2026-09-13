@@ -1,5 +1,4 @@
 import { act, render } from '@testing-library/react-native';
-import { DailyBudgetMeter } from '../DailyBudgetMeter';
 import { ScoreHUD } from '../ScoreHUD';
 import { ThreadLog } from '../ThreadLog';
 import { XPBar } from '../XPBar';
@@ -19,26 +18,6 @@ beforeEach(() => {
 });
 afterEach(() => {
   jest.useRealTimers();
-});
-
-describe('DailyBudgetMeter', () => {
-  it('shows remaining-of-budget while summons are left', () => {
-    const { getByText } = render(<DailyBudgetMeter budget={{ budget: 5, used: 2, remaining: 3 }} />);
-    expect(getByText('3 of 5 summons left today')).toBeTruthy();
-  });
-
-  it('counts the remaining number down to the new value and keeps the sentence intact', () => {
-    const { getByText, rerender } = render(<DailyBudgetMeter budget={{ budget: 5, used: 2, remaining: 3 }} />);
-    rerender(<DailyBudgetMeter budget={{ budget: 5, used: 4, remaining: 1 }} />);
-    act(() => { jest.runAllTimers(); });
-    expect(getByText('1 of 5 summons left today')).toBeTruthy();
-  });
-
-  it('switches to the spent message when nothing is left', () => {
-    const { getByText, queryByText } = render(<DailyBudgetMeter budget={{ budget: 5, used: 5, remaining: 0 }} />);
-    expect(getByText('Out of new matches for today — more tomorrow')).toBeTruthy();
-    expect(queryByText(/left today/)).toBeNull();
-  });
 });
 
 describe('ThreadLog', () => {

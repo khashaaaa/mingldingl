@@ -69,9 +69,9 @@ describe('Discover mount', () => {
 
 describe('Discover chrome (task 8: moved off Seek)', () => {
   // The three chrome strips (First Steps, the summons budget meter, the gathering pill) used to
-  // sit above the candidate deck. GettingStartedCard and DailyBudgetMeter moved to the Character
-  // sheet, NextGatheringPill to the Town Square tab — Discover keeps only its header and the deck.
-  it('renders the loaded deck without the getting-started card, budget meter, or gathering pill', async () => {
+  // sit above the candidate deck. All three are on the hearth now (Sealed Fire W4 task 5) — the
+  // budget as candle stubs rather than a meter — and Discover keeps its header and the deck.
+  it('renders the loaded deck without the getting-started card, budget or gathering pill', async () => {
     mockCandidates.mockResolvedValueOnce({
       items: [{ id: 'c1', displayName: 'Amara', age: 28, sealedPhotoUrl: 'c1-sealed.jpg' }],
       page: 1,
@@ -84,7 +84,7 @@ describe('Discover chrome (task 8: moved off Seek)', () => {
 
     // CardEyebrow uppercases its own children — this is the literal rendered text, not a style.
     expect(queryByText('FIRST STEPS')).toBeNull();
-    expect(queryByTestId('daily-budget-meter')).toBeNull();
+    expect(queryByTestId('candle-row')).toBeNull();
     expect(queryByTestId('next-gathering-pill')).toBeNull();
   });
 });

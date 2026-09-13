@@ -335,8 +335,6 @@ export const mn = {
   reveal_age: 'Нас',
   reveal_district: 'Дүүрэг',
   reveal_deep_profile: 'Гүн профайл',
-  daily_budget_left: 'Өнөөдөр %{budget} урилгаас %{remaining} үлдлээ',
-  daily_budget_spent: 'Өнөөдрийн шинэ холбоо дууслаа — маргааш дахин нээгдэнэ',
   next_tier_threshold: '%{tier} хүртэл %{points} оноо',
   daily_summons_budget: 'Өдрийн урилга: %{count}',
   pledge_status_waiting: 'Тангараглалаа. Хамтрагчийн баталгааг хүлээж байна.',
