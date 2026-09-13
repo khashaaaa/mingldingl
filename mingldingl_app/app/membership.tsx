@@ -12,7 +12,7 @@ import { useMembership } from '../hooks/useMembership';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { ACCENT, FONTS, FONT_SIZES, INK, LINE, MEMBERSHIP_METALS, SPACE } from '../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, LINE, MEMBERSHIP_METALS, SPACE, TRACKING } from '../lib/theme';
 import type { MembershipTier } from '../models/membership';
 import { useScrollTail } from '../hooks/useScrollTail';
 
@@ -34,6 +34,10 @@ const SUB_KEY: Record<string, string> = {
 
 function floorAbove(level: string): string | undefined {
   return TIER_ORDER[TIER_ORDER.indexOf(level) + 1];
+}
+
+function floorLabel(level: string): string {
+  return i18n.t(`floor_${level}`);
 }
 
 export default function MembershipScreen() {
@@ -66,6 +70,13 @@ export default function MembershipScreen() {
     .map((level) => byLevel.get(level))
     .filter((t): t is MembershipTier => !!t);
 
+  // What tapping the button will actually charge — the total for the selected floor at the
+  // selected duration, not the flat monthly rate each floor row shows. Silent below one month:
+  // there is nothing to total when the duration and the monthly price already say the same thing.
+  const selectedPriceOption = selectedTier && Number(selectedDuration) > 1
+    ? byLevel.get(selectedTier)?.prices.find((p) => p.durationMonths === Number(selectedDuration))
+    : undefined;
+
   return (
     <View style={styles.container}>
       <HeaderBar title={i18n.t('guild_house')} />
@@ -84,7 +95,7 @@ export default function MembershipScreen() {
             const isAbove = floorIndex > standingIndex;
             const isSelected = isAbove && selectedTier === t.level;
             const metal = MEMBERSHIP_METALS[t.level as keyof typeof MEMBERSHIP_METALS] ?? MEMBERSHIP_METALS.Free;
-            const floorName = i18n.t(`floor_${t.level}`);
+            const floorName = floorLabel(t.level);
             const priceLine = t.monthlyPriceMnt === null
               ? null
               : i18n.t('price_a_month', { price: t.monthlyPriceMnt.toLocaleString() });
@@ -134,14 +145,22 @@ export default function MembershipScreen() {
               onChange={setSelectedDuration}
             />
             <Text style={styles.terms}>{i18n.t('guild_terms')}</Text>
+            {selectedPriceOption && (
+              <Text style={styles.priceDetail}>
+                {i18n.t('price_total', { amount: selectedPriceOption.totalPriceMnt.toLocaleString() })}
+                {selectedPriceOption.discountPct > 0 &&
+                  ` · ${i18n.t('save_percent', { percent: selectedPriceOption.discountPct })}`}
+              </Text>
+            )}
             <View style={styles.buttonWrap}>
               <GameButton
                 variant="primary"
                 onPress={() => selectedTier && upgrade(selectedTier, Number(selectedDuration))}
                 disabled={membershipLoading}
                 loading={isUpgrading}
+                accessibilityLabel={selectedTier ? i18n.t('climb_to', { floor: floorLabel(selectedTier) }) : undefined}
               >
-                {i18n.t('climb_to', { floor: i18n.t(`floor_${selectedTier}`) })}
+                {i18n.t('climb')}
               </GameButton>
             </View>
           </>
@@ -214,6 +233,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyItalic,
     fontSize: FONT_SIZES.sm,
     color: INK.dim,
+  },
+  priceDetail: {
+    fontFamily: FONTS.utility,
+    fontSize: FONT_SIZES.xs,
+    color: INK.dim,
+    letterSpacing: TRACKING.wide,
+    marginTop: SPACE.xs,
   },
   buttonWrap: {
     marginTop: SPACE.sm,

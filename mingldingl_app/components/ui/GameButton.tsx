@@ -25,6 +25,9 @@ interface Props {
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
   flex?: number;
+  /** Overrides the spoken label when the drawn word is shorter than what it actually does —
+   *  the Guild House's "Climb" button still needs to announce which floor it climbs to. */
+  accessibilityLabel?: string;
 }
 
 const METAL_VARIANTS = new Set(['primary', 'danger', 'brass']);
@@ -34,7 +37,7 @@ const SIZES = {
   compact: { minHeight: 44, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md, fontSize: FONT_SIZES.sm, letterSpacing: TRACKING.label, iconSize: ICON_SIZES.sm },
 } as const;
 
-export function GameButton({ children, onPress, variant = 'primary', size = 'default', icon, disabled, loading, style, flex }: Props) {
+export function GameButton({ children, onPress, variant = 'primary', size = 'default', icon, disabled, loading, style, flex, accessibilityLabel }: Props) {
   const pressY = useRef(new Animated.Value(0)).current;
   const pressScale = useRef(new Animated.Value(1)).current;
   const isMetal = METAL_VARIANTS.has(variant);
@@ -72,6 +75,7 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
         onPressOut={pressOut}
         disabled={disabled || loading}
         accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
         accessibilityState={{ disabled: !!(disabled || loading), busy: !!loading }}
         style={[
           styles.slab,

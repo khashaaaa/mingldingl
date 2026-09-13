@@ -72,7 +72,7 @@ export const AWAITING_MN_TRANSLATION = [
   // The Guild House (Wave 3 move 8): the membership screen redrawn as a building.
   'guild_house', 'guild_house_sub', 'guild_house_sub_hall', 'guild_house_sub_high',
   'floor_Free', 'floor_Silver', 'floor_Gold', 'you_are_here', 'price_a_month',
-  'perk_summons_night', 'climb_to', 'guild_terms',
+  'perk_summons_night', 'climb', 'climb_to', 'guild_terms',
   // The Hall of Names (Wave 3 move 11): the leaderboard redrawn as a stone wall of ranks.
   'hall_of_names', 'hall_sub', 'your_mark', 'hall_law',
 ] as const;

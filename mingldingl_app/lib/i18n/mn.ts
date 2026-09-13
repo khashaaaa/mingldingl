@@ -245,6 +245,8 @@ export const mn = {
   duration_1_month: '1 сар',
   duration_3_months: '3 сар',
   duration_6_months: '6 сар',
+  price_total: 'Нийт ₮%{amount}',
+  save_percent: '%{percent}% хэмнэ',
   membership_active_until: '%{date} хүртэл идэвхтэй',
   content_last_updated: 'Сүүлд шинэчлэгдсэн: %{date}',
   billing_cycle: 'Төлбөрийн хугацаа',

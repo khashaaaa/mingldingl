@@ -18,7 +18,11 @@ const TIERS: MembershipTier[] = [
   {
     level: 'Silver', dailyMatches: 8, deepProfileView: false, monthlyPriceMnt: 15000,
     featureKeys: ['icebreakers_quizzes'],
-    prices: [{ durationMonths: 1, totalPriceMnt: 15000, pricePerMonthMnt: 15000, discountPct: 0 }],
+    prices: [
+      { durationMonths: 1, totalPriceMnt: 15000, pricePerMonthMnt: 15000, discountPct: 0 },
+      { durationMonths: 3, totalPriceMnt: 42000, pricePerMonthMnt: 14000, discountPct: 7 },
+      { durationMonths: 6, totalPriceMnt: 81000, pricePerMonthMnt: 13500, discountPct: 10 },
+    ],
   },
   {
     level: 'Gold', dailyMatches: 20, deepProfileView: true, monthlyPriceMnt: 35000,
@@ -66,9 +70,11 @@ describe('MembershipScreen — the Guild House', () => {
 
   it('defaults to the floor above and climbs to it on the standing duration', () => {
     mockCurrentLevel = 'Free';
-    const { getByText } = render(<MembershipScreen />);
-    // GameButton's metal variants render their label upper-cased.
-    const button = getByText('CLIMB TO THE HALL');
+    // The button law is two words at most, so the visible label is short — the destination
+    // still has to be announced, so it's the accessibility label instead.
+    const { getByText, getByLabelText } = render(<MembershipScreen />);
+    expect(getByText('CLIMB')).toBeTruthy();
+    const button = getByLabelText('Climb to The Hall');
     fireEvent.press(button);
     expect(mockUpgrade).toHaveBeenCalledWith('Silver', 1);
   });
@@ -76,7 +82,16 @@ describe('MembershipScreen — the Guild House', () => {
   it('gives a Gold member no button, and the top-floor sub', () => {
     mockCurrentLevel = 'Gold';
     const { queryByText, getByText } = render(<MembershipScreen />);
-    expect(queryByText(/^CLIMB TO/)).toBeNull();
+    expect(queryByText('CLIMB')).toBeNull();
     expect(getByText('You sit at the High Table. There is nothing above.')).toBeTruthy();
+  });
+
+  it('shows the total and its savings only once a longer duration is chosen', () => {
+    mockCurrentLevel = 'Free';
+    const { getByText, queryByText } = render(<MembershipScreen />);
+    // One month: the flat monthly price on the floor already says the whole story.
+    expect(queryByText(/total/)).toBeNull();
+    fireEvent.press(getByText('6 Months'));
+    expect(getByText('₮81,000 total · Save 10%')).toBeTruthy();
   });
 });
