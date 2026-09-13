@@ -67,6 +67,8 @@ export const AWAITING_MN_TRANSLATION = [
   'thread_day', 'letter_seal',
   // The Fire's sealed likeness (Wave 2 move 1), and the oath as a phrase in the card's eyebrow.
   'seek_sealed_hint', 'seek_sealed_a11y', 'oath_sworn_to', 'oath_seeking',
+  // The Frozen Gate (Wave 3 move 5): the sub-line under the header and each row's dawn line.
+  'frozen_gate_sub', 'shut_out_dawn',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

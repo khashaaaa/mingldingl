@@ -300,3 +300,18 @@ describe('temperature', () => {
     });
   });
 });
+
+/**
+ * Wave 3 move 5: the two temperature pairings that actually land on a screen — the ember
+ * toast's leading glyph, and the frost text on the offline strip. A glyph is a mark, not a
+ * sentence, so it only needs the 3:1 a UI boundary needs rather than body text's 4.5:1.
+ */
+describe('frost and ember, where they land', () => {
+  it('reads the ember toast glyph against the panel it sits on', () => {
+    expect(contrast(METAL.ember, SURFACE.panel)).toBeGreaterThanOrEqual(3);
+  });
+
+  it('reads the road-is-out text against the offline strip', () => {
+    expect(contrast(TEMPERATURE.rime, STATUS_DEEP.warning)).toBeGreaterThanOrEqual(4.5);
+  });
+});

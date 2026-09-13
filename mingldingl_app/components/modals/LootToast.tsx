@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
 import { METAL_COLORS } from '../../lib/tiers';
-import { Icon } from '../ui/Icon';
+import { Glyph } from '../ui/Glyph';
 
 interface Props {
   title: string;
@@ -74,7 +74,7 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
               style={[styles.ray, { opacity: rays, transform: [{ rotate: `${deg}deg` }] }]}
             />
           ))}
-          <Icon name="trophy" size={ICON_SIZES.xl} color={ACCENT.base} />
+          <Glyph name="flame" size={ICON_SIZES.xl} color={METAL.ember} />
         </View>
         <View style={styles.textCol}>
           <Text style={styles.title}>{title}</Text>

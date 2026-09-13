@@ -1,12 +1,23 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../lib/i18n';
-import { FONTS, FONT_SIZES, INK, SPACE, STATUS_DEEP } from '../lib/theme';
+import { FONTS, FONT_SIZES, ICON_SIZES, SPACE, STATUS_DEEP, TEMPERATURE } from '../lib/theme';
+import { Glyph } from './ui/Glyph';
+import { FrostEdge } from './vfx/FrostEdge';
+
 export function OfflineBanner() {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.banner, { paddingTop: insets.top + 6 }]} accessibilityLiveRegion="polite">
-      <Text style={styles.text}>{i18n.t('offline_banner')}</Text>
+      <View style={styles.row}>
+        <Glyph name="ice" size={ICON_SIZES.sm} color={TEMPERATURE.rime} />
+        <Text style={styles.text}>{i18n.t('offline_banner')}</Text>
+      </View>
+      {/* The road itself gone quiet, not just a warning colour — reuses the one frost drawing
+          rather than a second way of saying "silence" on this strip. */}
+      <View style={styles.frostWrap} pointerEvents="none">
+        <FrostEdge edge="bottom" />
+      </View>
     </View>
   );
 }
@@ -21,9 +32,13 @@ const styles = StyleSheet.create({
     backgroundColor: STATUS_DEEP.warning,
     paddingBottom: SPACE.sm,
     paddingHorizontal: SPACE.md,
+    overflow: 'hidden',
   },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs },
+  frostWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   text: {
-    color: INK.primary,
+    flexShrink: 1,
+    color: TEMPERATURE.rime,
     fontFamily: FONTS.bodyBold,
     fontSize: FONT_SIZES.sm,
     textAlign: 'center',

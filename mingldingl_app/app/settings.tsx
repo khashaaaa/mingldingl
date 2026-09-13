@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
@@ -19,6 +19,7 @@ import { GameButton } from '../components/ui/GameButton';
 import { HeaderBar } from '../components/ui/HeaderBar';
 import { SectionDivider } from '../components/ui/SectionDivider';
 import { TextField } from '../components/ui/TextField';
+import { FrostEdge } from '../components/vfx/FrostEdge';
 import { useScrollTail } from '../hooks/useScrollTail';
 
 const LANGUAGE_OPTIONS = ['en', 'mn'] as const;
@@ -59,6 +60,13 @@ export default function SettingsScreen() {
   const [changingPhone, setChangingPhone] = useState(false);
   const [saveFailedAlert, setSaveFailedAlert] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
+
+  // The War Room's own silence: every setting here is something you left behind, not something
+  // arriving. Measured because `FrostEdge` draws to a pixel width, not a percentage.
+  const [headerWidth, setHeaderWidth] = useState(0);
+  function handleHeaderLayout(e: LayoutChangeEvent) {
+    setHeaderWidth(e.nativeEvent.layout.width);
+  }
 
   async function handlePickLanguage(lang: (typeof LANGUAGE_OPTIONS)[number]) {
     await setLocale(lang);
@@ -147,7 +155,13 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <HeaderBar title={i18n.t('settings_title')} />
+      <HeaderBar title={i18n.t('settings_title')}>
+        <View style={styles.headerFrostAnchor} onLayout={handleHeaderLayout}>
+          <View style={styles.headerFrost} pointerEvents="none">
+            <FrostEdge edge="top" length={headerWidth} />
+          </View>
+        </View>
+      </HeaderBar>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
         <ChoiceRow
           label={i18n.t('language')}
@@ -318,4 +332,8 @@ const styles = StyleSheet.create({
   fieldLabel: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
   dangerWrap: { marginTop: SPACE.lg },
   signOutWrap: { marginTop: SPACE.xs },
+  // Zero footprint: measures the header's width without adding to its height, so the frost
+  // below reads as part of the divider rather than a spacer row of its own.
+  headerFrostAnchor: { height: 0 },
+  headerFrost: { position: 'absolute', top: 0, left: 0, right: 0 },
 });

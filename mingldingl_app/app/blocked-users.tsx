@@ -7,18 +7,26 @@ import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, circle } from '../lib/theme';
-import { EmptyHint, StateBlock } from '../components/ui/StateBlock';
+import { StateBlock } from '../components/ui/StateBlock';
+import { FrostEdge } from '../components/vfx/FrostEdge';
+import { ordinalWord, threadDay } from '../lib/worldTime';
 import type { BlockedUser } from '../models/blockedUser';
 import { useScrollTail } from '../hooks/useScrollTail';
+
+/** Roughly how deep a row reaches — the same reach `QuestTile` gives its own left `FrostEdge`
+ *  (see `components/quest/QuestTile.tsx`'s `ROW_HEIGHT`), not load-bearing precision. */
+const ROW_HEIGHT = 84;
 
 export default function BlockedUsersScreen() {
   const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { blockedUsers, isLoading, isError, refetch, unblock, unblockingUserId } = useBlockedUsers();
+  const now = new Date().toISOString();
 
   return (
     <View style={styles.screen}>
       <HeaderBar title={i18n.t('blocked_users_title')} />
+      <Text style={styles.sub}>{i18n.t('frozen_gate_sub')}</Text>
       {isLoading ? (
         <View style={styles.list}>
           <SkeletonRows count={3} gap={SPACE.md} row={() => (
@@ -37,17 +45,31 @@ export default function BlockedUsersScreen() {
           contentContainerStyle={[blockedUsers.length === 0 ? styles.listEmpty : styles.list, { paddingBottom: tail }]}
           data={blockedUsers}
           keyExtractor={(u: BlockedUser) => u.userId}
-          ListEmptyComponent={<EmptyHint>{i18n.t('blocked_users_empty')}</EmptyHint>}
+          ListEmptyComponent={<StateBlock icon="door" title={i18n.t('blocked_users_empty')} />}
           renderItem={({ item }) => (
             <View style={styles.row}>
+              {/* Every name here was shut out, not just some — unlike the Quest Log's `frozen`
+                  fire, this frost is unconditional. */}
+              <View style={styles.frostWrap} pointerEvents="none">
+                <FrostEdge edge="left" length={ROW_HEIGHT} />
+              </View>
               {item.firstPhoto ? (
                 <Image source={{ uri: item.firstPhoto }} style={styles.photo} />
               ) : (
                 <View style={[styles.photo, styles.photoPlaceholder]} />
               )}
-              <Text style={styles.name} numberOfLines={1}>
-                {item.displayName || i18n.t('deleted_user')}
-              </Text>
+              <View style={styles.nameCol}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {item.displayName || i18n.t('deleted_user')}
+                </Text>
+                {/* `blockedAt` is empty for a row the engine could not date — no dawn line rather
+                    than one built off `new Date('')`. */}
+                {!!item.blockedAt && (
+                  <Text style={styles.dawn}>
+                    {i18n.t('shut_out_dawn', { day: ordinalWord(threadDay(now, item.blockedAt)) })}
+                  </Text>
+                )}
+              </View>
               <GameButton
                 variant="ink"
                 loading={unblockingUserId === item.userId}
@@ -66,6 +88,15 @@ export default function BlockedUsersScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // The app speaking, not either person in this list — same register as the Quest Log's own
+  // `law` line (`app/(tabs)/matches.tsx`).
+  sub: {
+    fontFamily: FONTS.bodyItalic,
+    fontSize: FONT_SIZES.sm,
+    color: INK.dim,
+    paddingHorizontal: SPACE.gutter,
+    paddingBottom: SPACE.sm,
+  },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
   row: {
@@ -79,10 +110,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: LINE.edge,
     marginBottom: SPACE.md,
+    overflow: 'hidden',
   },
+  frostWrap: { position: 'absolute', top: 0, bottom: 0, left: 0 },
   photo: circle(44),
   photoPlaceholder: { backgroundColor: SURFACE.raised },
-  name: { flex: 1, color: INK.primary, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
+  nameCol: { flex: 1, gap: SPACE.hair },
+  name: { color: INK.primary, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
+  dawn: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.xs },
   skeletonRow: {
     flexDirection: 'row',
     alignItems: 'center',
