@@ -3,39 +3,55 @@ import { Tap } from '../components/ui/Tap';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { AlertModal } from '../components/modals/AlertModal';
 import { AppCard } from '../components/ui/AppCard';
+import { CardEyebrow } from '../components/ui/CardEyebrow';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
 import { GameButton } from '../components/ui/GameButton';
-import { GemTierBadge } from '../components/progression/GemTierBadge';
 import { HeaderBar } from '../components/ui/HeaderBar';
 import { Waiting } from '../components/ui/Waiting';
 import { useMembership } from '../hooks/useMembership';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, MEMBERSHIP_METALS, SPACE, TRACKING } from '../lib/theme';
-import { membershipLabel } from '../lib/tiers';
-import type { GemTier } from '../models/user';
-import type { MembershipPriceOption } from '../models/membership';
+import { ACCENT, FONTS, FONT_SIZES, INK, LINE, MEMBERSHIP_METALS, SPACE } from '../lib/theme';
+import type { MembershipTier } from '../models/membership';
 import { useScrollTail } from '../hooks/useScrollTail';
-
-const BADGE_TIER: Record<string, GemTier> = {
-  Free: 'Garnet', Silver: 'Opal', Gold: 'Emerald',
-};
 
 const DURATIONS = ['1', '3', '6'] as const;
 const DURATION_LABEL_KEY: Record<(typeof DURATIONS)[number], string> = {
   '1': 'duration_1_month', '3': 'duration_3_months', '6': 'duration_6_months',
 };
 
+// The building's floors, bottom to top — the same order the engine's tiers come back in, and the
+// only place that order is written down. Everything else (who stands where, who may climb, which
+// floor is drawn first) is derived from an index into this.
+const TIER_ORDER = Object.keys(MEMBERSHIP_METALS);
+
+const SUB_KEY: Record<string, string> = {
+  Free: 'guild_house_sub',
+  Silver: 'guild_house_sub_hall',
+  Gold: 'guild_house_sub_high',
+};
+
+function floorAbove(level: string): string | undefined {
+  return TIER_ORDER[TIER_ORDER.indexOf(level) + 1];
+}
+
 export default function MembershipScreen() {
   const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { currentLevel, expiresAt, isLoading: membershipLoading, tiers, tiersLoading, upgrade, isUpgrading, upgradeError } = useMembership();
-  const [selectedTier, setSelectedTier] = useState<string>(currentLevel ?? 'Free');
+
+  const standingOn = currentLevel ?? 'Free';
+  const standingIndex = TIER_ORDER.indexOf(standingOn);
+  const topFloor = standingIndex === TIER_ORDER.length - 1;
+
+  // The floor above the one you stand on, so the button already reads "Climb to The Hall" before
+  // any tap — nobody has to pick their own destination the first time they open the house.
+  const [selectedTier, setSelectedTier] = useState<string | undefined>(() => floorAbove(standingOn));
   const [selectedDuration, setSelectedDuration] = useState<(typeof DURATIONS)[number]>('1');
 
   useEffect(() => {
-    if (currentLevel) setSelectedTier(currentLevel);
+    setSelectedTier(floorAbove(currentLevel ?? 'Free'));
   }, [currentLevel]);
 
   const [showUpgradeError, setShowUpgradeError] = useState(false);
@@ -43,115 +59,92 @@ export default function MembershipScreen() {
     if (upgradeError) setShowUpgradeError(true);
   }, [upgradeError]);
 
-  function priceOptionFor(t: { prices: MembershipPriceOption[] }): MembershipPriceOption | undefined {
-    return t.prices.find((p) => p.durationMonths === Number(selectedDuration));
-  }
+  const byLevel = new Map(tiers.map((t) => [t.level, t] as const));
+  // Drawn top to bottom: the High Table first, the Yard last — the reverse of TIER_ORDER, and of
+  // how the engine lists them.
+  const floors = [...TIER_ORDER].reverse()
+    .map((level) => byLevel.get(level))
+    .filter((t): t is MembershipTier => !!t);
 
   return (
     <View style={styles.container}>
-      <HeaderBar title={i18n.t('guild_ranks')} />
+      <HeaderBar title={i18n.t('guild_house')} />
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tail }]}>
-        <Text style={styles.subtitle}>
-          {i18n.t('guild_ranks_sub')}
-        </Text>
+        <Text style={styles.subtitle}>{i18n.t(SUB_KEY[standingOn] ?? 'guild_house_sub')}</Text>
         {currentLevel && currentLevel !== 'Free' && expiresAt && (
           <Text style={styles.expiryLine}>
             {i18n.t('membership_active_until', { date: formatDate(expiresAt) })}
           </Text>
         )}
         {tiersLoading && <Waiting />}
-        {tiers.map((t) => {
-          const isSelected = selectedTier === t.level;
-          const isCurrent = currentLevel === t.level;
-          const gemTier = BADGE_TIER[t.level] ?? 'Garnet';
-          const badgeColor = MEMBERSHIP_METALS[t.level as keyof typeof MEMBERSHIP_METALS] ?? MEMBERSHIP_METALS.Free;
-          const priceOption = priceOptionFor(t);
-          // The Free card's name is its price; printing "Free" twice on one row read as a typo.
-          const priceLabel = t.monthlyPriceMnt === null
-            ? null
-            : i18n.t('price_per_month', { amount: (priceOption?.pricePerMonthMnt ?? t.monthlyPriceMnt).toLocaleString() });
-          const totalPriceLabel = priceOption && priceOption.durationMonths > 1
-            ? i18n.t('price_total', { amount: priceOption.totalPriceMnt.toLocaleString() })
-            : null;
-          return (
-            <Tap
-              key={t.level}
-              onPress={() => setSelectedTier(t.level)}
-             
-              style={isSelected ? styles.selectedGlow : undefined}
-            >
-              <AppCard
-                tier={gemTier}
-                tint={badgeColor.color}
-                style={[
-                  styles.tierCard,
-                  isSelected && styles.tierCardSelected,
-                ]}
+        <AppCard hero style={styles.houseCard}>
+          {floors.map((t, i) => {
+            const floorIndex = TIER_ORDER.indexOf(t.level);
+            const isCurrent = floorIndex === standingIndex;
+            const isAbove = floorIndex > standingIndex;
+            const isSelected = isAbove && selectedTier === t.level;
+            const metal = MEMBERSHIP_METALS[t.level as keyof typeof MEMBERSHIP_METALS] ?? MEMBERSHIP_METALS.Free;
+            const floorName = i18n.t(`floor_${t.level}`);
+            const priceLine = t.monthlyPriceMnt === null
+              ? null
+              : i18n.t('price_a_month', { price: t.monthlyPriceMnt.toLocaleString() });
+            // The tier's daily budget, then whatever it actually unlocks — feature keys arrive
+            // from the engine's tier table, so one can land before its translation does; the
+            // fallback degrades to the readable key rather than i18n-js's missing marker.
+            const perksLine = [
+              i18n.t('perk_summons_night', { count: t.dailyMatches }),
+              ...t.featureKeys.map((key) => i18n.t(`perk_${key}`, { defaultValue: key.replace(/_/g, ' ') })),
+            ].join(' ');
+            const ink = isCurrent || isAbove ? styles.floorLit : styles.floorDim;
+
+            const floor = (
+              <View style={[
+                styles.floorRow,
+                i > 0 && styles.floorHairline,
+                isSelected && { borderLeftColor: metal.color },
+              ]}>
+                {isCurrent && <CardEyebrow color={metal.color}>{i18n.t('you_are_here')}</CardEyebrow>}
+                <Text style={[styles.floorName, ink]}>{floorName}</Text>
+                {priceLine && <Text style={[styles.floorPrice, ink]}>{priceLine}</Text>}
+                <Text style={[styles.floorPerks, ink]}>{perksLine}</Text>
+              </View>
+            );
+
+            if (!isAbove) return <View key={t.level}>{floor}</View>;
+            return (
+              <Tap
+                key={t.level}
+                onPress={() => setSelectedTier(t.level)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={[floorName, priceLine, perksLine].filter(Boolean).join('. ')}
               >
-                <View style={styles.cardHeader}>
-                  <View style={styles.crestRow}>
-                    <GemTierBadge tier={gemTier} size={BADGE_SIZES.row} color={badgeColor.color} shade={badgeColor.shade} />
-                    <View>
-                      <Text style={styles.tierName}>{membershipLabel(t.level)}</Text>
-                      {isCurrent && <Text style={styles.currentBadge}>{i18n.t('current_rank')}</Text>}
-                    </View>
-                  </View>
-                  <View style={styles.priceColumn}>
-                    {priceLabel && <Text style={styles.tierPrice}>{priceLabel}</Text>}
-                    {totalPriceLabel && <Text style={styles.totalPriceLabel}>{totalPriceLabel}</Text>}
-                    {priceOption && priceOption.discountPct > 0 && (
-                      <Text style={styles.saveBadge}>{i18n.t('save_percent', { percent: priceOption.discountPct })}</Text>
-                    )}
-                  </View>
-                </View>
-                <View style={styles.perkList}>
-                  <View style={styles.perkRow}>
-                    <Text style={styles.perkCheck}>✦</Text>
-                    <Text style={styles.perkLabel}>{i18n.t('daily_matches_count', { n: t.dailyMatches })}</Text>
-                  </View>
-                  {t.featureKeys.map((key) => (
-                    <View key={key} style={styles.perkRow}>
-                      <Text style={styles.perkCheck}>✦</Text>
-                      {/* Feature keys come from the engine's tier table, so one can arrive
-                          before its translation does — degrade to the readable key rather than
-                          printing i18n-js's missing-translation marker on a paid upgrade card. */}
-                      <Text style={styles.perkLabel}>
-                        {i18n.t(`perk_${key}`, { defaultValue: key.replace(/_/g, ' ') })}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </AppCard>
-            </Tap>
-          );
-        })}
-        {selectedTier !== 'Free' && (
-          <ChoiceRow
-            label={i18n.t('billing_cycle')}
-            value={selectedDuration}
-            options={DURATIONS}
-            optionLabel={(opt) => i18n.t(DURATION_LABEL_KEY[opt])}
-            onChange={setSelectedDuration}
-          />
-        )}
-        {/* Nothing to buy until a paid rank is chosen — the button used to sit there disabled,
-            reading "Upgrade to Free". */}
-        {selectedTier !== 'Free' && (
-          <View style={styles.buttonWrap}>
-            <GameButton
-              variant="primary"
-              onPress={() => upgrade(selectedTier, Number(selectedDuration))}
-              disabled={membershipLoading}
-              loading={isUpgrading}
-            >
-              {i18n.t(
-                selectedTier === currentLevel ? 'renew_tier' : 'upgrade_to',
-                // The tier cards localise their names, so the call to action has to as well —
-                // interpolating the raw enum produced "SILVER СУНГАХ" next to a card reading "Мөнгөн".
-                { tier: membershipLabel(selectedTier) },
-              )}
-            </GameButton>
-          </View>
+                {floor}
+              </Tap>
+            );
+          })}
+        </AppCard>
+        {!topFloor && (
+          <>
+            <ChoiceRow
+              label={i18n.t('billing_cycle')}
+              value={selectedDuration}
+              options={DURATIONS}
+              optionLabel={(opt) => i18n.t(DURATION_LABEL_KEY[opt])}
+              onChange={setSelectedDuration}
+            />
+            <Text style={styles.terms}>{i18n.t('guild_terms')}</Text>
+            <View style={styles.buttonWrap}>
+              <GameButton
+                variant="primary"
+                onPress={() => selectedTier && upgrade(selectedTier, Number(selectedDuration))}
+                disabled={membershipLoading}
+                loading={isUpgrading}
+              >
+                {i18n.t('climb_to', { floor: i18n.t(`floor_${selectedTier}`) })}
+              </GameButton>
+            </View>
+          </>
         )}
       </ScrollView>
       <AlertModal
@@ -188,82 +181,39 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyMedium,
     marginBottom: SPACE.xs,
   },
-  tierCard: {
+  houseCard: {
     padding: SPACE.xl,
   },
-  tierCardSelected: {
-    borderColor: ACCENT.base,
-    borderWidth: 2,
+  floorRow: {
+    paddingVertical: SPACE.lg,
+    paddingLeft: SPACE.md,
+    gap: SPACE.xs,
+    // Transparent at rest so a selected row's tinted border doesn't shove the text over.
+    borderLeftWidth: 3,
+    borderLeftColor: 'transparent',
   },
-  selectedGlow: {
-    shadowColor: ACCENT.base,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 14,
-    elevation: 8,
+  floorHairline: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: LINE.hairline,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: SPACE.lg,
-  },
-  crestRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.md,
-  },
-  tierName: {
-    color: INK.primary,
+  floorName: {
     fontSize: FONT_SIZES.xl,
     fontFamily: FONTS.display,
-    letterSpacing: TRACKING.body,
   },
-  currentBadge: {
-    color: ACCENT.base,
-    fontSize: FONT_SIZES.sm,
+  floorPrice: {
+    fontSize: FONT_SIZES.md,
     fontFamily: FONTS.bodyMedium,
-    marginTop: SPACE.hair,
-    letterSpacing: TRACKING.label,
   },
-  priceColumn: {
-    alignItems: 'flex-end',
-  },
-  tierPrice: {
-    color: ACCENT.base,
-    fontSize: FONT_SIZES.xl,
-    fontFamily: FONTS.bodyBold,
-  },
-  saveBadge: {
-    color: ACCENT.bright,
+  floorPerks: {
     fontSize: FONT_SIZES.sm,
-    fontFamily: FONTS.bodyMedium,
-    marginTop: SPACE.hair,
+    fontFamily: FONTS.body,
   },
-  totalPriceLabel: {
+  floorLit: { color: INK.primary },
+  floorDim: { color: INK.dim },
+  terms: {
+    fontFamily: FONTS.bodyItalic,
+    fontSize: FONT_SIZES.sm,
     color: INK.dim,
-    fontSize: FONT_SIZES.sm,
-    fontFamily: FONTS.body,
-    marginTop: SPACE.hair,
-  },
-  perkList: {
-    gap: SPACE.sm,
-  },
-  perkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.md,
-  },
-  perkCheck: {
-    color: ACCENT.base,
-    fontSize: FONT_SIZES.md,
-    fontFamily: FONTS.bodyBold,
-    width: 16,
-  },
-  perkLabel: {
-    color: INK.primary,
-    fontSize: FONT_SIZES.md,
-    fontFamily: FONTS.body,
   },
   buttonWrap: {
     marginTop: SPACE.sm,

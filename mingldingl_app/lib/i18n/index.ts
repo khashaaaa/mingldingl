@@ -69,6 +69,10 @@ export const AWAITING_MN_TRANSLATION = [
   'seek_sealed_hint', 'seek_sealed_a11y', 'oath_sworn_to', 'oath_seeking',
   // The Frozen Gate (Wave 3 move 5): the sub-line under the header and each row's dawn line.
   'frozen_gate_sub', 'shut_out_dawn',
+  // The Guild House (Wave 3 move 8): the membership screen redrawn as a building.
+  'guild_house', 'guild_house_sub', 'guild_house_sub_hall', 'guild_house_sub_high',
+  'floor_Free', 'floor_Silver', 'floor_Gold', 'you_are_here', 'price_a_month',
+  'perk_summons_night', 'climb_to', 'guild_terms',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
