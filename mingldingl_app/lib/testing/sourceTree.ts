@@ -33,8 +33,21 @@ export interface SourceFile {
  * `const u = 'https://x'; i18n.t('real_key')` has its only `//` inside the URL, so `\/\/.*$`
  * read the rest of the line as a comment and blanked the real `i18n.t()` call sitting right
  * after it, which is how `i18nCoverage.test.ts` found `real_key` orphaned even though the line
- * plainly names it. This is a small scanner, not a parser: it does not walk `${}` interpolations
- * inside template literals, which the app's source never uses to hide a comment marker anyway.
+ * plainly names it.
+ *
+ * Also honours a backslash *outside* a string: a regex literal like `/https?:\/\//` escapes its
+ * own delimiter, and without this a `\` followed by `/` still lets that `/` pair up with the one
+ * after it and read as a `//` line comment — the same failure class, just via a regex literal
+ * instead of a string. So a `\` in code state, like one inside a string, is emitted together with
+ * whatever follows it and neither character is examined on its own.
+ *
+ * This is a small scanner, not a parser, and knows two limits: it does not walk `${}`
+ * interpolations inside a template literal, so a *nested* template (a backtick literal inside
+ * another's `${...}`, as in `app/leaderboard.tsx` and `app/chat/[matchId].tsx`) confuses its
+ * backtick toggle — safe today only because no comment marker happens to fall inside the
+ * confused window, not because the nesting itself is handled. And it does not tell regex from
+ * division, so an *unescaped* `//` inside a regex literal (e.g. a character class `[/]`) is still
+ * misread as a comment — there is no regex-literal state, only the escape rule above.
  */
 export function blankComments(src: string): string {
   let out = '';
@@ -50,12 +63,17 @@ export function blankComments(src: string): string {
       continue;
     }
     if (c === '"' || c === "'" || c === '`') { quote = c; out += c; continue; }
+    // A backslash outside a string still escapes the next character (a regex literal's own
+    // delimiter, e.g. `\/`) — consumed as a pair so that `/` can never contribute to a `//` or
+    // `/*` match on its own.
+    if (c === '\\' && i + 1 < src.length) { out += c; out += src[++i]; continue; }
     if (c === '/' && src[i + 1] === '/') {
       while (i < src.length && src[i] !== '\n') { out += ' '; i++; }
       i--; // let the loop's own increment re-land on the newline
       continue;
     }
     if (c === '/' && src[i + 1] === '*') {
+      out += '  '; // the opening `/*`, spaced rather than dropped so length stays 1:1
       i += 2;
       while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) {
         out += src[i] === '\n' ? '\n' : ' ';
