@@ -99,6 +99,14 @@ export const en = {
   tier_perk_next_preview: 'Next tier: +%{bonus} daily matches',
   streak_current: 'Current Streak',
   streak_longest: 'Longest Streak',
+  // The Ascent as a night sky (Wave 3): the progression screen's six gem stars, climbing bottom-left
+  // to top-right. `ascent_you`/`ascent_to_go` label the held and next star; `ascent_beyond` sits
+  // above the top of the ladder, since nothing outranks Emerald.
+  ascent_sub: 'The tiers as a climb through the night sky. Each gem is a star you reach; the one you hold burns brightest.',
+  ascent_you: 'you, %{score}',
+  ascent_to_go: '%{points} to go',
+  ascent_beyond: 'the sky beyond',
+  ascent_dawns: 'dawns in a row',
   streak_of_seven: '%{days} of 7 dawns',
   streak_beyond_seven: '%{days} dawns and burning',
   no_score_events: 'No score events yet — go make some memories.',
@@ -479,7 +487,6 @@ export const en = {
   hall_sub: '%{city}. Carved, not listed. Names are hidden by the rules of the house, so the stone holds sigils.',
   your_mark: 'Your mark',
   hall_law: 'The wall reads highest to lowest. Yours is the only torch.',
-  view_leaderboard: 'View Leaderboard',
   leaderboard_load_error: 'The leaderboard would not open',
   leaderboard_empty: 'No one ranked here yet',
   date_log_title: 'Encounter Log',

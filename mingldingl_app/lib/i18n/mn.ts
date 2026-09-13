@@ -419,7 +419,6 @@ export const mn = {
   next_action_quest_progress: '%{progress}/%{target} — хайрцгаа авахын тулд өнөөдрийн даалгавраа дуусга',
   next_action_streak: '%{days} хоногийн дараалалаа хадгалахын тулд маргааш дахин ир',
   share_character: 'Баатраа хуваалцах',
-  view_leaderboard: 'Тэргүүлэгчдийг харах',
   leaderboard_load_error: 'Тэргүүлэгчдийн жагсаалт нээгдсэнгүй',
   leaderboard_empty: 'Энд одоохондоо хэн ч алга',
   date_log_title: 'Уулзалтын шастир',

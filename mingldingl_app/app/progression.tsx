@@ -1,27 +1,31 @@
-import { View, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useScoreDetail } from '../hooks/useScoreDetail';
 import { useScoreHistory } from '../hooks/useScoreHistory';
 import { GameHeader } from '../components/ui/GameHeader';
-import { GemTierBadge } from '../components/progression/GemTierBadge';
-import { XPBar } from '../components/progression/XPBar';
+import { AppCard } from '../components/ui/AppCard';
+import { AscentSky } from '../components/progression/AscentSky';
 import { TierPerkCard } from '../components/progression/TierPerkCard';
-import { StreakSummary } from '../components/progression/StreakSummary';
 import { ScoreHistoryList } from '../components/progression/ScoreHistoryList';
 import { GameButton } from '../components/ui/GameButton';
 import { Skeleton } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { BADGE_SIZES, FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
+import { FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
 import { StateBlock } from '../components/ui/StateBlock';
 import type { GemTier } from '../models/user';
 import { CardEyebrow } from '../components/ui/CardEyebrow';
+
+/** Assumed width until `onLayout` reports the real one — see `GateScene`'s own note on the pattern. */
+const FALLBACK_SKY_WIDTH = 320;
 
 export default function ProgressionScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
   const { data: detail, isLoading, error, refetch } = useScoreDetail();
   const { data: historyItems, fetchNextPage, hasNextPage, isFetchingNextPage } = useScoreHistory();
+  const [skyWidth, setSkyWidth] = useState(FALLBACK_SKY_WIDTH);
 
   if (isLoading) {
     return (
@@ -48,26 +52,30 @@ export default function ProgressionScreen() {
   const gemTier = (detail.gemTier as GemTier) ?? 'Garnet';
   const nextTier = detail.nextTier as GemTier | null;
 
+  function onSkyLayout(e: LayoutChangeEvent) {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0 && w !== skyWidth) setSkyWidth(w);
+  }
+
   return (
     <View style={styles.screen}>
       <GameHeader title={i18n.t('progression_title')} icon="chart-line" showBack />
-      <View style={styles.headerRow}>
-        <GemTierBadge tier={gemTier} size={BADGE_SIZES.hero} glow />
-        <View style={styles.xpBarWrap}>
-          <XPBar
+      <Text style={styles.sub}>{i18n.t('ascent_sub')}</Text>
+      <AppCard hero style={styles.skyCard}>
+        <View onLayout={onSkyLayout}>
+          <AscentSky
             gemTier={gemTier}
             totalScore={detail.totalScore ?? 0}
-            pct={(detail.progressPct ?? 0) / 100}
-            nextTier={nextTier}
-            nextTierThreshold={detail.nextTierThreshold}
+            currentStreak={detail.currentStreak ?? 0}
+            longestStreak={detail.longestStreak ?? 0}
+            width={skyWidth}
           />
         </View>
-      </View>
+      </AppCard>
       <TierPerkCard gemTier={gemTier} tierBonus={detail.tierBonus ?? 0} nextTier={nextTier} dailyMatchBudget={detail.dailyMatchBudget} />
-      <StreakSummary currentStreak={detail.currentStreak ?? 0} longestStreak={detail.longestStreak ?? 0} />
       <View style={styles.leaderboardButtonWrap}>
         <GameButton variant="ink" icon="podium-gold" onPress={() => router.push('/leaderboard')}>
-          {i18n.t('view_leaderboard')}
+          {i18n.t('hall_of_names')}
         </GameButton>
       </View>
       <CardEyebrow style={styles.historyTitle}>{i18n.t('progression_history_title')}</CardEyebrow>
@@ -87,8 +95,14 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
   loadingBody: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.giant, gap: SPACE.lg },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
-  xpBarWrap: { flex: 1 },
+  sub: {
+    fontFamily: FONTS.bodyItalic,
+    fontSize: FONT_SIZES.md,
+    color: INK.dim,
+    paddingHorizontal: SPACE.gutter,
+    marginBottom: SPACE.sm,
+  },
+  skyCard: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, overflow: 'hidden' },
   leaderboardButtonWrap: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.xs },
   historyTitle: { marginHorizontal: SPACE.gutter },
 });

@@ -75,6 +75,9 @@ export const AWAITING_MN_TRANSLATION = [
   'perk_summons_night', 'climb', 'climb_to', 'guild_terms',
   // The Hall of Names (Wave 3 move 11): the leaderboard redrawn as a stone wall of ranks.
   'hall_of_names', 'hall_sub', 'your_mark', 'hall_law',
+  // The Ascent as a night sky (Wave 3 move 12): the progression screen redrawn as a climb through
+  // six gem stars.
+  'ascent_sub', 'ascent_you', 'ascent_to_go', 'ascent_beyond', 'ascent_dawns',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

@@ -21,6 +21,12 @@ export function areTierThresholdsHydrated(): boolean {
   return hydrated;
 }
 
+/** A read of the live ladder, for a caller that draws every rung rather than one gap (`AscentSky`).
+ *  Never re-derive thresholds elsewhere — this is the one door onto the private array. */
+export function tierThresholdsSnapshot(): readonly number[] {
+  return tierThresholds;
+}
+
 export const TIER_COLORS: Record<GemTier, string> = GEM_COLORS;
 
 export const TIER_SHADES: Record<GemTier, string> = GEM_SHADES;
