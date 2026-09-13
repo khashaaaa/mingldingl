@@ -27,11 +27,46 @@ export interface SourceFile {
 /**
  * Blanks comment bodies while keeping their newlines, so a file that *explains* a banned pattern
  * does not read as a file *using* one, and reported line numbers still point at the right line.
+ *
+ * String-aware: `//` and `/*` inside a `'...'`, `"..."` or `` `...` `` literal do not start a
+ * comment. The first version was a pair of regexes and missed exactly this — a line like
+ * `const u = 'https://x'; i18n.t('real_key')` has its only `//` inside the URL, so `\/\/.*$`
+ * read the rest of the line as a comment and blanked the real `i18n.t()` call sitting right
+ * after it, which is how `i18nCoverage.test.ts` found `real_key` orphaned even though the line
+ * plainly names it. This is a small scanner, not a parser: it does not walk `${}` interpolations
+ * inside template literals, which the app's source never uses to hide a comment marker anyway.
  */
 export function blankComments(src: string): string {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
-    .replace(/\/\/.*$/gm, (m) => ' '.repeat(m.length));
+  let out = '';
+  let quote: string | null = null;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (quote) {
+      out += c;
+      // An escaped char (including an escaped quote) is consumed as a pair so it can never be
+      // mistaken for the string's closing quote.
+      if (c === '\\' && i + 1 < src.length) { out += src[++i]; continue; }
+      if (c === quote) quote = null;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') { quote = c; out += c; continue; }
+    if (c === '/' && src[i + 1] === '/') {
+      while (i < src.length && src[i] !== '\n') { out += ' '; i++; }
+      i--; // let the loop's own increment re-land on the newline
+      continue;
+    }
+    if (c === '/' && src[i + 1] === '*') {
+      i += 2;
+      while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) {
+        out += src[i] === '\n' ? '\n' : ' ';
+        i++;
+      }
+      if (i < src.length) { out += '  '; i++; } // consume the closing `*/`; loop increment lands past it
+      continue;
+    }
+    out += c;
+  }
+  return out;
 }
 
 /** One JSX opening tag found in a source file: everything between the name and its closing `>`. */

@@ -9,6 +9,7 @@ import { useLocaleStore } from '../store/localeStore';
 import { FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, circle } from '../lib/theme';
 import { StateBlock } from '../components/ui/StateBlock';
 import { FrostEdge } from '../components/vfx/FrostEdge';
+import { useNowTicker } from '../hooks/useNowTicker';
 import { ordinalWord, threadDay } from '../lib/worldTime';
 import type { BlockedUser } from '../models/blockedUser';
 import { useScrollTail } from '../hooks/useScrollTail';
@@ -21,7 +22,9 @@ export default function BlockedUsersScreen() {
   const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { blockedUsers, isLoading, isError, refetch, unblock, unblockingUserId } = useBlockedUsers();
-  const now = new Date().toISOString();
+  // Refreshed on an interval rather than read once per mount, so a gate left open across
+  // midnight advances its dawn counts on its own instead of freezing at the instant it opened.
+  const now = new Date(useNowTicker()).toISOString();
 
   return (
     <View style={styles.screen}>

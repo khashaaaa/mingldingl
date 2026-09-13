@@ -82,6 +82,20 @@ describe('ShareCharacterButton, the keepsake preview', () => {
     expect(getByText('Your keepsake')).toBeTruthy();
   });
 
+  it('does not carry a failed share\'s error into the next time the preview opens', async () => {
+    (Sharing.shareAsync as jest.Mock).mockRejectedValueOnce(new Error('network'));
+    const { getByText, findByText, queryByText } = renderButton();
+    fireEvent.press(getByText('Share Character'));
+    fireEvent.press(getByText('POST IT'));
+    expect(await findByText("Couldn't create your card — try again")).toBeTruthy();
+
+    // Close on the error, then reopen — a stale error from the last attempt must not follow it.
+    fireEvent.press(getByText('Keep it'));
+    fireEvent.press(getByText('Share Character'));
+
+    expect(queryByText("Couldn't create your card — try again")).toBeNull();
+  });
+
   it('renders only the sharer\'s own photoUrl as an Image uri, off-screen and in the preview', () => {
     const { getByText, UNSAFE_getAllByType } = renderButton();
     fireEvent.press(getByText('Share Character'));

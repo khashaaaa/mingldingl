@@ -5,6 +5,12 @@ import type { BlockedUser } from '../../models/blockedUser';
 jest.mock('expo-router', () => ({ usePathname: () => '/test', useRouter: () => ({ push: jest.fn(), back: jest.fn() }) }));
 jest.mock('../../hooks/useScrollTail', () => ({ useScrollTail: () => 0 }));
 
+// Real timers still back the ticker's own interval (unused here — no test runs one long enough
+// to tick), but the dawn count itself needs to move without a re-mount, so `now` is a mock we
+// control per test rather than the real hook's `Date.now()`.
+let mockNow = new Date(2026, 8, 13, 10).getTime();
+jest.mock('../../hooks/useNowTicker', () => ({ useNowTicker: () => mockNow }));
+
 const mockUnblock = jest.fn();
 let mockBlockedUsers: BlockedUser[] = [];
 let mockIsError = false;
@@ -28,6 +34,7 @@ describe('BlockedUsersScreen — the Frozen Gate', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsError = false;
+    mockNow = new Date(2026, 8, 13, 10).getTime();
     // "Now" pinned so the dawn count on a row is deterministic: three local midnights after
     // the blocking (Sep 10 -> Sep 13), the same law `threadDay` is already tested against.
     jest.useFakeTimers({ now: new Date(2026, 8, 13, 10) });
@@ -61,6 +68,19 @@ describe('BlockedUsersScreen — the Frozen Gate', () => {
     expect(getByText('Shut out on the fourth dawn')).toBeTruthy();
     expect(getByText('Thaw')).toBeTruthy();
     expect(getAllByTestId('frost-edge-left', HIDDEN)).toHaveLength(1);
+  });
+
+  it('advances the dawn count from the ticker, not a value frozen at mount', () => {
+    mockBlockedUsers = [
+      { userId: 'u1', displayName: 'Bat', firstPhoto: undefined, blockedAt: at(2026, 9, 10, 8) },
+    ];
+    const { getByText, rerender } = render(<BlockedUsersScreen />);
+    expect(getByText('Shut out on the fourth dawn')).toBeTruthy();
+
+    // A dawn later, with no unmount — the screen was simply left open across midnight.
+    mockNow = new Date(2026, 8, 14, 10).getTime();
+    rerender(<BlockedUsersScreen />);
+    expect(getByText('Shut out on the fifth dawn')).toBeTruthy();
   });
 
   it('omits the dawn line when the engine gave no blockedAt', () => {

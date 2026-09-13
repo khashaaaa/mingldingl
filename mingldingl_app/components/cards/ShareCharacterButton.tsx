@@ -35,7 +35,6 @@ export function ShareCharacterButton({ displayName, photoUrl, gemTier, totalScor
   async function handleShare() {
     if (sharing) return;
     setSharing(true);
-    setError(null);
     try {
       const uri = await shotRef.current?.capture?.();
       if (!uri) {
@@ -61,7 +60,14 @@ export function ShareCharacterButton({ displayName, photoUrl, gemTier, totalScor
 
   return (
     <>
-      <GameButton variant="ink" size="compact" icon="share-variant" onPress={() => setPreviewVisible(true)}>
+      <GameButton
+        variant="ink"
+        size="compact"
+        icon="share-variant"
+        // Cleared on open rather than at the start of the next share, so a failed attempt does
+        // not leave its error waiting behind a preview the person closed and reopened clean.
+        onPress={() => { setError(null); setPreviewVisible(true); }}
+      >
         {i18n.t('share_character')}
       </GameButton>
       {/* The capture source. It stays mounted (and off-screen) regardless of the preview, so the

@@ -1,5 +1,5 @@
 import { translations } from '../i18n';
-import { allSources } from '../testing/sourceTree';
+import { allSources, blankComments } from '../testing/sourceTree';
 
 /**
  * Key parity is covered by i18n.test.ts. What was never covered — and what let five
@@ -17,11 +17,13 @@ const ENGINE_SUPPLIED = ['milestone_', 'quest_'];
 
 
 // The shared walk, narrowed to the dirs that may name a key. The translation tables themselves
-// must not count as "a reference" to their own keys, and neither may the tests.
+// must not count as "a reference" to their own keys, and neither may the tests. Comments are
+// blanked before the scan — a key mentioned only in a `//` or `/* */` (a leftover from a deleted
+// call site, or a note about a key rather than a use of it) must not read as "still referenced".
 const blob = allSources()
   .filter((f) => SOURCE_DIRS.some((d) => f.rel === d || f.rel.startsWith(`${d}/`)))
   .filter((f) => !f.rel.startsWith('lib/i18n/') && !f.rel.includes('__tests__'))
-  .map((f) => f.text)
+  .map((f) => blankComments(f.text))
   .join('\n');
 const defined = Object.keys(translations.en);
 
