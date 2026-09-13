@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Tap } from '../components/ui/Tap';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { AlertModal } from '../components/modals/AlertModal';
@@ -21,19 +21,14 @@ const DURATION_LABEL_KEY: Record<(typeof DURATIONS)[number], string> = {
   '1': 'duration_1_month', '3': 'duration_3_months', '6': 'duration_6_months',
 };
 
-// The building's floors, bottom to top — the same order the engine's tiers come back in, and the
-// only place that order is written down. Everything else (who stands where, who may climb, which
-// floor is drawn first) is derived from an index into this.
-const TIER_ORDER = Object.keys(MEMBERSHIP_METALS);
-
 const SUB_KEY: Record<string, string> = {
   Free: 'guild_house_sub',
   Silver: 'guild_house_sub_hall',
   Gold: 'guild_house_sub_high',
 };
 
-function floorAbove(level: string): string | undefined {
-  return TIER_ORDER[TIER_ORDER.indexOf(level) + 1];
+function floorAbove(order: readonly string[], level: string): string | undefined {
+  return order[order.indexOf(level) + 1];
 }
 
 function floorLabel(level: string): string {
@@ -45,18 +40,26 @@ export default function MembershipScreen() {
   useLocaleStore((s) => s.locale);
   const { currentLevel, expiresAt, isLoading: membershipLoading, tiers, tiersLoading, upgrade, isUpgrading, upgradeError } = useMembership();
 
+  // The building's floors, bottom to top — derived from the engine's own tiers (ascending by
+  // monthly price, the free floor's `null` sorting first) rather than a local theme constant, so
+  // a tier the engine adds is never silently dropped for not being a key in `MEMBERSHIP_METALS`.
+  const tierOrder = useMemo(
+    () => [...tiers].sort((a, b) => (a.monthlyPriceMnt ?? -1) - (b.monthlyPriceMnt ?? -1)).map((t) => t.level),
+    [tiers],
+  );
+
   const standingOn = currentLevel ?? 'Free';
-  const standingIndex = TIER_ORDER.indexOf(standingOn);
-  const topFloor = standingIndex === TIER_ORDER.length - 1;
+  const standingIndex = tierOrder.indexOf(standingOn);
+  const topFloor = standingIndex === tierOrder.length - 1;
 
   // The floor above the one you stand on, so the button already reads "Climb to The Hall" before
   // any tap — nobody has to pick their own destination the first time they open the house.
-  const [selectedTier, setSelectedTier] = useState<string | undefined>(() => floorAbove(standingOn));
+  const [selectedTier, setSelectedTier] = useState<string | undefined>(() => floorAbove(tierOrder, standingOn));
   const [selectedDuration, setSelectedDuration] = useState<(typeof DURATIONS)[number]>('1');
 
   useEffect(() => {
-    setSelectedTier(floorAbove(currentLevel ?? 'Free'));
-  }, [currentLevel]);
+    setSelectedTier(floorAbove(tierOrder, currentLevel ?? 'Free'));
+  }, [currentLevel, tierOrder]);
 
   const [showUpgradeError, setShowUpgradeError] = useState(false);
   useEffect(() => {
@@ -64,9 +67,9 @@ export default function MembershipScreen() {
   }, [upgradeError]);
 
   const byLevel = new Map(tiers.map((t) => [t.level, t] as const));
-  // Drawn top to bottom: the High Table first, the Yard last — the reverse of TIER_ORDER, and of
+  // Drawn top to bottom: the High Table first, the Yard last — the reverse of `tierOrder`, and of
   // how the engine lists them.
-  const floors = [...TIER_ORDER].reverse()
+  const floors = [...tierOrder].reverse()
     .map((level) => byLevel.get(level))
     .filter((t): t is MembershipTier => !!t);
 
@@ -90,7 +93,7 @@ export default function MembershipScreen() {
         {tiersLoading && <Waiting />}
         <AppCard hero style={styles.houseCard}>
           {floors.map((t, i) => {
-            const floorIndex = TIER_ORDER.indexOf(t.level);
+            const floorIndex = tierOrder.indexOf(t.level);
             const isCurrent = floorIndex === standingIndex;
             const isAbove = floorIndex > standingIndex;
             const isSelected = isAbove && selectedTier === t.level;

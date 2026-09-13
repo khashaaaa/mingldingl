@@ -19,7 +19,7 @@ import { GameButton } from '../components/ui/GameButton';
 import { HeaderBar } from '../components/ui/HeaderBar';
 import { SectionDivider } from '../components/ui/SectionDivider';
 import { TextField } from '../components/ui/TextField';
-import { FrostEdge } from '../components/vfx/FrostEdge';
+import { FrostEdge, FROST_RIM_REACH } from '../components/vfx/FrostEdge';
 import { useScrollTail } from '../hooks/useScrollTail';
 
 const LANGUAGE_OPTIONS = ['en', 'mn'] as const;
@@ -150,11 +150,12 @@ export default function SettingsScreen() {
     <View style={styles.container}>
       <HeaderBar title={i18n.t('settings_title')}>
         {/* `length` is the strip's *depth*, not its along-edge span — a top/bottom `FrostEdge`
-            already stretches to the full width on its own (`components/vfx/FrostEdge.tsx`), so
-            this takes the default reach exactly like `OfflineBanner`'s own bottom-edge mount. */}
+            already stretches to the full width on its own (`components/vfx/FrostEdge.tsx`). A rim
+            reach, not the screen-edge default: this header sits right above the Language row, and
+            the default 96 drew straight through its label and chips. */}
         <View style={styles.headerFrostAnchor}>
           <View style={styles.headerFrost} pointerEvents="none">
-            <FrostEdge edge="top" />
+            <FrostEdge edge="top" length={FROST_RIM_REACH} />
           </View>
         </View>
       </HeaderBar>
@@ -330,6 +331,8 @@ const styles = StyleSheet.create({
   signOutWrap: { marginTop: SPACE.xs },
   // Zero footprint, so the frost below reads as part of the divider rather than a spacer row
   // of its own; the absolutely-positioned child overlays from exactly this point in the flow.
-  headerFrostAnchor: { height: 0 },
+  // `HeaderBar`'s `wrap` gives every child a `gap: SPACE.md`, and this is a third child after the
+  // divider — negate that gap or it opens a blank strip between the divider and the scroll below.
+  headerFrostAnchor: { height: 0, marginTop: -SPACE.md },
   headerFrost: { position: 'absolute', top: 0, left: 0, right: 0 },
 });

@@ -116,9 +116,19 @@ export default function LeaderboardScreen() {
                   gem and score are the only things that tell one row from the next. */}
               <Entering index={index}>
                 {isOwn ? (
-                  <TorchGlow size={ROW_HEIGHT} color={TEMPERATURE.furnaceBright} strength={0.8}>
+                  // `TorchGlow` used to wrap the row and lay it out at size × size, which squeezed
+                  // the own row into a 56px column (the eyebrow wrapped letter by letter, the
+                  // numeral vanished). The glow now sits behind the row as its own absolute layer,
+                  // sized to roughly a row's height, while the row itself lays out full width
+                  // exactly like every other row.
+                  <View>
+                    <View style={styles.ownGlow} pointerEvents="none" accessible={false} importantForAccessibility="no">
+                      <TorchGlow size={ROW_HEIGHT} color={TEMPERATURE.furnaceBright} strength={0.8}>
+                        <View style={{ width: ROW_HEIGHT, height: ROW_HEIGHT }} />
+                      </TorchGlow>
+                    </View>
                     {row}
-                  </TorchGlow>
+                  </View>
                 ) : row}
               </Entering>
             </>
@@ -132,6 +142,8 @@ export default function LeaderboardScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
+  // Behind the row, not around it — a layer, not a wrapper that lays the row's own children out.
+  ownGlow: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   sub: {
     fontFamily: FONTS.bodyItalic,
     fontSize: FONT_SIZES.md,

@@ -68,8 +68,8 @@ describe('SkeletonRows', () => {
     expect(getAllByTestId('skeleton-block', hidden)).toHaveLength(4);
   });
 
-  // Fifteen blocks breathing on fifteen loops is the mistake `Lantern` already avoided for
-  // seven flames: one shared loop, or none.
+  // Fifteen blocks breathing on fifteen loops is the same mistake a row of flames sharing one
+  // flicker already avoids: one shared loop, or none.
   it('runs one loop no matter how many blocks are on screen', () => {
     render(<SkeletonRows count={6} row={() => (
       <>

@@ -12,9 +12,9 @@ const BREATH_MS = 900;
  * One breath for every placeholder on screen.
  *
  * A list skeleton is a dozen blocks, and a dozen `Animated.Value`s each running their own loop
- * is a dozen loops drawing the same opacity — the same waste `Lantern` avoids by giving seven
- * flames one flicker. The value is module-level and reference-counted: the first block to mount
- * starts the breath, the last to unmount stops it.
+ * is a dozen loops drawing the same opacity — the same waste a shared flicker avoids for a row of
+ * flames. The value is module-level and reference-counted: the first block to mount starts the
+ * breath, the last to unmount stops it.
  */
 const breath = new Animated.Value(HELD);
 let mounted = 0;

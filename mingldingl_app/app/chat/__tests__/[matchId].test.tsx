@@ -94,9 +94,9 @@ const HIDDEN = { includeHiddenElements: true };
 
 /** The strip's own copy, so an assertion reads as the line on screen rather than the key. */
 const EMBERS_STRIP =
-  'The fire is down to embers. Two dawns without a word from you. At the third it is yours to have let die.';
+  'The fire is down to embers. Two dawns without a word from you. At the second it is yours to have let die.';
 const EMBERS_STRIP_ONE =
-  'The fire is down to embers. One dawn without a word from you. At the third it is yours to have let die.';
+  'The fire is down to embers. One dawn without a word from you. At the second it is yours to have let die.';
 
 /**
  * Six letters, theirs first, all inside one local day whatever the machine's zone: they span five
@@ -335,7 +335,7 @@ describe('ChatScreen', () => {
     const { getByTestId, getByText, getAllByText } = renderScreen();
 
     expect(getByTestId('frost-edge-top', HIDDEN)).toBeTruthy();
-    expect(getByText('Five dawns of silence. Judged at the third.')).toBeTruthy();
+    expect(getByText('Five dawns of silence. Judged at the second.')).toBeTruthy();
     // The verdict also stands in the AlertModal's own message, so more than one copy is expected
     // on screen at once — only its presence is asserted here.
     expect(getAllByText('They let it freeze. Their standing paid.').length).toBeGreaterThan(0);
@@ -356,7 +356,7 @@ describe('ChatScreen', () => {
     const { getByTestId, getByText, getAllByText, queryByTestId } = renderScreen();
 
     expect(getByTestId('frost-edge-top', HIDDEN)).toBeTruthy();
-    expect(getByText('Five dawns of silence. Judged at the third.')).toBeTruthy();
+    expect(getByText('Five dawns of silence. Judged at the second.')).toBeTruthy();
     expect(getAllByText('They let it freeze. Their standing paid.').length).toBeGreaterThan(0);
     expect(queryByTestId('embers-strip')).toBeNull();
     jest.useRealTimers();

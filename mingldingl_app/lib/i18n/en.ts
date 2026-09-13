@@ -489,6 +489,7 @@ export const en = {
   wanted_for: 'For %{oath}, honestly kept',
   wanted_for_none: 'For a fire, honestly kept',
   keepsake_line: '%{dawns} dawns and burning. Never let a fire die.',
+  keepsake_line_one: 'One dawn and burning. Never let a fire die.',
   keepsake_line_none: 'A fire lately lit. Never let it die.',
   post_it: 'Post it',
   keep_it: 'Keep it',

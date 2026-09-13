@@ -23,10 +23,10 @@ interface Props {
 
 const Ember = PLACES.ember;
 
-/** Roughly how deep the row reaches — just enough for `FrostEdge` to have a length to draw
- *  against when a fire freezes. Not load-bearing precision; the row's real height still moves
- *  with its content (an Oath sigil makes a row taller), same as before this move. */
-const ROW_HEIGHT = 84;
+/** How far the left `FrostEdge` reaches in from the edge when a fire freezes — a horizontal
+ *  distance, not the row's height (which still moves with its content — an Oath sigil makes a
+ *  row taller — same as before this move). */
+const FROST_REACH = 84;
 
 /** The colour each fire state's eyebrow speaks in — `unlit` keeps the tile's original
  *  "New Quest" gold, since it is not a temperature at all yet, just an unopened scroll. */
@@ -72,14 +72,21 @@ export function QuestTile({ match, fire, onPress }: Props) {
   const eyebrowColor = eyebrowColorFor(fire.state);
 
   return (
-    <Tap onPress={onPress} accessibilityLabel={`${nameText}. ${eyebrow}. ${line}`}>
+    <Tap
+      onPress={onPress}
+      // The verdict `Text` sits below `line` in the tree, but the `Tap` groups every descendant
+      // under this one label, so a screen reader never reaches it on its own — it has to be
+      // folded in here. `filter(Boolean)` also drops the trailing ". " an unlit row's empty
+      // `line` would otherwise leave dangling.
+      accessibilityLabel={[nameText, eyebrow, line, verdict].filter(Boolean).join('. ')}
+    >
       <View style={[styles.row, embers && { borderColor: tint(METAL.ember, 0.6) }]}>
         {frozen && (
           // Anchored top/bottom rather than given an explicit height, so its `height: '100%'`
           // resolves against this wrapper's own stretched size instead of the row's (which has
           // none — the row sizes to its content, same as always).
           <View style={styles.frostWrap} pointerEvents="none">
-            <FrostEdge edge="left" length={ROW_HEIGHT} />
+            <FrostEdge edge="left" length={FROST_REACH} />
           </View>
         )}
         {fire.state === 'unlit' && (

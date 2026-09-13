@@ -80,6 +80,20 @@ describe('CharacterCard as a Wanted poster', () => {
     expect(getByText('Three dawns and burning. Never let a fire die.')).toBeTruthy();
   });
 
+  it('reads the streak in the singular at exactly one dawn', () => {
+    const { getByText } = render(
+      <CharacterCard
+        displayName="Erdenebat"
+        gemTier="Ruby"
+        totalScore={1234}
+        currentStreak={1}
+        oath={null}
+        oathProven={false}
+      />,
+    );
+    expect(getByText('One dawn and burning. Never let a fire die.')).toBeTruthy();
+  });
+
   it('falls back to the unlit line at a zero streak', () => {
     const { getByText } = render(
       <CharacterCard

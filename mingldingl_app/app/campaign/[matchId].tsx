@@ -98,7 +98,11 @@ export default function CampaignScreen() {
     } else if (isCurrent) {
       stateText = i18n.t(`campaign_hint_${room.roomId}`, { count: voicesMessageThreshold });
       stateNode = (
-        <Tap onPress={() => onHintPress(room.roomId)} accessibilityLabel={`${numeral}. ${name}. ${stateText}`}>
+        <Tap
+          onPress={() => onHintPress(room.roomId)}
+          accessibilityRole="button"
+          accessibilityLabel={`${numeral}. ${name}. ${stateText}`}
+        >
           <Text style={styles.hintText}>{stateText}</Text>
         </Tap>
       );

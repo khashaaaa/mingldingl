@@ -28,7 +28,7 @@ import { Unsealing } from '../../components/chat/Unsealing';
 import { QuestBanner } from '../../components/quest/QuestBanner';
 import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Waiting } from '../../components/ui/Waiting';
-import { FrostEdge } from '../../components/vfx/FrostEdge';
+import { FrostEdge, FROST_RIM_REACH } from '../../components/vfx/FrostEdge';
 import { PLACES } from '../../components/ui/Places';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
@@ -431,13 +431,11 @@ export default function ChatScreen() {
           // the Android gesture bar that `MessageInput` pays for its own bar.
           <View style={[styles.endedNotice, { paddingBottom: SPACE.lg + insets.bottom }]}>
             {/* A frozen fire, not just a severed link — the crystal that reads "silence" wherever
-                else it appears in this redesign, reused rather than a second way to say it. Its
-                own default reach, not the notice's width: for a `top`/`bottom` edge `length` is
-                how deep the frost bites into the screen, not how wide it runs (that's already
-                100%) — passing the notice's width there once drew a block of frost as deep as the
-                row was wide. */}
+                else it appears in this redesign, reused rather than a second way to say it. A rim
+                reach, not the screen-edge default: this notice has only two lines of text beneath
+                it, and the default 96 drew straight through both of them. */}
             <View style={styles.endedNoticeFrost} pointerEvents="none">
-              <FrostEdge edge="top" />
+              <FrostEdge edge="top" length={FROST_RIM_REACH} />
             </View>
             <Icon name="link-variant-off" size={ICON_SIZES.sm} color={INK.dim} />
             <View style={styles.endedNoticeTextWrap}>

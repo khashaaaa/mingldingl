@@ -90,7 +90,7 @@ describe('QuestTile', () => {
   it('renders the embers eyebrow, line, and the ember mark, tinting the row hairline', () => {
     const { getByText, getByTestId } = render(<QuestTile match={BASE_MATCH} fire={EMBERS_FIRE} onPress={jest.fn()} />);
     expect(getByText('EMBERS')).toBeTruthy();
-    expect(getByText('Your turn. Two dawns. Judged at the third.')).toBeTruthy();
+    expect(getByText('Your turn. Two dawns. Judged at the second.')).toBeTruthy();
     expect(getByTestId('state-ember', HIDDEN)).toBeTruthy();
   });
 
@@ -104,7 +104,7 @@ describe('QuestTile', () => {
       <QuestTile match={BASE_MATCH} fire={FROZEN_FIRE} onPress={jest.fn()} />,
     );
     expect(getByText('FROZEN')).toBeTruthy();
-    expect(getByText('Five dawns of silence. Judged at the third.')).toBeTruthy();
+    expect(getByText('Five dawns of silence. Judged at the second.')).toBeTruthy();
     expect(getByText('They let it freeze. Their standing paid.')).toBeTruthy();
     expect(getByTestId('frost-edge-left', HIDDEN)).toBeTruthy();
 
@@ -115,5 +115,21 @@ describe('QuestTile', () => {
   it('labels the whole row for a screen reader as name, eyebrow, line', () => {
     const { getByLabelText } = render(<QuestTile match={BASE_MATCH} fire={BURNING_FIRE} onPress={jest.fn()} />);
     expect(getByLabelText('Riley. Burning. Fourth day. Their turn.')).toBeTruthy();
+  });
+
+  it('carries the frozen verdict into the row label, where the visible line stops', () => {
+    // The `Tap` groups everything under one label, so a screen reader never reaches the verdict
+    // `Text` on its own — it has to be folded into the label like the rest of the row.
+    const { getByLabelText } = render(<QuestTile match={BASE_MATCH} fire={FROZEN_FIRE} onPress={jest.fn()} />);
+    // `line` already ends its own sentence with a full stop, so the `. ` joiner between it and
+    // `verdict` doubles it up — cosmetic in a label a screen reader speaks, not a rendered string.
+    expect(getByLabelText(
+      'Riley. Frozen. Five dawns of silence. Judged at the second.. They let it freeze. Their standing paid.',
+    )).toBeTruthy();
+  });
+
+  it('labels an unlit row with no trailing ". " where the line would have been', () => {
+    const { getByLabelText } = render(<QuestTile match={BASE_MATCH} fire={UNLIT_FIRE} onPress={jest.fn()} />);
+    expect(getByLabelText('Riley. New Quest')).toBeTruthy();
   });
 });

@@ -41,8 +41,8 @@ describe('fireOf', () => {
     expect(fire.state).toBe('embers');
     expect(fire.myTurn).toBe(true);
     expect(fire.dawns).toBe(1);
-    expect(fire.judgedAtDawn).toBe(3);
-    expect(fireLine(fire)).toBe('Your turn. One dawn. Judged at the third.');
+    expect(fire.judgedAtDawn).toBe(2);
+    expect(fireLine(fire)).toBe('Your turn. One dawn. Judged at the second.');
   });
 
   it('is embers at two dawns of my silence', () => {
@@ -54,7 +54,7 @@ describe('fireOf', () => {
     const fire = fireOf(m, myId, now, windows);
     expect(fire.state).toBe('embers');
     expect(fire.dawns).toBe(2);
-    expect(fireLine(fire)).toBe('Your turn. Two dawns. Judged at the third.');
+    expect(fireLine(fire)).toBe('Your turn. Two dawns. Judged at the second.');
   });
 
   it('is burning and waiting on them, day counted from the match', () => {
@@ -70,7 +70,7 @@ describe('fireOf', () => {
     expect(fireLine(fire)).toBe('Fourth day. Their turn.');
   });
 
-  it('is frozen and ghosted when they never answered — I let it, my standing paid', () => {
+  it('is frozen and ghosted when they never answered — they let it, their standing paid', () => {
     const m = match({
       status: 'Ghosted',
       createdAt: iso(at(2026, 9, 1, 9, 0)),
@@ -82,7 +82,7 @@ describe('fireOf', () => {
     expect(fire.frozenBy).toBe('ghosted');
     expect(fire.dawns).toBe(5);
     expect(fire.iLetIt).toBe(false);
-    expect(fireLine(fire)).toBe('Five dawns of silence. Judged at the third.');
+    expect(fireLine(fire)).toBe('Five dawns of silence. Judged at the second.');
     expect(fireVerdict(fire)).toBe('They let it freeze. Their standing paid.');
   });
 
@@ -114,6 +114,6 @@ describe('fireOf', () => {
       lastMessageSenderId: myId,
     });
     const fire = fireOf(m, myId, now, { staleHours: 72, unansweredHours: 168 });
-    expect(fire.judgedAtDawn).toBe(4);
+    expect(fire.judgedAtDawn).toBe(3);
   });
 });

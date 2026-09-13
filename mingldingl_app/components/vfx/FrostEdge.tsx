@@ -20,6 +20,11 @@ import { TEMPERATURE } from '../../lib/theme';
 
 export type FrostEdgeEdge = 'top' | 'bottom' | 'left' | 'right';
 
+/** The reach for a rim along a row or banner — a top/bottom mount with content close beneath it
+ *  (a header, a strip, a banner). The default 96 below is for a screen edge with room to spare
+ *  underneath; at that depth a rim mount draws straight through whatever it sits above. */
+export const FROST_RIM_REACH = 24;
+
 interface Props {
   edge: FrostEdgeEdge;
   /** How far the crystal reaches in from the edge, in px. */

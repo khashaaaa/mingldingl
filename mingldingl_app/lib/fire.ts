@@ -22,7 +22,7 @@ export interface Fire {
   myTurn: boolean | null;
   /** local midnights since the last letter (or since the match, when no letter) */
   dawns: number;
-  /** the dawn at which the engine judges: floor(staleHours / 24) + 1 (48h → 3) */
+  /** the dawn at which the engine judges: ceil(staleHours / 24) (48h → 2, 72h → 3; staleHours <= 0 → 1) */
   judgedAtDawn: number;
   /** which day of the thread today is (1-based), null without a start */
   day: number | null;
@@ -46,7 +46,10 @@ export function fireOf(
   windows: { staleHours: number; unansweredHours: number },
 ): Fire {
   const nowIso = new Date(nowMs).toISOString();
-  const judgedAtDawn = Math.floor(windows.staleHours / 24) + 1;
+  // The engine judges 48h after the last letter — for a letter sent at local hour h, dawn 2 falls
+  // at 48−h and dawn 3 at 72−h, so judgement always lands at or after dawn `ceil(staleHours / 24)`
+  // and strictly before the next one. `floor(...) + 1` used to name the dawn *after* that.
+  const judgedAtDawn = windows.staleHours <= 0 ? 1 : Math.ceil(windows.staleHours / 24);
   const day = match.createdAt ? threadDay(nowIso, match.createdAt) : null;
 
   if (match.status === 'Ghosted') {

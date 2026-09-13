@@ -13,9 +13,9 @@ import { ordinalWord, threadDay } from '../lib/worldTime';
 import type { BlockedUser } from '../models/blockedUser';
 import { useScrollTail } from '../hooks/useScrollTail';
 
-/** Roughly how deep a row reaches — the same reach `QuestTile` gives its own left `FrostEdge`
- *  (see `components/quest/QuestTile.tsx`'s `ROW_HEIGHT`), not load-bearing precision. */
-const ROW_HEIGHT = 84;
+/** How far the left `FrostEdge` reaches in from the edge — the same reach `QuestTile` gives its
+ *  own left edge (see `components/quest/QuestTile.tsx`'s `FROST_REACH`), not the row's height. */
+const FROST_REACH = 84;
 
 export default function BlockedUsersScreen() {
   const tail = useScrollTail();
@@ -51,7 +51,7 @@ export default function BlockedUsersScreen() {
               {/* Every name here was shut out, not just some — unlike the Quest Log's `frozen`
                   fire, this frost is unconditional. */}
               <View style={styles.frostWrap} pointerEvents="none">
-                <FrostEdge edge="left" length={ROW_HEIGHT} />
+                <FrostEdge edge="left" length={FROST_REACH} />
               </View>
               {item.firstPhoto ? (
                 <Image source={{ uri: item.firstPhoto }} style={styles.photo} />

@@ -83,7 +83,7 @@ export const AWAITING_MN_TRANSLATION = [
   'campaign_sub', 'campaign_dragon_sleeps',
   // The keepsake card (Wave 3 move 10): the shareable character card as a Wanted poster and its
   // full-screen preview.
-  'wanted', 'wanted_for', 'wanted_for_none', 'keepsake_line', 'keepsake_line_none',
+  'wanted', 'wanted_for', 'wanted_for_none', 'keepsake_line', 'keepsake_line_one', 'keepsake_line_none',
   'post_it', 'keep_it', 'keepsake_preview',
   // The Flame Rite's five states, in the voice (Wave 3 Task 11): the complete state's second
   // line, and the video screen's own retry label.

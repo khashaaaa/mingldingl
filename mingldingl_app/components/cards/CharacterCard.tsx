@@ -2,6 +2,7 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier, tierLabel } from '../../lib/tiers';
 import { oathLabel } from '../OathSigil';
+import { cap } from '../../lib/fire';
 import { countWord } from '../../lib/worldTime';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { Glyph } from '../ui/Glyph';
@@ -32,21 +33,20 @@ interface Props {
 export const CARD_WIDTH = 360;
 export const CARD_HEIGHT = 520;
 
-/** A sentence-initial capital for a line built from `countWord`, which hands back lowercase words
- *  ("three") so it reads correctly mid-sentence everywhere else it is used. */
-function capitalize(s: string): string {
-  return s.length ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-}
-
 export function CharacterCard({ displayName, photoUrl, gemTier, totalScore, currentStreak, oath, oathProven: _oathProven }: Props) {
   const tierColor = colorForTier(gemTier);
   const wantedFor = oath
     ? i18n.t('wanted_for', { oath: oathLabel(oath) })
     : i18n.t('wanted_for_none');
-  const streakLine = capitalize(
-    currentStreak > 0
-      ? i18n.t('keepsake_line', { dawns: countWord(currentStreak) })
-      : i18n.t('keepsake_line_none'),
+  // `cap` (exported from `lib/fire.ts`, whose own lines are built the same way) gives a
+  // sentence-initial capital to a line built from `countWord`, which hands back lowercase words
+  // ("three") so it reads correctly mid-sentence everywhere else it is used.
+  const streakLine = cap(
+    currentStreak === 1
+      ? i18n.t('keepsake_line_one')
+      : currentStreak > 0
+        ? i18n.t('keepsake_line', { dawns: countWord(currentStreak) })
+        : i18n.t('keepsake_line_none'),
   );
 
   return (
