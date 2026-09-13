@@ -115,6 +115,21 @@ export const AWAITING_MN_TRANSLATION = [
   // The Second Bell (Wave 4 Task 8): the round screen's own header title and the strip's eyebrow
   // and helper line.
   'bell_title', 'bell_question', 'bell_decide',
+  // The Satchel (Wave 4 Task 9): the header, the nine rows' names and lines, the three-row
+  // summary, and the footer law.
+  'satchel_title', 'satchel_sub',
+  'satchel_candles', 'satchel_candles_line',
+  'satchel_arrows', 'satchel_arrows_line', 'satchel_arrows_one', 'satchel_arrows_none',
+  'satchel_lantern', 'satchel_lantern_lit', 'satchel_lantern_unlit', 'satchel_lantern_none',
+  'satchel_oath', 'satchel_oath_line', 'satchel_oath_proven', 'satchel_oath_none',
+  'satchel_key', 'satchel_key_held', 'satchel_key_none',
+  'satchel_word', 'satchel_word_none',
+  'satchel_honour', 'satchel_honour_none',
+  'satchel_seals', 'satchel_seals_line', 'satchel_seals_one_thread', 'satchel_seals_none',
+  'satchel_card', 'satchel_card_line',
+  'satchel_sum_candles', 'satchel_sum_candles_one', 'satchel_sum_arrows', 'satchel_sum_arrows_one',
+  'satchel_sum_lantern',
+  'satchel_law',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

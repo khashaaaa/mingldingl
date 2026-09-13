@@ -774,4 +774,46 @@ export const en = {
   dest_mirror: 'The Mirror',
   dest_satchel: 'The Satchel',
   hearth_law: 'A map, never a hallway. Nothing is reachable only from here.',
+
+  // The Satchel (Sealed Fire W4 Task 9): nine objects the rules already gave the player, read off
+  // the hooks that already state them — this screen computes nothing the engine has not already
+  // decided. Each row's line has a plural/one/none family where the count can actually be zero or
+  // one; where it cannot (the card, the summary's lantern line) there is only ever the one line.
+  satchel_title: 'The Satchel',
+  satchel_sub: 'What you carry tonight. Every object here already exists as a rule; this is the first time they sit together. Tap one to go where it is used.',
+  satchel_candles: 'Candles',
+  satchel_candles_line: '%{remaining} of %{budget} left',
+  satchel_arrows: 'Arrows',
+  satchel_arrows_line: '%{count} await your answer',
+  satchel_arrows_one: 'One awaits your answer',
+  satchel_arrows_none: 'None in flight',
+  satchel_lantern: 'Lantern',
+  satchel_lantern_lit: 'Lit for the next gathering',
+  satchel_lantern_unlit: 'Unlit',
+  satchel_lantern_none: 'No gathering called',
+  satchel_oath: 'Oath sigil',
+  satchel_oath_line: '%{oath} · %{held} of %{needed} kept',
+  satchel_oath_proven: '%{oath} · proven',
+  satchel_oath_none: 'No oath sworn',
+  satchel_key: 'The key',
+  satchel_key_held: 'Held · %{floor}',
+  satchel_key_none: 'Not held · the Hall opens the deep seal',
+  satchel_word: "Ally's word",
+  satchel_word_none: 'Not yet given',
+  satchel_honour: 'Worn honour',
+  satchel_honour_none: 'None worn',
+  satchel_seals: 'Seals held',
+  satchel_seals_line: '%{seals} unbroken on you, across %{threads} threads',
+  satchel_seals_one_thread: '%{seals} unbroken on you, across one thread',
+  satchel_seals_none: 'No thread open',
+  satchel_card: 'Your card',
+  satchel_card_line: 'Wanted, honestly kept',
+  // The summary under the rows, built from the first three rows' short forms and joined with
+  // spaces — never a fourth hook, only a recap of candles, arrows and the lantern.
+  satchel_sum_candles: '%{count} candles.',
+  satchel_sum_candles_one: 'One candle.',
+  satchel_sum_arrows: '%{count} arrows.',
+  satchel_sum_arrows_one: 'One arrow.',
+  satchel_sum_lantern: 'Your lantern is lit.',
+  satchel_law: 'Nothing here can be bought, found or stacked. What you carry is what the rules gave you. The bag never grows; it only fills and empties with the day.',
 };
