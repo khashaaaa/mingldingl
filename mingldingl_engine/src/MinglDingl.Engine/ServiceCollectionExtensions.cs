@@ -23,6 +23,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<VideoTokenService>();
         services.AddSingleton<PhotoCompressionService>();
         services.AddSingleton<LocalFileStorageService>();
+        services.AddSingleton<SealedPhotoService>();
         services.AddSingleton<ConfigService>();
         services.AddSingleton<MembershipCatalog>();
         services.AddSingleton<LoginThrottleService>();

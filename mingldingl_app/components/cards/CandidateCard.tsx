@@ -35,7 +35,7 @@ interface Props {
  * plaque: name, rank, district, oath, and what they wrote about themselves.
  */
 export function CandidateCard({ candidate, onRequest, onSkip, requesting, requestDisabled }: Props) {
-  const photo = (candidate.photoUrls ?? [])[0];
+  const photo = candidate.sealedPhotoUrl;
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showPhoto = photo && photo !== failedUrl;
 

@@ -62,7 +62,7 @@ function veiledPlate(): [number, number, number] {
 
 const CANDIDATE: Candidate = {
   id: 'c1', displayName: 'Эрдэнэбат', age: 33, gender: 'male', city: 'Songinokhairkhan',
-  bio: 'Vet.', photoUrls: ['https://example.com/a.jpg', 'https://example.com/b.jpg'],
+  bio: 'Vet.', sealedPhotoUrl: 'https://example.com/a-sealed.jpg',
   membershipLevel: 'Free', isProfileComplete: true, pushEnabled: true,
   ageMin: 18, ageMax: 99, isPaused: false, oath: 'Bond', oathProven: true,
   oathEncountersHeld: null, oathEncountersNeeded: null, deletionGraceDays: 14,
@@ -123,6 +123,20 @@ describe('CandidateCard, sealed', () => {
       />,
     );
     expect(getByText('RUBY')).toBeTruthy();
+  });
+
+  it('stands the seal alone on the ground when the candidate has no sealed likeness yet', () => {
+    // An upload whose seal hasn't landed yet (upload-time failure, or the backfill sweep hasn't
+    // reached it) — the placeholder ground shows and the seal stack draws the same as ever.
+    const { queryByTestId, getByLabelText } = render(
+      <CandidateCard
+        candidate={{ ...CANDIDATE, sealedPhotoUrl: undefined }}
+        onRequest={jest.fn()}
+        onSkip={jest.fn()}
+      />,
+    );
+    expect(queryByTestId('sealed-likeness')).toBeNull();
+    expect(getByLabelText('Three seals, all intact')).toBeTruthy();
   });
 
   it('keeps one forged Summon and an ink Dismiss', () => {

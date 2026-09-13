@@ -1,15 +1,20 @@
 import { useMemo } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
-import { parseUserProfile, type Candidate, type GemTier, type UserProfile } from '../models/user';
+import { parseUserProfile, type Candidate, type GemTier } from '../models/user';
 import { parseMatch, type Match } from '../models/match';
 import type { components } from '../lib/api/api.generated';
 import { queryKeys } from '../lib/api/queryKeys';
 
 function parseCandidate(c: components['schemas']['CandidateResponse']): Candidate {
+  // parseUserProfile wants a photoUrls field to satisfy UserProfile's shape, but a candidate never
+  // carries the real photos — only the sealed variant below — so the empty array is discarded
+  // immediately rather than exposed on the result.
+  const { photoUrls: _discarded, ...profile } = parseUserProfile({ ...c, photoUrls: [] });
   return {
-    ...parseUserProfile({ ...c, photoUrls: c.photoUrls ?? [] }),
+    ...profile,
     gemTier: (c.gemTier as GemTier) ?? 'Garnet',
+    sealedPhotoUrl: c.sealedPhotoUrl ?? undefined,
   };
 }
 
@@ -63,7 +68,7 @@ export function useRequestMatch() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (candidate: UserProfile): Promise<{ matchId: string; awarded: number }> => {
+    mutationFn: async (candidate: Candidate): Promise<{ matchId: string; awarded: number }> => {
       const data = await apiClient.matches.request(candidate.id);
       return { matchId: data.matchId ?? '', awarded: data.awarded ?? 0 };
     },
@@ -87,7 +92,11 @@ export function useRequestMatch() {
         videoCallUnlocked: false,
         otherUser: {
           displayName: candidate.displayName,
-          firstPhoto: (candidate.photoUrls ?? [])[0],
+          // No photo, sealed or otherwise: a fresh match starts at reveal level 0, where the
+          // engine itself sends null for FirstPhoto (see MatchesController). Reaching for the
+          // candidate's own photo here used to hand over the real, unearned likeness the instant
+          // a summons was sent — the server truth arrives moments later via the invalidated
+          // matches refetch below.
           bio: candidate.bio,
           age: candidate.age,
           district: candidate.city,

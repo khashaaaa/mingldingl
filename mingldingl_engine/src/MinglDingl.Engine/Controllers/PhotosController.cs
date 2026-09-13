@@ -21,15 +21,21 @@ public class PhotosController : ControllerBase
     private readonly PhotoCompressionService _compression;
     private readonly LocalFileStorageService _storage;
     private readonly PhotoUploadThrottleService _throttle;
+    private readonly SealedPhotoService _sealedPhotos;
+    private readonly ILogger<PhotosController> _logger;
 
     public PhotosController(
         PhotoCompressionService compression,
         LocalFileStorageService storage,
-        PhotoUploadThrottleService throttle)
+        PhotoUploadThrottleService throttle,
+        SealedPhotoService sealedPhotos,
+        ILogger<PhotosController> logger)
     {
         _compression = compression;
         _storage = storage;
         _throttle = throttle;
+        _sealedPhotos = sealedPhotos;
+        _logger = logger;
     }
 
     [HttpPost("upload")]
@@ -72,6 +78,18 @@ public class PhotosController : ControllerBase
 
         var path = $"{LocalFileStorageService.ProfilePhotoDirectory(userId)}{Guid.NewGuid():N}.jpg";
         var url = await _storage.UploadAsync(LocalFileStorageService.PhotoBucket, path, compressed, "image/jpeg");
+
+        try
+        {
+            await _sealedPhotos.SealAsync($"{LocalFileStorageService.PhotoBucket}/{path}", compressed);
+        }
+        catch (Exception ex)
+        {
+            // A failed seal must not fail the upload — the photo is already stored and the profile
+            // save that follows depends on this response. The backfill sweep will produce the
+            // sealed variant on its next pass; until then the candidate feed just shows no photo.
+            _logger.LogWarning(ex, "Could not create sealed variant for {Path}", path);
+        }
 
         return Ok(new PhotoUploadResponse(url));
     }

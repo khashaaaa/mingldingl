@@ -6225,7 +6225,7 @@ export interface components {
             gemTier?: string | null;
             /** Format: double */
             reputationScore?: number;
-            photoUrls?: string[] | null;
+            sealedPhotoUrl?: string | null;
             bio?: string | null;
             equippedTitleId?: string | null;
             oath?: string | null;

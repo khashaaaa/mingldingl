@@ -8,7 +8,7 @@ namespace MinglDingl.Engine.Tests.Integration;
 
 public class MatchesControllerIntegrationTests : IntegrationTestBase
 {
-    private MatchesController BuildController(Guid userId, ConfigService? config = null)
+    private MatchesController BuildController(Guid userId, ConfigService? config = null, LocalFileStorageService? storage = null)
     {
         config ??= new ConfigService();
         var httpContext = new DefaultHttpContext();
@@ -19,7 +19,7 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var oaths = new OathService(Db, config, score, milestones, new HonourService(Db, NullLogger<HonourService>.Instance));
         var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
         var push = BuildTestPush();
-        var controller = new MatchesController(Db, score, ghosting, quests, milestones, push, config, BuildTestBroadcast())
+        var controller = new MatchesController(Db, score, ghosting, quests, milestones, push, config, BuildTestBroadcast(), storage ?? BuildTestStorage())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -266,6 +266,53 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var candidate = body.Items.Single(c => c.Id == otherId);
         Assert.Equal("Bond", candidate.Oath);
         Assert.True(candidate.OathProven);
+    }
+
+    /// <summary>
+    /// The thesis is "faces are earned": a candidate the viewer has not matched must never receive
+    /// the real photo, only its blurred, small "sealed" sibling — and only once one has actually
+    /// been produced for it.
+    /// </summary>
+    [Fact]
+    public async Task GetCandidates_SealedPhotoUrl_PointsAtTheSealedSibling_NeverTheRealPhoto()
+    {
+        var storage = BuildTestStorage();
+        var viewerId = Guid.NewGuid();
+        var viewer = NewCompleteUser(viewerId);
+        viewer.Gender = "Male";
+
+        var withPhotoId = Guid.NewGuid();
+        var withPhoto = NewCompleteUser(withPhotoId);
+        withPhoto.Gender = "Female";
+        var originalPath = $"{LocalFileStorageService.ProfilePhotoDirectory(withPhotoId)}a.jpg";
+        var originalUrl = await storage.UploadAsync(LocalFileStorageService.PhotoBucket, originalPath, [1, 2, 3], "image/jpeg");
+        await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket,
+            LocalFileStorageService.SealedPathOf(originalPath),
+            [4, 5, 6], "image/jpeg");
+        withPhoto.PhotoUrls = [originalUrl];
+
+        var unsealedId = Guid.NewGuid();
+        var unsealed = NewCompleteUser(unsealedId);
+        unsealed.Gender = "Female";
+        // Uploaded, but nothing has sealed it yet — the upload hook can fail, or this predates it.
+        unsealed.PhotoUrls = [await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket,
+            $"{LocalFileStorageService.ProfilePhotoDirectory(unsealedId)}b.jpg",
+            [7, 8, 9], "image/jpeg")];
+
+        Db.Users.AddRange(viewer, withPhoto, unsealed);
+        await Db.SaveChangesAsync();
+
+        var result = Assert.IsType<OkObjectResult>(await BuildController(viewerId, storage: storage).GetCandidates(pageSize: 50));
+        var body = Assert.IsType<PagedResponse<CandidateResponse>>(result.Value);
+
+        var sealedCandidate = body.Items.Single(c => c.Id == withPhotoId);
+        Assert.EndsWith("-sealed.jpg", sealedCandidate.SealedPhotoUrl);
+        Assert.DoesNotContain(originalUrl, sealedCandidate.SealedPhotoUrl);
+
+        var unsealedCandidate = body.Items.Single(c => c.Id == unsealedId);
+        Assert.Null(unsealedCandidate.SealedPhotoUrl);
     }
 
     [Fact]
@@ -605,7 +652,7 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         var controller = new MatchesController(Db, score, new GhostingService(Db, score, oaths, broadcast, config, BuildTestPush()), quests, milestones,
-            BuildTestPush(), config, broadcast)
+            BuildTestPush(), config, broadcast, BuildTestStorage())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };

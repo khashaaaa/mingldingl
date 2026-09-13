@@ -16,8 +16,9 @@ public class MatchesController : ControllerBase
     private readonly PushNotificationService _push;
     private readonly ConfigService _config;
     private readonly SupabaseBroadcastService _broadcast;
+    private readonly LocalFileStorageService _storage;
 
-    public MatchesController(AppDbContext db, ScoreService score, GhostingService ghosting, QuestService quests, MilestoneService milestones, PushNotificationService push, ConfigService config, SupabaseBroadcastService broadcast)
+    public MatchesController(AppDbContext db, ScoreService score, GhostingService ghosting, QuestService quests, MilestoneService milestones, PushNotificationService push, ConfigService config, SupabaseBroadcastService broadcast, LocalFileStorageService storage)
     {
         _db = db;
         _score = score;
@@ -27,6 +28,7 @@ public class MatchesController : ControllerBase
         _push = push;
         _config = config;
         _broadcast = broadcast;
+        _storage = storage;
     }
 
     /// <summary>
@@ -144,7 +146,7 @@ public class MatchesController : ControllerBase
 
         var items = candidates.Select(c => new CandidateResponse(
             c.Id, c.DisplayName, c.Age, c.City, c.GemTier, c.ReputationScore,
-            c.PhotoUrls, c.Bio, c.EquippedTitleId,
+            _storage.SealedPublicUrlOf(c.PhotoUrls.FirstOrDefault()), c.Bio, c.EquippedTitleId,
             c.Oath, c.OathProven)).ToList();
 
         return Ok(new PagedResponse<CandidateResponse>(items, safePage, safePageSize, totalCount, skip + items.Count < totalCount));

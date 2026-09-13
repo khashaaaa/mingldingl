@@ -5,7 +5,13 @@ public record CandidateResponse(
     string City,
     string GemTier,
     decimal ReputationScore,
-    List<string> PhotoUrls,
+    /// <summary>
+    /// The first photo's blurred, small "sealed" variant — or null when it has none yet (an
+    /// upload whose sealing hook failed, before the backfill sweep catches up). Never the real
+    /// photo URLs: a candidate is a stranger who has not been matched, and "faces are earned" means
+    /// the full likeness must not cross the wire until they have been.
+    /// </summary>
+    string? SealedPhotoUrl,
     string Bio,
     string? EquippedTitleId = null,
     string? Oath = null,

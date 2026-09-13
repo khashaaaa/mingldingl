@@ -214,6 +214,7 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         }
 
         await PruneOrphanedPhotosAsync(db, storage, ct);
+        await BackfillSealedPhotosAsync(storage, scope.ServiceProvider.GetRequiredService<SealedPhotoService>(), ct);
     }
 
     /// <summary>
@@ -256,10 +257,59 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         foreach (var (relativePath, lastWriteUtc) in stored)
         {
             if (ct.IsCancellationRequested) break;
+
+            var originalOfSealed = LocalFileStorageService.OriginalPathOfSealed(relativePath);
+            if (originalOfSealed is not null)
+            {
+                // No row ever references a sealed URL — SealedPhotoUrl is derived on read, never
+                // stored — so comparing a sealed file against `referenced` directly deleted every
+                // sealed file the sweep itself had just made, the moment its own grace period
+                // passed. It is owned by its original instead: the same young-file grace applies
+                // (a freshly-backfilled sealed file must survive this same pass), but the
+                // reference check asks whether the *original* is referenced, not the sealed file
+                // itself — so an abandoned original and its sealed sibling are pruned together.
+                if (lastWriteUtc > cutoff || referenced.Contains(originalOfSealed)) continue;
+                if (storage.DeleteByRelativePath(relativePath)) deleted++;
+                continue;
+            }
+
             if (lastWriteUtc > cutoff || referenced.Contains(relativePath)) continue;
             if (storage.DeleteByRelativePath(relativePath)) deleted++;
         }
 
         if (deleted > 0) _logger.LogInformation("Sweep deleted {Count} orphaned photo files", deleted);
+    }
+
+    /// <summary>Sealed variants created per sweep, bounded so a backlog of pre-feature photos can't turn one sweep into a long-running image-processing job.</summary>
+    private const int MaxSealedBackfillPerSweep = 200;
+
+    /// <summary>
+    /// Every profile photo uploaded before sealing existed (or whose upload-time seal failed) has
+    /// no sealed sibling yet, and the candidate feed shows nothing for one until it does. This
+    /// walks stored photos and produces the missing variants a bounded number at a time; a
+    /// corrupt or unreadable original is logged and skipped rather than stopping the sweep.
+    /// </summary>
+    private async Task BackfillSealedPhotosAsync(LocalFileStorageService storage, SealedPhotoService sealedPhotos, CancellationToken ct)
+    {
+        int created = 0;
+        foreach (var (relativePath, _) in storage.EnumerateProfilePhotos())
+        {
+            if (ct.IsCancellationRequested || created >= MaxSealedBackfillPerSweep) break;
+            // A sealed file is never itself sealed, and already-sealed originals are skipped below.
+            if (LocalFileStorageService.OriginalPathOfSealed(relativePath) is not null) continue;
+            if (storage.SealedVariantExists(relativePath)) continue;
+
+            try
+            {
+                await sealedPhotos.SealAsync(relativePath);
+                created++;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not create sealed variant for {Path}", relativePath);
+            }
+        }
+
+        if (created > 0) _logger.LogInformation("Sweep created {Count} sealed photo variants", created);
     }
 }

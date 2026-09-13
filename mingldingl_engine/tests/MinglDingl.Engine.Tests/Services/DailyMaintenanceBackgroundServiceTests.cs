@@ -2,23 +2,38 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using MinglDingl.Engine.Tests.Integration;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace MinglDingl.Engine.Tests.Services;
 
 public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
 {
+    /// <summary>A real, decodable JPEG — the backfill sweep actually runs this through the sealer, unlike the other photo-sweep tests, which never decode the bytes they store.</summary>
+    private static byte[] MakeValidJpegBytes()
+    {
+        using var image = new Image<Rgba32>(64, 64);
+        using var ms = new MemoryStream();
+        image.SaveAsJpeg(ms);
+        return ms.ToArray();
+    }
+
     private DailyMaintenanceBackgroundService BuildService(LocalFileStorageService? storage = null, ConfigService? config = null)
     {
         config ??= new ConfigService();
         var score = new ScoreService(Db, config);
         var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new HonourService(Db, NullLogger<HonourService>.Instance));
+        var resolvedStorage = storage ?? BuildTestStorage();
+        var compression = new PhotoCompressionService();
         var provider = new ServiceCollection()
             .AddSingleton(Db)
             .AddSingleton(config)
             .AddSingleton(score)
             .AddSingleton(oaths)
             .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush()))
-            .AddSingleton(storage ?? BuildTestStorage())
+            .AddSingleton(resolvedStorage)
+            .AddSingleton(compression)
+            .AddSingleton(new SealedPhotoService(compression, resolvedStorage))
             .BuildServiceProvider();
         return new DailyMaintenanceBackgroundService(
             new SingleProviderScopeFactory(provider),
@@ -288,6 +303,79 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         await BuildService(storage).RunSweepAsync(CancellationToken.None);
 
         Assert.True(storage.DeleteByPublicUrl(url), "a live photo must survive the orphan sweep");
+    }
+
+    /// <summary>
+    /// Every photo uploaded before sealing existed has no sealed sibling yet — the sweep has to
+    /// backfill it, or the candidate feed shows nothing for every profile photo that predates this
+    /// feature.
+    /// </summary>
+    [Fact]
+    public async Task RunSweepAsync_GivesAPhotoWithNoSealedSiblingOneOnTheFirstSweep()
+    {
+        var storage = BuildTestStorage();
+        var owner = NewCompleteUser();
+        var url = await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket,
+            $"{LocalFileStorageService.ProfilePhotoDirectory(owner.Id)}a.jpg",
+            MakeValidJpegBytes(), "image/jpeg");
+        owner.PhotoUrls = [url];
+        Db.Users.Add(owner);
+        await Db.SaveChangesAsync();
+
+        Assert.Null(storage.SealedPublicUrlOf(url));
+
+        await BuildService(storage).RunSweepAsync(CancellationToken.None);
+
+        Assert.NotNull(storage.SealedPublicUrlOf(url));
+    }
+
+    /// <summary>
+    /// The pruner's trap: nothing ever references a sealed URL (it is derived on read, not
+    /// stored), so comparing a sealed file against the referenced set directly would delete every
+    /// sealed variant the moment its own grace period passed — including ones the backfill step
+    /// had just created in this same sweep. A sealed file is owned by its original instead.
+    /// </summary>
+    [Fact]
+    public async Task RunSweepAsync_KeepsASealedSiblingWhoseOriginalIsStillReferenced()
+    {
+        var storage = BuildTestStorage();
+        var owner = NewCompleteUser();
+        var path = $"{LocalFileStorageService.ProfilePhotoDirectory(owner.Id)}a.jpg";
+        var url = await storage.UploadAsync(LocalFileStorageService.PhotoBucket, path, [1, 2, 3], "image/jpeg");
+        var sealedUrl = await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket, LocalFileStorageService.SealedPathOf(path), [4, 5, 6], "image/jpeg");
+        AgeFile(storage, url);
+        AgeFile(storage, sealedUrl);
+        owner.PhotoUrls = [url];
+        Db.Users.Add(owner);
+        await Db.SaveChangesAsync();
+
+        await BuildService(storage).RunSweepAsync(CancellationToken.None);
+
+        Assert.True(storage.DeleteByPublicUrl(sealedUrl), "the sealed sibling of a referenced photo must survive the sweep");
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_PrunesASealedSiblingWhoseOriginalIsGone()
+    {
+        var storage = BuildTestStorage();
+        var owner = NewCompleteUser();
+        var path = $"{LocalFileStorageService.ProfilePhotoDirectory(owner.Id)}abandoned.jpg";
+        // The original was never referenced by any row (an abandoned upload) and has aged past
+        // the orphan grace period, so this same sweep prunes it; its sealed sibling has to go too.
+        var url = await storage.UploadAsync(LocalFileStorageService.PhotoBucket, path, [1, 2, 3], "image/jpeg");
+        var sealedUrl = await storage.UploadAsync(
+            LocalFileStorageService.PhotoBucket, LocalFileStorageService.SealedPathOf(path), [4, 5, 6], "image/jpeg");
+        AgeFile(storage, url);
+        AgeFile(storage, sealedUrl);
+        owner.PhotoUrls = [];
+        Db.Users.Add(owner);
+        await Db.SaveChangesAsync();
+
+        await BuildService(storage).RunSweepAsync(CancellationToken.None);
+
+        Assert.False(storage.DeleteByPublicUrl(sealedUrl), "the sealed sibling of an abandoned photo should already be gone");
     }
 
     /// <summary>Backdates a stored file past the sweep's 24h grace period.</summary>

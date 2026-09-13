@@ -26,7 +26,7 @@ function makeWrapper(queryClient: QueryClient) {
 }
 
 function candidate(id: string, displayName = `User ${id}`) {
-  return { id, displayName, photoUrls: [`${id}.jpg`] };
+  return { id, displayName, sealedPhotoUrl: `${id}-sealed.jpg` };
 }
 
 const baseScoreDetail = {

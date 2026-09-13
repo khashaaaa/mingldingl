@@ -140,6 +140,72 @@ public class LocalFileStorageService
         return ResolveWithinRoot(relative[..separator], relative[(separator + 1)..]) is null ? null : relative;
     }
 
+    /// <summary>
+    /// The path of a stored file's sealed sibling: same directory, filename suffixed
+    /// <c>-sealed</c>, always <c>.jpg</c> (<see cref="PhotoCompressionService.SealAsync"/> always
+    /// re-encodes as JPEG regardless of the original's extension). A pure string transform, so it
+    /// works equally on a bucket-relative <c>path</c> (the shape <see cref="UploadAsync"/> takes)
+    /// and on the bucket-prefixed relative path <see cref="EnumerateProfilePhotos"/> returns —
+    /// both just move the bucket segment, if any, along for the ride.
+    /// </summary>
+    public static string SealedPathOf(string relativePath)
+    {
+        var dir = Path.GetDirectoryName(relativePath)?.Replace(Path.DirectorySeparatorChar, '/') ?? "";
+        var name = Path.GetFileNameWithoutExtension(relativePath);
+        return dir.Length > 0 ? $"{dir}/{name}-sealed.jpg" : $"{name}-sealed.jpg";
+    }
+
+    /// <summary>
+    /// The bucket-relative path <em>this file's original</em> would have, given a sealed file's
+    /// relative path — the inverse of <see cref="SealedPathOf"/>. Null when
+    /// <paramref name="relativePath"/> is not itself a sealed file, which is how the maintenance
+    /// sweep tells a sealed variant apart from an original when it walks every stored photo.
+    /// </summary>
+    public static string? OriginalPathOfSealed(string relativePath)
+    {
+        var name = Path.GetFileNameWithoutExtension(relativePath);
+        const string suffix = "-sealed";
+        if (!name.EndsWith(suffix, StringComparison.Ordinal)) return null;
+
+        var dir = Path.GetDirectoryName(relativePath)?.Replace(Path.DirectorySeparatorChar, '/') ?? "";
+        var originalName = name[..^suffix.Length];
+        return dir.Length > 0 ? $"{dir}/{originalName}.jpg" : $"{originalName}.jpg";
+    }
+
+    /// <summary>True when the sealed sibling of the stored file at this relative path exists on disk.</summary>
+    public virtual bool SealedVariantExists(string relativePath)
+    {
+        var sealedRelative = SealedPathOf(relativePath);
+        var separator = sealedRelative.IndexOf('/');
+        if (separator <= 0) return false;
+        var fullPath = ResolveWithinRoot(sealedRelative[..separator], sealedRelative[(separator + 1)..]);
+        return fullPath is not null && File.Exists(fullPath);
+    }
+
+    /// <summary>
+    /// The public URL of the public URL <paramref name="url"/> names' sealed sibling — only when
+    /// that sibling actually exists on disk, which is exactly the "has this candidate's photo been
+    /// sealed yet" the discover feed needs to answer. A freshly uploaded photo has no sealed
+    /// sibling until the upload hook (or the backfill sweep, for anything uploaded before this
+    /// feature shipped) has produced one, so returning a URL unconditionally would 404.
+    /// </summary>
+    public virtual string? SealedPublicUrlOf(string? url)
+    {
+        var relative = RelativePathOf(url);
+        if (relative is null) return null;
+        return SealedVariantExists(relative) ? $"{_publicBaseUrl}/{SealedPathOf(relative)}" : null;
+    }
+
+    /// <summary>Reads a stored file's bytes given the bucket-prefixed relative path <see cref="EnumerateProfilePhotos"/> returns.</summary>
+    public virtual async Task<byte[]?> ReadByRelativePathAsync(string relativePath)
+    {
+        var separator = relativePath.IndexOf('/');
+        if (separator <= 0) return null;
+        var fullPath = ResolveWithinRoot(relativePath[..separator], relativePath[(separator + 1)..]);
+        if (fullPath is null || !File.Exists(fullPath)) return null;
+        return await File.ReadAllBytesAsync(fullPath);
+    }
+
     public virtual bool DeleteByPublicUrl(string? url)
     {
         var relative = RelativePathOf(url);
@@ -147,6 +213,19 @@ public class LocalFileStorageService
 
         var separator = relative.IndexOf('/');
         var fullPath = ResolveWithinRoot(relative[..separator], relative[(separator + 1)..])!;
+
+        // The sealed sibling has no row pointing at it — SealedPhotoUrl is derived on read, never
+        // stored — so nothing else will ever clean it up once the original it belongs to is gone.
+        // File.Delete is a silent no-op when the target does not exist, which is the common case
+        // (a business photo, say, has no sibling at all).
+        var sealedRelative = SealedPathOf(relative);
+        var sealedSeparator = sealedRelative.IndexOf('/');
+        if (sealedSeparator > 0
+            && ResolveWithinRoot(sealedRelative[..sealedSeparator], sealedRelative[(sealedSeparator + 1)..]) is { } sealedFullPath)
+        {
+            try { File.Delete(sealedFullPath); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Could not delete sealed sibling for {Url}", url); }
+        }
 
         try
         {

@@ -124,4 +124,62 @@ public class LocalFileStorageServiceTests : IDisposable
     public void DeleteByPublicUrl_StillRefusesAUrlWithNoUploadsSegment() =>
         Assert.False(Build("https://cdn.example.com/uploads")
             .DeleteByPublicUrl("https://cdn.example.com/other/photos/u1/a.jpg"));
+
+    [Theory]
+    [InlineData("photos/u1/a.jpg", "photos/u1/a-sealed.jpg")]
+    [InlineData("a.jpg", "a-sealed.jpg")]
+    public void SealedPathOf_SameDirectory_NameSuffixedSealed(string relativePath, string expected) =>
+        Assert.Equal(expected, LocalFileStorageService.SealedPathOf(relativePath));
+
+    [Fact]
+    public void OriginalPathOfSealed_RecoversTheOriginalsPath() =>
+        Assert.Equal("photos/u1/a.jpg", LocalFileStorageService.OriginalPathOfSealed("photos/u1/a-sealed.jpg"));
+
+    [Fact]
+    public void OriginalPathOfSealed_NullForAnOriginalItself() =>
+        Assert.Null(LocalFileStorageService.OriginalPathOfSealed("photos/u1/a.jpg"));
+
+    [Fact]
+    public async Task SealedPublicUrlOf_NoSealedFileYet_ReturnsNull()
+    {
+        var storage = Build("https://cdn.example.com/uploads");
+        var url = await storage.UploadAsync("photos", "u1/a.jpg", [1, 2, 3], "image/jpeg");
+
+        Assert.Null(storage.SealedPublicUrlOf(url));
+    }
+
+    [Fact]
+    public async Task SealedPublicUrlOf_SealedFileExists_ReturnsItsUrl()
+    {
+        var storage = Build("https://cdn.example.com/uploads");
+        var url = await storage.UploadAsync("photos", "u1/a.jpg", [1, 2, 3], "image/jpeg");
+        await storage.UploadAsync("photos", "u1/a-sealed.jpg", [4, 5, 6], "image/jpeg");
+
+        Assert.Equal("https://cdn.example.com/uploads/photos/u1/a-sealed.jpg", storage.SealedPublicUrlOf(url));
+    }
+
+    [Fact]
+    public async Task DeleteByPublicUrl_AlsoRemovesTheSealedSibling()
+    {
+        var storage = Build("https://cdn.example.com/uploads");
+        var url = await storage.UploadAsync("photos", "u1/a.jpg", [1, 2, 3], "image/jpeg");
+        await storage.UploadAsync("photos", "u1/a-sealed.jpg", [4, 5, 6], "image/jpeg");
+        var sealedPath = Path.Combine(_tempRoot, "uploads", "photos", "u1", "a-sealed.jpg");
+        Assert.True(File.Exists(sealedPath));
+
+        Assert.True(storage.DeleteByPublicUrl(url));
+
+        Assert.False(File.Exists(sealedPath));
+    }
+
+    [Fact]
+    public async Task DeleteByPublicUrl_NoSealedSiblingOnDisk_StillDeletesTheOriginal()
+    {
+        // Most deleted files (a business photo, say) never had a sealed sibling at all — the
+        // attempt to remove one must be a silent no-op, not a reason the original survives.
+        var storage = Build("https://cdn.example.com/uploads");
+        var url = await storage.UploadAsync("photos", "u1/a.jpg", [1, 2, 3], "image/jpeg");
+
+        Assert.True(storage.DeleteByPublicUrl(url));
+    }
 }

@@ -21,6 +21,8 @@ public class DevControllerIntegrationTests : IntegrationTestBase
             .AddSingleton(oaths)
             .AddSingleton(new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush()))
             .AddSingleton(BuildTestStorage())
+            .AddSingleton<PhotoCompressionService>()
+            .AddSingleton<SealedPhotoService>()
             .BuildServiceProvider();
         var sweep = new DailyMaintenanceBackgroundService(
             new SingleProviderScopeFactory(provider),

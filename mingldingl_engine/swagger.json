@@ -6776,11 +6776,8 @@
             "type": "number",
             "format": "double"
           },
-          "photoUrls": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
+          "sealedPhotoUrl": {
+            "type": "string",
             "nullable": true
           },
           "bio": {

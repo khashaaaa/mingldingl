@@ -25,8 +25,9 @@ public class PhotosControllerIntegrationTests : IntegrationTestBase, IDisposable
         var config = new ConfigurationBuilder().Build();
         var storage = new LocalFileStorageService(envMock.Object, config, NullLogger<LocalFileStorageService>.Instance);
         var compression = new PhotoCompressionService();
+        var sealedPhotos = new SealedPhotoService(compression, storage);
 
-        return new PhotosController(compression, storage, new PhotoUploadThrottleService())
+        return new PhotosController(compression, storage, new PhotoUploadThrottleService(), sealedPhotos, NullLogger<PhotosController>.Instance)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -136,6 +137,30 @@ public class PhotosControllerIntegrationTests : IntegrationTestBase, IDisposable
         Assert.True(File.Exists(diskPath), $"expected compressed photo at {diskPath}");
         var written = await File.ReadAllBytesAsync(diskPath);
         Assert.NotEmpty(written);
+    }
+
+    /// <summary>
+    /// A candidate must never receive an unearned likeness, so the sealed variant is produced the
+    /// moment the original lands, not left for the maintenance sweep to catch up on later.
+    /// </summary>
+    [Fact]
+    public async Task Upload_ValidJpeg_AlsoWritesASealedVariantBesideIt()
+    {
+        var userId = Guid.NewGuid();
+        var controller = BuildController(userId);
+        var file = MakeFormFile(MakeValidJpegBytes(), "photo.jpg", "image/jpeg");
+
+        var result = await controller.Upload(file);
+
+        var response = Assert.IsType<PhotoUploadResponse>(Assert.IsType<OkObjectResult>(result).Value);
+        const string marker = "/uploads/";
+        var relativePath = response.Url.Substring(response.Url.IndexOf(marker, StringComparison.Ordinal) + marker.Length);
+        var sealedRelative = LocalFileStorageService.SealedPathOf(relativePath);
+        var sealedDiskPath = Path.Combine(_tempRoot, "uploads", sealedRelative.Replace('/', Path.DirectorySeparatorChar));
+
+        Assert.True(File.Exists(sealedDiskPath), $"expected sealed photo at {sealedDiskPath}");
+        using var sealedImage = await Image.LoadAsync(sealedDiskPath);
+        Assert.True(sealedImage.Width <= 320 && sealedImage.Height <= 320);
     }
 
     public void Dispose()

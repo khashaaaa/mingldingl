@@ -72,7 +72,7 @@ describe('Discover chrome (task 8: moved off Seek)', () => {
   // sheet, NextGatheringPill to the Town Square tab — Discover keeps only its header and the deck.
   it('renders the loaded deck without the getting-started card, budget meter, or gathering pill', async () => {
     mockCandidates.mockResolvedValueOnce({
-      items: [{ id: 'c1', displayName: 'Amara', age: 28, photoUrls: ['c1.jpg'] }],
+      items: [{ id: 'c1', displayName: 'Amara', age: 28, sealedPhotoUrl: 'c1-sealed.jpg' }],
       page: 1,
       hasMore: false,
     });

@@ -46,7 +46,12 @@ export interface UserProfile {
   joinedAt?: string;
 }
 
-export type Candidate = UserProfile & { gemTier: GemTier };
+/**
+ * A stranger, not yet earned: the engine never puts a candidate's real photos on the wire, only a
+ * blurred, small "sealed" variant of the first one — see `CandidateResponse.SealedPhotoUrl` on the
+ * engine. `photoUrls` is dropped rather than left empty so nothing can accidentally reach for it.
+ */
+export type Candidate = Omit<UserProfile, 'photoUrls'> & { gemTier: GemTier; sealedPhotoUrl?: string };
 
 export function parseUserProfile(d: components['schemas']['UserResponse']): UserProfile {
   return {
