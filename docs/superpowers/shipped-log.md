@@ -10,6 +10,96 @@ written, not by date.
 
 ---
 
+## Sealed Fire — Wave 3, the place (2026-09-13)
+
+Seventeen commits `100e039..aa97c4d` (eleven tasks, five fix rounds, one final fix wave), one small
+engine change, EN strings only — 52 new keys, the translator's list 87 → 150 (changed English on
+existing keys rejoins it). Verified on the Galaxy A51 dev build the same afternoon, signed in as a
+seeded account with a burning thread and three frozen ones: the Quest Log's four fires and the
+law footer, the verdicts checked against the database, the embers strip with its singular line,
+the ghosted dialog's verdict, the frost-edged frozen ending, the Guild House, the Hall, the Ascent,
+the Campaign, the Frozen Gate, the offline banner, the keepsake preview. Not seen: the Flame Rite
+card (no thread with a finished icebreaker) and the ember toast.
+
+- **The engine says when the last letter was, and by whom.** `MatchResponse.LastMessageAt` /
+  `LastMessageSenderId` and the two ghosting windows on the thresholds response (appended,
+  defaulted; `GhostingService.StaleAfterFor(config)` beside the instance property). The app
+  hydrates the windows next to the reveal ladder (`useGhostingWindows`) and falls back to 48/168
+  when an older engine omits them.
+- **`lib/fire.ts` describes; the engine judges.** `fireOf(match, myId, now, windows)` → unlit /
+  burning / embers / frozen, whose turn, dawns, the judging dawn, who let it. `judgedAtDawn` is
+  `ceil(staleHours/24)` — the plan wrote `floor + 1`, which the final review showed is always one
+  dawn more generous than the 48-hour judgement; at 48h the copy now says "Judged at the second."
+  `countWord` (one…twelve) joined `ordinalWord` in `lib/worldTime.ts`.
+- **Fires that go out.** `QuestTile` takes a `fire`: flame eyebrow "Fourth day. Their turn.";
+  ember mark, ember-tinted hairline, "Your turn. Two dawns. Judged at the second."; the frost edge,
+  the ice glyph, the ice wash on the portrait, "Three dawns of silence." and the verdict in italic
+  ("You let it freeze. Your standing paid." — the at-fault party is whoever did not send the last
+  letter, as `GhostingService` judges it). The list ticks `now` once a minute (`useNowTicker`,
+  shared with the thread) and ends with the law. The thread shows the embers strip above the
+  composer (singular and plural), fires `fireDying` once per match (`useFireDying`; a new
+  `dying.wav`, the other eight byte-identical), and treats `endedReason` as the truth for
+  frozen-ness because the matches list is a five-minute cache — the ghost check also invalidates
+  it now. The row's accessibility label speaks the verdict.
+- **Frost wherever silence is.** `FrostEdge` finally mounted: left edges on the Quest Log's frozen
+  rows and the Frozen Gate's rows; rims on the thread's frozen ending, the War Room's header and
+  the road-out banner. For a top or bottom edge `length` is depth (the width is already 100%), so
+  the plan's `length={width}` drew a frost as deep as the screen is wide; the default 96px then
+  ran through the text on the A51, and `FROST_RIM_REACH = 24` is what a rim uses. Blocked users
+  became The Frozen Gate ("Shut out on the fourth dawn", Thaw, "No one is shut out. The gate is
+  warm." on the door); the ember toast leads with the flame glyph (3.64:1 on the panel; rime on the
+  warning strip 6.88:1, both asserted in the palette test).
+- **The Guild House** (`app/membership.tsx`): one hero with three floors top to bottom, "You are
+  here" in the tier's metal, perks as one sentence from the engine's `featureKeys`, the duration
+  row, and one forged "Climb" whose accessibility label still says where ("Climb to The Hall") —
+  the kit's two-word law outranked the plan's "Climb to The High Table". The redraw had dropped the
+  total and the discount for three- and six-month terms; both came back as one line under the
+  terms, with their old Mongolian from git. Floor order comes from the engine's tiers, not the
+  theme's key order.
+- **The Hall of Names** (`app/leaderboard.tsx`): Roman numerals (`lib/numerals.ts` — `romanNumeral`
+  strict to 3999, `rankNumeral` for a city-sized rank that would otherwise throw inside
+  `renderItem`), the gem sigil and tier name, the score on stone, your row under a torch with
+  "AMETHYST · YOUR MARK". `TorchGlow` sizes its child to a square, so on the device the own row
+  collapsed to a 56px column until the torch went behind the row as an absolute layer.
+- **The Ascent as a night sky** (`components/progression/AscentSky.tsx`): six stars on a dashed
+  climb over `NIGHT.black → NIGHT.blue`, reached tiers in their gem colours, the held one at r=7
+  with a halo that breathes only when motion is allowed, labels "Opal · 100", "Amethyst · you,
+  335", "Sapphire · 265 to go", "the sky beyond" above the top; thresholds via the new
+  `tierThresholdsSnapshot()`. The streak numeral sits under the sky with "dawns in a row" and the
+  longest streak on one line (`StreakSummary` and the dead `Lantern` deleted; `XPBar` stays for
+  the profile). The group's accessibility label carries both streaks.
+- **The Campaign as a cave**: I–VII, "The Meeting Cave", "The Hall of Echoes", "The Gate of
+  Voices", " · sealed" on locked names, the dragon's line on the locked threshold, the one forged
+  "Claim +5" on the first claimable room and ink on any later one, the fog the world layer already
+  draws for the `deep` room. The cave frame, the dragon and the bats are an illustrator's; the
+  placement is a comment in the column.
+- **The keepsake** is a Wanted poster (blackletter "Wanted", "FOR FATE, HONESTLY KEPT", the
+  portrait in a gold frame with a knot at the corner, name, "AMETHYST · 335", "One dawn and
+  burning. Never let a fire die.", the wordmark, a wax seal) behind a full-screen preview with
+  forged "Post it" and ink "Keep it"; the off-screen capture stays the source, and the portrait can
+  only be the signed-in profile's — a test asserts every image uri in the tree is that one.
+- **The Flame Rite's five states, in the voice**: "Ask", "You have asked. A candle until they
+  answer." beside the candle, "They have asked for it." with ink "Not yet" and the one forged
+  "Accept", "Step in", "Flame-tested" with the flame and "Two faces met across the glass."; the
+  call's candle beside the countdown, "Douse the fire?", "Try again". `%{minutes}` kept for parity
+  with the Mongolian.
+- **Review findings worth keeping.** The plan's `FrostEdge length={width}` (three sites) and
+  `judgedAtDawn` formula were both defects faithfully implemented and caught only by the device
+  and the whole-wave review; a grouped `Tap`/`View` with an `accessibilityLabel` silences its
+  children's text, which bit twice (the sky's longest streak, the tile's verdict). The i18n
+  coverage test accepts a key mentioned in a comment as "referenced" — two Task 2 keys rode on a
+  JSDoc backtick until their readers landed. `TownSquareControllerIntegrationTests.GetNextSession_
+  UpcomingOpenSession_ReturnsItWithRsvpFlag` fails on the dev database because a seeded Open
+  session from 2026-09-09 (never advanced — the engine was not running) sorts before the fixture's;
+  green in CI's empty database.
+- **Deliberately left:** the hearth, the plaza, the Second Bell, the Satchel, candle-lit and bell
+  feedback rows (Wave 4); the cave frame, dragon and bats (illustrator); a Cyrillic blackletter;
+  White Moon frost (check `lib/festivals.ts` first); the Frozen Gate's dawn line does not tick
+  past midnight while open (the list and the thread do); the keepsake's `share_failed` message
+  resurfaces on reopening the preview; "the sky beyond" shows over unreached stars too; the
+  Guild's "Boss" chip on the campaign may now be redundant; the TownSquare test's shared-DB
+  workaround; stripping comments from the coverage test's source blob. Test count 1069 → 1157.
+
 ## Sealed Fire — Wave 2, the thesis (2026-09-12)
 
 Fifteen commits `c24ce8c..4819acc` (the task list, eleven tasks, two fix rounds, one final batch),
