@@ -80,7 +80,6 @@ export const mn = {
   tier_perk_label: 'Зэргийн хишиг',
   daily_matches: 'өдрийн тохирол',
   tier_perk_next_preview: 'Дараагийн зэрэг: +%{bonus} өдрийн тохирол',
-  streak_current: 'Одоогийн дараалал',
   streak_longest: 'Хамгийн урт дараалал',
   no_score_events: 'Ононы түүх алга байна — дурсамж бүтээгээрэй.',
   event_profile_complete: 'Профайл дууссан',

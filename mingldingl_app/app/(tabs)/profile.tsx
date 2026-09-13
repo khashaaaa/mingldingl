@@ -161,6 +161,8 @@ export default function ProfileScreen() {
             gemTier={gemTier}
             totalScore={scoreDetail.totalScore ?? 0}
             currentStreak={scoreDetail.currentStreak ?? 0}
+            oath={profile.oath}
+            oathProven={profile.oathProven}
           />
         </View>
 

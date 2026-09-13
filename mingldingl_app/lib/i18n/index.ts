@@ -81,6 +81,10 @@ export const AWAITING_MN_TRANSLATION = [
   // The Campaign as a cave (Wave 3 move 9): the sub-line under the header and the dragon's
   // locked-boss line.
   'campaign_sub', 'campaign_dragon_sleeps',
+  // The keepsake card (Wave 3 move 10): the shareable character card as a Wanted poster and its
+  // full-screen preview.
+  'wanted', 'wanted_for', 'wanted_for_none', 'keepsake_line', 'keepsake_line_none',
+  'post_it', 'keep_it', 'keepsake_preview',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

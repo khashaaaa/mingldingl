@@ -43,12 +43,18 @@ describe('ulzii ornament layer', () => {
     expect(getByTestId('ulzii-fill-fret')).toBeTruthy();
   });
 
-  it('CharacterCard wears the woven frame with knot-locked corners', () => {
-    const { getAllByTestId } = render(
-      <CharacterCard displayName="Сарнай" gemTier="Sapphire" totalScore={748} currentStreak={12} />,
+  it('CharacterCard, redrawn as a Wanted poster (Sealed Fire W3 move 10), knots the portrait\'s corner', () => {
+    const { getByTestId } = render(
+      <CharacterCard
+        displayName="Сарнай"
+        gemTier="Sapphire"
+        totalScore={748}
+        currentStreak={12}
+        oath={null}
+        oathProven={false}
+      />,
     );
-    expect(getAllByTestId('ulzii-frame-edge')).toHaveLength(4);
-    expect(getAllByTestId('ulzii-frame-corner')).toHaveLength(4);
+    expect(getByTestId('ulzii-frame-corner', { includeHiddenElements: true })).toBeTruthy();
   });
 
   it('OathSigil marks each oath with its own knot image', () => {

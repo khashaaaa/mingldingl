@@ -97,7 +97,6 @@ export const en = {
   tier_perk_label: 'Tier Boon',
   daily_matches: 'daily matches',
   tier_perk_next_preview: 'Next tier: +%{bonus} daily matches',
-  streak_current: 'Current Streak',
   streak_longest: 'Longest Streak',
   // The Ascent as a night sky (Wave 3): the progression screen's six gem stars, climbing bottom-left
   // to top-right. `ascent_you`/`ascent_to_go` label the held and next star; `ascent_beyond` sits
@@ -481,6 +480,17 @@ export const en = {
   next_action_quest_progress: '%{progress}/%{target} — finish today\'s quest for the chest',
   next_action_streak: 'Come back tomorrow to keep your %{days}-day streak',
   share_character: 'Share Character',
+  // The keepsake card (Wave 3 move 10): the shareable character card redrawn as a Wanted poster,
+  // with a full-screen preview before it ever leaves the app. `wanted` is set once, in blackletter,
+  // regardless of locale — the poster is a shared image, not a sentence read aloud in the app.
+  wanted: 'Wanted',
+  wanted_for: 'For %{oath}, honestly kept',
+  wanted_for_none: 'For a fire, honestly kept',
+  keepsake_line: '%{dawns} dawns and burning. Never let a fire die.',
+  keepsake_line_none: 'A fire lately lit. Never let it die.',
+  post_it: 'Post it',
+  keep_it: 'Keep it',
+  keepsake_preview: 'Your keepsake',
   hall_of_names: 'Hall of Names',
   hall_sub: '%{city}. Carved, not listed. Names are hidden by the rules of the house, so the stone holds sigils.',
   your_mark: 'Your mark',
