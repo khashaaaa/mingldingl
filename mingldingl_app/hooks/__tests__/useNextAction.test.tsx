@@ -98,13 +98,13 @@ describe('useNextAction priority order', () => {
   it('keeps the match nameless below reveal level 2, even when the engine sent a name', () => {
     setAllSources({ matches: [match({ matchId: 'm42', icebreakerComplete: false, revealLevel: 1, otherUser: { displayName: 'Sam' } })] });
     const { result } = renderHook(() => useNextAction());
-    expect(result.current).toEqual({ kind: 'icebreaker', matchId: 'm42', name: '??? • Mystery' });
+    expect(result.current).toEqual({ kind: 'icebreaker', matchId: 'm42', name: 'A sealed one' });
   });
 
   it('falls back to the mystery name if the pending match has no displayName', () => {
     setAllSources({ matches: [match({ icebreakerComplete: false, revealLevel: 2, otherUser: {} })] });
     const { result } = renderHook(() => useNextAction());
-    expect(result.current).toEqual({ kind: 'icebreaker', matchId: 'm1', name: '??? • Mystery' });
+    expect(result.current).toEqual({ kind: 'icebreaker', matchId: 'm1', name: 'A sealed one' });
   });
 
   it('ignores a Pending/Ghosted/Completed match even with an incomplete icebreaker', () => {

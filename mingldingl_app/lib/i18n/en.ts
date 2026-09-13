@@ -147,6 +147,11 @@ export const en = {
   chronicle_admin_adjustment: 'The keepers weighed the ledger, %{delta}',
   chronicle_campaign_room_bonus: 'A chamber of the deep was cleared, %{delta}',
   chronicle_campaign_boss_bonus: 'The seal of the deep was broken, %{delta}',
+  // The chronicle's day marker (Sealed Fire W4 Task 6), mirroring `hearth_dawn`: `%{dawn}` is
+  // `ordinalWord(threadDay(item.createdAt, joinedAt))`. Unlike the hearth there is always a real
+  // date to fall back to, so a reader with no `joinedAt` just gets the plain date instead of a
+  // second "unknown" line.
+  chronicle_dawn: 'The %{dawn} dawn',
   retry: 'Retry',
 
   ...errorsEn,
@@ -459,7 +464,7 @@ export const en = {
   error_boundary_title: 'The Path Falters',
   error_boundary_message: 'Something went wrong on this leg of the journey. Try again, brave one.',
   error_boundary_retry: 'Try Again',
-  mystery_match_name: '??? • Mystery',
+  mystery_match_name: 'A sealed one',
   unknown_name: 'A sealed one',
   deleted_user: 'A name struck',
   tier_up_title: 'Ascended to %{tier}!',

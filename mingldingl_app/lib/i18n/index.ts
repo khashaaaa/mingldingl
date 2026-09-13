@@ -99,6 +99,8 @@ export const AWAITING_MN_TRANSLATION = [
   'their_turn', 'your_turn', 'hearth_no_fires',
   'dest_fire', 'dest_letters', 'dest_square', 'dest_forge', 'dest_mirror', 'dest_satchel',
   'hearth_law',
+  // The chronicle counts dawns too (Wave 4 Task 6): its own day-marker heading.
+  'chronicle_dawn',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

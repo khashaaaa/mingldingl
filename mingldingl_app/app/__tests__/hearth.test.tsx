@@ -245,8 +245,8 @@ describe('the fires judged at this dawn', () => {
       }],
     });
     const { getByText, queryByText } = renderScreen();
-    // `unknown_name`, not the Quest Log's `??? • Mystery` — a tile can wear a placeholder where a
-    // name goes, but "??? • Mystery's fire burns." is not a sentence.
+    // `unknown_name`, not the Quest Log's `mystery_match_name` — a tile can wear a placeholder
+    // where a name goes, but the two keys are free to read differently once either one changes.
     expect(getByText("A sealed one's fire burns. Your turn.")).toBeTruthy();
     expect(queryByText(/Riley/)).toBeNull();
   });

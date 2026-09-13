@@ -49,9 +49,9 @@ const FALLBACK_SKY_WIDTH = 320;
 /** The three days of Tsagaan Sar, whichever year's window is running. */
 const WHITE_MOON_PREFIX = 'tsagaan-sar';
 
-/** What a thread is allowed to call the other person at its current reveal level. The Quest Log's
- *  `mystery_match_name` ("??? • Mystery") is a placeholder where a *name* goes and does not survive
- *  being dropped into a sentence, so a sealed thread borrows `unknown_name` instead. */
+/** What a thread is allowed to call the other person at its current reveal level. The Quest Log
+ *  has its own placeholder key (`mystery_match_name`) for the same idea; a sealed thread uses
+ *  `unknown_name` instead so the two contexts can read differently if either one's copy diverges. */
 function fireName(match: Match): string {
   if (match.otherUser.isDeleted) return i18n.t('deleted_user');
   if (match.revealLevel < 2) return i18n.t('unknown_name');

@@ -223,9 +223,9 @@ export default function ChatScreen() {
   }, [matchId]);
 
   // `name` is a route param frozen when the quest-log row was tapped, so a match that crossed the
-  // level-2 reveal threshold mid-conversation kept a "??? • Mystery" header while the reveal strip
-  // right below it already read "2 of 3 photos". Derive it from the live match instead, and keep
-  // the param only as the first-paint value while `useMatches` is still in flight.
+  // level-2 reveal threshold mid-conversation kept its stale mystery-name header while the reveal
+  // strip right below it already read "2 of 3 photos". Derive it from the live match instead, and
+  // keep the param only as the first-paint value while `useMatches` is still in flight.
   const revealedName = match
     ? match.otherUser.isDeleted
       ? i18n.t('deleted_user')

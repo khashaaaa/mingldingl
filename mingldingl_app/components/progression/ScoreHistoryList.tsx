@@ -1,10 +1,12 @@
-import { FlatList, View, Text, StyleSheet } from 'react-native';
+import { SectionList, View, Text, StyleSheet } from 'react-native';
 import { i18n, tKey } from '../../lib/i18n';
 import { Icon } from '../ui/Icon';
 import { formatDate } from '../../lib/formatDate';
+import { ordinalWord, threadDay } from '../../lib/worldTime';
 import { Waiting } from '../ui/Waiting';
 import { Entering } from '../ui/Entering';
-import { FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { CardEyebrow } from '../ui/CardEyebrow';
+import { FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE, SURFACE } from '../../lib/theme';
 import { EmptyHint } from '../ui/StateBlock';
 interface ScoreEventItem {
   eventType: string;
@@ -16,6 +18,10 @@ interface Props {
   items: ScoreEventItem[];
   onEndReached: () => void;
   isFetchingNextPage: boolean;
+  /** The wanderer's join date (`UserProfile.joinedAt`), so days can be worded as dawns like the
+   *  hearth's own heading. Absent while the profile is still loading — the list then falls back
+   *  to the plain date, same as before this became a SectionList. */
+  joinedAt?: string;
 }
 
 type EventGlyph = React.ComponentProps<typeof Icon>['name'];
@@ -110,7 +116,43 @@ function eventLine(eventType: string, delta: number): string {
   return tKey(EVENT_TYPE_KEYS[eventType], eventType);
 }
 
-export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Props) {
+interface ChronicleSection {
+  key: string;
+  createdAt: string;
+  data: ScoreEventItem[];
+}
+
+/** Local-day key so two instants in the same wall-clock day land in one section — grouping by the
+ *  UTC boundary instead would occasionally split "today" in half for users west of Greenwich. */
+function localDayKey(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/**
+ * Groups the (already newest-first) feed into one section per run of same-local-day items. A
+ * plain `groupBy` would also merge two separated runs of the same calendar day back into one
+ * section, which can't happen here since the feed only ever moves backward in time.
+ */
+function groupByDay(items: ScoreEventItem[]): ChronicleSection[] {
+  const sections: ChronicleSection[] = [];
+  for (const item of items) {
+    const key = localDayKey(item.createdAt);
+    const current = sections[sections.length - 1];
+    if (current && current.key === key) current.data.push(item);
+    else sections.push({ key, createdAt: item.createdAt, data: [item] });
+  }
+  return sections;
+}
+
+/** The chronicle's day heading: a dawn count against `joinedAt`, exactly like `hearth_dawn`, or
+ *  the plain date once there's no join date to count from — the dateline this replaced. */
+function sectionHeading(createdAt: string, joinedAt: string | undefined): string {
+  if (!joinedAt) return formatDate(createdAt);
+  return i18n.t('chronicle_dawn', { dawn: ordinalWord(threadDay(createdAt, joinedAt)) });
+}
+
+export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage, joinedAt }: Props) {
   if (items.length === 0) {
     return (
       <View style={styles.empty}>
@@ -120,11 +162,16 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
   }
 
   return (
-    <FlatList
-      data={items}
+    <SectionList
+      sections={groupByDay(items)}
       keyExtractor={(item, index) => `${item.eventType}-${item.createdAt}-${index}`}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
+      renderSectionHeader={({ section }) => (
+        <CardEyebrow style={styles.sectionHeading}>
+          {sectionHeading(section.createdAt, joinedAt)}
+        </CardEyebrow>
+      )}
       ListFooterComponent={isFetchingNextPage ? (
         <View style={styles.footer}>
           <Waiting size={ICON_SIZES.md} />
@@ -134,14 +181,12 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage }: Pr
         const icon: EventGlyph = EVENT_ICONS[item.eventType] ?? 'star-four-points';
         const sign = item.delta >= 0 ? '+' : '';
         const color = item.delta >= 0 ? METAL.gold : METAL.ember;
-        const date = formatDate(item.createdAt);
         return (
           <Entering index={index}>
             <View style={styles.row}>
               <Icon name={icon} size={ICON_SIZES.md} color={INK.dim} style={styles.icon} />
               <View style={styles.body}>
                 <Text style={styles.line}>{eventLine(item.eventType, item.delta)}</Text>
-                <Text style={styles.dateline}>{date}</Text>
               </View>
               <Text style={[styles.delta, { color }]}>{sign}{item.delta}</Text>
             </View>
@@ -159,12 +204,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: SURFACE.raised,
   },
   icon: { width: 18, textAlign: 'center' },
-  body: { flex: 1, gap: SPACE.xs },
+  body: { flex: 1 },
   line: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.primary },
-  dateline: {
-    fontSize: FONT_SIZES.xs, fontFamily: FONTS.utility, color: INK.dim,
-    letterSpacing: TRACKING.wide, textTransform: 'uppercase',
-  },
+  sectionHeading: { paddingTop: SPACE.md },
   delta: { fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   footer: { alignItems: 'center', paddingVertical: SPACE.lg },
   empty: { alignItems: 'center', padding: SPACE.huge },

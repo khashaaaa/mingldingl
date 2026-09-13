@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useScoreDetail } from '../hooks/useScoreDetail';
 import { useScoreHistory } from '../hooks/useScoreHistory';
+import { useProfile } from '../hooks/useProfile';
 import { GameHeader } from '../components/ui/GameHeader';
 import { AppCard } from '../components/ui/AppCard';
 import { AscentSky } from '../components/progression/AscentSky';
@@ -25,6 +26,7 @@ export default function ProgressionScreen() {
   const router = useRouter();
   const { data: detail, isLoading, error, refetch } = useScoreDetail();
   const { data: historyItems, fetchNextPage, hasNextPage, isFetchingNextPage } = useScoreHistory();
+  const { data: profile } = useProfile();
   const [skyWidth, setSkyWidth] = useState(FALLBACK_SKY_WIDTH);
 
   if (isLoading) {
@@ -86,6 +88,7 @@ export default function ProgressionScreen() {
         )}
         onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
         isFetchingNextPage={isFetchingNextPage}
+        joinedAt={profile?.joinedAt}
       />
     </View>
   );
