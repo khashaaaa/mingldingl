@@ -44,14 +44,25 @@ describe('worldWhenText', () => {
 });
 
 describe('ordinalWord', () => {
-  it('uses words to twelve and suffixed numerals beyond', () => {
+  // Thirty-one because the longest thing counted in ordinals is a run of dawns, and a month is as
+  // far as a person reads one as a word ("the fourteenth dawn"); past that it is a number again.
+  it('uses words to thirty-one', () => {
     expect(ordinalWord(1)).toBe('first');
     expect(ordinalWord(3)).toBe('third');
     expect(ordinalWord(12)).toBe('twelfth');
-    expect(ordinalWord(13)).toBe('13th');
-    expect(ordinalWord(21)).toBe('21st');
-    expect(ordinalWord(22)).toBe('22nd');
-    expect(ordinalWord(23)).toBe('23rd');
+    expect(ordinalWord(13)).toBe('thirteenth');
+    expect(ordinalWord(14)).toBe('fourteenth');
+    expect(ordinalWord(20)).toBe('twentieth');
+    expect(ordinalWord(21)).toBe('twenty-first');
+    expect(ordinalWord(30)).toBe('thirtieth');
+    expect(ordinalWord(31)).toBe('thirty-first');
+  });
+
+  it('falls back to a suffixed numeral past thirty-one', () => {
+    expect(ordinalWord(32)).toBe('32nd');
+    expect(ordinalWord(41)).toBe('41st');
+    expect(ordinalWord(42)).toBe('42nd');
+    expect(ordinalWord(43)).toBe('43rd');
     expect(ordinalWord(111)).toBe('111th');
     expect(ordinalWord(112)).toBe('112th');
   });

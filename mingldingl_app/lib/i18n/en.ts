@@ -559,6 +559,17 @@ export const en = {
   ordinal_1: 'first', ordinal_2: 'second', ordinal_3: 'third', ordinal_4: 'fourth',
   ordinal_5: 'fifth', ordinal_6: 'sixth', ordinal_7: 'seventh', ordinal_8: 'eighth',
   ordinal_9: 'ninth', ordinal_10: 'tenth', ordinal_11: 'eleventh', ordinal_12: 'twelfth',
+  // To the thirty-first, because the longest run counted in ordinals is a run of dawns and a date
+  // within the month reads as a word (`ORDINAL_WORDS_TO` in lib/worldTime.ts). Spelled out rather
+  // than assembled from "twenty" + "first": the words are copy, and another language will not build
+  // them the same way.
+  ordinal_13: 'thirteenth', ordinal_14: 'fourteenth', ordinal_15: 'fifteenth',
+  ordinal_16: 'sixteenth', ordinal_17: 'seventeenth', ordinal_18: 'eighteenth',
+  ordinal_19: 'nineteenth', ordinal_20: 'twentieth', ordinal_21: 'twenty-first',
+  ordinal_22: 'twenty-second', ordinal_23: 'twenty-third', ordinal_24: 'twenty-fourth',
+  ordinal_25: 'twenty-fifth', ordinal_26: 'twenty-sixth', ordinal_27: 'twenty-seventh',
+  ordinal_28: 'twenty-eighth', ordinal_29: 'twenty-ninth', ordinal_30: 'thirtieth',
+  ordinal_31: 'thirty-first',
   count_1: 'one', count_2: 'two', count_3: 'three', count_4: 'four',
   count_5: 'five', count_6: 'six', count_7: 'seven', count_8: 'eight',
   count_9: 'nine', count_10: 'ten', count_11: 'eleven', count_12: 'twelve',
@@ -707,9 +718,10 @@ export const en = {
   // The hearth itself (Sealed Fire W4 Task 5, move 6). The room's name is `room_hearth` above —
   // the header reads it off the `ROOMS` table rather than keeping a second copy of "The Hearth".
   //
-  // `hearth_dawn`'s `%{dawn}` is `ordinalWord(threadDay(now, joinedAt))`, so it words itself up to
-  // the twelfth dawn and falls back to the numeral past it, exactly as the fire's own dawn counts
-  // do. A `%{dawn}` with nothing behind it would read "The dawn", hence the separate unknown line.
+  // `hearth_dawn`'s `%{dawn}` is `ordinalWord(threadDay(now, joinedAt))`, so it words itself to the
+  // thirty-first dawn and falls back to a suffixed numeral past it. A `%{dawn}` with nothing behind
+  // it would read "The dawn", hence the separate unknown line — which is for a *loaded* profile
+  // with no joining day, never for one still in flight.
   hearth_dawn: 'The %{dawn} dawn',
   hearth_dawn_unknown: 'A new dawn',
   hearth_sky: 'The sky over the hearth is the real sky. Night while you sleep, dawn when the fires are judged, day, dusk. Your streak is counted in the dawns you were here for.',

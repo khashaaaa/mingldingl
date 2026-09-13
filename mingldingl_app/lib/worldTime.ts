@@ -60,8 +60,17 @@ export function worldTimeSpoken(): boolean {
   return i18n.locale === 'en';
 }
 
+/** How far an ordinal is still a word. A month, because the longest run this app counts in
+ *  ordinals is a run of dawns — the hearth's "the fourteenth dawn" — and a person reads a date
+ *  within the month as a word and anything past it as a number. It stopped at twelve first, which
+ *  put "The 14th dawn" on the hearth beside "the fourteenth day" everywhere else. */
+const ORDINAL_WORDS_TO = 31;
+
+/** An ordinal in words to the thirty-first, a suffixed numeral beyond ("32nd", "111th"). Localised
+ *  through `ordinal_N` rather than assembled here, because the words are copy: Mongolian does not
+ *  build "twenty-first" out of "twenty" and "first" the way English does. */
 export function ordinalWord(n: number): string {
-  if (n >= 1 && n <= 12) return i18n.t(`ordinal_${n}`);
+  if (n >= 1 && n <= ORDINAL_WORDS_TO) return i18n.t(`ordinal_${n}`);
   const rem100 = n % 100;
   const rem10 = n % 10;
   const suffix = rem100 >= 11 && rem100 <= 13 ? 'th' : rem10 === 1 ? 'st' : rem10 === 2 ? 'nd' : rem10 === 3 ? 'rd' : 'th';
@@ -69,7 +78,11 @@ export function ordinalWord(n: number): string {
 }
 
 /** A small count in words, one through twelve, falling back to the numeral beyond — the fire's
- *  dawn counts read as prose ("Two dawns of silence"), not a digit dropped into a sentence. */
+ *  dawn counts read as prose ("Two dawns of silence"), not a digit dropped into a sentence.
+ *
+ *  Deliberately shorter than `ordinalWord`'s reach: an ordinal names a day within a month and is
+ *  read as a word that far, while a *count* of twenty-seven dawns is a quantity, and a quantity
+ *  past a dozen is clearer as a numeral. The two ranges are not meant to match. */
 export function countWord(n: number): string {
   if (n >= 1 && n <= 12) return i18n.t(`count_${n}`);
   return String(n);

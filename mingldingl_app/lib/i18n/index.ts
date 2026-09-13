@@ -48,6 +48,11 @@ export const AWAITING_MN_TRANSLATION = [
   'gates_close', 'first_bell', 'verify_match_burns',
   'ordinal_1', 'ordinal_2', 'ordinal_3', 'ordinal_4', 'ordinal_5', 'ordinal_6',
   'ordinal_7', 'ordinal_8', 'ordinal_9', 'ordinal_10', 'ordinal_11', 'ordinal_12',
+  // Thirteen through thirty-one arrived with the hearth's dawn count (Wave 4 Task 5).
+  'ordinal_13', 'ordinal_14', 'ordinal_15', 'ordinal_16', 'ordinal_17', 'ordinal_18',
+  'ordinal_19', 'ordinal_20', 'ordinal_21', 'ordinal_22', 'ordinal_23', 'ordinal_24',
+  'ordinal_25', 'ordinal_26', 'ordinal_27', 'ordinal_28', 'ordinal_29', 'ordinal_30',
+  'ordinal_31',
   // The fire's state (Wave 3 move 2). The dawn counts and most of this copy are read by
   // lib/fire.ts's fireLine/fireEyebrow/fireVerdict; fire_law is the Quest Log's footer and
   // fire_embers_strip(_one) is the chat screen's embers banner (app/chat/[matchId].tsx).

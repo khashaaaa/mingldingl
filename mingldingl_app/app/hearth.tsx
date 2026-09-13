@@ -5,6 +5,9 @@ import { HeaderBar } from '../components/ui/HeaderBar';
 import { AppCard } from '../components/ui/AppCard';
 import { CardEyebrow } from '../components/ui/CardEyebrow';
 import { CandleRow } from '../components/hearth/CandleRow';
+import { GameButton } from '../components/ui/GameButton';
+import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
+import { StateBlock } from '../components/ui/StateBlock';
 import { DawnFires, type DawnFire } from '../components/hearth/DawnFires';
 import { Destinations } from '../components/hearth/Destinations';
 import { SkyWindow } from '../components/hearth/SkyWindow';
@@ -25,7 +28,7 @@ import { useLocaleStore } from '../store/localeStore';
 import { ordinalWord, threadDay } from '../lib/worldTime';
 import { dayPhase } from '../lib/world/light';
 import { ROOMS } from '../lib/world/rooms';
-import { FONTS, FONT_SIZES, INK, LEADING, SPACE } from '../lib/theme';
+import { FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, RADIUS, SPACE } from '../lib/theme';
 import type { Match } from '../models/match';
 
 /**
@@ -49,20 +52,28 @@ const FALLBACK_SKY_WIDTH = 320;
 /** The three days of Tsagaan Sar, whichever year's window is running. */
 const WHITE_MOON_PREFIX = 'tsagaan-sar';
 
-/** What a thread is allowed to call the other person at its current reveal level. The Quest Log
- *  has its own placeholder key (`mystery_match_name`) for the same idea; a sealed thread uses
- *  `unknown_name` instead so the two contexts can read differently if either one's copy diverges. */
+/**
+ * What a thread is allowed to call the other person at its current reveal level. The Quest Log
+ * has its own placeholder key (`mystery_match_name`) for the same idea; a sealed thread uses
+ * `unknown_name` instead so the two contexts can read differently if either one's copy diverges.
+ *
+ * The seal is tested **first**, the order `QuestTile` already keeps: "A name struck" is a fact about
+ * a person the reveal ladder has not handed over yet, so a sealed thread whose partner has since
+ * deleted must still read as sealed rather than announce that someone left.
+ */
 function fireName(match: Match): string {
-  if (match.otherUser.isDeleted) return i18n.t('deleted_user');
   if (match.revealLevel < 2) return i18n.t('unknown_name');
+  if (match.otherUser.isDeleted) return i18n.t('deleted_user');
   return match.otherUser.displayName ?? i18n.t('unknown_name');
 }
 
 export default function HearthScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
-  const { data: profile } = useProfile();
-  const { data: matches } = useMatches();
+  const { data: profile, isLoading: profileLoading } = useProfile();
+  // `useMatches` is `silentError`, so nothing else on the app will report a failed load — this
+  // screen has to, or an empty ledger reads as "you have no threads".
+  const { data: matches, isLoading: matchesLoading, isError: matchesError, refetch: refetchMatches } = useMatches();
   const myId = useMyUserId();
   const windows = useGhostingWindows();
   const { milestones } = useMilestones();
@@ -78,8 +89,8 @@ export default function HearthScreen() {
   const whiteMoon = festival?.key.startsWith(WHITE_MOON_PREFIX) ?? false;
 
   // Which dawn this is, counted the way a thread's days are counted — local midnights since you
-  // joined, the joining day being the first. `ordinalWord` words it to the twelfth and falls back
-  // to the numeral past that, exactly as the fires' own dawn counts do.
+  // joined, the joining day being the first. `ordinalWord` words it to the thirty-first and falls
+  // back to a suffixed numeral past that.
   const dawnEyebrow = profile?.joinedAt
     ? i18n.t('hearth_dawn', { dawn: ordinalWord(threadDay(new Date(now).toISOString(), profile.joinedAt)) })
     : i18n.t('hearth_dawn_unknown');
@@ -104,7 +115,12 @@ export default function HearthScreen() {
             <SkyWindow phase={phase} width={skyWidth} whiteMoon={whiteMoon} />
           </View>
           <View style={styles.cardBody}>
-            <CardEyebrow>{dawnEyebrow}</CardEyebrow>
+            {/* `hearth_dawn_unknown` is for a *loaded* profile with no joining day; a profile still
+                in flight has no dawn to name yet, and saying "a new dawn" to a returning user would
+                be the app inventing one. */}
+            {profileLoading
+              ? <Skeleton width="45%" height={FONT_SIZES.xs} style={styles.eyebrowSkeleton} />
+              : <CardEyebrow>{dawnEyebrow}</CardEyebrow>}
             {whiteMoon ? (
               <>
                 <CardEyebrow>{i18n.t('hearth_white_moon')}</CardEyebrow>
@@ -136,8 +152,25 @@ export default function HearthScreen() {
         </View>
 
         <View style={styles.section}>
+          {/* The eyebrow stands in all three states: the ledger is the same part of the screen
+              whether it is waiting, broken or empty. */}
           <CardEyebrow>{i18n.t('hearth_judged')}</CardEyebrow>
-          <DawnFires fires={fires} />
+          {matchesLoading && (
+            <SkeletonRows count={3} row={() => (
+              <View style={styles.fireRowShape}>
+                <Skeleton width={ICON_SIZES.md} height={ICON_SIZES.md} radius={RADIUS.pill} />
+                <Skeleton width="72%" height={FONT_SIZES.md} />
+              </View>
+            )} />
+          )}
+          {!matchesLoading && matchesError && (
+            // `framed` rather than bare: an unframed block is `flex: 1` and would collapse to no
+            // height inside this scroll content. Ink, not forged — the hearth spends no forge.
+            <StateBlock framed tone="danger" icon="alert-circle-outline" title={i18n.t('screen_load_error')}>
+              <GameButton variant="ink" size="compact" onPress={() => refetchMatches()}>{i18n.t('retry')}</GameButton>
+            </StateBlock>
+          )}
+          {!matchesLoading && !matchesError && <DawnFires fires={fires} />}
         </View>
 
         <Text style={styles.law}>{i18n.t('hearth_law')}</Text>
@@ -155,6 +188,10 @@ const styles = StyleSheet.create({
   hearthCard: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, overflow: 'hidden' },
   cardBody: { padding: SPACE.lg, gap: SPACE.sm },
   waxBlock: { marginTop: SPACE.sm, gap: SPACE.sm },
+  // Holds the eyebrow's own bottom margin, so the card does not reflow when the dawn lands.
+  eyebrowSkeleton: { marginBottom: SPACE.sm },
+  // A judged fire's row: its mark, then its sentence.
+  fireRowShape: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.md },
   section: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   // Italic is the app speaking — the sky, the wax and the law are all the world stating itself.
   appVoice: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.md, lineHeight: LEADING.md, color: INK.dim },
