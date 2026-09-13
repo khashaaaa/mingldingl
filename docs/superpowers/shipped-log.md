@@ -10,6 +10,105 @@ written, not by date.
 
 ---
 
+## Sealed Fire — Wave 4, the hearth and the square (2026-09-13)
+
+Fifteen commits `7cc410c..1b1aede` (ten tasks, four fix rounds, one final fix wave), two engine
+tasks, EN strings only — the translator's list 150 → 245 (95 new keys, and twelve existing keys
+whose English was rewritten and whose Mongolian is therefore stale: `mystery_match_name`,
+`round_over_matches`, `round_over_no_matches`, `round_over_title`, `town_square_cancel_rsvp`,
+`town_square_empty_sub`, `town_square_in_progress`, `town_square_its_a_match`, `town_square_no`,
+`town_square_rejoin`, `town_square_rsvp`, `town_square_waiting_for_round`). Engine 971 tests, app
+1299 under `TZ=UTC`, swagger fresh, control build clean. **Not yet seen on the Galaxy A51** — the
+device pass is owed (below), and the dev build must be reinstalled first: `CandidateResponse.PhotoUrls`
+is gone from the wire, so an APK built before this wave shows blank candidate cards.
+
+- **The engine counts lanterns and remembers the day you came.** `TownSquareNextSession.rsvpCount`
+  / `roundCount` and `UserProfile.joinedAt` (appended, defaulted; `joinedAt` maps the existing
+  `CreatedAt`, no migration). While RSVP is open `roundCount` is `MaxPerSide`, an upper bound — the
+  real count is `min(men, women)` fixed at roster lock — so the plaza shows its rounds row only
+  once the gates are shut (final review).
+- **The likeness stays sealed on the wire.** A candidate never receives the full photo:
+  `PhotoCompressionService.SealAsync` (ImageSharp, longest side 320, Gaussian 18, JPEG q60) writes
+  `<name>-sealed.jpg` beside each original at upload; `DailyMaintenanceBackgroundService` backfills
+  missing siblings 200 per sweep (a corrupt file is logged and skipped); the orphan pruner owns a
+  sealed file through its original, since nothing references a sealed URL; `DeleteByPublicUrl`
+  removes the sibling on every deletion path (asserted in the anonymisation test).
+  `CandidateResponse.PhotoUrls` is **replaced** by `SealedPhotoUrl` (null until a sibling exists);
+  `Candidate` in `models/user.ts` drops `photoUrls`; `CandidateCard` keeps its veil over an
+  already-blurred image and stands the seal alone on the ground when there is none. Dev seed
+  fixtures live under `photos/seed/`, outside the sweep's `photos/profiles/` scope, so
+  `scripts/gen-seed-photos.py` now writes their sealed siblings with the same recipe (Pillow) —
+  production is untouched.
+- **Materials, the shared parchment, the sheet's entrance.** `MATERIAL` (wax, wood, iron,
+  bronze = brass, gold, parchment); `MaterialMark` (a glyph on a tinted swatch, labelled = image,
+  unlabelled = hidden); `ParchmentFill` retires the two hand-copied gradient+texture pairs in
+  `AppCard`'s hero and `DialogStrip`; `SheetModal` slides like `AlertModal`.
+- **The hearth's scaffolding.** `HEARTH_ENABLED` (true; the tab bar stays — the decision's default);
+  `/hearth` and `/satchel` in the `hearth` room; `HeaderBar` shows a way-home hearth tap on every
+  route but the hearth; `CandleRow` (stubs to sixteen then "+N", lit in wax with a flame dot,
+  spent in muted ink; one label with both numbers); `candleLit` and `bell` feedback rows with a
+  generated `candle.wav` and `bell.wav`, the nine older WAVs byte-identical. `HeaderBar`'s
+  `usePathname` needed a stub in fourteen screen tests' local `expo-router` mocks.
+- **The hearth** (`app/hearth.tsx`, one hero, no forged button): `SkyWindow` draws the real sky
+  from `dayPhase` (four gradients, twelve stars at night and dawn, a horizon glow at dawn and
+  dusk, frost rims on White Moon; labelled "Night." / "Dawn." / "Day." / "Dusk."); the dawn eyebrow
+  is `ordinalWord(threadDay(now, joinedAt))` — `ordinalWord` now words one to thirty-one through
+  `ordinal_13`…`ordinal_31` keys (the plan's "The fourteenth dawn" test forced it; digits with a
+  suffix beyond); the sky sentence, the candle row and its law; First Steps and the gathering
+  pill moved here from the profile and the matches tab (`DailyBudgetMeter` deleted with its keys);
+  `Destinations` (five rooms and the Satchel); `DawnFires` under "Judged at this dawn" — frozen
+  first, then embers, then burning, one sentence each, tap into the thread. Skeletons while the
+  profile or matches load and a retry block when matches fail (a cold start must not say "A new
+  dawn" or "No fires yet."); the seal is checked before deletion when naming a fire, as `QuestTile`
+  does, so a sealed thread never leaks "A name struck". `room_hearth` already said "The Hearth", so
+  no `hearth_title`; `PHASE_EDGE` was listed but nothing used it.
+- **The chronicle counts dawns.** `ScoreHistoryList` is a `SectionList` by local day headed "THE
+  ELEVENTH DAWN" (dates when `joinedAt` is unknown); `mystery_match_name` → "A sealed one".
+- **The Square as a plaza.** `Plaza` — a dashed square on cobbles, two gates (barred when shut),
+  the bell, up to twenty-four lantern glows at seeded positions never on the bell, yours in accent
+  with "YOU"; one image label. `SessionStatusCard` is the tab's hero: the plaza, the italic sub,
+  first bell and (once locked) rounds, the gates clock while open, forged "Light it" / ink "Put out";
+  in progress "The bells are ringing without you." + ink "Return"; quiet, a door. Buttons obey the
+  two-word law (`town_square_rsvp` → "Light it", `_cancel_rsvp` → "Put out", `_rejoin` → "Return");
+  the round-over block speaks of lanterns lit from both sides; `candleLit` fires once on RSVP.
+- **The Second Bell.** The round screen gets a `HeaderBar` titled "The First Bell" / "The Second
+  Bell" (blackletter under `en`), the countdown in furnace beside a bell glyph; `RoundPrompt` is a
+  parchment strip with an ember rule, "The question at the bell", "Then the bell. Decide.", ink
+  "Let pass" / forged "Light it", and "Your answer is kept until the bell." after; `bell` rings when
+  the round number increases, never on first load. Mounting the header put a live Agora call on the
+  shared chrome — the way-home tap and the atlas both `router.push`, which keeps the call mounted
+  and publishing — so `HeaderBar` gained `chrome={false}` (hides both, keeps title, back and the
+  report flag), the back arrow opens the leave dialog, and `RoundPrompt` hides once the call fails.
+- **The Satchel** (`app/satchel.tsx`, no hero, no forged): nine `SatchelRow`s in the board's order
+  — candles, arrows, lantern, oath sigil, the key, ally's word, worn honour, seals held, your
+  card — each a `MaterialMark`, a name, a line and a route; the summary from the first three
+  ("No candles." at zero); the law. A sworn, unproven oath with unknown counts reads "· sworn", never
+  "0 of 0 kept" (`OathCard`'s rule); the seals count reads the ladder through `useRevealLadder`.
+  The profile gained an ink link beside the Encounter Log.
+- **The leftovers.** Blocked users tick `useNowTicker`; the share button forgets a failed share when
+  the preview reopens; `blankComments` (already in `lib/testing/sourceTree.ts`, never called) is
+  now string- and escape-aware and blanks comments before the i18n coverage scan — its known limits
+  (an unescaped `//` inside a regex character class, nested templates, a JSX-text apostrophe) are
+  in its doc comment. No key was orphaned.
+
+**Deferred to a later wave** (from the reviews): `DawnFires` and the hearth duplicate `QuestTile`'s
+fire-colour map and name rule — `lib/fire.ts` is the home, and the duplication already produced one
+bug in this wave; `ScoreHistoryList` re-derives `worldTime`'s private `localDayIndex`; `countText()`
+double-casts to satisfy `i18n-js`'s `count: number` (rename the placeholder); four hidden-decoration
+prop conventions (`ParchmentFill`, `MaterialMark`, `Glyph`, `FrostEdge`); a shared `expo-router` mock
+factory for the fourteen stubs; the palette/forged/hero/furnace scanners still read raw text;
+`DawnFires` is unbounded; `mystery_match_name` and `unknown_name` are now the same words.
+
+**Device pass owed (A51, reinstalled dev build):** every Wave 4 screen; the White Moon hero's two
+stacked eyebrows; the sky's twelve stars under TalkBack; a sealed candidate after
+`python3 scripts/gen-seed-photos.py`; the way-home glyph from several rooms; the two new sounds.
+
+**Deliberately left after Wave 4:** a Cyrillic blackletter (a commissioned cut); the cave frame,
+dragon and bats and the hearth/plaza scenes as final art (illustrator); flipping `HEARTH_ENABLED`
+to replace the tab bar (a product decision); the translator's list; QPay/HiPay.
+
+---
+
 ## Sealed Fire — Wave 3, the place (2026-09-13)
 
 Seventeen commits `100e039..aa97c4d` (eleven tasks, five fix rounds, one final fix wave), one small
