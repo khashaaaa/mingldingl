@@ -1,6 +1,10 @@
-import { View, FlatList, RefreshControl, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMatches } from '../../hooks/useMatches';
+import { useMyUserId } from '../../hooks/useMyUserId';
+import { useGhostingWindows } from '../../hooks/useRevealThresholds';
+import { fireOf } from '../../lib/fire';
 import { QuestTile } from '../../components/quest/QuestTile';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { NextGatheringPill } from '../../components/townsquare/NextGatheringPill';
@@ -9,12 +13,24 @@ import { Entering } from '../../components/ui/Entering';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { ACCENT, FONT_SIZES, RADIUS, SPACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
+
+/** Dawns turn over at local midnight, not every second — a minute's staleness on "how many
+ *  dawns of silence" is invisible, so there is no reason to re-render on every tick. */
+const NOW_REFRESH_MS = 60_000;
+
 export default function MatchesScreen() {
   useLocaleStore((s) => s.locale);
   const { data: matches, isLoading, isError, isRefetching, refetch } = useMatches();
   const router = useRouter();
+  const myId = useMyUserId();
+  const windows = useGhostingWindows();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), NOW_REFRESH_MS);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <View style={styles.screen}>
@@ -58,10 +74,14 @@ export default function MatchesScreen() {
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT.base} colors={[ACCENT.base]} />
           }
+          ListFooterComponent={
+            <Text style={styles.law}>{i18n.t('fire_law')}</Text>
+          }
           renderItem={({ item, index }) => (
             <Entering index={index}>
               <QuestTile
                 match={item}
+                fire={fireOf(item, myId, now, windows)}
                 onPress={() => router.push({
                   pathname: `/chat/${item.matchId}` as any,
                   params: {
@@ -88,4 +108,6 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.sm },
   rowShape: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, padding: SPACE.md },
   rowLines: { flex: 1, gap: SPACE.xs },
+  // The app speaking, not either person in a thread — same register as SealsSheet's own `law`.
+  law: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center', padding: SPACE.lg },
 });

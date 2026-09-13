@@ -100,11 +100,19 @@ describe('world feedback', () => {
     expect(impact).toHaveBeenCalledWith('light');
   });
 
+  it('has a soft haptic for a fire dying, and loads nothing until sound is on', () => {
+    // The signal itself is fired by Task 4 (the chat screen), not from here — this only checks
+    // the row exists and behaves like every other event's row.
+    signal('fireDying');
+    expect(impact).toHaveBeenCalledWith('soft');
+    expect(Audio.createAudioPlayer).not.toHaveBeenCalled();
+  });
+
   it('has a row, with a haptic and a sound, for every event in the union', () => {
     // `satisfies` makes adding a WorldEvent without extending this list a typecheck failure.
     const events = {
       enterDeep: true, ascend: true, tierUp: true, sealBreak: true,
-      honour: true, pledgeKept: true, press: true, horn: true,
+      honour: true, pledgeKept: true, press: true, horn: true, fireDying: true,
     } satisfies Record<WorldEvent, true>;
     setSoundEnabled(true);
     for (const event of Object.keys(events) as WorldEvent[]) {

@@ -248,8 +248,6 @@ export const en = {
   upgrade_to: 'Upgrade to %{tier}',
   renew_tier: 'Renew %{tier}',
   quest_new: 'New Quest',
-  quest_in_progress: 'In Progress',
-  quest_active: 'Active',
   daily_matches_count: '%{n} matches/day',
   price_per_month: '₮%{amount} / month',
   price_total: '₮%{amount} total',

@@ -243,8 +243,6 @@ export const mn = {
   upgrade_to: '%{tier} зэрэгт шилжих',
   renew_tier: '%{tier} зэргээ сунгах',
   quest_new: 'Шинэ даалгавар',
-  quest_in_progress: 'Явагдаж байна',
-  quest_active: 'Идэвхтэй',
   daily_matches_count: 'Өдөрт %{n} тохирол',
   price_per_month: 'Сард ₮%{amount}',
   price_total: 'Нийт ₮%{amount}',

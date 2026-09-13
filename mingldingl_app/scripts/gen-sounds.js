@@ -1,4 +1,4 @@
-// scripts/gen-sounds.js — generates the world layer's eight event sounds.
+// scripts/gen-sounds.js — generates the world layer's nine event sounds.
 //
 // Same doctrine as gen-ornaments.js: assets are rendered from description, not committed as
 // opaque binaries nobody can adjust. Everything here is additive synthesis plus a one-pole
@@ -49,7 +49,7 @@ function render(durationS, fn) {
   return out;
 }
 
-// ---------- the eight ----------
+// ---------- the nine ----------
 
 /** Entering a delve: a door closing above you. Body, no sparkle. */
 function door() {
@@ -156,6 +156,21 @@ function horn() {
   });
 }
 
+/**
+ * A fire dying (Sealed Fire W3, move 7): a low crackle collapsing into itself. A 90 Hz sine —
+ * the fire's own body — under a lowpass-filtered crackle, both fading at the same rate so
+ * neither outlasts the other and reads as one thing going out rather than two.
+ */
+function dying() {
+  const dur = 0.6;
+  const crackle = noiseSource(0x6f2c1, 240);
+  return render(dur, (t) => {
+    const ember = sine(t, 90) * decay(t, dur, 7);
+    const crack = crackle() * decay(t, dur, 7);
+    return ember * 0.6 + crack * 0.4;
+  });
+}
+
 // ---------- encode ----------
 
 function normalise(samples, peak = 0.82) {
@@ -198,10 +213,12 @@ function toWav(samples) {
   return buf;
 }
 
-// The tick is the one sound that fires on every press, so it is held well below the others.
-const PEAKS = { tick: 0.5 };
+// The tick is the one sound that fires on every press, so it is held well below the others; the
+// dying crackle is quiet for the same reason the brief gives it — amplitude 0.5, not the ~0.82
+// peak everything else normalises to.
+const PEAKS = { tick: 0.5, dying: 0.5 };
 
-const SOUNDS = { door, rise, anvil, seal, honour, pledge, tick, horn };
+const SOUNDS = { door, rise, anvil, seal, honour, pledge, tick, horn, dying };
 
 const outDir = path.join(__dirname, '..', 'assets', 'sounds');
 fs.mkdirSync(outDir, { recursive: true });

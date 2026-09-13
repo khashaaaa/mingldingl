@@ -9,7 +9,8 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
  * moment here — every `GameButton` ticks on press-in — and `horn` is a short call for a summons.
  */
 export type WorldEvent =
-  | 'enterDeep' | 'ascend' | 'tierUp' | 'sealBreak' | 'honour' | 'pledgeKept' | 'press' | 'horn';
+  | 'enterDeep' | 'ascend' | 'tierUp' | 'sealBreak' | 'honour' | 'pledgeKept' | 'press' | 'horn'
+  | 'fireDying';
 
 type HapticKind = 'soft' | 'light' | 'medium' | 'heavy' | 'success';
 
@@ -29,6 +30,8 @@ const SIGNALS: Record<WorldEvent, EventDef> = {
   pledgeKept:{ haptic: 'success', sound: require('../../assets/sounds/pledge.wav') },
   press:     { haptic: 'soft',    sound: require('../../assets/sounds/tick.wav') },
   horn:      { haptic: 'light',   sound: require('../../assets/sounds/horn.wav') },
+  // A thread going cold — Task 4 (the chat screen) fires this, not the Quest Log itself.
+  fireDying: { haptic: 'soft',    sound: require('../../assets/sounds/dying.wav') },
 };
 
 const REPEAT_GAP_MS = 110;
