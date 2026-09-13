@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, type LayoutChangeEvent } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
@@ -60,13 +60,6 @@ export default function SettingsScreen() {
   const [changingPhone, setChangingPhone] = useState(false);
   const [saveFailedAlert, setSaveFailedAlert] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
-
-  // The War Room's own silence: every setting here is something you left behind, not something
-  // arriving. Measured because `FrostEdge` draws to a pixel width, not a percentage.
-  const [headerWidth, setHeaderWidth] = useState(0);
-  function handleHeaderLayout(e: LayoutChangeEvent) {
-    setHeaderWidth(e.nativeEvent.layout.width);
-  }
 
   async function handlePickLanguage(lang: (typeof LANGUAGE_OPTIONS)[number]) {
     await setLocale(lang);
@@ -156,9 +149,12 @@ export default function SettingsScreen() {
   return (
     <View style={styles.container}>
       <HeaderBar title={i18n.t('settings_title')}>
-        <View style={styles.headerFrostAnchor} onLayout={handleHeaderLayout}>
+        {/* `length` is the strip's *depth*, not its along-edge span — a top/bottom `FrostEdge`
+            already stretches to the full width on its own (`components/vfx/FrostEdge.tsx`), so
+            this takes the default reach exactly like `OfflineBanner`'s own bottom-edge mount. */}
+        <View style={styles.headerFrostAnchor}>
           <View style={styles.headerFrost} pointerEvents="none">
-            <FrostEdge edge="top" length={headerWidth} />
+            <FrostEdge edge="top" />
           </View>
         </View>
       </HeaderBar>
@@ -332,8 +328,8 @@ const styles = StyleSheet.create({
   fieldLabel: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
   dangerWrap: { marginTop: SPACE.lg },
   signOutWrap: { marginTop: SPACE.xs },
-  // Zero footprint: measures the header's width without adding to its height, so the frost
-  // below reads as part of the divider rather than a spacer row of its own.
+  // Zero footprint, so the frost below reads as part of the divider rather than a spacer row
+  // of its own; the absolutely-positioned child overlays from exactly this point in the flow.
   headerFrostAnchor: { height: 0 },
   headerFrost: { position: 'absolute', top: 0, left: 0, right: 0 },
 });

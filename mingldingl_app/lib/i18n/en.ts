@@ -195,7 +195,7 @@ export const en = {
   age_min_label: 'Min',
   age_max_label: 'Max',
   age_range_invalid: 'That range makes no sense — the floor is above the ceiling',
-  view_blocked_users: 'The Banished',
+  view_blocked_users: 'The Frozen Gate',
   blocked_users_title: 'The Frozen Gate',
   frozen_gate_sub: 'Names shut out in the cold. They cannot see you, summon you, or find you in the square.',
   blocked_users_empty: 'No one is shut out. The gate is warm.',
