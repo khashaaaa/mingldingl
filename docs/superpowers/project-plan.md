@@ -185,7 +185,217 @@ The task list lived here; its outcome is in `shipped-log.md` ("Sealed Fire — W
 left for Wave 4: the hearth, the plaza, the Second Bell, the Satchel, candle-lit and bell feedback
 rows; the cave frame, the dragon and the bats (illustrator); a Cyrillic blackletter; White Moon
 frost for three days (check `lib/festivals.ts` first); the Flame Rite card and the ember toast
-still unseen on a device. Wave 4's task list goes here, under a `### Task 0` sentinel, before it runs.
+still unseen on a device. Wave 4's task list follows.
+
+### Wave 4 — the hearth and the square (task list, written 2026-09-13)
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Give the app a home and a square: the hearth (behind a switch) with the real sky in its window, the day counted in dawns, the budget as candle stubs and the fires judged at this dawn; Town Square as a plaza of lanterns and the round as The Second Bell; the Satchel with its materials; the sealed Seek photo blurred on the server; and every carry-over the first three waves left (feedback rows, the sheet's entrance, the shared parchment, the chronicle's dawns, the leftovers list).
+
+**Architecture:** Two engine additions (an RSVP count and round count on the next-session response, the joining date on the user response) and one engine feature (a blurred "sealed" variant of each profile photo, generated at upload and by the daily sweep, served to candidates instead of the full photo list) feed the app. The hearth is a new route `app/hearth.tsx` reached from a hearth glyph in every header while `HEARTH_ENABLED` is on; the tab bar stays. The plaza and the bell are redraws of `SessionStatusCard`, the tab and the round screen over unchanged hooks. The Satchel is a view over existing queries. Materials are three theme tokens and one small mark component.
+
+**Tech Stack:** React Native 0.81 / Expo 54, `react-native-svg` (in the dev build), jest + `@testing-library/react-native`; ASP.NET Core 8 + xUnit, `SixLabors.ImageSharp` 3.1 (already referenced).
+
+**Spec:** this file, "The Sealed Fire" section (moves 6, 9, 13; the dials — the sky belongs to time, the Satchel and materials; the decision "The hearth replaces navigation" on its default). Boards: `docs/design/sealed-fire/boards/DawnHearth.dc.html`, `WhiteMoonHearth.dc.html`, `Hold.dc.html`, `Plaza.dc.html`, `SquareLaw.dc.html` (The Second Bell), `SquareAfter.dc.html`, `Satchel.dc.html`, `Materials.dc.html`, `WorldTime.dc.html`, `Sheets.dc.html`.
+
+#### Global constraints (every task's requirements include these)
+
+- **English only.** Every new i18n key goes in `lib/i18n/en.ts` *and* `AWAITING_MN_TRANSLATION` in `lib/i18n/index.ts`, never in `mn.ts`. Changing an existing key's English value leaves `mn.ts` alone and must keep placeholder parity with it. A key no longer referenced must be deleted from **both** tables (`i18nCoverage.test.ts`; `i18n.test.ts`). Template-literal key families are written directly inside `i18n.t(` so the coverage test sees them.
+- **The law.** Buttons two words at most; short sentences with full stops; the app commands the world and states the law, never scolds the person. Italic (`FONTS.bodyItalic`) is the app speaking; in the chat it is also my own letters.
+- **Temperature.** `TEMPERATURE.furnace*` only in the eight allow-listed files (`lib/__tests__/furnace.test.ts` — `app/(tabs)/townsquare.tsx` and `app/townsquare-round/[sessionId].tsx` are on it; `components/townsquare/*` are not). Frost tokens and `FrostEdge` anywhere silence is; rims use `FROST_RIM_REACH`. No creature art.
+- **The kit's counts are tested per file:** one `AppCard hero` (`hero.test.ts`), one forged `GameButton` outside `components/modals/` (`forged.test.ts`, `BRANCHED` for exclusive branches), no raw `COLORS` outside `lib/theme.ts` (`palette.test.ts`), every route in a room or `UNLIT` (`lib/world/__tests__/world.test.ts`). Screen containers stay `backgroundColor: 'transparent'`. **Ruling:** the rules stay per file — "per route" was a Wave 1 carry-over and the per-file rule has held for three waves; a screen assembled from components keeps one hero and one forged *on the screen* by the reviewer's eye, the scanner guards the files.
+- **Reduced motion:** any new animation goes through `motionAllowed(useVfxLevel())` from `lib/vfx.ts`.
+- **Accessibility:** every drawn state (a sky, a lantern, a candle stub, a cobble) is either labelled or hidden (`accessible={false}` / `importantForAccessibility="no"`); text carries the meaning. A grouped `Tap`/`View` with an `accessibilityLabel` silences its children — put every fact in the label.
+- **No new native module.** `react-native-svg`, `react-native-view-shot`, `expo-sharing`, `expo-haptics`, `expo-audio`, `expo-linear-gradient` are in the build.
+- **No mechanic changes.** Budgets, RSVP windows, round durations, reveal levels, prices: read from the engine, never re-derived. The Satchel is a view. Nothing is found, bought, dropped, crafted or stacked.
+- **Tests are TZ-safe:** every fixture instant is built from local components (`new Date(y, m-1, d, h)`), never a UTC literal asserted against a local string. The whole-wave review runs the suite under `TZ=UTC`.
+- **Verification per task.** App: `cd mingldingl_app && npm test && npm run typecheck && npm run lint`. Engine: `DOTNET_ROOT=$HOME/.dotnet $HOME/.dotnet/dotnet test` (Postgres up). Tasks 1 and 2 also run `./mingldingl_engine/scripts/export-swagger.sh`, both `npm run generate:api`, and `export-swagger.sh --check`.
+- **Git:** single branch `master`, no worktree. One commit per task, `git add -A && git commit`, message prefixed `Sealed Fire W4:`. Do not push.
+- **Comments** explain *why*, in the repo's register (read three neighbouring files first).
+
+---
+
+### Task 1: The engine counts lanterns and remembers the day you came
+
+`NextSessionResponse` has no RSVP count (the plaza says "Seven lanterns lit so far") and no round count ("Four, a bell each"); `UserResponse` has no joining date (the hearth's "THE FOURTEENTH DAWN", the chronicle's dawns).
+
+**Files:**
+- Modify: `mingldingl_engine/src/MinglDingl.Engine/DTOs/TownSquareDto.cs` (or wherever `NextSessionResponse` lives — grep), `DTOs/UserDto.cs` (`UserResponse`), `Controllers/TownSquareController.cs` (`GetNextSession`), the builder of `UserResponse` (grep `new UserResponse(`)
+- Modify: `tests/MinglDingl.Engine.Tests/Integration/TownSquareControllerIntegrationTests.cs` (extend `GetNextSession_UpcomingOpenSession_ReturnsItWithRsvpFlag` — and give it the same shared-DB workaround its neighbour `GetNextSession_NoUpcomingSession_ReturnsNullSessionId` has: clear live sessions inside the test's transaction before adding the fixture), `tests/.../UsersControllerIntegrationTests.cs` (the `GET /users/me` test — assert `CreatedAt` is served)
+- Regenerate: `mingldingl_engine/swagger.json`, `mingldingl_app/lib/api/api.generated.d.ts`, `mingldingl_control/src/lib/api/api.generated.d.ts`
+- Modify: `mingldingl_app/hooks/useTownSquareSession.ts` (`TownSquareNextSession` gains `rsvpCount: number`, `roundCount: number`), `mingldingl_app/models/user.ts` (`UserProfile.joinedAt?: string`, parsed from `d.createdAt ?? undefined`)
+- Test: `mingldingl_app/lib/__tests__/userModel.test.ts` (extend or create beside the existing model tests), `hooks/__tests__/useTownSquareSession.test.tsx` (extend if present, else a parse test)
+
+**Interfaces:**
+- Produces (engine): `NextSessionResponse(..., bool IsRsvpd, int RsvpCount = 0, int RoundCount = 0)` — `RsvpCount` = `Db.TownSquareRsvps.CountAsync(r => r.SessionId == session.Id)`; `RoundCount` = the configured rounds per session (grep `TownSquareService` for the config key that sizes a session — the plan says "Town Square sizing" is admin config — and read it through `ConfigService`; if no such key exists, the number of `TownSquareRound` rows once started, else the engine's constant, and say which in the report). `UserResponse.CreatedAt: DateTime` appended, from `User.CreatedAt`.
+- Produces (app): `TownSquareNextSession.rsvpCount`, `.roundCount` (default 0 when absent); `UserProfile.joinedAt?: string`.
+
+- [ ] **Step 1: DTOs and builders** as above (appended, defaulted, so no caller breaks).
+- [ ] **Step 2: Tests.** The next-session test asserts `RsvpCount == 1` and `RoundCount > 0` after RSVP; the users test asserts `CreatedAt` within a minute of now (UTC kind, as the file's other instants).
+- [ ] **Step 3: Regenerate** (`export-swagger.sh`, both `generate:api`, `--check`).
+- [ ] **Step 4: App models + tests.** Parse tolerantly (`d.rsvpCount ?? 0`).
+- [ ] **Step 5: Verify; commit** — `Sealed Fire W4: the engine counts lanterns and remembers the day you came`.
+
+---
+
+### Task 2: The likeness stays sealed on the wire
+
+`GET /matches/candidates` serves every photo URL of a candidate; the app blurs the first one on the client. A candidate the user has not earned should never receive the full photo.
+
+**Files:**
+- Create: `mingldingl_engine/src/MinglDingl.Engine/Services/SealedPhotoService.cs`
+- Modify: `Services/PhotoCompressionService.cs` (a `SealAsync(byte[] jpeg): Task<byte[]>` — ImageSharp: resize to `MaxDimension = 320` (`ResizeMode.Max`), `GaussianBlur(18)`, JPEG quality 60), `Services/LocalFileStorageService.cs` (`SealedPathOf(relativePath)` → same directory, `<name>-sealed.jpg`; `SealedPublicUrlOf(url)`), the photo upload action (grep `UploadAsync(` in `Controllers/UsersController.cs` or `PhotosController.cs`): after storing the original, store the sealed variant beside it; `DailyMaintenanceBackgroundService`: a sweep step that walks `EnumerateProfilePhotos()` and creates any missing sealed variant (bounded to 200 per sweep); `DTOs/MatchDto.cs` `CandidateResponse`: **replace** `IReadOnlyList<string> PhotoUrls` with `string? SealedPhotoUrl` (the first photo's sealed variant, or null when it does not exist yet); `Controllers/MatchesController.cs` `GetCandidates`; `ServiceCollectionExtensions.cs` (register the service); the photo deletion paths (`DeleteByPublicUrl` also removes the sealed sibling)
+- Test: `tests/MinglDingl.Engine.Tests/Services/SealedPhotoServiceTests.cs` (create: a 64×64 red PNG in → a JPEG out, smaller than the input's dimensions, decodable), the candidates integration test (grep `candidates` under `tests/Integration`: assert the response has no `PhotoUrls` and `SealedPhotoUrl` ends with `-sealed.jpg` for a candidate with a photo on disk, null for one without), the maintenance test (a photo without a sealed sibling gets one after the sweep)
+- Regenerate: swagger + both generated files
+- Modify (app): `mingldingl_app/models/candidate.ts` (`sealedPhotoUrl?: string`; delete `photoUrls`), `components/cards/CandidateCard.tsx` (`const photo = candidate.sealedPhotoUrl`; keep `blurRadius` as a veil over an already-blurred image and the seal stack unchanged; when null, the seal stands alone on the ground), every reader of `candidate.photoUrls` (grep — `hooks/useDiscover.ts`, tests), `lib/__tests__/candidateModel.test.ts` or the card's test
+- Verify: engine `dotnet test`; app suite; `export-swagger.sh --check`
+
+- [ ] **Step 1: Failing engine tests** (service, candidates, maintenance).
+- [ ] **Step 2: Implement** the service, the upload hook, the sweep, the DTO. The sweep's per-photo failures are logged and skipped (a corrupt file must not stop the sweep). Deleting a user (anonymisation) already deletes their files by public url — extend `DeleteByPublicUrl` to remove `-sealed.jpg` too and assert it in the existing deletion test.
+- [ ] **Step 3: Regenerate; app model + card + tests.** The card's contrast test (Wave 2) keeps asserting against the veil alpha; the sealed-likeness `testID` stays.
+- [ ] **Step 4: Backfill note for the report:** the dev database's seed photos gain sealed siblings on the first sweep (`POST /dev/run-maintenance-sweep`); say so and run it once locally so the device pass sees sealed candidates.
+- [ ] **Step 5: Verify; commit** — `Sealed Fire W4: the likeness stays sealed on the wire`.
+
+---
+
+### Task 3: Materials, the shared parchment, the sheet's entrance
+
+**Files:**
+- Modify: `mingldingl_app/lib/theme.ts` (`export const MATERIAL = { wax: '#E4D6B4', wood: '#6B4A28', iron: '#5C6470', bronze: METAL.brass, gold: METAL.gold, parchment: '#DCD0B4' } as const` with a doc comment quoting the Materials board — one material per object, the metals already exist), `components/ui/AppCard.tsx`, `components/modals/DialogSurface.tsx` (`DialogStrip`), `components/modals/SheetModal.tsx`
+- Create: `components/ui/ParchmentFill.tsx` (`ParchmentFill({ opacity = 0.06 })` — the `LinearGradient` `SURFACE.raised → SURFACE.panel` plus the `assets/textures/parchment.png` image, absolutely filled, `pointerEvents="none"`, hidden from a11y; `AppCard`'s hero branch and `DialogStrip` both render it instead of their own copies), `components/ui/MaterialMark.tsx` (`MaterialMark({ material: Material, glyph: GlyphName, size = ICON_SIZES.lg, label? })` — a `Glyph` in the material's colour on a small rounded swatch tinted `tint(MATERIAL[material], 0.18)`; `Material = keyof typeof MATERIAL`; `testID="material-<material>"`; labelled = image role, unlabelled = hidden)
+- Test: `components/ui/__tests__/MaterialMark.test.tsx` (six materials render their testID; a label makes it accessible), `components/ui/__tests__/ParchmentFill.test.tsx` (renders the texture once; `AppCard hero` and `DialogStrip` each contain exactly one `parchment-texture`), `lib/__tests__/palette.test.ts` (extend: `MATERIAL` colours are not raw `COLORS` re-exports — the existing scan passes as long as they are defined in `theme.ts`)
+
+- [ ] **Step 1: Tokens + `MaterialMark`** (tests first).
+- [ ] **Step 2: `ParchmentFill`**; `AppCard` and `DialogStrip` lose their duplicate gradient+texture. Existing tests that look for `parchment-texture` keep passing.
+- [ ] **Step 3: `SheetModal`** `animationType="slide"` (matches `AlertModal`); one test asserts the prop.
+- [ ] **Step 4: Verify; commit** — `Sealed Fire W4: materials, the shared parchment, the sheet's entrance`.
+
+---
+
+### Task 4: The hearth's scaffolding — the switch, the way home, candle stubs, two signals
+
+**Files:**
+- Modify: `lib/world/index.ts` (`export const HEARTH_ENABLED = true;` doc: the decision's default — the tab bar stays until the switch flips), `lib/world/rooms.ts` (`hearth` room's `match` gains `'hearth'` and `'satchel'`), `components/ui/HeaderBar.tsx` (when `HEARTH_ENABLED` and the current route is not `/hearth`, a `Tap` with `Glyph name="hearth"` `ICON_SIZES.lg` `ACCENT.base` at the head of the tail row, `accessibilityRole="button"`, `accessibilityLabel={i18n.t('go_home')}`, `router.push('/hearth')`; `testID="header-hearth"`), `lib/world/feedback.ts` (`candleLit: { haptic: 'light', sound: require('../../assets/sounds/candle.wav') }`, `bell: { haptic: 'medium', sound: require('../../assets/sounds/bell.wav') }`), `scripts/gen-sounds.js` (`candle()`: a soft 0.35 s "whoomf" — lowpass noise at 600 Hz seed of your choice decaying with `k = 9` under a 220 Hz sine decaying `k = 6`, amplitude 0.45; `bell()`: 1.4 s, partials 520 Hz ×1.0, 1040 Hz ×0.5, 1560 Hz ×0.25 each decaying `k = 3`, amplitude 0.7; add to `SOUNDS`; rerun — every existing WAV byte-identical or stop and report), `lib/i18n/en.ts` + `index.ts`
+- Create: `components/hearth/CandleRow.tsx` (`CandleRow({ remaining, budget }: { remaining: number; budget: number })` — `budget` stubs in a row (cap the drawing at 16, then "+N"), the first `remaining` lit (a `Glyph name="candle"` in `MATERIAL.wax` with a small `ACCENT.bright` flame dot), the rest spent (the glyph in `INK.muted`, shorter); the row is one accessible node with label `candles_left` ("%{remaining} of %{budget} candles left"); `testID="candle-row"`, lit stubs `testID="candle-lit"`)
+- Test: `components/hearth/__tests__/CandleRow.test.tsx` (3 of 5 → three lit, two spent, the label; 0 of 5 → none lit), `lib/world/__tests__/feedback.test.ts` (extend: the two rows exist, load nothing until sound is on), `components/ui/__tests__/HeaderBar.test.tsx` (extend or create: the hearth tap is present when enabled and routes to `/hearth`; absent on the hearth itself)
+
+**Interfaces:** produces `HEARTH_ENABLED`, `CandleRow`, `WorldEvent` `'candleLit' | 'bell'`, keys `go_home: 'Home'` (the label only; no visible text), `candles_left: '%{remaining} of %{budget} candles left'`.
+
+- [ ] **Step 1: Keys, switch, room entries.** Add a placeholder `app/hearth.tsx` and `app/satchel.tsx` that render a `HeaderBar` with the room name only (Task 5 and Task 9 fill them) so `world.test.ts`'s route coverage passes from this commit.
+- [ ] **Step 2: `CandleRow`** (tests first), the header glyph, the feedback rows and sounds.
+- [ ] **Step 3: Verify; commit** — `Sealed Fire W4: the hearth's scaffolding`.
+
+---
+
+### Task 5: The hearth (move 6)
+
+**Files:**
+- Create: `components/hearth/SkyWindow.tsx`, `components/hearth/Destinations.tsx`, `components/hearth/DawnFires.tsx`
+- Modify: `app/hearth.tsx`, `app/(tabs)/profile.tsx` (remove `GettingStartedCard` and `DailyBudgetMeter` — they move to the hearth; delete `DailyBudgetMeter` if the hearth's `CandleRow` is now the only budget display — grep), `app/(tabs)/matches.tsx` (remove `NextGatheringPill` from the top — it moves to the hearth; Task 7 removes it from the Square tab), `lib/i18n/en.ts` + `index.ts`
+- Test: `components/hearth/__tests__/SkyWindow.test.tsx`, `DawnFires.test.tsx`, `app/__tests__/hearth.test.tsx`
+
+**Interfaces:**
+- Consumes: `dayPhase(new Date(now))` / `PHASE_EDGE` from `lib/world/light.ts`, `useActiveFestival()` (`key` starting `tsagaan-sar` = White Moon), `useProfile()` (`joinedAt`, `isProfileComplete`), `useMatches()` + `fireOf/fireLine/fireEyebrow` (Wave 3) + `useGhostingWindows` + `useMyUserId` + `useNowTicker`, `useDailyMatchBudget()`, `useTownSquareSession()`, `useMilestones` (whatever `GettingStartedCard` needs today — read `profile.tsx`), `threadDay`/`ordinalWord` from `lib/worldTime.ts`, `FrostEdge`/`FROST_RIM_REACH`, `CandleRow`, `Glyph`.
+- Produces:
+  ```ts
+  SkyWindow({ phase, width, whiteMoon }: { phase: DayPhase; width: number; whiteMoon: boolean })
+  Destinations()   // five rows: fire → /(tabs)/discover, letters → /(tabs)/matches, lantern → /(tabs)/townsquare, forge → /(tabs)/activity, gem → /(tabs)/profile; plus one ink row "The Satchel" → /satchel
+  DawnFires({ fires }: { fires: { name: string; fire: Fire }[] })
+  ```
+  Copy (EN, awaiting): `hearth_title: 'The Hearth'`, `hearth_dawn: 'The %{dawn} dawn'` (eyebrow, uppercase via `CardEyebrow`; `dawn` = `ordinalWord(threadDay(nowIso, joinedAt))`; when `joinedAt` is absent the eyebrow is `hearth_dawn_unknown: 'A new dawn'`), `hearth_sky: 'The sky over the hearth is the real sky. Night while you sleep, dawn when the fires are judged, day, dusk. Your streak is counted in the dawns you were here for.'` (italic, once), `hearth_judged: 'Judged at this dawn'`, `hearth_fire_burns: "%{name}'s fire burns. %{turn}"` (`turn` = `fire_line_their_turn`/`fire_line_my_turn`'s own text is too long — use `their_turn: 'Their turn.'` / `your_turn: 'Your turn.'`), `hearth_fire_embers: "%{name}'s fire is down to embers. %{turn}"`, `hearth_fire_froze: "%{name}'s froze. %{verdict}"` (verdict = `fireVerdict`), `hearth_no_fires: 'No fires yet. The road is where they start.'`, `hearth_white_moon: 'White Moon'`, `hearth_white_moon_sub: 'Frost on the window, snow past the door. The fire is hotter for it. Three days; the knots turn white.'`, `hearth_candles: 'Each summons burns one. The frost takes nothing; only silence does.'` (under the candle row, italic), `dest_fire: 'The Fire'`, `dest_letters: 'Letters'`, `dest_square: 'The Square'`, `dest_forge: 'The Forge'`, `dest_mirror: 'The Mirror'`, `dest_satchel: 'The Satchel'`, `hearth_law: 'A map, never a hallway. Nothing is reachable only from here.'` (footer, italic).
+
+- [ ] **Step 1: `SkyWindow`.** An `Svg` `width × 160` with `RADIUS.md` clip: a vertical gradient per phase — night `NIGHT.black → NIGHT.blue`, dawn `NIGHT.blue → tint(ACCENT.bright, 0.5)`, day `NIGHT.blue → tint(INK.primary, 0.25)`, dusk `NIGHT.brown → NIGHT.black` — twelve fixed stars (`r` 1–2, `INK.muted`) visible at night and dawn only, a horizon glow ellipse (`ACCENT.bright` at 0.25) at dawn and dusk; `whiteMoon` adds a `FrostEdge edge="top" length={FROST_RIM_REACH}` and `edge="bottom"` over the window. `accessible` with label `sky_<phase>` (`sky_night: 'Night.'`, `sky_dawn: 'Dawn.'`, `sky_day: 'Day.'`, `sky_dusk: 'Dusk.'`) — four keys. No animation.
+- [ ] **Step 2: `DawnFires`.** For each match with a fire (unlit excluded), one hairline row: the `flame`/`ember`/`ice` mark exactly as `QuestTile` chooses it, and one sentence from the three `hearth_fire_*` keys; tap → `/chat/<id>`; row label = the sentence. Ordered frozen first, then embers, then burning (the judged ones lead). Empty → `hearth_no_fires` in italic.
+- [ ] **Step 3: The screen.** `HeaderBar title={hearth_title}` (no hearth glyph on itself); the one `AppCard hero` holds `SkyWindow` (measured width), the dawn eyebrow, the sky sentence (or, on White Moon, the `hearth_white_moon` eyebrow and its sub), and `CandleRow` with `hearth_candles` under it; then `GettingStartedCard` (moved, unchanged behaviour, only while it has steps) and `NextGatheringPill` (moved); then `Destinations` (hairline rows, glyph + name, `accessibilityRole="button"`); then `DawnFires` under the `hearth_judged` eyebrow; then `hearth_law`. No forged button on this screen.
+- [ ] **Step 4: Tests.** Sky: night renders stars, day does not, White Moon renders both frost rims, the label per phase. DawnFires: order and sentences for one of each state (local-component instants). Screen: mocked hooks — the eyebrow reads "The fourteenth dawn" for a `joinedAt` thirteen local days ago, five destinations route to their tabs, the candle row shows 3 of 5, the pill and First Steps render here and no longer on the profile/matches (extend `app/__tests__/settings.test.tsx`-style tests for those two screens if they exist; else assert by grep in the report).
+- [ ] **Step 5: Verify; commit** — `Sealed Fire W4: the hearth`.
+
+---
+
+### Task 6: The chronicle counts dawns; the sealed name
+
+**Files:**
+- Modify: `components/progression/ScoreHistoryList.tsx` (a `SectionList` grouped by local day: heading `chronicle_dawn: 'The %{dawn} dawn'` uppercase eyebrow, `dawn` = `ordinalWord(threadDay(item.createdAt, joinedAt))`; when `joinedAt` is absent, headings are `formatDate(day)` as today; the list takes `joinedAt?: string` as a prop from `app/progression.tsx`, which reads it from `useProfile()`), `lib/i18n/en.ts` (`mystery_match_name` → `'A sealed one'` — placeholder parity: none), `index.ts`
+- Test: `components/progression/__tests__/ScoreHistoryList.test.tsx` (extend: three events over two local days from a `joinedAt` twelve days ago → headings "THE THIRTEENTH DAWN" and "THE TWELFTH DAWN" in order; without `joinedAt` the date headings)
+
+- [ ] **Step 1: Failing test; implement; verify; commit** — `Sealed Fire W4: the chronicle counts dawns`.
+
+---
+
+### Task 7: The Square as a plaza (move 9)
+
+**Files:**
+- Create: `components/townsquare/Plaza.tsx`
+- Modify: `components/townsquare/SessionStatusCard.tsx`, `app/(tabs)/townsquare.tsx` (remove `NextGatheringPill`; the plaza carries it), `app/townsquare-round/[sessionId].tsx` (the round-over block only — lantern copy), `hooks/useTownSquareSession.ts` (`signal('candleLit')` in `rsvpMutation.onSuccess`), `lib/i18n/en.ts` + `index.ts`
+- Test: `components/townsquare/__tests__/Plaza.test.tsx`, `SessionStatusCard.test.tsx` (extend), `app/townsquare-round/__tests__/[sessionId].test.tsx` (the round-over copy)
+
+**Interfaces:** consumes `TownSquareNextSession.rsvpCount/roundCount` (Task 1), `WorldClock`, `Glyph` (`lantern`, `bell`), `MATERIAL` (Task 3), `useActiveFestival`.
+- Produces `Plaza({ width, lanterns, mine, open }: { width: number; lanterns: number; mine: boolean; open: boolean })`: an `Svg` `width × 220` — a dashed `LINE.edge` rectangle inset by 12 (the square), a cobble pattern (`Pattern` of `r=1.2` dots in `tint(INK.muted, 0.35)`, 10 px pitch), "NORTH GATE" / "SOUTH GATE" `SvgText` in `FONTS.utility` `INK.dim` at the top and bottom edges (open → `INK.dim`, closed → `INK.muted` with a short line across each gate), the `bell` glyph drawn as a `Circle r=14` in `tint(ACCENT.bright, 0.35)` with a `Path` bell at the centre and "THE BELL" under it, and `min(lanterns, 24)` lantern glows at deterministic positions (a seeded pseudo-random walk from index, kept inside the square, never on the bell) — each a radial `<RadialGradient>` disc `r=9` in `MATERIAL.bronze` fading to transparent; when `mine`, the last one is `ACCENT.bright` (this file is not on the furnace allow-list) with a "YOU" `SvgText` under it. The whole drawing is one accessible image with label `plaza_label` ("%{count} lanterns lit. Yours among them." / "%{count} lanterns lit." / "No lantern lit yet.").
+  Copy (EN, awaiting): `plaza_sub_open: 'Gates close at the lantern-lighting. %{count} lanterns lit so far, yours among them.'`, `plaza_sub_open_not_mine: 'Gates close at the lantern-lighting. %{count} lanterns lit so far.'`, `plaza_sub_locked: 'The gates are shut. %{count} lanterns lit. The first bell is near.'`, `plaza_first_bell: 'First bell'`, `plaza_rounds: 'Rounds'`, `plaza_rounds_value: '%{count}, a bell each'`, `plaza_closed_lit: '%{count} lanterns were lit from both sides. They wait in your letters.'`, `plaza_closed_lit_one: 'One lantern was lit from both sides. It waits in your letters.'` (the round-over block, above the lit rows). EN value changes on existing keys (buttons two words — the law): `town_square_rsvp` → `'Light it'` (the forged RSVP), `town_square_cancel_rsvp` → `'Put out'` (ink cancel), `town_square_rejoin` → `'Return'` (ink, only when RSVP'd), `town_square_empty_title` → `'The square stands quiet'`, `town_square_empty_sub` → `'No gathering is called yet. Return when the horn sounds.'`, `town_square_in_progress` → `'The bells are ringing without you.'`, `round_over_title` → `'The square has closed'`, `round_over_body` unchanged, `round_over_matches` → `'Lanterns lit from both sides:'`, `round_over_no_matches` → `'No lantern lit from both sides this time. The next gathering will be along.'`. Rule: reuse an existing key when its English can change; add a new key only for a new sentence. The `gathering_*` keys stay (the hearth mounts the pill).
+
+- [ ] **Step 1: `Plaza`** (tests: 7 lanterns → 7 glows, `mine` → the YOU label, closed gates render the bars, the label text).
+- [ ] **Step 2: `SessionStatusCard`.** Open/Locked branch: the card becomes the screen's one `AppCard hero` holding `Plaza` (measured width), the sub line in italic, two stat rows (`plaza_first_bell` → the existing `WorldClock` `first_bell`; `plaza_rounds` → `plaza_rounds_value` with `roundCount`), the gates clock only while open (existing `WorldClock gates_close`), then forged `Light it` / ink `Put out`. In-progress branch: `plaza_under_way` + ink `Return` when `isRsvpd`. Quiet branch: `StateBlock icon="door"` with the two lines. Mongolian width: stat labels `flexShrink: 1`, the sub `numberOfLines` unbounded.
+- [ ] **Step 3: The tab** loses the pill; the round-over block on the round screen uses the lantern copy and the `lantern` glyph per lit row; `candleLit` fires once on a successful RSVP (test: the mock `signal` is called once).
+- [ ] **Step 4: Verify; commit** — `Sealed Fire W4: the Square as a plaza`.
+
+---
+
+### Task 8: The Second Bell
+
+**Files:**
+- Modify: `app/townsquare-round/[sessionId].tsx` (the header: blackletter `bell_title` = "The %{ordinal} Bell" via `ordinalWord(roundNumber)` capitalised, Latin only — through `HeaderBar`'s title; the countdown in `TEMPERATURE.furnaceBright` `FONTS.display` `FONT_SIZES.xl` beside a `bell` glyph in `TEMPERATURE.furnace` — this file is allow-listed), `components/townsquare/RoundPrompt.tsx` (a strip: 2px top rule `tint(METAL.ember, 0.8)`, `ParchmentFill`, eyebrow `bell_question: 'The question at the bell'`, the icebreaker text in `FONTS.body` `INK.primary`, the helper `bell_decide: 'Then the bell. Decide.'` in italic, and two `GameButton`s — ink `town_square_no` ("Let pass"), forged `town_square_yes` ("Light it"); after answering: `bell_lit: 'Lantern lit from both sides.'` + `town_square_match_after` or `bell_waiting: 'Your answer is kept until the bell.'`; corners square (`borderRadius: 0`) — the board's "nothing rounded"), `hooks/useTownSquareRound.ts` (`signal('bell')` when `round.roundNumber` increases — a `useRef` of the last number; test with a rerendered query result), `lib/i18n/en.ts` + `index.ts`
+- Test: `components/townsquare/__tests__/RoundPrompt.test.tsx` (extend: eyebrow, helper, the two buttons, the after-answer lines), `app/townsquare-round/__tests__/[sessionId].test.tsx` (extend: "The First Bell" for round 1, "The Second Bell" for round 2), `hooks/__tests__/useTownSquareRound.test.tsx` (create or extend: the bell fires on advance, not on first load)
+
+EN value changes: `town_square_no` → `'Let pass'`, `town_square_waiting_for_round` → `'Your answer is kept until the bell.'`, `town_square_its_a_match` → `'Lantern lit from both sides.'`, `town_square_round_label` stays for the a11y label. `forged.test.ts`: `RoundPrompt.tsx` gains its one forged button; the round screen keeps its one (the retry).
+
+- [ ] **Step 1: Tests first; implement; verify; commit** — `Sealed Fire W4: the Second Bell`.
+
+---
+
+### Task 9: The Satchel
+
+**Files:**
+- Create: `components/satchel/SatchelRow.tsx`, `app/satchel.tsx` (replace the Task 4 placeholder)
+- Modify: `app/(tabs)/profile.tsx` (an ink link row `dest_satchel` → `/satchel` beside "Encounter Log"), `lib/i18n/en.ts` + `index.ts`
+- Test: `components/satchel/__tests__/SatchelRow.test.tsx`, `app/__tests__/satchel.test.tsx`
+
+**Interfaces:** consumes `useDailyMatchBudget`, `usePendingShips` (`pendingShips.length`), `useTownSquareSession` (`session.isRsvpd`, `status`), `useProfile` (`oath`, `oathProven`, `oathEncountersHeld/Needed`, `referralCode`, `equippedTitleId`, `membershipLevel`), `useMembership` (`currentLevel`), `useMatches` + `revealLadderSnapshot()` (seals held = for each active match, `ladder.length - revealLevel` unbroken; sum and the count of threads), `useInventory` (the worn honour's name via the existing honour name key family — read `HonourCase.tsx`), `MaterialMark` (Task 3), `oathLabel` (`components/OathSigil.tsx`'s `OATH_NAME_KEYS` mechanism as `CharacterCard` uses it).
+- Produces `SatchelRow({ material, glyph, name, line, to, testID })` — a hairline row: `MaterialMark` at the left, `name` in `FONTS.display`, `line` in `FONTS.body` `INK.dim`, chevron; `accessibilityRole="button"`, label `${name}. ${line}`; `router.push(to)`.
+  Rows, in the board's order, with material / glyph / name key / line keys / route:
+  1. wax / `candle` / `satchel_candles: 'Candles'` / `satchel_candles_line: '%{remaining} of %{budget} left'` / `/(tabs)/discover`
+  2. wood / `pledge` / `satchel_arrows: 'Arrows'` / `satchel_arrows_line: '%{count} await your answer'`, `satchel_arrows_one: 'One awaits your answer'`, `satchel_arrows_none: 'None in flight'` / `/(tabs)/matches`
+  3. bronze / `lantern` / `satchel_lantern: 'Lantern'` / `satchel_lantern_lit: 'Lit for the next gathering'`, `satchel_lantern_unlit: 'Unlit'`, `satchel_lantern_none: 'No gathering called'` / `/(tabs)/townsquare`
+  4. bronze / `seal` / `satchel_oath: 'Oath sigil'` / `satchel_oath_line: '%{oath} · %{held} of %{needed} kept'`, `satchel_oath_proven: '%{oath} · proven'`, `satchel_oath_none: 'No oath sworn'` / `/(tabs)/profile`
+  5. gold / `knot` / `satchel_key: 'The key'` / `satchel_key_held: 'Held · %{floor}'` (floor = `floor_Silver`/`floor_Gold` from Wave 3), `satchel_key_none: 'Not held · the Hall opens the deep seal'` / `/membership`
+  6. bronze / `letters` / `satchel_word: "Ally's word"` / the code itself as the line (`referralCode`, or `satchel_word_none: 'Not yet given'`) / `/(tabs)/profile`
+  7. gold / `flame` / `satchel_honour: 'Worn honour'` / the honour's name or `satchel_honour_none: 'None worn'` / `/(tabs)/profile`
+  8. wax / `seals` / `satchel_seals: 'Seals held'` / `satchel_seals_line: '%{seals} unbroken on you, across %{threads} threads'`, `satchel_seals_one_thread: '%{seals} unbroken on you, across one thread'`, `satchel_seals_none: 'No thread open'` / `/(tabs)/matches`
+  9. parchment / `gem` / `satchel_card: 'Your card'` / `satchel_card_line: 'Wanted, honestly kept'` / `/(tabs)/profile`
+  Header `satchel_title: 'The Satchel'`, sub `satchel_sub: 'What you carry tonight. Every object here already exists as a rule; this is the first time they sit together. Tap one to go where it is used.'` (italic), summary under the rows in italic `satchel_summary` built from the first three rows' short forms (`satchel_sum_candles: '%{count} candles.'`, `satchel_sum_candles_one: 'One candle.'`, `satchel_sum_arrows: '%{count} arrows.'`, `satchel_sum_arrows_one: 'One arrow.'`, `satchel_sum_lantern: 'Your lantern is lit.'`), joined with spaces; footer `satchel_law: 'Nothing here can be bought, found or stacked. What you carry is what the rules gave you. The bag never grows; it only fills and empties with the day.'` (italic). No hero, no forged button on this screen; the numbers are words through `countWord` where the copy is a sentence.
+
+- [ ] **Step 1: `SatchelRow`** (test: material mark, name, line, label, press routes).
+- [ ] **Step 2: The screen** with all nine rows computed from mocked hooks; tests cover a full satchel and an empty one (Free, no oath, no code, no honour, no matches, no session).
+- [ ] **Step 3: Verify; commit** — `Sealed Fire W4: the Satchel`.
+
+---
+
+### Task 10: The leftovers
+
+**Files:**
+- Modify: `app/blocked-users.tsx` (`useNowTicker()` for `now`), `components/cards/ShareCharacterButton.tsx` (clear `error` when the preview opens), `lib/__tests__/i18nCoverage.test.ts` (strip `//…` line comments and `/* … */` block comments from each file's text before the literal scan — a small `stripComments(text)` helper in `lib/testing/sourceTree.ts` with its own test: a key that appears only in a comment is an orphan), `lib/i18n/en.ts` (any key the stricter scan now finds orphaned — delete from both tables; if a key is genuinely read through a construct the scanner cannot see, add its literal reader rather than a comment)
+- Test: `app/__tests__/blockedUsers.test.tsx` (the dawn line uses the ticker's `now` — mock `useNowTicker`), `components/cards/__tests__/ShareCharacterButton.test.tsx` (a failed share, close, reopen → no error text), `lib/testing/__tests__/sourceTree.test.ts` (create: `stripComments`)
+
+- [ ] **Step 1: Tests first; implement; run the whole suite** (the coverage test may surface orphans — fix them here); **commit** — `Sealed Fire W4: the leftovers`.
+
+---
+
+### Task 0 — the Wave 4 list ends here
+
+(Sentinel heading for the brief-extraction script. After Task 10 the controller runs the final whole-wave review under `TZ=UTC`, the A51 device pass — including the owed Flame Rite card (seed a thread with `IcebreakerComplete = true`), the ember toast, the OTP gatekeeper line, the Chest and Ascension ceremonies, LongWait and the `dark` room floor where they can be reached — moves this list's record into `shipped-log.md`, and pushes.)
+
+**Deliberately left after Wave 4 (write into the shipped record):** a Cyrillic blackletter (a commissioned cut); the cave frame, dragon and bats and the hearth/plaza scenes as final art (illustrator); flipping `HEARTH_ENABLED` to replace the tab bar (a product decision); the translator's list; QPay/HiPay.
+
 
 ### Gaps found while writing the report (settle before the wave that touches them)
 
