@@ -9,10 +9,11 @@ import { RoundPrompt } from '../../components/townsquare/RoundPrompt';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { ReportUserSheet } from '../../components/modals/ReportUserSheet';
 import { GameButton } from '../../components/ui/GameButton';
+import { Glyph } from '../../components/ui/Glyph';
 import { Icon } from '../../components/ui/Icon';
 import { LongWait } from '../../components/ui/LongWait';
 import { useTownSquareRound, useTownSquareSessionSummary } from '../../hooks/useTownSquareRound';
-import { FONTS, FONT_SIZES, ICON_SIZES, INK, SCRIM, SPACE, circle, overlay } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SCRIM, SPACE, circle, overlay } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
@@ -63,17 +64,29 @@ export default function TownSquareRoundScreen() {
           <Text style={styles.status}>{i18n.t('round_over_no_matches')}</Text>
         ) : (
           <View style={styles.matchList}>
+            {/* The count-aware line above the rows: what happened, and where it went. The header
+                below it names the list itself, so the two are not the same sentence twice — one
+                reports, one introduces. */}
+            <Text style={styles.status}>
+              {summary.matches.length === 1
+                ? i18n.t('plaza_closed_lit_one')
+                : i18n.t('plaza_closed_lit', { count: summary.matches.length })}
+            </Text>
             <Text style={styles.status}>{i18n.t('round_over_matches')}</Text>
             {summary.matches.map((m) => (
-              <GameButton
-                key={m.matchId}
-                variant="ink"
-                size="compact"
-                icon="chat"
-                onPress={() => router.replace(`/chat/${m.matchId}` as any)}
-              >
-                {m.displayName || i18n.t('mystery_match_name')}
-              </GameButton>
+              <View key={m.matchId} style={styles.matchRow}>
+                <View testID="match-lantern">
+                  <Glyph name="lantern" size={ICON_SIZES.sm} color={ACCENT.base} />
+                </View>
+                <GameButton
+                  variant="ink"
+                  size="compact"
+                  flex={1}
+                  onPress={() => router.replace(`/chat/${m.matchId}` as any)}
+                >
+                  {m.displayName || i18n.t('mystery_match_name')}
+                </GameButton>
+              </View>
             ))}
           </View>
         )}
@@ -223,4 +236,5 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', gap: SPACE.lg, paddingHorizontal: SPACE.xxxl },
   status: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center' },
   matchList: { alignSelf: 'stretch', gap: SPACE.sm },
+  matchRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
 });

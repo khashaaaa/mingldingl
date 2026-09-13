@@ -4,6 +4,7 @@ import { apiClient } from '../lib/api/apiClient';
 import { supabase } from '../lib/supabase';
 import { subscribeWithRetry } from '../lib/realtime/subscribeWithRetry';
 import { queryKeys } from '../lib/api/queryKeys';
+import { signal } from '../lib/world/feedback';
 
 export interface TownSquareNextSession {
   sessionId: string | null;
@@ -73,6 +74,9 @@ export function useTownSquareSession() {
   const rsvpMutation = useMutation({
     mutationFn: (sessionId: string) => apiClient.townSquare.rsvp(sessionId),
     meta: { invalidates: [queryKeys.townSquareNextSession] },
+    // The plaza's own lantern — lit the instant the RSVP lands, not on the next poll's re-render,
+    // so the tap that lit it is the moment that rings.
+    onSuccess: () => { signal('candleLit'); },
   });
 
   const cancelRsvpMutation = useMutation({

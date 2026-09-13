@@ -123,6 +123,12 @@ const GLYPHS: Record<GlyphName, Cuts> = {
   },
 };
 
+/**
+ * The bell's own strokes, exported so `Plaza` (Task 7, move 9) can draw the same bell scaled down
+ * to sit over the plaza rather than cutting a second one — one hand, one bell.
+ */
+export const BELL_PATHS = GLYPHS.bell.lines;
+
 interface Props {
   name: GlyphName;
   size?: number;

@@ -37,21 +37,21 @@ describe('SessionStatusCard', () => {
     expect(getByText(/The square stands quiet/i)).toBeTruthy();
   });
 
-  it('shows an RSVP button and calls onRsvp with the session id when not yet RSVP\'d', () => {
+  it('shows a "Light it" button and calls onRsvp with the session id when not yet RSVP\'d', () => {
     const onRsvp = jest.fn();
     const { getByText } = render(
       <SessionStatusCard session={openSession()} now={NOW} onRsvp={onRsvp} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
-    fireEvent.press(getByText(/^RSVP$/i));
+    fireEvent.press(getByText(/^Light it$/i));
     expect(onRsvp).toHaveBeenCalledWith('s1');
   });
 
-  it('shows a Cancel RSVP button and calls onCancelRsvp when already RSVP\'d', () => {
+  it('shows a "Put out" button and calls onCancelRsvp when already RSVP\'d', () => {
     const onCancelRsvp = jest.fn();
     const { getByText } = render(
       <SessionStatusCard session={openSession({ isRsvpd: true })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={onCancelRsvp} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
-    fireEvent.press(getByText(/Cancel RSVP/i));
+    fireEvent.press(getByText(/^Put out$/i));
     expect(onCancelRsvp).toHaveBeenCalledWith('s1');
   });
 
@@ -68,8 +68,16 @@ describe('SessionStatusCard', () => {
     const { queryByText } = render(
       <SessionStatusCard session={openSession({ status: 'Locked', isRsvpd: true })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
-    expect(queryByText(/^RSVP$/i)).toBeNull();
-    expect(queryByText(/Cancel RSVP/i)).toBeNull();
+    expect(queryByText(/^Light it$/i)).toBeNull();
+    expect(queryByText(/^Put out$/i)).toBeNull();
+  });
+
+  it('bars the plaza\'s gates once the roster is Locked, and names the shut state in the sub line', () => {
+    const { getAllByTestId, getByText } = render(
+      <SessionStatusCard session={openSession({ status: 'Locked', isRsvpd: true, rsvpCount: 4 })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
+    );
+    expect(getAllByTestId('plaza-gate-bar', { includeHiddenElements: true })).toHaveLength(2);
+    expect(getByText('The gates are shut. 4 lanterns lit. The first bell is near.')).toBeTruthy();
   });
 
   it('offers a way back into an in-progress session the user is RSVP\'d to', () => {
@@ -78,8 +86,8 @@ describe('SessionStatusCard', () => {
       <SessionStatusCard session={openSession({ status: 'InProgress', isRsvpd: true })} now={NOW}
         onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={onEnter} isRsvping={false} isCancelling={false} />,
     );
-    expect(getByText(/gathering is under way/i)).toBeTruthy();
-    fireEvent.press(getByText(/Return to the Square/i));
+    expect(getByText(/bells are ringing without you/i)).toBeTruthy();
+    fireEvent.press(getByText(/^Return$/i));
     expect(onEnter).toHaveBeenCalledWith('s1');
   });
 
@@ -88,8 +96,40 @@ describe('SessionStatusCard', () => {
       <SessionStatusCard session={openSession({ status: 'InProgress', isRsvpd: false })} now={NOW}
         onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
-    expect(getByText(/gathering is under way/i)).toBeTruthy();
-    expect(queryByText(/Return to the Square/i)).toBeNull();
+    expect(getByText(/bells are ringing without you/i)).toBeTruthy();
+    expect(queryByText(/^Return$/i)).toBeNull();
+  });
+
+  it('is the screen\'s one hero card, drawing the plaza and naming the open state in the sub line', () => {
+    const { getByTestId, getByText } = render(
+      <SessionStatusCard session={openSession({ rsvpCount: 3, isRsvpd: true })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
+    );
+    expect(getByTestId('plaza')).toBeTruthy();
+    expect(getByText('Gates close at the lantern-lighting. 3 lanterns lit so far, yours among them.')).toBeTruthy();
+  });
+
+  it('names the not-mine sub line when the viewer has not lit a lantern', () => {
+    const { getByText } = render(
+      <SessionStatusCard session={openSession({ rsvpCount: 2, isRsvpd: false })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
+    );
+    expect(getByText('Gates close at the lantern-lighting. 2 lanterns lit so far.')).toBeTruthy();
+  });
+
+  it('shows the first-bell and rounds stat rows', () => {
+    const { getByText } = render(
+      <SessionStatusCard session={openSession({ roundCount: 6 })} now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
+    );
+    expect(getByText('FIRST BELL')).toBeTruthy();
+    expect(getByText('ROUNDS')).toBeTruthy();
+    expect(getByText('6, a bell each')).toBeTruthy();
+  });
+
+  it('names the empty state through a shut door, not a bank', () => {
+    const { getByTestId } = render(
+      <SessionStatusCard session={{ sessionId: null, rsvpOpensAt: null, rsvpClosesAt: null, scheduledStartAt: null, status: null, isRsvpd: false, rsvpCount: 0, roundCount: 0 }}
+        now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
+    );
+    expect(getByTestId('state-place-door', { includeHiddenElements: true })).toBeTruthy();
   });
 
   it('shows no festival eyebrow on an ordinary day', () => {

@@ -1,7 +1,9 @@
-import { Text, View, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { Text, View, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { WorldClock } from '../ui/WorldClock';
+import { Plaza } from './Plaza';
 import { formatDateTime } from '../../lib/formatDate';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
@@ -21,14 +23,25 @@ interface Props {
   isCancelling: boolean;
 }
 
+/** Assumed width until `onLayout` reports the real one — the pattern `app/hearth.tsx` uses for
+ *  its own `SkyWindow`. */
+const FALLBACK_PLAZA_WIDTH = 320;
+
 export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter, isRsvping, isCancelling }: Props) {
   const festival = useActiveFestival();
+  const [plazaWidth, setPlazaWidth] = useState(FALLBACK_PLAZA_WIDTH);
+
+  function onPlazaLayout(e: LayoutChangeEvent) {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0 && w !== plazaWidth) setPlazaWidth(w);
+  }
+
   if (!session?.sessionId) {
     return (
       <View style={styles.emptyWrap}>
         <StateBlock
           framed
-          icon="bank"
+          icon="door"
           title={i18n.t('town_square_empty_title')}
           body={i18n.t('town_square_empty_sub')}
         />
@@ -65,12 +78,42 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
     );
   }
 
+  // Locked reads the same as Open but shut: the gates carry no bar until the roster is, and the
+  // sub line names whichever half of "the gates close, N are in" is still true.
+  const subKey = !isOpen
+    ? 'plaza_sub_locked'
+    : session.isRsvpd
+      ? 'plaza_sub_open'
+      : 'plaza_sub_open_not_mine';
+
   return (
-    <AppCard style={styles.card}>
+    <AppCard hero style={styles.card}>
       {festivalEyebrow}
       {/* The screen's header already says "Town Square"; the card's own title is the date it
-          names — the one fact the countdown below does not carry. */}
+          names — the one fact the plaza's drawing does not carry. */}
       <Text style={styles.title}>{formatDateTime(session.scheduledStartAt)}</Text>
+      <View onLayout={onPlazaLayout}>
+        <Plaza width={plazaWidth} lanterns={session.rsvpCount} mine={session.isRsvpd} open={isOpen} />
+      </View>
+      <Text style={styles.sub}>
+        {i18n.t(subKey, { count: session.rsvpCount })}
+      </Text>
+      <View style={styles.statsRow}>
+        <View style={styles.stat}>
+          <CardEyebrow style={styles.statLabel}>{i18n.t('plaza_first_bell')}</CardEyebrow>
+          <WorldClock
+            targetIso={session.scheduledStartAt}
+            nowMs={now}
+            worldKey="first_bell"
+            exactKey="town_square_starts_in"
+            style={styles.statValue}
+          />
+        </View>
+        <View style={styles.stat}>
+          <CardEyebrow style={styles.statLabel}>{i18n.t('plaza_rounds')}</CardEyebrow>
+          <Text style={styles.statValue}>{i18n.t('plaza_rounds_value', { count: session.roundCount })}</Text>
+        </View>
+      </View>
       {isOpen && (
         <WorldClock
           targetIso={session.rsvpClosesAt}
@@ -81,13 +124,6 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
           testID="session-gates-close"
         />
       )}
-      <WorldClock
-        targetIso={session.scheduledStartAt}
-        nowMs={now}
-        worldKey="first_bell"
-        exactKey="town_square_starts_in"
-        style={styles.countdown}
-      />
       {isOpen && (
         session.isRsvpd ? (
           <GameButton variant="ink" onPress={() => onCancelRsvp(session.sessionId!)} loading={isCancelling}>
@@ -110,5 +146,12 @@ const styles = StyleSheet.create({
   title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, letterSpacing: TRACKING.wide },
   hint: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   countdown: { fontFamily: FONTS.display, fontSize: FONT_SIZES.title, color: INK.primary },
+  // Italic is the app speaking (the Sealed Fire's three voices) — this line is the world's own
+  // account of the gates and the lanterns, not a person's.
+  sub: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.md, color: INK.dim },
+  statsRow: { flexDirection: 'row', gap: SPACE.lg },
+  stat: { flex: 1 },
+  statLabel: { marginBottom: SPACE.xs },
+  statValue: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.primary },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.gutter },
 });

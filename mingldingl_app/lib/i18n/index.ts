@@ -106,6 +106,12 @@ export const AWAITING_MN_TRANSLATION = [
   'hearth_law',
   // The chronicle counts dawns too (Wave 4 Task 6): its own day-marker heading.
   'chronicle_dawn',
+  // The Square as a plaza (Wave 4 Task 7, move 9): the hero card's sub line, its stat labels, the
+  // round-over lantern count, and the plaza drawing's own accessibility label.
+  'plaza_sub_open', 'plaza_sub_open_not_mine', 'plaza_sub_locked',
+  'plaza_first_bell', 'plaza_rounds', 'plaza_rounds_value',
+  'plaza_closed_lit', 'plaza_closed_lit_one',
+  'plaza_label', 'plaza_label_mine', 'plaza_label_none',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

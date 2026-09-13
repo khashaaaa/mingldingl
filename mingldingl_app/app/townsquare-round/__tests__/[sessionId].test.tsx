@@ -113,7 +113,7 @@ describe('TownSquareRoundScreen — the session ending', () => {
 
     const { getByText, queryByText } = renderScreen();
 
-    expect(getByText('The Square Has Closed')).toBeTruthy();
+    expect(getByText('The square has closed')).toBeTruthy();
     expect(getByText('You met 3 people tonight.')).toBeTruthy();
     expect(queryByText('You left the square')).toBeNull();
   });
@@ -126,13 +126,32 @@ describe('TownSquareRoundScreen — the session ending', () => {
       matches: [{ matchId: 'm1', otherUserId: 'u2', displayName: 'Nomin' }],
     });
 
-    const { getByText } = renderScreen();
+    const { getByText, getByTestId } = renderScreen();
 
-    // A match made in the square used to be surfaced nowhere once the gathering ended.
-    expect(getByText('You matched with:')).toBeTruthy();
+    // A match made in the square used to be surfaced nowhere once the gathering ended. One match
+    // is the singular line — the plural count line is covered by the two-match test below.
+    expect(getByText('One lantern was lit from both sides. It waits in your letters.')).toBeTruthy();
+    expect(getByText('Lanterns lit from both sides:')).toBeTruthy();
     // Their own name, in their own case: the list is ink links now, not a row of forged slabs,
     // and the forge's caps were shouting a stranger's name back at them.
     expect(getByText('Nomin')).toBeTruthy();
+    // A carried lantern beside the row, the same glyph the plaza itself lights.
+    expect(getByTestId('match-lantern')).toBeTruthy();
+  });
+
+  it('counts more than one lantern in the plural', () => {
+    stubRound({ error: new Error('not in progress') });
+    mockUseSummary.mockReturnValue({
+      status: 'Completed',
+      roundsPlayed: 4,
+      matches: [
+        { matchId: 'm1', otherUserId: 'u2', displayName: 'Nomin' },
+        { matchId: 'm2', otherUserId: 'u3', displayName: 'Bat' },
+      ],
+    });
+
+    const { getByText } = renderScreen();
+    expect(getByText('2 lanterns were lit from both sides. They wait in your letters.')).toBeTruthy();
   });
 
   it('says so plainly when nobody said yes back', () => {
@@ -140,7 +159,7 @@ describe('TownSquareRoundScreen — the session ending', () => {
     mockUseSummary.mockReturnValue({ status: 'Completed', roundsPlayed: 2, matches: [] });
 
     const { getByText } = renderScreen();
-    expect(getByText('No mutual yes this time — the next gathering will be along.')).toBeTruthy();
+    expect(getByText('No lantern lit from both sides this time. The next gathering will be along.')).toBeTruthy();
   });
 
   it('still reports being dropped from a session that is not over', () => {

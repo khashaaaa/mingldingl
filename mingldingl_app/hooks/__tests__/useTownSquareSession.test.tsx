@@ -3,6 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useTownSquareSession } from '../useTownSquareSession';
 import { apiClient } from '../../lib/api/apiClient';
 import { supabase } from '../../lib/supabase';
+import { signal } from '../../lib/world/feedback';
 import { createAppQueryClient } from '../../lib/api/queryClient';
 
 jest.mock('../../lib/api/apiClient', () => ({
@@ -22,8 +23,11 @@ jest.mock('../../lib/supabase', () => ({
   },
 }));
 
+jest.mock('../../lib/world/feedback', () => ({ signal: jest.fn() }));
+
 const mockChannelFn = supabase.channel as jest.Mock;
 const mockRemoveChannel = supabase.removeChannel as jest.Mock;
+const mockSignal = signal as jest.Mock;
 
 type BroadcastHandler = (msg: { payload: unknown }) => void;
 
@@ -144,6 +148,28 @@ describe('useTownSquareSession', () => {
 
     await waitFor(() => expect(mockApi.townSquare.rsvp).toHaveBeenCalledWith('s1'));
     await waitFor(() => expect(result.current.session?.isRsvpd).toBe(true));
+  });
+
+  // The plaza's own lantern (Task 7): lit once, on the RSVP that actually landed — not on every
+  // render that happens to see `isRsvpd: true`, which would ring it again on a stray refetch.
+  it('lights a candle once a successful RSVP lands', async () => {
+    mockApi.townSquare.nextSession
+      .mockResolvedValueOnce({ sessionId: 's1', status: 'Open', isRsvpd: false })
+      .mockResolvedValueOnce({ sessionId: 's1', status: 'Open', isRsvpd: true });
+    mockApi.townSquare.rsvp.mockResolvedValue({});
+
+    const queryClient = makeQueryClient();
+    const { result } = renderHook(() => useTownSquareSession(), { wrapper: makeWrapper(queryClient) });
+
+    await waitFor(() => expect(result.current.session?.isRsvpd).toBe(false));
+
+    await act(async () => {
+      result.current.rsvp('s1');
+    });
+
+    await waitFor(() => expect(mockApi.townSquare.rsvp).toHaveBeenCalledWith('s1'));
+    expect(mockSignal).toHaveBeenCalledTimes(1);
+    expect(mockSignal).toHaveBeenCalledWith('candleLit');
   });
 
   it('cancelRsvp() calls the API and invalidates next-session', async () => {
