@@ -52,14 +52,16 @@ describe('CampaignScreen', () => {
 
   it('renders every room by name', () => {
     stubCampaign();
+    // A locked room's name carries a " · sealed" suffix as part of the same Text node, so a
+    // locked room's name is matched as a substring rather than an exact string.
     const { getByText } = render(<WithSafeArea><CampaignScreen /></WithSafeArea>);
 
-    getByText('The Meeting Gate');
-    getByText('Hall of Echoes');
-    getByText('The Rune Chamber');
-    getByText('Gate of Voices');
-    getByText('The Flame Altar');
-    getByText('The Pledge Bridge');
+    getByText('The Meeting Cave');
+    getByText('The Hall of Echoes');
+    getByText(/The Rune Chamber/);
+    getByText(/The Gate of Voices/);
+    getByText(/The Flame Altar/);
+    getByText(/The Pledge Bridge/);
     getByText("The Dragon's Threshold");
   });
 
@@ -68,7 +70,9 @@ describe('CampaignScreen', () => {
     stubCampaign({ claimRoom });
     const { getByText } = render(<WithSafeArea><CampaignScreen /></WithSafeArea>);
 
-    fireEvent.press(getByText(/claim spoils/i));
+    // Gate is the only claimable room here, so it takes the forge — GameButton renders a
+    // metal variant's label upper-cased.
+    fireEvent.press(getByText('CLAIM +5'));
 
     expect(claimRoom).toHaveBeenCalledWith('gate', expect.anything());
   });
@@ -77,7 +81,8 @@ describe('CampaignScreen', () => {
     stubCampaign();
     const { getAllByText, getByText } = render(<WithSafeArea><CampaignScreen /></WithSafeArea>);
 
-    expect(getAllByText('Sealed').length).toBeGreaterThan(0);
+    // The suffix now reads " · sealed", carved onto the name rather than standing on its own row.
+    expect(getAllByText(/· sealed/).length).toBeGreaterThan(0);
     getByText('Spoils claimed');
   });
 
@@ -85,7 +90,7 @@ describe('CampaignScreen', () => {
     stubCampaign();
     const { getByText } = render(<WithSafeArea><CampaignScreen /></WithSafeArea>);
 
-    getByText('Both face the Trial of Compatibility');
+    getByText('Both face the trial. The bats are listening.');
   });
 
   it('shows the closed state when the campaign is disabled', () => {

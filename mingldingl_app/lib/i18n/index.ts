@@ -78,6 +78,9 @@ export const AWAITING_MN_TRANSLATION = [
   // The Ascent as a night sky (Wave 3 move 12): the progression screen redrawn as a climb through
   // six gem stars.
   'ascent_sub', 'ascent_you', 'ascent_to_go', 'ascent_beyond', 'ascent_dawns',
+  // The Campaign as a cave (Wave 3 move 9): the sub-line under the header and the dragon's
+  // locked-boss line.
+  'campaign_sub', 'campaign_dragon_sleeps',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
