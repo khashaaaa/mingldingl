@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api, LONG_REQUEST_TIMEOUT_MS } from './api';
 import type { components } from './api.generated';
 
 type Schemas = components['schemas'];
@@ -50,7 +50,9 @@ export const apiClient = {
     removePhoto: (id: string, photoUrl: string) =>
       api.post<Schemas['AdminUserDetailDto']>(`/admin/users/${id}/photos/remove`, { photoUrl }).then((r) => r.data),
     export: (search: string) =>
-      api.get(`/admin/users/export${query({ search })}`, { responseType: 'blob' }).then((r) => r.data as Blob),
+      api
+        .get(`/admin/users/export${query({ search })}`, { responseType: 'blob', timeout: LONG_REQUEST_TIMEOUT_MS })
+        .then((r) => r.data as Blob),
   },
   reports: {
     list: (status: string, page: number, pageSize = 20) =>
@@ -84,18 +86,47 @@ export const apiClient = {
     bulkUpdate: (body: Schemas['AdminBulkUpdateBusinessRequest']) =>
       api.post<{ updated: number }>('/admin/business/bulk-update', body).then((r) => r.data),
     export: (search: string) =>
-      api.get(`/admin/business/export${query({ search })}`, { responseType: 'blob' }).then((r) => r.data as Blob),
+      api
+        .get(`/admin/business/export${query({ search })}`, { responseType: 'blob', timeout: LONG_REQUEST_TIMEOUT_MS })
+        .then((r) => r.data as Blob),
   },
   analytics: {
     overview: () => api.get<Schemas['AdminAnalyticsOverviewResponse']>('/admin/analytics/overview').then((r) => r.data),
   },
   ops: {
-    runMaintenanceSweep: () => api.post('/admin/ops/run-maintenance-sweep').then((r) => r.data),
+    runMaintenanceSweep: () =>
+      api.post('/admin/ops/run-maintenance-sweep', undefined, { timeout: LONG_REQUEST_TIMEOUT_MS }).then((r) => r.data),
     pricing: () => api.get<Schemas['MembershipTierResponse'][]>('/admin/ops/pricing').then((r) => r.data),
   },
   auditLog: {
     list: (page: number, pageSize = 20) =>
       api.get<Schemas['AdminAuditLogDtoPagedResponse']>(`/admin/audit-log${query({ page, pageSize })}`).then((r) => r.data),
+    /**
+     * The value `POST /admin/config/{key}/revert` would restore: the OldValue of the key's latest
+     * UpdateConfig entry. The log has no key filter, so this scans a bounded number of pages and
+     * returns undefined when the entry is older than that.
+     */
+    lastConfigOldValue: async (key: string, maxPages = 10): Promise<string | undefined> => {
+      for (let page = 1; page <= maxPages; page++) {
+        const res = await api
+          .get<Schemas['AdminAuditLogDtoPagedResponse']>(`/admin/audit-log${query({ page, pageSize: 50 })}`)
+          .then((r) => r.data);
+        const hit = res.items?.find(
+          (l) => l.entityType === 'AdminConfig' && l.entityId === key && l.action === 'UpdateConfig',
+        );
+        if (hit?.details) {
+          try {
+            const parsed = JSON.parse(hit.details) as { OldValue?: unknown; oldValue?: unknown };
+            const old = parsed.OldValue ?? parsed.oldValue;
+            return typeof old === 'string' ? old : undefined;
+          } catch {
+            return undefined;
+          }
+        }
+        if (!res.hasMore) return undefined;
+      }
+      return undefined;
+    },
   },
   config: {
     list: () => api.get<Schemas['AdminConfigDto'][]>('/admin/config').then((r) => r.data),

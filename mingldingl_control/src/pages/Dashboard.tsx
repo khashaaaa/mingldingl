@@ -41,11 +41,12 @@ export function Dashboard() {
   const overview = overviewQuery.data;
   const deletionRequests = deletionRequestsQuery.data;
   const auditLog = auditLogQuery.data;
-  const statsError = overviewQuery.isError || deletionRequestsQuery.isError;
+  const statsError = overviewQuery.isError || deletionRequestsQuery.isError || pendingReportsQuery.isError;
 
   function retryStats() {
     if (overviewQuery.isError) overviewQuery.refetch();
     if (deletionRequestsQuery.isError) deletionRequestsQuery.refetch();
+    if (pendingReportsQuery.isError) pendingReportsQuery.refetch();
   }
 
   return (
@@ -102,6 +103,8 @@ export function Dashboard() {
                 Try again
               </button>
             </p>
+          ) : auditLogQuery.isLoading ? (
+            <p className="text-muted-foreground text-sm">Loading…</p>
           ) : auditLog?.items?.length ? (
             <ul className="space-y-2 text-sm">
               {auditLog.items.map((l) => (

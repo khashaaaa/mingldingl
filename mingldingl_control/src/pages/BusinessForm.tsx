@@ -23,13 +23,30 @@ export function BusinessForm() {
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id;
 
-  const { data: existing, isLoading } = useQuery({
+  const { data: existing, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.businessDetail(id ?? ''),
     queryFn: () => apiClient.business.detail(id ?? ''),
     enabled: isEditing,
   });
 
   if (isEditing && isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
+
+  // Rendering the blank form here would let Save overwrite the real record with empty fields.
+  if (isEditing && (isError || !existing)) {
+    return (
+      <div>
+        <Link to="/business" className="text-primary mb-4 inline-block text-sm hover:underline">
+          ← Back to businesses
+        </Link>
+        <p className="text-destructive text-sm">
+          Couldn't load this business.{' '}
+          <button type="button" className="underline" onClick={() => refetch()}>
+            Try again
+          </button>
+        </p>
+      </div>
+    );
+  }
 
   return <BusinessFormFields key={id ?? 'new'} id={id} existing={existing} />;
 }
@@ -92,15 +109,15 @@ function BusinessFormFields({ id, existing }: { id?: string; existing?: Business
             }}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label>Name</Label>
-                <Input required value={name} onChange={(e) => setName(e.target.value)} />
+                <Label htmlFor="business-name">Name</Label>
+                <Input id="business-name" required value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>Category</Label>
+                <Label htmlFor="business-category">Category</Label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger id="business-category" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -113,25 +130,25 @@ function BusinessFormFields({ id, existing }: { id?: string; existing?: Business
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>City</Label>
-                <Input required value={city} onChange={(e) => setCity(e.target.value)} />
+                <Label htmlFor="business-city">City</Label>
+                <Input id="business-city" required value={city} onChange={(e) => setCity(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>District</Label>
-                <Input value={district} onChange={(e) => setDistrict(e.target.value)} />
+                <Label htmlFor="business-district">District</Label>
+                <Input id="business-district" value={district} onChange={(e) => setDistrict(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Description</Label>
-              <Textarea className="h-24" value={description} onChange={(e) => setDescription(e.target.value)} />
+              <Label htmlFor="business-description">Description</Label>
+              <Textarea id="business-description" className="h-24" value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Photo URLs (one per line)</Label>
-              <Textarea className="h-20" value={photoUrlsText} onChange={(e) => setPhotoUrlsText(e.target.value)} />
+              <Label htmlFor="business-photos">Photo URLs (one per line)</Label>
+              <Textarea id="business-photos" className="h-20" value={photoUrlsText} onChange={(e) => setPhotoUrlsText(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Operating Hours</Label>
-              <Input value={operatingHours} onChange={(e) => setOperatingHours(e.target.value)} placeholder="9am-9pm" />
+              <Label htmlFor="business-hours">Operating Hours</Label>
+              <Input id="business-hours" value={operatingHours} onChange={(e) => setOperatingHours(e.target.value)} placeholder="9am-9pm" />
             </div>
             <div className="flex gap-6">
               <Label className="font-normal">

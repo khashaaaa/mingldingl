@@ -159,6 +159,7 @@ export function TownSquare() {
     mutationFn: (sessionId: string) => apiClient.townSquare.cancelSession(sessionId),
     onSuccess: () => {
       invalidateSessions();
+      qc.invalidateQueries({ queryKey: ['user'] });
       setPendingCancel(null);
       toast({ variant: 'success', description: 'Session cancelled.' });
     },
@@ -202,8 +203,8 @@ export function TownSquare() {
           {(data.items ?? []).map((s) => (
             <Card key={s.id}>
               <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-3">
                     <Badge variant={statusVariant(s.status)}>{s.status}</Badge>
                     <span className="text-sm font-medium">
                       {s.scheduledStartAt && new Date(s.scheduledStartAt).toLocaleString()}

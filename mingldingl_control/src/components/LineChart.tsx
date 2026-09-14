@@ -4,6 +4,8 @@ const HEIGHT = 160;
 const PAD = 16;
 
 export function LineChart({ data }: { data: { date: string; count: number }[] }) {
+  if (data.length === 0) return <p className="text-muted-foreground py-6 text-center text-sm">No data yet.</p>;
+
   const max = Math.max(1, ...data.map((d) => d.count));
   const stepX = (WIDTH - PAD * 2) / Math.max(1, data.length - 1);
 

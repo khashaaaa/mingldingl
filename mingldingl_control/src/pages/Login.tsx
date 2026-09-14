@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../lib/api/apiClient';
 import { setToken } from '../lib/auth';
+import { clearSessionExpired } from '../lib/session';
+import { loginError } from '../lib/apiError';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,9 +32,10 @@ export function Login() {
       const { token, expiresAt } = await apiClient.auth.login(username, password);
       if (!token) throw new Error('No token returned');
       setToken(token, expiresAt);
+      clearSessionExpired();
       navigate(resolveNext(searchParams.get('next')), { replace: true });
-    } catch {
-      setError('Invalid username or password.');
+    } catch (err) {
+      setError(loginError(err));
     } finally {
       setSubmitting(false);
     }

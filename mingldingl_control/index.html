@@ -5,6 +5,11 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>mingldingl_control</title>
+    <script>
+      try {
+        document.documentElement.classList.toggle('dark', localStorage.getItem('mingldingl_control_theme') === 'dark');
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

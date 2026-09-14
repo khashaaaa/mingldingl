@@ -50,6 +50,7 @@ export function Reports() {
   const [resolving, setResolving] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<ReportOutcome>('Dismissed');
   const [notes, setNotes] = useState('');
+  const [confirmingBan, setConfirmingBan] = useState(false);
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -72,6 +73,8 @@ export function Reports() {
       qc.invalidateQueries({ queryKey: ['reports'] });
       qc.invalidateQueries({ queryKey: queryKeys.pendingReportCount });
       qc.invalidateQueries({ queryKey: ['user'] });
+      qc.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
       toast({ variant: 'success', description: `Report ${outcome.toLowerCase()}.` });
       closeDialog();
     },
@@ -83,16 +86,21 @@ export function Reports() {
     setResolving(id);
     setOutcome('Dismissed');
     setNotes('');
+    setConfirmingBan(false);
   }
 
   function closeDialog() {
     setResolving(null);
     setNotes('');
+    setConfirmingBan(false);
   }
+
+  const notesRequired = outcome === 'Banned' || outcome === 'Penalised';
+  const notesMissing = notesRequired && notes.trim() === '';
 
   return (
     <div>
-      <div className="mb-1 flex items-center justify-between">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-semibold">Reports</h1>
         <Select
           value={status || 'all'}
@@ -101,7 +109,7 @@ export function Reports() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-44" aria-label="Filter by status">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -176,7 +184,7 @@ export function Reports() {
             </Table>
           </div>
           <Pagination
-            page={page}
+            page={data.page ?? page}
             totalCount={data.totalCount ?? 0}
             pageSize={PAGE_SIZE}
             onPageChange={setPage}
@@ -200,8 +208,14 @@ export function Reports() {
           )}
 
           <div className="space-y-2">
-            <Select value={outcome} onValueChange={(v) => setOutcome(v as ReportOutcome)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={outcome}
+              onValueChange={(v) => {
+                setOutcome(v as ReportOutcome);
+                setConfirmingBan(false);
+              }}
+            >
+              <SelectTrigger aria-label="Outcome"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {REPORT_OUTCOMES.map((o) => (
                   <SelectItem key={o} value={o}>{o}</SelectItem>
@@ -211,21 +225,40 @@ export function Reports() {
             <p className="text-muted-foreground text-sm">{OUTCOME_HELP[outcome]}</p>
           </div>
 
-          <Textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Notes (kept on the report, and used as the ban reason)"
-            maxLength={1000}
-          />
+          <div className="space-y-1.5">
+            <Textarea
+              aria-label="Notes"
+              aria-invalid={notesMissing || undefined}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={`Notes${notesRequired ? ' (required)' : ''} — kept on the report, and used as the ban reason`}
+              maxLength={1000}
+            />
+            {notesMissing && (
+              <p className="text-muted-foreground text-xs">
+                {outcome === 'Banned' ? 'A ban' : 'A penalty'} needs a note saying why.
+              </p>
+            )}
+          </div>
+
+          {confirmingBan && (
+            <p role="alert" className="border-destructive text-destructive rounded border p-3 text-sm">
+              Ban {detail?.reportedDisplayName ?? 'this user'}? Their account is suspended and every live
+              conversation it holds ends. Unbanning later does not bring those conversations back.
+            </p>
+          )}
 
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancel</Button>
             <Button
               variant={outcome === 'Banned' ? 'destructive' : 'default'}
-              disabled={resolve.isPending}
-              onClick={() => resolve.mutate()}
+              disabled={resolve.isPending || notesMissing}
+              onClick={() => {
+                if (outcome === 'Banned' && !confirmingBan) setConfirmingBan(true);
+                else resolve.mutate();
+              }}
             >
-              {resolve.isPending ? 'Saving…' : `Mark ${outcome}`}
+              {resolve.isPending ? 'Saving…' : confirmingBan ? 'Confirm ban' : `Mark ${outcome}`}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -2,6 +2,8 @@ const ACCENT = 'var(--chart-accent)';
 const CHART_HEIGHT = 160;
 
 export function BarChart({ data }: { data: { label: string; value: number }[] }) {
+  if (data.length === 0) return <p className="text-muted-foreground py-6 text-center text-sm">No data yet.</p>;
+
   const max = Math.max(1, ...data.map((d) => d.value));
 
   return (

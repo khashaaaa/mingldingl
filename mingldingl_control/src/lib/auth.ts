@@ -13,12 +13,17 @@ export function setToken(token: string, expiresAt?: string): void {
   else localStorage.removeItem(EXPIRES_KEY);
 }
 
-export function isTokenExpired(): boolean {
+/** Epoch ms at which the token should be treated as expired (skew applied), or null if unknown. */
+export function getTokenExpiry(): number | null {
   const expiresAt = localStorage.getItem(EXPIRES_KEY);
-  if (!expiresAt) return false;
+  if (!expiresAt) return null;
   const ts = Date.parse(expiresAt);
-  if (Number.isNaN(ts)) return false;
-  return ts - EXPIRY_SKEW_MS <= Date.now();
+  return Number.isNaN(ts) ? null : ts - EXPIRY_SKEW_MS;
+}
+
+export function isTokenExpired(): boolean {
+  const expiry = getTokenExpiry();
+  return expiry !== null && expiry <= Date.now();
 }
 
 export function clearToken(): void {

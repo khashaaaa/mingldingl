@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Moon, Sun } from 'lucide-react';
 import { clearToken } from '../lib/auth';
 import { ErrorBoundary } from './ErrorBoundary';
+import { SessionGuard } from './SessionGuard';
 import { applyTheme, getStoredTheme, subscribeTheme } from '../lib/theme';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -25,6 +27,7 @@ const NAV_ITEMS = [
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [theme, setTheme] = useState(getStoredTheme);
 
   // Keep the toggle in step with a theme change made in another tab.
@@ -32,6 +35,7 @@ export function Layout() {
 
   function handleLogout() {
     clearToken();
+    queryClient.clear();
     navigate('/login');
   }
 
@@ -41,8 +45,9 @@ export function Layout() {
 
   return (
     <div className="bg-muted/30 min-h-screen">
-      <nav className="bg-background flex flex-wrap items-center justify-between gap-y-2 border-b px-6 py-3">
-        <div className="flex flex-wrap items-center gap-1">
+      <SessionGuard />
+      <nav className="bg-background flex flex-wrap items-center justify-between gap-y-2 border-b px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 flex-wrap items-center gap-1">
           <span className="mr-4 font-semibold">mingldingl_control</span>
           {NAV_ITEMS.map((item) => (
             <NavLink
@@ -51,7 +56,7 @@ export function Layout() {
               end={item.end}
               className={({ isActive }) =>
                 cn(
-                  'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  'rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
                   isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground',
                 )
               }
@@ -69,7 +74,7 @@ export function Layout() {
           </Button>
         </div>
       </nav>
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <ErrorBoundary key={location.pathname}>
           <Outlet />
         </ErrorBoundary>

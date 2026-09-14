@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
@@ -19,6 +19,7 @@ export function UsersList() {
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
+  const qc = useQueryClient();
   const debouncedSearch = useDebouncedValue(search);
 
   const { data, isLoading, isError } = useQuery({
@@ -37,6 +38,7 @@ export function UsersList() {
       // Export what the table is actually showing, not a filter the user is still typing.
       const blob = await apiClient.users.export(debouncedSearch);
       downloadBlob(blob, 'users.csv');
+      qc.invalidateQueries({ queryKey: ['auditLog'] });
     } catch {
       toast({ variant: 'destructive', description: 'Export failed — try again.' });
     } finally {
@@ -53,7 +55,8 @@ export function UsersList() {
         </Button>
       </div>
       <Input
-        className="mb-4 w-72"
+        className="mb-4 w-72 max-w-full"
+        aria-label="Search users"
         placeholder="Search by name, city, or phone"
         value={search}
         onChange={(e) => handleSearchChange(e.target.value)}

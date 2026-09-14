@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +51,8 @@ export function UserDetail() {
   const [scoreDelta, setScoreDelta] = useState('');
   const [scoreReason, setScoreReason] = useState('');
   const [removingPhoto, setRemovingPhoto] = useState<string | null>(null);
+  const [confirmResetNoShow, setConfirmResetNoShow] = useState(false);
+  const [confirmUnban, setConfirmUnban] = useState(false);
 
   const { data: user, isLoading, isError } = useQuery({
     queryKey: queryKeys.user(id ?? ''),
@@ -63,12 +65,15 @@ export function UserDetail() {
   }
 
   const ban = useMutation({
-    mutationFn: () => apiClient.users.ban(id ?? '', banReason),
+    mutationFn: () => apiClient.users.ban(id ?? '', banReason.trim()),
     onSuccess: (updated) => {
       updateUserCache(updated);
 
       qc.invalidateQueries({ queryKey: ['users'] });
       qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
+      qc.invalidateQueries({ queryKey: ['reports'] });
+      qc.invalidateQueries({ queryKey: ['report'] });
+      qc.invalidateQueries({ queryKey: queryKeys.pendingReportCount });
       setBanDialogOpen(false);
       setBanReason('');
       toast({ variant: 'success', description: 'User banned.' });
@@ -82,9 +87,13 @@ export function UserDetail() {
       updateUserCache(updated);
       qc.invalidateQueries({ queryKey: ['users'] });
       qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
+      setConfirmUnban(false);
       toast({ variant: 'success', description: 'User unbanned.' });
     },
-    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Unban failed — try again.') }),
+    onError: (err) => {
+      setConfirmUnban(false);
+      toast({ variant: 'destructive', description: serverError(err, 'Unban failed — try again.') });
+    },
   });
 
   /**
@@ -119,7 +128,7 @@ export function UserDetail() {
   });
 
   const adjustScore = useMutation({
-    mutationFn: () => apiClient.users.adjustScore(id ?? '', Number(scoreDelta), scoreReason),
+    mutationFn: () => apiClient.users.adjustScore(id ?? '', Number(scoreDelta), scoreReason.trim()),
     onSuccess: (updated) => {
       updateUserCache(updated);
       qc.invalidateQueries({ queryKey: ['users'] });
@@ -136,12 +145,20 @@ export function UserDetail() {
     mutationFn: () => apiClient.users.resetNoShow(id ?? ''),
     onSuccess: (updated) => {
       updateUserCache(updated);
-      qc.invalidateQueries({ queryKey: queryKeys.user(id ?? '') });
+      qc.invalidateQueries({ queryKey: ['users'] });
       qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
+      setConfirmResetNoShow(false);
       toast({ variant: 'success', description: 'No-show flags reset.' });
     },
-    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Reset failed — try again.') }),
+    onError: (err) => {
+      setConfirmResetNoShow(false);
+      toast({ variant: 'destructive', description: serverError(err, 'Reset failed — try again.') });
+    },
   });
+
+  const scoreDeltaNumber = Number(scoreDelta);
+  const scoreValid =
+    scoreDelta.trim() !== '' && Number.isInteger(scoreDeltaNumber) && scoreDeltaNumber !== 0 && scoreReason.trim() !== '';
 
   return (
     <div>
@@ -155,7 +172,7 @@ export function UserDetail() {
       {user && (
         <div className="space-y-6">
           <Card>
-            <CardHeader className="flex-row items-center justify-between">
+            <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
               <CardTitle className="text-lg">{user.displayName}</CardTitle>
               {user.isBanned ? (
                 <Badge variant="destructive">Banned</Badge>
@@ -168,7 +185,7 @@ export function UserDetail() {
               )}
             </CardHeader>
             <CardContent>
-              <dl className="grid grid-cols-3 gap-4">
+              <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <Field label="Phone" value={user.phoneNumber} />
                 <Field label="Age" value={user.age} />
                 <Field label="Gender" value={user.gender} />
@@ -203,7 +220,7 @@ export function UserDetail() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => resetNoShow.mutate()}
+                        onClick={() => setConfirmResetNoShow(true)}
                         disabled={resetNoShow.isPending || !(user.noShowFlagCount ?? 0)}
                       >
                         {resetNoShow.isPending ? 'Resetting…' : 'Reset'}
@@ -212,14 +229,14 @@ export function UserDetail() {
                   }
                 />
               </dl>
-              <div className="mt-4">
+              <dl className="mt-4">
                 <dt className="text-muted-foreground text-xs font-medium">Bio</dt>
                 <dd className="text-sm">{user.bio || '—'}</dd>
-              </div>
+              </dl>
 
               <div className="mt-6 flex flex-wrap gap-2 border-t pt-4">
                 {user.isBanned ? (
-                  <Button size="sm" variant="outline" onClick={() => unban.mutate()} disabled={unban.isPending}>
+                  <Button size="sm" variant="outline" onClick={() => setConfirmUnban(true)} disabled={unban.isPending}>
                     {unban.isPending ? 'Unbanning…' : 'Unban'}
                   </Button>
                 ) : (
@@ -322,6 +339,13 @@ export function UserDetail() {
             <CardContent>
               {user.recentScoreEvents?.length ? (
                 <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Event</TableHead>
+                      <TableHead className="text-right">Delta</TableHead>
+                      <TableHead className="text-right">When</TableHead>
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
                     {user.recentScoreEvents.map((e, i) => (
                       <TableRow key={i}>
@@ -350,6 +374,15 @@ export function UserDetail() {
             <CardContent>
               {user.recentMatches?.length ? (
                 <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>With</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Messages</TableHead>
+                      <TableHead>Flame Rite</TableHead>
+                      <TableHead className="text-right">Matched</TableHead>
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
                     {user.recentMatches.map((m) => (
                       <TableRow key={m.matchId}>
@@ -424,14 +457,19 @@ export function UserDetail() {
             <DialogDescription>Rejected at auth time — they won't be able to use the app until unbanned.</DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
-            <Label>Reason</Label>
-            <Input value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="e.g. harassment reports" />
+            <Label htmlFor="ban-reason">Reason (required)</Label>
+            <Input
+              id="ban-reason"
+              value={banReason}
+              onChange={(e) => setBanReason(e.target.value)}
+              placeholder="e.g. harassment reports"
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBanDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={() => ban.mutate()} disabled={ban.isPending}>
+            <Button variant="destructive" onClick={() => ban.mutate()} disabled={ban.isPending || banReason.trim() === ''}>
               {ban.isPending ? 'Banning…' : 'Ban user'}
             </Button>
           </DialogFooter>
@@ -445,12 +483,12 @@ export function UserDetail() {
             <DialogDescription>Goes through the same tier recalculation as any other score change.</DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
-            <Label>Delta (positive or negative)</Label>
-            <Input type="number" value={scoreDelta} onChange={(e) => setScoreDelta(e.target.value)} placeholder="e.g. 50 or -20" />
+            <Label htmlFor="score-delta">Delta (positive or negative whole number)</Label>
+            <Input id="score-delta" type="number" step={1} value={scoreDelta} onChange={(e) => setScoreDelta(e.target.value)} placeholder="e.g. 50 or -20" />
           </div>
           <div className="space-y-1.5">
-            <Label>Reason</Label>
-            <Input value={scoreReason} onChange={(e) => setScoreReason(e.target.value)} placeholder="e.g. compensation for bug" />
+            <Label htmlFor="score-reason">Reason (required)</Label>
+            <Input id="score-reason" value={scoreReason} onChange={(e) => setScoreReason(e.target.value)} placeholder="e.g. compensation for bug" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setScoreDialogOpen(false)}>
@@ -458,7 +496,7 @@ export function UserDetail() {
             </Button>
             <Button
               onClick={() => adjustScore.mutate()}
-              disabled={adjustScore.isPending || !scoreDelta || Number.isNaN(Number(scoreDelta))}
+              disabled={adjustScore.isPending || !scoreValid}
             >
               {adjustScore.isPending ? 'Saving…' : 'Apply'}
             </Button>
@@ -486,6 +524,42 @@ export function UserDetail() {
               onClick={() => removePhoto.mutate(removingPhoto!)}
             >
               {removePhoto.isPending ? 'Removing…' : 'Remove photo'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmResetNoShow} onOpenChange={(open) => !open && setConfirmResetNoShow(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset no-show flags?</DialogTitle>
+            <DialogDescription>
+              Clears {user?.noShowFlagCount ?? 0} no-show flag(s) on {user?.displayName}. Their record starts clean and
+              this cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmResetNoShow(false)}>Cancel</Button>
+            <Button disabled={resetNoShow.isPending} onClick={() => resetNoShow.mutate()}>
+              {resetNoShow.isPending ? 'Resetting…' : 'Reset flags'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmUnban} onOpenChange={(open) => !open && setConfirmUnban(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unban {user?.displayName}?</DialogTitle>
+            <DialogDescription>
+              They can sign in and use the app again straight away.
+              {user?.banReason ? ` Banned for: ${user.banReason}` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmUnban(false)}>Cancel</Button>
+            <Button disabled={unban.isPending} onClick={() => unban.mutate()}>
+              {unban.isPending ? 'Unbanning…' : 'Unban user'}
             </Button>
           </DialogFooter>
         </DialogContent>

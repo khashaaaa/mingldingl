@@ -23,6 +23,7 @@ export function Ops() {
       qc.invalidateQueries({ queryKey: ['users'] });
       qc.invalidateQueries({ queryKey: ['user'] });
       qc.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
+      qc.invalidateQueries({ queryKey: ['ships'] });
       toast({ variant: 'success', description: `Sweep ran at ${new Date().toLocaleTimeString()}` });
     },
     onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Sweep failed — try again.') }),
@@ -33,8 +34,8 @@ export function Ops() {
       <div>
         <h1 className="text-lg font-semibold">Operations</h1>
         <p className="text-muted-foreground text-sm">
-          Feature flags aren't included here — no such system exists anywhere in the engine yet; adding one would mean
-          building a whole new flag-storage-and-evaluation subsystem, not just admin plumbing.
+          Manual maintenance and a read-only view of pricing. Feature kill switches (ships.enabled,
+          townsquare.enabled, video.enabled, campaign.enabled) live under Config.
         </p>
       </div>
 
@@ -45,7 +46,7 @@ export function Ops() {
         <CardContent>
           <p className="text-muted-foreground mb-4 text-sm">
             Normally runs automatically every hour (ghosting stale matches, daily-budget reset, deletion anonymization,
-            membership expiry). Trigger it manually here instead of waiting.
+            membership expiry, Ship expiry). Trigger it manually here instead of waiting.
           </p>
           <Button onClick={() => runSweep.mutate()} disabled={runSweep.isPending}>
             {runSweep.isPending ? 'Running…' : 'Run sweep now'}

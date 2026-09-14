@@ -56,7 +56,7 @@ function ContentPageEditForm({ slug, page }: { slug: string; page: ContentPage }
     mutationFn: () => apiClient.content.update(slug, { titleEn, titleMn, bodyEn, bodyMn }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.content });
-      toast({ description: 'Saved.' });
+      toast({ variant: 'success', description: 'Saved.' });
     },
     onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Save failed — try again.') }),
   });
@@ -77,23 +77,23 @@ function ContentPageEditForm({ slug, page }: { slug: string; page: ContentPage }
             }}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label>Title (English)</Label>
-                <Input value={titleEn} onChange={(e) => setTitleEn(e.target.value)} />
+                <Label htmlFor="content-title-en">Title (English)</Label>
+                <Input id="content-title-en" value={titleEn} onChange={(e) => setTitleEn(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>Title (Mongolian)</Label>
-                <Input value={titleMn} onChange={(e) => setTitleMn(e.target.value)} />
+                <Label htmlFor="content-title-mn">Title (Mongolian)</Label>
+                <Input id="content-title-mn" value={titleMn} onChange={(e) => setTitleMn(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Body (English)</Label>
-              <Textarea className="h-48" value={bodyEn} onChange={(e) => setBodyEn(e.target.value)} />
+              <Label htmlFor="content-body-en">Body (English)</Label>
+              <Textarea id="content-body-en" className="h-48" value={bodyEn} onChange={(e) => setBodyEn(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Body (Mongolian)</Label>
-              <Textarea className="h-48" value={bodyMn} onChange={(e) => setBodyMn(e.target.value)} />
+              <Label htmlFor="content-body-mn">Body (Mongolian)</Label>
+              <Textarea id="content-body-mn" className="h-48" value={bodyMn} onChange={(e) => setBodyMn(e.target.value)} />
             </div>
             <Button type="submit" disabled={save.isPending}>
               {save.isPending ? 'Saving…' : 'Save'}

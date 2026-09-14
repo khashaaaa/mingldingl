@@ -1,43 +1,44 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ConfigField } from '@/components/ConfigField';
-import { useToast } from '@/hooks/use-toast';
-import { serverError } from '@/lib/apiError';
+import { ConfigField, type LadderBounds } from '@/components/ConfigField';
+import type { components } from '@/lib/api/api.generated';
+
+type AdminConfigDto = components['schemas']['AdminConfigDto'];
+
+// ScoreService's ladder above the fixed Garnet floor (0); the engine checks each against its neighbours.
+const TIER_KEYS = ['opal', 'amethyst', 'sapphire', 'ruby', 'emerald'].map((t) => `tier.${t}.threshold`);
+const REVEAL_KEY = /^reveal\.level(\d+)\.messages$/;
+
+function ladderBounds(entries: AdminConfigDto[]): Map<string, LadderBounds> {
+  const values = new Map(entries.map((e) => [e.key ?? '', Number(e.value)]));
+  const at = (key: string | undefined) => (key !== undefined && values.has(key) ? values.get(key)! : null);
+  const bounds = new Map<string, LadderBounds>();
+
+  TIER_KEYS.forEach((key, i) => {
+    bounds.set(key, { lower: i === 0 ? 0 : at(TIER_KEYS[i - 1]), upper: at(TIER_KEYS[i + 1]), noun: 'tiers' });
+  });
+
+  const revealKeys = entries
+    .map((e) => e.key ?? '')
+    .filter((k) => REVEAL_KEY.test(k))
+    .sort((a, b) => Number(REVEAL_KEY.exec(a)![1]) - Number(REVEAL_KEY.exec(b)![1]));
+  revealKeys.forEach((key, i) => {
+    bounds.set(key, { lower: at(revealKeys[i - 1]), upper: at(revealKeys[i + 1]), noun: 'reveal levels' });
+  });
+
+  return bounds;
+}
 
 export function Config() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const { data: entries, isLoading, isError } = useQuery({
+  const { data: entries, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.config,
     queryFn: () => apiClient.config.list(),
   });
 
-  const update = useMutation({
-    mutationFn: ({ key, value }: { key: string; value: string }) => apiClient.config.update(key, value),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.config });
-      toast({ variant: 'success', description: 'Saved.' });
-    },
-    onError: (err: unknown) => {
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Save failed — try again.';
-      toast({ variant: 'destructive', description: message });
-    },
-  });
-
-  const revert = useMutation({
-    mutationFn: (key: string) => apiClient.config.revert(key),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.config });
-      toast({ variant: 'success', description: 'Reverted.' });
-    },
-    onError: (err) => toast({ variant: 'destructive', description: serverError(err, 'Revert failed — try again.') }),
-  });
-
   const categories = entries ? [...new Set(entries.map((e) => e.category))] : [];
+  const ladders = entries ? ladderBounds(entries) : new Map<string, LadderBounds>();
 
   return (
     <div className="space-y-6">
@@ -51,7 +52,14 @@ export function Config() {
       </div>
 
       {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      {isError && <p className="text-destructive text-sm">Couldn't load config.</p>}
+      {isError && (
+        <p className="text-destructive text-sm">
+          Couldn't load config.{' '}
+          <button type="button" className="underline" onClick={() => refetch()}>
+            Try again
+          </button>
+        </p>
+      )}
 
       {categories.map((category) => (
         <Card key={category}>
@@ -65,9 +73,7 @@ export function Config() {
                 <ConfigField
                   key={`${entry.key}-${entry.updatedAt}`}
                   entry={entry}
-                  isSaving={update.isPending || revert.isPending}
-                  onSave={(value) => update.mutate({ key: entry.key ?? '', value })}
-                  onRevert={() => revert.mutate(entry.key ?? '')}
+                  ladder={ladders.get(entry.key ?? '')}
                 />
               ))}
           </CardContent>

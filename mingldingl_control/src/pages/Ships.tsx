@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination } from '@/components/Pagination';
+import { useToast } from '@/hooks/use-toast';
 
 const PAGE_SIZE = 20;
 const STATUSES = ['Pending', 'Sparked', 'Declined', 'Expired'];
@@ -21,6 +22,17 @@ function statusVariant(status?: string | null): 'success' | 'warning' | 'destruc
 export function Ships() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
+  const { toast } = useToast();
+
+  async function copyMatchId(matchId: string) {
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(matchId);
+      toast({ variant: 'success', description: 'Match id copied.' });
+    } catch {
+      toast({ variant: 'destructive', description: `Couldn't copy — the match id is ${matchId}` });
+    }
+  }
 
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.ships(status, page),
@@ -29,7 +41,7 @@ export function Ships() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-semibold">Fated Threads (Ships)</h1>
         <Select
           value={status || 'all'}
@@ -38,7 +50,7 @@ export function Ships() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40" aria-label="Filter by status">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -106,7 +118,8 @@ export function Ships() {
                           type="button"
                           title={`${s.resultMatchId} — click to copy`}
                           className="text-muted-foreground font-mono text-xs hover:underline"
-                          onClick={() => navigator.clipboard?.writeText(s.resultMatchId ?? '')}
+                          aria-label={`Copy match id ${s.resultMatchId}`}
+                          onClick={() => copyMatchId(s.resultMatchId!)}
                         >
                           {s.resultMatchId.slice(0, 8)}
                         </button>

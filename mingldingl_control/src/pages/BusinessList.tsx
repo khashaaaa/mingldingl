@@ -46,8 +46,15 @@ export function BusinessList() {
 
   const remove = useMutation({
     mutationFn: (id: string) => apiClient.business.remove(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       invalidateList();
+      setSelected((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      toast({ variant: 'success', description: `Deleted "${pendingDelete?.name ?? 'business'}".` });
       setPendingDelete(null);
     },
     onError: (err) => {
@@ -84,7 +91,8 @@ export function BusinessList() {
   async function handleExport() {
     setExporting(true);
     try {
-      const blob = await apiClient.business.export(search);
+      const blob = await apiClient.business.export(debouncedSearch);
+      qc.invalidateQueries({ queryKey: ['auditLog'] });
       downloadBlob(blob, 'business-partners.csv');
     } catch {
       toast({ variant: 'destructive', description: 'Export failed — try again.' });
@@ -97,7 +105,7 @@ export function BusinessList() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-semibold">Business Partners</h1>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
@@ -110,7 +118,8 @@ export function BusinessList() {
       </div>
 
       <Input
-        className="mb-4 w-72"
+        className="mb-4 w-72 max-w-full"
+        aria-label="Search businesses"
         placeholder="Search by name, city, or category"
         value={search}
         onChange={(e) => {
@@ -121,7 +130,7 @@ export function BusinessList() {
       />
 
       {selected.size > 0 && (
-        <div className="bg-muted mb-4 flex items-center gap-3 rounded-md border px-4 py-2 text-sm">
+        <div className="bg-muted mb-4 flex flex-wrap items-center gap-3 rounded-md border px-4 py-2 text-sm">
           <span>{selected.size} selected</span>
           <Button size="sm" variant="outline" onClick={() => bulkUpdate.mutate({ isVerified: true })} disabled={bulkUpdate.isPending}>
             Mark verified
@@ -145,7 +154,7 @@ export function BusinessList() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10">
-                    <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
+                    <Checkbox aria-label="Select all on this page" checked={allSelected} onCheckedChange={toggleSelectAll} />
                   </TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
@@ -159,7 +168,11 @@ export function BusinessList() {
                 {(data.items ?? []).map((b) => (
                   <TableRow key={b.id}>
                     <TableCell>
-                      <Checkbox checked={selected.has(b.id!)} onCheckedChange={() => toggleSelected(b.id!)} />
+                      <Checkbox
+                        aria-label={`Select ${b.name}`}
+                        checked={selected.has(b.id!)}
+                        onCheckedChange={() => toggleSelected(b.id!)}
+                      />
                     </TableCell>
                     <TableCell>
                       <Link to={`/business/${b.id}/edit`} className="text-primary hover:underline">

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 
 function getPageNumbers(page: number, totalPages: number): (number | 'ellipsis')[] {
@@ -26,14 +27,21 @@ export function Pagination({
   onPageChange: (page: number) => void;
 }) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  // Removing the last row of the last page leaves `page` past the end, where these controls would
+  // be hidden and the table empty with no way back.
+  useEffect(() => {
+    if (page > totalPages) onPageChange(totalPages);
+  }, [page, totalPages, onPageChange]);
+
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-wrap items-center justify-between gap-2">
       <p className="text-muted-foreground text-sm">
         Page {page} of {totalPages} — {totalCount} total
       </p>
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
           Previous
         </Button>
