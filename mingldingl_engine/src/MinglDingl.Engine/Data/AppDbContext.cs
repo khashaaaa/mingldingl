@@ -79,6 +79,8 @@ public class AppDbContext : DbContext
         b.Entity<IcebreakerResponse>().HasIndex(r => new { r.MatchId, r.IcebreakerId, r.UserId }).IsUnique();
         b.Entity<QuizResponse>().HasIndex(r => new { r.QuizId, r.UserId, r.MatchId }).IsUnique();
         b.Entity<BlockedUser>().HasIndex(r => new { r.BlockerId, r.BlockedId }).IsUnique();
+        // One pledge row per suggestion, or two concurrent first confirms each completed and paid.
+        b.Entity<DateConfirmation>().HasIndex(c => new { c.MatchId, c.ActivitySuggestionId }).IsUnique();
 
         // Restrict, like every other user reference: a report is the record of why an account was
         // acted on, so it must not be quietly cascaded away with either party.
@@ -89,10 +91,12 @@ public class AppDbContext : DbContext
         b.Entity<UserReport>().Property(r => r.Details).HasMaxLength(FieldLimits.Reason);
         b.Entity<UserReport>().Property(r => r.ReviewNotes).HasMaxLength(FieldLimits.Reason);
         b.Entity<UserReport>().Property(r => r.ReviewedBy).HasMaxLength(FieldLimits.DisplayName);
-        // The admin queue reads pending-first, and the report sheet refuses a second open report
-        // against the same person — both are this index.
+        // The admin queue reads pending-first. One open report per pair is enforced by the database
+        // rather than only checked, since two submits of the report sheet could both pass the check.
         b.Entity<UserReport>().HasIndex(r => new { r.Status, r.CreatedAt });
-        b.Entity<UserReport>().HasIndex(r => new { r.ReporterId, r.ReportedUserId, r.Status });
+        b.Entity<UserReport>().HasIndex(r => new { r.ReporterId, r.ReportedUserId })
+            .IsUnique()
+            .HasFilter("\"Status\" = 'Pending'");
         b.Entity<UserReport>().HasIndex(r => r.ReportedUserId);
 
         b.Entity<BusinessRating>().HasIndex(r => new { r.BusinessPartnerId, r.UserId, r.MatchId }).IsUnique();

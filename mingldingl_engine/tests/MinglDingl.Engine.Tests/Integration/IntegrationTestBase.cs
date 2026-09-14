@@ -40,6 +40,14 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         return BuildContext(dataSource);
     }
 
+    /// <summary>As <see cref="NewUncommittedContext()"/>, with options the test builds itself (interceptors, execution strategy).</summary>
+    protected AppDbContext NewUncommittedContext(Func<NpgsqlDataSource, DbContextOptions<AppDbContext>> options)
+    {
+        var dataSource = BuildDataSource();
+        _extraDataSources.Add(dataSource);
+        return new AppDbContext(options(dataSource));
+    }
+
     public async Task InitializeAsync()
     {
         _dataSource = BuildDataSource();

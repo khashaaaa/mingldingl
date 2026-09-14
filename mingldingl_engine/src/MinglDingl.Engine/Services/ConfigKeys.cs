@@ -35,7 +35,7 @@ public static class ConfigKeys
         Number("tier.sapphire.threshold", "Scoring", "600", "Minimum total score for the Sapphire gem tier (must stay between Amethyst and Ruby)", 1, 1000000),
         Number("tier.ruby.threshold", "Scoring", "1000", "Minimum total score for the Ruby gem tier (must stay between Sapphire and Emerald)", 1, 1000000),
         Number("tier.emerald.threshold", "Scoring", "2000", "Minimum total score for the Emerald gem tier (must stay above Ruby)", 1, 1000000),
-        Number("reputation.penalty_dock", "Scoring", "0.1", "ReputationScore removed for a ghost or a repeated no-show (reputation never drops below 0)", 0, 1),
+        Number("reputation.penalty_dock", "Scoring", "0.1", "ReputationScore removed for a ghost or a repeated no-show (reputation never drops below 0). At least 0.01: reputation is stored to two decimals, so anything smaller rounds away to no dock at all", 0.01, 1),
 
         // Budget — daily match slots
         Number("budget.base.free", "Budget", "5", "Daily match slots a Free member starts with", 0, 1000),

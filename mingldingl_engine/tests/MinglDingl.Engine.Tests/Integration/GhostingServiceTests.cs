@@ -482,6 +482,49 @@ public class GhostingServiceIntegrationTests : IntegrationTestBase
                 && (e.UserId == initiator.Id || e.UserId == receiver.Id))
             .ToList());
     }
+
+    /// <summary>
+    /// The ghost write only checked the match was still Active. A reply landing between the read and
+    /// the write closed a live conversation and docked the person who had just answered.
+    /// </summary>
+    [Fact]
+    public async Task CheckAsync_AReplyLandedAfterTheMatchWasRead_NeitherGhostsNorBlames()
+    {
+        var replier = NewCompleteUser();
+        var silent = NewCompleteUser();
+        silent.TotalScore = 50;
+        Db.Users.AddRange(replier, silent);
+        var match = new Match
+        {
+            Id = Guid.NewGuid(),
+            InitiatorId = replier.Id,
+            ReceiverId = silent.Id,
+            Status = "Active",
+            LastMessageAt = DateTime.UtcNow.AddHours(-49),
+            LastMessageSenderId = replier.Id,
+        };
+        Db.Matches.Add(match);
+        Db.Messages.AddRange(
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = replier.Id, Content = "hi" },
+            new Message { Id = Guid.NewGuid(), MatchId = match.Id, SenderId = silent.Id, Content = "hello" });
+        await Db.SaveChangesAsync();
+
+        var staleCopy = await Db.Matches.AsNoTracking().SingleAsync(m => m.Id == match.Id);
+        await Db.Matches.Where(m => m.Id == match.Id).ExecuteUpdateAsync(s => s
+            .SetProperty(m => m.LastMessageAt, DateTime.UtcNow)
+            .SetProperty(m => m.LastMessageSenderId, silent.Id));
+
+        var config = new ConfigService();
+        var score = new ScoreService(Db, config);
+        var oaths = new OathService(Db, config, score, new MilestoneService(Db, NullLogger<MilestoneService>.Instance), new HonourService(Db, NullLogger<HonourService>.Instance));
+        var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
+
+        Assert.False(await ghosting.CheckAsync(staleCopy));
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal("Active", (await Db.Matches.AsNoTracking().SingleAsync(m => m.Id == match.Id)).Status);
+        Assert.False(await Db.ScoreEvents.AnyAsync(e => e.UserId == silent.Id && e.EventType == "GhostPenalty"));
+    }
 }
 
 public class GhostingServiceTests

@@ -55,28 +55,35 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         // Both of IsStale's clocks, or a match nobody ever spoke in never came back here at all.
         var unansweredCutoff = DateTime.UtcNow - ghosting.UnansweredAfter;
         var staleMatches = await db.Matches
+            .AsNoTracking()
             .Where(m => m.Status == "Active" && (
                 m.LastMessageAt != null
                     ? m.LastMessageAt < staleCutoff
                     : m.CreatedAt < unansweredCutoff))
             .ToListAsync(ct);
 
+        // Each match is ghosted and its penalty paid in one transaction of its own, resolved through
+        // the same rule the on-demand ghost-check uses: someone who never sent a message into a match
+        // they did not ask for has not ghosted anyone. A match that fails rolls back to Active and
+        // the next sweep retries it; it no longer takes the rest of the pass down with it.
         var ghostedMatches = new List<Match>();
-        foreach (var match in staleMatches)
-            if (await ghosting.TryGhostAsync(match))
-                ghostedMatches.Add(match);
-
-        // Who actually owes a penalty, resolved through the same rule the on-demand ghost-check
-        // uses: someone who never sent a message into a match they did not ask for has not ghosted
-        // anyone. Reading the static at-fault helper here instead let strangers drain a victim's
-        // score by matching them, sending one message and waiting out the window.
         var atFaultByMatch = new Dictionary<Guid, Guid>();
-        foreach (var match in ghostedMatches)
-            if (await ghosting.GetPenalisableGhostAsync(match) is Guid atFault)
-                atFaultByMatch[match.Id] = atFault;
-
-        if (atFaultByMatch.Count > 0)
-            await score.AwardManyAsync(atFaultByMatch.Values.Select(id => (id, "GhostPenalty")));
+        foreach (var match in staleMatches)
+        {
+            try
+            {
+                var (ghosted, atFault) = await ghosting.GhostAndPenaliseAsync(match);
+                if (!ghosted) continue;
+                ghostedMatches.Add(match);
+                if (atFault is Guid id) atFaultByMatch[match.Id] = id;
+            }
+            catch (Exception ex)
+            {
+                // Whatever the failed attempt queued would otherwise ride along on the next save.
+                db.ChangeTracker.Clear();
+                _logger.LogWarning(ex, "Could not ghost match {MatchId}; the next sweep retries it", match.Id);
+            }
+        }
 
         var ghostOathRefreshIds = atFaultByMatch.Values.Distinct().ToList();
 
@@ -86,49 +93,6 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             .ExecuteUpdateAsync(
                 s => s.SetProperty(u => u.DailyMatchesUsed, 0).SetProperty(u => u.DailyMatchesResetAt, today),
                 ct);
-
-        var deletionCutoff = DateTime.UtcNow - GracePeriodFor(config);
-        var usersToAnonymize = await db.Users
-            .Where(u => u.DeletionRequestedAt != null && u.DeletionRequestedAt < deletionCutoff && !u.IsDeleted)
-            .ToListAsync(ct);
-        // Captured before the loop clears the column: a returning user's proofs are claimed by the
-        // anonymous auth identity they signed in with, not by the account id, so the purge below
-        // has to reach verification rows by number as well.
-        var anonymizedPhones = usersToAnonymize
-            .Where(u => u.PhoneNumber is not null)
-            .Select(u => u.PhoneNumber!)
-            .ToList();
-        // Clearing the column is not deletion: /uploads is public and unauthenticated, so the files
-        // have to go too or anyone holding an old URL keeps access after deletion. The unlink is
-        // deferred until after the transaction below commits, because it is the one step here that
-        // cannot be rolled back — deleting first meant a failed save left the account live and
-        // still pending deletion while its photos were already gone.
-        // Only files the user actually owns. A stolen URL sitting on a row from before that was
-        // checked would otherwise let one account's deletion destroy another account's photo.
-        var photoUrlsToUnlink = usersToAnonymize
-            .SelectMany(u => u.PhotoUrls.Where(url => storage.IsOwnedPublicUrl(url, u.Id)))
-            .ToList();
-        foreach (var user in usersToAnonymize)
-        {
-            user.DisplayName = "";
-            user.Bio = "";
-            user.PhotoUrls = [];
-            user.City = "";
-            user.Latitude = null;
-            user.Longitude = null;
-            user.HasKids = null;
-            user.SmokingHabit = null;
-            user.DrinkingHabit = null;
-            user.Religion = null;
-            user.Lifestyle = null;
-            user.EquippedTitleId = null;
-            user.PhoneNumber = null;
-            user.ReferralCode = null;
-            user.Oath = null;
-            user.OathSwornAt = null;
-            user.OathProven = false;
-            user.IsDeleted = true;
-        }
 
         // Unclaimed verifications are short-lived proof-of-ownership records with no purpose
         // once expired, so they are not retained either.
@@ -143,22 +107,72 @@ public class DailyMaintenanceBackgroundService : BackgroundService
                 s => s.SetProperty(u => u.MembershipLevel, "Free").SetProperty(u => u.MembershipExpiresAt, (DateTime?)null),
                 ct);
 
+        // One statement, so the Pending check and the write cannot be split: loading the ships and
+        // saving them later overwrote a thread that sparked in between with Expired.
         var shipExpiryCutoff = DateTime.UtcNow - ShipExpiryFor(config);
-        var expiredShips = await db.Ships
+        await db.Ships
             .Where(s => s.Status == "Pending" && s.CreatedAt < shipExpiryCutoff)
-            .ToListAsync(ct);
-        foreach (var ship in expiredShips)
-            ship.Status = "Expired";
+            .ExecuteUpdateAsync(setters => setters.SetProperty(s => s.Status, "Expired"), ct);
 
-        // One transaction over everything this pass mutates through the change tracker, plus the
-        // set-based purges that belong to the same deletions. They used to run as separate
-        // statements ahead of the save, so a failure part-way through destroyed a person's
-        // verification rows and push tokens while their account stayed un-anonymised.
-        if (ghostedMatches.Count > 0 || usersToAnonymize.Count > 0 || expiredShips.Count > 0)
+        var deletionCutoff = DateTime.UtcNow - GracePeriodFor(config);
+        var photoUrlsToUnlink = new List<string>();
+        bool anyDeletionDue = await db.Users.AnyAsync(
+            u => u.DeletionRequestedAt != null && u.DeletionRequestedAt < deletionCutoff && !u.IsDeleted, ct);
+        // One transaction over the anonymisation and the set-based purges that belong to the same
+        // deletions. They used to run as separate statements ahead of the save, so a failure
+        // part-way through destroyed a person's verification rows and push tokens while their
+        // account stayed un-anonymised.
+        if (anyDeletionDue)
         {
-            var anonymizedIds = usersToAnonymize.Select(u => u.Id).ToList();
-            await db.InTransactionAsync(async () =>
+            photoUrlsToUnlink = await db.InTransactionAsync(async () =>
             {
+                // Read under row locks, and the rows re-read inside the write's own transaction. The
+                // list used to be loaded long before the save, so someone who cancelled their
+                // deletion in that gap was still anonymised — the one thing here that cannot be
+                // undone. A cancel that commits first is no longer selected; one that arrives later
+                // waits for this to finish.
+                var due = await db.Users
+                    .FromSql($"""
+                        SELECT * FROM "Users"
+                        WHERE "DeletionRequestedAt" IS NOT NULL AND "DeletionRequestedAt" < {deletionCutoff} AND NOT "IsDeleted"
+                        FOR UPDATE
+                        """)
+                    .AsNoTracking()
+                    .ToListAsync(ct);
+
+                var anonymizedIds = due.Select(u => u.Id).ToList();
+                // Captured before the columns are cleared: a returning user's proofs are claimed by
+                // the anonymous auth identity they signed in with, not by the account id, so the
+                // purge below has to reach verification rows by number as well.
+                var anonymizedPhones = due.Where(u => u.PhoneNumber is not null).Select(u => u.PhoneNumber!).ToList();
+                // Clearing the column is not deletion: /uploads is public and unauthenticated, so the
+                // files have to go too. Only files the user actually owns — a stolen URL sitting on a
+                // row from before that was checked would otherwise let one account's deletion destroy
+                // another account's photo — and only for the accounts this transaction anonymised.
+                var urls = due.SelectMany(u => u.PhotoUrls.Where(url => storage.IsOwnedPublicUrl(url, u.Id))).ToList();
+
+                foreach (var locked in due)
+                {
+                    var user = db.Users.Local.FirstOrDefault(u => u.Id == locked.Id) ?? db.Users.Attach(locked).Entity;
+                    user.DisplayName = "";
+                    user.Bio = "";
+                    user.PhotoUrls = [];
+                    user.City = "";
+                    user.Latitude = null;
+                    user.Longitude = null;
+                    user.HasKids = null;
+                    user.SmokingHabit = null;
+                    user.DrinkingHabit = null;
+                    user.Religion = null;
+                    user.Lifestyle = null;
+                    user.EquippedTitleId = null;
+                    user.PhoneNumber = null;
+                    user.ReferralCode = null;
+                    user.Oath = null;
+                    user.OathSwornAt = null;
+                    user.OathProven = false;
+                    user.IsDeleted = true;
+                }
                 await db.SaveChangesAsync(ct);
 
                 if (anonymizedIds.Count > 0)
@@ -183,6 +197,7 @@ public class DailyMaintenanceBackgroundService : BackgroundService
                         .Where(sh => sh.SlotBPhoneNumber != null && anonymizedPhones.Contains(sh.SlotBPhoneNumber))
                         .ExecuteUpdateAsync(setters => setters.SetProperty(sh => sh.SlotBPhoneNumber, (string?)null), ct);
                 }
+                return urls;
             }, ct);
         }
 

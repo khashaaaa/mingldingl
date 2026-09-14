@@ -259,6 +259,36 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         Assert.True(weaverAfter!.TotalScore >= 40);
     }
 
+    /// <summary>
+    /// Titles matched the spark count exactly, so two threads sparking at once — 4 straight to 6 —
+    /// skipped the five-thread title for good.
+    /// </summary>
+    [Fact]
+    public async Task RespondAsync_SparkCountAlreadyPastARung_StillGrantsEveryTitleReached()
+    {
+        var weaver = AddUser("88110001");
+        var a = AddUser("88110002");
+        var b = AddUser("88110003", "Male");
+        await Db.SaveChangesAsync();
+        for (int i = 0; i < 5; i++)
+            Db.Ships.Add(new Ship { ShipperUserId = weaver.Id, Status = "Sparked", CreatedAt = DateTime.UtcNow.AddDays(-2) });
+        await Db.SaveChangesAsync();
+        var service = BuildService();
+        await service.CreateAsync(weaver.Id, "88110002", "88110003");
+        Db.ChangeTracker.Clear();
+        var ship = await Db.Ships.FirstAsync(s => s.ShipperUserId == weaver.Id && s.Status == "Pending");
+
+        await service.RespondAsync(a.Id, ship.Id, accept: true);
+        Assert.True(await service.RespondAsync(b.Id, ship.Id, accept: true));
+
+        Db.ChangeTracker.Clear();
+        Assert.Single(Db.UserItems.Where(i => i.UserId == weaver.Id && i.ItemId == "title_threadweaver"));
+        Assert.Single(Db.UserItems.Where(i => i.UserId == weaver.Id && i.ItemId == "title_fateseer"));
+        Assert.Empty(Db.UserItems.Where(i => i.UserId == weaver.Id && i.ItemId == "title_bondkeeper"));
+        var match = await Db.Matches.SingleAsync(m => m.ShipId == ship.Id);
+        Assert.Equal(match.Id, (await Db.Ships.SingleAsync(s => s.Id == ship.Id)).ResultMatchId);
+    }
+
     private sealed class FailingHonourService : HonourService
     {
         private readonly AppDbContext _db;
