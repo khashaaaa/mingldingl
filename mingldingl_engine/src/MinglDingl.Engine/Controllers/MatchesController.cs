@@ -191,19 +191,20 @@ public class MatchesController : ControllerBase
             if (await MatchPairing.IsPairBlockedAsync(_db, userId, req.TargetUserId))
                 return ("blocked", (Guid?)null);
 
+            // The check above is a fast path only. The pair lock does not serialise summons to
+            // different targets, so the slot is spent conditionally here, in the transaction.
+            if (await _score.TryConsumeDailyMatchAsync(me) is null)
+                return ("budget", (Guid?)null);
+
             var match = MatchPairing.NewMatch(userId, req.TargetUserId);
             _db.Matches.Add(match);
             await _db.SaveChangesAsync();
-            await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"""UPDATE "Users" SET "DailyMatchesUsed" = "DailyMatchesUsed" + 1 WHERE "Id" = {userId}""");
             return ("created", (Guid?)match.Id);
         });
 
         if (outcome == "conflict") return this.ConflictError("Match already exists", "match.already_exists");
         if (outcome == "blocked") return this.ForbiddenError("Cannot match with this user", "match.not_allowed");
-
-        var trackedMe = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == userId)?.Entity;
-        if (trackedMe is not null) trackedMe.DailyMatchesUsed++;
+        if (outcome == "budget") return this.BadRequestError("Daily match budget exhausted", "match.daily_budget_spent");
 
         int awarded = await _quests.IncrementAsync(userId, "summons");
         await _milestones.AchieveAsync(userId, "first_match");

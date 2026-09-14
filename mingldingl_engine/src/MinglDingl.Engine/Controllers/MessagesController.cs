@@ -80,7 +80,7 @@ public class MessagesController : ControllerBase
             .OrderByDescending(m => m.CreatedAt)
             .FirstOrDefaultAsync();
 
-        var (message, newMessageCount) = await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        var (message, counters) = await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
             // A retry re-runs this whole lambda, and a Message added by a failed attempt is still in
             // the change tracker as Added — the next SaveChanges would insert it alongside the new
@@ -103,7 +103,7 @@ public class MessagesController : ControllerBase
 
             // The per-side counters feed the reveal ladder, which must not be climbable alone.
             // Incremented in the same statement as the total so the two can never disagree.
-            var updateResult = await _db.Database.SqlQuery<int>(
+            var updateResult = await _db.Database.SqlQuery<MatchCounterRow>(
                 $"""
                 UPDATE "Matches" SET
                     "MessageCount" = "MessageCount" + 1,
@@ -112,19 +112,23 @@ public class MessagesController : ControllerBase
                     "LastMessageAt" = {msg.CreatedAt},
                     "LastMessageSenderId" = {userId}
                 WHERE "Id" = {matchId}
-                RETURNING "MessageCount"
+                RETURNING "MessageCount", "InitiatorMessageCount", "ReceiverMessageCount"
                 """).ToListAsync();
 
-            int count = updateResult.Single();
+            var row = updateResult.Single();
             await tx.CommitAsync();
-            return (msg, count);
+            return (msg, row);
         });
 
-        match.MessageCount = newMessageCount;
-        if (match.InitiatorId == userId) match.InitiatorMessageCount++;
-        else match.ReceiverMessageCount++;
-        match.LastMessageAt = message.CreatedAt;
-        match.LastMessageSenderId = userId;
+        // Mirrored from what the statement returned, never incremented from the stale load: the
+        // services below save through this context, and a column left modified here would write
+        // this request's absolute counts over sends that landed concurrently.
+        int newMessageCount = counters.MessageCount;
+        _db.SyncFromDatabase(match, m => m.MessageCount, counters.MessageCount);
+        _db.SyncFromDatabase(match, m => m.InitiatorMessageCount, counters.InitiatorMessageCount);
+        _db.SyncFromDatabase(match, m => m.ReceiverMessageCount, counters.ReceiverMessageCount);
+        _db.SyncFromDatabase(match, m => m.LastMessageAt, message.CreatedAt);
+        _db.SyncFromDatabase(match, m => m.LastMessageSenderId, userId);
 
         int baseAward = 0;
         if (lastMessage is null)
@@ -137,11 +141,8 @@ public class MessagesController : ControllerBase
             // Bounded per conversation per day. Uncapped, two accounts alternating one-character
             // messages walked the whole tier ladder in minutes; past the cap the thread carries on
             // working, it just stops paying.
-            if (await _score.CountMatchReplyAwardsTodayAsync(userId, matchId) < _score.MatchReplyDailyCapPerMatch)
-            {
-                await _score.AwardAsync(userId, "MatchReply", matchId);
+            if (await _score.TryAwardMatchReplyAsync(userId, matchId))
                 baseAward = _score.Delta("MatchReply");
-            }
         }
 
         int questBonus = await _quests.IncrementAsync(userId, "message");
@@ -167,4 +168,6 @@ public class MessagesController : ControllerBase
 
     private static MessageResponse ToResponse(Message m) =>
         new(m.Id, m.MatchId, m.SenderId, m.Content, m.CreatedAt);
+
+    private sealed record MatchCounterRow(int MessageCount, int InitiatorMessageCount, int ReceiverMessageCount);
 }

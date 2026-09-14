@@ -226,8 +226,8 @@ public class ActivityService
             """).ToListAsync();
         if (updated.Count == 0) return;
 
-        var trackedUser = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == absentUserId)?.Entity;
-        if (trackedUser is not null) trackedUser.NoShowFlagCount = updated[0];
+        var trackedUser = _db.Tracked<User>(u => u.Id == absentUserId);
+        if (trackedUser is not null) _db.SyncFromDatabase(trackedUser, u => u.NoShowFlagCount, updated[0]);
 
         int threshold = (int)_config.GetNumber("dating.noshow.threshold", 3);
         if (updated[0] >= threshold)

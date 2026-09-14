@@ -157,7 +157,7 @@ public class OathServiceIntegrationTests : IntegrationTestBase
 
         var config = new ConfigService();
         var failingScore = new Mock<ScoreService>(Db, config) { CallBase = true };
-        failingScore.Setup(s => s.AwardAsync(user.Id, "OathProven", It.IsAny<Guid?>()))
+        failingScore.Setup(s => s.TryAwardClaimedAsync(user.Id, "OathProven", It.IsAny<int>()))
             .ThrowsAsync(new InvalidOperationException("simulated failure"));
         var failingOaths = new OathService(Db, config, failingScore.Object,
             new MilestoneService(Db, NullLogger<MilestoneService>.Instance),

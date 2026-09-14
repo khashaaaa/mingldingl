@@ -89,4 +89,55 @@ public class MessageSendRetryIntegrationTests : IntegrationTestBase
             await db.Users.Where(u => u.Id == senderId || u.Id == receiverId).ExecuteDeleteAsync();
         }
     }
+
+    /// <summary>
+    /// The counters are moved in SQL, then mirrored onto the tracked match. Incremented from the
+    /// stale load instead, they stayed marked modified and any later save through the same context
+    /// wrote this request's absolute counts over sends that had landed concurrently.
+    /// </summary>
+    [Fact]
+    public async Task SendMessage_LaterSaveOnTheTrackedMatch_KeepsConcurrentCounters()
+    {
+        await using var db = NewUncommittedContext();
+        var senderId = Guid.NewGuid();
+        var receiverId = Guid.NewGuid();
+        var matchId = Guid.NewGuid();
+
+        try
+        {
+            var sender = NewCompleteUser(senderId);
+            var receiver = NewCompleteUser(receiverId);
+            sender.DisplayName = $"retry-probe-{senderId:N}";
+            receiver.DisplayName = $"retry-probe-{receiverId:N}";
+            db.Users.AddRange(sender, receiver);
+            var match = new Match { Id = matchId, InitiatorId = senderId, ReceiverId = receiverId, Status = "Active" };
+            db.Matches.Add(match);
+            await db.SaveChangesAsync();
+
+            var controller = BuildController(db, senderId);
+            Assert.IsType<OkObjectResult>(await controller.SendMessage(matchId, new SendMessageRequest("hello")));
+            Assert.Equal(1, match.InitiatorMessageCount);
+            Assert.False(db.Entry(match).Property(m => m.InitiatorMessageCount).IsModified);
+
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""UPDATE "Matches" SET "MessageCount" = "MessageCount" + 5, "InitiatorMessageCount" = "InitiatorMessageCount" + 5 WHERE "Id" = {matchId}""");
+            match.IcebreakerComplete = true;
+            await db.SaveChangesAsync();
+
+            var reloaded = await db.Matches.AsNoTracking().FirstAsync(m => m.Id == matchId);
+            Assert.Equal(6, reloaded.MessageCount);
+            Assert.Equal(6, reloaded.InitiatorMessageCount);
+            Assert.True(reloaded.IcebreakerComplete);
+        }
+        finally
+        {
+            db.ChangeTracker.Clear();
+            await db.Messages.Where(m => m.MatchId == matchId).ExecuteDeleteAsync();
+            await db.ScoreEvents.Where(e => e.UserId == senderId || e.UserId == receiverId).ExecuteDeleteAsync();
+            await db.UserMilestones.Where(m => m.UserId == senderId || m.UserId == receiverId).ExecuteDeleteAsync();
+            await db.UserDailyQuests.Where(q => q.UserId == senderId || q.UserId == receiverId).ExecuteDeleteAsync();
+            await db.Matches.Where(m => m.Id == matchId).ExecuteDeleteAsync();
+            await db.Users.Where(u => u.Id == senderId || u.Id == receiverId).ExecuteDeleteAsync();
+        }
+    }
 }
