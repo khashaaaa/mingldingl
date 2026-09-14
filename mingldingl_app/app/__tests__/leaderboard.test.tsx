@@ -72,8 +72,9 @@ describe('LeaderboardScreen — the Hall of Names', () => {
 
   it('reads the wall to a screen reader by rank, gem and score', () => {
     const { getByLabelText } = renderScreen();
-    expect(getByLabelText('I. Ruby. 1200 points')).toBeTruthy();
-    expect(getByLabelText(/^II\. Ruby\. 950 points\. /)).toBeTruthy();
+    // The unit is the translated `pts` key, not a hardcoded English word.
+    expect(getByLabelText('I. Ruby. 1200 pts')).toBeTruthy();
+    expect(getByLabelText(/^II\. Ruby\. 950 pts\. /)).toBeTruthy();
   });
 
   it('reads the law under the wall', () => {

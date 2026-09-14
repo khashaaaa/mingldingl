@@ -48,7 +48,10 @@ export default function TownSquareScreen() {
     <View style={styles.screen}>
       <GameHeader title={i18n.t('town_square_title')} glyph="lantern" />
       <View style={styles.content}>
-        {closed || (isError && !session) ? (
+        {closed ? (
+          // Switched off by the house, not broken: a shut gate, with nothing to retry.
+          <StateBlock icon="door-closed-lock" title={getApiErrorMessage(error, i18n.t('screen_load_error'))} />
+        ) : isError && !session ? (
           <StateBlock tone="danger" icon="alert-circle-outline" title={getApiErrorMessage(error, i18n.t('screen_load_error'))}>
             <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
           </StateBlock>

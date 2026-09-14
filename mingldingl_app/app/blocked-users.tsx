@@ -108,11 +108,10 @@ const styles = StyleSheet.create({
     gap: SPACE.md,
     paddingVertical: SPACE.md,
     paddingHorizontal: SPACE.md,
-    borderRadius: RADIUS.md,
-    backgroundColor: SURFACE.panel,
-    borderWidth: 1,
-    borderColor: LINE.edge,
-    marginBottom: SPACE.md,
+    // A hairline row, like the Hall of Names' own (`app/leaderboard.tsx`) — the list is rows, not
+    // a stack of cards.
+    borderBottomWidth: 1,
+    borderBottomColor: LINE.hairline,
     overflow: 'hidden',
   },
   frostWrap: { position: 'absolute', top: 0, bottom: 0, left: 0 },

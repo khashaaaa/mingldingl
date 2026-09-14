@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, type 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isPhoneValid, useAuth } from '../../hooks/useAuth';
+import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { GameButton } from '../../components/ui/GameButton';
@@ -20,6 +21,7 @@ export default function PhoneScreen() {
   const router = useRouter();
   const [screenSize, setScreenSize] = useState({ w: 0, h: 0 });
   const insets = useSafeAreaInsets();
+  const keyboardHeight = useAndroidKeyboardHeight();
 
   function onContainerLayout(e: LayoutChangeEvent) {
     const { width, height } = e.nativeEvent.layout;
@@ -48,7 +50,13 @@ export default function PhoneScreen() {
   return (
     <DismissKeyboardView>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[styles.container, Platform.OS === 'android' && {
+          // The field autofocuses, so on Android the keyboard is up from the first frame — and
+          // edge-to-edge does not resize the window, which left Continue underneath it. Pad by the
+          // measured keyboard plus the navigation bar its height stops at, as the chat composer
+          // does (see `useAndroidKeyboardHeight`).
+          paddingBottom: keyboardHeight > 0 ? keyboardHeight + insets.bottom : 0,
+        }]}
         onLayout={onContainerLayout}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         // Measured relative to its parent, so the offset is that parent's screen-space origin —

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -21,7 +21,8 @@ import { applyScoreBump, queryClient } from '../lib/api/queryClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api/apiClient';
-import { ACCENT, FONTS, FONT_SIZES, INK, SPACE, SURFACE } from '../lib/theme';
+import { FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, SURFACE } from '../lib/theme';
+import { Waiting } from '../components/ui/Waiting';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { installGlobalErrorHandlers } from '../lib/globalErrorHandler';
@@ -223,7 +224,7 @@ function AppContent() {
   if (!fontsReady || !localeReady) {
     return (
       <View style={styles.splash}>
-        <ActivityIndicator color={ACCENT.base} size="large" />
+        <Waiting size={ICON_SIZES.hero} />
       </View>
     );
   }

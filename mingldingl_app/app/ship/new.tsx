@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { View, Text, Share, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Share, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HeaderBar } from '../../components/ui/HeaderBar';
 import { GameButton } from '../../components/ui/GameButton';
 import { TextField } from '../../components/ui/TextField';
@@ -9,6 +10,8 @@ import { getApiErrorMessage } from '../../lib/api/errors';
 import { i18n } from '../../lib/i18n';
 import { shipInviteMessage } from '../../lib/shipInvite';
 import { useLocaleStore } from '../../store/localeStore';
+import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
+import { useScrollTail } from '../../hooks/useScrollTail';
 import { ACCENT, FONTS, FONT_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
 import { FieldError } from '../../components/ui/StateBlock';
 const PHONE_REGEX = /^\d{8}$/;
@@ -16,6 +19,9 @@ const PHONE_REGEX = /^\d{8}$/;
 export default function NewShipScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const tail = useScrollTail();
+  const keyboardHeight = useAndroidKeyboardHeight();
   const [slotA, setSlotA] = useState('');
   const [slotB, setSlotB] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,9 +78,22 @@ export default function NewShipScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, Platform.OS === 'android' && {
+        // Two phone-pad fields and the weave button, with a keyboard that edge-to-edge does not
+        // resize the window for. Pad by the measured keyboard plus the navigation bar its height
+        // stops at, as the chat composer does (see `useAndroidKeyboardHeight`).
+        paddingBottom: keyboardHeight > 0 ? keyboardHeight + insets.bottom : 0,
+      }]}
+    >
       <HeaderBar title={i18n.t('weave_thread_title')} onBack={() => router.back()} />
-      <View style={styles.form}>
+      {/* Scrolls, and a tap on the blank page dismisses the keyboard: a phone pad has no return
+          key to close it with. */}
+      <ScrollView
+        contentContainerStyle={[styles.form, { paddingBottom: keyboardHeight > 0 ? SPACE.lg : tail }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <Text style={styles.hint}>{i18n.t('weave_thread_hint')}</Text>
         <Text style={styles.label}>{i18n.t('first_thread_label')}</Text>
         <TextField
@@ -102,7 +121,7 @@ export default function NewShipScreen() {
         >
           {i18n.t('weave_thread_button')}
         </GameButton>
-      </View>
+      </ScrollView>
     </View>
   );
 }

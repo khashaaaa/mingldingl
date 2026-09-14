@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Tap } from '../../components/ui/Tap';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIcebreaker } from '../../hooks/useIcebreaker';
+import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
 import { AppCard } from '../../components/ui/AppCard';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
@@ -27,6 +29,8 @@ export default function IcebreakerScreen() {
   } = useIcebreaker(matchId);
   const router = useRouter();
   const tail = useScrollTail();
+  const insets = useSafeAreaInsets();
+  const keyboardHeight = useAndroidKeyboardHeight();
   const [selected, setSelected] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
@@ -91,12 +95,25 @@ export default function IcebreakerScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <View
+      style={[styles.screen, Platform.OS === 'android' && {
+        // Edge-to-edge does not resize the window for the keyboard, so the open-text field and its
+        // submit button sat underneath it. Pad by the measured keyboard instead, adding back the
+        // navigation bar the event's height stops at — the chat composer's rule
+        // (`hooks/useAndroidKeyboardHeight.ts`).
+        paddingBottom: keyboardHeight > 0 ? keyboardHeight + insets.bottom : 0,
+      }]}
+    >
       <HeaderBar title={i18n.t('break_ice')} />
 
-      {/* The submit button sits at the bottom of a non-scrolling body, so it owns the navigation
-          bar inset itself — a bare SPACE.xxl left it half-swallowed by a three-button bar. */}
-      <View style={[styles.body, { paddingBottom: tail }]}>
+      {/* Scrolls so a long question plus the open-text field can both be reached with the keyboard
+          up; `flexGrow` keeps the answers pinned to the bottom when everything fits. The submit
+          button owns the navigation bar inset itself via `tail`. */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.body, { paddingBottom: keyboardHeight > 0 ? SPACE.lg : tail }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <AppCard hero style={styles.questionCard}>
           <Text style={styles.questionText}>{question.questionText}</Text>
         </AppCard>
@@ -128,6 +145,8 @@ export default function IcebreakerScreen() {
                   key={i}
                   disabled={selected !== null}
                   onPress={() => handleSelect(opt)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected, disabled: selected !== null }}
                   style={[styles.option, isSelected ? styles.optionSelected : styles.optionDefault]}
                 >
                   <Text style={[styles.optionText, isSelected ? styles.optionTextSelected : styles.optionTextDefault]}>
@@ -138,7 +157,7 @@ export default function IcebreakerScreen() {
             })}
           </View>
         )}
-      </View>
+      </ScrollView>
 
       <LootToast
         title={i18n.t('answer_submitted')}
@@ -163,8 +182,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
-  body: {
+  scroll: {
     flex: 1,
+  },
+  body: {
+    flexGrow: 1,
     paddingHorizontal: SPACE.gutter,
   },
   centered: {

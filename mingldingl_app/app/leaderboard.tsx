@@ -59,12 +59,10 @@ export default function LeaderboardScreen() {
   const entries = data.entries ?? [];
   const ownRowDetached = data.myRank != null && data.myRank > TOP_SLICE_SIZE;
 
-  // The engine hands a city or nothing; `hall_sub` reads "%{city}. Carved, not listed…" and an
-  // empty city would otherwise leave a bare ". " stuck on the front of the sentence.
+  // The engine hands a city or nothing; `hall_sub` reads "%{city}. Carved, not listed…", so a
+  // missing city takes its own sentence rather than a regex trimming the translated one.
   const city = data.city ?? '';
-  const hallSub = city
-    ? i18n.t('hall_sub', { city })
-    : i18n.t('hall_sub', { city: '' }).replace(/^\.\s*/, '');
+  const hallSub = city ? i18n.t('hall_sub', { city }) : i18n.t('hall_sub_no_city');
 
   return (
     <View style={styles.screen}>
@@ -91,7 +89,7 @@ export default function LeaderboardScreen() {
           const numeral = rankNumeral(rank);
           const tierName = tierLabel(item.gemTier ?? 'Garnet');
           const score = item.score ?? 0;
-          const label = `${numeral}. ${tierName}. ${score} points${isOwn ? `. ${i18n.t('your_mark')}` : ''}`;
+          const label = `${numeral}. ${tierName}. ${score} ${i18n.t('pts')}${isOwn ? `. ${i18n.t('your_mark')}` : ''}`;
 
           const row = (
             <View style={styles.row} accessible accessibilityLabel={label}>

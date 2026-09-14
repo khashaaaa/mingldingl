@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useAndroidKeyboardHeight } from '../hooks/useAndroidKeyboardHeight';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
@@ -51,7 +52,11 @@ export default function EditProfileScreen() {
   const [cityPickerVisible, setCityPickerVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [photosUploading, setPhotosUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Two failures, two places: a failed save belongs under the fields that were saved, a failed
+  // location update under the location card — one shared message used to show in both at once.
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const keyboardHeight = useAndroidKeyboardHeight();
   const bioRef = useRef<TextInput>(null);
   const { capture, isCapturing, permissionDenied } = useLocationCapture();
   const { data: cities } = useGeoCities();
@@ -78,13 +83,14 @@ export default function EditProfileScreen() {
   async function handleRefreshLocation() {
     const coords = await capture();
     if (!coords) return;
+    setLocationError(null);
     try {
       const result = await apiClient.users.updateLocation(coords.latitude, coords.longitude);
       setCity(result.city ?? '');
       queryClient.setQueryData(queryKeys.userProfile, (prev: ReturnType<typeof parseUserProfile> | undefined) =>
         prev ? { ...prev, city: result.city ?? prev.city } : prev);
     } catch {
-      setError(i18n.t('save_error'));
+      setLocationError(i18n.t('save_error'));
     }
   }
 
@@ -92,17 +98,18 @@ export default function EditProfileScreen() {
     const previousCity = city;
     setCity(picked);
     setCityPickerVisible(false);
+    setLocationError(null);
     try {
       await updateProfile.mutateAsync({ city: picked });
     } catch {
       setCity(previousCity);
-      setError(i18n.t('save_error'));
+      setLocationError(i18n.t('save_error'));
     }
   }
 
   async function handleSave() {
     setSaving(true);
-    setError(null);
+    setSaveError(null);
     try {
       await updateProfile.mutateAsync({
         displayName,
@@ -116,7 +123,7 @@ export default function EditProfileScreen() {
       });
       router.back();
     } catch {
-      setError(i18n.t('save_error'));
+      setSaveError(i18n.t('save_error'));
     } finally {
       setSaving(false);
     }
@@ -124,9 +131,17 @@ export default function EditProfileScreen() {
 
   return (
     <DismissKeyboardView>
-      <View style={styles.screen}>
+      <View style={[styles.screen, Platform.OS === 'android' && {
+        // Edge-to-edge does not resize the window for the keyboard, so the bio field and the footer
+        // sat underneath it. Pad by the measured keyboard plus the navigation bar its height stops
+        // at, as the chat composer does (see `useAndroidKeyboardHeight`).
+        paddingBottom: keyboardHeight > 0 ? keyboardHeight + insets.bottom : 0,
+      }]}>
       <HeaderBar title={i18n.t('edit_profile')} onBack={() => router.back()} />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: SPACE.gutter, paddingVertical: SPACE.xxl, gap: SPACE.lg }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: SPACE.gutter, paddingVertical: SPACE.xxl, gap: SPACE.lg }}
+        keyboardShouldPersistTaps="handled"
+      >
         <AppCard style={{ padding: SPACE.lg }}>
           <View style={styles.cardBody}>
             <Text style={styles.sectionTitle}>{i18n.t('your_photos')}</Text>
@@ -159,7 +174,7 @@ export default function EditProfileScreen() {
                 returnKeyType="done" onSubmitEditing={Keyboard.dismiss} blurOnSubmit
               />
             </View>
-            {error && <FieldError>{error}</FieldError>}
+            {saveError && <FieldError>{saveError}</FieldError>}
           </View>
         </AppCard>
 
@@ -229,7 +244,7 @@ export default function EditProfileScreen() {
             <GameButton variant="ink" size="compact" icon="crosshairs-gps" loading={isCapturing} onPress={handleRefreshLocation}>
               {i18n.t('refresh_location')}
             </GameButton>
-            {error && <FieldError>{error}</FieldError>}
+            {locationError && <FieldError>{locationError}</FieldError>}
             {permissionDenied && (
               <View style={styles.deniedBlock}>
                 <Text style={styles.hint}>

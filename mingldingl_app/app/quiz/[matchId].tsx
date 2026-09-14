@@ -139,6 +139,8 @@ export default function QuizScreen() {
                 key={i}
                 disabled={selectedIndex !== null}
                 onPress={() => handleSelect(i)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected, disabled: selectedIndex !== null }}
                 style={[styles.option, isSelected ? styles.optionSelected : styles.optionDefault]}
               >
                 <Text style={[styles.optionText, isSelected ? styles.optionTextSelected : styles.optionTextDefault]}>

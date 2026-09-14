@@ -22,6 +22,11 @@ interface Props {
    *  hearth's own heading. Absent while the profile is still loading — the list then falls back
    *  to the plain date, same as before this became a SectionList. */
   joinedAt?: string;
+  /** Content scrolled above the history, so a screen's top panels do not squeeze the list into
+   *  whatever height is left under them. */
+  header?: React.ReactElement;
+  /** Bottom padding for the scroll content — the screen's `useScrollTail()`. */
+  bottomPadding?: number;
 }
 
 type EventGlyph = React.ComponentProps<typeof Icon>['name'];
@@ -152,21 +157,22 @@ function sectionHeading(createdAt: string, joinedAt: string | undefined): string
   return i18n.t('chronicle_dawn', { dawn: ordinalWord(threadDay(createdAt, joinedAt)) });
 }
 
-export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage, joinedAt }: Props) {
-  if (items.length === 0) {
-    return (
-      <View style={styles.empty}>
-        <EmptyHint>{i18n.t('no_score_events')}</EmptyHint>
-      </View>
-    );
-  }
-
+export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage, joinedAt, header, bottomPadding }: Props) {
+  // Always the list, even when empty: the screen's own content rides in `header`, and returning a
+  // bare empty hint instead would drop that header with it.
   return (
     <SectionList
-      sections={groupByDay(items)}
+      sections={items.length === 0 ? [] : groupByDay(items)}
       keyExtractor={(item, index) => `${item.eventType}-${item.createdAt}-${index}`}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
+      ListHeaderComponent={header}
+      ListEmptyComponent={
+        <View style={styles.empty}>
+          <EmptyHint>{i18n.t('no_score_events')}</EmptyHint>
+        </View>
+      }
+      contentContainerStyle={bottomPadding != null ? { paddingBottom: bottomPadding } : undefined}
       renderSectionHeader={({ section }) => (
         <CardEyebrow style={styles.sectionHeading}>
           {sectionHeading(section.createdAt, joinedAt)}

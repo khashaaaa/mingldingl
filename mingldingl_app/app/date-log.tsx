@@ -38,7 +38,12 @@ function TrophyRow({ trophy }: { trophy: Trophy }) {
           {trophy.mismatched ? (
             <Text style={styles.unrated}>{i18n.t('date_log_unconfirmed')}</Text>
           ) : trophy.myStars ? (
-            <View style={styles.starsRow}>
+            <View
+              style={styles.starsRow}
+              accessible
+              accessibilityRole="text"
+              accessibilityLabel={i18n.t('stars_of_five', { count: trophy.myStars })}
+            >
               {Array.from({ length: trophy.myStars }).map((_, i) => (
                 <Icon key={i} name="star" size={ICON_SIZES.sm} color={ACCENT.base} />
               ))}
@@ -108,5 +113,5 @@ const styles = StyleSheet.create({
   starsRow: { flexDirection: 'row', gap: SPACE.hair },
   skeletonRow: { flexDirection: 'row', gap: SPACE.md, padding: SPACE.md },
   skeletonInfo: { flex: 1, justifyContent: 'center', gap: SPACE.xs },
-  unrated: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, fontStyle: 'italic', marginTop: SPACE.hair },
+  unrated: { color: INK.dim, fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.sm, marginTop: SPACE.hair },
 });

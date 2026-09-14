@@ -44,7 +44,7 @@ export default function OnboardingScreen() {
               />
             ))}
           </View>
-          <Tap onPress={signOut} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Tap onPress={signOut} accessibilityRole="button" hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Text style={styles.signOutLink}>{i18n.t('sign_out')}</Text>
           </Tap>
         </View>

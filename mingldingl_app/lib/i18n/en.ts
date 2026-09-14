@@ -820,4 +820,11 @@ export const en = {
   satchel_sum_arrows_one: 'One arrow.',
   satchel_sum_lantern: 'Your lantern is lit.',
   satchel_law: 'Nothing here can be bought, found or stacked. What you carry is what the rules gave you. The bag never grows; it only fills and empties with the day.',
+  // Copy that code used to reshape at the call site (a regex strip, a capital and a full stop
+  // bolted on), now written out as its own sentence so a translator sees what is shown.
+  hall_sub_no_city: 'Carved, not listed. Names are hidden by the rules of the house, so the stone holds sigils.',
+  seals_next_at_sentence: 'The next at %{count} letters.',
+  seals_left_0_sentence: 'Nothing left under wax.',
+  // A star rating read aloud: the rating stars on the encounter screen and the encounter log.
+  stars_of_five: '%{count} of 5 stars',
 };
