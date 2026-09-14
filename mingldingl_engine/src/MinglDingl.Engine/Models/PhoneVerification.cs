@@ -32,4 +32,10 @@ public enum PhoneVerificationStatus
     Pending = 0,
     Verified = 1,
     Expired = 2,
+
+    /// <summary>
+    /// Pushed out of the per-number pending cap by a newer start. Not counted against the cap, but
+    /// still re-read from the provider, so a code the owner already texted still verifies.
+    /// </summary>
+    Superseded = 3,
 }

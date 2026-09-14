@@ -9,8 +9,13 @@ using Microsoft.EntityFrameworkCore;
 public class BusinessController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly LocalFileStorageService _storage;
 
-    public BusinessController(AppDbContext db) => _db = db;
+    public BusinessController(AppDbContext db, LocalFileStorageService storage)
+    {
+        _db = db;
+        _storage = storage;
+    }
 
     /// <summary>
     /// The language venue content should be served in for this caller. Same source as
@@ -76,6 +81,20 @@ public class BusinessController : ControllerBase
 
         var business = await _db.BusinessPartners.FindAsync(id);
         if (business is null) return this.NotFoundError("Business not found", "business.not_found");
+
+        // A rating is a review of a date that happened here. Any participant of any match could
+        // otherwise rate any venue, once per match, which let a handful of accounts steer every
+        // venue's average.
+        bool datedHere = await _db.DateConfirmations.AnyAsync(c =>
+            c.MatchId == matchId && c.InitiatorConfirmed && c.ReceiverConfirmed
+            && _db.ActivitySuggestions.Any(s => s.Id == c.ActivitySuggestionId && s.BusinessPartnerId == id));
+        if (!datedHere)
+            return this.ForbiddenError("Only a confirmed date at this venue can be rated", "rating.no_confirmed_date");
+
+        // Reviews are public. A photo that is not a file this user uploaded is someone else's origin
+        // (tracking every reader, swappable after moderation) or someone else's face.
+        if (req.PhotoUrl is not null && !_storage.IsOwnedPublicUrl(req.PhotoUrl, userId))
+            return this.BadRequestError("Photos must be uploaded through this service", "rating.photo_not_owned");
 
         _db.BusinessRatings.Add(new BusinessRating
         {

@@ -10,11 +10,69 @@ public class BusinessControllerIntegrationTests : IntegrationTestBase
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
-        var controller = new BusinessController(Db)
+        var controller = new BusinessController(Db, BuildTestStorage())
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
         return controller;
+    }
+
+    /// <summary>A date both participants confirmed at <paramref name="businessId"/> — what a rating reviews.</summary>
+    private async Task SeedConfirmedDateAsync(Guid matchId, Guid businessId, bool bothConfirmed = true)
+    {
+        var suggestion = new ActivitySuggestion
+        {
+            Id = Guid.NewGuid(), MatchId = matchId, BusinessPartnerId = businessId, ActivityType = "Cafe", Title = "Cafe",
+        };
+        Db.ActivitySuggestions.Add(suggestion);
+        Db.DateConfirmations.Add(new DateConfirmation
+        {
+            MatchId = matchId,
+            ActivitySuggestionId = suggestion.Id,
+            InitiatorConfirmed = true,
+            ReceiverConfirmed = bothConfirmed,
+            CompletedAt = bothConfirmed ? DateTime.UtcNow : null,
+        });
+        await Db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task Rate_NoConfirmedDateAtThisVenue_IsForbidden()
+    {
+        var initiatorId = Guid.NewGuid();
+        var match = await SeedMatchAsync(initiatorId, Guid.NewGuid());
+        var business = await SeedBusinessAsync();
+        var elsewhere = await SeedBusinessAsync();
+        await SeedConfirmedDateAsync(match.Id, elsewhere.Id);
+        await SeedConfirmedDateAsync(match.Id, business.Id, bothConfirmed: false);
+
+        var result = await BuildController(initiatorId).Rate(business.Id, new RateBusinessRequest(1, null), match.Id);
+
+        Assert.Equal(403, Assert.IsType<ObjectResult>(result).StatusCode);
+        Assert.False(await Db.BusinessRatings.AnyAsync(r => r.BusinessPartnerId == business.Id));
+    }
+
+    [Fact]
+    public async Task Rate_PhotoNotUploadedByTheRater_IsRejected()
+    {
+        var initiatorId = Guid.NewGuid();
+        var receiverId = Guid.NewGuid();
+        var match = await SeedMatchAsync(initiatorId, receiverId);
+        var business = await SeedBusinessAsync();
+        await SeedConfirmedDateAsync(match.Id, business.Id);
+
+        var controller = BuildController(initiatorId);
+        var foreign = await controller.Rate(business.Id,
+            new RateBusinessRequest(5, null, "https://tracker.example.com/pixel.jpg"), match.Id);
+        var someoneElses = await controller.Rate(business.Id,
+            new RateBusinessRequest(5, null, $"/uploads/photos/{LocalFileStorageService.ProfilePhotoDirectory(receiverId)}a.jpg"), match.Id);
+
+        Assert.IsType<BadRequestObjectResult>(foreign);
+        Assert.IsType<BadRequestObjectResult>(someoneElses);
+
+        var own = await controller.Rate(business.Id,
+            new RateBusinessRequest(5, null, $"/uploads/photos/{LocalFileStorageService.ProfilePhotoDirectory(initiatorId)}a.jpg"), match.Id);
+        Assert.IsType<OkObjectResult>(own);
     }
 
     private async Task<BusinessPartner> SeedBusinessAsync()
@@ -154,10 +212,11 @@ public class BusinessControllerIntegrationTests : IntegrationTestBase
         var receiverId = Guid.NewGuid();
         var match = await SeedMatchAsync(initiatorId, receiverId);
         var business = await SeedBusinessAsync();
+        await SeedConfirmedDateAsync(match.Id, business.Id);
 
         var controller = BuildController(initiatorId);
 
-        var first = await controller.Rate(business.Id, new RateBusinessRequest(4, null), match.Id);
+        var first =await controller.Rate(business.Id, new RateBusinessRequest(4, null), match.Id);
         Assert.IsType<OkObjectResult>(first);
 
         var second = await controller.Rate(business.Id, new RateBusinessRequest(2, null), match.Id);
@@ -181,6 +240,7 @@ public class BusinessControllerIntegrationTests : IntegrationTestBase
         var matchC = await SeedMatchAsync(userCId, Guid.NewGuid());
 
         var business = await SeedBusinessAsync();
+        await SeedConfirmedDateAsync(matchC.Id, business.Id);
 
         business.RatingCount = 0;
         business.AverageRating = 0;

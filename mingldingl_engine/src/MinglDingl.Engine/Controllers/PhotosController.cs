@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("photos")]
@@ -22,6 +23,8 @@ public class PhotosController : ControllerBase
     private readonly LocalFileStorageService _storage;
     private readonly PhotoUploadThrottleService _throttle;
     private readonly SealedPhotoService _sealedPhotos;
+    private readonly AppDbContext _db;
+    private readonly PhoneVerificationService _phones;
     private readonly ILogger<PhotosController> _logger;
 
     public PhotosController(
@@ -29,12 +32,16 @@ public class PhotosController : ControllerBase
         LocalFileStorageService storage,
         PhotoUploadThrottleService throttle,
         SealedPhotoService sealedPhotos,
+        AppDbContext db,
+        PhoneVerificationService phones,
         ILogger<PhotosController> logger)
     {
         _compression = compression;
         _storage = storage;
         _throttle = throttle;
         _sealedPhotos = sealedPhotos;
+        _db = db;
+        _phones = phones;
         _logger = logger;
     }
 
@@ -42,6 +49,7 @@ public class PhotosController : ControllerBase
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(PhotoUploadResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status429TooManyRequests)]
     [RequestSizeLimit(MaxUploadBytes)]
     public async Task<IActionResult> Upload(IFormFile? file)
@@ -54,6 +62,14 @@ public class PhotosController : ControllerBase
             return this.BadRequestError("Unsupported file type", "photo.unsupported_type");
 
         var userId = this.CurrentUserId();
+
+        // Any fresh anonymous Supabase sign-up holds a valid JWT, so without this every one of them
+        // was a new throttle bucket and a new 15MB-at-a-time directory on a public disk. Onboarding
+        // uploads photos before POST /users creates the row, so an identity with no account yet
+        // qualifies through the same proof POST /users will demand of it.
+        bool hasAccount = await _db.Users.AnyAsync(u => u.Id == userId);
+        if (!hasAccount && _phones.IsConfigured && await _phones.GetVerifiedPhoneAsync(userId) is null)
+            return this.ForbiddenError("Phone number must be verified before uploading photos", "phone.verification_required");
 
         // Decoding is the expensive part of this endpoint and it is entirely attacker-paced, so the
         // gate goes before it. Without one, a single account could hold the whole ImageSharp

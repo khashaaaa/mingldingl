@@ -1,15 +1,36 @@
-public class LocalFileStorageService
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+
+public partial class LocalFileStorageService
 {
     private readonly string _root;
     private readonly string _publicBaseUrl;
     private readonly ILogger<LocalFileStorageService> _logger;
+    private readonly byte[] _sealKey;
 
     public LocalFileStorageService(IWebHostEnvironment env, IConfiguration config, ILogger<LocalFileStorageService> logger)
     {
         _root = Path.GetFullPath(Path.Combine(env.ContentRootPath, "uploads"));
         _publicBaseUrl = (config["Storage:PublicBaseUrl"] ?? "http://localhost:5150/uploads").TrimEnd('/');
         _logger = logger;
+        _sealKey = DeriveSealKey(config);
         Directory.CreateDirectory(_root);
+    }
+
+    /// <summary>
+    /// The key sealed filenames are derived under. <c>Storage:SealedPhotoKey</c> when set, otherwise
+    /// a sub-key of <c>Admin:JwtSigningKey</c> (which <see cref="StartupGuards"/> already requires
+    /// outside Development). Rotating either renames every sealed variant: the backfill sweep
+    /// regenerates them under the new names and the orphan sweep removes the old ones. The constant
+    /// fallback only ever applies where neither is configured, i.e. local development and tests.
+    /// </summary>
+    private static byte[] DeriveSealKey(IConfiguration config)
+    {
+        var secret = config["Storage:SealedPhotoKey"];
+        if (string.IsNullOrWhiteSpace(secret)) secret = config["Admin:JwtSigningKey"];
+        if (string.IsNullOrWhiteSpace(secret)) secret = "mingldingl-development-only-sealed-photo-key";
+        return HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret), "sealed-photo-name/v1"u8);
     }
 
     /// <summary>
@@ -140,47 +161,87 @@ public class LocalFileStorageService
         return ResolveWithinRoot(relative[..separator], relative[(separator + 1)..]) is null ? null : relative;
     }
 
+    private const string SealedPrefix = "sealed-";
+    private const string LegacySealedSuffix = "-sealed";
+
+    [GeneratedRegex("^sealed-[0-9a-f]{32}\\.jpg$")]
+    private static partial Regex SealedFileName();
+
+    private static string DirectoryOf(string relativePath) =>
+        Path.GetDirectoryName(relativePath)?.Replace(Path.DirectorySeparatorChar, '/') ?? "";
+
+    private static string InDirectory(string dir, string fileName) => dir.Length > 0 ? $"{dir}/{fileName}" : fileName;
+
     /// <summary>
-    /// The path of a stored file's sealed sibling: same directory, filename suffixed
-    /// <c>-sealed</c>, always <c>.jpg</c> (<see cref="PhotoCompressionService.SealAsync"/> always
-    /// re-encodes as JPEG regardless of the original's extension). A pure string transform, so it
+    /// The path of a stored file's sealed sibling: same directory, always <c>.jpg</c>
+    /// (<see cref="PhotoCompressionService.SealAsync"/> always re-encodes as JPEG), named by a keyed
+    /// MAC of the original's filename. The name used to be the original's plus <c>-sealed</c>, so
+    /// every stranger handed a sealed URL in the discover feed could strip the suffix and fetch the
+    /// unblurred original from the same public directory. Only the filename feeds the MAC, so this
     /// works equally on a bucket-relative <c>path</c> (the shape <see cref="UploadAsync"/> takes)
-    /// and on the bucket-prefixed relative path <see cref="EnumerateProfilePhotos"/> returns —
-    /// both just move the bucket segment, if any, along for the ride.
+    /// and on the bucket-prefixed relative path <see cref="EnumerateProfilePhotos"/> returns.
     /// </summary>
-    public static string SealedPathOf(string relativePath)
+    public string SealedPathOf(string relativePath)
     {
-        var dir = Path.GetDirectoryName(relativePath)?.Replace(Path.DirectorySeparatorChar, '/') ?? "";
         var name = Path.GetFileNameWithoutExtension(relativePath);
-        return dir.Length > 0 ? $"{dir}/{name}-sealed.jpg" : $"{name}-sealed.jpg";
+        var mac = HMACSHA256.HashData(_sealKey, Encoding.UTF8.GetBytes(name));
+        return InDirectory(DirectoryOf(relativePath), $"{SealedPrefix}{Convert.ToHexString(mac, 0, 16).ToLowerInvariant()}.jpg");
+    }
+
+    /// <summary>The pre-MAC sealed name (<c>{original}-sealed.jpg</c>), kept only so it can be cleaned up.</summary>
+    private static string LegacySealedPathOf(string relativePath) =>
+        InDirectory(DirectoryOf(relativePath), $"{Path.GetFileNameWithoutExtension(relativePath)}{LegacySealedSuffix}.jpg");
+
+    /// <summary>
+    /// True for a sealed variant under either naming scheme. The maintenance sweep uses it to tell
+    /// sealed files apart from originals: a sealed file is never itself sealed, and a legacy one —
+    /// whose name gives its original away — is left for the orphan sweep to remove.
+    /// </summary>
+    public static bool IsSealedPath(string relativePath)
+    {
+        var fileName = Path.GetFileName(relativePath);
+        return SealedFileName().IsMatch(fileName)
+            || Path.GetFileNameWithoutExtension(fileName).EndsWith(LegacySealedSuffix, StringComparison.Ordinal);
     }
 
     /// <summary>
-    /// The bucket-relative path <em>this file's original</em> would have, given a sealed file's
-    /// relative path — the inverse of <see cref="SealedPathOf"/>. Null when
-    /// <paramref name="relativePath"/> is not itself a sealed file, which is how the maintenance
-    /// sweep tells a sealed variant apart from an original when it walks every stored photo.
+    /// The relative path of the original a sealed file belongs to, in the same shape it was given.
+    /// A MAC cannot be inverted, so this looks for the original among the files actually beside it
+    /// — one profile directory holds a handful. Null when <paramref name="relativePath"/> is not a
+    /// sealed file, when its original is gone, and for a legacy-named sealed file: those have no
+    /// owner worth keeping them for, because their name is exactly the leak the MAC closes.
     /// </summary>
-    public static string? OriginalPathOfSealed(string relativePath)
+    public virtual string? OriginalPathOfSealed(string relativePath)
     {
-        var name = Path.GetFileNameWithoutExtension(relativePath);
-        const string suffix = "-sealed";
-        if (!name.EndsWith(suffix, StringComparison.Ordinal)) return null;
+        if (!SealedFileName().IsMatch(Path.GetFileName(relativePath))) return null;
 
-        var dir = Path.GetDirectoryName(relativePath)?.Replace(Path.DirectorySeparatorChar, '/') ?? "";
-        var originalName = name[..^suffix.Length];
-        return dir.Length > 0 ? $"{dir}/{originalName}.jpg" : $"{originalName}.jpg";
+        var separator = relativePath.IndexOf('/');
+        if (separator <= 0) return null;
+        var fullPath = ResolveWithinRoot(relativePath[..separator], relativePath[(separator + 1)..]);
+        var directory = fullPath is null ? null : Path.GetDirectoryName(fullPath);
+        if (directory is null || !Directory.Exists(directory)) return null;
+
+        var dir = DirectoryOf(relativePath);
+        var sealedName = Path.GetFileName(relativePath);
+        foreach (var candidate in Directory.EnumerateFiles(directory))
+        {
+            var candidateName = Path.GetFileName(candidate);
+            if (IsSealedPath(candidateName)) continue;
+            if (Path.GetFileName(SealedPathOf(candidateName)) == sealedName) return InDirectory(dir, candidateName);
+        }
+        return null;
+    }
+
+    private bool ExistsWithinRoot(string relativePath)
+    {
+        var separator = relativePath.IndexOf('/');
+        if (separator <= 0) return false;
+        var fullPath = ResolveWithinRoot(relativePath[..separator], relativePath[(separator + 1)..]);
+        return fullPath is not null && File.Exists(fullPath);
     }
 
     /// <summary>True when the sealed sibling of the stored file at this relative path exists on disk.</summary>
-    public virtual bool SealedVariantExists(string relativePath)
-    {
-        var sealedRelative = SealedPathOf(relativePath);
-        var separator = sealedRelative.IndexOf('/');
-        if (separator <= 0) return false;
-        var fullPath = ResolveWithinRoot(sealedRelative[..separator], sealedRelative[(separator + 1)..]);
-        return fullPath is not null && File.Exists(fullPath);
-    }
+    public virtual bool SealedVariantExists(string relativePath) => ExistsWithinRoot(SealedPathOf(relativePath));
 
     /// <summary>
     /// The public URL of the public URL <paramref name="url"/> names' sealed sibling — only when
@@ -217,14 +278,17 @@ public class LocalFileStorageService
         // The sealed sibling has no row pointing at it — SealedPhotoUrl is derived on read, never
         // stored — so nothing else will ever clean it up once the original it belongs to is gone.
         // File.Delete is a silent no-op when the target does not exist, which is the common case
-        // (a business photo, say, has no sibling at all).
-        var sealedRelative = SealedPathOf(relative);
-        var sealedSeparator = sealedRelative.IndexOf('/');
-        if (sealedSeparator > 0
-            && ResolveWithinRoot(sealedRelative[..sealedSeparator], sealedRelative[(sealedSeparator + 1)..]) is { } sealedFullPath)
+        // (a business photo, say, has no sibling at all). A legacy-named sibling from before sealed
+        // names were keyed goes too.
+        foreach (var sealedRelative in new[] { SealedPathOf(relative), LegacySealedPathOf(relative) })
         {
-            try { File.Delete(sealedFullPath); }
-            catch (Exception ex) { _logger.LogWarning(ex, "Could not delete sealed sibling for {Url}", url); }
+            var sealedSeparator = sealedRelative.IndexOf('/');
+            if (sealedSeparator > 0
+                && ResolveWithinRoot(sealedRelative[..sealedSeparator], sealedRelative[(sealedSeparator + 1)..]) is { } sealedFullPath)
+            {
+                try { File.Delete(sealedFullPath); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Could not delete sealed sibling for {Url}", url); }
+            }
         }
 
         try

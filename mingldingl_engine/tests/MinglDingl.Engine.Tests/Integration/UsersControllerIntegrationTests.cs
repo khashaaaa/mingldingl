@@ -441,6 +441,49 @@ public class UsersControllerIntegrationTests : IntegrationTestBase
         Assert.Equal([Photo(userId, "2.jpg"), Photo(userId, "3.jpg")], deleted);
     }
 
+    /// <summary>POST /users is an upsert too, so it was a second door that left dropped photos public.</summary>
+    [Fact]
+    public async Task Upsert_OnAnExistingAccount_DeletesDroppedPhotoFiles()
+    {
+        var userId = Guid.NewGuid();
+        var photos = new List<string> { Photo(userId, "1.jpg"), Photo(userId, "2.jpg"), Photo(userId, "3.jpg") };
+        await BuildController(userId).Upsert(new CreateUserRequest("Complete", 26, "Male", "Ulaanbaatar", "Filled in", photos));
+
+        var deleted = new List<string>();
+        var result = await BuildController(userId, storage: BuildRecordingStorage(deleted)).Upsert(
+            new CreateUserRequest("Complete", 26, "Male", "Ulaanbaatar", "Filled in", [Photo(userId, "1.jpg")]));
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal([Photo(userId, "2.jpg"), Photo(userId, "3.jpg")], deleted);
+    }
+
+    [Theory]
+    [InlineData(47.9, null)]
+    [InlineData(null, 106.9)]
+    [InlineData(95.0, 106.9)]
+    public async Task Upsert_AHalfOrOutOfRangeCoordinatePair_IsRejectedLikeTheLocationEndpoint(double? lat, double? lon)
+    {
+        var userId = Guid.NewGuid();
+
+        var result = await BuildController(userId).Upsert(new CreateUserRequest(
+            "Located", 26, "Male", "Ulaanbaatar", "Bio", [], Latitude: lat, Longitude: lon));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.False(await Db.Users.AnyAsync(u => u.Id == userId));
+    }
+
+    [Fact]
+    public async Task Upsert_ACoordinatePair_DecidesTheCityLikeTheLocationEndpoint()
+    {
+        var userId = Guid.NewGuid();
+        var (lat, lon) = (47.92, 106.92);
+
+        var ok = Assert.IsType<OkObjectResult>(await BuildController(userId).Upsert(new CreateUserRequest(
+            "Located", 26, "Male", "Ulaanbaatar", "Bio", [], Latitude: lat, Longitude: lon)));
+
+        Assert.Equal(MongoliaGeo.NearestCity(lat, lon), Assert.IsType<UserResponse>(ok.Value).City);
+    }
+
     [Fact]
     public async Task GetMyItems_ListsHeldHonoursOnly_NewestFirst_NoTierRings()
     {

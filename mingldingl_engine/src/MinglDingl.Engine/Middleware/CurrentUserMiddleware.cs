@@ -31,11 +31,21 @@ public class CurrentUserMiddleware
         var resolvedUserId = await ResolveUserIdAsync(context, userId.Value, phone);
 
         var db = context.RequestServices.GetRequiredService<AppDbContext>();
-        var isBanned = await db.Users.AsNoTracking()
+        var standing = await db.Users.AsNoTracking()
             .Where(u => u.Id == resolvedUserId)
-            .Select(u => u.IsBanned)
+            .Select(u => new { u.IsBanned, u.IsDeleted })
             .FirstOrDefaultAsync();
-        if (isBanned)
+        if (standing?.IsDeleted == true)
+        {
+            // The sweep anonymised this row, but the identity that created it still holds a valid
+            // JWT. Letting it through meant POST /users simply refilled the "deleted" account.
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(
+                new ErrorResponse("This account has been deleted.", "account.deleted"));
+            return;
+        }
+        if (standing?.IsBanned == true)
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             context.Response.ContentType = "application/json";

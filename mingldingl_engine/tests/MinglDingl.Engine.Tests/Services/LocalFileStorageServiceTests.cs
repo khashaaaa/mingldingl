@@ -125,19 +125,69 @@ public class LocalFileStorageServiceTests : IDisposable
         Assert.False(Build("https://cdn.example.com/uploads")
             .DeleteByPublicUrl("https://cdn.example.com/other/photos/u1/a.jpg"));
 
+    private LocalFileStorageService BuildWithSealKey(string key)
+    {
+        var env = new Mock<IWebHostEnvironment>();
+        env.Setup(e => e.ContentRootPath).Returns(_tempRoot);
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Storage:SealedPhotoKey"] = key })
+            .Build();
+        return new LocalFileStorageService(env.Object, config, NullLogger<LocalFileStorageService>.Instance);
+    }
+
+    /// <summary>
+    /// The sealed URL is handed to strangers in the discover feed. When its name was the original's
+    /// plus "-sealed", stripping the suffix fetched the unblurred photo from the same public folder.
+    /// </summary>
+    [Fact]
+    public void SealedPathOf_SameDirectory_NameDoesNotRevealTheOriginal()
+    {
+        var sealedPath = Build(null).SealedPathOf("photos/u1/0123456789abcdef0123456789abcdef.jpg");
+
+        Assert.StartsWith("photos/u1/sealed-", sealedPath);
+        Assert.EndsWith(".jpg", sealedPath);
+        Assert.DoesNotContain("0123456789abcdef", sealedPath);
+    }
+
+    [Fact]
+    public void SealedPathOf_IsTheSameForEitherPathShape_AndDependsOnTheKey()
+    {
+        var storage = BuildWithSealKey("key-one");
+
+        Assert.Equal(
+            Path.GetFileName(storage.SealedPathOf("photos/u1/a.jpg")),
+            Path.GetFileName(storage.SealedPathOf("u1/a.jpg")));
+        Assert.NotEqual(storage.SealedPathOf("photos/u1/a.jpg"), BuildWithSealKey("key-two").SealedPathOf("photos/u1/a.jpg"));
+    }
+
     [Theory]
-    [InlineData("photos/u1/a.jpg", "photos/u1/a-sealed.jpg")]
-    [InlineData("a.jpg", "a-sealed.jpg")]
-    public void SealedPathOf_SameDirectory_NameSuffixedSealed(string relativePath, string expected) =>
-        Assert.Equal(expected, LocalFileStorageService.SealedPathOf(relativePath));
+    [InlineData("photos/u1/sealed-0123456789abcdef0123456789abcdef.jpg", true)]
+    [InlineData("photos/u1/a-sealed.jpg", true)]
+    [InlineData("photos/u1/0123456789abcdef0123456789abcdef.jpg", false)]
+    public void IsSealedPath_RecognisesBothNamingSchemes(string relativePath, bool expected) =>
+        Assert.Equal(expected, LocalFileStorageService.IsSealedPath(relativePath));
 
     [Fact]
-    public void OriginalPathOfSealed_RecoversTheOriginalsPath() =>
-        Assert.Equal("photos/u1/a.jpg", LocalFileStorageService.OriginalPathOfSealed("photos/u1/a-sealed.jpg"));
+    public async Task OriginalPathOfSealed_FindsTheOriginalBesideIt()
+    {
+        var storage = Build(null);
+        await storage.UploadAsync("photos", "u1/a.jpg", [1, 2, 3], "image/jpeg");
+        await storage.UploadAsync("photos", "u1/b.jpg", [1, 2, 3], "image/jpeg");
+        await storage.UploadAsync("photos", storage.SealedPathOf("u1/a.jpg"), [4, 5, 6], "image/jpeg");
+
+        Assert.Equal("photos/u1/a.jpg", storage.OriginalPathOfSealed(storage.SealedPathOf("photos/u1/a.jpg")));
+    }
 
     [Fact]
-    public void OriginalPathOfSealed_NullForAnOriginalItself() =>
-        Assert.Null(LocalFileStorageService.OriginalPathOfSealed("photos/u1/a.jpg"));
+    public async Task OriginalPathOfSealed_NullForAnOriginalItself_ALegacyName_OrAGoneOriginal()
+    {
+        var storage = Build(null);
+        await storage.UploadAsync("photos", "u1/a.jpg", [1, 2, 3], "image/jpeg");
+
+        Assert.Null(storage.OriginalPathOfSealed("photos/u1/a.jpg"));
+        Assert.Null(storage.OriginalPathOfSealed("photos/u1/a-sealed.jpg"));
+        Assert.Null(storage.OriginalPathOfSealed(storage.SealedPathOf("photos/u1/gone.jpg")));
+    }
 
     [Fact]
     public async Task SealedPublicUrlOf_NoSealedFileYet_ReturnsNull()
@@ -153,23 +203,37 @@ public class LocalFileStorageServiceTests : IDisposable
     {
         var storage = Build("https://cdn.example.com/uploads");
         var url = await storage.UploadAsync("photos", "u1/a.jpg", [1, 2, 3], "image/jpeg");
-        await storage.UploadAsync("photos", "u1/a-sealed.jpg", [4, 5, 6], "image/jpeg");
+        await storage.UploadAsync("photos", storage.SealedPathOf("u1/a.jpg"), [4, 5, 6], "image/jpeg");
 
-        Assert.Equal("https://cdn.example.com/uploads/photos/u1/a-sealed.jpg", storage.SealedPublicUrlOf(url));
+        Assert.Equal($"https://cdn.example.com/uploads/{storage.SealedPathOf("photos/u1/a.jpg")}", storage.SealedPublicUrlOf(url));
     }
 
+    /// <summary>A legacy "-sealed" file is never served again: its name is the leak.</summary>
     [Fact]
-    public async Task DeleteByPublicUrl_AlsoRemovesTheSealedSibling()
+    public async Task SealedPublicUrlOf_OnlyALegacyNamedSiblingExists_ReturnsNull()
     {
         var storage = Build("https://cdn.example.com/uploads");
         var url = await storage.UploadAsync("photos", "u1/a.jpg", [1, 2, 3], "image/jpeg");
         await storage.UploadAsync("photos", "u1/a-sealed.jpg", [4, 5, 6], "image/jpeg");
-        var sealedPath = Path.Combine(_tempRoot, "uploads", "photos", "u1", "a-sealed.jpg");
+
+        Assert.Null(storage.SealedPublicUrlOf(url));
+    }
+
+    [Fact]
+    public async Task DeleteByPublicUrl_AlsoRemovesTheSealedSibling_UnderEitherName()
+    {
+        var storage = Build("https://cdn.example.com/uploads");
+        var url = await storage.UploadAsync("photos", "u1/a.jpg", [1, 2, 3], "image/jpeg");
+        await storage.UploadAsync("photos", storage.SealedPathOf("u1/a.jpg"), [4, 5, 6], "image/jpeg");
+        await storage.UploadAsync("photos", "u1/a-sealed.jpg", [4, 5, 6], "image/jpeg");
+        var sealedPath = Path.Combine(_tempRoot, "uploads", storage.SealedPathOf("photos/u1/a.jpg").Replace('/', Path.DirectorySeparatorChar));
+        var legacyPath = Path.Combine(_tempRoot, "uploads", "photos", "u1", "a-sealed.jpg");
         Assert.True(File.Exists(sealedPath));
 
         Assert.True(storage.DeleteByPublicUrl(url));
 
         Assert.False(File.Exists(sealedPath));
+        Assert.False(File.Exists(legacyPath));
     }
 
     [Fact]

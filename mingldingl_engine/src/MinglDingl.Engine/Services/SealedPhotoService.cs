@@ -38,6 +38,6 @@ public class SealedPhotoService
         var bucket = relativePath[..separator];
         var pathWithinBucket = relativePath[(separator + 1)..];
 
-        await _storage.UploadAsync(bucket, LocalFileStorageService.SealedPathOf(pathWithinBucket), sealedBytes, "image/jpeg");
+        await _storage.UploadAsync(bucket, _storage.SealedPathOf(pathWithinBucket), sealedBytes, "image/jpeg");
     }
 }

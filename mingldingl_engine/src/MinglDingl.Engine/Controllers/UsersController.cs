@@ -106,14 +106,24 @@ public class UsersController : ControllerBase
         if (existing is not null && !string.IsNullOrEmpty(existing.Gender) && req.Gender != existing.Gender)
             return this.BadRequestError("Gender cannot be changed after sign-up", "profile.gender_immutable");
 
+        if (req.PreferredLocale is not null && !PushCopy.IsSupportedLocale(req.PreferredLocale))
+            return this.BadRequestError("PreferredLocale must be one of: en, mn", "profile.locale_invalid");
+
+        // The same rule POST /users/me/location applies: a position arrives as a pair, is range
+        // checked, and decides the city. Taking half a pair, or a pair with no check, let this
+        // endpoint store a location the dedicated one would refuse.
+        if (req.Latitude.HasValue != req.Longitude.HasValue
+            || (req.Latitude is double checkLat && req.Longitude is double checkLon
+                && !MongoliaGeo.IsValidCoordinate(checkLat, checkLon)))
+            return this.BadRequestError("Latitude/longitude out of range", "profile.location_invalid");
+
         var user = existing ?? new User { Id = userId };
 
-        if (req.PreferredLocale is not null)
-        {
-            if (!PushCopy.IsSupportedLocale(req.PreferredLocale))
-                return this.BadRequestError("PreferredLocale must be one of: en, mn", "profile.locale_invalid");
-            user.PreferredLocale = req.PreferredLocale;
-        }
+        if (req.PreferredLocale is not null) user.PreferredLocale = req.PreferredLocale;
+
+        // Same as PUT /users/me: /uploads is public, so a photo dropped from the list has to leave
+        // the disk too. Collected before the list is replaced, unlinked only after the save commits.
+        var droppedPhotos = existing?.PhotoUrls.Except(req.PhotoUrls).ToList() ?? [];
 
         user.DisplayName = req.DisplayName.Trim();
         user.Age = req.Age;
@@ -121,8 +131,12 @@ public class UsersController : ControllerBase
         user.City = req.City;
         user.Bio = req.Bio;
         user.PhotoUrls = req.PhotoUrls;
-        if (req.Latitude.HasValue) user.Latitude = req.Latitude;
-        if (req.Longitude.HasValue) user.Longitude = req.Longitude;
+        if (req.Latitude is double lat && req.Longitude is double lon)
+        {
+            user.Latitude = lat;
+            user.Longitude = lon;
+            user.City = MongoliaGeo.NearestCity(lat, lon);
+        }
         user.PhoneNumber ??= verifiedPhone ?? (_phones.IsConfigured ? null : this.CurrentPhoneNumber());
 
         var wasComplete = user.IsProfileComplete;
@@ -131,6 +145,9 @@ public class UsersController : ControllerBase
         if (existing is null) _db.Users.Add(user);
         else _db.Users.Update(user);
         await _db.SaveChangesAsync();
+
+        foreach (var dropped in droppedPhotos.Where(url => _storage.IsOwnedPublicUrl(url, userId)))
+            _storage.DeleteByPublicUrl(dropped);
 
         if (user.IsProfileComplete && !wasComplete)
         {
@@ -359,14 +376,27 @@ public class UsersController : ControllerBase
             .Where(u => blockedIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id);
 
+        // Reporting blocks anyone, including a stranger straight off the discover feed, so this list
+        // must not be a way to see a face the reveal ladder never granted. The real photo is shown
+        // only for a pair whose match reached the level that unlocks it (FirstPhoto, level 1, as in
+        // MatchesController); everyone else gets the same sealed variant the discover feed shows.
+        var revealed = (await _db.Matches.AsNoTracking()
+                .Where(m => (m.InitiatorId == userId && blockedIds.Contains(m.ReceiverId))
+                    || (m.ReceiverId == userId && blockedIds.Contains(m.InitiatorId)))
+                .ToListAsync())
+            .Where(m => RevealService.GetRevealLevel(_config, m) >= 1)
+            .Select(m => m.OtherParticipant(userId))
+            .ToHashSet();
+
         var result = blocks
             .Select(b =>
             {
                 users.TryGetValue(b.BlockedId, out var u);
+                var first = u?.PhotoUrls.FirstOrDefault();
                 return new BlockedUserResponse(
                     b.BlockedId,
                     u?.IsDeleted == true ? "" : u?.DisplayName ?? "",
-                    u?.PhotoUrls.FirstOrDefault(),
+                    revealed.Contains(b.BlockedId) ? first : _storage.SealedPublicUrlOf(first),
                     b.CreatedAt);
             })
             .ToList();
@@ -409,17 +439,29 @@ public class UsersController : ControllerBase
             if (req.VerificationId is not Guid verificationId)
                 return this.BadRequestError("The new phone number must be verified first", "phone.new_not_verified");
 
-            var claim = await _phones.ClaimAsync(verificationId, userId);
+            // Bound to the session's own identity, not the account id it resolves to: a returning
+            // user's session is an alias whose only link to the account is a claim on the account's
+            // number, and that link is about to be released for the old number below.
+            var authId = CurrentUserMiddleware.ExtractUserId(User) ?? userId;
+            var claim = await _phones.ClaimForAccountAsync(verificationId, authId, userId);
             if (claim != PhoneClaimResult.Ok)
                 return this.BadRequestError("The new phone number must be verified first", "phone.new_not_verified");
 
-            var proven = await _phones.GetVerifiedPhoneAsync(userId);
+            var proven = await _phones.GetVerifiedPhoneAsync(authId);
             if (proven != req.PhoneNumber)
                 return this.BadRequestError("Verification does not match the requested number", "verification.number_mismatch");
         }
 
+        var oldPhone = user.PhoneNumber;
         user.PhoneNumber = req.PhoneNumber;
-        await _db.SaveChangesAsync();
+        await _db.InTransactionAsync(async () =>
+        {
+            await _db.SaveChangesAsync();
+            // Every other session signed in by proving the old number stops standing for this
+            // account, and none of them can follow the number to whoever registers it next.
+            if (oldPhone is not null && oldPhone != req.PhoneNumber)
+                await _phones.ReleaseClaimsOnNumberAsync(oldPhone);
+        });
         return Ok(ToResponse(user));
     }
 

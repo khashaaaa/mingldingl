@@ -148,19 +148,133 @@ public class PhoneVerificationIntegrationTests : IntegrationTestBase
         Assert.Equal(phone, started.Phone);
     }
 
+    /// <summary>
+    /// Start is anonymous. Refusing a sixth session let anyone who filled the five slots for a
+    /// number lock its real owner out for as long as they kept refilling them.
+    /// </summary>
     [Fact]
-    public async Task Start_caps_the_pending_sessions_one_number_can_hold()
+    public async Task Start_at_the_cap_supersedes_the_oldest_instead_of_locking_the_owner_out()
     {
         var phone = NewPhone();
         var (service, _) = BuildService();
-        for (int i = 0; i < PhoneVerificationService.MaxPendingPerPhone; i++)
+        var first = await service.StartAsync(phone);
+        for (int i = 1; i < PhoneVerificationService.MaxPendingPerPhone; i++)
             Assert.NotNull(await service.StartAsync(phone));
 
-        var ex = await Assert.ThrowsAsync<DomainException>(() => service.StartAsync(phone));
+        var owner = await service.StartAsync(phone);
 
-        Assert.Equal(429, ex.StatusCode);
-        Assert.Equal("phone.too_many_attempts", ex.Code);
-        Assert.Equal(PhoneVerificationService.MaxPendingPerPhone, await Db.PhoneVerifications.CountAsync(v => v.Phone == phone));
+        Assert.NotNull(owner);
+        Assert.Equal(PhoneVerificationService.MaxPendingPerPhone,
+            await Db.PhoneVerifications.CountAsync(v => v.Phone == phone && v.Status == PhoneVerificationStatus.Pending));
+        var oldest = await Db.PhoneVerifications.AsNoTracking().SingleAsync(v => v.Id == first!.Id);
+        Assert.Equal(PhoneVerificationStatus.Superseded, oldest.Status);
+    }
+
+    /// <summary>Eviction must not undo an SMS the owner already paid for.</summary>
+    [Fact]
+    public async Task A_superseded_session_still_verifies_and_can_still_be_resumed_by_its_holder()
+    {
+        var phone = NewPhone();
+        var (service, handler) = BuildService();
+        var first = await service.StartAsync(phone);
+        for (int i = 0; i < PhoneVerificationService.MaxPendingPerPhone; i++)
+            await service.StartAsync(phone);
+
+        Assert.Equal(first!.Id, (await service.StartAsync(phone, first.Id))!.Id);
+
+        handler.SessionStatus = "VERIFIED";
+        Assert.Equal(PhoneVerificationStatus.Verified, (await service.RefreshAsync(first.Id))!.Status);
+        Assert.Equal(PhoneClaimResult.Ok, await service.ClaimAsync(first.Id, Guid.NewGuid()));
+    }
+
+    private UsersController BuildUsersController(PhoneVerificationService phones, Guid accountId, Guid authId)
+    {
+        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+        {
+            User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(
+                [new System.Security.Claims.Claim("sub", authId.ToString())], "Bearer")),
+        };
+        httpContext.Items["UserId"] = accountId;
+        var score = new ScoreService(Db, new ConfigService());
+        var loot = new HonourService(Db, NullLogger<HonourService>.Instance);
+        var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
+        var oaths = new OathService(Db, new ConfigService(), score, milestones, loot);
+        var ships = new ShipService(Db, loot, score, new ConfigService(), milestones, BuildTestPush(), BuildTestBroadcast(), NullLogger<ShipService>.Instance);
+        return new UsersController(Db, score, new ReferralService(Db, loot, NullLogger<ReferralService>.Instance), ships, oaths, phones, BuildTestStorage(), new ConfigService())
+        {
+            ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext { HttpContext = httpContext },
+        };
+    }
+
+    private async Task AddClaimAsync(Guid authId, string phone)
+    {
+        Db.PhoneVerifications.Add(new PhoneVerification
+        {
+            Id = Guid.NewGuid(), Phone = phone, Code = "482916", ProviderSessionId = Guid.NewGuid().ToString(),
+            Status = PhoneVerificationStatus.Verified, ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+            VerifiedAt = DateTime.UtcNow, ClaimedByUserId = authId, ClaimedAt = DateTime.UtcNow,
+        });
+        await Db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// A returning user's session is an alias whose only link to the account is a claim on its
+    /// number. Changing the number must keep the session that changed it, cut every other session
+    /// that only proved the old number, and leave those unable to register the old number again.
+    /// </summary>
+    [Fact]
+    public async Task ChangePhone_keeps_the_changing_session_and_releases_the_old_numbers_other_sessions()
+    {
+        var oldPhone = NewPhone();
+        var newPhone = NewPhone();
+        var (service, handler) = BuildService();
+        var account = NewCompleteUser();
+        account.PhoneNumber = oldPhone;
+        Db.Users.Add(account);
+        await Db.SaveChangesAsync();
+        var otherSession = Guid.NewGuid();
+        var changingSession = Guid.NewGuid();
+        await AddClaimAsync(otherSession, oldPhone);
+        await AddClaimAsync(changingSession, oldPhone);
+        Assert.Equal(account.Id, await PhoneVerificationService.ResolveAliasAsync(Db, otherSession));
+
+        var verification = await service.StartAsync(newPhone);
+        handler.SessionStatus = "VERIFIED";
+        var result = await BuildUsersController(service, account.Id, changingSession)
+            .ChangePhone(new ChangePhoneRequest(newPhone, verification!.Id));
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(result);
+        Assert.Equal(account.Id, await PhoneVerificationService.ResolveAliasAsync(Db, changingSession));
+        Assert.Null(await PhoneVerificationService.ResolveAliasAsync(Db, otherSession));
+        Assert.Null(await service.GetVerifiedPhoneAsync(otherSession));
+    }
+
+    /// <summary>The stale sessions must not follow the old number onto whoever registers it next.</summary>
+    [Fact]
+    public async Task ChangePhone_leaves_no_stale_session_for_the_next_owner_of_the_old_number_to_inherit()
+    {
+        var oldPhone = NewPhone();
+        var newPhone = NewPhone();
+        var (service, handler) = BuildService();
+        var account = NewCompleteUser();
+        account.PhoneNumber = oldPhone;
+        Db.Users.Add(account);
+        await Db.SaveChangesAsync();
+        var staleSession = Guid.NewGuid();
+        await AddClaimAsync(staleSession, oldPhone);
+
+        var verification = await service.StartAsync(newPhone);
+        handler.SessionStatus = "VERIFIED";
+        Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(
+            await BuildUsersController(service, account.Id, account.Id).ChangePhone(new ChangePhoneRequest(newPhone, verification!.Id)));
+
+        var nextOwner = NewCompleteUser();
+        nextOwner.PhoneNumber = oldPhone;
+        Db.Users.Add(nextOwner);
+        await Db.SaveChangesAsync();
+
+        Assert.Null(await PhoneVerificationService.ResolveAliasAsync(Db, staleSession));
+        Assert.Equal(account.Id, (await Db.Users.AsNoTracking().SingleAsync(u => u.PhoneNumber == newPhone)).Id);
     }
 
     [Fact]

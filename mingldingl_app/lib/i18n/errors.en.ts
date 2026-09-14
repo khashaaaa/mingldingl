@@ -93,6 +93,7 @@ export const errorsEn = {
   err_report_already_resolved: 'That report has already been settled.',
   err_report_outcome_invalid: 'That isn\'t a way a report can be settled.',
   err_account_suspended: 'This account has been suspended. Contact support if you believe this is a mistake.',
+  err_account_deleted: 'This account has been deleted. Sign in again to start a new one.',
   err_auth_token_invalid: 'You need to sign in again.',
   err_photo_dimensions_too_large: 'That portrait\'s dimensions are too large.',
   err_photo_too_many_uploads: 'Too many portraits at once. Wait a moment and try again.',

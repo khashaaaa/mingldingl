@@ -68,6 +68,8 @@ builder.Services.AddAuthentication("Bearer")
     });
 builder.Services.AddAuthorization();
 builder.Services.AddApplicationServices();
+builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(
+    opt => ForwardedHeadersSetup.Configure(opt, builder.Configuration));
 
 // Per-IP budget on POST /auth/phone/start only — bounds provider-quota burn across many distinct
 // numbers from one source. Deliberately not a global limiter: the app polls
@@ -78,9 +80,8 @@ builder.Services.AddRateLimiter(options =>
 {
     options.OnRejected = async (context, ct) =>
     {
-        // Same body shape as PhoneVerificationService's per-number 429
-        // (phone.too_many_attempts) so the app needs no new error-handling branch, but a
-        // distinguishable code so the two causes can be told apart in logs and by the client.
+        // The standard {Error, Code} body, with a code of its own so this cause can be told apart
+        // in logs and by the client.
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         context.HttpContext.Response.ContentType = "application/json";
         await context.HttpContext.Response.WriteAsJsonAsync(
@@ -152,6 +153,9 @@ for (int attempt = 1; attempt <= seedAttempts; attempt++)
         await Task.Delay(TimeSpan.FromSeconds(3));
     }
 }
+// First, so everything after it — the per-IP rate limiters above all — sees the real client
+// address rather than the reverse proxy's. See ForwardedHeadersSetup for which proxies are trusted.
+app.UseForwardedHeaders();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
