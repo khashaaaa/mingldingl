@@ -41,7 +41,8 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         await service.ConfirmAsync(match, match.InitiatorId, suggestionId);
 
         Assert.NotNull(handler.LastRequestBody);
-        Assert.Contains("\"app-nudges\"", handler.LastRequestBody);
+        Assert.Contains($"\"topic\":\"user:{match.InitiatorId}\"", handler.LastRequestBody);
+        Assert.Contains($"\"topic\":\"user:{match.ReceiverId}\"", handler.LastRequestBody);
         Assert.Contains("\"date_confirmed\"", handler.LastRequestBody);
         Assert.Contains("\"isComplete\":false", handler.LastRequestBody);
         Assert.Contains($"\"userId\":\"{match.InitiatorId}\"", handler.LastRequestBody);

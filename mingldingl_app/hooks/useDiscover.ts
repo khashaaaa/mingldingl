@@ -102,7 +102,11 @@ export function useRequestMatch() {
           district: candidate.city,
         },
       });
-      qc.setQueryData<Match[]>(queryKeys.matches, (old) => [...(old ?? []), newMatch]);
+      // Only append to a list that is already there. The global mutation hook invalidated matches
+      // *before* this runs, and `setQueryData` marks the entry fresh again — so seeding an absent
+      // list with this one match left a single-item match list trusted for the full staleTime.
+      qc.setQueryData<Match[]>(queryKeys.matches, (old) => (old ? [...old, newMatch] : old));
+      qc.invalidateQueries({ queryKey: queryKeys.matches });
     },
   });
 }

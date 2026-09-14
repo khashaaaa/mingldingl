@@ -488,7 +488,8 @@ public class ShipServiceTests : Integration.IntegrationTestBase
         Db.ChangeTracker.Clear();
         var match = await Db.Matches.FirstAsync(m => m.ShipId == ship.Id);
         Assert.NotNull(handler.LastRequestBody);
-        Assert.Contains("\"app-nudges\"", handler.LastRequestBody);
+        Assert.Contains($"\"topic\":\"user:{a.Id}\"", handler.LastRequestBody);
+        Assert.Contains($"\"topic\":\"user:{b.Id}\"", handler.LastRequestBody);
         Assert.Contains("\"match_created\"", handler.LastRequestBody);
         Assert.Contains($"\"matchId\":\"{match.Id}\"", handler.LastRequestBody);
         Assert.Contains($"\"userIds\":[\"{match.InitiatorId}\",\"{match.ReceiverId}\"]", handler.LastRequestBody);

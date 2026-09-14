@@ -68,4 +68,43 @@ public class SupabaseBroadcastServiceTests
         Assert.Contains("\"event\":\"match_created\"", handler.LastBody);
         Assert.Contains("\"payload\":{\"matchId\":\"m1\",\"source\":\"like\"}", handler.LastBody);
     }
+
+    [Fact]
+    public async Task BroadcastToUsers_SendsOneMessagePerDistinctUserTopic_InOnePost()
+    {
+        var handler = new CountingHandler();
+        var config = Config(new Dictionary<string, string?>
+        {
+            ["Supabase:ProjectUrl"] = "https://test.supabase.co/",
+            ["Supabase:SecretKey"] = "test-key",
+        });
+        var service = new SupabaseBroadcastService(new HttpClient(handler), config, NullLogger<SupabaseBroadcastService>.Instance);
+        var a = Guid.NewGuid();
+        var b = Guid.NewGuid();
+
+        await service.BroadcastToUsersAsync([a, b, a], "message", new { matchId = "m1" });
+
+        Assert.Equal(1, handler.Requests);
+        using var doc = System.Text.Json.JsonDocument.Parse(handler.LastBody!);
+        var topics = doc.RootElement.GetProperty("messages").EnumerateArray()
+            .Select(m => m.GetProperty("topic").GetString()).ToList();
+        Assert.Equal([$"user:{a}", $"user:{b}"], topics);
+        Assert.DoesNotContain("app-nudges", handler.LastBody);
+    }
+
+    [Fact]
+    public async Task BroadcastToUsers_NoRecipients_SendsNothing()
+    {
+        var handler = new CountingHandler();
+        var config = Config(new Dictionary<string, string?>
+        {
+            ["Supabase:ProjectUrl"] = "https://test.supabase.co/",
+            ["Supabase:SecretKey"] = "test-key",
+        });
+        var service = new SupabaseBroadcastService(new HttpClient(handler), config, NullLogger<SupabaseBroadcastService>.Instance);
+
+        await service.BroadcastToUsersAsync([], "message", new { });
+
+        Assert.Equal(0, handler.Requests);
+    }
 }

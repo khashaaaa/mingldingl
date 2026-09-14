@@ -64,6 +64,40 @@ describe('OtpScreen — the Gate', () => {
     await waitFor(() => expect(getByText('The gatekeeper listens for your word')).toBeTruthy());
   });
 
+  describe('after the word arrives', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('stops polling for good', async () => {
+      mockCheckVerification.mockResolvedValue('verified');
+      render(<OtpScreen />);
+
+      await waitFor(() => expect(mockCompleteSignIn).toHaveBeenCalledTimes(1));
+      await act(async () => { await jest.advanceTimersByTimeAsync(15_000); });
+
+      expect(mockCheckVerification).toHaveBeenCalledTimes(1);
+    });
+
+    // Each poll tick after a failure used to re-run sign-in under a new anonymous identity, and the
+    // engine answered every one of them AlreadyClaimed — every 3 seconds, forever.
+    it('does not retry a failed sign-in on its own; the retry button does', async () => {
+      mockCheckVerification.mockResolvedValue('verified');
+      mockCompleteSignIn.mockResolvedValue(false);
+      const { findByText } = render(<OtpScreen />);
+
+      await waitFor(() => expect(mockCompleteSignIn).toHaveBeenCalledTimes(1));
+      await act(async () => { await jest.advanceTimersByTimeAsync(15_000); });
+      expect(mockCompleteSignIn).toHaveBeenCalledTimes(1);
+
+      mockCompleteSignIn.mockResolvedValue(true);
+      const retry = await findByText(/^retry$/i);
+      await act(async () => { fireEvent.press(retry); });
+
+      expect(mockCompleteSignIn).toHaveBeenCalledTimes(2);
+      expect(mockCompleteSignIn).toHaveBeenLastCalledWith('v1', '88110001');
+    });
+  });
+
   it('bars the gate once the code expires', async () => {
     mockCheckVerification.mockResolvedValue('expired');
     const { getByText, getByTestId } = render(<OtpScreen />);

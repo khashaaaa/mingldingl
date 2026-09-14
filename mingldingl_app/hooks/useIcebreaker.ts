@@ -47,7 +47,9 @@ export function useIcebreaker(matchId: string) {
       }
     },
     enabled: !!question && !!matchId,
-    refetchInterval: (query) => (query.state.data || query.state.status === 'error' ? false : 60000),
+    // Only data stops the poll. Returning false on error stopped it for good after one failed
+    // fetch — a dropped connection — and the partner's answer then never appeared on this screen.
+    refetchInterval: (query) => (query.state.data ? false : 60000),
   });
 
   const { data: status, isLoading: statusLoading } = useQuery({

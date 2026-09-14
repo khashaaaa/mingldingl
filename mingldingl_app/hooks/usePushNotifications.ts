@@ -53,6 +53,9 @@ export function destinationFor(
  */
 const ANDROID_CHANNEL_ID = 'default';
 
+/** Notification responses already acted on this launch, by request identifier. */
+const handledResponseIds = new Set<string>();
+
 async function ensureAndroidChannel() {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
@@ -106,13 +109,33 @@ export function usePushNotifications() {
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+
+    function open(response: Notifications.NotificationResponse) {
+      // The launch response is read below *and* may also reach the listener; a remount would
+      // read it again. Either way one tap is one navigation.
+      const id = response.notification.request.identifier;
+      if (id) {
+        if (handledResponseIds.has(id)) return;
+        handledResponseIds.add(id);
+      }
       const data = response.notification.request.content.data;
       const type = data?.type as string | undefined;
       const matchId = data?.matchId as string | undefined;
       if (!matchId && type !== 'townsquare_started') return;
       router.push(destinationFor(type, matchId ?? ''));
-    });
+    }
+
+    // A tap that cold-started the app happened before this listener existed. expo-notifications
+    // keeps it as the last response (its own `useLastNotificationResponse` reads it the same way
+    // "in case it was set earlier, even in native code on startup").
+    try {
+      const last = Notifications.getLastNotificationResponse();
+      if (last) open(last);
+    } catch {
+      // Unavailable on this platform build — the listener still covers warm taps.
+    }
+
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
 
     return () => { sub.remove(); };
   }, [router]);

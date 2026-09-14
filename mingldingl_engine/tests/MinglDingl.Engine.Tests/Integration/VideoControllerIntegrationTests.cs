@@ -256,7 +256,7 @@ public class VideoControllerIntegrationTests : IntegrationTestBase
         Assert.IsType<OkObjectResult>(result);
 
         Assert.NotNull(handler.LastRequestBody);
-        Assert.Contains("\"app-nudges\"", handler.LastRequestBody);
+        Assert.Contains($"\"topic\":\"user:{receiverId}\"", handler.LastRequestBody);
         Assert.Contains("\"flame_rite_completed\"", handler.LastRequestBody);
         Assert.Contains($"\"matchId\":\"{match.Id}\"", handler.LastRequestBody);
         Assert.Contains($"\"userId\":\"{initiatorId}\"", handler.LastRequestBody);

@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
-import { supabase } from '../lib/supabase';
-import { subscribeWithRetry } from '../lib/realtime/subscribeWithRetry';
+import { subscribeToBroadcast } from '../lib/realtime/subscribeWithRetry';
 import { queryKeys } from '../lib/api/queryKeys';
 import { signal } from '../lib/world/feedback';
 
@@ -58,15 +57,16 @@ export function useTownSquareSession() {
   useEffect(() => {
     if (!sessionId || !shouldSubscribe) return;
 
-    return subscribeWithRetry(
-      () => supabase
-        .channel(`townsquare:${sessionId}`)
-        .on('broadcast', { event: 'session-started' }, () => {
+    return subscribeToBroadcast(
+      `townsquare:${sessionId}`,
+      {
+        'session-started': () => {
           qc.invalidateQueries({ queryKey: queryKeys.townSquareNextSession });
-        })
-        .on('broadcast', { event: 'session-cancelled' }, () => {
+        },
+        'session-cancelled': () => {
           qc.invalidateQueries({ queryKey: queryKeys.townSquareNextSession });
-        }),
+        },
+      },
       () => { qc.invalidateQueries({ queryKey: queryKeys.townSquareNextSession }); },
     );
   }, [sessionId, shouldSubscribe, qc]);

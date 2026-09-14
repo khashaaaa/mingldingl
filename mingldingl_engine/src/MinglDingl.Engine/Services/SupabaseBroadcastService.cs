@@ -31,24 +31,36 @@ public class SupabaseBroadcastService
 
     public bool IsConfigured => _configured;
 
-    public async Task BroadcastAsync(string topic, string eventName, object payload)
+    /// <summary>
+    /// The topic one user's app listens on for nudges and match-lifecycle events. Anything about a
+    /// match goes to its participants' topics, never to a shared one: every client used to receive
+    /// every user's message/icebreaker/quiz/date events on one `app-nudges` topic and filter locally.
+    /// These are public channels, so the topic name is not an authorisation boundary on its own.
+    /// </summary>
+    public static string UserTopic(Guid userId) => $"user:{userId}";
+
+    public Task BroadcastAsync(string topic, string eventName, object payload) =>
+        SendAsync([topic], eventName, payload);
+
+    /// <summary>One POST carrying the event to each distinct user's own topic.</summary>
+    public Task BroadcastToUsersAsync(IEnumerable<Guid> userIds, string eventName, object payload) =>
+        SendAsync(userIds.Distinct().Select(UserTopic).ToList(), eventName, payload);
+
+    private async Task SendAsync(IReadOnlyCollection<string> topics, string eventName, object payload)
     {
-        if (!_configured) return;
+        if (!_configured || topics.Count == 0) return;
         try
         {
             var body = JsonSerializer.Serialize(new
             {
-                messages = new[]
-                {
-                    new { topic, @event = eventName, payload }
-                }
+                messages = topics.Select(topic => new { topic, @event = eventName, payload }).ToArray()
             }, JsonOptions);
             using var content = new StringContent(body, Encoding.UTF8, "application/json");
             await _http.PostAsync("/realtime/v1/api/broadcast", content);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Supabase broadcast swallowed a failure for topic {Topic} (event {Event})", topic, eventName);
+            _logger.LogWarning(ex, "Supabase broadcast swallowed a failure for topics {Topics} (event {Event})", string.Join(",", topics), eventName);
         }
     }
 }

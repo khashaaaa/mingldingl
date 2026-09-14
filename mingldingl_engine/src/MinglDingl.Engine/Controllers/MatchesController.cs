@@ -214,7 +214,7 @@ public class MatchesController : ControllerBase
             PushKind.NewMatch,
             new Dictionary<string, object> { ["matchId"] = matchId!.Value.ToString() },
             me.DisplayName);
-        await _broadcast.BroadcastAsync("app-nudges", "match_created",
+        await _broadcast.BroadcastToUsersAsync([userId, req.TargetUserId], "match_created",
             new { matchId = matchId!.Value, userIds = new[] { userId, req.TargetUserId }, source = "like" });
 
         return Ok(new CreateMatchResponse(matchId!.Value, awarded));
@@ -281,7 +281,7 @@ public class MatchesController : ControllerBase
         match.Status = "Unmatched";
         await _db.SaveChangesAsync();
 
-        await _broadcast.BroadcastAsync("app-nudges", "match_status_changed",
+        await _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "match_status_changed",
             new { matchId = match.Id, status = match.Status, userId });
 
         return Ok(new UnmatchResponse(true));
@@ -317,7 +317,7 @@ public class MatchesController : ControllerBase
             await _db.SaveChangesAsync();
         }
 
-        await _broadcast.BroadcastAsync("app-nudges", "match_status_changed",
+        await _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "match_status_changed",
             new { matchId = match.Id, status = match.Status, userId });
 
         return Ok(new UnmatchResponse(true));

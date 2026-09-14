@@ -243,7 +243,7 @@ public class FlameRiteHandshakeIntegrationTests : IntegrationTestBase
         Assert.IsType<OkObjectResult>(result);
         Assert.Equal(1, pushHandler.RequestCount);
         Assert.NotNull(broadcastHandler.LastRequestBody);
-        Assert.Contains("\"app-nudges\"", broadcastHandler.LastRequestBody);
+        Assert.Contains($"\"topic\":\"user:{bId}\"", broadcastHandler.LastRequestBody);
         Assert.Contains("\"flame_rite_proposed\"", broadcastHandler.LastRequestBody);
     }
 

@@ -33,7 +33,7 @@ export default function TownSquareRoundScreen() {
   useLocaleStore((s) => s.locale);
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const router = useRouter();
-  const { round, isLoading, error, markJoined, submitResponse, hasResponded, matchId, isResponding, respondError, clearRespondError, joinError, clearJoinError } =
+  const { round, isLoading, connectionLost, markJoined, submitResponse, hasResponded, matchId, isResponding, respondError, clearRespondError, joinError, clearJoinError } =
     useTownSquareRound(sessionId);
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
@@ -55,13 +55,13 @@ export default function TownSquareRoundScreen() {
   // Only asked for once the round has failed: a session that is not InProgress is refused by
   // `currentRound`, and this is what says whether that is because it finished or because this
   // user is no longer in it.
-  const summary = useTownSquareSessionSummary(sessionId, !!error);
+  const summary = useTownSquareSessionSummary(sessionId, connectionLost);
 
   // A gathering reaching its last round is the normal, intended ending — it used to arrive here
   // as a failed request and be reported as "you left the square, the session moved on without
   // you", then drop the user on a tab whose next-session no longer knew this one existed. The
   // matches made in it were never surfaced anywhere at all.
-  if (error && summary?.status === 'Completed') {
+  if (connectionLost && summary?.status === 'Completed') {
     return (
       <StateBlock
         tone="good"
@@ -109,7 +109,7 @@ export default function TownSquareRoundScreen() {
   }
 
   // #17: an error used to bounce the user out silently; now they are told before leaving.
-  if (error) {
+  if (connectionLost) {
     return (
       <AlertModal
         visible

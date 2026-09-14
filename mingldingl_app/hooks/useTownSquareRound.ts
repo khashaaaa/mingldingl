@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import { apiClient } from '../lib/api/apiClient';
-import { supabase } from '../lib/supabase';
-import { subscribeWithRetry } from '../lib/realtime/subscribeWithRetry';
+import { subscribeToBroadcast } from '../lib/realtime/subscribeWithRetry';
 import { queryKeys } from '../lib/api/queryKeys';
 import { signal } from '../lib/world/feedback';
 
@@ -61,12 +61,13 @@ export function useTownSquareRound(sessionId: string | undefined) {
   useEffect(() => {
     if (!sessionId) return;
 
-    return subscribeWithRetry(
-      () => supabase
-        .channel(`townsquare:${sessionId}`)
-        .on('broadcast', { event: 'round-advanced' }, () => {
+    return subscribeToBroadcast(
+      `townsquare:${sessionId}`,
+      {
+        'round-advanced': () => {
           qc.invalidateQueries({ queryKey: queryKeys.townSquareCurrentRound(sessionId) });
-        }),
+        },
+      },
       () => { qc.invalidateQueries({ queryKey: queryKeys.townSquareCurrentRound(sessionId) }); },
     );
   }, [sessionId, qc]);
@@ -103,10 +104,19 @@ export function useTownSquareRound(sessionId: string | undefined) {
   const currentPairingId = round?.pairingId ?? '';
   const hasResponded = currentPairingId in respondedPairings;
 
+  // The 10s poll keeps the last good round through a failed tick, so a blip (timeout, 5xx, dropped
+  // connection) must not end a live call: that used to swap the call for "you left the square" on
+  // one bad poll. Only a refusal from the engine (4xx — the session ended, or this user is no
+  // longer in it) or having no round at all counts as losing the square.
+  const errorStatus = isAxiosError(error) ? error.response?.status : undefined;
+  const refused = errorStatus !== undefined && errorStatus >= 400 && errorStatus < 500;
+  const connectionLost = !!error && (refused || !round);
+
   return {
     round,
     isLoading,
     error,
+    connectionLost,
     markJoined: (pairingId: string) => markJoinedMutation.mutate(pairingId),
     submitResponse,
     hasResponded,
@@ -148,6 +158,9 @@ export function useTownSquareSessionSummary(sessionId: string | undefined, enabl
       };
     },
     enabled: !!sessionId && enabled,
+    // Read fresh each time the round is lost: a summary cached from an earlier blip (still
+    // InProgress) would otherwise report a session that has since completed as being dropped.
+    staleTime: 0,
     meta: { silentError: true },
   });
   return data ?? null;

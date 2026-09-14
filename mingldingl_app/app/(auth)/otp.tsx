@@ -59,25 +59,43 @@ export default function OtpScreen() {
     return () => clearInterval(tick);
   }, []);
 
+  // Once verified the poll is done for good. It used to keep running, and every tick after a failed
+  // sign-in re-ran the whole thing under a brand-new anonymous identity — which the engine answers
+  // with AlreadyClaimed once the first one's claim has landed, so it looped every 3s forever.
+  const verified = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
+  const [signInFailed, setSignInFailed] = useState(false);
+
+  // Sign-in is attempted once automatically; after a failure only the person retries it.
+  const attemptSignIn = useCallback(async () => {
+    if (completing.current || !verificationId) return;
+    completing.current = true;
+    setSignInFailed(false);
+    setOpened(true);
+    const ok = await auth.current.completeSignIn(verificationId, phone);
+    completing.current = false;
+    if (!ok && mounted.current) {
+      setOpened(false);
+      setSignInFailed(true);
+    }
+  }, [verificationId, phone]);
+
   // Poll no faster than 3s per verify.mn guidance, and stop the moment it is terminal so the
   // user is never nudged into sending (and paying for) a second SMS.
   useEffect(() => {
-    if (!verificationId || expired) return;
+    if (!verificationId || expired || verified.current) return;
     let cancelled = false;
 
     async function poll() {
       const outcome = await auth.current.checkVerification(verificationId);
-      if (cancelled) return;
+      if (cancelled || verified.current) return;
       if (outcome === 'verified') {
-        if (completing.current) return;
-        completing.current = true;
-        setOpened(true);
+        verified.current = true;
+        cancelled = true;
+        clearInterval(id);
         signal('ascend');
-        const ok = await auth.current.completeSignIn(verificationId, phone);
-        if (!ok && !cancelled) {
-          completing.current = false;
-          setOpened(false);
-        }
+        void attemptSignIn();
         return;
       }
       if (outcome === 'expired') setExpired(true);
@@ -89,10 +107,10 @@ export default function OtpScreen() {
       cancelled = true;
       clearInterval(id);
     };
-  }, [verificationId, expired, phone]);
+  }, [verificationId, expired, attemptSignIn]);
 
   useEffect(() => {
-    if (secondsLeft === 0 && expiresAtMs > 0) setExpired(true);
+    if (secondsLeft === 0 && expiresAtMs > 0 && !verified.current) setExpired(true);
   }, [secondsLeft, expiresAtMs]);
 
   async function openSmsApp() {
@@ -170,6 +188,11 @@ export default function OtpScreen() {
       )}
 
       {!!error && <FieldError style={styles.error}>{error}</FieldError>}
+      {signInFailed && (
+        <GameButton variant="ink" onPress={() => { void attemptSignIn(); }} disabled={loading}>
+          {i18n.t('retry')}
+        </GameButton>
+      )}
 
       <GameButton variant="ink" size="compact" onPress={restart}>{i18n.t('back')}</GameButton>
     </ScrollView>

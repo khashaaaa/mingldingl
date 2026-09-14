@@ -176,7 +176,7 @@ describe('TownSquareRoundScreen — the session ending', () => {
   // moved on without you" — blaming the user for the normal, intended ending — and then dropped
   // them on a tab whose next-session no longer knew the session existed.
   it('celebrates a completed session instead of blaming the user for leaving', () => {
-    stubRound({ error: new Error('not in progress') });
+    stubRound({ error: new Error('not in progress'), connectionLost: true });
     mockUseSummary.mockReturnValue({ status: 'Completed', roundsPlayed: 3, matches: [] });
 
     const { getByText, queryByText } = renderScreen();
@@ -187,7 +187,7 @@ describe('TownSquareRoundScreen — the session ending', () => {
   });
 
   it('lists the matches the session produced, each a way into the conversation', () => {
-    stubRound({ error: new Error('not in progress') });
+    stubRound({ error: new Error('not in progress'), connectionLost: true });
     mockUseSummary.mockReturnValue({
       status: 'Completed',
       roundsPlayed: 2,
@@ -208,7 +208,7 @@ describe('TownSquareRoundScreen — the session ending', () => {
   });
 
   it('counts more than one lantern in the plural', () => {
-    stubRound({ error: new Error('not in progress') });
+    stubRound({ error: new Error('not in progress'), connectionLost: true });
     mockUseSummary.mockReturnValue({
       status: 'Completed',
       roundsPlayed: 4,
@@ -223,7 +223,7 @@ describe('TownSquareRoundScreen — the session ending', () => {
   });
 
   it('says so plainly when nobody said yes back', () => {
-    stubRound({ error: new Error('not in progress') });
+    stubRound({ error: new Error('not in progress'), connectionLost: true });
     mockUseSummary.mockReturnValue({ status: 'Completed', roundsPlayed: 2, matches: [] });
 
     const { getByText } = renderScreen();
@@ -231,7 +231,7 @@ describe('TownSquareRoundScreen — the session ending', () => {
   });
 
   it('still reports being dropped from a session that is not over', () => {
-    stubRound({ error: new Error('not paired') });
+    stubRound({ error: new Error('not paired'), connectionLost: true });
     mockUseSummary.mockReturnValue({ status: 'InProgress', roundsPlayed: 1, matches: [] });
 
     const { getByText } = renderScreen();

@@ -31,7 +31,7 @@ public class GhostingService
 
         if (atFault.HasValue) await _oaths.RefreshAsync(atFault.Value);
 
-        await BroadcastGhostedAsync(match.Id, atFault);
+        await BroadcastGhostedAsync(match, atFault);
         await NotifyGhostedAsync(match, atFault);
 
         return true;
@@ -75,9 +75,9 @@ public class GhostingService
         return true;
     }
 
-    public Task BroadcastGhostedAsync(Guid matchId, Guid? atFaultUserId) =>
-        _broadcast.BroadcastAsync("app-nudges", "match_status_changed",
-            new { matchId, status = "Ghosted", userId = atFaultUserId });
+    public Task BroadcastGhostedAsync(Match match, Guid? atFaultUserId) =>
+        _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "match_status_changed",
+            new { matchId = match.Id, status = "Ghosted", userId = atFaultUserId });
 
     /// <summary>Exposed so the sweep can push the same cutoff into SQL instead of filtering in memory.</summary>
     public TimeSpan StaleAfter => StaleAfterFor(_config);

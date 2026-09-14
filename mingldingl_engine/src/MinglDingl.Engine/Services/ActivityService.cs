@@ -131,7 +131,7 @@ public class ActivityService
                 new Dictionary<string, object> { ["matchId"] = match.Id.ToString() });
         }
 
-        await _broadcast.BroadcastAsync("app-nudges", "date_confirmed",
+        await _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "date_confirmed",
             new { userId, matchId = match.Id, isComplete = confirmation.IsComplete });
 
         return (new ConfirmResult(confirmation, null), awarded);

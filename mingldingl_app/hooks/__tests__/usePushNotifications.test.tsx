@@ -14,6 +14,7 @@ jest.mock('expo-notifications', () => ({
   setNotificationChannelAsync: jest.fn(),
   AndroidImportance: { HIGH: 4 },
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponse: jest.fn(() => null),
 }));
 
 let mockIsDevice = true;
@@ -308,6 +309,43 @@ describe('usePushNotifications platform gating and registration flow', () => {
 
     tapCallback({ notification: { request: { content: { data: {} } } } });
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  // The tap that cold-started the app happened before the listener existed.
+  it('opens the destination of the notification that launched the app', async () => {
+    mockGetPermissions.mockResolvedValue({ status: 'granted' });
+    mockGetToken.mockResolvedValue({ data: 'tok' });
+    mockRegister.mockResolvedValue(undefined);
+    (Notifications.getLastNotificationResponse as jest.Mock).mockReturnValueOnce({
+      notification: { request: { identifier: 'launch-1', content: { data: { matchId: 'm5', type: 'message' } } } },
+    });
+    renderHook(() => usePushNotifications());
+
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/chat/m5'));
+  });
+
+  it('navigates once for a tap seen both as the launch response and by the listener, and not again on remount', async () => {
+    mockGetPermissions.mockResolvedValue({ status: 'granted' });
+    mockGetToken.mockResolvedValue({ data: 'tok' });
+    mockRegister.mockResolvedValue(undefined);
+    const response = {
+      notification: { request: { identifier: 'launch-2', content: { data: { matchId: 'm6' } } } },
+    };
+    (Notifications.getLastNotificationResponse as jest.Mock).mockReturnValue(response);
+    let tapCallback!: (r: unknown) => void;
+    mockAddResponseListener.mockImplementation((cb: (r: unknown) => void) => {
+      tapCallback = cb;
+      return { remove: jest.fn() };
+    });
+    const { unmount } = renderHook(() => usePushNotifications());
+    await waitFor(() => expect(mockAddResponseListener).toHaveBeenCalled());
+
+    tapCallback(response);
+    unmount();
+    renderHook(() => usePushNotifications());
+
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    (Notifications.getLastNotificationResponse as jest.Mock).mockReturnValue(null);
   });
 
   it('removes the notification-response listener on unmount', async () => {

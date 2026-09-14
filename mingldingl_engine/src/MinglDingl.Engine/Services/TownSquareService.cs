@@ -287,7 +287,7 @@ public class TownSquareService
             var pushData = new Dictionary<string, object> { ["matchId"] = matchId.ToString() };
             await _push.NotifyUserAsync(row.UserAId, PushKind.TownSquareMatch, pushData);
             await _push.NotifyUserAsync(row.UserBId, PushKind.TownSquareMatch, pushData);
-            await _broadcast.BroadcastAsync("app-nudges", "match_created",
+            await _broadcast.BroadcastToUsersAsync([row.UserAId, row.UserBId], "match_created",
                 new { matchId, userIds = new[] { row.UserAId, row.UserBId }, source = "townsquare" });
         }
 

@@ -312,6 +312,50 @@ describe('useAuth — completing sign-in', () => {
     expect(useAuthStore.getState().session?.access_token).toBe('original-token');
   });
 
+  // Every retry used to mint a new anonymous identity. Once the first identity's claim had landed,
+  // the engine answered each later one with AlreadyClaimed — an unending loop.
+  it('retries a failed claim under the same anonymous identity', async () => {
+    const original = fakeSession('original-token');
+    mockFetchRoutes({
+      '/auth/v1/signup': { status: 200, body: original },
+      '/auth/v1/user': { status: 200, body: {} },
+      '/auth/v1/token': { status: 200, body: original },
+    });
+    mockClaim.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce({ phone: '99119911' });
+    const { result } = renderHook(() => useAuth());
+
+    let first: boolean | undefined;
+    let second: boolean | undefined;
+    await act(async () => { first = await result.current.completeSignIn('v1', '99119911'); });
+    await act(async () => { second = await result.current.completeSignIn('v1', '99119911'); });
+
+    expect(first).toBe(false);
+    expect(second).toBe(true);
+    const signups = (global.fetch as jest.Mock).mock.calls.filter(([url]) => String(url).includes('/auth/v1/signup'));
+    expect(signups).toHaveLength(1);
+    expect(mockClaim).toHaveBeenNthCalledWith(1, 'v1', 'original-token');
+    expect(mockClaim).toHaveBeenNthCalledWith(2, 'v1', 'original-token');
+  });
+
+  it('mints a fresh identity for the retry when the engine refused the old token', async () => {
+    const original = fakeSession('original-token');
+    mockFetchRoutes({
+      '/auth/v1/signup': { status: 200, body: original },
+      '/auth/v1/user': { status: 200, body: {} },
+      '/auth/v1/token': { status: 200, body: original },
+    });
+    const expired = new AxiosError('Request failed with status code 401');
+    expired.response = { status: 401, data: {} } as AxiosError['response'];
+    mockClaim.mockRejectedValueOnce(expired).mockResolvedValueOnce({ phone: '99119911' });
+    const { result } = renderHook(() => useAuth());
+
+    await act(async () => { await result.current.completeSignIn('v1', '99119911'); });
+    await act(async () => { await result.current.completeSignIn('v1', '99119911'); });
+
+    const signups = (global.fetch as jest.Mock).mock.calls.filter(([url]) => String(url).includes('/auth/v1/signup'));
+    expect(signups).toHaveLength(2);
+  });
+
   it('ignores a concurrent second call so one verification cannot mint two sessions', async () => {
     const original = fakeSession('original-token');
     mockFetchRoutes({
