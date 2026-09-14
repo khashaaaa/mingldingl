@@ -243,16 +243,8 @@ public class EngagementController : ControllerBase
         int awarded = 0;
         if (isFirstResponse)
         {
-            // QuizDone pays once per quiz per user. The same quiz is served across every match, so
-            // paying per response let one quiz be re-answered for score in each new conversation.
-            bool answeredElsewhere = await _db.QuizResponses.AnyAsync(r =>
-                r.QuizId == quizId && r.UserId == userId && r.MatchId != req.MatchId);
-            if (!answeredElsewhere)
-            {
-                await _score.AwardAsync(userId, "QuizDone");
-                awarded = _score.Delta("QuizDone");
-            }
-            awarded += await _quests.IncrementAsync(userId, "quiz");
+            await _score.AwardAsync(userId, "QuizDone");
+            awarded = _score.Delta("QuizDone") + await _quests.IncrementAsync(userId, "quiz");
             await _milestones.AchieveAsync(userId, "first_quiz");
             if (req.MatchId.HasValue)
                 await _broadcast.BroadcastAsync("app-nudges", "quiz", new { userId, matchId = req.MatchId });

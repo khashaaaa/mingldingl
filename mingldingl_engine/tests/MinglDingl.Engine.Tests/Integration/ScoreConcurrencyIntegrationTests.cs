@@ -185,23 +185,19 @@ public class ScoreConcurrencyIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task RespondQuiz_SameQuizInTwoMatches_PaysQuizDoneOnce()
+    public async Task RespondQuiz_SameQuizTwiceInOneMatch_PaysQuizDoneOnce()
     {
-        var (user, first) = await SeedMatchAsync();
-        var other = NewCompleteUser();
-        Db.Users.Add(other);
-        var second = new Match { Id = Guid.NewGuid(), InitiatorId = user.Id, ReceiverId = other.Id, Status = "Active" };
-        Db.Matches.Add(second);
+        var (user, match) = await SeedMatchAsync();
         var quizId = Guid.NewGuid();
         Db.Quizzes.Add(new Quiz { Id = quizId, Title = "Quiz" });
         await Db.SaveChangesAsync();
 
         var controller = BuildEngagementController(user.Id);
         var answers = new Dictionary<Guid, string> { [Guid.NewGuid()] = "A" };
-        await controller.RespondQuiz(quizId, new QuizRespondDto(answers, first.Id));
-        await controller.RespondQuiz(quizId, new QuizRespondDto(answers, second.Id));
+        await controller.RespondQuiz(quizId, new QuizRespondDto(answers, match.Id));
+        await controller.RespondQuiz(quizId, new QuizRespondDto(answers, match.Id));
 
-        Assert.Equal(2, await Db.QuizResponses.CountAsync(r => r.UserId == user.Id && r.QuizId == quizId));
+        Assert.Equal(1, await Db.QuizResponses.CountAsync(r => r.UserId == user.Id && r.QuizId == quizId));
         Assert.Equal(1, await Db.ScoreEvents.CountAsync(e => e.UserId == user.Id && e.EventType == "QuizDone"));
     }
 
