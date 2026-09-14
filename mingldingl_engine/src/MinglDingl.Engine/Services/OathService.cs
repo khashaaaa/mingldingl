@@ -74,10 +74,12 @@ public class OathService
         // gated here on its own ScoreEvent instead — the flag is only set once every part has landed.
         await _milestones.AchieveAsync(userId, "oath_proven");
 
+        // The read is the common retry path; the claim on ix_score_events_once_ever is what stops two
+        // concurrent refreshes that both read "not paid" from paying twice.
         bool scoreAlreadyPaid = await _db.ScoreEvents
             .AnyAsync(e => e.UserId == userId && e.EventType == "OathProven");
         if (!scoreAlreadyPaid)
-            await _score.AwardAsync(userId, "OathProven");
+            await _score.TryAwardClaimedAsync(userId, "OathProven", _score.Delta("OathProven"));
 
         await _honours.GrantAsync(userId, "title_oathkeeper", "oath_proven");
 

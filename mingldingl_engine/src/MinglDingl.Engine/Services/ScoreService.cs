@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 public class ScoreService
 {
@@ -110,16 +111,21 @@ public class ScoreService
 
     public async Task<int> RecomputeAllGemTiersAsync()
     {
-        var table = EffectiveTierTable();
-
-        var cases = string.Join(" ", table
-            .Reverse()
-            .Select(t => $"""WHEN "TotalScore" >= {t.MinScore} THEN '{t.Tier}'"""));
-        var caseExpr = $"CASE {cases} ELSE '{table[0].Tier}' END";
+        var caseExpr = TierCaseSql("\"TotalScore\"");
 #pragma warning disable EF1002
         return await _db.Database.ExecuteSqlRawAsync(
             $"""UPDATE "Users" SET "GemTier" = {caseExpr} WHERE "GemTier" <> {caseExpr}""");
 #pragma warning restore EF1002
+    }
+
+    /// <summary>The tier ladder as SQL over <paramref name="scoreExpr"/>; thresholds are config integers and tier names constants, never user input.</summary>
+    private string TierCaseSql(string scoreExpr)
+    {
+        var table = EffectiveTierTable();
+        var cases = string.Join(" ", table
+            .Reverse()
+            .Select(t => $"WHEN {scoreExpr} >= {t.MinScore} THEN '{t.Tier}'"));
+        return $"CASE {cases} ELSE '{table[0].Tier}' END";
     }
 
     public static int TierIndex(string gemTier)
@@ -200,11 +206,64 @@ public class ScoreService
         int delta = Delta(eventType);
         if (delta == 0 && !ProceedsWithZeroDelta(eventType)) return;
 
-        int? newScore = await ApplyScoreDeltaAsync(userId, delta, isGhostPenalty: eventType == "GhostPenalty");
-        if (newScore is null) return;
+        // The score UPDATE and its ScoreEvent commit together: autocommitting the score first left a
+        // paid award with no event row whenever the insert failed.
+        await _db.InTransactionAsync(async () =>
+        {
+            int? newScore = await ApplyScoreDeltaAsync(userId, delta, isGhostPenalty: eventType == "GhostPenalty");
+            if (newScore is null) return;
 
-        _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta, MatchId = matchId });
-        await _db.SaveChangesAsync();
+            _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta, MatchId = matchId });
+            await _db.SaveChangesAsync();
+        });
+    }
+
+    /// <summary>
+    /// Pays <c>MatchReply</c> unless this conversation has already paid today's cap. The count and
+    /// the insert run under one advisory lock per (user, match): checked separately, concurrent
+    /// replies all read the same count and all paid past the cap.
+    /// </summary>
+    public async Task<bool> TryAwardMatchReplyAsync(Guid userId, Guid matchId)
+    {
+        int cap = MatchReplyDailyCapPerMatch;
+        if (cap == 0) return false;
+
+        return await _db.InTransactionAsync(async () =>
+        {
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock({MatchReplyLockKey(userId, matchId)})");
+            if (await CountMatchReplyAwardsTodayAsync(userId, matchId) >= cap) return false;
+            await AwardAsync(userId, "MatchReply", matchId);
+            return true;
+        });
+    }
+
+    private static long MatchReplyLockKey(Guid userId, Guid matchId)
+    {
+        var hash = System.Security.Cryptography.SHA256.HashData(
+            [.. "MatchReply"u8.ToArray(), .. userId.ToByteArray(), .. matchId.ToByteArray()]);
+        return BitConverter.ToInt64(hash, 0);
+    }
+
+    /// <summary>
+    /// Spends one of today's summons slots if <paramref name="me"/> still has one. The check and the
+    /// increment are one conditional UPDATE, so concurrent summons to different targets cannot both
+    /// pass a stale read and exceed the budget. Returns the new count, or null when none was left.
+    /// </summary>
+    public async Task<int?> TryConsumeDailyMatchAsync(User me)
+    {
+        int budget = DailyMatchBudget(me);
+        var used = await _db.Database.SqlQuery<int>(
+            $"""
+            UPDATE "Users" SET "DailyMatchesUsed" = "DailyMatchesUsed" + 1
+            WHERE "Id" = {me.Id} AND "DailyMatchesUsed" < {budget}
+            RETURNING "DailyMatchesUsed"
+            """).ToListAsync();
+        if (used.Count == 0) return null;
+
+        var tracked = _db.Tracked<User>(u => u.Id == me.Id);
+        if (tracked is not null) _db.SyncFromDatabase(tracked, u => u.DailyMatchesUsed, used[0]);
+        return used[0];
     }
 
     /// <summary>
@@ -228,7 +287,7 @@ public class ScoreService
     /// <see cref="AwardWithDeltaAsync"/> pays first, so the loser of a race keeps the points
     /// even though its event row is rejected. Returns false when the claim was already taken.
     /// </summary>
-    public async Task<bool> TryAwardClaimedAsync(Guid userId, string eventType, int delta)
+    public virtual async Task<bool> TryAwardClaimedAsync(Guid userId, string eventType, int delta)
     {
         if (delta == 0) return false;
 
@@ -252,11 +311,14 @@ public class ScoreService
     {
         if (delta == 0) return;
 
-        int? newScore = await ApplyScoreDeltaAsync(userId, delta, isGhostPenalty: false);
-        if (newScore is null) return;
+        await _db.InTransactionAsync(async () =>
+        {
+            int? newScore = await ApplyScoreDeltaAsync(userId, delta, isGhostPenalty: false);
+            if (newScore is null) return;
 
-        _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta });
-        await _db.SaveChangesAsync();
+            _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta });
+            await _db.SaveChangesAsync();
+        });
     }
 
     public async Task AwardManyAsync(IEnumerable<(Guid UserId, string EventType)> awards)
@@ -264,82 +326,82 @@ public class ScoreService
         var list = awards as IReadOnlyCollection<(Guid UserId, string EventType)> ?? awards.ToList();
         if (list.Count == 0) return;
 
-        foreach (var (userId, eventType) in list)
+        await _db.InTransactionAsync(async () =>
         {
-            int delta = Delta(eventType);
-            if (delta == 0 && !ProceedsWithZeroDelta(eventType)) continue;
+            foreach (var (userId, eventType) in list)
+            {
+                int delta = Delta(eventType);
+                if (delta == 0 && !ProceedsWithZeroDelta(eventType)) continue;
 
-            int? newScore = await ApplyScoreDeltaAsync(userId, delta, isGhostPenalty: eventType == "GhostPenalty");
-            if (newScore is null) continue;
+                int? newScore = await ApplyScoreDeltaAsync(userId, delta, isGhostPenalty: eventType == "GhostPenalty");
+                if (newScore is null) continue;
 
-            _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta });
-        }
+                _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = delta });
+            }
 
-        await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync();
+        });
     }
 
     public async Task<decimal?> ApplyReputationPenaltyAsync(Guid userId, string eventType)
     {
         decimal dock = ReputationDock;
-        var repResult = await _db.Database.SqlQuery<decimal>(
-            $"""
-            UPDATE "Users" SET "ReputationScore" = GREATEST(0, "ReputationScore" - {dock})
-            WHERE "Id" = {userId}
-            RETURNING "ReputationScore"
-            """).ToListAsync();
-        if (repResult.Count == 0) return null;
-
-        decimal newReputation = repResult[0];
-        var tracked = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == userId)?.Entity;
-        if (tracked is not null) tracked.ReputationScore = newReputation;
-
-        _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = 0 });
-        await _db.SaveChangesAsync();
-
-        return newReputation;
-    }
-
-    private async Task<int?> ApplyScoreDeltaAsync(Guid userId, int delta, bool isGhostPenalty)
-    {
-        var scoreResult = await _db.Database.SqlQuery<int>(
-            $"""
-            UPDATE "Users" SET "TotalScore" = GREATEST(0, "TotalScore" + {delta})
-            WHERE "Id" = {userId}
-            RETURNING "TotalScore"
-            """).ToListAsync();
-        if (scoreResult.Count == 0) return null;
-
-        int newScore = scoreResult[0];
-        string newTier = CalculateTier(newScore);
-        decimal? newReputation = null;
-
-        if (isGhostPenalty)
+        return await _db.InTransactionAsync(async () =>
         {
-            decimal dock = ReputationDock;
             var repResult = await _db.Database.SqlQuery<decimal>(
                 $"""
-                UPDATE "Users" SET "GemTier" = {newTier}, "ReputationScore" = GREATEST(0, "ReputationScore" - {dock})
+                UPDATE "Users" SET "ReputationScore" = GREATEST(0, "ReputationScore" - {dock})
                 WHERE "Id" = {userId}
                 RETURNING "ReputationScore"
                 """).ToListAsync();
-            newReputation = repResult.Count > 0 ? repResult[0] : null;
-        }
-        else
-        {
-            await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"""UPDATE "Users" SET "GemTier" = {newTier} WHERE "Id" = {userId}""");
-        }
+            if (repResult.Count == 0) return (decimal?)null;
 
-        SyncTrackedUser(userId, newScore, newTier, newReputation);
-        return newScore;
+            decimal newReputation = repResult[0];
+            var tracked = _db.Tracked<User>(u => u.Id == userId);
+            if (tracked is not null) _db.SyncFromDatabase(tracked, u => u.ReputationScore, newReputation);
+
+            _db.ScoreEvents.Add(new ScoreEvent { UserId = userId, EventType = eventType, Delta = 0 });
+            await _db.SaveChangesAsync();
+
+            return newReputation;
+        });
     }
 
-    private void SyncTrackedUser(Guid userId, int newScore, string newTier, decimal? newReputation)
+    private sealed record ScoreRow(int TotalScore, string GemTier, decimal ReputationScore);
+
+    private async Task<int?> ApplyScoreDeltaAsync(Guid userId, int delta, bool isGhostPenalty)
     {
-        var tracked = _db.ChangeTracker.Entries<User>().FirstOrDefault(e => e.Entity.Id == userId)?.Entity;
-        if (tracked is null) return;
-        tracked.TotalScore = newScore;
-        tracked.GemTier = newTier;
-        if (newReputation.HasValue) tracked.ReputationScore = newReputation.Value;
+        // Score, tier and (for a ghost) reputation move in one statement, the tier computed from the
+        // new score in SQL: a second UPDATE for the tier let a concurrent award land in between and
+        // leave the tier of whichever request wrote last, not of the score that stuck.
+        const string newScore = "GREATEST(0, \"TotalScore\" + @delta)";
+        var parameters = new List<object> { new NpgsqlParameter("delta", delta), new NpgsqlParameter("userId", userId) };
+        string reputation = "";
+        if (isGhostPenalty)
+        {
+            reputation = ", \"ReputationScore\" = GREATEST(0, \"ReputationScore\" - @dock)";
+            parameters.Add(new NpgsqlParameter("dock", ReputationDock));
+        }
+
+#pragma warning disable EF1002
+        var rows = await _db.Database.SqlQueryRaw<ScoreRow>(
+            $"""
+            UPDATE "Users" SET "TotalScore" = {newScore}, "GemTier" = {TierCaseSql(newScore)}{reputation}
+            WHERE "Id" = @userId
+            RETURNING "TotalScore", "GemTier", "ReputationScore"
+            """,
+            parameters.ToArray()).ToListAsync();
+#pragma warning restore EF1002
+        if (rows.Count == 0) return null;
+
+        var row = rows[0];
+        var tracked = _db.Tracked<User>(u => u.Id == userId);
+        if (tracked is not null)
+        {
+            _db.SyncFromDatabase(tracked, u => u.TotalScore, row.TotalScore);
+            _db.SyncFromDatabase(tracked, u => u.GemTier, row.GemTier);
+            if (isGhostPenalty) _db.SyncFromDatabase(tracked, u => u.ReputationScore, row.ReputationScore);
+        }
+        return row.TotalScore;
     }
 }

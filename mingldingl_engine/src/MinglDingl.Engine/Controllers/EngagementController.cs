@@ -198,6 +198,13 @@ public class EngagementController : ControllerBase
             if (accessError is not null) return accessError;
         }
 
+        // Any GUID with an empty answer sheet used to be a fresh quiz, and each one paid QuizDone.
+        if (!await _db.Quizzes.AnyAsync(q => q.Id == quizId))
+            return this.NotFoundError("Quiz not found", "quiz.not_found");
+        if (req.Answers is null || req.Answers.Count == 0 || req.Answers.Count > QuizRespondDto.MaxAnswers
+            || req.Answers.Values.Any(a => string.IsNullOrEmpty(a) || a.Length > FieldLimits.Title))
+            return this.BadRequestError("Answers are missing or invalid", "quiz.answers_invalid");
+
         var existing = await _db.QuizResponses.FirstOrDefaultAsync(r =>
             r.QuizId == quizId && r.UserId == userId && r.MatchId == req.MatchId);
 
@@ -236,8 +243,16 @@ public class EngagementController : ControllerBase
         int awarded = 0;
         if (isFirstResponse)
         {
-            await _score.AwardAsync(userId, "QuizDone");
-            awarded = _score.Delta("QuizDone") + await _quests.IncrementAsync(userId, "quiz");
+            // QuizDone pays once per quiz per user. The same quiz is served across every match, so
+            // paying per response let one quiz be re-answered for score in each new conversation.
+            bool answeredElsewhere = await _db.QuizResponses.AnyAsync(r =>
+                r.QuizId == quizId && r.UserId == userId && r.MatchId != req.MatchId);
+            if (!answeredElsewhere)
+            {
+                await _score.AwardAsync(userId, "QuizDone");
+                awarded = _score.Delta("QuizDone");
+            }
+            awarded += await _quests.IncrementAsync(userId, "quiz");
             await _milestones.AchieveAsync(userId, "first_quiz");
             if (req.MatchId.HasValue)
                 await _broadcast.BroadcastAsync("app-nudges", "quiz", new { userId, matchId = req.MatchId });

@@ -44,41 +44,42 @@ public class QuestService
 
     public async Task<int> IncrementAsync(Guid userId, string action)
     {
-        UserDailyQuest? row = null;
         try
         {
             var today = DateTime.UtcNow.Date;
             var quest = QuestsForDate(today).FirstOrDefault(q => q.Action == action);
             if (quest is null) return 0;
 
-            row = await _db.UserDailyQuests.FirstOrDefaultAsync(r =>
-                r.UserId == userId && r.QuestDate == today && r.QuestId == quest.Id);
-            if (row is null)
-            {
-                row = new UserDailyQuest { UserId = userId, QuestDate = today, QuestId = quest.Id };
-                _db.UserDailyQuests.Add(row);
-            }
-            if (row.CompletedAt is not null) return 0;
+            // One upsert moves the progress and decides completion. Read-modify-write lost ticks
+            // between concurrent actions, let both racers see the quest finish and pay its XP twice,
+            // and turned a concurrent first insert into a swallowed unique violation. The row comes
+            // back only while it was still incomplete, so a non-null CompletedAt is the transition.
+            var now = DateTime.UtcNow;
+            int target = quest.Target;
+            DateTime? completedOnInsert = target <= 1 ? now : null;
 
-            row.Progress = Math.Min(quest.Target, row.Progress + 1);
-            if (row.Progress >= quest.Target)
+            return await _db.InTransactionAsync(async () =>
             {
-                row.CompletedAt = DateTime.UtcNow;
-                await _db.SaveChangesAsync();
+                var completed = await _db.Database.SqlQuery<DateTime?>(
+                    $"""
+                    INSERT INTO "UserDailyQuests" ("Id", "UserId", "QuestDate", "QuestId", "Progress", "CompletedAt")
+                    VALUES ({Guid.NewGuid()}, {userId}, {today}, {quest.Id}, 1, {completedOnInsert})
+                    ON CONFLICT ("UserId", "QuestDate", "QuestId") DO UPDATE SET
+                        "Progress" = LEAST({target}, "UserDailyQuests"."Progress" + 1),
+                        "CompletedAt" = CASE WHEN "UserDailyQuests"."Progress" + 1 >= {target} THEN {now} ELSE NULL END
+                    WHERE "UserDailyQuests"."CompletedAt" IS NULL
+                    RETURNING "CompletedAt"
+                    """).ToListAsync();
+
+                if (completed.Count == 0 || completed[0] is null) return 0;
+
                 await _score.AwardWithDeltaAsync(userId, "QuestComplete", quest.Xp);
                 return quest.Xp;
-            }
-
-            await _db.SaveChangesAsync();
-            return 0;
+            });
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Quest tracking swallowed a failure for user {UserId} (action {Action}); no quest progress recorded", userId, action);
-
-            // Detach only what this method touched. Clearing the whole tracker would silently throw
-            // away unsaved work belonging to whoever else is sharing this scoped context.
-            if (row is not null) _db.Entry(row).State = EntityState.Detached;
             return 0;
         }
     }
