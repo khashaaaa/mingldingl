@@ -88,27 +88,34 @@ public class ActivityService
                 return (new ConfirmResult(null, ConfirmRejection.FlameRiteIncomplete), 0);
         }
 
-        var confirmation = await _db.DateConfirmations
-            .FirstOrDefaultAsync(c => c.MatchId == match.Id && c.ActivitySuggestionId == activitySuggestionId)
-            ?? new DateConfirmation { MatchId = match.Id, ActivitySuggestionId = activitySuggestionId };
-
-        bool wasComplete = confirmation.IsComplete;
-
-        if (match.InitiatorId == userId) confirmation.InitiatorConfirmed = true;
-        else confirmation.ReceiverConfirmed = true;
-
-        if (_db.Entry(confirmation).State == EntityState.Detached)
-            _db.DateConfirmations.Add(confirmation);
-
-        bool justCompleted = !wasComplete && confirmation.IsComplete;
-
-        if (justCompleted)
+        bool isInitiator = match.InitiatorId == userId;
+        var (confirmation, justCompleted) = await _db.InTransactionAsync(async () =>
         {
-            await _score.AwardManyAsync([(match.InitiatorId, "DateConfirmed"), (match.ReceiverId, "DateConfirmed")]);
-            confirmation.CompletedAt = DateTime.UtcNow;
-        }
+            // One row per pledge, set in place. Reading it and then inserting let two first confirms
+            // race into two rows for the same suggestion, each of which could complete and pay out.
+            var now = DateTime.UtcNow;
+            var ids = await _db.Database.SqlQuery<Guid>(
+                $"""
+                INSERT INTO "DateConfirmations" ("Id", "MatchId", "ActivitySuggestionId", "InitiatorConfirmed", "ReceiverConfirmed", "CreatedAt", "PenaltyApplied")
+                VALUES ({Guid.NewGuid()}, {match.Id}, {activitySuggestionId}, {isInitiator}, {!isInitiator}, {now}, FALSE)
+                ON CONFLICT ("MatchId", "ActivitySuggestionId") DO UPDATE SET
+                    "InitiatorConfirmed" = "DateConfirmations"."InitiatorConfirmed" OR EXCLUDED."InitiatorConfirmed",
+                    "ReceiverConfirmed" = "DateConfirmations"."ReceiverConfirmed" OR EXCLUDED."ReceiverConfirmed"
+                RETURNING "Id"
+                """).ToListAsync();
+            var id = ids[0];
 
-        await _db.SaveChangesAsync();
+            // Completion is claimed, not inferred from a stale read, so exactly one confirm pays it —
+            // and in the same transaction as the award, so a failed award leaves it unclaimed.
+            int claimed = await _db.DateConfirmations
+                .Where(c => c.Id == id && c.InitiatorConfirmed && c.ReceiverConfirmed && c.CompletedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.CompletedAt, now));
+            if (claimed > 0)
+                await _score.AwardManyAsync([(match.InitiatorId, "DateConfirmed"), (match.ReceiverId, "DateConfirmed")]);
+
+            var current = await _db.DateConfirmations.AsNoTracking().FirstAsync(c => c.Id == id);
+            return (current, claimed > 0);
+        });
 
         int awarded = 0;
         if (justCompleted)
@@ -139,6 +146,7 @@ public class ActivityService
 
     private async Task<DateConfirmation?> LoadLatestCompletedConfirmationAsync(Guid matchId) =>
         await _db.DateConfirmations
+            .AsNoTracking()
             .Where(c => c.MatchId == matchId && c.CompletedAt != null)
             .OrderByDescending(c => c.CompletedAt)
             .FirstOrDefaultAsync();
@@ -169,12 +177,32 @@ public class ActivityService
         if (match is null || !match.IsParticipant(userId)) return null;
         bool isInitiator = match.InitiatorId == userId;
 
-        bool alreadyAnswered = isInitiator ? confirmation.InitiatorAttended.HasValue : confirmation.ReceiverAttended.HasValue;
-        if (alreadyAnswered) return isInitiator ? confirmation.InitiatorAttended : confirmation.ReceiverAttended;
-
-        if (isInitiator) confirmation.InitiatorAttended = attended;
-        else confirmation.ReceiverAttended = attended;
-        await _db.SaveChangesAsync();
+        // The answer is set only if still unset, and both answers come back from that same statement.
+        // Saving a loaded copy meant two people answering at once each saw only their own answer, so
+        // neither saw the pair complete and the no-show check never ran.
+        var answers = isInitiator
+            ? await _db.Database.SqlQuery<AttendanceRow>(
+                $"""
+                UPDATE "DateConfirmations" SET "InitiatorAttended" = {attended}
+                WHERE "Id" = {confirmation.Id} AND "InitiatorAttended" IS NULL
+                RETURNING "InitiatorAttended", "ReceiverAttended"
+                """).ToListAsync()
+            : await _db.Database.SqlQuery<AttendanceRow>(
+                $"""
+                UPDATE "DateConfirmations" SET "ReceiverAttended" = {attended}
+                WHERE "Id" = {confirmation.Id} AND "ReceiverAttended" IS NULL
+                RETURNING "InitiatorAttended", "ReceiverAttended"
+                """).ToListAsync();
+        if (answers.Count == 0)
+        {
+            var previous = await _db.DateConfirmations.AsNoTracking()
+                .Where(c => c.Id == confirmation.Id)
+                .Select(c => isInitiator ? c.InitiatorAttended : c.ReceiverAttended)
+                .FirstOrDefaultAsync();
+            return previous;
+        }
+        confirmation.InitiatorAttended = answers[0].InitiatorAttended;
+        confirmation.ReceiverAttended = answers[0].ReceiverAttended;
 
         if (confirmation.InitiatorAttended == true && confirmation.ReceiverAttended == true)
         {
@@ -189,9 +217,6 @@ public class ActivityService
         // a no-show was the one thing that penalised you for it.
         if (confirmation.InitiatorAttended.HasValue && confirmation.ReceiverAttended.HasValue)
         {
-            bool alreadyPenalizedForThisMatch = await _db.DateConfirmations
-                .AnyAsync(c => c.MatchId == matchId && c.PenaltyApplied);
-
             // The initiator answers about the receiver and the receiver about the initiator, so
             // both can be named at once: a date neither side turned up to is two no-shows, not a
             // contradiction to be thrown away.
@@ -199,17 +224,35 @@ public class ActivityService
             if (confirmation.InitiatorAttended == false) absentees.Add(match.ReceiverId);
             if (confirmation.ReceiverAttended == false) absentees.Add(match.InitiatorId);
 
-            if (!alreadyPenalizedForThisMatch && absentees.Count > 0)
+            if (absentees.Count > 0)
             {
-                confirmation.PenaltyApplied = true;
-                await _db.SaveChangesAsync();
+                // Claimed, and together with the flags it pays for. Checking the flag and then
+                // setting it let a double submit penalise the same no-show twice.
+                await _db.InTransactionAsync(async () =>
+                {
+                    int claimed = await _db.Database.ExecuteSqlInterpolatedAsync(
+                        $"""
+                        UPDATE "DateConfirmations" SET "PenaltyApplied" = TRUE
+                        WHERE "Id" = {confirmation.Id} AND NOT "PenaltyApplied"
+                          AND NOT EXISTS (
+                            SELECT 1 FROM "DateConfirmations" other
+                            WHERE other."MatchId" = {matchId} AND other."PenaltyApplied")
+                        """);
+                    if (claimed == 0) return;
 
-                foreach (var absentUserId in absentees)
-                    await FlagNoShowAsync(absentUserId);
+                    foreach (var absentUserId in absentees)
+                        await FlagNoShowAsync(absentUserId);
+                });
             }
         }
 
         return attended;
+    }
+
+    private sealed class AttendanceRow
+    {
+        public bool? InitiatorAttended { get; set; }
+        public bool? ReceiverAttended { get; set; }
     }
 
     /// <summary>

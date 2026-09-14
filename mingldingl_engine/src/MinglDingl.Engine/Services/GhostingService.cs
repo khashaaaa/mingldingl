@@ -23,11 +23,8 @@ public class GhostingService
     {
         if (!IsStale(match)) return false;
 
-        if (!await TryGhostAsync(match)) return false;
-
-        var atFault = await GetPenalisableGhostAsync(match);
-        if (atFault.HasValue)
-            await _score.AwardManyAsync([(atFault.Value, "GhostPenalty")]);
+        var (ghosted, atFault) = await GhostAndPenaliseAsync(match);
+        if (!ghosted) return false;
 
         if (atFault.HasValue) await _oaths.RefreshAsync(atFault.Value);
 
@@ -52,7 +49,48 @@ public class GhostingService
         }
     }
 
-    public async Task<bool> TryGhostAsync(Match match)
+    /// <summary>
+    /// Closes the match and docks whoever owes for it as one unit. The status used to commit first,
+    /// so a failure between the two left a Ghosted match nobody was ever penalised for: the sweep
+    /// only looks at Active matches and never came back to it. Rolled back together, the next sweep
+    /// simply tries again. Push and broadcast stay with the caller, after the commit.
+    /// </summary>
+    public async Task<(bool Ghosted, Guid? AtFault)> GhostAndPenaliseAsync(Match match)
+    {
+        var (ghosted, atFault, frozenLevel) = await _db.InTransactionAsync(async () =>
+        {
+            int? level = await TryGhostInDatabaseAsync(match);
+            if (level is null) return (false, (Guid?)null, 0);
+
+            var penalised = await GetPenalisableGhostAsync(match);
+            if (penalised.HasValue)
+                await _score.AwardManyAsync([(penalised.Value, "GhostPenalty")]);
+            return (true, penalised, level.Value);
+        });
+
+        if (ghosted) ApplyGhosted(match, frozenLevel);
+        return (ghosted, atFault);
+    }
+
+    /// <summary>
+    /// Mirrors the ghosting onto the caller's copy without queuing it as a change: the row is already
+    /// written, and a tracked copy left Modified would write it again on someone else's save.
+    /// </summary>
+    private void ApplyGhosted(Match match, int frozenLevel)
+    {
+        match.Status = "Ghosted";
+        match.RevealLevel = frozenLevel;
+        var entry = _db.Entry(match);
+        if (entry.State == EntityState.Detached) return;
+
+        // Clearing IsModified alone reverts the value to the original, so the original moves first.
+        entry.Property(m => m.Status).OriginalValue = "Ghosted";
+        entry.Property(m => m.Status).IsModified = false;
+        entry.Property(m => m.RevealLevel).OriginalValue = frozenLevel;
+        entry.Property(m => m.RevealLevel).IsModified = false;
+    }
+
+    private async Task<int?> TryGhostInDatabaseAsync(Match match)
     {
         // Freeze at the level the pair had actually reached, never below the floor every match is
         // created with. Reading message count alone stripped that floor off a short conversation
@@ -63,16 +101,23 @@ public class GhostingService
         int frozenLevel = Math.Max(
             match.RevealLevel,
             RevealService.LevelForMessageCount(_config, RevealService.MutualMessageCount(match)));
-        int rowsAffected = await _db.Matches
-            .Where(m => m.Id == match.Id && m.Status == "Active")
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(m => m.Status, "Ghosted")
-                .SetProperty(m => m.RevealLevel, frozenLevel));
-        if (rowsAffected == 0) return false;
+        // Only the conversation as it was read. A reply landing between the read and this write moves
+        // LastMessageAt (and may change who spoke last), and ghosting on the stale copy closed a live
+        // thread and blamed the person who had just answered.
+        var loadedAt = match.LastMessageAt;
+        var loadedSender = match.LastMessageSenderId;
+        var query = _db.Matches.Where(m => m.Id == match.Id && m.Status == "Active"
+            && m.LastMessageSenderId == loadedSender);
+        // At-or-before rather than equal: a copy built in memory carries sub-microsecond ticks the
+        // column truncated away on save.
+        query = loadedAt is DateTime at
+            ? query.Where(m => m.LastMessageAt != null && m.LastMessageAt <= at)
+            : query.Where(m => m.LastMessageAt == null);
 
-        match.Status = "Ghosted";
-        match.RevealLevel = frozenLevel;
-        return true;
+        int rowsAffected = await query.ExecuteUpdateAsync(s => s
+            .SetProperty(m => m.Status, "Ghosted")
+            .SetProperty(m => m.RevealLevel, frozenLevel));
+        return rowsAffected == 0 ? null : frozenLevel;
     }
 
     public Task BroadcastGhostedAsync(Guid matchId, Guid? atFaultUserId) =>

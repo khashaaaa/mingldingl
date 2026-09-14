@@ -24,20 +24,28 @@ public class TownSquareService
 
     public async Task RsvpAsync(Guid sessionId, Guid userId)
     {
-        var session = await _db.TownSquareSessions.FindAsync(sessionId);
+        var session = await _db.TownSquareSessions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sessionId);
         if (session is null || session.Status != "Open")
             throw new DomainException("Session is not open for RSVP", "square.rsvp_closed");
 
         // A session is created Open, so without this the admin's RSVP-opens date did nothing at
         // all and the roster could fill days before the window it advertises.
-        if (session.RsvpOpensAt > DateTime.UtcNow)
+        var now = DateTime.UtcNow;
+        if (session.RsvpOpensAt > now)
             throw new DomainException("RSVP has not opened for this session yet", "square.rsvp_not_open");
 
-        bool exists = await _db.TownSquareRsvps.AnyAsync(r => r.SessionId == sessionId && r.UserId == userId);
-        if (exists) return;
+        // The session stays Open for up to one scheduler sweep after the window closes, and an RSVP
+        // taken in that gap was either dropped by the lock already read or joined a roster it closed.
+        if (session.RsvpClosesAt <= now)
+            throw new DomainException("RSVP has closed for this session", "square.rsvp_closed");
 
-        _db.TownSquareRsvps.Add(new TownSquareRsvp { SessionId = sessionId, UserId = userId });
-        await _db.SaveChangesAsync();
+        // Idempotent in the database: a double tap raced the exists check into a unique violation.
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO "TownSquareRsvps" ("Id", "SessionId", "UserId", "RsvpAt")
+            VALUES ({Guid.NewGuid()}, {sessionId}, {userId}, {now})
+            ON CONFLICT ("SessionId", "UserId") DO NOTHING
+            """);
     }
 
     public async Task CancelRsvpAsync(Guid sessionId, Guid userId)
@@ -55,7 +63,7 @@ public class TownSquareService
 
     public async Task LockRosterAsync(Guid sessionId)
     {
-        var session = await _db.TownSquareSessions.FindAsync(sessionId);
+        var session = await _db.TownSquareSessions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sessionId);
         if (session is null || session.Status != "Open") return;
 
         // An RSVP is only as good as the account behind it at lock time. Someone banned, paused or
@@ -76,7 +84,7 @@ public class TownSquareService
 
         if (n == 0)
         {
-            await CancelAsync(session);
+            await CancelAsync(session, "Open");
             return;
         }
 
@@ -91,7 +99,7 @@ public class TownSquareService
             // every sweep, taking every other session on the instance down with it.
             _logger.LogError(
                 "Town Square session {SessionId} cancelled: no active icebreakers exist", sessionId);
-            await CancelAsync(session);
+            await CancelAsync(session, "Open");
             return;
         }
 
@@ -120,58 +128,90 @@ public class TownSquareService
                 rounds[r] = rounds[r].Where(p => !blocked.Contains((p.UserAId, p.UserBId))).ToList();
         }
 
-        for (int r = 0; r < rounds.Count; r++)
+        // Every status write below is conditional on the status it was read in. They used to save a
+        // loaded copy, so an admin cancelling while the scheduler was mid-step had the cancel
+        // silently overwritten and the gathering ran anyway.
+        await _db.InTransactionAsync(async () =>
         {
-            var round = new TownSquareRound
-            {
-                SessionId = sessionId,
-                RoundNumber = r + 1,
-                IcebreakerId = icebreakers[r % icebreakers.Count].Id,
-                StartsAt = session.ScheduledStartAt.AddSeconds(r * RoundDurationSeconds),
-                DurationSeconds = RoundDurationSeconds,
-            };
-            _db.TownSquareRounds.Add(round);
+            int claimed = await _db.TownSquareSessions
+                .Where(s => s.Id == sessionId && s.Status == "Open")
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, "Locked"));
+            if (claimed == 0) return;
 
-            foreach (var (userAId, userBId) in rounds[r])
+            for (int r = 0; r < rounds.Count; r++)
             {
-                _db.TownSquarePairings.Add(new TownSquarePairing
+                var round = new TownSquareRound
                 {
-                    Round = round,
-                    UserAId = userAId,
-                    UserBId = userBId,
-                });
-            }
-        }
+                    SessionId = sessionId,
+                    RoundNumber = r + 1,
+                    IcebreakerId = icebreakers[r % icebreakers.Count].Id,
+                    StartsAt = session.ScheduledStartAt.AddSeconds(r * RoundDurationSeconds),
+                    DurationSeconds = RoundDurationSeconds,
+                };
+                _db.TownSquareRounds.Add(round);
 
-        session.Status = "Locked";
-        await _db.SaveChangesAsync();
+                foreach (var (userAId, userBId) in rounds[r])
+                {
+                    _db.TownSquarePairings.Add(new TownSquarePairing
+                    {
+                        Round = round,
+                        UserAId = userAId,
+                        UserBId = userBId,
+                    });
+                }
+            }
+
+            await _db.SaveChangesAsync();
+        });
     }
 
     public async Task<bool> CancelSessionAsync(Guid sessionId)
     {
-        var session = await _db.TownSquareSessions.FindAsync(sessionId);
+        var session = await _db.TownSquareSessions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sessionId);
         if (session is null || session.Status is not ("Open" or "Locked")) return false;
 
-        await CancelAsync(session);
+        return await CancelAsync(session, "Open", "Locked");
+    }
+
+    private async Task<bool> CancelAsync(TownSquareSession session, params string[] fromStatuses)
+    {
+        int claimed = await _db.TownSquareSessions
+            .Where(s => s.Id == session.Id && fromStatuses.Contains(s.Status))
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, "Cancelled"));
+        if (claimed == 0) return false;
+
+        await _broadcast.BroadcastAsync($"townsquare:{session.Id}", "session-cancelled", new { sessionId = session.Id, roundNumber = session.CurrentRoundNumber, status = "Cancelled" });
         return true;
     }
 
-    private async Task CancelAsync(TownSquareSession session)
+    /// <summary>
+    /// Rounds are timed from the scheduled start when the roster locks. A session that starts late —
+    /// the scheduler was down, or the instance restarted — found every round already over and ran
+    /// them all one sweep apart. The round that has just become current starts now instead.
+    /// </summary>
+    private Task RebaseOverdueRoundAsync(Guid sessionId, int roundNumber)
     {
-        session.Status = "Cancelled";
-        await _db.SaveChangesAsync();
-
-        await _broadcast.BroadcastAsync($"townsquare:{session.Id}", "session-cancelled", new { sessionId = session.Id, roundNumber = session.CurrentRoundNumber, status = session.Status });
+        var now = DateTime.UtcNow;
+        return _db.TownSquareRounds
+            .Where(r => r.SessionId == sessionId && r.RoundNumber == roundNumber && r.StartsAt < now)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.StartsAt, now));
     }
 
     public async Task StartSessionAsync(Guid sessionId)
     {
-        var session = await _db.TownSquareSessions.FindAsync(sessionId);
-        if (session is null || session.Status != "Locked") return;
+        bool started = await _db.InTransactionAsync(async () =>
+        {
+            int claimed = await _db.TownSquareSessions
+                .Where(s => s.Id == sessionId && s.Status == "Locked")
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.Status, "InProgress")
+                    .SetProperty(x => x.CurrentRoundNumber, 1));
+            if (claimed == 0) return false;
 
-        session.Status = "InProgress";
-        session.CurrentRoundNumber = 1;
-        await _db.SaveChangesAsync();
+            await RebaseOverdueRoundAsync(sessionId, 1);
+            return true;
+        });
+        if (!started) return;
 
         // The roster is whoever LockRosterAsync paired into this session; RSVPs it turned away are
         // not on it. Read across every round, not just the first: a pairing dropped because the two
@@ -187,23 +227,34 @@ public class TownSquareService
         foreach (var userId in rostered.SelectMany(pair => pair).Distinct())
             await _push.NotifyUserAsync(userId, PushKind.TownSquareStarting, startData);
 
-        await _broadcast.BroadcastAsync($"townsquare:{sessionId}", "session-started", new { sessionId, roundNumber = session.CurrentRoundNumber, status = session.Status });
+        await _broadcast.BroadcastAsync($"townsquare:{sessionId}", "session-started", new { sessionId, roundNumber = 1, status = "InProgress" });
     }
 
     public async Task AdvanceRoundAsync(Guid sessionId)
     {
-        var session = await _db.TownSquareSessions.FindAsync(sessionId);
+        var session = await _db.TownSquareSessions.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sessionId);
         if (session is null || session.Status != "InProgress") return;
 
         int roundCount = await _db.TownSquareRounds.CountAsync(r => r.SessionId == sessionId);
-        if (session.CurrentRoundNumber >= roundCount)
-            session.Status = "Completed";
-        else
-            session.CurrentRoundNumber++;
+        bool completing = session.CurrentRoundNumber >= roundCount;
+        int nextRound = completing ? session.CurrentRoundNumber : session.CurrentRoundNumber + 1;
+        string nextStatus = completing ? "Completed" : "InProgress";
 
-        await _db.SaveChangesAsync();
+        bool advanced = await _db.InTransactionAsync(async () =>
+        {
+            int claimed = await _db.TownSquareSessions
+                .Where(s => s.Id == sessionId && s.Status == "InProgress" && s.CurrentRoundNumber == session.CurrentRoundNumber)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.Status, nextStatus)
+                    .SetProperty(x => x.CurrentRoundNumber, nextRound));
+            if (claimed == 0) return false;
 
-        await _broadcast.BroadcastAsync($"townsquare:{sessionId}", "round-advanced", new { sessionId, roundNumber = session.CurrentRoundNumber, status = session.Status });
+            if (!completing) await RebaseOverdueRoundAsync(sessionId, nextRound);
+            return true;
+        });
+        if (!advanced) return;
+
+        await _broadcast.BroadcastAsync($"townsquare:{sessionId}", "round-advanced", new { sessionId, roundNumber = nextRound, status = nextStatus });
     }
 
     public async Task MarkJoinedAsync(Guid pairingId, Guid userId)

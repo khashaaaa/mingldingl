@@ -31,6 +31,11 @@ public class ReportService
         if (!ReportReasons.All.Contains(reason))
             throw new DomainException($"Reason must be one of: {string.Join(", ", ReportReasons.All)}", "report.reason_invalid");
 
+        // A signed-in identity with no account yet has nobody to file as. Without this the insert
+        // tripped the reporter foreign key and surfaced as a 500.
+        if (!await _db.Users.AnyAsync(u => u.Id == reporterId))
+            throw DomainException.NotFound("User not found", "user.not_found");
+
         var reported = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == reportedUserId);
         if (reported is null) throw DomainException.NotFound("User not found", "user.not_found");
 
@@ -61,21 +66,38 @@ public class ReportService
             Reason = reason,
             Details = string.IsNullOrWhiteSpace(details) ? null : details.Trim(),
         };
-        _db.UserReports.Add(report);
+        List<Match> liveMatches;
+        try
+        {
+            liveMatches = await _db.InTransactionAsync(async () =>
+            {
+                _db.UserReports.Add(report);
 
-        bool alreadyBlocked = await _db.BlockedUsers
-            .AnyAsync(bl => bl.BlockerId == reporterId && bl.BlockedId == reportedUserId);
-        if (!alreadyBlocked)
-            _db.BlockedUsers.Add(new BlockedUser { BlockerId = reporterId, BlockedId = reportedUserId });
+                var matches = await _db.Matches
+                    .Where(m => m.Status == "Active"
+                        && ((m.InitiatorId == reporterId && m.ReceiverId == reportedUserId)
+                            || (m.InitiatorId == reportedUserId && m.ReceiverId == reporterId)))
+                    .ToListAsync();
+                foreach (var match in matches) match.Status = "Unmatched";
 
-        var liveMatches = await _db.Matches
-            .Where(m => m.Status == "Active"
-                && ((m.InitiatorId == reporterId && m.ReceiverId == reportedUserId)
-                    || (m.InitiatorId == reportedUserId && m.ReceiverId == reporterId)))
-            .ToListAsync();
-        foreach (var match in liveMatches) match.Status = "Unmatched";
+                await _db.SaveChangesAsync();
 
-        await _db.SaveChangesAsync();
+                // Inserted if missing rather than checked and then added: a Block tapped while the
+                // report was being filed made the second insert a unique violation and the report a 500.
+                await _db.Database.ExecuteSqlInterpolatedAsync(
+                    $"""
+                    INSERT INTO "BlockedUsers" ("Id", "BlockerId", "BlockedId", "CreatedAt")
+                    VALUES ({Guid.NewGuid()}, {reporterId}, {reportedUserId}, {DateTime.UtcNow})
+                    ON CONFLICT ("BlockerId", "BlockedId") DO NOTHING
+                    """);
+                return matches;
+            });
+        }
+        catch (DbUpdateException ex) when (UniqueViolationGuard.IsViolation(ex, "IX_UserReports_ReporterId_ReportedUserId"))
+        {
+            _db.Entry(report).State = EntityState.Detached;
+            throw DomainException.Conflict("You already have an open report about this person", "report.already_open");
+        }
 
         foreach (var match in liveMatches)
         {
@@ -97,38 +119,54 @@ public class ReportService
         if (!ReportOutcomes.Resolutions.Contains(outcome))
             throw new DomainException($"Outcome must be one of: {string.Join(", ", ReportOutcomes.Resolutions)}", "report.outcome_invalid");
 
-        var report = await _db.UserReports.FirstOrDefaultAsync(r => r.Id == reportId);
+        var report = await _db.UserReports.AsNoTracking().FirstOrDefaultAsync(r => r.Id == reportId);
         if (report is null) throw DomainException.NotFound("Report not found", "report.not_found");
         if (report.Status != ReportOutcomes.Pending)
             throw DomainException.Conflict("This report has already been resolved", "report.already_resolved");
 
-        report.Status = outcome;
-        report.ReviewNotes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
-        report.ReviewedBy = reviewedBy;
-        report.ReviewedAt = DateTime.UtcNow;
+        var reviewNotes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        var reviewedAt = DateTime.UtcNow;
 
-        if (outcome is ReportOutcomes.Banned)
+        await _db.InTransactionAsync(async () =>
         {
-            var reported = await _db.Users.FirstOrDefaultAsync(u => u.Id == report.ReportedUserId);
-            if (reported is not null && !reported.IsBanned)
+            // Leaving Pending is the claim. Two admins resolving the same report (or one double
+            // click) both passed the status check above and both applied the penalty.
+            int claimed = await _db.UserReports
+                .Where(r => r.Id == reportId && r.Status == ReportOutcomes.Pending)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(r => r.Status, outcome)
+                    .SetProperty(r => r.ReviewNotes, reviewNotes)
+                    .SetProperty(r => r.ReviewedBy, reviewedBy)
+                    .SetProperty(r => r.ReviewedAt, reviewedAt));
+            if (claimed == 0)
+                throw DomainException.Conflict("This report has already been resolved", "report.already_resolved");
+
+            if (outcome is ReportOutcomes.Banned)
             {
-                reported.IsBanned = true;
-                reported.BannedAt = DateTime.UtcNow;
-                reported.BanReason = notes ?? $"Upheld report: {report.Reason}";
+                var reported = await _db.Users.FirstOrDefaultAsync(u => u.Id == report.ReportedUserId);
+                if (reported is not null && !reported.IsBanned)
+                {
+                    reported.IsBanned = true;
+                    reported.BannedAt = DateTime.UtcNow;
+                    reported.BanReason = notes ?? $"Upheld report: {report.Reason}";
 
-                var liveMatches = await _db.Matches
-                    .Where(m => m.Status == "Active"
-                        && (m.InitiatorId == reported.Id || m.ReceiverId == reported.Id))
-                    .ToListAsync();
-                foreach (var match in liveMatches) match.Status = "Unmatched";
+                    var liveMatches = await _db.Matches
+                        .Where(m => m.Status == "Active"
+                            && (m.InitiatorId == reported.Id || m.ReceiverId == reported.Id))
+                        .ToListAsync();
+                    foreach (var match in liveMatches) match.Status = "Unmatched";
+                }
+                await _db.SaveChangesAsync();
             }
-        }
 
-        await _db.SaveChangesAsync();
+            if (outcome is ReportOutcomes.Penalised)
+                await _score.AwardAsync(report.ReportedUserId, "ReportPenalty");
+        });
 
-        if (outcome is ReportOutcomes.Penalised)
-            await _score.AwardAsync(report.ReportedUserId, "ReportPenalty");
-
+        report.Status = outcome;
+        report.ReviewNotes = reviewNotes;
+        report.ReviewedBy = reviewedBy;
+        report.ReviewedAt = reviewedAt;
         return report;
     }
 }

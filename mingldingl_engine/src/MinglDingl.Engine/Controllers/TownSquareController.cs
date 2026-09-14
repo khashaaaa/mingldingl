@@ -68,6 +68,11 @@ public class TownSquareController : ControllerBase
             .FirstOrDefaultAsync(p => p.RoundId == round.Id && (p.UserAId == userId || p.UserBId == userId));
         if (pairing is null) return this.NotFoundError("You are not paired in this round", "square.not_paired");
 
+        // The roster drops blocked pairs when it locks, but a block made after that still has to
+        // keep the two apart: no token, and both sit the round out exactly as a dropped pairing does.
+        if (await MatchPairing.IsPairBlockedAsync(_db, pairing.UserAId, pairing.UserBId))
+            return this.NotFoundError("You are not paired in this round", "square.not_paired");
+
         var icebreaker = await _db.Icebreakers.FindAsync(round.IcebreakerId);
         var locale = await _db.Users.AsNoTracking()
             .Where(u => u.Id == this.CurrentUserId())

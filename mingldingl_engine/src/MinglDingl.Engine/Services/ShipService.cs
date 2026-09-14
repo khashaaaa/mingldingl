@@ -228,57 +228,63 @@ public class ShipService
 
         if (row.SlotAOptIn == "Declined" || row.SlotBOptIn == "Declined")
         {
+            // Still conditional on Pending: a thread that sparked or expired in the meantime keeps
+            // the outcome it reached, rather than being rewritten as Declined after the fact.
             await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"""UPDATE "Ships" SET "Status" = 'Declined' WHERE "Id" = {shipId}""");
+                $"""UPDATE "Ships" SET "Status" = 'Declined' WHERE "Id" = {shipId} AND "Status" = 'Pending'""");
             return false;
         }
 
         if (row.SlotAOptIn != "Accepted" || row.SlotBOptIn != "Accepted")
             return false;
 
-        var ship = await _db.Ships.FindAsync(shipId);
-        if (ship is null) return false;
-
-        bool alreadyMatched = await MatchPairing.PairAlreadyMatchedAsync(_db, row.SlotAUserId!.Value, row.SlotBUserId!.Value);
-        bool blocked = await MatchPairing.IsPairBlockedAsync(_db, row.SlotAUserId!.Value, row.SlotBUserId!.Value);
+        var slotAUserId = row.SlotAUserId!.Value;
+        var slotBUserId = row.SlotBUserId!.Value;
+        bool blocked = await MatchPairing.IsPairBlockedAsync(_db, slotAUserId, slotBUserId);
         // A woven thread is the third path that can create a Match, and it was the one that never
         // asked whether the two may be matched at all — so it could pair two people of the same
         // gender, or someone paused, banned or pending deletion, straight past the rule discovery
         // and POST /matches both obey. Checked here rather than at weave time because weeks can
         // pass between the weave and the second acceptance.
-        bool eligible = await MatchPairing.AreBothEligibleAsync(_db, row.SlotAUserId!.Value, row.SlotBUserId!.Value);
-        string terminalStatus = alreadyMatched || blocked || !eligible ? "Expired" : "Sparked";
+        bool eligible = await MatchPairing.AreBothEligibleAsync(_db, slotAUserId, slotBUserId);
 
-        // Leaving Pending is the claim, and it is what makes everything below run exactly once.
-        // Both slots can observe "both accepted" concurrently — a double-tapped accept on the
-        // second slot is enough — and the rest of this method creates a match and pays the Weaver.
-        int claimed = await _db.Database.ExecuteSqlInterpolatedAsync(
-            $"""UPDATE "Ships" SET "Status" = {terminalStatus} WHERE "Id" = {shipId} AND "Status" = 'Pending'""");
-        if (claimed == 0) return false;
+        // Claim and match in one transaction, under the same advisory lock the other two
+        // match-creating paths take. The claim used to commit on its own first, so a failed insert
+        // left the Ship Sparked with no match behind it and nothing that would ever retry it.
+        var (matchId, sparked) = await _db.InTransactionAsync(async () =>
+        {
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock({MatchPairing.PairLockKey(slotAUserId, slotBUserId)})");
 
-        ship.Status = terminalStatus;
-        _db.Entry(ship).Property(s => s.Status).IsModified = false;
-        if (terminalStatus == "Expired") return false;
+            // Somebody else's match, found inside the lock: the thread did not cause it.
+            bool alreadyMatched = await MatchPairing.PairAlreadyMatchedAsync(_db, slotAUserId, slotBUserId);
+            string terminalStatus = alreadyMatched || blocked || !eligible ? "Expired" : "Sparked";
 
-        // Under the same advisory lock the other two match-creating paths take. Without it a
-        // concurrent POST /matches on the same pair raced this insert into a unique violation,
-        // leaving the Ship claimed as Sparked with no match to show for it.
-        var (matchId, created) = await CreateMatchUnderPairLockAsync(
-            row.SlotAUserId!.Value, row.SlotBUserId!.Value, ship.Id);
+            // Leaving Pending is the claim, and it is what makes everything below run exactly once.
+            // Both slots can observe "both accepted" concurrently — a double-tapped accept on the
+            // second slot is enough — and the rest of this method creates a match and pays the Weaver.
+            int claimed = await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"""UPDATE "Ships" SET "Status" = {terminalStatus} WHERE "Id" = {shipId} AND "Status" = 'Pending'""");
+            if (claimed == 0 || terminalStatus == "Expired") return ((Guid?)null, false);
 
-        ship.ResultMatchId = matchId;
-        await _db.SaveChangesAsync();
+            var match = MatchPairing.NewMatch(slotAUserId, slotBUserId, shipId);
+            _db.Matches.Add(match);
+            await _db.SaveChangesAsync();
 
-        // Somebody else's match, found inside the lock: the thread did not cause it, so it pays
-        // the Weaver nothing and announces nothing.
-        if (!created) return false;
+            await _db.Ships
+                .Where(s => s.Id == shipId)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.ResultMatchId, (Guid?)match.Id));
+            return ((Guid?)match.Id, true);
+        });
+        if (!sparked) return false;
 
-        await _score.AwardAsync(ship.ShipperUserId, "ShipSparked");
-        var shipperHonour = await GrantMilestoneTitleIfEarnedAsync(ship.ShipperUserId);
+        await _score.AwardAsync(lookup.ShipperUserId, "ShipSparked");
+        var shipperHonour = await GrantMilestoneTitleIfEarnedAsync(lookup.ShipperUserId);
         if (shipperHonour is not null)
         {
-            ship.ShipperRewardItemId = shipperHonour.Id;
-            await _db.SaveChangesAsync();
+            await _db.Ships
+                .Where(s => s.Id == shipId)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.ShipperRewardItemId, shipperHonour.Id));
         }
 
         await _milestones.AchieveAsync(row.SlotAUserId.Value, "first_match");
@@ -293,23 +299,6 @@ public class ShipService
         return true;
     }
 
-    private Task<(Guid MatchId, bool Created)> CreateMatchUnderPairLockAsync(Guid slotAUserId, Guid slotBUserId, Guid shipId) =>
-        _db.InTransactionAsync(async () =>
-        {
-            await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock({MatchPairing.PairLockKey(slotAUserId, slotBUserId)})");
-
-            var existing = await _db.Matches.FirstOrDefaultAsync(m =>
-                (m.InitiatorId == slotAUserId && m.ReceiverId == slotBUserId) ||
-                (m.InitiatorId == slotBUserId && m.ReceiverId == slotAUserId));
-            if (existing is not null) return (existing.Id, false);
-
-            var match = MatchPairing.NewMatch(slotAUserId, slotBUserId, shipId);
-            _db.Matches.Add(match);
-            await _db.SaveChangesAsync();
-            return (match.Id, true);
-        });
-
     private sealed class ShipOptInRow
     {
         public string SlotAOptIn { get; set; } = "";
@@ -318,16 +307,25 @@ public class ShipService
         public Guid? SlotBUserId { get; set; }
     }
 
+    private static readonly (int Sparks, string ItemId)[] ShipTitles =
+    [
+        (1, "title_threadweaver"),
+        (5, "title_fateseer"),
+        (10, "title_bondkeeper"),
+    ];
+
+    /// <summary>
+    /// Every rung the count has reached, not only the one it landed on exactly. Two threads sparking
+    /// at once can both count past a rung — 4 to 6 — and matching on the exact number skipped the
+    /// title for good. The grant is once per honour, so revisiting lower rungs gives nothing twice.
+    /// </summary>
     private async Task<DroppedItem?> GrantMilestoneTitleIfEarnedAsync(Guid shipperId)
     {
         int sparkedCount = await _db.Ships.CountAsync(s => s.ShipperUserId == shipperId && s.Status == "Sparked");
-        string? itemId = sparkedCount switch
-        {
-            1 => "title_threadweaver",
-            5 => "title_fateseer",
-            10 => "title_bondkeeper",
-            _ => null,
-        };
-        return itemId is null ? null : await _honours.GrantAsync(shipperId, itemId, "ShipMilestone");
+        DroppedItem? granted = null;
+        foreach (var (sparks, itemId) in ShipTitles)
+            if (sparkedCount >= sparks && await _honours.GrantAsync(shipperId, itemId, "ShipMilestone") is { } item)
+                granted = item;
+        return granted;
     }
 }

@@ -48,14 +48,16 @@ public class TownSquareSchedulerBackgroundService : BackgroundService
         }
 
         var inProgress = await db.TownSquareSessions
+            .AsNoTracking()
             .Where(s => s.Status == "InProgress")
             .ToListAsync(ct);
         foreach (var session in inProgress)
         {
             var currentRound = await db.TownSquareRounds
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.SessionId == session.Id && r.RoundNumber == session.CurrentRoundNumber, ct);
             if (currentRound is not null && currentRound.StartsAt.AddSeconds(currentRound.DurationSeconds) <= now)
-                await RunPerSessionAsync(session.Id, "advance round", () => townSquare.AdvanceRoundAsync(session.Id));
+                await RunPerSessionAsync(db, session.Id, "advance round", () => townSquare.AdvanceRoundAsync(session.Id));
         }
     }
 
@@ -66,14 +68,14 @@ public class TownSquareSchedulerBackgroundService : BackgroundService
             .Select(s => s.Id)
             .ToListAsync(ct);
         foreach (var sessionId in dueToLock)
-            await RunPerSessionAsync(sessionId, "lock roster", () => townSquare.LockRosterAsync(sessionId));
+            await RunPerSessionAsync(db, sessionId, "lock roster", () => townSquare.LockRosterAsync(sessionId));
 
         var dueToStart = await db.TownSquareSessions
             .Where(s => s.Status == "Locked" && s.ScheduledStartAt <= now)
             .Select(s => s.Id)
             .ToListAsync(ct);
         foreach (var sessionId in dueToStart)
-            await RunPerSessionAsync(sessionId, "start session", () => townSquare.StartSessionAsync(sessionId));
+            await RunPerSessionAsync(db, sessionId, "start session", () => townSquare.StartSessionAsync(sessionId));
     }
 
     /// <summary>
@@ -81,7 +83,7 @@ public class TownSquareSchedulerBackgroundService : BackgroundService
     /// cannot advance stays in the same state, so an escaping exception is not a one-off — it
     /// re-throws forever and no session on the instance ever progresses again.
     /// </summary>
-    private async Task RunPerSessionAsync(Guid sessionId, string step, Func<Task> action)
+    private async Task RunPerSessionAsync(AppDbContext db, Guid sessionId, string step, Func<Task> action)
     {
         try
         {
@@ -89,6 +91,10 @@ public class TownSquareSchedulerBackgroundService : BackgroundService
         }
         catch (Exception ex)
         {
+            // Every session in the sweep shares one context. Whatever the failed step left queued —
+            // rounds and pairings a failed save never wrote — would otherwise be saved again by the
+            // next session's step, and fail it the same way.
+            db.ChangeTracker.Clear();
             _logger.LogError(ex, "Town Square sweep step '{Step}' failed for session {SessionId}", step, sessionId);
         }
     }

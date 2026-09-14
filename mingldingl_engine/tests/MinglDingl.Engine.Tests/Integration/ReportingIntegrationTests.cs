@@ -152,6 +152,44 @@ public class ReportingIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task AReporterWithNoAccountYet_GetsNotFoundRatherThanAServerError()
+    {
+        var reported = NewCompleteUser();
+        Db.Users.Add(reported);
+        await Db.SaveChangesAsync();
+
+        // A signed-in identity that never created an account used to trip the reporter foreign key.
+        var ex = await Assert.ThrowsAsync<DomainException>(() =>
+            Reports().CreateAsync(Guid.NewGuid(), reported.Id, ReportReasons.Other, null, null));
+        Assert.Equal(StatusCodes.Status404NotFound, ex.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReportingSomeoneAlreadyBlocked_FilesTheReportAndKeepsOneBlock()
+    {
+        var (reporter, reported) = await TwoUsersAsync();
+        Db.BlockedUsers.Add(new BlockedUser { BlockerId = reporter.Id, BlockedId = reported.Id });
+        await Db.SaveChangesAsync();
+
+        await Reports().CreateAsync(reporter.Id, reported.Id, ReportReasons.Harassment, null, null);
+
+        Assert.Equal(1, await Db.BlockedUsers.CountAsync(b => b.BlockerId == reporter.Id && b.BlockedId == reported.Id));
+        Assert.True(await Db.UserReports.AnyAsync(r => r.ReporterId == reporter.Id && r.ReportedUserId == reported.Id));
+    }
+
+    [Fact]
+    public async Task TheDatabaseRefusesASecondOpenReportForTheSamePair()
+    {
+        var (reporter, reported) = await TwoUsersAsync();
+        Db.UserReports.AddRange(
+            new UserReport { ReporterId = reporter.Id, ReportedUserId = reported.Id, Reason = ReportReasons.Other },
+            new UserReport { ReporterId = reporter.Id, ReportedUserId = reported.Id, Reason = ReportReasons.Scam });
+
+        // The open-report check alone let two submits of the sheet both pass it.
+        await Assert.ThrowsAsync<DbUpdateException>(() => Db.SaveChangesAsync());
+    }
+
+    [Fact]
     public async Task ResolvingTwice_IsRefused()
     {
         var (reporter, reported) = await TwoUsersAsync();

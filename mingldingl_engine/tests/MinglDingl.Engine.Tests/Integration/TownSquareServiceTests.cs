@@ -692,6 +692,84 @@ public class TownSquareServiceIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task RsvpAsync_AfterRsvpCloses_Throws()
+    {
+        var user = NewCompleteUser();
+        var session = NewSession();
+        session.RsvpClosesAt = DateTime.UtcNow.AddMinutes(-1);
+        Db.Users.Add(user);
+        Db.TownSquareSessions.Add(session);
+        await Db.SaveChangesAsync();
+
+        // Still Open until the next scheduler sweep locks it, which is not the same as still taking RSVPs.
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
+        var ex = await Assert.ThrowsAsync<DomainException>(() => service.RsvpAsync(session.Id, user.Id));
+
+        Assert.Equal("square.rsvp_closed", ex.Code);
+        Assert.False(await Db.TownSquareRsvps.AnyAsync(r => r.SessionId == session.Id));
+    }
+
+    /// <summary>
+    /// Rounds are timed from the scheduled start. A session started long after it — scheduler down,
+    /// instance restarted — found every round already over and ran them all one sweep apart.
+    /// </summary>
+    [Fact]
+    public async Task StartAndAdvance_SessionStartedLongAfterSchedule_EachRoundRunsItsFullLength()
+    {
+        var session = await SeedOpenSessionWithRsvps(menCount: 2, womenCount: 2);
+        session.ScheduledStartAt = DateTime.UtcNow.AddHours(-3);
+        await Db.SaveChangesAsync();
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
+        await service.LockRosterAsync(session.Id);
+
+        await service.StartSessionAsync(session.Id);
+        var round1 = await Db.TownSquareRounds.AsNoTracking().SingleAsync(r => r.SessionId == session.Id && r.RoundNumber == 1);
+        Assert.True(round1.StartsAt > DateTime.UtcNow.AddMinutes(-1));
+
+        await service.AdvanceRoundAsync(session.Id);
+        var round2 = await Db.TownSquareRounds.AsNoTracking().SingleAsync(r => r.SessionId == session.Id && r.RoundNumber == 2);
+        Assert.True(round2.StartsAt > DateTime.UtcNow.AddMinutes(-1));
+    }
+
+    /// <summary>The scheduler's writes used to save a loaded copy, overwriting an admin's cancel.</summary>
+    [Fact]
+    public async Task AdvanceRoundAsync_SessionCancelledSinceItStarted_StaysCancelled()
+    {
+        var session = await SeedOpenSessionWithRsvps(menCount: 1, womenCount: 1);
+        var service = new TownSquareService(Db, BuildTestBroadcast(), BuildTestPush(), NullLogger<TownSquareService>.Instance, new ConfigService());
+        await service.LockRosterAsync(session.Id);
+        await service.StartSessionAsync(session.Id);
+        await Db.TownSquareSessions.Where(s => s.Id == session.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, "Cancelled"));
+
+        await service.AdvanceRoundAsync(session.Id);
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal("Cancelled", (await Db.TownSquareSessions.FindAsync(session.Id))!.Status);
+    }
+
+    /// <summary>
+    /// Blocks are honoured when the roster locks, but a block made after that still issued both
+    /// people a token for the same channel.
+    /// </summary>
+    [Fact]
+    public async Task GetCurrentRound_PairBlockedAfterTheRosterLocked_IssuesNoToken()
+    {
+        var pairing = await SeedSinglePairing();
+        var session = await SessionForAsync(pairing);
+        session.Status = "InProgress";
+        session.CurrentRoundNumber = 1;
+        Db.BlockedUsers.Add(new BlockedUser { BlockerId = pairing.UserBId, BlockedId = pairing.UserAId });
+        await Db.SaveChangesAsync();
+
+        var result = await BuildController(pairing.UserAId).GetCurrentRound(session.Id);
+
+        var error = Assert.IsAssignableFrom<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, error.StatusCode);
+        Assert.IsNotType<CurrentRoundResponse>(error.Value);
+    }
+
+    [Fact]
     public async Task GetSessionSummary_ListsNoMatchesForAPairingThatNeverAgreed()
     {
         var pairing = await SeedSinglePairing();

@@ -500,6 +500,62 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         Assert.Single(Db.UserItems.Where(i => i.UserId == match.ReceiverId && i.ItemId == "title_trueword"));
     }
 
+    /// <summary>
+    /// Both pledges can land without completion ever being claimed — the old save wrote the flags
+    /// before CompletedAt, and a failure in between left exactly this row. Completion is claimed on
+    /// the row itself now, so the next confirm pays it, and only once.
+    /// </summary>
+    [Fact]
+    public async Task ConfirmAsync_BothPledgedButCompletionNeverClaimed_PaysExactlyOnce()
+    {
+        var (match, suggestionId) = await SeedMatchWithSuggestionAsync();
+        Db.DateConfirmations.Add(new DateConfirmation
+        {
+            MatchId = match.Id, ActivitySuggestionId = suggestionId, InitiatorConfirmed = true, ReceiverConfirmed = true,
+        });
+        await Db.SaveChangesAsync();
+        var service = BuildService();
+
+        await service.ConfirmAsync(match, match.ReceiverId, suggestionId);
+        await service.ConfirmAsync(match, match.InitiatorId, suggestionId);
+
+        Db.ChangeTracker.Clear();
+        Assert.Single(Db.ScoreEvents.Where(e => e.UserId == match.InitiatorId && e.EventType == "DateConfirmed"));
+        Assert.Single(Db.ScoreEvents.Where(e => e.UserId == match.ReceiverId && e.EventType == "DateConfirmed"));
+        Assert.NotNull((await Db.DateConfirmations.SingleAsync(c => c.MatchId == match.Id)).CompletedAt);
+    }
+
+    [Fact]
+    public async Task DateConfirmations_ASecondRowForTheSameSuggestion_IsRefusedByTheDatabase()
+    {
+        var (match, suggestionId) = await SeedMatchWithSuggestionAsync();
+        Db.DateConfirmations.AddRange(
+            new DateConfirmation { MatchId = match.Id, ActivitySuggestionId = suggestionId, InitiatorConfirmed = true },
+            new DateConfirmation { MatchId = match.Id, ActivitySuggestionId = suggestionId, ReceiverConfirmed = true });
+
+        // Two concurrent first confirms each inserted a row, and each row could complete and pay.
+        await Assert.ThrowsAsync<DbUpdateException>(() => Db.SaveChangesAsync());
+    }
+
+    /// <summary>
+    /// Each answer used to be saved onto a copy read before it, so two people answering at once
+    /// each saw only their own answer, neither saw the pair complete, and the no-show went unflagged.
+    /// </summary>
+    [Fact]
+    public async Task SubmitAttendanceAsync_OtherSideAnsweredAfterThisRead_StillSeesBothAndFlagsTheNoShow()
+    {
+        var (match, confirmation) = await SeedCompletedDateAsync(hoursAgo: 49);
+        var service = BuildService();
+        await Db.DateConfirmations.Where(c => c.Id == confirmation.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.InitiatorAttended, (bool?)false));
+
+        await service.SubmitAttendanceAsync(match.Id, match.ReceiverId, attended: true);
+
+        Db.ChangeTracker.Clear();
+        Assert.Equal(1, (await Db.Users.FindAsync(match.ReceiverId))!.NoShowFlagCount);
+        Assert.True((await Db.DateConfirmations.SingleAsync(c => c.Id == confirmation.Id)).PenaltyApplied);
+    }
+
     [Fact]
     public async Task SubmitAttendanceAsync_Mismatch_HonoursNoOne()
     {
