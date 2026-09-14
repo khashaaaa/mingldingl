@@ -17,6 +17,7 @@ import { FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
 import { StateBlock } from '../components/ui/StateBlock';
 import type { GemTier } from '../models/user';
 import { CardEyebrow } from '../components/ui/CardEyebrow';
+import { useScrollTail } from '../hooks/useScrollTail';
 
 /** Assumed width until `onLayout` reports the real one — see `GateScene`'s own note on the pattern. */
 const FALLBACK_SKY_WIDTH = 320;
@@ -24,6 +25,7 @@ const FALLBACK_SKY_WIDTH = 320;
 export default function ProgressionScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
+  const tail = useScrollTail();
   const { data: detail, isLoading, error, refetch } = useScoreDetail();
   const { data: historyItems, fetchNextPage, hasNextPage, isFetchingNextPage } = useScoreHistory();
   const { data: profile } = useProfile();
@@ -62,26 +64,33 @@ export default function ProgressionScreen() {
   return (
     <View style={styles.screen}>
       <GameHeader title={i18n.t('progression_title')} icon="chart-line" showBack />
-      <Text style={styles.sub}>{i18n.t('ascent_sub')}</Text>
-      <AppCard hero style={styles.skyCard}>
-        <View onLayout={onSkyLayout}>
-          <AscentSky
-            gemTier={gemTier}
-            totalScore={detail.totalScore ?? 0}
-            currentStreak={detail.currentStreak ?? 0}
-            longestStreak={detail.longestStreak ?? 0}
-            width={skyWidth}
-          />
-        </View>
-      </AppCard>
-      <TierPerkCard gemTier={gemTier} tierBonus={detail.tierBonus ?? 0} nextTier={nextTier} dailyMatchBudget={detail.dailyMatchBudget} />
-      <View style={styles.leaderboardButtonWrap}>
-        <GameButton variant="ink" icon="podium-gold" onPress={() => router.push('/leaderboard')}>
-          {i18n.t('hall_of_names')}
-        </GameButton>
-      </View>
-      <CardEyebrow style={styles.historyTitle}>{i18n.t('progression_history_title')}</CardEyebrow>
+      {/* The sky, the perk card and the leaderboard link scroll with the history rather than
+          sitting fixed above it — fixed, they left the list a sliver on a short phone. */}
       <ScoreHistoryList
+        header={
+          <>
+            <Text style={styles.sub}>{i18n.t('ascent_sub')}</Text>
+            <AppCard hero style={styles.skyCard}>
+              <View onLayout={onSkyLayout}>
+                <AscentSky
+                  gemTier={gemTier}
+                  totalScore={detail.totalScore ?? 0}
+                  currentStreak={detail.currentStreak ?? 0}
+                  longestStreak={detail.longestStreak ?? 0}
+                  width={skyWidth}
+                />
+              </View>
+            </AppCard>
+            <TierPerkCard gemTier={gemTier} tierBonus={detail.tierBonus ?? 0} nextTier={nextTier} dailyMatchBudget={detail.dailyMatchBudget} />
+            <View style={styles.leaderboardButtonWrap}>
+              <GameButton variant="ink" icon="podium-gold" onPress={() => router.push('/leaderboard')}>
+                {i18n.t('hall_of_names')}
+              </GameButton>
+            </View>
+            <CardEyebrow style={styles.historyTitle}>{i18n.t('progression_history_title')}</CardEyebrow>
+          </>
+        }
+        bottomPadding={tail}
         items={(historyItems ?? []).filter(
           (item): item is { eventType: string; delta: number; createdAt: string } =>
             item.eventType != null && item.delta != null && item.createdAt != null

@@ -1,5 +1,7 @@
 import { View, Text, Image, ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { queryClient } from '../../lib/api/queryClient';
+import { queryKeys } from '../../lib/api/queryKeys';
 import { useCampaign } from '../../hooks/useCampaign';
 import type { CampaignRoom } from '../../hooks/useCampaign';
 import { useAuthStore } from '../../store/authStore';
@@ -102,6 +104,9 @@ export default function CampaignScreen() {
           onPress={() => onHintPress(room.roomId)}
           accessibilityRole="button"
           accessibilityLabel={`${numeral}. ${name}. ${stateText}`}
+          // One italic line was the whole target; pad it to a thumb's height without moving it.
+          style={styles.hintTap}
+          hitSlop={{ top: SPACE.sm, bottom: SPACE.sm, left: SPACE.sm, right: SPACE.sm }}
         >
           <Text style={styles.hintText}>{stateText}</Text>
         </Tap>
@@ -175,7 +180,11 @@ export default function CampaignScreen() {
       ) : unavailable ? (
         <StateBlock icon="door-closed-lock" title={i18n.t('campaign_unavailable')} />
       ) : error || !campaign ? (
-        <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('campaign_load_error')} />
+        <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('campaign_load_error')}>
+          <GameButton variant="ink" onPress={() => queryClient.invalidateQueries({ queryKey: queryKeys.campaign(matchId) })}>
+            {i18n.t('retry')}
+          </GameButton>
+        </StateBlock>
       ) : (
         <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tail }]}>
           <Text style={styles.sub}>{i18n.t('campaign_sub')}</Text>
@@ -247,6 +256,7 @@ const styles = StyleSheet.create({
   numeral: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: INK.dim },
   roomName: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, flexShrink: 1 },
   sealedSuffix: { color: INK.muted },
+  hintTap: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', paddingVertical: SPACE.xs, paddingRight: SPACE.md },
   hintText: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.md, color: INK.dim, marginTop: SPACE.hair },
   dragonText: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.md, color: INK.dim, marginTop: SPACE.hair },
   bossChip: {

@@ -82,7 +82,12 @@ export default function ProfileScreen() {
 
         <NextActionCard />
 
-        <Tap style={styles.card} onPress={() => router.push('/progression')}>
+        <Tap
+          style={styles.card}
+          onPress={() => router.push('/progression')}
+          accessibilityRole="button"
+          accessibilityHint={i18n.t('progression_title')}
+        >
           <AppCard tier={gemTier} style={styles.cardPadding}>
             <XPBar
               gemTier={gemTier}
@@ -97,7 +102,7 @@ export default function ProfileScreen() {
           <CardEyebrow>{i18n.t('total_score')}</CardEyebrow>
           <Text style={styles.scoreValue}><CountText value={scoreDetail.totalScore ?? 0} /> {i18n.t('pts')}</Text>
           <SectionDivider />
-          <Tap onPress={() => router.push('/membership')}>
+          <Tap onPress={() => router.push('/membership')} accessibilityRole="button">
             <CardEyebrow>{i18n.t('guild_rank')}</CardEyebrow>
             <View style={styles.membershipRow}>
               <Text style={styles.membershipValue}>{membershipLabel(profile.membershipLevel)}</Text>

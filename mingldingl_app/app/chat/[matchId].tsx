@@ -34,7 +34,7 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SCRIM, SPACE, SURFACE, TRACKING, overlay, tint } from '../../lib/theme';
+import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SCRIM, SPACE, SURFACE, TRACKING, overlay, tint } from '../../lib/theme';
 import { FieldError, StateBlock } from '../../components/ui/StateBlock';
 import { useAuthStore } from '../../store/authStore';
 import { useActivityGate, useGhostingWindows, useRevealLadder } from '../../hooks/useRevealThresholds';
@@ -153,12 +153,11 @@ export default function ChatScreen() {
   // Only rungs 2-4 carry a seal-breaking ceremony; the floor every match starts on (1) has none.
   const unsealedLevel = Math.min(Math.max(match?.revealLevel ?? 2, 2), 4);
   // The sheet draws this line lowercase, as a fragment under its own eyebrow — but the ceremony
-  // reads it as the second sentence of a two-sentence subline, so here it needs the capital and
-  // full stop that make it one. Only the ceremony's copy changes; the keys stay as written.
-  const unsealedTail = unsealedNextAt !== null
-    ? i18n.t('seals_next_at', { count: unsealedNextAt })
-    : i18n.t('seals_left_0');
-  const unsealedTailSentence = `${unsealedTail.charAt(0).toUpperCase()}${unsealedTail.slice(1)}.`;
+  // reads it as the second sentence of a two-sentence subline, so it has its own sentence keys
+  // rather than capitalising a translated fragment in code.
+  const unsealedTailSentence = unsealedNextAt !== null
+    ? i18n.t('seals_next_at_sentence', { count: unsealedNextAt })
+    : i18n.t('seals_left_0_sentence');
   // The deep rung is the one the conversation alone does not buy — the engine hands those fields
   // to Silver and Gold only. A Free member's ceremony names the gate instead of promising fields
   // the Seals sheet then shows under wax; `SealBreakRow` reads the same rule off the same fact.
@@ -339,7 +338,8 @@ export default function ChatScreen() {
           </View>
         ) : isError ? (
           <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('chat_load_error')}>
-            <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
+            {/* Ink: the composer's wax seal below is this screen's one forge. */}
+            <GameButton variant="ink" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
           </StateBlock>
         ) : (
           <View style={styles.ledger}>
@@ -640,12 +640,12 @@ const styles = StyleSheet.create({
   },
   loadErrorText: { textAlign: 'center', paddingHorizontal: SPACE.huge },
   ledger: { flex: 1 },
-  // Half of LetterRow's 28px sigil ring, so the thread passes through its centre.
+  // Half of LetterRow's 28px sigil ring (`BADGE_SIZES.row`), so the thread passes through its centre.
   thread: {
     position: 'absolute',
     top: 0,
     bottom: 0,
-    left: SPACE.gutter + 14,
+    left: SPACE.gutter + BADGE_SIZES.row / 2,
     width: 1,
     borderWidth: 1,
     borderStyle: 'dashed',
@@ -677,15 +677,16 @@ const styles = StyleSheet.create({
   activitiesTitle: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
   activitiesSub: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim },
   activitiesBadge: {
-    minWidth: 20,
+    minWidth: BADGE_SIZES.chip,
     paddingHorizontal: SPACE.xs,
     paddingVertical: 1,
     borderRadius: RADIUS.pill,
-    backgroundColor: METAL.ember,
+    // Gold, not ember: something waiting on you is not something gone wrong.
+    backgroundColor: ACCENT.base,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activitiesBadgeText: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.sm, color: INK.primary },
+  activitiesBadgeText: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.sm, color: INK.onAccent },
   activitiesChevron: { fontFamily: FONTS.body, fontSize: FONT_SIZES.lg, color: ACCENT.base },
   activitiesScroll: { maxHeight: 420 },
   activitiesScrollContent: { paddingBottom: SPACE.sm },

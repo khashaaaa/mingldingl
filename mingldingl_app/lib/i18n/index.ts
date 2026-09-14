@@ -130,6 +130,9 @@ export const AWAITING_MN_TRANSLATION = [
   'satchel_sum_candles', 'satchel_sum_candles_one', 'satchel_sum_candles_none', 'satchel_sum_arrows', 'satchel_sum_arrows_one',
   'satchel_sum_lantern',
   'satchel_law',
+  // Copy that was reshaped in code (leaderboard's empty-city sub line, the unsealing ceremony's
+  // second sentence) and the spoken star rating.
+  'hall_sub_no_city', 'seals_next_at_sentence', 'seals_left_0_sentence', 'stars_of_five',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

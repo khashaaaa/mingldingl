@@ -6,12 +6,11 @@ import { i18n } from '../../lib/i18n';
 import { worldTimeSpoken } from '../../lib/worldTime';
 import { useLocaleStore } from '../../store/localeStore';
 import { GameButton } from '../../components/ui/GameButton';
-import { Icon } from '../../components/ui/Icon';
 import { LongWait } from '../../components/ui/LongWait';
 import { GateScene, type GateState } from '../../components/onboarding/GateScene';
 import { signal } from '../../lib/world/feedback';
-import { LEADING, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, STATUS, SURFACE, TRACKING } from '../../lib/theme';
-import { FieldError } from '../../components/ui/StateBlock';
+import { LEADING, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { FieldError, StateBlock } from '../../components/ui/StateBlock';
 /**
  * verify.mn is Mobile-Originated: the user sends our code to the shortcode rather than receiving
  * one. So this screen shows the provider's instruction, offers a one-tap pre-filled SMS, and
@@ -120,12 +119,16 @@ export default function OtpScreen() {
       <GateScene state={gate} />
 
       {expired ? (
-        <View style={styles.card}>
-          <Icon name="timer-sand-empty" size={ICON_SIZES.xxl} color={STATUS.danger} />
-          <Text style={styles.cardTitle}>{i18n.t('verify_expired_title')}</Text>
-          <Text style={styles.instruction}>{i18n.t('verify_expired_body')}</Text>
+        // A wrong is the ember, drawn by the shared block rather than a stock timer in red.
+        <StateBlock
+          framed
+          tone="danger"
+          icon="alert-circle-outline"
+          title={i18n.t('verify_expired_title')}
+          body={i18n.t('verify_expired_body')}
+        >
           <GameButton variant="ink" onPress={restart}>{i18n.t('verify_start_over')}</GameButton>
-        </View>
+        </StateBlock>
       ) : (
         <>
           <View style={styles.card}>
@@ -147,14 +150,9 @@ export default function OtpScreen() {
           {loading ? (
             <Text style={styles.waiting}>{i18n.t('verify_sms_sent')}</Text>
           ) : (
-            <LongWait
-              kind="verifySms"
-              action={
-                <GameButton variant="ink" size="compact" icon="message-text" onPress={openSmsApp} disabled={loading}>
-                  {i18n.t('verify_sms_open')}
-                </GameButton>
-              }
-            />
+            // No action of its own: "Open SMS app" is already the forged button just above, and a
+            // second copy of it here offered the same deed twice.
+            <LongWait kind="verifySms" />
           )}
 
           {worldTimeSpoken() ? (
@@ -196,7 +194,6 @@ const styles = StyleSheet.create({
     gap: SPACE.md,
     alignItems: 'center',
   },
-  cardTitle: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary, textAlign: 'center' },
   instruction: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.lg,

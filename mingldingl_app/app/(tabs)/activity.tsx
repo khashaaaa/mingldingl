@@ -2,7 +2,6 @@ import { Text, View, ScrollView, RefreshControl, StyleSheet } from 'react-native
 import { useRouter } from 'expo-router';
 import { Tap } from '../../components/ui/Tap';
 import { useActivity } from '../../hooks/useActivity';
-import type { Business } from '../../models/business';
 import { AppCard } from '../../components/ui/AppCard';
 import { GameButton } from '../../components/ui/GameButton';
 import { GameHeader } from '../../components/ui/GameHeader';
@@ -14,7 +13,7 @@ import { Waiting } from '../../components/ui/Waiting';
 import { i18n } from '../../lib/i18n';
 import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
-import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE } from '../../lib/theme';
 import { EmptyHint, StateBlock } from '../../components/ui/StateBlock';
 type CategoryGlyph = React.ComponentProps<typeof Icon>['name'];
 
@@ -32,13 +31,6 @@ const CATEGORY_ICONS: Record<string, CategoryGlyph> = {
 
 function missionIcon(category: string): CategoryGlyph {
   return CATEGORY_ICONS[category] ?? 'map-marker-star';
-}
-
-function missionPoints(b: Business): number {
-  if (b.isFeatured) return 50;
-  if (b.isVerified) return 30;
-  if (b.averageRating >= 4) return 25;
-  return 15;
 }
 
 export default function ActivityScreen() {
@@ -76,8 +68,10 @@ export default function ActivityScreen() {
             <Skeleton width="100%" height={110} radius={RADIUS.md} />
           )} />
         ) : isError ? (
-          <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('screen_load_error')}>
-            <GameButton size="compact" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
+          // Framed: unframed, the block's flex basis of 0 collapsed it to nothing inside the scroll.
+          // Ink: the Quest Board's claim chest above is this screen's one forge.
+          <StateBlock framed tone="danger" icon="alert-circle-outline" title={i18n.t('screen_load_error')}>
+            <GameButton variant="ink" size="compact" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
           </StateBlock>
         ) : !businesses || businesses.length === 0 ? (
           <EmptyHint>{i18n.t('no_missions')}</EmptyHint>
@@ -109,10 +103,6 @@ export default function ActivityScreen() {
                       <Text style={styles.missionTitle} numberOfLines={1}>{b.name}</Text>
                       <Text style={styles.missionDesc} numberOfLines={2}>{b.description}</Text>
                       <Text style={styles.meta}>{b.category} · {b.district}</Text>
-                    </View>
-                    <View style={styles.pointsBadge}>
-                      <Text style={styles.pointsValue}>+{missionPoints(b)}</Text>
-                      <Text style={styles.pointsLabel}>{i18n.t('pts')}</Text>
                     </View>
                   </View>
                 </AppCard>
@@ -151,16 +141,4 @@ const styles = StyleSheet.create({
   missionTitle: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold, color: INK.primary, marginBottom: SPACE.xs },
   missionDesc: { fontSize: FONT_SIZES.sm, color: INK.dim, lineHeight: LEADING.sm, marginBottom: SPACE.xs, fontFamily: FONTS.body },
   meta: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body },
-  pointsBadge: {
-    backgroundColor: ACCENT.soft,
-    borderWidth: 1,
-    borderColor: ACCENT.base,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACE.md,
-    paddingVertical: SPACE.sm,
-    alignItems: 'center',
-    minWidth: 52,
-  },
-  pointsValue: { color: ACCENT.base, fontSize: FONT_SIZES.lg, fontFamily: FONTS.display },
-  pointsLabel: { color: ACCENT.base, fontSize: FONT_SIZES.xs, fontFamily: FONTS.bodyMedium, letterSpacing: TRACKING.label },
 });

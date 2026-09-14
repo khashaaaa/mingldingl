@@ -98,14 +98,11 @@ export default function VideoScreen() {
   );
 
   if (error || !token) return (
-    <View style={[styles.centered, styles.stack]}>
-      <Text style={styles.unavailable}>
-        {error ?? i18n.t('video_unavailable')}
-      </Text>
+    <StateBlock tone="danger" icon="video-off" title={error ?? i18n.t('video_unavailable')}>
       <GameButton variant="ink" onPress={() => router.back()}>
         {i18n.t('back')}
       </GameButton>
-    </View>
+    </StateBlock>
   );
 
   // A failed connection used to bounce the user straight back to the chat with no explanation —
@@ -181,9 +178,6 @@ export default function VideoScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: SURFACE.ground },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  stack: { gap: SPACE.lg },
-  failPadding: { paddingHorizontal: SPACE.huge },
-  unavailable: { color: INK.primary, fontSize: FONT_SIZES.xl, textAlign: 'center', fontFamily: FONTS.body },
   riteFraming: {
     position: 'absolute',
     top: 16,

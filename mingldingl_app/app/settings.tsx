@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
+import { useAndroidKeyboardHeight } from '../hooks/useAndroidKeyboardHeight';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
@@ -28,6 +30,10 @@ const PAUSE_OPTIONS = ['off', 'on'] as const;
 
 export default function SettingsScreen() {
   const tail = useScrollTail();
+  // Read from the context rather than `useSafeAreaInsets`, which throws outside a provider — the
+  // bottom inset only matters here while the Android keyboard is up.
+  const bottomInset = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
+  const keyboardHeight = useAndroidKeyboardHeight();
   const soundEnabled = useSoundStore((st) => st.enabled);
   const setSoundEnabled = useSoundStore((st) => st.set);
   const router = useRouter();
@@ -147,7 +153,12 @@ export default function SettingsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, Platform.OS === 'android' && {
+      // The age fields sit mid-page and edge-to-edge does not resize the window for the keyboard,
+      // so they and their Save were hidden under it. Pad by the measured keyboard plus the
+      // navigation bar its height stops at, as the chat composer does.
+      paddingBottom: keyboardHeight > 0 ? keyboardHeight + bottomInset : 0,
+    }]}>
       <HeaderBar title={i18n.t('settings_title')}>
         {/* `length` is the strip's *depth*, not its along-edge span — a top/bottom `FrostEdge`
             already stretches to the full width on its own (`components/vfx/FrostEdge.tsx`). A rim
@@ -159,7 +170,10 @@ export default function SettingsScreen() {
           </View>
         </View>
       </HeaderBar>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: keyboardHeight > 0 ? SPACE.lg : tail }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <ChoiceRow
           label={i18n.t('language')}
           value={(locale === 'mn' ? 'mn' : 'en') as (typeof LANGUAGE_OPTIONS)[number]}
