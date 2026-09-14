@@ -94,8 +94,9 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
             <View style={styles.labelStack}>
               <Text
                 style={[styles.label, { color: labelColor }, { fontSize: sz.fontSize, letterSpacing: sz.letterSpacing }]}
-
-                numberOfLines={1}
+                // `adjustsFontSizeToFit` is iOS-only, so on Android a long Mongolian label on a
+                // full-size slab simply truncated. The compact size stays one tidy line.
+                numberOfLines={isMetal && size === 'default' ? 2 : 1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.7}
               >

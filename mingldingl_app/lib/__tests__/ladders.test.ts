@@ -125,6 +125,19 @@ describe('touch', () => {
     expect(offenders).toEqual([]);
   });
 
+  /**
+   * The same rule reached around from the other side: a `Pressable` whose style is a function of
+   * `pressed` is a touchable that owns its own press value again — `NextGatheringPill` faded itself
+   * to a hand-picked 0.8 that way. A control that animates its own press (GameButton, the wax seal)
+   * does it through `onPressIn`, never a `pressed` style, so this has nothing legitimate to catch.
+   */
+  it('never hand-writes a press style off `pressed`', () => {
+    const offenders = sources()
+      .filter((f) => /\(\s*\{\s*pressed\s*\}\s*\)\s*=>|\bpressed\s*(?:&&|\?)/.test(f.text))
+      .map((f) => f.rel);
+    expect(offenders).toEqual([]);
+  });
+
   it('keeps the standard press distinguishable from no press at all', () => {
     expect(PRESS.opacity).toBeLessThan(PRESS.none);
     expect(PRESS.disabled).toBeLessThan(PRESS.opacity);

@@ -47,7 +47,7 @@ export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSe
             keyExtractor={(c) => c}
             style={styles.list}
             renderItem={({ item }) => (
-              <Tap style={styles.row} onPress={() => handlePress(item)}>
+              <Tap style={styles.row} onPress={() => handlePress(item)} accessibilityRole="button">
                 <Text style={styles.rowText}>{item}</Text>
               </Tap>
             )}

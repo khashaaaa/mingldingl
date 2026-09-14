@@ -1,12 +1,18 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Tap } from '../ui/Tap';
 import { usePendingShips } from '../../hooks/usePendingShips';
 import { i18n } from '../../lib/i18n';
-import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, SURFACE } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../../lib/theme';
 import { AppCard } from '../ui/AppCard';
 import { CardEyebrow } from '../ui/CardEyebrow';
+import { GameButton } from '../ui/GameButton';
 import { Icon } from '../ui/Icon';
 
+/**
+ * Both answers are ink. This section renders on the Quest Log (`app/(tabs)/activity.tsx`), whose
+ * forge belongs to `QuestBoard`'s chest claim — a primary "Find Out" here would put a second slab
+ * on the same screen. The accept carries the thread's own mark so it still reads as the answer
+ * the prompt is asking for, without borrowing the forge to say so.
+ */
 export function FatedThreadsSection() {
   const { pendingShips, respond } = usePendingShips();
 
@@ -22,18 +28,21 @@ export function FatedThreadsSection() {
             {i18n.t('ship_prompt_message', { weaver: ship.weaverDisplayName })}
           </Text>
           <View style={styles.actions}>
-            <Tap
-              style={[styles.btn, styles.pass]}
+            <GameButton
+              variant="ink"
+              flex={1}
               onPress={() => respond({ shipId: ship.shipId, accept: false })}
             >
-              <Text style={styles.passText}>{i18n.t('ship_pass')}</Text>
-            </Tap>
-            <Tap
-              style={[styles.btn, styles.accept]}
+              {i18n.t('ship_pass')}
+            </GameButton>
+            <GameButton
+              variant="ink"
+              icon="bow-arrow"
+              flex={1}
               onPress={() => respond({ shipId: ship.shipId, accept: true })}
             >
-              <Text style={styles.acceptText}>{i18n.t('ship_accept')}</Text>
-            </Tap>
+              {i18n.t('ship_accept')}
+            </GameButton>
           </View>
         </AppCard>
       ))}
@@ -46,9 +55,4 @@ const styles = StyleSheet.create({
   card: { padding: SPACE.lg, gap: SPACE.md },
   message: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.primary, lineHeight: LEADING.md },
   actions: { flexDirection: 'row', gap: SPACE.md },
-  btn: { flex: 1, paddingVertical: SPACE.md, borderRadius: RADIUS.sm, alignItems: 'center', borderWidth: 1 },
-  pass: { borderColor: LINE.edge, backgroundColor: SURFACE.raised },
-  passText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.dim },
-  accept: { borderColor: ACCENT.base, backgroundColor: ACCENT.soft },
-  acceptText: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
 });

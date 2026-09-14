@@ -1,3 +1,4 @@
+import type { GlyphName } from '../components/ui/Glyph';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import * as SecureStore from 'expo-secure-store';
@@ -13,8 +14,8 @@ interface AuthState {
   setPendingDrop: (drop: { nameKey: string; rarity: string } | null) => void;
   pendingTierUp: string | null;
   setPendingTierUp: (tier: string | null) => void;
-  pendingNudge: { icon: string; title: string; matchId: string } | null;
-  setPendingNudge: (nudge: { icon: string; title: string; matchId: string } | null) => void;
+  pendingNudge: { icon: GlyphName; title: string; matchId: string } | null;
+  setPendingNudge: (nudge: { icon: GlyphName; title: string; matchId: string } | null) => void;
 
   /**
    * The engine answers every request from a banned account with 403 `account.suspended`. Without

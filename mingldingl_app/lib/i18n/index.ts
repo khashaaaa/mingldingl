@@ -130,6 +130,10 @@ export const AWAITING_MN_TRANSLATION = [
   'satchel_sum_candles', 'satchel_sum_candles_one', 'satchel_sum_candles_none', 'satchel_sum_arrows', 'satchel_sum_arrows_one',
   'satchel_sum_lantern',
   'satchel_law',
+  // The plaza drawing's carved labels, moved out of the SVG as literals.
+  'plaza_gate_north', 'plaza_gate_south', 'plaza_bell', 'plaza_you',
+  // Audit W5: number-in-sentence formats (a translator only confirms the order) and the add-photo tile's label.
+  'count_of_total', 'points_gain', 'next_tier_arrow', 'name_age', 'tier_score', 'getting_started_progress', 'add_photo',
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

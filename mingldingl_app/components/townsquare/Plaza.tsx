@@ -128,10 +128,10 @@ export function Plaza({ width, lanterns, mine, open }: Props) {
 
         {/* North and south gates: a carved label either way, and a short bar across the shut one. */}
         <SvgText x={cx} y={INSET + 12} fontFamily={FONTS.utility} fontSize={FONT_SIZES.xs} fill={gateColor} textAnchor="middle">
-          NORTH GATE
+          {i18n.t('plaza_gate_north')}
         </SvgText>
         <SvgText x={cx} y={HEIGHT - INSET - 4} fontFamily={FONTS.utility} fontSize={FONT_SIZES.xs} fill={gateColor} textAnchor="middle">
-          SOUTH GATE
+          {i18n.t('plaza_gate_south')}
         </SvgText>
         {!open && (
           <>
@@ -148,7 +148,7 @@ export function Plaza({ width, lanterns, mine, open }: Props) {
           ))}
         </G>
         <SvgText x={cx} y={cy + BELL_R + 12} fontFamily={FONTS.utility} fontSize={FONT_SIZES.xs} fill={INK.dim} textAnchor="middle">
-          THE BELL
+          {i18n.t('plaza_bell')}
         </SvgText>
 
         {positions.map((pos, i) => (
@@ -160,7 +160,7 @@ export function Plaza({ width, lanterns, mine, open }: Props) {
             x={positions[count - 1].x} y={positions[count - 1].y + LANTERN_R + 10}
             fontFamily={FONTS.utility} fontSize={FONT_SIZES.xs} fill={ACCENT.bright} textAnchor="middle"
           >
-            YOU
+            {i18n.t('plaza_you')}
           </SvgText>
         )}
       </Svg>

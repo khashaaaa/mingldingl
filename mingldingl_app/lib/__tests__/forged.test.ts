@@ -104,6 +104,129 @@ describe('one forged button per screen', () => {
 });
 
 /**
+ * …and the forge a screen borrows.
+ *
+ * Counting per file only sees the slabs a file writes itself. A screen that renders `CandidateCard`
+ * or `QuestBoard` also carries the forged button *inside* that component, and the rule above could
+ * not see it: a screen could hold one forge of its own plus one borrowed and pass. So a file's
+ * count here is its own forged tags plus, recursively, those of every component it imports from
+ * this app *and actually renders* (`<Name` appears in it). Modals stay exempt as before.
+ *
+ * A forged button drawn inside an `<AppModal>` or `<SheetModal>` region is left out of both counts —
+ * the same exemption `components/modals/**` has, reached by shape rather than by folder: the
+ * character sheet's share preview and its honour story sheet are their own surfaces. So is a
+ * component rendered only inside such a region (the Flame Rite card in the chat's activities sheet).
+ *
+ * One level of honesty is lost on purpose: the scanner does not parse render branches. A screen
+ * whose own forged button lives only in a failure state that *replaces* the borrowed component —
+ * an early `return` for `isError`, or the other arm of a ternary — spends its forge once on screen
+ * and twice on paper. Those are listed below with their branch named, capped at 2 like `BRANCHED`.
+ */
+const EXCLUSIVE_WITH_BORROWED: Record<string, string> = {
+  // `if (isError) return` — the retry replaces the whole deck, so it never sits beside CandidateCard.
+  [path.join('app', '(tabs)', 'discover.tsx')]: 'error early return vs CandidateCard',
+  // `closed || (isError && !session) ? <StateBlock retry> : <SessionStatusCard>`.
+  [path.join('app', '(tabs)', 'townsquare.tsx')]: 'error arm vs SessionStatusCard arm',
+  // `callFailed ? <StateBlock rejoin> : <AgoraVideoCall>`, and `{!callFailed && <RoundPrompt>}`.
+  [path.join('app', 'townsquare-round', '[sessionId].tsx')]: 'callFailed rejoin vs RoundPrompt',
+  // The profile-load `return` with its retry vs `ErrorBoundary`'s own crash screen, which replaces the tree.
+  [path.join('app', '_layout.tsx')]: 'profile-load error return vs ErrorBoundary crash screen',
+};
+
+/**
+ * Wizards: files that render exactly one of their step components at a time, so they borrow the
+ * largest step's forge rather than the sum of all of them.
+ */
+const WIZARDS = new Set([path.join('app', '(onboarding)', 'index.tsx')]);
+
+/** A modal by role but not by folder (see the note at the top): held to the per-file rule, never
+ *  borrowed from, because it is drawn over the screen that already spent its forge. */
+const MODAL_BY_ROLE = new Set([path.join('components', 'settings', 'PhoneChangeModal.tsx')]);
+
+describe('one forged button per screen, counting the ones it borrows', () => {
+  // Modal regions blanked (newlines kept, so reported lines still point somewhere).
+  const blankModals = (text: string) =>
+    text.replace(/<(AppModal|SheetModal)\b[\s\S]*?<\/\1>/g, (m) => m.replace(/[^\n]/g, ' '));
+  const sources = appSources().map((f) => ({ rel: f.rel, text: blankModals(f.text) }));
+  const byRel = new Map(sources.map((f) => [f.rel, f]));
+  const isScreen = (rel: string) =>
+    (rel.startsWith('app' + path.sep) || rel.startsWith('components' + path.sep)) && !rel.startsWith(MODALS);
+
+  function resolve(fromRel: string, spec: string): string | null {
+    if (!spec.startsWith('.')) return null;
+    const base = path.normalize(path.join(path.dirname(fromRel), spec));
+    for (const candidate of [`${base}.tsx`, `${base}.ts`, path.join(base, 'index.tsx')]) {
+      if (byRel.has(candidate)) return candidate;
+    }
+    return null;
+  }
+
+  /** The app files this one imports a capitalised binding from and renders as a tag. */
+  function rendered(rel: string): string[] {
+    const text = byRel.get(rel)!.text;
+    const out = new Set<string>();
+    for (const m of text.matchAll(/import\s+(?!type\s)([^;]*?)\s+from\s+['"]([^'"]+)['"]/g)) {
+      const target = resolve(rel, m[2]);
+      if (!target || !isScreen(target) || MODAL_BY_ROLE.has(target)) continue;
+      const names: string[] = [];
+      const def = m[1].match(/^\s*([A-Za-z_$][\w$]*)/);
+      if (def) names.push(def[1]);
+      const named = m[1].match(/\{([^}]*)\}/);
+      for (const part of named ? named[1].split(',') : []) {
+        const bits = part.trim().replace(/^type\s+/, '').split(/\s+as\s+/);
+        if (bits[0]) names.push(bits[bits.length - 1]);
+      }
+      if (names.some((n) => /^[A-Z]/.test(n) && openingTags(text, n).length > 0)) out.add(target);
+    }
+    return [...out];
+  }
+
+  const memo = new Map<string, number>();
+  function total(rel: string, seen: Set<string> = new Set()): number {
+    if (memo.has(rel)) return memo.get(rel)!;
+    if (seen.has(rel)) return 0;
+    seen.add(rel);
+    const own = forged(byRel.get(rel)!.text).length;
+    const deps = rendered(rel).map((dep) => total(dep, seen));
+    const borrowed = WIZARDS.has(rel) ? Math.max(0, ...deps) : deps.reduce((sum, n) => sum + n, 0);
+    memo.set(rel, own + borrowed);
+    return own + borrowed;
+  }
+
+  const screens = sources.filter((f) => isScreen(f.rel)).map((f) => f.rel);
+
+  it('sees the forge inside the components that always bring one', () => {
+    // Guards the import walk: each of these hosts renders a component holding a forged button.
+    const hosts: [string, string][] = [
+      [path.join('app', '(tabs)', 'discover.tsx'), path.join('components', 'cards', 'CandidateCard.tsx')],
+      [path.join('app', '(tabs)', 'townsquare.tsx'), path.join('components', 'townsquare', 'SessionStatusCard.tsx')],
+      [path.join('app', '(tabs)', 'activity.tsx'), path.join('components', 'quest', 'QuestBoard.tsx')],
+      [path.join('app', 'townsquare-round', '[sessionId].tsx'), path.join('components', 'townsquare', 'RoundPrompt.tsx')],
+      [path.join('app', '(tabs)', 'profile.tsx'), path.join('components', 'profile', 'DeletionPendingBanner.tsx')],
+    ];
+    for (const [host, dep] of hosts) {
+      expect({ host, renders: rendered(host) }).toEqual({ host, renders: expect.arrayContaining([dep]) });
+      expect({ dep, forged: forged(byRel.get(dep)!.text).length }).toEqual({ dep, forged: 1 });
+    }
+  });
+
+  it('never forges two buttons on one screen, borrowed ones included', () => {
+    const offenders = screens
+      .map((rel) => ({ rel, n: total(rel) }))
+      .filter(({ rel, n }) => n > (BRANCHED.has(rel) || rel in EXCLUSIVE_WITH_BORROWED ? 2 : 1))
+      .map(({ rel, n }) => `${rel}: ${n} forged (own ${forged(byRel.get(rel)!.text).length}; ${rendered(rel).filter((d) => total(d) > 0).map((d) => `${d} ${total(d)}`).join(", ")})`);
+    expect(offenders).toEqual([]);
+  });
+
+  it('keeps the exclusive-branch list honest', () => {
+    const stale = Object.keys(EXCLUSIVE_WITH_BORROWED).filter((rel) => !byRel.has(rel) || total(rel) < 2);
+    expect(stale).toEqual([]);
+    const wizardsGone = [...WIZARDS].filter((rel) => !byRel.has(rel) || rendered(rel).filter((d) => total(d) > 0).length < 2);
+    expect(wizardsGone).toEqual([]);
+  });
+});
+
+/**
  * …and the other half of the same rule: the secondary actions actually went there.
  *
  * "One forged, the rest ink" is two claims, and the count above only checks the first. A screen

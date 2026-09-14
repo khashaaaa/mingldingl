@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { METAL } from './theme';
-import { TIER_COLORS } from './tiers';
+import { GEM_COLORS } from './theme';
 
 export interface FestivalWindow {
   key: string;
@@ -16,9 +16,9 @@ export const FESTIVALS: FestivalWindow[] = [
   { key: 'naadam-2026', nameKey: 'festival_naadam', icon: 'bow-arrow', color: METAL.ember, start: '2026-07-11', end: '2026-07-13' },
   { key: 'naadam-2027', nameKey: 'festival_naadam', icon: 'bow-arrow', color: METAL.ember, start: '2027-07-11', end: '2027-07-13' },
   { key: 'naadam-2028', nameKey: 'festival_naadam', icon: 'bow-arrow', color: METAL.ember, start: '2028-07-11', end: '2028-07-13' },
-  { key: 'tsagaan-sar-2027', nameKey: 'festival_tsagaan_sar', icon: 'moon-full', color: TIER_COLORS.Opal, start: '2027-02-06', end: '2027-02-08' },
-  { key: 'tsagaan-sar-2028', nameKey: 'festival_tsagaan_sar', icon: 'moon-full', color: TIER_COLORS.Opal, start: '2028-02-24', end: '2028-02-26' },
-  { key: 'tsagaan-sar-2029', nameKey: 'festival_tsagaan_sar', icon: 'moon-full', color: TIER_COLORS.Opal, start: '2029-02-13', end: '2029-02-15' },
+  { key: 'tsagaan-sar-2027', nameKey: 'festival_tsagaan_sar', icon: 'moon-full', color: GEM_COLORS.Opal, start: '2027-02-06', end: '2027-02-08' },
+  { key: 'tsagaan-sar-2028', nameKey: 'festival_tsagaan_sar', icon: 'moon-full', color: GEM_COLORS.Opal, start: '2028-02-24', end: '2028-02-26' },
+  { key: 'tsagaan-sar-2029', nameKey: 'festival_tsagaan_sar', icon: 'moon-full', color: GEM_COLORS.Opal, start: '2029-02-13', end: '2029-02-15' },
 ];
 
 export function activeFestival(now: Date = new Date()): FestivalWindow | null {

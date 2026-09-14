@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier, shadeForTier, presenceForTier } from '../../lib/tiers';
 import { BADGE_SIZES, INK, tint } from '../../lib/theme';
 import { TorchGlow } from '../vfx/TorchGlow';
+import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
 interface Props {
   tier: string;
@@ -32,7 +33,10 @@ export function GemTierBadge({ tier, size = BADGE_SIZES.hero, glow = false, colo
   const shade = shadeOverride ?? shadeForTier(tier);
   const presence = presenceForTier(tier, size);
 
-  const hasShimmer = presence.shimmer > 0;
+  // Reduce motion keeps the rank (ring weight, glow) and drops only the sweep: a shimmer is nothing
+  // but motion, so its still form is no shimmer at all.
+  const animate = motionAllowed(useVfxLevel());
+  const hasShimmer = presence.shimmer > 0 && animate;
   const hasGlow = glow && presence.glowStrength > 0;
   const gemSize = size * 0.68;
   const highlightSize = gemSize * 0.55;

@@ -17,12 +17,12 @@ import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
 import { useHonourProgress, type HonourProgress } from '../../hooks/useHonourProgress';
 import { useIgnition } from '../../hooks/useIgnition';
 import { useAuthStore } from '../../store/authStore';
-import { HONOUR_DEED_KEYS, HONOUR_ICONS, HONOUR_IDS, HONOUR_LORE_KEYS, METAL_COLORS, THREAD_HONOUR_IDS, itemLabel, type HonourId } from '../../lib/tiers';
+import { HONOUR_DEED_KEYS, HONOUR_ICONS, HONOUR_IDS, HONOUR_LORE_KEYS, THREAD_HONOUR_IDS, metalForRarity, itemLabel, type HonourId } from '../../lib/tiers';
 import { formatDate } from '../../lib/formatDate';
 import { i18n, tKey } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { signal } from '../../lib/world/feedback';
-import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, SURFACE, TRACKING, circle, tint } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE, TRACKING, circle, tint } from '../../lib/theme';
 interface HeldHonour {
   itemId?: string | null;
   rarity?: string | null;
@@ -114,7 +114,7 @@ export function HonourCase() {
     <AppCard style={styles.card}>
       <View style={styles.eyebrowRow}>
         <CardEyebrow>{i18n.t('honours')}</CardEyebrow>
-        <Text style={styles.count} testID="honour-count">{heldIds.length} / {HONOUR_IDS.length}</Text>
+        <Text style={styles.count} testID="honour-count">{i18n.t('count_of_total', { held: heldIds.length, total: HONOUR_IDS.length })}</Text>
       </View>
       <Text style={styles.hint}>{i18n.t('honours_hint')}</Text>
       <View style={styles.hall}>
@@ -145,10 +145,10 @@ export function HonourCase() {
           <SectionDivider />
           <CardEyebrow>{i18n.t('milestones')}</CardEyebrow>
           {unopened.map((m) => (
-            <Tap key={m.id} disabled={isOpening} onPress={() => handleOpenMilestone(m.id!)} style={styles.milestoneRow}>
+            <Tap key={m.id} disabled={isOpening} onPress={() => handleOpenMilestone(m.id!)} style={styles.milestoneRow} accessibilityRole="button">
               <Icon name="treasure-chest-outline" size={ICON_SIZES.lg} color={ACCENT.base} />
               <Text style={styles.milestoneName}>{tKey(m.nameKey)}</Text>
-              <Text style={styles.milestoneXp}>+{m.xp}</Text>
+              <Text style={styles.milestoneXp}>{i18n.t('points_gain', { points: m.xp })}</Text>
             </Tap>
           ))}
         </>
@@ -202,7 +202,7 @@ export function HonourCase() {
 }
 
 function metalFor(held: HeldHonour): string {
-  return METAL_COLORS[held.rarity ?? ''] ?? METAL.gold;
+  return metalForRarity(held.rarity);
 }
 
 interface SlotProps {
@@ -277,6 +277,7 @@ function HonourSlot({ id, held, ignited, progress, animate, onPress, onLongPress
   return (
     <Tap
       testID={`honour-${id}`}
+      accessibilityRole="button"
       // Not `disabled` for a dark slot: RN's Touchable reads `accessibilityState.disabled` as
       // `disabled`, which would swallow the long press that opens its story.
       accessibilityLabel={`${itemLabel(id)} · ${held ? formatDate(held.acquiredAt) : tKey(HONOUR_DEED_KEYS[id])}`}
@@ -284,7 +285,6 @@ function HonourSlot({ id, held, ignited, progress, animate, onPress, onLongPress
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={350}
-     
       style={[styles.slot, held?.equipped && styles.slotEquipped]}
     >
       <Animated.View style={[styles.slotBody, { opacity: held ? litOpacity : 0.55 }]}>
@@ -330,9 +330,6 @@ function HonourSlot({ id, held, ignited, progress, animate, onPress, onLongPress
                 <View style={styles.progressTrack}>
                   <View style={[styles.progressFill, { width: `${Math.round(pct * 100)}%` }]} />
                 </View>
-                {/* Also used by GettingStartedCard's compact progress line (a deliberate reuse of
-                    this already-translated key) — a honours-specific rewording here would silently
-                    retext that unrelated onboarding board too. */}
                 <Text style={styles.progressText}>{i18n.t('honour_progress', { held: progress.held, needed: progress.needed })}</Text>
               </View>
             )}

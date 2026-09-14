@@ -77,7 +77,7 @@ export default function ActivityScreen() {
           )} />
         ) : isError ? (
           <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('screen_load_error')}>
-            <GameButton size="compact" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
+            <GameButton variant="ink" size="compact" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
           </StateBlock>
         ) : !businesses || businesses.length === 0 ? (
           <EmptyHint>{i18n.t('no_missions')}</EmptyHint>

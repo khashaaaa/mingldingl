@@ -1,5 +1,5 @@
 import { View as RNView, Text as RNText, Image as RNImage, StyleSheet } from 'react-native';
-import { i18n, tKey } from '../lib/i18n';
+import { i18n, isLatin, tKey } from '../lib/i18n';
 import { tint as tintColor, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, TRACKING, glow } from '../lib/theme';
 import { ORNAMENTS } from '../lib/ornaments';
 import type { Oath } from '../models/user';
@@ -50,6 +50,7 @@ export default function OathSigil({ oath, proven, size = 'md', progress }: Props
   if (!oath) return null;
   const sz = SIZES[size];
   const tint = proven ? ACCENT.bright : INK.muted;
+  const stateText = i18n.t(proven ? 'oath_state_proven' : 'oath_state_sworn');
 
   return (
     <RNView
@@ -73,11 +74,11 @@ export default function OathSigil({ oath, proven, size = 'md', progress }: Props
         />
       )}
       <RNView>
-        <RNText style={[styles.name, { fontSize: sz.name }]} numberOfLines={1}>
+        <RNText style={[styles.name, { fontSize: sz.name }]} numberOfLines={2}>
           {oathLabel(oath)}
         </RNText>
-        <RNText style={[styles.state, { fontSize: sz.state, color: tint }]}>
-          {i18n.t(proven ? 'oath_state_proven' : 'oath_state_sworn')}
+        <RNText style={[styles.state, isLatin(stateText) && styles.stateCaps, { fontSize: sz.state, color: tint }]}>
+          {stateText}
         </RNText>
         {!proven && progress && (
           <RNText style={styles.progress}>
@@ -98,6 +99,8 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
   },
   name: { fontFamily: FONTS.bodyBold, color: INK.primary, letterSpacing: TRACKING.body },
-  state: { fontFamily: FONTS.utility, letterSpacing: TRACKING.label, textTransform: 'uppercase' },
+  state: { fontFamily: FONTS.utility, letterSpacing: TRACKING.label },
+  // Caps are a Latin habit: a tracked, uppercased Cyrillic word reads as shouting, not as a label.
+  stateCaps: { textTransform: 'uppercase' },
   progress: { fontFamily: FONTS.body, fontSize: FONT_SIZES.xs, color: INK.dim, marginTop: SPACE.hair },
 });

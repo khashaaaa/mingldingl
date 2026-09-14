@@ -20,7 +20,7 @@ interface Props {
 export function QuestBanner({ icon, title, onPress, disabled = false, tint = ACCENT.base, medallion = 'icon' }: Props) {
   const colour = disabled ? INK.dim : tint;
   return (
-    <Tap onPress={onPress} disabled={disabled || !onPress}>
+    <Tap onPress={onPress} disabled={disabled || !onPress} accessibilityRole="button" accessibilityState={{ disabled }}>
       <View style={[styles.row, { borderColor: tintColor(colour, 0.53) }]}>
         <View style={[styles.medallion, { borderColor: colour }]}>
           {medallion === 'knot' && !disabled ? (
@@ -30,7 +30,9 @@ export function QuestBanner({ icon, title, onPress, disabled = false, tint = ACC
           )}
         </View>
         <Text style={[styles.title, { color: colour }]} numberOfLines={2}>{title}</Text>
-        {!disabled && <Text style={[styles.chevron, { color: colour }]}>›</Text>}
+        {!disabled && (
+          <Text style={[styles.chevron, { color: colour }]} accessibilityElementsHidden importantForAccessibility="no">›</Text>
+        )}
       </View>
     </Tap>
   );
@@ -59,5 +61,5 @@ const styles = StyleSheet.create({
   },
   title: { flex: 1, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
   chevron: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl },
-  knot: { width: 20, height: 20 },
+  knot: { width: ICON_SIZES.lg, height: ICON_SIZES.lg },
 });

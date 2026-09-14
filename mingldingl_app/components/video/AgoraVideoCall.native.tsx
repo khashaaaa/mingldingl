@@ -143,5 +143,5 @@ const styles = StyleSheet.create({
     position: 'absolute', top: SPACE.lg, right: SPACE.lg,
     width: 100, height: 140, borderRadius: RADIUS.lg, overflow: 'hidden',
   },
-  placeholder: { flex: 1, backgroundColor: SURFACE.ground, alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
+  placeholder: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', gap: SPACE.md },
 });

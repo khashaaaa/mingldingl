@@ -17,7 +17,7 @@ interface WorldValue {
 }
 
 /** How often the hold looks out of the window: the day phase and the hearth clock both tick here. */
-export const CLOCK_TICK_MS = 60_000;
+const CLOCK_TICK_MS = 60_000;
 
 const WorldContext = createContext<WorldValue | null>(null);
 

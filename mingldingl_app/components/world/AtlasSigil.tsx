@@ -22,7 +22,8 @@ export function AtlasSigil() {
     <>
       <Pressable
         onPress={() => setOpen(true)}
-        hitSlop={SPACE.sm}
+        // A 20pt knot plus 12pt on every side: the 44pt minimum target.
+        hitSlop={SPACE.md}
         accessibilityRole="button"
         accessibilityLabel={i18n.t('hold_open')}
         testID="atlas-sigil"

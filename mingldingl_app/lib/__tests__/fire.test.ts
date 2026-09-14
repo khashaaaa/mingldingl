@@ -1,4 +1,5 @@
-import { fireOf, fireLine, fireEyebrow, fireVerdict } from '../fire';
+import { fireOf, fireLine, fireEyebrow, fireVerdict, fireMark } from '../fire';
+import { ACCENT, INK, METAL, TEMPERATURE } from '../theme';
 import type { Match } from '../../models/match';
 
 const at = (y: number, m: number, d: number, h = 0, min = 0) => new Date(y, m - 1, d, h, min).getTime();
@@ -115,5 +116,24 @@ describe('fireOf', () => {
     });
     const fire = fireOf(m, myId, now, { staleHours: 72, unansweredHours: 168 });
     expect(fire.judgedAtDawn).toBe(3);
+  });
+});
+
+describe('fireMark', () => {
+  // One table for the Log's tile and the hearth's rows: the two copies it replaced had already
+  // drifted on `unlit`, so the temperatures are pinned here rather than in either component.
+  it('marks each temperature with its own drawing and colour', () => {
+    expect(fireMark('burning')).toEqual({ mark: 'flame', color: ACCENT.bright });
+    expect(fireMark('embers')).toEqual({ mark: 'ember', color: METAL.ember });
+    expect(fireMark('frozen')).toEqual({ mark: 'ice', color: TEMPERATURE.glacier });
+  });
+
+  it('draws no mark for an unlit fire, in dim ink unless the caller names its colour', () => {
+    expect(fireMark('unlit')).toEqual({ mark: null, color: INK.dim });
+    expect(fireMark('unlit', ACCENT.base)).toEqual({ mark: null, color: ACCENT.base });
+  });
+
+  it('lets the caller choose only the unlit colour', () => {
+    expect(fireMark('burning', ACCENT.base).color).toBe(ACCENT.bright);
   });
 });

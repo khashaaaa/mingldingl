@@ -38,7 +38,7 @@ export function useRealtimeNudges() {
         queryClient.invalidateQueries({ queryKey: queryKeys.campaign(matchId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.icebreakerRevealByMatch(matchId) });
         setPendingNudge({
-          icon: '🧊',
+          icon: 'ice',
           title: i18n.t('nudge_icebreaker_answered', { name: otherUserName(matchId) }),
           matchId,
         });
@@ -50,7 +50,7 @@ export function useRealtimeNudges() {
         queryClient.invalidateQueries({ queryKey: queryKeys.campaign(matchId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.quizStatusByMatch(matchId) });
         setPendingNudge({
-          icon: '🎯',
+          icon: 'knot',
           title: i18n.t('nudge_quiz_answered', { name: otherUserName(matchId) }),
           matchId,
         });
@@ -63,7 +63,7 @@ export function useRealtimeNudges() {
         queryClient.invalidateQueries({ queryKey: queryKeys.activitySuggestions(matchId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.matches });
         setPendingNudge({
-          icon: '📍',
+          icon: 'pledge',
           title: i18n.t('nudge_date_confirmed', { name: otherUserName(matchId) }),
           matchId,
         });
@@ -80,7 +80,7 @@ export function useRealtimeNudges() {
           queryClient.invalidateQueries({ queryKey: key });
         }
         if (alreadyKnown) return;
-        setPendingNudge({ icon: '✨', title: i18n.t('nudge_new_match'), matchId });
+        setPendingNudge({ icon: 'fire', title: i18n.t('nudge_new_match'), matchId });
       })
       .on('broadcast', { event: 'message' }, (msg) => {
         const { senderId, matchId } = msg.payload as { senderId: string; matchId: string };
@@ -91,7 +91,7 @@ export function useRealtimeNudges() {
         queryClient.invalidateQueries({ queryKey: queryKeys.matches });
         if (matchId === useAuthStore.getState().activeChatMatchId) return;
         setPendingNudge({
-          icon: '💬',
+          icon: 'letters',
           title: i18n.t('nudge_new_message', { name: otherUserName(matchId) }),
           matchId,
         });

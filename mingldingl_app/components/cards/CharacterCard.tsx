@@ -5,8 +5,8 @@ import { oathLabel } from '../OathSigil';
 import { cap } from '../../lib/fire';
 import { countWord } from '../../lib/worldTime';
 import { CardEyebrow } from '../ui/CardEyebrow';
-import { Glyph } from '../ui/Glyph';
 import { FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { formatNumber } from '../../lib/numerals';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
 import type { GemTier, Oath } from '../../models/user';
@@ -76,11 +76,18 @@ export function CharacterCard({ displayName, photoUrl, gemTier, totalScore, curr
       </View>
       <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
       <CardEyebrow color={tierColor} style={styles.gemScore}>
-        {`${tierLabel(gemTier)} · ${totalScore.toLocaleString()}`}
+        {i18n.t('tier_score', { tier: tierLabel(gemTier), score: formatNumber(totalScore) })}
       </CardEyebrow>
       <Text style={styles.streak}>{streakLine}</Text>
       <Text style={styles.wordmark}>MingldIngl</Text>
-      <Glyph name="seal" size={ICON_SIZES.xl} color={METAL.gold} style={styles.seal} />
+      {/* The ornament, not a wax seal: wax means "binds", and a poster binds no one to anything. */}
+      <Image
+        source={ORNAMENTS.knotGold}
+        testID="ulzii-card-knot"
+        style={styles.knot}
+        importantForAccessibility="no-hide-descendants"
+        accessibilityElementsHidden
+      />
     </View>
   );
 }
@@ -118,11 +125,11 @@ const styles = StyleSheet.create({
   },
   wordmark: {
     position: 'absolute',
-    bottom: 24,
-    fontFamily: FONTS.display,
+    bottom: SPACE.xxl,
+    fontFamily: FONTS.wordmark,
     fontSize: FONT_SIZES.md,
     letterSpacing: TRACKING.ceremony,
     color: INK.dim,
   },
-  seal: { position: 'absolute', bottom: 20, right: 20 },
+  knot: { position: 'absolute', width: ICON_SIZES.xl, height: ICON_SIZES.xl, bottom: SPACE.xl, right: SPACE.xl },
 });

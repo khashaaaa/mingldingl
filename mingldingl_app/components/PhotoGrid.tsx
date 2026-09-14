@@ -110,6 +110,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
           )}
           <Tap
             style={styles.deleteButton}
+            accessibilityRole="button"
             accessibilityLabel={i18n.t('remove_photo')}
             onPress={() => setPendingDeleteUrl(url)}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -119,6 +120,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
           {i !== 0 && (
             <Tap
               style={styles.primaryButton}
+              accessibilityRole="button"
               accessibilityLabel={i18n.t('set_as_primary')}
               onPress={() => handleSetPrimary(url)}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -132,6 +134,9 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
         <Tap
           style={[styles.tile, styles.addTile]}
           disabled={uploading}
+          accessibilityRole="button"
+          accessibilityLabel={i18n.t('add_photo')}
+          accessibilityState={{ disabled: uploading, busy: uploading }}
           onPress={() => setSourceModalVisible(true)}
         >
           {uploading ? <Waiting size={ICON_SIZES.md} /> : <Icon name="image-plus" size={ICON_SIZES.xxl} color={INK.dim} />}
@@ -215,13 +220,13 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   primaryBadge: {
-    position: 'absolute', top: 4, left: 4,
+    position: 'absolute', top: SPACE.xs, left: SPACE.xs,
     ...circle(18),
     backgroundColor: METAL.gold,
     alignItems: 'center', justifyContent: 'center',
   },
   deleteButton: {
-    position: 'absolute', top: 4, right: 4,
+    position: 'absolute', top: SPACE.xs, right: SPACE.xs,
     ...circle(22),
     backgroundColor: overlay(SCRIM.veilStrong),
     alignItems: 'center', justifyContent: 'center',
@@ -230,7 +235,7 @@ const styles = StyleSheet.create({
   // is the primary, button when it isn't), so the star means "primary" in one fixed place instead
   // of jumping from the top-left of the first tile to the bottom-right of the others.
   primaryButton: {
-    position: 'absolute', top: 4, left: 4,
+    position: 'absolute', top: SPACE.xs, left: SPACE.xs,
     ...circle(22),
     backgroundColor: overlay(SCRIM.veilStrong),
     alignItems: 'center', justifyContent: 'center',

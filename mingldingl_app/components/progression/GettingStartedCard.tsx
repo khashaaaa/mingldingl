@@ -31,7 +31,7 @@ function StepRow({ step }: { step: Step }) {
     </View>
   );
   if (!step.onPress) return row;
-  return <Tap onPress={step.onPress}>{row}</Tap>;
+  return <Tap onPress={step.onPress} accessibilityRole="button">{row}</Tap>;
 }
 
 export function GettingStartedCard({ isProfileComplete, achievedMilestoneIds, onCompleteProfile }: Props) {
@@ -60,12 +60,10 @@ export function GettingStartedCard({ isProfileComplete, achievedMilestoneIds, on
       <View style={styles.compactCard} testID="getting-started-compact">
         <Icon name="check-circle" size={ICON_SIZES.sm} color={ACCENT.base} />
         <CardEyebrow style={styles.compactLabel}>{i18n.t('getting_started_title')}</CardEyebrow>
-        {/* Reuses the existing "%{held} of %{needed}" key rather than adding a new one — it
-            already carries a Mongolian translation with the word order that language needs.
-            Its other call site is HonourCase.tsx's trophy progress — the key is named for
-            honours, so a honours-specific copy edit there would silently retext this board too. */}
+        {/* Its own key rather than HonourCase's `honour_progress`: a rewording of the honours'
+            progress would otherwise silently retext this board too. */}
         <Text style={styles.compactProgress}>
-          {i18n.t('honour_progress', { held: doneCount, needed: steps.length })}
+          {i18n.t('getting_started_progress', { held: doneCount, needed: steps.length })}
         </Text>
       </View>
     );

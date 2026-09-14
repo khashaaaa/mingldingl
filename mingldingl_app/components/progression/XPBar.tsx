@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { tierLabel } from '../../lib/tiers';
+import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TRACKING, tint } from '../../lib/theme';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { GemTierBadge } from './GemTierBadge';
@@ -26,20 +27,31 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
   const anim = useRef(new Animated.Value(0)).current;
   const shimmer = useRef(new Animated.Value(-60)).current;
   const flash = useRef(new Animated.Value(0)).current;
-  const prevPct = useRef(pct);
   const color = colorForTier(gemTier);
+  const animate = motionAllowed(useVfxLevel());
 
   useEffect(() => {
+    if (!animate) {
+      // Still: the bar stands at its value; no sweep, no flash (whose resting value is 0).
+      anim.setValue(pct);
+      shimmer.setValue(-60);
+      flash.setValue(0);
+      return;
+    }
     Animated.timing(anim, { toValue: pct, duration: 900, useNativeDriver: false }).start();
     shimmer.setValue(-60);
     Animated.timing(shimmer, { toValue: 320, duration: 700, delay: 300, useNativeDriver: true }).start();
+  }, [pct, animate, anim, shimmer, flash]);
 
-    if (pct < prevPct.current) {
+  // Kept apart from the fill so the drop is measured against the last value actually shown.
+  const lastPct = useRef(pct);
+  useEffect(() => {
+    if (animate && pct < lastPct.current) {
       flash.setValue(0.8);
       Animated.timing(flash, { toValue: 0, duration: 900, useNativeDriver: true }).start();
     }
-    prevPct.current = pct;
-  }, [pct, anim, shimmer, flash]);
+    lastPct.current = pct;
+  }, [pct, animate, flash]);
 
   const fillWidth = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   const pointsToNext = nextTier && nextTierThreshold != null ? Math.max(0, nextTierThreshold - totalScore) : null;
@@ -54,7 +66,7 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
           <GemTierBadge tier={gemTier} size={BADGE_SIZES.inline} />
           <Text style={[styles.tier, { color }]}>{tierLabel(gemTier)}</Text>
         </View>
-        {nextTier && <Text style={styles.next}>→ {tierLabel(nextTier)}</Text>}
+        {nextTier && <Text style={styles.next}>{i18n.t('next_tier_arrow', { tier: tierLabel(nextTier) })}</Text>}
       </View>
       <View style={styles.track}>
         <Image source={ORNAMENTS.fretGold} testID="ulzii-track-fret" style={styles.trackFret} />

@@ -58,7 +58,7 @@ describe('GettingStartedCard collapsed once started', () => {
     expect(getByText('FIRST STEPS')).toBeTruthy();
     // 3 of the 4 steps are done (profile, match, icebreaker) — reuses the existing
     // "%{held} of %{needed}" key rather than a new one.
-    expect(getByText(i18n.t('honour_progress', { held: 3, needed: 4 }))).toBeTruthy();
+    expect(getByText(i18n.t('getting_started_progress', { held: 3, needed: 4 }))).toBeTruthy();
     // None of the full board's per-step rows (or their touch targets) render once collapsed.
     expect(queryByText('Complete your profile')).toBeNull();
     expect(queryByText('Forge your first bond')).toBeNull();
@@ -80,6 +80,6 @@ describe('GettingStartedCard collapsed once started', () => {
       <GettingStartedCard isProfileComplete={true} achievedMilestoneIds={[]} onCompleteProfile={() => {}} />,
     );
     expect(getByTestId('getting-started-compact')).toBeTruthy();
-    expect(getByText(i18n.t('honour_progress', { held: 1, needed: 4 }))).toBeTruthy();
+    expect(getByText(i18n.t('getting_started_progress', { held: 1, needed: 4 }))).toBeTruthy();
   });
 });
