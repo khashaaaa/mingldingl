@@ -660,7 +660,9 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         Assert.IsType<OkObjectResult>(await controller.Unmatch(match.Id));
 
         Assert.NotNull(handler.LastRequestBody);
-        Assert.Contains("\"app-nudges\"", handler.LastRequestBody);
+        Assert.Contains($"\"topic\":\"user:{userId}\"", handler.LastRequestBody);
+        Assert.Contains($"\"topic\":\"user:{otherId}\"", handler.LastRequestBody);
+        Assert.DoesNotContain("app-nudges", handler.LastRequestBody);
         Assert.Contains("\"match_status_changed\"", handler.LastRequestBody);
         Assert.Contains("\"status\":\"Unmatched\"", handler.LastRequestBody);
         Assert.Contains($"\"matchId\":\"{match.Id}\"", handler.LastRequestBody);

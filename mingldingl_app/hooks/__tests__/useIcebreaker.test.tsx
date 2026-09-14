@@ -90,7 +90,9 @@ describe('useIcebreaker', () => {
       await waitFor(() => expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(3));
     });
 
-    it('stops polling (does not retry forever) once the reveal fetch fails with a real error', async () => {
+    // A single failed fetch (a dropped connection) used to stop the poll for good, so the partner's
+    // answer never appeared without leaving and re-entering the screen.
+    it('keeps polling after the reveal fetch fails with a real error', async () => {
       jest.useFakeTimers();
       mockApi.engagement.icebreaker.mockResolvedValue(question);
       const notFound = new AxiosError('Request failed with status code 404');
@@ -109,7 +111,7 @@ describe('useIcebreaker', () => {
         await jest.advanceTimersByTimeAsync(60000);
       });
 
-      expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(1);
+      expect(mockApi.engagement.icebreakerReveal).toHaveBeenCalledTimes(3);
     });
 
     it('stops polling once the reveal fetch resolves with data (even an empty array)', async () => {

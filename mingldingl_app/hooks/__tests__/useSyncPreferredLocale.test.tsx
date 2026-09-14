@@ -7,9 +7,10 @@ jest.mock('../../lib/api/apiClient', () => ({
 }));
 
 const mockInvalidate = jest.fn();
+const mockSetQueryData = jest.fn();
 jest.mock('@tanstack/react-query', () => ({
   ...jest.requireActual('@tanstack/react-query'),
-  useQueryClient: () => ({ invalidateQueries: mockInvalidate }),
+  useQueryClient: () => ({ invalidateQueries: mockInvalidate, setQueryData: mockSetQueryData }),
 }));
 
 const mockUpdate = apiClient.users.update as jest.Mock;
@@ -18,6 +19,7 @@ describe('useSyncPreferredLocale', () => {
   beforeEach(() => {
     mockUpdate.mockReset();
     mockInvalidate.mockReset();
+    mockSetQueryData.mockReset();
     mockUpdate.mockResolvedValue({});
   });
 
@@ -71,6 +73,26 @@ describe('useSyncPreferredLocale', () => {
     expect(invalidated).toEqual(expect.arrayContaining(['business', 'activity']));
     // Review text is user-written, not authored/localised server content, so it is not dropped.
     expect(invalidated).not.toContain('businessReviews');
+  });
+
+  // `storedLocale` comes off the cached profile. Without writing the new value back, switching
+  // en → mn → en compared "en" against the stale "en" and never told the engine about the return.
+  it('records the synced locale on the cached profile so switching back syncs too', async () => {
+    renderHook(() => useSyncPreferredLocale('mn', 'en'));
+    await act(async () => {});
+
+    expect(mockSetQueryData).toHaveBeenCalledWith(['userProfile'], expect.any(Function));
+    const updater = mockSetQueryData.mock.calls[0][1];
+    expect(updater({ id: 'u1', preferredLocale: 'en' })).toEqual({ id: 'u1', preferredLocale: 'mn' });
+    expect(updater(null)).toBeNull();
+  });
+
+  it('leaves the cached profile alone when the engine refused the change', async () => {
+    mockUpdate.mockRejectedValue(new Error('offline'));
+    renderHook(() => useSyncPreferredLocale('mn', 'en'));
+    await act(async () => {});
+
+    expect(mockSetQueryData).not.toHaveBeenCalled();
   });
 
   it('leaves the cache alone when there was nothing to sync', async () => {

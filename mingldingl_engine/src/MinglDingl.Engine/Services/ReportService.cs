@@ -79,7 +79,7 @@ public class ReportService
 
         foreach (var match in liveMatches)
         {
-            await _broadcast.BroadcastAsync("app-nudges", "match_status_changed",
+            await _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "match_status_changed",
                 new { matchId = match.Id, status = match.Status, userId = reporterId });
         }
 

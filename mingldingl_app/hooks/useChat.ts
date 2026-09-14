@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { supabase } from '../lib/supabase';
-import { subscribeWithRetry } from '../lib/realtime/subscribeWithRetry';
+import { subscribeToBroadcast } from '../lib/realtime/subscribeWithRetry';
 import { apiClient } from '../lib/api/apiClient';
 import type { components } from '../lib/api/api.generated';
 import { queryKeys } from '../lib/api/queryKeys';
@@ -107,14 +106,15 @@ export function useChat(matchId: string) {
   useEffect(() => {
     if (!matchId) return;
 
-    return subscribeWithRetry(
-      () => supabase
-        .channel(`chat:${matchId}`)
-        .on('broadcast', { event: 'INSERT' }, (msg) => {
+    return subscribeToBroadcast(
+      `chat:${matchId}`,
+      {
+        INSERT: (msg) => {
           const incoming = parseMessage(msg.payload as components['schemas']['MessageResponse']);
           qc.setQueryData<Message[]>(queryKeys.messages(matchId), (old) =>
             mergeMessages(old ?? [], [incoming]));
-        }),
+        },
+      },
       () => { qc.invalidateQueries({ queryKey: queryKeys.messages(matchId) }); },
     );
   }, [matchId, qc]);

@@ -287,7 +287,7 @@ public class ShipService
         var sparkData = new Dictionary<string, object> { ["matchId"] = matchId.ToString() };
         await _push.NotifyUserAsync(row.SlotAUserId.Value, PushKind.ThreadSparked, sparkData);
         await _push.NotifyUserAsync(row.SlotBUserId.Value, PushKind.ThreadSparked, sparkData);
-        await _broadcast.BroadcastAsync("app-nudges", "match_created",
+        await _broadcast.BroadcastToUsersAsync([row.SlotAUserId.Value, row.SlotBUserId.Value], "match_created",
             new { matchId, userIds = new[] { row.SlotAUserId.Value, row.SlotBUserId.Value }, source = "ship" });
 
         return true;

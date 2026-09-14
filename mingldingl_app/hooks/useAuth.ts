@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import type { Session } from '@supabase/supabase-js';
+import { isAxiosError } from 'axios';
 import { supabase } from '../lib/supabase';
 import { apiClient } from '../lib/api/apiClient';
 import { queryClient } from '../lib/api/queryClient';
@@ -78,6 +79,8 @@ export function useAuth() {
   const setSession = useAuthStore((s) => s.setSession);
   const clearSession = useAuthStore((s) => s.clearSession);
   const inFlight = useRef(false);
+  /** The anonymous identity minted for a verification whose claim has not succeeded yet. */
+  const pendingIdentity = useRef<{ verificationId: string; session: Session } | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -134,24 +137,33 @@ export function useAuth() {
     setError(null);
 
     let session: Session;
-    try {
-      session = await withTimeout(supabaseAuthFetch('/auth/v1/signup', 'POST', {}), 'signUp (REST)') as Session;
-    } catch {
-      setLoading(false);
-      inFlight.current = false;
-      setError(i18n.t('otp_timed_out'));
-      return false;
-    }
+    const pending = pendingIdentity.current;
+    if (pending && pending.verificationId === verificationId) {
+      // A retry after a failed claim. Minting another anonymous identity here is what turned one
+      // failure into a loop: a claim that had in fact landed for the first identity answers every
+      // later identity with AlreadyClaimed, forever.
+      session = pending.session;
+    } else {
+      try {
+        session = await withTimeout(supabaseAuthFetch('/auth/v1/signup', 'POST', {}), 'signUp (REST)') as Session;
+      } catch {
+        setLoading(false);
+        inFlight.current = false;
+        setError(i18n.t('otp_timed_out'));
+        return false;
+      }
 
-    try {
-      await withTimeout(supabaseAuthFetch('/auth/v1/user', 'PUT', { data: { phone } }, session.access_token), 'updateUser (REST)');
-      const refreshed = await withTimeout(
-        supabaseAuthFetch('/auth/v1/token?grant_type=refresh_token', 'POST', { refresh_token: session.refresh_token }),
-        'refreshSession (REST)',
-      );
-      session = refreshed as Session;
-    } catch {
-      // Non-fatal: the phone the engine trusts comes from the claim below, not this metadata.
+      try {
+        await withTimeout(supabaseAuthFetch('/auth/v1/user', 'PUT', { data: { phone } }, session.access_token), 'updateUser (REST)');
+        const refreshed = await withTimeout(
+          supabaseAuthFetch('/auth/v1/token?grant_type=refresh_token', 'POST', { refresh_token: session.refresh_token }),
+          'refreshSession (REST)',
+        );
+        session = refreshed as Session;
+      } catch {
+        // Non-fatal: the phone the engine trusts comes from the claim below, not this metadata.
+      }
+      pendingIdentity.current = { verificationId, session };
     }
 
     // Must succeed before ANY session is published — the engine refuses to create the account
@@ -162,12 +174,16 @@ export function useAuth() {
     // "No such traveler" alert.
     try {
       await apiClient.auth.claimPhoneVerification(verificationId, session.access_token);
-    } catch {
+    } catch (err) {
+      // A refused token means this identity is unusable (expired while the user waited); only then
+      // is a fresh one worth minting on the next attempt.
+      if (isAxiosError(err) && err.response?.status === 401) pendingIdentity.current = null;
       setLoading(false);
       inFlight.current = false;
       setError(i18n.t('verification_claim_failed'));
       return false;
     }
+    pendingIdentity.current = null;
 
     try {
       await withTimeout(

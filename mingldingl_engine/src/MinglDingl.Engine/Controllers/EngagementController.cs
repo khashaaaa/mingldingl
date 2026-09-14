@@ -104,7 +104,7 @@ public class EngagementController : ControllerBase
             return this.ConflictError("Already responded", "engagement.already_responded");
         }
 
-        await _broadcast.BroadcastAsync("app-nudges", "icebreaker", new { userId, matchId });
+        await _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "icebreaker", new { userId, matchId });
 
         bool bothDone = await _engagement.BothRespondedAsync(matchId, req.IcebreakerId);
         int awarded = 0;
@@ -247,7 +247,11 @@ public class EngagementController : ControllerBase
             awarded = _score.Delta("QuizDone") + await _quests.IncrementAsync(userId, "quiz");
             await _milestones.AchieveAsync(userId, "first_quiz");
             if (req.MatchId.HasValue)
-                await _broadcast.BroadcastAsync("app-nudges", "quiz", new { userId, matchId = req.MatchId });
+            {
+                var participants = await _db.Matches.AsNoTracking().Where(m => m.Id == req.MatchId.Value)
+                    .Select(m => new[] { m.InitiatorId, m.ReceiverId }).FirstAsync();
+                await _broadcast.BroadcastToUsersAsync(participants, "quiz", new { userId, matchId = req.MatchId });
+            }
         }
 
         int? compatibility = req.MatchId.HasValue

@@ -161,7 +161,7 @@ public class MessagesController : ControllerBase
         var response = ToResponse(message);
 
         await _broadcast.BroadcastAsync($"chat:{matchId}", "INSERT", response);
-        await _broadcast.BroadcastAsync("app-nudges", "message", new { senderId = userId, matchId });
+        await _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "message", new { senderId = userId, matchId });
 
         return Ok(new SendMessageResponse(response, awarded));
     }

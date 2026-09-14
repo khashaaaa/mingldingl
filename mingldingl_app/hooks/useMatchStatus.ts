@@ -35,6 +35,9 @@ export function useMatchStatus(matchId: string) {
       return (res.status as MatchStatus | undefined) ?? 'Active';
     },
     enabled: !!matchId,
+    // Always stale, so every entry into the chat really does re-run the ghost check — the app-wide
+    // 5-minute default staleTime silently skipped it on any re-entry inside that window.
+    staleTime: 0,
     // Re-checked on every entry into the chat; between entries the broadcast keeps it honest, so
     // there is nothing to gain from refetching on focus.
     refetchOnWindowFocus: false,

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
+import type { UserProfile } from '../models/user';
 
 /**
  * Keeps the engine's copy of the user's language in step with the app's. Push notifications are
@@ -41,6 +42,12 @@ export function useSyncPreferredLocale(locale: string, storedLocale: string | un
     };
 
     apiClient.users.update({ preferredLocale: locale })
+      .then(() => {
+        // `storedLocale` is read off the cached profile. Leaving it at the old value meant that
+        // switching back (mn → en after en → mn) compared equal to the stale copy and never synced.
+        queryClient.setQueryData<UserProfile | null>(queryKeys.userProfile, (old) =>
+          (old ? { ...old, preferredLocale: locale } : old));
+      })
       .catch(() => {})
       .finally(dropLocalisedContent);
   }, [locale, storedLocale, queryClient]);

@@ -131,7 +131,7 @@ public class VideoController : ControllerBase
         await _milestones.AchieveAsync(userId, "first_video_call");
         var drop = await _honours.GrantAsync(userId, "title_flamekeeper", "flame_rite");
 
-        await _broadcast.BroadcastAsync("app-nudges", "flame_rite_completed", new { userId, matchId = req.MatchId });
+        await _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "flame_rite_completed", new { userId, matchId = req.MatchId });
 
         return Ok(new VideoCompleteResponse(_score.Delta("VideoCallDone") + questBonus, drop));
     }
@@ -169,7 +169,7 @@ public class VideoController : ControllerBase
             PushKind.FlameRiteProposed,
             new Dictionary<string, object> { ["matchId"] = match.Id.ToString() });
 
-        await _broadcast.BroadcastAsync("app-nudges", "flame_rite_proposed", new { userId, matchId = match.Id });
+        await _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "flame_rite_proposed", new { userId, matchId = match.Id });
 
         return Ok(BuildRiteState(match.Id, userId, now, null, match.FlameRiteCompletedAt));
     }
@@ -203,7 +203,7 @@ public class VideoController : ControllerBase
             match.FlameRiteProposedById.Value,
             PushKind.FlameRiteAccepted,
             new Dictionary<string, object> { ["matchId"] = match.Id.ToString() });
-        await _broadcast.BroadcastAsync("app-nudges", "flame_rite_accepted", new { userId, matchId = match.Id });
+        await _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "flame_rite_accepted", new { userId, matchId = match.Id });
 
         return Ok(BuildRiteState(match.Id, match.FlameRiteProposedById, match.FlameRiteProposedAt, now, match.FlameRiteCompletedAt));
     }
@@ -233,7 +233,7 @@ public class VideoController : ControllerBase
                     .SetProperty(m => m.FlameRiteAcceptedAt, (DateTime?)null));
         }
         if (hadOpenProposal)
-            await _broadcast.BroadcastAsync("app-nudges", "flame_rite_declined", new { userId, matchId = match.Id });
+            await _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "flame_rite_declined", new { userId, matchId = match.Id });
 
         return Ok(completed
             ? BuildRiteState(match.Id, match.FlameRiteProposedById, match.FlameRiteProposedAt, match.FlameRiteAcceptedAt, match.FlameRiteCompletedAt)

@@ -1,3 +1,4 @@
+import { AxiosError } from 'axios';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { useTownSquareRound } from '../useTownSquareRound';
@@ -155,6 +156,51 @@ describe('useTownSquareRound', () => {
     });
 
     await waitFor(() => expect(mockApi.townSquare.currentRound).toHaveBeenCalledTimes(2));
+  });
+
+  describe('connectionLost', () => {
+    function httpError(status: number) {
+      const err = new AxiosError(`Request failed with status code ${status}`);
+      err.response = { status, data: {} } as AxiosError['response'];
+      return err;
+    }
+
+    // One bad 10s poll used to replace a live call with "you left the square".
+    it('stays false through a transient poll failure while a round is on screen', async () => {
+      mockApi.townSquare.currentRound.mockResolvedValueOnce(round1).mockRejectedValue(httpError(503));
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+      await waitFor(() => expect(result.current.round?.pairingId).toBe('p1'));
+
+      await act(async () => {
+        await queryClient.refetchQueries({ queryKey: queryKeys.townSquareCurrentRound('s1') });
+      });
+
+      await waitFor(() => expect(result.current.error).toBeTruthy());
+      expect(result.current.round?.pairingId).toBe('p1');
+      expect(result.current.connectionLost).toBe(false);
+    });
+
+    it('turns true when the engine refuses the round (the session ended or dropped this user)', async () => {
+      mockApi.townSquare.currentRound.mockResolvedValueOnce(round1).mockRejectedValue(httpError(404));
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+      await waitFor(() => expect(result.current.round?.pairingId).toBe('p1'));
+
+      await act(async () => {
+        await queryClient.refetchQueries({ queryKey: queryKeys.townSquareCurrentRound('s1') });
+      });
+
+      await waitFor(() => expect(result.current.connectionLost).toBe(true));
+    });
+
+    it('turns true on any failure when there is no round to keep showing', async () => {
+      mockApi.townSquare.currentRound.mockRejectedValue(httpError(503));
+      const queryClient = makeQueryClient();
+      const { result } = renderHook(() => useTownSquareRound('s1'), { wrapper: makeWrapper(queryClient) });
+
+      await waitFor(() => expect(result.current.connectionLost).toBe(true));
+    });
   });
 
   it('markJoined calls the API with the current pairing id', async () => {

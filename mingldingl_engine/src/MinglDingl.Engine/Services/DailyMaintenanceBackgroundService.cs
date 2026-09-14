@@ -197,7 +197,7 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         foreach (var match in ghostedMatches)
         {
             var atFault = atFaultByMatch.TryGetValue(match.Id, out var id) ? id : (Guid?)null;
-            await ghosting.BroadcastGhostedAsync(match.Id, atFault);
+            await ghosting.BroadcastGhostedAsync(match, atFault);
             await ghosting.NotifyGhostedAsync(match, atFault);
         }
 

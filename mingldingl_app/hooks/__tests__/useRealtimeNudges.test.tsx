@@ -66,6 +66,11 @@ describe('useRealtimeNudges', () => {
   });
 
   function mount() {
+    // Events are only acted on for matches this device knows about; tests that do not set up their
+    // own list get the default one-match cache.
+    if (!queryClient.getQueryData(queryKeys.matches)) {
+      queryClient.setQueryData(queryKeys.matches, [matchFixture()]);
+    }
     const { channel, handlers } = makeFakeChannel();
     mockChannelFn.mockReturnValue(channel);
     const view = renderHook(() => useRealtimeNudges(), { wrapper });
@@ -91,11 +96,42 @@ describe('useRealtimeNudges', () => {
     expect(mockChannelFn).not.toHaveBeenCalled();
   });
 
-  it('subscribes to the app-nudges channel with all ten broadcast handlers when signed in', () => {
+  // Every client used to join one shared `app-nudges` topic and receive every user's events.
+  it("subscribes only to this user's own topic, with all ten broadcast handlers", () => {
     const { channel } = mount();
-    expect(mockChannelFn).toHaveBeenCalledWith('app-nudges');
+    expect(mockChannelFn).toHaveBeenCalledTimes(1);
+    expect(mockChannelFn).toHaveBeenCalledWith('user:me1');
     expect(channel.on).toHaveBeenCalledTimes(10);
     expect(channel.subscribe).toHaveBeenCalled();
+  });
+
+  it('addresses the topic by engine account id, never by the Supabase sub', () => {
+    useAuthStore.setState({ session: { user: { id: 'throwaway-sub' } } as never });
+    queryClient.setQueryData(queryKeys.userProfile, { id: 'engine-id' });
+    mount();
+    expect(mockChannelFn).toHaveBeenCalledWith('user:engine-id');
+    expect(mockChannelFn).not.toHaveBeenCalledWith('user:throwaway-sub');
+  });
+
+  describe('events for a match this device does not know', () => {
+    it.each([
+      ['icebreaker', { userId: 'other-user', matchId: 'stranger-match' }],
+      ['quiz', { userId: 'other-user', matchId: 'stranger-match' }],
+      ['message', { senderId: 'other-user', matchId: 'stranger-match' }],
+      ['date_confirmed', { userId: 'other-user', matchId: 'stranger-match', isComplete: false }],
+      ['flame_rite_proposed', { userId: 'other-user', matchId: 'stranger-match' }],
+      ['match_status_changed', { userId: 'other-user', matchId: 'stranger-match', status: 'Unmatched' }],
+    ])('drops %s without a toast or any cache write', (event, payload) => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers[event]({ payload });
+
+      expect(useAuthStore.getState().pendingNudge).toBeNull();
+      expect(invalidateSpy).not.toHaveBeenCalled();
+      expect(queryClient.getQueryData(queryKeys.partnerPledged('stranger-match'))).toBeUndefined();
+      expect(queryClient.getQueryData(queryKeys.matchStatus('stranger-match'))).toBeUndefined();
+    });
   });
 
   it('removes the channel on unmount', () => {
@@ -126,7 +162,8 @@ describe('useRealtimeNudges', () => {
       expect(useAuthStore.getState().pendingNudge).toBeNull();
     });
 
-    it('falls back to a generic name when the match is not in the local cache', () => {
+    it('falls back to a generic name for an open chat whose match has left the cached list', () => {
+      queryClient.setQueryData(queryKeys.matchStatus('unknown-match'), 'Active');
       const { handlers } = mount();
 
       handlers.icebreaker({ payload: { userId: 'other-user', matchId: 'unknown-match' } });

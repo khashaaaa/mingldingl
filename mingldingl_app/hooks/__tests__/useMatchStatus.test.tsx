@@ -86,6 +86,20 @@ describe('useMatchStatus', () => {
     await waitFor(() => expect(result.current.endedReason).toBe('ended'));
   });
 
+  // The app's QueryClient defaults to a 5-minute staleTime, which silently skipped the ghost check
+  // on any re-entry into the chat inside that window.
+  it('re-runs the ghost check on every entry, even under the app-wide staleTime', async () => {
+    client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 5 * 60 * 1000 } } });
+    mockGhostCheck.mockResolvedValue({ status: 'Active' });
+
+    const first = renderHook(() => useMatchStatus('m1'), { wrapper });
+    await waitFor(() => expect(first.result.current.status).toBe('Active'));
+    first.unmount();
+
+    renderHook(() => useMatchStatus('m1'), { wrapper });
+    await waitFor(() => expect(mockGhostCheck).toHaveBeenCalledTimes(2));
+  });
+
   it('stays quiet when the entry check itself fails', async () => {
     mockGhostCheck.mockRejectedValue(new Error('offline'));
 

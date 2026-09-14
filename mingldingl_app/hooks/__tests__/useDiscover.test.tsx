@@ -172,6 +172,36 @@ describe('useRequestMatch', () => {
     expect(matches?.[1].matchId).toBe('new-match-2');
   });
 
+  // The global mutation hook invalidates matches before onSuccess runs, and a setQueryData after
+  // it marks the entry fresh again — seeding an absent list left a one-match list trusted for the
+  // whole 5-minute staleTime.
+  it('does not seed an absent matches list with the lone optimistic match', async () => {
+    mockRequest.mockResolvedValue({ matchId: 'new-match-5', awarded: 0 });
+    const queryClient = createAppQueryClient();
+    queryClient.setQueryData(queryKeys.discoverSeen, []);
+    const { result } = renderHook(() => useRequestMatch(), { wrapper: makeWrapper(queryClient) });
+
+    await act(async () => {
+      await result.current.mutateAsync(candidate('cU') as any);
+    });
+
+    expect(queryClient.getQueryData(queryKeys.matches)).toBeUndefined();
+  });
+
+  it('leaves the appended matches list stale, so the server truth still replaces it', async () => {
+    mockRequest.mockResolvedValue({ matchId: 'new-match-6', awarded: 0 });
+    const queryClient = createAppQueryClient();
+    queryClient.setQueryData(queryKeys.discoverSeen, []);
+    queryClient.setQueryData(queryKeys.matches, [] as Match[]);
+    const { result } = renderHook(() => useRequestMatch(), { wrapper: makeWrapper(queryClient) });
+
+    await act(async () => {
+      await result.current.mutateAsync(candidate('cT') as any);
+    });
+
+    expect(queryClient.getQueryState(queryKeys.matches)?.isInvalidated).toBe(true);
+  });
+
   it('invalidates the matches cache so the server truth replaces the optimistic (partly fabricated) match', async () => {
     mockRequest.mockResolvedValue({ matchId: 'new-match-4', awarded: 0 });
     const queryClient = createAppQueryClient();
