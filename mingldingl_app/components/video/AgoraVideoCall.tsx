@@ -1,7 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import type { VideoToken } from '../../hooks/useVideoCall';
 import { i18n } from '../../lib/i18n';
-import { SURFACE } from '../../lib/theme';
 import { StateBlock } from '../ui/StateBlock';
 
 interface Props {
@@ -21,5 +20,6 @@ export function AgoraVideoCall({ token }: Props) {
 }
 
 const styles = StyleSheet.create({
-  placeholder: { flex: 1, backgroundColor: SURFACE.ground },
+  // Transparent: the world floor shows through a call that has not started.
+  placeholder: { flex: 1, backgroundColor: 'transparent' },
 });

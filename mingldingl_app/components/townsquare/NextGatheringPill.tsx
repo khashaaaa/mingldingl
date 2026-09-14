@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
+import { Tap } from '../ui/Tap';
 import { useRouter } from 'expo-router';
 import { Icon } from '../ui/Icon';
 import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { formatCountdown } from '../../lib/townSquareTime';
 import { worldWhen, worldWhenText, worldTimeSpoken } from '../../lib/worldTime';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, METAL, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, LEADING, LINE, SPACE, TRACKING } from '../../lib/theme';
 // The Town Square tab already shows the full session state; this is the same countdown boiled
 // down to one line so the next gathering stays visible from the tabs people actually live on.
 // It reuses the tab's query (and its polling) rather than opening a second one.
@@ -48,39 +49,43 @@ export function NextGatheringPill() {
   }
 
   return (
-    <Pressable
-      style={({ pressed }) => [styles.wrap, pressed && styles.pressed]}
+    <Tap
+      style={styles.wrap}
       onPress={() => router.push('/(tabs)/townsquare')}
-      accessibilityRole="button"
+      accessibilityRole="link"
       accessibilityLabel={accessibilityLabel}
       testID="next-gathering-pill"
     >
       <Icon name="bugle" size={ICON_SIZES.sm} color={ACCENT.base} />
-      <Text style={styles.text} numberOfLines={1}>{label}</Text>
+      {/* Two lines: the world's sentence runs long in Mongolian, and one line clipped it mid-word. */}
+      <Text style={styles.text} numberOfLines={2}>{label}</Text>
       {session.isRsvpd && (
         <View testID="next-gathering-rsvpd">
           <Icon name="check-bold" size={ICON_SIZES.xs} color={ACCENT.base} />
         </View>
       )}
-    </Pressable>
+    </Tap>
   );
 }
 
+// A hairline row rather than a bordered pill: it goes somewhere, it is not a state, and the kit
+// draws a way into a room as a row with its rule under it, never as a chip.
 const styles = StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACE.sm,
-    alignSelf: 'center',
+    alignSelf: 'stretch',
     marginBottom: SPACE.sm,
     paddingHorizontal: SPACE.md,
-    paddingVertical: SPACE.xs,
-    borderRadius: RADIUS.pill,
-    borderWidth: 1,
-    borderColor: METAL.brass,
-    backgroundColor: SURFACE.panel,
+    paddingVertical: SPACE.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: LINE.hairline,
   },
-  pressed: { opacity: 0.8 },
-  text: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, color: ACCENT.base, letterSpacing: TRACKING.label },
+  text: {
+    flexShrink: 1, textAlign: 'center',
+    fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.sm, lineHeight: LEADING.sm,
+    color: ACCENT.base, letterSpacing: TRACKING.label,
+  },
 });

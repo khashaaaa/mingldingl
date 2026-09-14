@@ -1,5 +1,6 @@
 import { i18n } from './i18n';
 import { countWord, ordinalWord, threadDay } from './worldTime';
+import { ACCENT, INK, METAL, TEMPERATURE } from './theme';
 import type { Match } from '../models/match';
 
 /**
@@ -145,5 +146,26 @@ export function fireEyebrow(fire: Fire): string {
       return i18n.t('fire_embers');
     case 'frozen':
       return i18n.t('fire_frozen');
+  }
+}
+
+/** Which drawing marks a fire, and in what colour. `null` mark: an unlit fire has no mark at all. */
+export interface FireMark {
+  mark: 'flame' | 'ember' | 'ice' | null;
+  color: string;
+}
+
+/**
+ * The one table of a fire's temperature — flame / ember / ice in bright gold / ember / glacier.
+ * The Quest Log's tile and the hearth's rows each kept a copy and they had already drifted on
+ * `unlit`. `unlit` is the only colour a caller may choose, because an unlit fire is not a
+ * temperature at all: the tile keeps its "New Quest" gold there, the hearth never shows one.
+ */
+export function fireMark(state: FireState, unlitColor: string = INK.dim): FireMark {
+  switch (state) {
+    case 'burning': return { mark: 'flame', color: ACCENT.bright };
+    case 'embers': return { mark: 'ember', color: METAL.ember };
+    case 'frozen': return { mark: 'ice', color: TEMPERATURE.glacier };
+    case 'unlit': return { mark: null, color: unlitColor };
   }
 }

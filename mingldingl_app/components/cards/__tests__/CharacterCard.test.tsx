@@ -108,8 +108,8 @@ describe('CharacterCard as a Wanted poster', () => {
     expect(getByText('A fire lately lit. Never let it die.')).toBeTruthy();
   });
 
-  it('carries the wordmark and a wax seal', () => {
-    const { getByText, getByTestId } = render(
+  it('carries the wordmark and the knot, not a wax seal', () => {
+    const { getByText, getByTestId, queryByTestId } = render(
       <CharacterCard
         displayName="Erdenebat"
         gemTier="Ruby"
@@ -120,8 +120,9 @@ describe('CharacterCard as a Wanted poster', () => {
       />,
     );
     expect(getByText('MingldIngl')).toBeTruthy();
-    // A decorative glyph is hidden from queries by default — see Glyph's own test.
-    expect(getByTestId('glyph-seal', { includeHiddenElements: true })).toBeTruthy();
+    // Wax means "binds"; the poster's corner mark is the ornament, hidden from assistive tech.
+    expect(getByTestId('ulzii-card-knot', { includeHiddenElements: true })).toBeTruthy();
+    expect(queryByTestId('glyph-seal', { includeHiddenElements: true })).toBeNull();
   });
 
   it('renders the sharer\'s own portrait and nothing else as an Image uri', () => {

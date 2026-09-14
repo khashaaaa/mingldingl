@@ -7,7 +7,7 @@ import { SheetModal } from '../modals/SheetModal';
 import { AppCard } from '../ui/AppCard';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { GameButton } from '../ui/GameButton';
-import OathSigil, { OATH_VALUES, OATH_SIGILS, OATH_NAME_KEYS, OATH_DESC_KEYS } from '../OathSigil';
+import OathSigil, { OATH_VALUES, OATH_SIGILS, OATH_NAME_KEYS, OATH_DESC_KEYS, oathLabel } from '../OathSigil';
 import { useSwearOath } from '../../hooks/useOath';
 import { i18n } from '../../lib/i18n';
 import { LEADING, ACCENT, FONTS, FONT_SIZES, INK, LINE, PRESS, RADIUS, SPACE, SURFACE } from '../../lib/theme';
@@ -44,7 +44,11 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
 
   return (
     <>
-      <Tap onPress={() => setPickerVisible(true)}>
+      <Tap
+        onPress={() => setPickerVisible(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${i18n.t('oath_title')}. ${oath ? oathLabel(oath) : i18n.t('oath_prompt_banner')}`}
+      >
         <AppCard tier={gemTier} style={style}>
           <CardEyebrow>{i18n.t('oath_title')}</CardEyebrow>
           {oath ? (
@@ -75,7 +79,8 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
               return (
                 <Tap
                   key={option}
-                 
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isCurrent, disabled: isSwearing }}
                   disabled={isSwearing}
                   onPress={() => (isCurrent ? setPickerVisible(false) : handleSwear(closeThen, option))}
                   style={[styles.option, isCurrent && styles.optionCurrent]}

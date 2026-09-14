@@ -556,6 +556,22 @@ export const en = {
   plaza_label: '%{count} lanterns lit.',
   plaza_label_mine: '%{count} lanterns lit. Yours among them.',
   plaza_label_none: 'No lantern lit yet.',
+  // The drawing's own carved labels — set in caps in the copy itself, because an SVG text has no
+  // textTransform and a Cyrillic translation should choose its own case.
+  plaza_gate_north: 'NORTH GATE',
+  plaza_gate_south: 'SOUTH GATE',
+  plaza_bell: 'THE BELL',
+  plaza_you: 'YOU',
+
+  // Numbers set into their words by the copy rather than by string concatenation, so a translation
+  // can put the number where its own grammar wants it (Sealed Fire audit, W5).
+  count_of_total: '%{held} / %{total}',
+  points_gain: '+%{points}',
+  next_tier_arrow: '→ %{tier}',
+  name_age: '%{name}, %{age}',
+  tier_score: '%{tier} · %{score}',
+  getting_started_progress: '%{held} of %{needed}',
+  add_photo: 'Add a photo',
   countdown_any_moment: 'Any moment',
   countdown_dh: '%{days}d %{hours}h',
   countdown_hm: '%{hours}h %{minutes}m',

@@ -34,12 +34,12 @@ export const PLACE_NAMES = [
 
 export type PlaceName = typeof PLACE_NAMES[number];
 
-export interface PlaceProps {
+interface PlaceProps {
   size?: number;
   color?: string;
 }
 
-export type PlaceDrawing = (props: PlaceProps) => React.JSX.Element;
+type PlaceDrawing = (props: PlaceProps) => React.JSX.Element;
 
 /** The places cut here. `letter` and `lantern` are already in `Glyph` and are reused below. */
 const CUTS: Record<Exclude<PlaceName, 'letter' | 'lantern'>, Cuts> = {

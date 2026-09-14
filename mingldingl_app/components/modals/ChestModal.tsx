@@ -7,6 +7,7 @@ import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 import { DIALOG_STYLES, DialogCard, DialogScrim } from './DialogSurface';
 import { AppModal } from './AppModal';
+import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
 interface Props { visible: boolean; xp: number; onDismiss: () => void; }
 
@@ -17,12 +18,19 @@ export function ChestModal({ visible, xp, onDismiss }: Props) {
   const anim = useRef<Animated.CompositeAnimation | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [burst, setBurst] = useState(0);
+  const animate = motionAllowed(useVfxLevel());
 
   useEffect(() => {
     if (!visible) {
       anim.current?.stop();
       anim.current = null;
       setRevealed(false); shake.setValue(0); pop.setValue(0);
+      return;
+    }
+    if (!animate) {
+      // Still: no shake, no pop — the chest simply stands open at its final size.
+      shake.setValue(0); pop.setValue(1);
+      setRevealed(true); setBurst((b) => b + 1);
       return;
     }
     anim.current = Animated.sequence([
@@ -39,7 +47,7 @@ export function ChestModal({ visible, xp, onDismiss }: Props) {
 
     anim.current.start(({ finished }) => { if (finished) { setRevealed(true); setBurst((b) => b + 1); } });
     return () => { anim.current?.stop(); anim.current = null; };
-  }, [visible, shake, pop]);
+  }, [visible, animate, shake, pop]);
 
   return (
     <AppModal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>

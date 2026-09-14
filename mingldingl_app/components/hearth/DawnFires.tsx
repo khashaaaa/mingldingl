@@ -1,12 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Tap } from '../ui/Tap';
-import { Glyph } from '../ui/Glyph';
-import { PLACES } from '../ui/Places';
+import { FireMarkGlyph } from '../quest/FireMarkGlyph';
 import { i18n } from '../../lib/i18n';
-import { fireVerdict, type Fire, type FireState } from '../../lib/fire';
+import { fireMark, fireVerdict, type Fire, type FireState } from '../../lib/fire';
 import {
-  ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, SPACE, TEMPERATURE, tint,
+  FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, SPACE, tint,
 } from '../../lib/theme';
 
 /**
@@ -15,12 +14,9 @@ import {
  * portrait, its seals and its day count; this says what happened at this dawn and lets you into
  * the thread it happened in.
  *
- * The mark and its colour are `QuestTile`'s own choices (flame / ember / ice, bright gold / ember /
- * glacier), reached for here rather than re-picked, so a fire cannot be one temperature in the Log
- * and another on the hearth.
+ * The mark and its colour come from `fireMark` (lib/fire.ts), the same table `QuestTile` reads, so a
+ * fire cannot be one temperature in the Log and another on the hearth.
  */
-
-const Ember = PLACES.ember;
 
 /** The judged lead: a frozen fire is a verdict, embers are a warning, a burning fire is news that
  *  nothing is wrong. Lower sorts first. */
@@ -32,15 +28,6 @@ export interface DawnFire {
   /** Whatever the thread is allowed to call them at this reveal level. */
   name: string;
   fire: Fire;
-}
-
-function markColor(state: FireState): string {
-  switch (state) {
-    case 'burning': return ACCENT.bright;
-    case 'embers': return METAL.ember;
-    case 'frozen': return TEMPERATURE.glacier;
-    case 'unlit': return INK.dim;
-  }
 }
 
 /** The whole row, as one sentence. It is also the row's accessibility label — a `Tap` groups every
@@ -77,7 +64,7 @@ export function DawnFires({ fires }: { fires: DawnFire[] }) {
   return (
     <View>
       {lit.map(({ id, name, fire }) => {
-        const color = markColor(fire.state);
+        const mark = fireMark(fire.state);
         const line = sentence(name, fire);
         return (
           <Tap
@@ -88,9 +75,7 @@ export function DawnFires({ fires }: { fires: DawnFire[] }) {
             onPress={() => router.push(`/chat/${id}`)}
           >
             <View style={[styles.row, fire.state === 'embers' && { borderBottomColor: tint(METAL.ember, 0.6) }]}>
-              {fire.state === 'burning' && <Glyph name="flame" size={ICON_SIZES.md} color={color} />}
-              {fire.state === 'embers' && <Ember size={ICON_SIZES.md} color={color} />}
-              {fire.state === 'frozen' && <Glyph name="ice" size={ICON_SIZES.md} color={color} />}
+              <FireMarkGlyph mark={mark} size={ICON_SIZES.md} />
               <Text style={[styles.line, fire.state === 'frozen' && styles.lineFrozen]}>{line}</Text>
             </View>
           </Tap>

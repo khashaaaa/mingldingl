@@ -15,7 +15,7 @@ import { ParchmentFill } from '../ui/ParchmentFill';
  * nothing behind it should compete; `strip` also asks a question, or reports a failure, but
  * keeps the room lit and does not dim it at all — the interruption is a note, not a takeover.
  */
-export type DialogWeight = 'sheet' | 'dialog' | 'ceremony' | 'strip';
+type DialogWeight = 'sheet' | 'dialog' | 'ceremony' | 'strip';
 
 /**
  * The backdrop and the surface, once each.

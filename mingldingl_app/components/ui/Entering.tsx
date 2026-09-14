@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { Animated, Easing } from 'react-native';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
-export const STAGGER_MS = 40;
+const STAGGER_MS = 40;
 /** Rows past this arrive at rest — a long list must not animate a tail nobody is looking at. */
 export const ENTER_CAP = 8;
 const RISE_PX = 8;

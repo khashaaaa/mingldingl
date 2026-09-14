@@ -23,7 +23,7 @@ describe('authStore persist config', () => {
       streakBonusPending: true,
       pendingDrop: { nameKey: 'ring', rarity: 'Rare' },
       pendingTierUp: 'Opal',
-      pendingNudge: { icon: 'heart', title: 'New match', matchId: 'm1' },
+      pendingNudge: { icon: 'fire' as const, title: 'New match', matchId: 'm1' },
       activeChatMatchId: 'm1',
     };
 

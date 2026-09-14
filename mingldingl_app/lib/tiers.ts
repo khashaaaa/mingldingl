@@ -27,16 +27,12 @@ export function tierThresholdsSnapshot(): readonly number[] {
   return tierThresholds;
 }
 
-export const TIER_COLORS: Record<GemTier, string> = GEM_COLORS;
-
-export const TIER_SHADES: Record<GemTier, string> = GEM_SHADES;
-
 export function colorForTier(tier: string): string {
-  return TIER_COLORS[tier as GemTier] ?? TIER_COLORS.Garnet;
+  return GEM_COLORS[tier as GemTier] ?? GEM_COLORS.Garnet;
 }
 
 export function shadeForTier(tier: string): string {
-  return TIER_SHADES[tier as GemTier] ?? TIER_SHADES.Garnet;
+  return GEM_SHADES[tier as GemTier] ?? GEM_SHADES.Garnet;
 }
 
 /**
@@ -84,23 +80,17 @@ export function tierForScore(score: number): GemTier {
   return tier;
 }
 
-export function tierProgress(totalScore: number, gemTier: GemTier): { pct: number; nextTier: GemTier | null } {
-  const idx = TIER_ORDER.indexOf(gemTier);
-  if (idx === TIER_ORDER.length - 1) return { pct: 1, nextTier: null };
-  const low  = tierThresholds[idx] ?? 0;
-  const high = tierThresholds[idx + 1] ?? 1;
-  return {
-    pct: Math.min(1, (totalScore - low) / (high - low)),
-    nextTier: TIER_ORDER[idx + 1] ?? null,
-  };
-}
-
 // The engine's `rarity` field now carries an Ulzii metal: ember for the honours with stakes
 // (Oath, Rite, boss), gold for everything else. Two metals, no fourth.
 export const METAL_COLORS: Record<string, string> = {
   Gold:  METAL.gold,
   Ember: METAL.ember,
 };
+
+/** The metal a dropped or held honour is drawn in; an unknown rarity is gold, never uncoloured. */
+export function metalForRarity(rarity: string | null | undefined): string {
+  return METAL_COLORS[rarity ?? ''] ?? METAL.gold;
+}
 
 // Mirrors HonourService.Honours on the engine, in catalogue order; the id is data, the key is copy.
 // The hall shows every honour whether or not it is held, so the app has to know the whole list.
@@ -111,7 +101,7 @@ export const HONOUR_IDS = [
 ] as const;
 export type HonourId = (typeof HONOUR_IDS)[number];
 
-export const ITEM_NAME_KEYS: Record<string, string> = {
+const ITEM_NAME_KEYS: Record<string, string> = {
   title_oathkeeper: 'item_title_oathkeeper', title_flamekeeper: 'item_title_flamekeeper',
   title_sealbreaker: 'item_title_sealbreaker', title_threadweaver: 'item_title_threadweaver',
   title_fateseer: 'item_title_fateseer', title_bondkeeper: 'item_title_bondkeeper',

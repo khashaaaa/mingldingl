@@ -56,7 +56,7 @@ export function AtlasOverlay({ visible, onClose }: Props) {
 
   return (
     <AppModal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={scrimStyle()} onPress={onClose} accessibilityLabel={i18n.t('hold_close')}>
+      <Pressable style={scrimStyle()} onPress={onClose} accessibilityRole="button" accessibilityLabel={i18n.t('hold_close')}>
         {/* Swallow presses on the panel itself so only the scrim dismisses. */}
         <Pressable style={styles.panel} onPress={() => {}} accessibilityViewIsModal>
           <Text style={styles.title}>{i18n.t('hold_title')}</Text>

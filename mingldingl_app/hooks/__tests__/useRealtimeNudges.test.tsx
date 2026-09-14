@@ -148,7 +148,7 @@ describe('useRealtimeNudges', () => {
       handlers.icebreaker({ payload: { userId: 'other-user', matchId: 'm1' } });
 
       expect(useAuthStore.getState().pendingNudge).toEqual({
-        icon: '🧊',
+        icon: 'ice',
         title: 'Riley answered the icebreaker',
         matchId: 'm1',
       });
@@ -198,7 +198,7 @@ describe('useRealtimeNudges', () => {
       handlers.quiz({ payload: { userId: 'other-user', matchId: 'm1' } });
 
       expect(useAuthStore.getState().pendingNudge).toEqual({
-        icon: '🎯',
+        icon: 'knot',
         title: 'Riley completed the compatibility quiz',
         matchId: 'm1',
       });
@@ -235,7 +235,7 @@ describe('useRealtimeNudges', () => {
       handlers.date_confirmed({ payload: { matchId: 'm1', userId: 'other-user', isComplete: false } });
 
       expect(useAuthStore.getState().pendingNudge).toEqual({
-        icon: '📍',
+        icon: 'pledge',
         title: 'Riley confirmed your date',
         matchId: 'm1',
       });
@@ -333,7 +333,7 @@ describe('useRealtimeNudges', () => {
       handlers.message({ payload: { senderId: 'other-user', matchId: 'm1' } });
 
       expect(useAuthStore.getState().pendingNudge).toEqual({
-        icon: '💬',
+        icon: 'letters',
         title: 'Riley sent a message',
         matchId: 'm1',
       });
@@ -381,7 +381,7 @@ describe('useRealtimeNudges', () => {
       handlers.message({ payload: { senderId: 'other-user', matchId: 'm2' } });
 
       expect(useAuthStore.getState().pendingNudge).toEqual({
-        icon: '💬',
+        icon: 'letters',
         title: 'Casey sent a message',
         matchId: 'm2',
       });
@@ -418,7 +418,7 @@ describe('useRealtimeNudges', () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.discover });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.score });
       expect(useAuthStore.getState().pendingNudge).toEqual({
-        icon: '✨',
+        icon: 'fire',
         title: 'Fate has woven you a new match',
         matchId: 'm9',
       });

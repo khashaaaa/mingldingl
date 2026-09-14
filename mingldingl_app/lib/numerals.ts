@@ -1,3 +1,5 @@
+import { i18n } from './i18n';
+
 /**
  * Roman numerals for the Hall of Names (`app/leaderboard.tsx`). The board is anonymous — no
  * display names come back from the engine — so a rank is the only thing carved into a row, and
@@ -45,4 +47,9 @@ export function rankNumeral(n: number): string {
   if (Number.isInteger(n) && n >= 1 && n <= 3999) return romanNumeral(n);
   if (Number.isFinite(n)) return n.toLocaleString();
   return '—';
+}
+
+/** A count grouped the way the app's own language groups it, not the device's. */
+export function formatNumber(n: number): string {
+  return n.toLocaleString(i18n.locale === 'mn' ? 'mn-MN' : 'en-US');
 }

@@ -104,7 +104,7 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
       <View style={styles.info} onLayout={(e) => setInfoHeight(e.nativeEvent.layout.height)}>
         <View style={styles.plaqueRule} />
         <View style={styles.nameRow}>
-          <Text style={styles.name} numberOfLines={1}>{candidate.displayName}, {candidate.age}</Text>
+          <Text style={styles.name} numberOfLines={1}>{i18n.t('name_age', { name: candidate.displayName, age: candidate.age })}</Text>
           <GemTierBadge tier={candidate.gemTier} size={BADGE_SIZES.row} />
         </View>
         <CardEyebrow color={ACCENT.base} style={styles.eyebrow}>{eyebrow}</CardEyebrow>

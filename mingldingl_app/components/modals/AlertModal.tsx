@@ -7,7 +7,7 @@ import { DialogScrim, DialogStrip } from './DialogSurface';
 import { Icon } from '../ui/Icon';
 import { AppModal } from './AppModal';
 
-export type AlertTone = 'default' | 'warning';
+type AlertTone = 'default' | 'warning';
 
 interface Props {
   visible: boolean;

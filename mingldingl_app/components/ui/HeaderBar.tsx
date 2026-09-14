@@ -83,6 +83,7 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
               accessibilityRole="button"
               accessibilityLabel={i18n.t('go_home')}
               testID="header-hearth"
+              style={styles.hearthBtn}
             >
               <Glyph name="hearth" size={ICON_SIZES.lg} color={ACCENT.base} />
             </Tap>
@@ -104,6 +105,8 @@ const styles = StyleSheet.create({
   tail: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
   titleIcon: { marginTop: SPACE.hair },
   backBtn: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
+  // The glyph is 20pt; the target is the platform's 44pt minimum around it.
+  hearthBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   title: {
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.title,

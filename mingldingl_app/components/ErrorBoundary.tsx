@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { StateBlock } from './ui/StateBlock';
 import { GameButton } from './ui/GameButton';
 import { i18n } from '../lib/i18n';
-import { ACCENT, FONTS, FONT_SIZES, INK, SPACE, SURFACE } from '../lib/theme';
+import { SPACE, SURFACE } from '../lib/theme';
 interface Props {
   children: ReactNode;
 }
@@ -51,19 +51,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACE.xl,
-  },
-  title: {
-    fontFamily: FONTS.display,
-    fontSize: FONT_SIZES.title,
-    color: ACCENT.bright,
-    textAlign: 'center',
-    marginBottom: SPACE.md,
-  },
-  message: {
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.lg,
-    color: INK.dim,
-    textAlign: 'center',
-    marginBottom: SPACE.xl,
   },
 });

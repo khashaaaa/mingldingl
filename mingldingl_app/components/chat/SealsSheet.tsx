@@ -98,11 +98,11 @@ export function SealsSheet({ visible, onClose, otherUser, messageCount, revealLe
             c.value === null ? (
               <View key={c.key} style={[styles.chip, styles.chipLocked]} accessible accessibilityLabel={i18n.t('seal_under_wax')}>
                 <Glyph name="seal" size={ICON_SIZES.xs} />
-                <Text style={styles.chipTextLocked} numberOfLines={1}>{c.label}</Text>
+                <Text style={styles.chipTextLocked}>{c.label}</Text>
               </View>
             ) : (
               <View key={c.key} style={styles.chip}>
-                <Text style={styles.chipText} numberOfLines={1}>
+                <Text style={styles.chipText}>
                   {c.key === 'age' ? c.value : `${c.label}: ${c.value}`}
                 </Text>
               </View>

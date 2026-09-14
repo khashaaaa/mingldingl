@@ -61,6 +61,7 @@ export function ProfileAvatar({ photoUrls, tierColor }: Props) {
         style={styles.avatarTouchable}
         onPress={() => setSourceModalVisible(true)}
         disabled={uploading}
+        accessibilityRole="button"
         accessibilityLabel={i18n.t('change_avatar')}
       >
         <TorchGlow size={118} color={tierColor}>
@@ -169,8 +170,8 @@ const styles = StyleSheet.create({
   },
   avatarEditBadge: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
+    bottom: SPACE.hair,
+    right: SPACE.hair,
     ...circle(26),
     backgroundColor: METAL.gold,
     borderWidth: 2,

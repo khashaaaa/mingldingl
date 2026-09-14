@@ -1,11 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { Tap } from '../ui/Tap';
 import { Animated, View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
-import { METAL_COLORS } from '../../lib/tiers';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE, TRACKING } from '../../lib/theme';
+import { metalForRarity } from '../../lib/tiers';
 import { Glyph } from '../ui/Glyph';
+import { TOAST_STYLES, useToastMotion } from './Toast';
 
 interface Props {
   title: string;
@@ -18,55 +19,42 @@ interface Props {
 }
 
 const RAY_ANGLES = [0, 30, 60, 90, 120, 150];
+const HIDDEN_Y = 140;
 
 export function LootToast({ title, points, visible, onDismiss, item, bottomOffset = 0 }: Props) {
   const insets = useSafeAreaInsets();
-  const translateY = useRef(new Animated.Value(140)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.8)).current;
   const rays = useRef(new Animated.Value(0)).current;
-  // Every caller passes an inline arrow; reading it through a ref keeps the auto-dismiss timer
-  // keyed on `visible` alone instead of restarting on the parent's every render.
-  const onDismissRef = useRef(onDismiss);
-  onDismissRef.current = onDismiss;
-
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, damping: 12, stiffness: 180 }),
-        Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 10, stiffness: 220 }),
-        Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.timing(rays, { toValue: 0.5, duration: 500, useNativeDriver: true }),
-      ]).start();
-      const t = setTimeout(() => {
-        Animated.parallel([
-          Animated.timing(translateY, { toValue: 140, duration: 300, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-          Animated.timing(rays, { toValue: 0, duration: 300, useNativeDriver: true }),
-        ]).start(() => { scale.setValue(0.8); onDismissRef.current(); });
-      }, 4000);
-      return () => clearTimeout(t);
-    }
-  }, [visible, translateY, opacity, scale, rays]);
-
-  function dismissNow() {
-    Animated.parallel([
-      Animated.timing(translateY, { toValue: 140, duration: 300, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-      Animated.timing(rays, { toValue: 0, duration: 300, useNativeDriver: true }),
-    ]).start(() => { scale.setValue(0.8); onDismiss(); });
-  }
+  const { translateY, opacity, hide } = useToastMotion({
+    visible,
+    offset: HIDDEN_Y,
+    holdMs: 4000,
+    onDismiss,
+    enter: () => [
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 10, stiffness: 220 }),
+      Animated.timing(rays, { toValue: 0.5, duration: 500, useNativeDriver: true }),
+    ],
+    exit: () => [Animated.timing(rays, { toValue: 0, duration: 300, useNativeDriver: true })],
+    settle: () => { scale.setValue(1); rays.setValue(0.5); },
+    reset: () => { scale.setValue(0.8); rays.setValue(0); },
+  });
 
   if (!visible) return null;
 
   return (
     <Animated.View
       style={[
+        TOAST_STYLES.container,
         styles.container,
-        { bottom: insets.bottom + 20 + bottomOffset, transform: [{ translateY }, { scale }], opacity },
+        { bottom: insets.bottom + SPACE.gutter + bottomOffset, transform: [{ translateY }, { scale }], opacity },
       ]}
     >
-      <Tap style={styles.card} onPress={dismissNow} accessibilityLabel={i18n.t('alert_dismiss')}>
+      <Tap
+        style={[TOAST_STYLES.card, styles.card]}
+        onPress={hide}
+        accessibilityRole="button"
+        accessibilityLabel={i18n.t('alert_dismiss')}
+      >
         <View style={styles.iconWrap}>
           {RAY_ANGLES.map((deg) => (
             <Animated.View
@@ -80,7 +68,7 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
           <Text style={styles.title}>{title}</Text>
           {points > 0 && <Text style={styles.points}>{i18n.t('xp_earned', { points })}</Text>}
           {item && (
-            <Text style={[styles.itemLine, { color: METAL_COLORS[item.rarity] ?? METAL.gold }]}>
+            <Text style={[styles.itemLine, { color: metalForRarity(item.rarity) }]}>
               ✦ {i18n.t(item.nameKey)}
             </Text>
           )}
@@ -91,23 +79,8 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
 }
 
 const styles = StyleSheet.create({
-  container: { position: 'absolute', left: 20, right: 20, zIndex: 999 },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE.lg,
-    backgroundColor: SURFACE.panel,
-    borderRadius: RADIUS.md,
-    borderWidth: 2,
-    borderColor: ACCENT.base,
-    paddingHorizontal: SPACE.lg,
-    paddingVertical: SPACE.md,
-    shadowColor: ACCENT.base,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
-  },
+  container: { zIndex: 999 },
+  card: { paddingHorizontal: SPACE.lg, paddingVertical: SPACE.md },
   iconWrap: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   ray: { position: 'absolute', width: 36, height: 2, backgroundColor: ACCENT.bright },
   textCol: { flex: 1, gap: SPACE.hair },

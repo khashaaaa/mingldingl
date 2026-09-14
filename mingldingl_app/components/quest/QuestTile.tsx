@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Tap } from '../ui/Tap';
 import { Animated, View, Text, Image, StyleSheet } from 'react-native';
-import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
-import { fireEyebrow, fireLine, fireVerdict, type Fire } from '../../lib/fire';
+import { fireEyebrow, fireLine, fireMark, fireVerdict, type Fire } from '../../lib/fire';
+import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import {
   ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, SURFACE, TEMPERATURE, circle, tint,
 } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
-import { Glyph } from '../ui/Glyph';
-import { PLACES } from '../ui/Places';
+import { FireMarkGlyph } from './FireMarkGlyph';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { FrostEdge } from '../vfx/FrostEdge';
 import OathSigil from '../OathSigil';
@@ -21,23 +20,10 @@ interface Props {
   onPress: () => void;
 }
 
-const Ember = PLACES.ember;
-
 /** How far the left `FrostEdge` reaches in from the edge when a fire freezes — a horizontal
  *  distance, not the row's height (which still moves with its content — an Oath sigil makes a
  *  row taller — same as before this move). */
 const FROST_REACH = 84;
-
-/** The colour each fire state's eyebrow speaks in — `unlit` keeps the tile's original
- *  "New Quest" gold, since it is not a temperature at all yet, just an unopened scroll. */
-function eyebrowColorFor(state: Fire['state']): string {
-  switch (state) {
-    case 'burning': return ACCENT.bright;
-    case 'embers': return METAL.ember;
-    case 'frozen': return TEMPERATURE.glacier;
-    case 'unlit': return ACCENT.base;
-  }
-}
 
 export function QuestTile({ match, fire, onPress }: Props) {
   const { otherUser, revealLevel } = match;
@@ -48,17 +34,19 @@ export function QuestTile({ match, fire, onPress }: Props) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const photo = otherUser.firstPhoto;
   const showPhoto = photo && photo !== failedUrl;
-  const tier = (otherUser as any).gemTier ?? 'Garnet';
-  const tierColor = colorForTier(tier);
+  // The engine's `PartialUserProfile` carries no gem tier, so this ring used to read an `as any`
+  // field that was always absent and tint every portrait Garnet. It is an edge, not a rank.
 
   const wasBlurred = useRef(blurred);
   const reveal = useRef(new Animated.Value(blurred ? 0 : 1)).current;
+  const animate = motionAllowed(useVfxLevel());
   useEffect(() => {
     if (wasBlurred.current && !blurred) {
-      Animated.timing(reveal, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+      if (animate) Animated.timing(reveal, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+      else reveal.setValue(1);
     }
     wasBlurred.current = blurred;
-  }, [blurred, reveal]);
+  }, [blurred, animate, reveal]);
 
   const nameText = blurred
     ? i18n.t('mystery_match_name')
@@ -69,11 +57,14 @@ export function QuestTile({ match, fire, onPress }: Props) {
   const eyebrow = fireEyebrow(fire);
   const line = fireLine(fire);
   const verdict = fireVerdict(fire);
-  const eyebrowColor = eyebrowColorFor(fire.state);
+  // `unlit` keeps the tile's original "New Quest" gold: not a temperature yet, just an unopened scroll.
+  const mark = fireMark(fire.state, ACCENT.base);
+  const eyebrowColor = mark.color;
 
   return (
     <Tap
       onPress={onPress}
+      accessibilityRole="button"
       // The verdict `Text` sits below `line` in the tree, but the `Tap` groups every descendant
       // under this one label, so a screen reader never reaches it on its own — it has to be
       // folded in here. `filter(Boolean)` also drops the trailing ". " an unlit row's empty
@@ -96,7 +87,7 @@ export function QuestTile({ match, fire, onPress }: Props) {
             <Icon name="script-text" size={ICON_SIZES.md} color={ACCENT.base} />
           </View>
         )}
-        <View style={[styles.avatarRing, { borderColor: tint(tierColor, 0.5) }]}>
+        <View style={styles.avatarRing}>
           {showPhoto ? (
             <>
               <Image
@@ -135,9 +126,7 @@ export function QuestTile({ match, fire, onPress }: Props) {
           )}
           <OathSigil oath={otherUser.oath ?? null} proven={otherUser.oathProven ?? false} size="sm" />
           <View style={styles.eyebrowRow}>
-            {fire.state === 'burning' && <Glyph name="flame" size={ICON_SIZES.sm} color={eyebrowColor} />}
-            {embers && <Ember size={ICON_SIZES.sm} color={eyebrowColor} />}
-            {frozen && <Glyph name="ice" size={ICON_SIZES.sm} color={eyebrowColor} />}
+            <FireMarkGlyph mark={mark} size={ICON_SIZES.sm} />
             <CardEyebrow color={eyebrowColor}>{eyebrow}</CardEyebrow>
           </View>
           {/* `fireLine` is '' for `unlit` on purpose — an empty second line would still take a
@@ -178,9 +167,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   runeCorner: { position: 'absolute', width: 7, height: 7 },
-  runeCornerTl: { top: 2, left: 2, borderTopWidth: 1.5, borderLeftWidth: 1.5 },
-  runeCornerBr: { bottom: 2, right: 2, borderBottomWidth: 1.5, borderRightWidth: 1.5 },
-  avatarRing: { ...circle(56), borderWidth: 2, overflow: 'hidden' },
+  runeCornerTl: { top: SPACE.hair, left: SPACE.hair, borderTopWidth: 1.5, borderLeftWidth: 1.5 },
+  runeCornerBr: { bottom: SPACE.hair, right: SPACE.hair, borderBottomWidth: 1.5, borderRightWidth: 1.5 },
+  avatarRing: { ...circle(56), borderWidth: 2, borderColor: LINE.edge, overflow: 'hidden' },
   avatar: circle(52),
   avatarSharpOverlay: { position: 'absolute', top: 0, left: 0 },
   avatarPlaceholder: {
