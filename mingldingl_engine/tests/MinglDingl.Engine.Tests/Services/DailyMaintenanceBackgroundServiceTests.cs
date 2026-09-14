@@ -228,7 +228,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         // backfill sweep) — anonymisation must take both, or the sealed variant survives as a
         // fetchable, unauthenticated orphan for a "deleted" user forever.
         var sealedUrl = await storage.UploadAsync(
-            LocalFileStorageService.PhotoBucket, LocalFileStorageService.SealedPathOf(path), [4, 5, 6], "image/jpeg");
+            LocalFileStorageService.PhotoBucket, storage.SealedPathOf(path), [4, 5, 6], "image/jpeg");
         user.PhotoUrls = [url];
         user.DeletionRequestedAt = DateTime.UtcNow - DailyMaintenanceBackgroundService.GracePeriodFor(new ConfigService()) - TimeSpan.FromDays(1);
         Db.Users.Add(user);
@@ -347,7 +347,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         var path = $"{LocalFileStorageService.ProfilePhotoDirectory(owner.Id)}a.jpg";
         var url = await storage.UploadAsync(LocalFileStorageService.PhotoBucket, path, [1, 2, 3], "image/jpeg");
         var sealedUrl = await storage.UploadAsync(
-            LocalFileStorageService.PhotoBucket, LocalFileStorageService.SealedPathOf(path), [4, 5, 6], "image/jpeg");
+            LocalFileStorageService.PhotoBucket, storage.SealedPathOf(path), [4, 5, 6], "image/jpeg");
         AgeFile(storage, url);
         AgeFile(storage, sealedUrl);
         owner.PhotoUrls = [url];
@@ -369,7 +369,7 @@ public class DailyMaintenanceBackgroundServiceTests : IntegrationTestBase
         // the orphan grace period, so this same sweep prunes it; its sealed sibling has to go too.
         var url = await storage.UploadAsync(LocalFileStorageService.PhotoBucket, path, [1, 2, 3], "image/jpeg");
         var sealedUrl = await storage.UploadAsync(
-            LocalFileStorageService.PhotoBucket, LocalFileStorageService.SealedPathOf(path), [4, 5, 6], "image/jpeg");
+            LocalFileStorageService.PhotoBucket, storage.SealedPathOf(path), [4, 5, 6], "image/jpeg");
         AgeFile(storage, url);
         AgeFile(storage, sealedUrl);
         owner.PhotoUrls = [];

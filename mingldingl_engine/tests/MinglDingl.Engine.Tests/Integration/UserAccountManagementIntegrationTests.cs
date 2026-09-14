@@ -42,6 +42,33 @@ public class UserAccountManagementIntegrationTests : IntegrationTestBase
         Assert.False(await Db.BlockedUsers.AnyAsync(b => b.BlockerId == userId && b.BlockedId == blockedId));
     }
 
+    /// <summary>
+    /// Reporting blocks anyone, including a stranger off the discover feed, so the blocked list must
+    /// not hand over a face the reveal ladder never granted.
+    /// </summary>
+    [Fact]
+    public async Task GetBlockedUsers_OnlyAMatchThatRevealedThePhoto_ReturnsTheRealPhoto()
+    {
+        var userId = Guid.NewGuid();
+        var strangerId = Guid.NewGuid();
+        var revealedId = Guid.NewGuid();
+        var stranger = NewCompleteUser(strangerId);
+        var revealed = NewCompleteUser(revealedId);
+        Db.Users.AddRange(NewCompleteUser(userId), stranger, revealed);
+        Db.Matches.Add(new Match { InitiatorId = userId, ReceiverId = revealedId, Status = "Unmatched", RevealLevel = 1 });
+        Db.BlockedUsers.AddRange(
+            new BlockedUser { BlockerId = userId, BlockedId = strangerId },
+            new BlockedUser { BlockerId = userId, BlockedId = revealedId });
+        await Db.SaveChangesAsync();
+
+        var list = Assert.IsType<List<BlockedUserResponse>>(
+            Assert.IsType<OkObjectResult>(await BuildController(userId).GetBlockedUsers()).Value);
+
+        // The stranger has no sealed variant on disk, so there is nothing they are entitled to see.
+        Assert.Null(list.Single(b => b.UserId == strangerId).FirstPhoto);
+        Assert.Equal(revealed.PhotoUrls[0], list.Single(b => b.UserId == revealedId).FirstPhoto);
+    }
+
     [Fact]
     public async Task ChangePhone_ToNumberAlreadyTaken_Rejected()
     {

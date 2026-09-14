@@ -12,9 +12,13 @@ public class PhoneVerificationService
     public static readonly TimeSpan ClaimWindow = TimeSpan.FromMinutes(30);
 
     /// <summary>
-    /// Pending sessions one number may hold at once. Start is anonymous and every call opens a
-    /// provider session, so without a ceiling a script could open them without limit against a
-    /// number it does not own.
+    /// Live pending sessions one number may hold at once. Start is anonymous, so reaching the cap
+    /// supersedes the oldest rather than refusing the newest: refusing let anyone who filled the
+    /// five slots lock the real owner out of their own number for as long as they kept refilling
+    /// them. A superseded session is no longer counted or resumable by default, but a code already
+    /// texted for it still verifies (see <see cref="RefreshAsync"/>), so eviction cannot undo an
+    /// SMS the owner has already paid for. Provider-session volume is bounded per source address by
+    /// <see cref="PhoneStartRateLimit"/> instead.
     /// </summary>
     public const int MaxPendingPerPhone = 5;
 
@@ -52,40 +56,55 @@ public class PhoneVerificationService
         var now = DateTime.UtcNow;
         if (resumeVerificationId is Guid resumeId)
         {
+            // A superseded session is still the caller's own if they can name it — resuming it
+            // spares them a second 150₮ SMS for a code they may already have sent.
             var own = await _db.PhoneVerifications.FirstOrDefaultAsync(
                 v => v.Id == resumeId && v.Phone == phone
-                    && v.Status == PhoneVerificationStatus.Pending && v.ExpiresAt > now, ct);
+                    && (v.Status == PhoneVerificationStatus.Pending || v.Status == PhoneVerificationStatus.Superseded)
+                    && v.ExpiresAt > now, ct);
             if (own is not null) return own;
         }
 
-        int pending = await _db.PhoneVerifications.CountAsync(
-            v => v.Phone == phone && v.Status == PhoneVerificationStatus.Pending && v.ExpiresAt > now, ct);
-        if (pending >= MaxPendingPerPhone)
-            throw new DomainException(
-                "Too many verification sessions are open for this number; wait for one to expire",
-                "phone.too_many_attempts", StatusCodes.Status429TooManyRequests);
-
-        var code = NewCode();
-        var id = Guid.NewGuid();
-
-        var session = await _verify.CreateSessionAsync(phone, code, BuildCallbackUrl(id), ct);
-        if (session is null) return null;
-
-        var verification = new PhoneVerification
+        // Serialised per number, so two concurrent starts cannot both count the same free slot.
+        return await _db.InTransactionAsync(async () =>
         {
-            Id = id,
-            Phone = phone,
-            Code = code,
-            ProviderSessionId = session.SessionId,
-            DisplayInstruction = session.DisplayInstruction,
-            SmsUri = session.SmsUri,
-            Status = PhoneVerificationStatus.Pending,
-            ExpiresAt = session.ExpiresAt.ToUniversalTime(),
-        };
-        _db.PhoneVerifications.Add(verification);
-        await _db.SaveChangesAsync(ct);
-        return verification;
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock({PhoneLockKey(phone)})", ct);
+
+            var code = NewCode();
+            var id = Guid.NewGuid();
+
+            // The provider call comes before eviction so a failed start supersedes nothing.
+            var session = await _verify.CreateSessionAsync(phone, code, BuildCallbackUrl(id), ct);
+            if (session is null) return null;
+
+            var livePending = await _db.PhoneVerifications
+                .Where(v => v.Phone == phone && v.Status == PhoneVerificationStatus.Pending && v.ExpiresAt > now)
+                .OrderBy(v => v.CreatedAt)
+                .ToListAsync(ct);
+            foreach (var oldest in livePending.Take(Math.Max(0, livePending.Count - (MaxPendingPerPhone - 1))))
+                oldest.Status = PhoneVerificationStatus.Superseded;
+
+            var verification = new PhoneVerification
+            {
+                Id = id,
+                Phone = phone,
+                Code = code,
+                ProviderSessionId = session.SessionId,
+                DisplayInstruction = session.DisplayInstruction,
+                SmsUri = session.SmsUri,
+                Status = PhoneVerificationStatus.Pending,
+                ExpiresAt = session.ExpiresAt.ToUniversalTime(),
+            };
+            _db.PhoneVerifications.Add(verification);
+            await _db.SaveChangesAsync(ct);
+            return verification;
+        }, ct);
     }
+
+    /// <summary>Advisory-lock key for one number's start path.</summary>
+    private static long PhoneLockKey(string phone) =>
+        BitConverter.ToInt64(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes("phone-verification:" + phone)), 0);
 
     private string? BuildCallbackUrl(Guid verificationId)
     {
@@ -104,7 +123,8 @@ public class PhoneVerificationService
     {
         var verification = await _db.PhoneVerifications.FindAsync([verificationId], ct);
         if (verification is null) return null;
-        if (verification.Status != PhoneVerificationStatus.Pending) return verification;
+        if (verification.Status is not (PhoneVerificationStatus.Pending or PhoneVerificationStatus.Superseded))
+            return verification;
 
         var status = await _verify.GetSessionAsync(verification.ProviderSessionId, ct);
         if (status is null)
@@ -137,7 +157,18 @@ public class PhoneVerificationService
     /// Binds a verified phone to the caller's auth identity. Single use: a verification that has
     /// already been claimed cannot be replayed onto another account.
     /// </summary>
-    public async Task<PhoneClaimResult> ClaimAsync(Guid verificationId, Guid userId, CancellationToken ct = default)
+    public Task<PhoneClaimResult> ClaimAsync(Guid verificationId, Guid userId, CancellationToken ct = default) =>
+        ClaimForAccountAsync(verificationId, userId, userId, ct);
+
+    /// <summary>
+    /// <see cref="ClaimAsync"/> for an auth identity that already stands for an account under a
+    /// different id — a returning user's aliased session changing their number. The proof is bound
+    /// to the identity that holds the session (<paramref name="userId"/>), so alias resolution keeps
+    /// working for it; the "number belongs to someone else" check runs against the account
+    /// (<paramref name="accountId"/>), which is who actually ends up holding the number.
+    /// </summary>
+    public async Task<PhoneClaimResult> ClaimForAccountAsync(
+        Guid verificationId, Guid userId, Guid accountId, CancellationToken ct = default)
     {
         var verification = await RefreshAsync(verificationId, ct);
         if (verification is null) return PhoneClaimResult.NotFound;
@@ -154,11 +185,11 @@ public class PhoneVerificationService
         // is the number's owner signing in again through a fresh anonymous identity — proving the
         // number is exactly what entitles them to it, and CurrentUserMiddleware then aliases the
         // new identity onto the existing account (see ResolveAliasAsync).
-        bool claimantHasAccount = await _db.Users.AnyAsync(u => u.Id == userId, ct);
+        bool claimantHasAccount = await _db.Users.AnyAsync(u => u.Id == accountId, ct);
         if (claimantHasAccount)
         {
             var takenByOther = await _db.Users
-                .AnyAsync(u => u.PhoneNumber == verification.Phone && u.Id != userId, ct);
+                .AnyAsync(u => u.PhoneNumber == verification.Phone && u.Id != accountId, ct);
             if (takenByOther) return PhoneClaimResult.PhoneInUse;
         }
 
@@ -191,6 +222,19 @@ public class PhoneVerificationService
             .OrderByDescending(v => v.ClaimedAt)
             .Select(v => v.Phone)
             .FirstOrDefaultAsync(ct);
+
+    /// <summary>
+    /// Drops every claimed proof of <paramref name="phone"/>. Called when an account gives the
+    /// number up: those claims are what alias an anonymous identity onto the account holding the
+    /// number, so left behind they both kept the old number's sessions attached to nothing (and free
+    /// to register a second account with it) and, once someone else registered the number, silently
+    /// signed every one of them into the new owner's account. A session that should survive the
+    /// change holds a fresh claim on the new number instead.
+    /// </summary>
+    public async Task ReleaseClaimsOnNumberAsync(string phone, CancellationToken ct = default) =>
+        await _db.PhoneVerifications
+            .Where(v => v.Phone == phone && v.ClaimedByUserId != null)
+            .ExecuteDeleteAsync(ct);
 
     /// <summary>
     /// The account an auth identity with no user row of its own stands for: the user whose number

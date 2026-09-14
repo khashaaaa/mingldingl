@@ -15,6 +15,9 @@ services:
       - Agora__AppId=${AGORA_APP_ID}
       - Agora__AppCertificate=${AGORA_APP_CERTIFICATE}
       - Storage__PublicBaseUrl=${STORAGE_PUBLIC_BASE_URL}
+      - Storage__SealedPhotoKey=${STORAGE_SEALED_PHOTO_KEY}
+      - ForwardedHeaders__KnownProxies=${FORWARDED_KNOWN_PROXIES}
+      - ForwardedHeaders__KnownNetworks=${FORWARDED_KNOWN_NETWORKS}
       - Admin__Username=${ADMIN_USERNAME}
       - Admin__PasswordHash=${ADMIN_PASSWORD_HASH}
       - Admin__JwtSigningKey=${ADMIN_JWT_SIGNING_KEY}

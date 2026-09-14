@@ -36,8 +36,10 @@ public class PhotoUploadThrottleService
 
         var now = DateTime.UtcNow;
         // Keyed by an authenticated user id, so it cannot be grown by an anonymous caller — but a
-        // long-lived instance still accumulates one entry per user who ever uploaded.
-        if (_buckets.Count >= MaxTrackedUsers && !_buckets.ContainsKey(userId)) return true;
+        // long-lived instance still accumulates one entry per user who ever uploaded. Full means
+        // refuse, not admit: failing open handed an unthrottled upload to every identity past the
+        // cap, which is precisely the state an attacker minting identities would drive this into.
+        if (_buckets.Count >= MaxTrackedUsers && !_buckets.ContainsKey(userId)) return false;
 
         var bucket = _buckets.GetOrAdd(userId, _ => new Bucket { WindowStartedAt = now });
         lock (bucket)

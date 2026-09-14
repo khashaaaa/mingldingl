@@ -36,11 +36,11 @@ public class AuthController : ControllerBase
             return this.BadRequestError("Phone must be 8 digits", "phone.invalid_format");
 
         if (!_verification.IsConfigured)
-            return StatusCode(503, new { error = "Phone verification is not configured" });
+            return StatusCode(503, new ErrorResponse("Phone verification is not configured", "phone.verification_unavailable"));
 
         var verification = await _verification.StartAsync(phone, req.ResumeVerificationId, ct);
         if (verification is null)
-            return StatusCode(503, new { error = "Could not start phone verification" });
+            return StatusCode(503, new ErrorResponse("Could not start phone verification", "phone.provider_unavailable"));
 
         return Ok(new StartPhoneVerificationResponse(
             verification.Id,

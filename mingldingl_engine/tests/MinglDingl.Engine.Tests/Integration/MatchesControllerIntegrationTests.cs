@@ -288,7 +288,7 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var originalUrl = await storage.UploadAsync(LocalFileStorageService.PhotoBucket, originalPath, [1, 2, 3], "image/jpeg");
         await storage.UploadAsync(
             LocalFileStorageService.PhotoBucket,
-            LocalFileStorageService.SealedPathOf(originalPath),
+            storage.SealedPathOf(originalPath),
             [4, 5, 6], "image/jpeg");
         withPhoto.PhotoUrls = [originalUrl];
 
@@ -308,8 +308,10 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var body = Assert.IsType<PagedResponse<CandidateResponse>>(result.Value);
 
         var sealedCandidate = body.Items.Single(c => c.Id == withPhotoId);
-        Assert.EndsWith("-sealed.jpg", sealedCandidate.SealedPhotoUrl);
+        Assert.EndsWith(storage.SealedPathOf($"{LocalFileStorageService.PhotoBucket}/{originalPath}"), sealedCandidate.SealedPhotoUrl);
         Assert.DoesNotContain(originalUrl, sealedCandidate.SealedPhotoUrl);
+        // The sealed name must not hand a stranger the original's filename to fetch instead.
+        Assert.StartsWith("sealed-", Path.GetFileName(new Uri(sealedCandidate.SealedPhotoUrl!).AbsolutePath));
 
         var unsealedCandidate = body.Items.Single(c => c.Id == unsealedId);
         Assert.Null(unsealedCandidate.SealedPhotoUrl);

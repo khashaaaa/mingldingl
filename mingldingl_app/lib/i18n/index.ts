@@ -19,6 +19,8 @@ export const AWAITING_MN_TRANSLATION = [
   'hold_title', 'hold_open', 'hold_close',
   'room_gate', 'room_road', 'room_tavern', 'room_hearth', 'room_forge', 'room_hall', 'room_deep',
   'sound',
+  // The engine's 403 for an identity whose account the deletion sweep has already anonymised.
+  'err_account_deleted',
   // The report sheet. Safety copy is the last place for an AI guess at Mongolian, so it renders in
   // English until reviewed — a visible gap rather than a subtly wrong word in front of someone who
   // is already having a bad time.

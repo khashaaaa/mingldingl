@@ -258,9 +258,10 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         {
             if (ct.IsCancellationRequested) break;
 
-            var originalOfSealed = LocalFileStorageService.OriginalPathOfSealed(relativePath);
-            if (originalOfSealed is not null)
+            if (LocalFileStorageService.IsSealedPath(relativePath))
             {
+                // Null for a legacy-named sealed file or one whose original is gone: never kept.
+                var originalOfSealed = storage.OriginalPathOfSealed(relativePath);
                 // No row ever references a sealed URL — SealedPhotoUrl is derived on read, never
                 // stored — so comparing a sealed file against `referenced` directly deleted every
                 // sealed file the sweep itself had just made, the moment its own grace period
@@ -268,7 +269,7 @@ public class DailyMaintenanceBackgroundService : BackgroundService
                 // (a freshly-backfilled sealed file must survive this same pass), but the
                 // reference check asks whether the *original* is referenced, not the sealed file
                 // itself — so an abandoned original and its sealed sibling are pruned together.
-                if (lastWriteUtc > cutoff || referenced.Contains(originalOfSealed)) continue;
+                if (lastWriteUtc > cutoff || (originalOfSealed is not null && referenced.Contains(originalOfSealed))) continue;
                 if (storage.DeleteByRelativePath(relativePath)) deleted++;
                 continue;
             }
@@ -296,7 +297,7 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         {
             if (ct.IsCancellationRequested || created >= MaxSealedBackfillPerSweep) break;
             // A sealed file is never itself sealed, and already-sealed originals are skipped below.
-            if (LocalFileStorageService.OriginalPathOfSealed(relativePath) is not null) continue;
+            if (LocalFileStorageService.IsSealedPath(relativePath)) continue;
             if (storage.SealedVariantExists(relativePath)) continue;
 
             try

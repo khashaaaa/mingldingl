@@ -49,6 +49,28 @@ public class CurrentUserMiddlewareTests : IntegrationTestBase
         Assert.Equal(user.Id, context.Items["UserId"]);
     }
 
+    /// <summary>
+    /// The sweep anonymises a deleted account, but the identity that created it keeps a valid JWT —
+    /// letting it through meant POST /users simply refilled the "deleted" account.
+    /// </summary>
+    [Fact]
+    public async Task InvokeAsync_DeletedAccount_ShortCircuitsWith403AccountDeleted()
+    {
+        var user = NewCompleteUser();
+        user.IsDeleted = true;
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        var context = BuildContext(new ClaimsIdentity([new Claim("sub", user.Id.ToString())], "Bearer"));
+        var nextCalled = false;
+        await new CurrentUserMiddleware(_ => { nextCalled = true; return Task.CompletedTask; }).InvokeAsync(context);
+
+        Assert.False(nextCalled);
+        Assert.Equal(403, context.Response.StatusCode);
+        context.Response.Body.Position = 0;
+        Assert.Contains("account.deleted", await new StreamReader(context.Response.Body).ReadToEndAsync());
+    }
+
     [Fact]
     public async Task InvokeAsync_BannedUser_ShortCircuitsWith403()
     {

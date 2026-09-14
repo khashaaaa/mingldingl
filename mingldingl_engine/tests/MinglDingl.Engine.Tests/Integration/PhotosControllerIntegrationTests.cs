@@ -14,23 +14,84 @@ public class PhotosControllerIntegrationTests : IntegrationTestBase, IDisposable
     private readonly string _tempRoot =
         Path.Combine(Path.GetTempPath(), "mingldingl-photos-tests", Guid.NewGuid().ToString("N"));
 
-    private PhotosController BuildController(Guid userId)
+    private LocalFileStorageService BuildStorage()
+    {
+        var envMock = new Mock<IWebHostEnvironment>();
+        envMock.Setup(e => e.ContentRootPath).Returns(_tempRoot);
+        return new LocalFileStorageService(envMock.Object, new ConfigurationBuilder().Build(), NullLogger<LocalFileStorageService>.Instance);
+    }
+
+    private PhotosController BuildController(Guid userId, PhoneVerificationService? phones = null)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
 
-        var envMock = new Mock<IWebHostEnvironment>();
-        envMock.Setup(e => e.ContentRootPath).Returns(_tempRoot);
-
-        var config = new ConfigurationBuilder().Build();
-        var storage = new LocalFileStorageService(envMock.Object, config, NullLogger<LocalFileStorageService>.Instance);
+        var storage = BuildStorage();
         var compression = new PhotoCompressionService();
         var sealedPhotos = new SealedPhotoService(compression, storage);
 
-        return new PhotosController(compression, storage, new PhotoUploadThrottleService(), sealedPhotos, NullLogger<PhotosController>.Instance)
+        return new PhotosController(
+            compression, storage, new PhotoUploadThrottleService(), sealedPhotos,
+            Db, phones ?? BuildUnconfiguredPhoneVerification(Db), NullLogger<PhotosController>.Instance)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
+    }
+
+    private PhoneVerificationService BuildConfiguredPhoneVerification()
+    {
+        var config = new Mock<IConfiguration>();
+        config.Setup(c => c["VerifyMn:ApiKey"]).Returns("vrf_test_key");
+        var client = new VerifyMnClient(new HttpClient(), config.Object, NullLogger<VerifyMnClient>.Instance);
+        return new PhoneVerificationService(Db, client, config.Object, NullLogger<PhoneVerificationService>.Instance);
+    }
+
+    /// <summary>
+    /// Every fresh anonymous sign-up holds a valid JWT. Without a gate each one was a new throttle
+    /// bucket and a new directory on a public disk.
+    /// </summary>
+    [Fact]
+    public async Task Upload_IdentityWithNoAccountAndNoProvenPhone_IsRefusedBeforeAnythingIsStored()
+    {
+        var controller = BuildController(Guid.NewGuid(), BuildConfiguredPhoneVerification());
+        var file = MakeFormFile(MakeValidJpegBytes(), "photo.jpg", "image/jpeg");
+
+        var result = await controller.Upload(file);
+
+        Assert.Equal(403, Assert.IsType<ObjectResult>(result).StatusCode);
+        Assert.False(Directory.Exists(Path.Combine(_tempRoot, "uploads", "photos")));
+    }
+
+    /// <summary>Onboarding uploads photos before POST /users, so a proven number is enough.</summary>
+    [Fact]
+    public async Task Upload_IdentityMidOnboardingWithAClaimedVerification_IsAllowed()
+    {
+        var authId = Guid.NewGuid();
+        Db.PhoneVerifications.Add(new PhoneVerification
+        {
+            Id = Guid.NewGuid(), Phone = "99001122", Code = "123456", ProviderSessionId = "s",
+            Status = PhoneVerificationStatus.Verified, ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+            VerifiedAt = DateTime.UtcNow, ClaimedByUserId = authId, ClaimedAt = DateTime.UtcNow,
+        });
+        await Db.SaveChangesAsync();
+
+        var result = await BuildController(authId, BuildConfiguredPhoneVerification())
+            .Upload(MakeFormFile(MakeValidJpegBytes(), "photo.jpg", "image/jpeg"));
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Upload_ExistingAccount_IsAllowedWithoutAFreshClaim()
+    {
+        var user = NewCompleteUser();
+        Db.Users.Add(user);
+        await Db.SaveChangesAsync();
+
+        var result = await BuildController(user.Id, BuildConfiguredPhoneVerification())
+            .Upload(MakeFormFile(MakeValidJpegBytes(), "photo.jpg", "image/jpeg"));
+
+        Assert.IsType<OkObjectResult>(result);
     }
 
     private static IFormFile MakeFormFile(byte[] bytes, string fileName, string contentType, long? lengthOverride = null)
@@ -155,7 +216,7 @@ public class PhotosControllerIntegrationTests : IntegrationTestBase, IDisposable
         var response = Assert.IsType<PhotoUploadResponse>(Assert.IsType<OkObjectResult>(result).Value);
         const string marker = "/uploads/";
         var relativePath = response.Url.Substring(response.Url.IndexOf(marker, StringComparison.Ordinal) + marker.Length);
-        var sealedRelative = LocalFileStorageService.SealedPathOf(relativePath);
+        var sealedRelative = BuildStorage().SealedPathOf(relativePath);
         var sealedDiskPath = Path.Combine(_tempRoot, "uploads", sealedRelative.Replace('/', Path.DirectorySeparatorChar));
 
         Assert.True(File.Exists(sealedDiskPath), $"expected sealed photo at {sealedDiskPath}");
