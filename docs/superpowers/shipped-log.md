@@ -10,6 +10,60 @@ written, not by date.
 
 ---
 
+## Design sweep + bug hunt (2026-09-15)
+
+Six read-only audits (app screens, app components, app logic, engine services, engine API
+security, control panel) produced ~150 findings; seven fix agents, each in its own worktree, landed
+~130 and merged into master. Engine 971 → 1029 tests, app 1299 → 1339, swagger fresh, control
+build clean. **Nothing seen on hardware** — the realtime topic change and the keyboard padding in
+particular want the A51.
+
+- **Realtime is per user.** Match events (message/icebreaker/quiz/date nudges, flame_rite_*,
+  match_created, match_status_changed) go to `user:{Users.Id}` via `BroadcastToUsersAsync`; the
+  shared `app-nudges` topic delivered every user's activity to every client. The app shares one
+  ref-counted channel per topic (`subscribeToBroadcast`) because `supabase.channel()` hands back a
+  still-leaving channel whose `subscribe()` silently no-ops. See CLAUDE.md.
+- **Counters stop writing stale values back.** `Data/TrackedColumns.cs` mirrors atomic `RETURNING`
+  results onto tracked entities without marking them modified (score, tier, reputation, no-show
+  flags, match message counters); tier is computed in the score `UPDATE`; awards commit with their
+  `ScoreEvent`. Double-pays closed by conditional claims: icebreaker completion, quest completion
+  (one upsert), `OathProven` (joins `ix_score_events_once_ever`), date completion (new unique index
+  on `DateConfirmations (MatchId, ActivitySuggestionId)`), attendance penalty, report resolution
+  (one open report per pair, partial unique index), ship spark + match creation in one transaction,
+  daily match budget spent with a conditional `UPDATE`. `AmbientTransaction` replays a unit of work
+  whose commit failed.
+- **Quiz farm closed by the 404, not by rationing.** Unknown quiz ids 404 and answer sheets are
+  capped; QuizDone still pays once per (quiz, match) — an agent's once-per-user rule was reverted
+  as a product change.
+- **Sweeps.** Deletion re-checks under `FOR UPDATE` (a cancelled deletion is never anonymised); ghost
+  + penalty is one transaction per match and only ghosts if no reply landed since the read; Town
+  Square re-times overdue rounds, status writes are conditional (an admin cancel sticks), RSVPs
+  close at `RsvpClosesAt`, and a block after roster lock refuses the round token.
+- **Identity and files.** Phone change deletes the old number's claimed verifications (old sessions
+  can't alias onto the next owner) and binds the new proof to the changing session; sealed photos
+  are named by a keyed hash (`Storage:SealedPhotoKey`, else derived from `Admin:JwtSigningKey`) so
+  stripping `-sealed` no longer yields the original; blocked-list photos respect reveal; a sixth
+  pending verification supersedes the oldest instead of locking the owner out; `UseForwardedHeaders`
+  trusts only configured proxies; uploads need an account or a claimed verification; ratings need a
+  confirmed date at that venue and an owned photo; deleted accounts get `403 account.deleted`.
+- **App logic.** 401 refreshes once and replays; auto-refresh follows AppState; OTP stops polling
+  once verified and a retried claim reuses the same anonymous identity; locale switches back sync;
+  a transient poll error no longer ends a live Town Square round; cold-start push taps are read.
+- **Design.** Android keyboard padding on icebreaker/edit-profile/phone/settings/ship; one forge per
+  screen enforced across imported components (`forged.test.ts`); reduce-motion on every looping or
+  entrance animation; a11y roles/labels across ~30 pressables; `fireMark()` and `metalForRarity()`
+  replace duplicated maps; one shared `Toast`; the plaza's carved labels translated; mission point
+  badges removed (score deltas are admin config the app cannot read).
+- **Control.** A failed business load no longer renders a blank form that overwrites the record; a
+  401 opens a sign-in dialog over the page instead of reloading; config saves per key with tier and
+  reveal bounds shown; destructive moderation confirms and requires notes.
+- **i18n.** New EN-only keys on `AWAITING_MN_TRANSLATION`: `plaza_*` (4), `count_of_total`,
+  `points_gain`, `next_tier_arrow`, `name_age`, `tier_score`, `getting_started_progress`, `add_photo`,
+  `hall_sub_no_city`, `seals_next_at_sentence`, `seals_left_0_sentence`, `stars_of_five`,
+  `err_account_deleted`. The error-copy parity test now honours that list.
+
+---
+
 ## Sealed Fire — Wave 4, the hearth and the square (2026-09-13)
 
 Fifteen commits `7cc410c..1b1aede` (ten tasks, four fix rounds, one final fix wave), two engine

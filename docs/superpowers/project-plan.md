@@ -744,10 +744,20 @@ All need the `verify` skill (real Supabase JWTs, full stack running) or the Gala
 
 ## Security & identity
 
-- **The returning-user alias is keyed on the phone the identity proved.** If an aliased user
-  later changes their number from that device, the alias stops resolving and the device behaves as
-  a fresh identity. An `AuthAliases (Sub → UserId)` table would remove the dependency and save a
-  query per request; needs a schema change.
+- **The returning-user alias is keyed on the phone the identity proved.** A phone change now binds
+  the new proof to the changing session and deletes the old number's claimed verifications, so every
+  *other* session on the old number is signed out (2026-09-15). An `AuthAliases (Sub → UserId)`
+  table would keep them and save a query per request; needs a schema change.
+- **Realtime channels are public.** Topics are per user (`user:{id}`) since 2026-09-15, but anyone
+  holding the anon key and a user id can subscribe. Supabase private channels with RLS close it.
+- **Old sealed URLs still name their originals.** Sealed photos are keyed-hash named since
+  2026-09-15, but a `-sealed.jpg` URL handed out before then still reveals its original's filename;
+  closing that means renaming originals and rewriting stored URLs.
+- **Push tokens can be re-registered by another account.** Legitimate (same device, new account)
+  and hostile reassignment look identical to the server; needs a device-side proof. The attacker
+  needs the victim's Expo token, which no endpoint returns.
+- **Photo upload is per identity, not per IP.** Uploads now need an account or a claimed
+  verification, which bounds anonymous abuse, but there is still no IP throttle.
 - **No general API rate limiting.** `POST /auth/phone/start` is bounded per IP (30 per 15 minutes)
   and per number, `POST /photos/upload` per user; every other endpoint is unlimited.
 - **`LoginThrottleService` is per-instance** — a second engine instance halves the effective
@@ -777,6 +787,16 @@ All need the `verify` skill (real Supabase JWTs, full stack running) or the Gala
   `townsquare.enabled`). Hiding the tab / weave CTA on a 404 is a follow-up if used in anger.
 - **The leaderboard is anonymous by design** (`LeaderboardEntryDto` carries rank/tier/score only),
   so every row reads `#N ◆ 3,724 pts`. Worth confirming that is still the intent.
+- **Every "today" is the UTC day** (2026-09-15 audit) — daily login, quests, match budget, ship cap,
+  reply cap and `ix_score_events_once_per_day` all roll over at 08:00 in Ulaanbaatar, so 07:00 and
+  09:00 local count as two days. Moving to Asia/Ulaanbaatar is a product call plus an index change.
+- **Summoning reveals the target's first photo before they answer** — `POST /matches` creates the
+  match at reveal level 1. Confirm against "faces are earned".
+- **The blocked list still shows the blocked person's display name** (photo is now reveal-gated);
+  the discover feed already shows names, so it was kept.
+- **`reputation.penalty_dock` minimum is 0.01**, so the dock can no longer be switched off with 0.
+- **Mission cards lost their point badges** — the numbers were hardcoded while the deltas are admin
+  config the app cannot read. An engine read path would bring them back truthfully.
 
 ## Known gaps, deliberately not built
 
