@@ -24,6 +24,7 @@ Needs:  psql on PATH, Pillow (pip install Pillow), and a reseeded database.
 import argparse
 import colorsys
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -119,8 +120,27 @@ SEALED_BLUR_SIGMA = 18
 SEALED_JPEG_QUALITY = 60
 
 
-def sealed_relative(rel: str) -> str:
+def seal_key() -> bytes:
+    """Mirrors LocalFileStorageService.DeriveSealKey, read from the same appsettings the engine uses."""
+    settings = json.loads(APPSETTINGS.read_text())
+    secret = (settings.get("Storage") or {}).get("SealedPhotoKey") or ""
+    if not secret.strip():
+        secret = (settings.get("Admin") or {}).get("JwtSigningKey") or ""
+    if not secret.strip():
+        secret = "mingldingl-development-only-sealed-photo-key"
+    return hmac.new(secret.encode(), b"sealed-photo-name/v1", hashlib.sha256).digest()
+
+
+def sealed_relative(rel: str, key: bytes) -> str:
     """The bucket-relative path of rel's sealed sibling — mirrors LocalFileStorageService.SealedPathOf."""
+    p = Path(rel)
+    mac = hmac.new(key, p.stem.encode(), hashlib.sha256).digest()
+    name = f"sealed-{mac[:16].hex()}.jpg"
+    return str(p.parent / name) if str(p.parent) != "." else name
+
+
+def legacy_sealed_relative(rel: str) -> str:
+    """The pre-MAC name (<original>-sealed.jpg), which gave its original away; removed on sight."""
     p = Path(rel)
     name = f"{p.stem}-sealed.jpg"
     return str(p.parent / name) if str(p.parent) != "." else name
@@ -159,7 +179,9 @@ def main():
     # original may already have existed on disk (gen-cast-photos.py's downloaded portraits, or a
     # placeholder from a previous run) without ever having had a sealed sibling made for it.
     sealed_written = sealed_skipped = sealed_failed = 0
+    key = seal_key()
     for rel in paths:
+        (ENGINE / "uploads" / legacy_sealed_relative(rel)).unlink(missing_ok=True)
         original = ENGINE / "uploads" / rel
         if not original.exists():
             # draw() should have created every referenced placeholder above; a photo that still
@@ -168,7 +190,7 @@ def main():
             # cast photo stop every other fixture from being sealed.
             sealed_failed += 1
             continue
-        sealed_target = ENGINE / "uploads" / sealed_relative(rel)
+        sealed_target = ENGINE / "uploads" / sealed_relative(rel, key)
         if sealed_target.exists() and not args.force:
             sealed_skipped += 1
             continue
