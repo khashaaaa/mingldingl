@@ -12,7 +12,7 @@ import { WithSafeArea } from '../../lib/testing/safeArea';
 const mockPush = jest.fn();
 // `usePathname` is what `HeaderBar` reads to drop the way-home tap on the hearth itself, so this
 // screen's stub has to name the hearth's own route.
-jest.mock('expo-router', () => ({ usePathname: () => '/hearth', useRouter: () => ({ push: mockPush }) }));
+jest.mock('expo-router', () => ({ usePathname: () => '/hearth', useRouter: () => ({ push: mockPush, canGoBack: () => false }) }));
 
 jest.mock('../../hooks/useProfile');
 jest.mock('../../hooks/useMatches');

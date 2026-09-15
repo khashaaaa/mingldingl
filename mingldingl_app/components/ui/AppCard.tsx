@@ -20,17 +20,23 @@ interface Props {
    * in `lib/__tests__/hero.test.ts`.
    */
   hero?: boolean;
+  /**
+   * Clip the card's contents to its rounded corners (art that runs edge to edge, like the hearth's
+   * sky). Use this, never `overflow: 'hidden'` in `style`: the knots sit 6pt outside the card, so
+   * clipping the card itself cut them in half. Here only an inner layer clips; the knots stay out.
+   */
+  clip?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
-export function AppCard({ children, tier, tint: tintOverride, hero, style }: Props) {
+export function AppCard({ children, tier, tint: tintOverride, hero, clip, style }: Props) {
   const tint = tintOverride ?? (tier ? colorForTier(tier) : ACCENT.base);
   // On a festival day the gold knots take the festival's colour. The PNGs are metal-shaded over
   // alpha, so tintColor flattens them to one colour while keeping their shape.
   const festival = useActiveFestival();
   const knotTint = festival ? { tintColor: festival.color } : undefined;
-  return (
-    <View testID="app-card" style={[styles.card, hero && glow(tint, 0.35, 12, 6), style]}>
+  const body = (
+    <>
       {hero ? (
         <ParchmentFill style={styles.texture} />
       ) : (
@@ -43,6 +49,13 @@ export function AppCard({ children, tier, tint: tintOverride, hero, style }: Pro
       <View style={styles.hairline} pointerEvents="none" />
       <View style={[styles.topHighlight, { backgroundColor: tintColor(tint, 0.4) }]} pointerEvents="none" />
       {hero && <View style={styles.bottomShadow} testID="card-bottom-shadow" pointerEvents="none" />}
+      {children}
+    </>
+  );
+  return (
+    <View testID="app-card" style={[styles.card, hero && glow(tint, 0.35, 12, 6), style]}>
+      {clip ? <View style={styles.clip}>{body}</View> : body}
+      {/* Drawn last, so they sit over the contents at every corner rather than under them. */}
       {hero && (
         <>
           <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotTl, knotTint]} />
@@ -51,7 +64,6 @@ export function AppCard({ children, tier, tint: tintOverride, hero, style }: Pro
           <Image source={ORNAMENTS.knotGold} testID="ulzii-corner" style={[styles.knot, styles.knotBr, knotTint]} />
         </>
       )}
-      {children}
     </View>
   );
 }
@@ -64,6 +76,8 @@ const styles = StyleSheet.create({
     borderColor: LINE.edge,
   },
   fill: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS.md },
+  // Inside the 1pt border, so its radius is one less than the card's.
+  clip: { flexGrow: 1, borderRadius: RADIUS.md - 1, overflow: 'hidden' },
   // Layout only — `ParchmentFill` draws its own gradient and texture; this just clips both to
   // the card's own corners, the way `styles.fill`'s `borderRadius` already does for the plain fill.
   texture: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS.md, overflow: 'hidden' },

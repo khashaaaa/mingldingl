@@ -1,4 +1,4 @@
-import { View as RNView, Text as RNText, Image as RNImage, StyleSheet } from 'react-native';
+import { View as RNView, Text as RNText, Image as RNImage, Platform, StyleSheet } from 'react-native';
 import { i18n, isLatin, tKey } from '../lib/i18n';
 import { tint as tintColor, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, TRACKING, glow } from '../lib/theme';
 import { ORNAMENTS } from '../lib/ornaments';
@@ -63,7 +63,9 @@ export default function OathSigil({ oath, proven, size = 'md', progress }: Props
           gap: sz.gap,
           backgroundColor: proven ? tintColor(ACCENT.bright, 0.12) : tintColor(INK.muted, 0.16),
         },
-        proven && glow(ACCENT.bright, 0.4),
+        // No glow on Android: `glow` needs `elevation` there, and elevation under this see-through
+        // fill drew a dark square inside the badge and clipped the sigil flat at top and bottom.
+        proven && Platform.OS !== 'android' && glow(ACCENT.bright, 0.4),
       ]}
     >
       {!!OATH_SIGILS[oath] && (

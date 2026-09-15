@@ -10,7 +10,7 @@ import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE } from '../lib/theme';
-import { EmptyHint, StateBlock } from '../components/ui/StateBlock';
+import { StateBlock } from '../components/ui/StateBlock';
 import type { Trophy } from '../models/trophy';
 import { Icon } from '../components/ui/Icon';
 import { useScrollTail } from '../hooks/useScrollTail';
@@ -86,7 +86,9 @@ export default function DateLogScreen() {
           contentContainerStyle={[(trophies ?? []).length === 0 ? styles.listEmpty : styles.list, { paddingBottom: tail }]}
           data={trophies ?? []}
           keyExtractor={(t) => t.matchId}
-          ListEmptyComponent={<EmptyHint>{i18n.t('date_log_empty')}</EmptyHint>}
+          // A drawn place, like every other empty room — a lone grey line floated in the middle of
+          // an otherwise blank screen.
+          ListEmptyComponent={<StateBlock icon="book-heart-outline" title={i18n.t('date_log_empty')} />}
           renderItem={({ item, index }) => (
             <Entering index={index}>
               <TrophyRow trophy={item} />

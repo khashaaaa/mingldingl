@@ -98,7 +98,9 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
               testID="header-hearth"
               style={styles.hearthBtn}
             >
-              <Glyph name="hearth" size={ICON_SIZES.lg} color={ACCENT.base} />
+              {/* Nudged up a hair: the hearth drawing sits low in its box, and on hardware it read
+                  2dp below the back arrow and the knot beside it. */}
+              <Glyph name="hearth" size={ICON_SIZES.lg} color={ACCENT.base} style={styles.hearthGlyph} />
             </Tap>
           )}
           {chrome && <AtlasSigil />}
@@ -122,6 +124,7 @@ const styles = StyleSheet.create({
   backBtn: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
   // The glyph is 20pt; the target is the platform's 44pt minimum around it.
   hearthBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  hearthGlyph: { marginTop: -SPACE.hair },
   title: {
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.title,

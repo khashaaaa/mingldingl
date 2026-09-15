@@ -108,11 +108,14 @@ export function QuestBoard() {
           </View>
         ))}
         <View style={styles.chestRow}>
-          <Icon
-            name={board.chestClaimed ? 'treasure-chest' : 'treasure-chest-outline'}
-            size={ICON_SIZES.xl}
-            color={board.chestClaimed ? INK.dim : accent}
-          />
+          {/* In a slot as wide as a quest rune, so the chest and its hint line up with the quests. */}
+          <View style={styles.chestIconSlot}>
+            <Icon
+              name={board.chestClaimed ? 'treasure-chest' : 'treasure-chest-outline'}
+              size={ICON_SIZES.xl}
+              color={board.chestClaimed ? INK.dim : accent}
+            />
+          </View>
           {board.chestClaimed ? (
             <Text style={styles.chestHint}>{i18n.t('chest_claimed')}</Text>
           ) : board.allComplete ? (
@@ -157,6 +160,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   runeDone: { borderColor: LINE.edge, backgroundColor: SURFACE.sunken },
+  chestIconSlot: { width: 28, alignItems: 'center' },
   runeText: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.display },
   runeTextDone: { color: INK.dim },
   questInfo: { flex: 1, gap: SPACE.xs },

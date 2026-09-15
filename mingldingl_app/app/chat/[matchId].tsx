@@ -645,7 +645,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     bottom: 0,
-    left: SPACE.gutter + BADGE_SIZES.row / 2,
+    // Less one: a 1pt box with a 1pt border draws 2pt wide, so its left edge must sit a point left of
+    // the ring's centre for the line itself to run through it (on hardware it ran visibly right).
+    left: SPACE.gutter + BADGE_SIZES.row / 2 - 1,
     width: 1,
     borderWidth: 1,
     borderStyle: 'dashed',

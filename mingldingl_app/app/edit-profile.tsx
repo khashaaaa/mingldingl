@@ -13,7 +13,7 @@ import { i18n } from '../lib/i18n';
 import { deepProfileThreshold } from '../lib/reveal';
 import { useRevealLadder } from '../hooks/useRevealThresholds';
 import { useLocaleStore } from '../store/localeStore';
-import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, SPACE } from '../lib/theme';
 import { FieldError } from '../components/ui/StateBlock';
 import { FIELD_LIMITS } from '../lib/fieldLimits';
 import { DismissKeyboardView } from '../components/ui/DismissKeyboardView';
@@ -295,7 +295,12 @@ const styles = StyleSheet.create({
   locatingRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   deniedBlock: { gap: SPACE.sm },
   // The page gutter, not a wider 32: the buttons now line up with the cards scrolling above them.
-  footer: { flexDirection: 'row', gap: SPACE.md, paddingHorizontal: SPACE.gutter, paddingTop: SPACE.md },
+  // A hairline on its top edge: the form scrolls under this footer, and without one the card behind
+  // it ended in a raw horizontal cut that read as a rendering fault.
+  footer: {
+    flexDirection: 'row', gap: SPACE.md, paddingHorizontal: SPACE.gutter, paddingTop: SPACE.md,
+    borderTopWidth: 1, borderTopColor: LINE.hairline,
+  },
   sectionTitle: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   hint: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   city: { color: INK.primary, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },

@@ -75,7 +75,11 @@ export function DawnFires({ fires }: { fires: DawnFire[] }) {
             onPress={() => router.push(`/chat/${id}`)}
           >
             <View style={[styles.row, fire.state === 'embers' && { borderBottomColor: tint(METAL.ember, 0.6) }]}>
-              <FireMarkGlyph mark={mark} size={ICON_SIZES.md} />
+              {/* In a glyph-wide slot, so these rows' text starts in the same column as the room
+                  names in `Destinations` above them, whose glyphs are a size larger. */}
+              <View style={styles.markSlot}>
+                <FireMarkGlyph mark={mark} size={ICON_SIZES.md} />
+              </View>
               <Text style={[styles.line, fire.state === 'frozen' && styles.lineFrozen]}>{line}</Text>
             </View>
           </Tap>
@@ -86,6 +90,7 @@ export function DawnFires({ fires }: { fires: DawnFire[] }) {
 }
 
 const styles = StyleSheet.create({
+  markSlot: { width: ICON_SIZES.lg, alignItems: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

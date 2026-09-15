@@ -108,9 +108,12 @@ export default function HearthScreen() {
 
   return (
     <View style={styles.screen}>
-      <HeaderBar title={i18n.t(ROOMS.hearth.key)} showBack={false} />
+      {/* Every header's way-home tap pushes here, so the hearth needs a way back like any other
+          pushed screen. Only when opened with nothing beneath it (a cold deep link) is there
+          nowhere to go back to. */}
+      <HeaderBar title={i18n.t(ROOMS.hearth.key)} showBack={router.canGoBack()} />
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
-        <AppCard hero style={styles.hearthCard}>
+        <AppCard hero clip style={styles.hearthCard}>
           <View onLayout={onSkyLayout}>
             <SkyWindow phase={phase} width={skyWidth} whiteMoon={whiteMoon} />
           </View>
@@ -185,7 +188,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingTop: SPACE.sm },
   // `overflow: hidden` so the sky's own corners are the card's corners.
-  hearthCard: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, overflow: 'hidden' },
+  hearthCard: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   cardBody: { padding: SPACE.lg, gap: SPACE.sm },
   waxBlock: { marginTop: SPACE.sm, gap: SPACE.sm },
   // Holds the eyebrow's own bottom margin, so the card does not reflow when the dawn lands.

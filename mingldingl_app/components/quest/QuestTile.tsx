@@ -122,7 +122,7 @@ export function QuestTile({ match, fire, onPress }: Props) {
           <OathSigil oath={otherUser.oath ?? null} proven={otherUser.oathProven ?? false} size="sm" />
           <View style={styles.eyebrowRow}>
             <FireMarkGlyph mark={mark} size={ICON_SIZES.sm} />
-            <CardEyebrow color={eyebrowColor}>{eyebrow}</CardEyebrow>
+            <CardEyebrow color={eyebrowColor} style={styles.eyebrowInline}>{eyebrow}</CardEyebrow>
           </View>
           {/* `fireLine` is '' for `unlit` on purpose — an empty second line would still take a
            *  row's worth of space under the eyebrow. */}
@@ -184,6 +184,9 @@ const styles = StyleSheet.create({
   name: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg, color: INK.primary },
   nameFrozen: { color: INK.dim },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+  // `CardEyebrow`'s own bottom margin is for an eyebrow above a block; beside a mark in a centred
+  // row it lifted the label and left the mark sitting visibly lower.
+  eyebrowInline: { marginBottom: 0 },
   fireLine: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
   verdict: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.md, color: INK.dim },
 });

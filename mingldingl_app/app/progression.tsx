@@ -70,7 +70,7 @@ export default function ProgressionScreen() {
         header={
           <>
             <Text style={styles.sub}>{i18n.t('ascent_sub')}</Text>
-            <AppCard hero style={styles.skyCard}>
+            <AppCard hero clip style={styles.skyCard}>
               <View onLayout={onSkyLayout}>
                 <AscentSky
                   gemTier={gemTier}
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.gutter,
     marginBottom: SPACE.sm,
   },
-  skyCard: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, overflow: 'hidden' },
+  skyCard: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   leaderboardButtonWrap: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.xs },
   historyTitle: { marginHorizontal: SPACE.gutter },
 });

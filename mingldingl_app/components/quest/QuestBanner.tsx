@@ -1,4 +1,4 @@
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { Tap } from '../ui/Tap';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE, circle, tint as tintColor } from '../../lib/theme';
 import { ORNAMENTS } from '../../lib/ornaments';
@@ -15,13 +15,15 @@ interface Props {
   // 'icon' is the default: banner icons carry meaning (destination). 'knot' is for
   // banners whose destination is the ornament's own world, e.g. the campaign map.
   medallion?: 'icon' | 'knot';
+  /** Merged over the banner row — e.g. to drop its side margin inside a card that pads itself. */
+  style?: StyleProp<ViewStyle>;
 }
 
-export function QuestBanner({ icon, title, onPress, disabled = false, tint = ACCENT.base, medallion = 'icon' }: Props) {
+export function QuestBanner({ icon, title, onPress, disabled = false, tint = ACCENT.base, medallion = 'icon', style }: Props) {
   const colour = disabled ? INK.dim : tint;
   return (
     <Tap onPress={onPress} disabled={disabled || !onPress} accessibilityRole="button" accessibilityState={{ disabled }}>
-      <View style={[styles.row, { borderColor: tintColor(colour, 0.53) }]}>
+      <View style={[styles.row, { borderColor: tintColor(colour, 0.53) }, style]}>
         <View style={[styles.medallion, { borderColor: colour }]}>
           {medallion === 'knot' && !disabled ? (
             <Image source={ORNAMENTS.knotGold} testID="ulzii-medallion" style={styles.knot} />

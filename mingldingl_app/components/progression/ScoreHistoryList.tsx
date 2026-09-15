@@ -204,15 +204,18 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage, join
 }
 
 const styles = StyleSheet.create({
+  // Inset by margin, not padding, so the hairline under each row stops at the page gutter like every
+  // other list's instead of running from screen edge to screen edge.
   row: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
-    paddingVertical: SPACE.md, paddingHorizontal: SPACE.gutter,
+    paddingVertical: SPACE.md, marginHorizontal: SPACE.gutter,
     borderBottomWidth: 1, borderBottomColor: SURFACE.raised,
   },
   icon: { width: 18, textAlign: 'center' },
   body: { flex: 1 },
   line: { fontSize: FONT_SIZES.md, fontFamily: FONTS.body, color: INK.primary },
-  sectionHeading: { paddingTop: SPACE.md },
+  // On the gutter: without it the day headings sat flush against the screen edge.
+  sectionHeading: { paddingTop: SPACE.md, paddingHorizontal: SPACE.gutter },
   delta: { fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   footer: { alignItems: 'center', paddingVertical: SPACE.lg },
   empty: { alignItems: 'center', padding: SPACE.huge },

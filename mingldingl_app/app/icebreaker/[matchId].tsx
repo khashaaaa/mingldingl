@@ -188,6 +188,9 @@ const styles = StyleSheet.create({
   body: {
     flexGrow: 1,
     paddingHorizontal: SPACE.gutter,
+    // Room for the question card's corner knots, which sit 6pt above its top edge — flush against
+    // the top of the scroll, the ScrollView clipped them flat.
+    paddingTop: SPACE.sm,
   },
   centered: {
     flex: 1,

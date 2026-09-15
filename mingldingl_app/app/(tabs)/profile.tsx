@@ -56,8 +56,10 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.screen}>
+      {/* Pinned above the scroll like every other tab's header. Inside it, the header scrolled away
+          and the sheet ran up under the status bar with nothing behind it. */}
+      <GameHeader title={i18n.t('character_sheet')} glyph="gem" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <GameHeader title={i18n.t('character_sheet')} glyph="gem" />
 
         {profile.deletionRequestedAt && (
           <DeletionPendingBanner

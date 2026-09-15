@@ -1,6 +1,6 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import type { Message } from '../../hooks/useChat';
-import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, LINE, PRESS, SPACE, STATUS } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, LINE, PRESS, SPACE, STATUS, SURFACE } from '../../lib/theme';
 import { FieldError } from '../ui/StateBlock';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
@@ -70,6 +70,9 @@ const styles = StyleSheet.create({
     borderRadius: RING / 2,
     borderWidth: 1,
     borderColor: LINE.edge,
+    // Filled, so the thread behind the letters stops at the ring instead of running through the
+    // sender's initial.
+    backgroundColor: SURFACE.panel,
     alignItems: 'center',
     justifyContent: 'center',
   },

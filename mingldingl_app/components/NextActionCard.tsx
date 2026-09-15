@@ -47,7 +47,9 @@ export function NextActionCard() {
     <AppCard hero style={styles.card}>
       <CardEyebrow>{i18n.t('next_action_heading')}</CardEyebrow>
       {onPress ? (
-        <QuestBanner icon={icon} title={title} onPress={onPress} />
+        // The card already pads its contents; the banner's own side margin (meant for the chat,
+        // where it sits on the bare page) pushed it in past the "What's next" label above.
+        <QuestBanner icon={icon} title={title} onPress={onPress} style={styles.banner} />
       ) : (
         <View style={styles.staticRow}>
           <Icon name={icon} size={ICON_SIZES.md} color={ACCENT.base} />
@@ -60,6 +62,7 @@ export function NextActionCard() {
 
 const styles = StyleSheet.create({
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg, padding: SPACE.lg },
+  banner: { marginHorizontal: 0 },
   staticRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.xs },
   staticTitle: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.primary },
 });
