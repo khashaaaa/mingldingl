@@ -14,8 +14,7 @@ import { ordinalWord, threadDay } from '../lib/worldTime';
 import type { BlockedUser } from '../models/blockedUser';
 import { useScrollTail } from '../hooks/useScrollTail';
 
-/** How far the left `FrostEdge` reaches in from the edge — the same reach `QuestTile` gives its
- *  own left edge (see `components/quest/QuestTile.tsx`'s `FROST_REACH`), not the row's height. */
+/** How far the left `FrostEdge` reaches in from the edge — a horizontal distance, not the row's height. */
 const FROST_REACH = 84;
 
 export default function BlockedUsersScreen() {

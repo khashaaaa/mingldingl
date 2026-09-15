@@ -10,7 +10,6 @@ import {
 import { Icon } from '../ui/Icon';
 import { FireMarkGlyph } from './FireMarkGlyph';
 import { CardEyebrow } from '../ui/CardEyebrow';
-import { FrostEdge } from '../vfx/FrostEdge';
 import OathSigil from '../OathSigil';
 import type { Match } from '../../models/match';
 
@@ -19,11 +18,6 @@ interface Props {
   fire: Fire;
   onPress: () => void;
 }
-
-/** How far the left `FrostEdge` reaches in from the edge when a fire freezes — a horizontal
- *  distance, not the row's height (which still moves with its content — an Oath sigil makes a
- *  row taller — same as before this move). */
-const FROST_REACH = 84;
 
 export function QuestTile({ match, fire, onPress }: Props) {
   const { otherUser, revealLevel } = match;
@@ -71,15 +65,16 @@ export function QuestTile({ match, fire, onPress }: Props) {
       // `line` would otherwise leave dangling.
       accessibilityLabel={[nameText, eyebrow, line, verdict].filter(Boolean).join('. ')}
     >
-      <View style={[styles.row, embers && { borderColor: tint(METAL.ember, 0.6) }]}>
-        {frozen && (
-          // Anchored top/bottom rather than given an explicit height, so its `height: '100%'`
-          // resolves against this wrapper's own stretched size instead of the row's (which has
-          // none — the row sizes to its content, same as always).
-          <View style={styles.frostWrap} pointerEvents="none">
-            <FrostEdge edge="left" length={FROST_REACH} />
-          </View>
-        )}
+      {/* A frozen fire is told by temperature alone — a cold hairline, the same move embers make in
+          ember. The left-edge `FrostEdge` it used to carry read as a ruler scribbled behind the
+          portrait on hardware, and the glacier mark, line and verdict already say "frozen". */}
+      <View
+        style={[
+          styles.row,
+          embers && { borderColor: tint(METAL.ember, 0.6) },
+          frozen && { borderColor: tint(TEMPERATURE.glacier, 0.35) },
+        ]}
+      >
         {fire.state === 'unlit' && (
           <View style={[styles.runeStrip, { backgroundColor: tint(ACCENT.base, 0.13), borderColor: tint(ACCENT.base, 0.4) }]}>
             <View style={[styles.runeCorner, styles.runeCornerTl, { borderColor: ACCENT.base }]} />
@@ -87,7 +82,7 @@ export function QuestTile({ match, fire, onPress }: Props) {
             <Icon name="script-text" size={ICON_SIZES.md} color={ACCENT.base} />
           </View>
         )}
-        <View style={styles.avatarRing}>
+        <View style={[styles.avatarRing, frozen && { borderColor: tint(TEMPERATURE.glacier, 0.5) }]}>
           {showPhoto ? (
             <>
               <Image
@@ -152,7 +147,6 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.md,
     overflow: 'hidden',
   },
-  frostWrap: { position: 'absolute', top: 0, bottom: 0, left: 0 },
   runeStrip: {
     // Sized to the avatar beside it rather than stretched to the card: a card with an Oath sigil
     // is taller than one without, and `stretch` made the same tablet two different heights down
@@ -184,7 +178,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: TEMPERATURE.ice,
-    opacity: 0.35,
+    opacity: 0.2,
   },
   info: { flex: 1, gap: SPACE.xs },
   name: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg, color: INK.primary },

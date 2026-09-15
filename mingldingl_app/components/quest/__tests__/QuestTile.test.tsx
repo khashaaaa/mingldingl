@@ -99,17 +99,15 @@ describe('QuestTile', () => {
     expect(queryByTestId('state-ember', HIDDEN)).toBeNull();
   });
 
-  it('renders the frozen eyebrow, verdict, and a frost edge — absent otherwise', () => {
-    const { getByText, getByTestId } = render(
+  it('renders the frozen eyebrow and verdict without the left frost drawing', () => {
+    const { getByText, queryByTestId } = render(
       <QuestTile match={BASE_MATCH} fire={FROZEN_FIRE} onPress={jest.fn()} />,
     );
     expect(getByText('FROZEN')).toBeTruthy();
     expect(getByText('Five dawns of silence. Judged at the second.')).toBeTruthy();
     expect(getByText('They let it freeze. Their standing paid.')).toBeTruthy();
-    expect(getByTestId('frost-edge-left', HIDDEN)).toBeTruthy();
-
-    const { queryByTestId: queryOther } = render(<QuestTile match={BASE_MATCH} fire={BURNING_FIRE} onPress={jest.fn()} />);
-    expect(queryOther('frost-edge-left', HIDDEN)).toBeNull();
+    // Dropped after the A51 pass: it read as a ruler scribbled behind the portrait.
+    expect(queryByTestId('frost-edge-left', HIDDEN)).toBeNull();
   });
 
   it('labels the whole row for a screen reader as name, eyebrow, line', () => {
