@@ -124,8 +124,12 @@ export default function BusinessDetailScreen() {
           <Text style={styles.meta} numberOfLines={1}>
             {hasMeta ? [category, district].filter(Boolean).join(' · ') : ''}
           </Text>
-          <Icon name="star" size={ICON_SIZES.sm} color={ACCENT.base} />
-          <Text style={styles.rating}>{averageRating.toFixed(1)} ({ratingCount})</Text>
+          {/* Star and score as one group: as two loose children of a space-between row, the star
+              floated alone in the middle of the line. */}
+          <View style={styles.ratingGroup}>
+            <Icon name="star" size={ICON_SIZES.sm} color={ACCENT.base} />
+            <Text style={styles.rating}>{averageRating.toFixed(1)} ({ratingCount})</Text>
+          </View>
         </View>
 
         {description ? <Text style={styles.description}>{description}</Text> : null}
@@ -173,7 +177,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: SPACE.gutter, marginTop: SPACE.md,
   },
-  meta: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body },
+  meta: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, flexShrink: 1 },
+  ratingGroup: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginLeft: SPACE.md },
   rating: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   description: { color: INK.primary, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LEADING.md, paddingHorizontal: SPACE.gutter, marginTop: SPACE.md },
   hours: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter, marginTop: SPACE.sm },

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Glyph } from '../ui/Glyph';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, MATERIAL, SPACE } from '../../lib/theme';
@@ -36,11 +37,19 @@ export function CandleRow({ remaining, budget }: Props) {
   const drawn = Math.max(0, Math.min(budget, MAX_DRAWN));
   const overflow = Math.max(0, budget - drawn);
   const lit = Math.max(0, Math.min(remaining, drawn));
+  // The gap closes up to fit the row it is given, so a full day's candles stand on one line: at a
+  // fixed gap, fifteen wrapped fourteen-and-one and left a single orphan candle on a second row.
+  // `flexWrap` stays as the floor for a width even a closed-up row cannot fit.
+  const [width, setWidth] = useState(0);
+  const gap = width > 0 && drawn > 1
+    ? Math.max(0, Math.min(SPACE.xs, Math.floor((width - drawn * LIT_SIZE) / (drawn - 1))))
+    : SPACE.xs;
 
   return (
     <View
       testID="candle-row"
-      style={styles.row}
+      style={[styles.row, { gap }]}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       accessible
       accessibilityLabel={i18n.t('candles_left', { remaining, budget })}
     >
@@ -63,7 +72,7 @@ export function CandleRow({ remaining, budget }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: SPACE.xs },
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end' },
   stub: { alignItems: 'center', justifyContent: 'flex-end' },
   flame: {
     position: 'absolute',

@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Tap } from './Tap';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'expo-router';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
 import { i18n, isLatin } from '../../lib/i18n';
@@ -9,6 +9,9 @@ import { SectionDivider } from './SectionDivider';
 import { Icon } from './Icon';
 import { Glyph, type GlyphName } from './Glyph';
 import { AtlasSigil } from '../world/AtlasSigil';
+
+/** The sizes a title steps through, as fractions of its style's size, until it fits on one line. */
+const FIT_SCALES = [1, 0.88, 0.76, 0.66, 0.58] as const;
 
 interface Props {
   title: string;
@@ -43,6 +46,15 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
   // The way home, everywhere but home itself — a hearth already standing on the hearth screen
   // would just point at the room it is in. Also gated on `chrome`: see its doc comment above.
   const showHearthTap = HEARTH_ENABLED && pathname !== '/hearth' && chrome;
+  const titleStyle = StyleSheet.flatten([
+    styles.title,
+    blackletter && styles.titleBlackletter,
+    right ? (blackletter ? styles.titleBlackletterCompact : styles.titleCompact) : null,
+  ]);
+  const baseSize = titleStyle.fontSize ?? FONT_SIZES.title;
+  // Keyed by the title, so a screen whose title changes (a venue loading its name) fits afresh.
+  const [fit, setFit] = useState({ title, step: 0 });
+  const step = fit.title === title ? fit.step : 0;
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
@@ -60,18 +72,19 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
           {icon && <Icon name={icon} size={ICON_SIZES.lg} style={styles.titleIcon} />}
           {/* Unlabelled: the title text right beside it already names the room. */}
           {glyph && <Glyph name={glyph} size={ICON_SIZES.lg} color={ACCENT.base} style={styles.titleIcon} />}
-          {/* Two lines, because `adjustsFontSizeToFit` is iOS-only: on web and Android a long
-              title (interpolated city names, the longer Mongolian copy) simply clipped —
-              "Ulaanbaatar Leaderboard" rendered as "Ulaanbaatar Leaderb…". */}
+          {/* One line, stepped down to fit. Wrapping a 48pt blackletter title onto a second line
+              doubled the header's height and left the back arrow and tail icons floating beside
+              the middle of a two-line block, and `adjustsFontSizeToFit` on Android shrank the
+              glyphs but kept the two-line height. Each layout that still wraps drops one step;
+              `numberOfLines={2}` stays only as the floor for a title too long for the last step. */}
           <Text
-            style={[
-              styles.title,
-              blackletter && styles.titleBlackletter,
-              right ? (blackletter ? styles.titleBlackletterCompact : styles.titleCompact) : null,
-            ]}
+            style={[titleStyle, { fontSize: baseSize * FIT_SCALES[step] }]}
             numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.8}
+            onTextLayout={(e) => {
+              if (e.nativeEvent.lines.length > 1 && step < FIT_SCALES.length - 1) {
+                setFit({ title, step: step + 1 });
+              }
+            }}
           >
             {title}
           </Text>
@@ -100,7 +113,9 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
 
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.md, gap: SPACE.md },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  // At least the back button's 44pt, so a screen without one (the hearth) puts its divider at the
+  // same height as every other screen instead of jumping up when a short title sets the row.
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, flexShrink: 1 },
   tail: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
   titleIcon: { marginTop: SPACE.hair },

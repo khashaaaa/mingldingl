@@ -96,12 +96,16 @@ export default function LeaderboardScreen() {
               <Text style={styles.rank}>{numeral}</Text>
               <View style={styles.tierGroup}>
                 <GemTierBadge tier={(item.gemTier as GemTier) ?? 'Garnet'} size={BADGE_SIZES.row} />
-                <Text style={styles.tierName}>{tierName}</Text>
+                {/* The mark takes the tier name's own slot rather than stacking above the score:
+                    stacked, it made this one row taller than the rest and dropped its score
+                    below the others' line. */}
+                {isOwn ? (
+                  <Text style={styles.eyebrow}>{`${tierName} · ${i18n.t('your_mark')}`}</Text>
+                ) : (
+                  <Text style={styles.tierName}>{tierName}</Text>
+                )}
               </View>
               <View style={styles.scoreGroup}>
-                {isOwn && (
-                  <Text style={styles.eyebrow}>{`${tierName} · ${i18n.t('your_mark')}`}</Text>
-                )}
                 <Text style={styles.score}>{score.toLocaleString()}</Text>
               </View>
             </View>
@@ -190,7 +194,6 @@ const styles = StyleSheet.create({
     color: TEMPERATURE.furnace,
     letterSpacing: TRACKING.wide,
     textTransform: 'uppercase',
-    marginBottom: SPACE.hair,
   },
   law: {
     fontFamily: FONTS.bodyItalic,

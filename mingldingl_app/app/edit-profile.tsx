@@ -294,7 +294,8 @@ const styles = StyleSheet.create({
   titleBlock: { gap: SPACE.hair },
   locatingRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   deniedBlock: { gap: SPACE.sm },
-  footer: { flexDirection: 'row', gap: SPACE.md, padding: SPACE.huge, paddingTop: SPACE.md },
+  // The page gutter, not a wider 32: the buttons now line up with the cards scrolling above them.
+  footer: { flexDirection: 'row', gap: SPACE.md, paddingHorizontal: SPACE.gutter, paddingTop: SPACE.md },
   sectionTitle: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   hint: { color: INK.dim, fontSize: FONT_SIZES.sm, fontFamily: FONTS.body },
   city: { color: INK.primary, fontSize: FONT_SIZES.lg, fontFamily: FONTS.bodyBold },

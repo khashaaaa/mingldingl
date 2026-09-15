@@ -62,7 +62,7 @@ export function Destinations() {
         accessibilityLabel={i18n.t('dest_satchel')}
         onPress={() => router.push('/satchel')}
       >
-        <View style={styles.row}>
+        <View style={[styles.row, styles.satchelRow]}>
           <Text style={styles.satchel}>{i18n.t('dest_satchel')}</Text>
         </View>
       </Tap>
@@ -80,5 +80,7 @@ const styles = StyleSheet.create({
     borderBottomColor: LINE.hairline,
   },
   name: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.lg, color: INK.primary },
+  // No glyph, but its name still starts in the rooms' name column rather than under their glyphs.
+  satchelRow: { paddingLeft: ICON_SIZES.lg + SPACE.md },
   satchel: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
 });

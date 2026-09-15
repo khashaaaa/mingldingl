@@ -91,7 +91,7 @@ export default function CampaignScreen() {
           loading={isClaiming && claimingRoomId === room.roomId}
           disabled={isClaiming}
           onPress={() => onClaim(room.roomId)}
-          style={styles.claimButton}
+          style={[styles.claimButton, room.roomId !== firstClaimableRoomId && styles.claimInk]}
           accessibilityLabel={`${numeral}. ${name}. ${stateText}`}
         >
           {stateText}
@@ -270,4 +270,7 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, marginTop: SPACE.hair },
   statusText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, letterSpacing: TRACKING.wide, color: INK.dim },
   claimButton: { alignSelf: 'flex-start', marginTop: SPACE.xs },
+  // An ink claim has no slab to show its padding, so its icon started a padding's width right of
+  // the room name and of the forged claim above it. Pull it back into the same column.
+  claimInk: { marginLeft: -SPACE.md },
 });

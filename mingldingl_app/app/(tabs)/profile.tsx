@@ -146,7 +146,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.editButtonWrapper}>
-          <GameButton variant="ink" size="compact" onPress={() => router.push('/edit-profile')}>
+          <GameButton variant="ink" size="compact" icon="pencil-outline" onPress={() => router.push('/edit-profile')}>
             {i18n.t('edit_profile')}
           </GameButton>
         </View>

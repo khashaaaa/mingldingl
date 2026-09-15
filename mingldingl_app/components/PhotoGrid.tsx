@@ -22,7 +22,11 @@ interface Props {
   onUploadingChange?: (uploading: boolean) => void;
 }
 
+/** Before the grid has measured itself. */
 const TILE = 90;
+/** Tiles per row. Sized from the grid's own width, so a row fills its card edge to edge: at a fixed
+ *  90pt, three photos filled most of a row and the add tile dropped alone onto a second one. */
+const COLUMNS = 4;
 
 /**
  * The picked URIs that are genuinely new. Picking the same library asset twice hands back the same
@@ -56,6 +60,9 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
   const [failedAlert, setFailedAlert] = useState(false);
   const [pendingLocalUris, setPendingLocalUris] = useState<string[]>([]);
   const [pendingDeleteUrl, setPendingDeleteUrl] = useState<string | null>(null);
+  const [gridWidth, setGridWidth] = useState(0);
+  const side = gridWidth > 0 ? Math.floor((gridWidth - SPACE.sm * (COLUMNS - 1)) / COLUMNS) : TILE;
+  const tileSize = { width: side, height: side };
 
   // Held in a ref so an inline callback from the parent cannot make these effects re-run (and
   // flap the flag) on every render.
@@ -94,9 +101,9 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
   }
 
   return (
-    <View style={styles.grid}>
+    <View style={styles.grid} onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}>
       {photoUrls.map((url, i) => (
-        <View key={url} style={styles.tile}>
+        <View key={url} style={[styles.tile, tileSize]}>
           <Image source={{ uri: url }} style={styles.image} contentFit="cover" />
           {pendingLocalUris.includes(url) && (
             <View style={styles.uploadOverlay}>
@@ -132,7 +139,7 @@ export function PhotoGrid({ photoUrls, maxPhotos = 6, onChange, onUploadingChang
       ))}
       {photoUrls.length < maxPhotos && (
         <Tap
-          style={[styles.tile, styles.addTile]}
+          style={[styles.tile, tileSize, styles.addTile]}
           disabled={uploading}
           accessibilityRole="button"
           accessibilityLabel={i18n.t('add_photo')}
