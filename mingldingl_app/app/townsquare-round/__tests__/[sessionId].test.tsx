@@ -4,7 +4,7 @@ import TownSquareRoundScreen from '../[sessionId]';
 import { useTownSquareRound, useTownSquareSessionSummary } from '../../../hooks/useTownSquareRound';
 import { i18n } from '../../../lib/i18n';
 
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({
   useLocalSearchParams: () => ({ sessionId: 's1' }),
   useRouter: () => ({ replace: jest.fn(), back: jest.fn(), push: jest.fn() }),
   // `HeaderBar` reads the route to decide whether to draw the hearth "way home" tap.

@@ -2,7 +2,7 @@ import { render } from '@testing-library/react-native';
 import CampaignScreen from '../[matchId]';
 import type { Campaign } from '../../../hooks/useCampaign';
 
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({
   usePathname: () => '/test',
   useLocalSearchParams: () => ({ matchId: 'm1' }),
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),

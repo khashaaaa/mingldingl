@@ -8,7 +8,7 @@ import { FONTS } from '../../../lib/theme';
 
 const mockPush = jest.fn();
 const mockBack = jest.fn();
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({
   usePathname: () => '/test',
   useLocalSearchParams: () => ({ matchId: 'm1', name: 'Riley' }),
   useRouter: () => ({ push: mockPush, back: mockBack }),

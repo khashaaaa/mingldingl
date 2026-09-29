@@ -10,9 +10,10 @@ import { useActiveFestival } from '../../lib/festivals';
 import { WithSafeArea } from '../../lib/testing/safeArea';
 
 const mockPush = jest.fn();
+const mockDismissTo = jest.fn();
 // `usePathname` is what `HeaderBar` reads to drop the way-home tap on the hearth itself, so this
 // screen's stub has to name the hearth's own route.
-jest.mock('expo-router', () => ({ usePathname: () => '/hearth', useRouter: () => ({ push: mockPush, canGoBack: () => false }) }));
+jest.mock('expo-router', () => require('../../lib/testing/expoRouterMock').expoRouterMock({ usePathname: () => '/hearth', useRouter: () => ({ push: mockPush, dismissTo: mockDismissTo, canGoBack: () => false }) }));
 
 jest.mock('../../hooks/useProfile');
 jest.mock('../../hooks/useMatches');
@@ -178,7 +179,8 @@ describe('the destinations', () => {
   it.each(ROUTES)('sends %s to %s', (testID, route) => {
     const { getByTestId } = renderScreen();
     fireEvent.press(getByTestId(testID));
-    expect(mockPush).toHaveBeenCalledWith(route);
+    // A room is a tab: pop back to the tabs already there rather than pushing a second copy.
+    expect(mockDismissTo).toHaveBeenCalledWith(route);
   });
 
   it('carries the Satchel too, quieter than the five', () => {

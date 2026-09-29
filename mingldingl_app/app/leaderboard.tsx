@@ -17,6 +17,7 @@ import {
 import { EmptyHint, StateBlock } from '../components/ui/StateBlock';
 import type { GemTier } from '../models/user';
 import { useScrollTail } from '../hooks/useScrollTail';
+import { goBack } from '../lib/navigation';
 
 const TOP_SLICE_SIZE = 50;
 
@@ -51,7 +52,7 @@ export default function LeaderboardScreen() {
     return (
       <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('leaderboard_load_error')}>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
-        <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
+        <GameButton variant="ink" onPress={() => goBack(router)}>{i18n.t('back')}</GameButton>
       </StateBlock>
     );
   }

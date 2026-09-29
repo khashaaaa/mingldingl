@@ -48,6 +48,7 @@ import { useUnsealing } from '../../hooks/useUnsealing';
 import { useSealedLetter } from '../../hooks/useSealedLetter';
 import { useFireDying } from '../../hooks/useFireDying';
 import { useNowTicker } from '../../hooks/useNowTicker';
+import { goBack } from '../../lib/navigation';
 
 const Ember = PLACES.ember;
 
@@ -191,7 +192,7 @@ export default function ChatScreen() {
     try {
       await apiClient.matches.unmatch(matchId);
       qc.invalidateQueries({ queryKey: queryKeys.matches });
-      router.back();
+      goBack(router);
     } catch {
       setUnmatching(false);
       setConfirmUnmatch(false);
@@ -204,7 +205,7 @@ export default function ChatScreen() {
     try {
       await apiClient.matches.block(matchId);
       qc.invalidateQueries({ queryKey: queryKeys.matches });
-      router.back();
+      goBack(router);
     } catch {
       setBlocking(false);
       setConfirmBlock(false);
@@ -582,7 +583,7 @@ export default function ChatScreen() {
           onClose={() => setReportVisible(false)}
           // The engine blocks them and ends the thread in the same write, so the conversation this
           // screen is showing is already over by the time this fires.
-          onReported={() => router.back()}
+          onReported={() => goBack(router)}
         />
       )}
       {match && (

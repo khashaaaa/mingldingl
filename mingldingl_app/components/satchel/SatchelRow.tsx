@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
+import { goTo } from '../../lib/navigation';
 import { Tap } from '../ui/Tap';
 import { Icon } from '../ui/Icon';
 import { MaterialMark, type Material } from '../ui/MaterialMark';
@@ -34,7 +35,7 @@ export function SatchelRow({ material, glyph, name, line, to, testID }: Props) {
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`${name}. ${line}`}
-      onPress={() => router.push(to)}
+      onPress={() => goTo(router, to)}
     >
       <View style={styles.row}>
         <MaterialMark material={material} glyph={glyph} />

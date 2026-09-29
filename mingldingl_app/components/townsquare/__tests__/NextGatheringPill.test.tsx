@@ -2,8 +2,8 @@ import { render, fireEvent, act } from '@testing-library/react-native';
 import { NextGatheringPill } from '../NextGatheringPill';
 import type { TownSquareNextSession } from '../../../hooks/useTownSquareSession';
 
-const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
+const mockDismissTo = jest.fn();
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({ useRouter: () => ({ dismissTo: mockDismissTo }) }));
 
 const mockUseTownSquareSession = jest.fn();
 jest.mock('../../../hooks/useTownSquareSession', () => ({
@@ -34,7 +34,7 @@ describe('NextGatheringPill', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.setSystemTime(NOW);
-    mockPush.mockClear();
+    mockDismissTo.mockClear();
     mockUseTownSquareSession.mockReset();
   });
 
@@ -97,6 +97,7 @@ describe('NextGatheringPill', () => {
     mockUseTownSquareSession.mockReturnValue({ session: session() });
     const { getByTestId } = render(<NextGatheringPill />);
     fireEvent.press(getByTestId('next-gathering-pill'));
-    expect(mockPush).toHaveBeenCalledWith('/(tabs)/townsquare');
+    // Back to the tabs already underneath, not a second tab bar pushed on top.
+    expect(mockDismissTo).toHaveBeenCalledWith('/(tabs)/townsquare');
   });
 });

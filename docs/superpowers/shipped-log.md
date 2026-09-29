@@ -10,6 +10,30 @@ written, not by date.
 
 ---
 
+## Navigation: no second tab bar, no dead back arrow (2026-09-29)
+
+Found on the A51 by reading the live React Navigation state over the Hermes inspector after each tap.
+- **Stacked tab bars.** `router.push('/(tabs)/…')` from a screen above the tabs pushes a whole
+  second tab navigator. Hearth → Mirror → Hearth → Mirror grew the root stack by a hearth and a full
+  tab bar each lap, and back walked through all of them. Every tab link (hearth destinations, Satchel
+  rows, the atlas, the Next Gathering pill, What's next, the empty Quest Log, the Town Square push)
+  now goes through `lib/navigation.ts` `goTo`, which `dismissTo`s a tab route: pops to the tabs
+  already there and switches tab.
+- **Stacked hearths.** The header's way-home pushed a new hearth each time (hearth → Satchel → home
+  → Satchel…). `goHome` returns to an open hearth; `stackHas` searches the nested state, because
+  expo-router wraps the app in a `__root` route.
+- **Dead back arrows.** A bare `router.back()` does nothing with no history (a cold deep link).
+  Every one is now `goBack`, which falls back to the tabs.
+- **"Back to chat" that wasn't.** A notification opens the Rite or the pledged encounter over the
+  tabs, so "Back to chat" dropped you on a tab. `useBackToChat` goes back only when the chat or the
+  campaign is underneath, and otherwise opens the chat in place. From the campaign it still returns
+  to the campaign, as before.
+- `lib/__tests__/navigation.test.ts` scans the app for a pushed tab route or a bare `router.back()`.
+- The shared `expo-router` mock factory (a deferred cleanup) landed with this:
+  `lib/testing/expoRouterMock.ts`. All 26 local mocks now pass only their overrides, because each one
+  carried only the router methods its screen used that day and broke on `canGoBack`/`dismissTo`.
+  `usePushNotifications.test.tsx` keeps its own `jest.fn()` `useRouter`, which it reconfigures per test.
+
 ## Style consistency + second A51 pass (2026-09-29)
 
 - Control: every page's loading and load-failure state goes through `components/QueryState`

@@ -3,7 +3,7 @@ import { DawnFires } from '../DawnFires';
 import { fireOf } from '../../../lib/fire';
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({ useRouter: () => ({ push: mockPush }) }));
 
 /** The engine's own windows, read rather than re-derived — same shape `useGhostingWindows` hands
  *  the Quest Log. */

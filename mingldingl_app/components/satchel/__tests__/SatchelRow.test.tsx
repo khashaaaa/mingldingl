@@ -2,7 +2,7 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { SatchelRow } from '../SatchelRow';
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({ useRouter: () => ({ push: mockPush }) }));
 
 /** The material mark and the glyph inside it are hidden from assistive tech (unlabelled), so the
  *  default queries skip them — the same opt-in the hearth's own frost tests use. */

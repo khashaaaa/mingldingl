@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
+import { goTo } from '../../lib/navigation';
 import { Tap } from '../ui/Tap';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import { i18n } from '../../lib/i18n';
@@ -47,7 +48,7 @@ export function Destinations() {
             // The name is the whole fact. The glyph beside it is unlabelled on purpose — labelled,
             // it would read the room's name twice.
             accessibilityLabel={name}
-            onPress={() => router.push(route)}
+            onPress={() => goTo(router, route)}
           >
             <View style={styles.row}>
               <Glyph name={glyph} size={ICON_SIZES.lg} color={ACCENT.base} />

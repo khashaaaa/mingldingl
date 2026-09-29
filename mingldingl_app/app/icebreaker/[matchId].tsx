@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Tap } from '../../components/ui/Tap';
 import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIcebreaker } from '../../hooks/useIcebreaker';
 import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
@@ -18,16 +18,17 @@ import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPAC
 import { StateBlock } from '../../components/ui/StateBlock';
 import { Icon } from '../../components/ui/Icon';
 import { useScrollTail } from '../../hooks/useScrollTail';
+import { useBackToChat } from '../../hooks/useBackToChat';
 
 export default function IcebreakerScreen() {
   useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
+  const backToChat = useBackToChat(matchId);
   const {
     question, isLoading, submitAnswer,
     hasResponded, isWaitingForPartner, isComplete, myAnswer, partnerAnswer,
     submitError, clearSubmitError,
   } = useIcebreaker(matchId);
-  const router = useRouter();
   const tail = useScrollTail();
   const insets = useSafeAreaInsets();
   const keyboardHeight = useAndroidKeyboardHeight();
@@ -51,7 +52,7 @@ export default function IcebreakerScreen() {
 
   if (!question) return (
     <StateBlock icon="help-circle-outline" title={i18n.t('no_icebreaker')}>
-      <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+      <GameButton variant="ink" onPress={backToChat}>{i18n.t('back_to_chat')}</GameButton>
     </StateBlock>
   );
 
@@ -67,7 +68,7 @@ export default function IcebreakerScreen() {
           <Text style={styles.matchCount}>{i18n.t('they_said', { answer: partnerAnswer })}</Text>
           {isMatch && <Text style={styles.ptsEarned}>{i18n.t('you_matched')}</Text>}
         </AppCard>
-        <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+        <GameButton variant="ink" onPress={backToChat}>{i18n.t('back_to_chat')}</GameButton>
       </View>
     );
   }
@@ -77,7 +78,7 @@ export default function IcebreakerScreen() {
       <View style={styles.centered}>
         <Waiting />
         <Text style={styles.completionTitle}>{i18n.t('waiting_partner')}</Text>
-        <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+        <GameButton variant="ink" onPress={backToChat}>{i18n.t('back_to_chat')}</GameButton>
       </View>
     );
   }

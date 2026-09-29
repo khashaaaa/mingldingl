@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { useRouter } from 'expo-router';
+import { goTo } from '../lib/navigation';
 import { apiClient } from '../lib/api/apiClient';
 import { useAuthStore } from '../store/authStore';
 import { ACCENT } from '../lib/theme';
@@ -122,7 +123,7 @@ export function usePushNotifications() {
       const type = data?.type as string | undefined;
       const matchId = data?.matchId as string | undefined;
       if (!matchId && type !== 'townsquare_started') return;
-      router.push(destinationFor(type, matchId ?? ''));
+      goTo(router, destinationFor(type, matchId ?? ''));
     }
 
     // A tap that cold-started the app happened before this listener existed. expo-notifications

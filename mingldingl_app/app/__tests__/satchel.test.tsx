@@ -12,7 +12,7 @@ import { WithSafeArea } from '../../lib/testing/safeArea';
 import type { Match } from '../../models/match';
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ usePathname: () => '/satchel', useRouter: () => ({ push: mockPush }) }));
+jest.mock('expo-router', () => require('../../lib/testing/expoRouterMock').expoRouterMock({ usePathname: () => '/satchel', useRouter: () => ({ push: mockPush }) }));
 
 jest.mock('../../hooks/useProfile');
 jest.mock('../../hooks/useMatches');

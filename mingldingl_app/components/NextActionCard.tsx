@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { goTo } from '../lib/navigation';
 import { AppCard } from './ui/AppCard';
 import { QuestBanner } from './quest/QuestBanner';
 import { CardEyebrow } from './ui/CardEyebrow';
@@ -30,12 +31,12 @@ export function NextActionCard() {
     case 'claim_chest':
       icon = 'gift';
       title = i18n.t('next_action_claim_chest');
-      onPress = () => router.push('/(tabs)/activity');
+      onPress = () => goTo(router, '/(tabs)/activity');
       break;
     case 'quest_progress':
       icon = 'map';
       title = i18n.t('next_action_quest_progress', { progress: action.progress, target: action.target });
-      onPress = () => router.push('/(tabs)/activity');
+      onPress = () => goTo(router, '/(tabs)/activity');
       break;
     case 'streak':
       icon = 'fire';

@@ -5,7 +5,7 @@ import { useBusinessReviews } from '../../../hooks/useBusinessReviews';
 import { WithSafeArea } from '../../../lib/testing/safeArea';
 
 let mockParams: Record<string, string> = {};
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({
   usePathname: () => '/test',
   useLocalSearchParams: () => mockParams,
   useRouter: () => ({ back: jest.fn(), push: jest.fn() }),

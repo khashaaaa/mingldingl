@@ -5,7 +5,7 @@ import { hydrateRevealThresholds, resetRevealThresholdsForTests } from '../../..
 import { i18n } from '../../../lib/i18n';
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({ useRouter: () => ({ push: mockPush }) }));
 
 /**
  * Ported from the deleted `RevealStrip.test.tsx` (see git history): same fixtures, same

@@ -12,6 +12,7 @@ import { ACCENT, LEADING, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
 import { StateBlock } from './ui/StateBlock';
 import { CardEyebrow } from './ui/CardEyebrow';
 import { useScrollTail } from '../hooks/useScrollTail';
+import { goBack } from '../lib/navigation';
 
 interface Props {
   slug: string;
@@ -26,7 +27,7 @@ export function ContentPageScreen({ slug }: Props) {
 
   return (
     <View style={styles.container}>
-      <HeaderBar title={localized?.title ?? ''} onBack={() => router.back()} />
+      <HeaderBar title={localized?.title ?? ''} onBack={() => goBack(router)} />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
         {isLoading && <Waiting />}
         {isError && (

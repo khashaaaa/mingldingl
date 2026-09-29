@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Tap } from '../../components/ui/Tap';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useQuiz } from '../../hooks/useQuiz';
 import { AppCard } from '../../components/ui/AppCard';
 import { AlertModal } from '../../components/modals/AlertModal';
@@ -16,17 +16,18 @@ import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPAC
 import { StateBlock } from '../../components/ui/StateBlock';
 import { Icon } from '../../components/ui/Icon';
 import { useScrollTail } from '../../hooks/useScrollTail';
+import { useBackToChat } from '../../hooks/useBackToChat';
 
 export default function QuizScreen() {
   const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
+  const backToChat = useBackToChat(matchId);
   const {
     quiz, isLoading, isLoadError, refetchQuiz, currentQuestion, answeredCount,
     submitAnswer, allAnswered, isWaitingForPartner, compatibility, awarded,
     submitError, clearSubmitError,
   } = useQuiz(matchId);
-  const router = useRouter();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [failedAlert, setFailedAlert] = useState(false);
@@ -65,13 +66,13 @@ export default function QuizScreen() {
   if (isLoadError) return (
     <StateBlock tone="danger" icon="wifi-off" title={i18n.t('quiz_load_error')}>
       <GameButton variant="ink" onPress={() => refetchQuiz()}>{i18n.t('retry')}</GameButton>
-      <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+      <GameButton variant="ink" onPress={backToChat}>{i18n.t('back_to_chat')}</GameButton>
     </StateBlock>
   );
 
   if (!quiz) return (
     <StateBlock icon="help-circle-outline" title={i18n.t('no_quiz')}>
-      <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+      <GameButton variant="ink" onPress={backToChat}>{i18n.t('back_to_chat')}</GameButton>
     </StateBlock>
   );
 
@@ -89,7 +90,7 @@ export default function QuizScreen() {
           {awarded > 0 && <Text style={styles.completionSub}>{i18n.t('xp_earned', { points: awarded })}</Text>}
         </AppCard>
         {isWaitingForPartner && <LongWait kind="quizPartner" />}
-        <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+        <GameButton variant="primary" onPress={backToChat}>{i18n.t('back_to_chat')}</GameButton>
       </View>
     );
   }

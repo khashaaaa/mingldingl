@@ -6,7 +6,7 @@ import { useInventory } from '../../../hooks/useInventory';
 import { useCancelDeletion } from '../../../hooks/useCancelDeletion';
 import { WithSafeArea } from '../../../lib/testing/safeArea';
 
-jest.mock('expo-router', () => ({ usePathname: () => '/test', useRouter: () => ({ push: jest.fn() }) }));
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({ usePathname: () => '/test', useRouter: () => ({ push: jest.fn() }) }));
 
 jest.mock('../../../hooks/useProfile');
 jest.mock('../../../hooks/useScoreDetail');

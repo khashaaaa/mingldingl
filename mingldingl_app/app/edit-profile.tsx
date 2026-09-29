@@ -27,6 +27,7 @@ import { HeaderBar } from '../components/ui/HeaderBar';
 import { TextField } from '../components/ui/TextField';
 import { Waiting } from '../components/ui/Waiting';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { goBack } from '../lib/navigation';
 
 const SMOKING_DRINKING_OPTIONS = ['Never', 'Occasionally', 'Regularly'] as const;
 const RELIGION_OPTIONS = ['Buddhist', 'Christian', 'Muslim', 'None', 'Other'] as const;
@@ -121,7 +122,7 @@ export default function EditProfileScreen() {
         religion: religion || null,
         lifestyle: lifestyle || null,
       });
-      router.back();
+      goBack(router);
     } catch {
       setSaveError(i18n.t('save_error'));
     } finally {
@@ -137,7 +138,7 @@ export default function EditProfileScreen() {
         // at, as the chat composer does (see `useAndroidKeyboardHeight`).
         paddingBottom: keyboardHeight > 0 ? keyboardHeight + insets.bottom : 0,
       }]}>
-      <HeaderBar title={i18n.t('edit_profile')} onBack={() => router.back()} />
+      <HeaderBar title={i18n.t('edit_profile')} onBack={() => goBack(router)} />
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: SPACE.gutter, paddingVertical: SPACE.xxl, gap: SPACE.lg }}
         keyboardShouldPersistTaps="handled"
@@ -268,7 +269,7 @@ export default function EditProfileScreen() {
       />
 
       <View style={[styles.footer, { paddingBottom: SPACE.huge + insets.bottom }]}>
-        <GameButton variant="ink" size="compact" flex={1} onPress={() => { Keyboard.dismiss(); router.back(); }}>
+        <GameButton variant="ink" size="compact" flex={1} onPress={() => { Keyboard.dismiss(); goBack(router); }}>
           {i18n.t('back')}
         </GameButton>
         <GameButton

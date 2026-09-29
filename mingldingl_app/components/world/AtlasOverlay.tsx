@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
+import { goTo } from '../../lib/navigation';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { ROOMS, PASSAGES, type RoomName } from '../../lib/world';
 import { useWorldState } from '../../hooks/useWorldState';
@@ -49,7 +50,7 @@ export function AtlasOverlay({ visible, onClose }: Props) {
 
   function go(room: RoomName) {
     onClose();
-    router.navigate(ROOMS[room].route);
+    goTo(router, ROOMS[room].route);
   }
 
   const delves = state.activeMatches ?? 0;

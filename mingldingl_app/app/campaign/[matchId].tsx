@@ -19,6 +19,7 @@ import { PRESS, ACCENT, FONTS, FONT_SIZES, HEAT, ICON_SIZES, INK, LINE, METAL, R
 import { StateBlock } from '../../components/ui/StateBlock';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { useScrollTail } from '../../hooks/useScrollTail';
+import { goBack } from '../../lib/navigation';
 
 const BOSS_ROOM_ID = 'threshold';
 
@@ -52,7 +53,7 @@ export default function CampaignScreen() {
       case 'bridge':
       case 'threshold': router.push(`/activities/${matchId}`); break;
       // 'voices' and 'flame' both live in the chat (messages, FlameRiteCard).
-      default: router.back();
+      default: goBack(router);
     }
   };
 

@@ -1,5 +1,6 @@
 import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { goTo } from '../../lib/navigation';
 import { useMatches } from '../../hooks/useMatches';
 import { useMyUserId } from '../../hooks/useMyUserId';
 import { useNowTicker } from '../../hooks/useNowTicker';
@@ -53,7 +54,7 @@ export default function MatchesScreen() {
           title={i18n.t('no_quests')}
           body={i18n.t('no_quests_sub')}
         >
-          <GameButton size="compact" onPress={() => router.push('/(tabs)/discover')}>
+          <GameButton size="compact" onPress={() => goTo(router, '/(tabs)/discover')}>
             {i18n.t('seek_title')}
           </GameButton>
         </StateBlock>

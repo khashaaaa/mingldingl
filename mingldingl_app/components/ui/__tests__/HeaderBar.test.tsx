@@ -7,7 +7,7 @@ import { FONTS, FONT_SIZES } from '../../../lib/theme';
 
 const mockPush = jest.fn();
 let mockPathname = '/matches';
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({
   useRouter: () => ({ back: jest.fn(), push: (...args: unknown[]) => mockPush(...args) }),
   usePathname: () => mockPathname,
 }));

@@ -5,7 +5,7 @@ import { apiClient } from '../../../lib/api/apiClient';
 import { queryKeys } from '../../../lib/api/queryKeys';
 
 const mockBack = jest.fn();
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({
   useLocalSearchParams: () => ({ matchId: 'm1' }),
   useRouter: () => ({ back: mockBack, push: jest.fn() }),
 }));

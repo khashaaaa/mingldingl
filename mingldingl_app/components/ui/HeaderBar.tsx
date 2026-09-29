@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Tap } from './Tap';
 import { useState, type ReactNode } from 'react';
-import { useRouter, usePathname } from 'expo-router';
+import { useRouter, usePathname, useRootNavigationState } from 'expo-router';
+import { goHome, stackHas, goBack } from '../../lib/navigation';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
 import { i18n, isLatin } from '../../lib/i18n';
 import { HEARTH_ENABLED } from '../../lib/world';
@@ -39,6 +40,9 @@ interface Props {
 export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, children, chrome = true }: Props) {
   const router = useRouter();
   const pathname = usePathname();
+  // Whether a hearth is already somewhere in the stack, so the way home returns to it rather than
+  // stacking a second one (hearth → satchel → home → satchel → home… grew without end).
+  const hearthOpen = stackHas(useRootNavigationState(), 'hearth');
   // Move 12: a room name in blackletter, once per screen, Latin only — no Google blackletter
   // carries Cyrillic, so Mongolian titles (and any Cyrillic title shown while the locale happens
   // to be `en`) stay in `FONTS.display` (Yeseva) until a Cyrillic cut is commissioned.
@@ -61,7 +65,7 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
         <View style={styles.titleRow}>
           {showBack && (
             <Tap
-              onPress={onBack ?? (() => router.back())}
+              onPress={onBack ?? (() => goBack(router))}
               style={styles.backBtn}
               accessibilityRole="button"
               accessibilityLabel={i18n.t('back')}
@@ -92,7 +96,7 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
         <View style={styles.tail}>
           {showHearthTap && (
             <Tap
-              onPress={() => router.push('/hearth')}
+              onPress={() => goHome(router, hearthOpen)}
               accessibilityRole="button"
               accessibilityLabel={i18n.t('go_home')}
               testID="header-hearth"

@@ -3,7 +3,7 @@ import { Tap } from '../../components/ui/Tap';
 import { View, Text, ScrollView, Share, StyleSheet } from 'react-native';
 import { StateBlock } from '../../components/ui/StateBlock';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { queryClient } from '../../lib/api/queryClient';
 import { useActivitySuggestions } from '../../hooks/useActivitySuggestions';
 import { useMatches } from '../../hooks/useMatches';
@@ -20,6 +20,7 @@ import { queryKeys } from '../../lib/api/queryKeys';
 import { useLocaleStore } from '../../store/localeStore';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SCRIM, SPACE, SURFACE, overlay } from '../../lib/theme';
 import { useScrollTail } from '../../hooks/useScrollTail';
+import { useBackToChat } from '../../hooks/useBackToChat';
 
 const STAR_COUNT = 5;
 /** The platform's minimum touch target, in pt. */
@@ -29,7 +30,7 @@ export default function ActivitiesScreen() {
   const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
-  const router = useRouter();
+  const backToChat = useBackToChat(matchId);
   const {
     suggestions, partnerPledged, isLoading, error,
     confirmDate, isConfirming, confirmingId, completed,
@@ -101,7 +102,7 @@ export default function ActivitiesScreen() {
         <GameButton variant="ink" onPress={() => queryClient.invalidateQueries({ queryKey: queryKeys.activitySuggestions(matchId) })}>
           {i18n.t('retry')}
         </GameButton>
-        <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+        <GameButton variant="ink" onPress={backToChat}>{i18n.t('back_to_chat')}</GameButton>
       </StateBlock>
     </View>
   );
@@ -114,7 +115,7 @@ export default function ActivitiesScreen() {
         title={i18n.t('no_date_ideas')}
         body={i18n.t('keep_chatting')}
       >
-        <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+        <GameButton variant="ink" onPress={backToChat}>{i18n.t('back_to_chat')}</GameButton>
       </StateBlock>
     </View>
   );
@@ -181,7 +182,7 @@ export default function ActivitiesScreen() {
               </View>
             </View>
           )}
-          <GameButton variant="primary" onPress={() => router.back()}>{i18n.t('back_to_chat')}</GameButton>
+          <GameButton variant="primary" onPress={backToChat}>{i18n.t('back_to_chat')}</GameButton>
         </ScrollView>
         <AlertModal
           visible={uploadFailedAlert}

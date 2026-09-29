@@ -2,7 +2,7 @@ import { render, fireEvent } from '@testing-library/react-native';
 import MembershipScreen from '../membership';
 import type { MembershipTier } from '../../models/membership';
 
-jest.mock('expo-router', () => ({ usePathname: () => '/test', useRouter: () => ({ push: jest.fn(), back: jest.fn() }) }));
+jest.mock('expo-router', () => require('../../lib/testing/expoRouterMock').expoRouterMock({ usePathname: () => '/test', useRouter: () => ({ push: jest.fn(), back: jest.fn() }) }));
 jest.mock('../../hooks/useScrollTail', () => ({ useScrollTail: () => 0 }));
 
 const mockUpgrade = jest.fn();

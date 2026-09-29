@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { Tap } from '../ui/Tap';
 import { useRouter } from 'expo-router';
+import { goTo } from '../../lib/navigation';
 import { Icon } from '../ui/Icon';
 import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { formatCountdown } from '../../lib/townSquareTime';
@@ -51,7 +52,7 @@ export function NextGatheringPill() {
   return (
     <Tap
       style={styles.wrap}
-      onPress={() => router.push('/(tabs)/townsquare')}
+      onPress={() => goTo(router, '/(tabs)/townsquare')}
       accessibilityRole="link"
       accessibilityLabel={accessibilityLabel}
       testID="next-gathering-pill"

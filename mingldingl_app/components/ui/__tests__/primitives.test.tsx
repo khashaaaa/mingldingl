@@ -10,7 +10,7 @@ import { ACCENT, FONTS, FONT_SIZES, INK, LINE, SURFACE } from '../../../lib/them
 
 const mockBack = jest.fn();
 
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({
   usePathname: () => '/test',
   useRouter: () => ({
     back: mockBack,

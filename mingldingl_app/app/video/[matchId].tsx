@@ -20,6 +20,7 @@ import { StateBlock } from '../../components/ui/StateBlock';
 import { toDroppedItem } from '../../lib/tiers';
 import { Icon } from '../../components/ui/Icon';
 import { Glyph } from '../../components/ui/Glyph';
+import { goBack } from '../../lib/navigation';
 
 const DEFAULT_RITE_DURATION_MINUTES = 5;
 
@@ -82,7 +83,7 @@ export default function VideoScreen() {
       }
       const drop = toDroppedItem(result.droppedItem);
       if (drop) setPendingDrop(drop);
-      router.back();
+      goBack(router);
     } catch {
       setCompleteFailed(true);
     } finally {
@@ -99,7 +100,7 @@ export default function VideoScreen() {
 
   if (error || !token) return (
     <StateBlock tone="danger" icon="video-off" title={error ?? i18n.t('video_unavailable')}>
-      <GameButton variant="ink" onPress={() => router.back()}>
+      <GameButton variant="ink" onPress={() => goBack(router)}>
         {i18n.t('back')}
       </GameButton>
     </StateBlock>
@@ -117,7 +118,7 @@ export default function VideoScreen() {
       <GameButton variant="primary" onPress={() => { setCallFailed(false); setAttempt((a) => a + 1); }}>
         {i18n.t('rite_try_again')}
       </GameButton>
-      <GameButton variant="ink" size="compact" onPress={() => router.back()}>
+      <GameButton variant="ink" size="compact" onPress={() => goBack(router)}>
         {i18n.t('back')}
       </GameButton>
     </StateBlock>
@@ -169,7 +170,7 @@ export default function VideoScreen() {
         tone="warning"
         title={i18n.t('action_failed_title')}
         message={i18n.t('video_award_failed')}
-        onDismiss={() => { setCompleteFailed(false); router.back(); }}
+        onDismiss={() => { setCompleteFailed(false); goBack(router); }}
       />
     </View>
   );

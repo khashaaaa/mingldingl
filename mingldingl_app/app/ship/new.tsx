@@ -14,6 +14,7 @@ import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
 import { useScrollTail } from '../../hooks/useScrollTail';
 import { ACCENT, FONTS, FONT_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
 import { FieldError } from '../../components/ui/StateBlock';
+import { goBack } from '../../lib/navigation';
 const PHONE_REGEX = /^\d{8}$/;
 
 export default function NewShipScreen() {
@@ -56,7 +57,7 @@ export default function NewShipScreen() {
   if (sent) {
     return (
       <View style={styles.container}>
-        <HeaderBar title={i18n.t('weave_thread_title')} onBack={() => router.back()} />
+        <HeaderBar title={i18n.t('weave_thread_title')} onBack={() => goBack(router)} />
         <View style={styles.confirmWrap}>
           <Text style={styles.confirmText}>{i18n.t('ship_sent_confirmation')}</Text>
           {/* A nominee who already has an account is invited in-app and gets no code, so there is
@@ -71,7 +72,7 @@ export default function NewShipScreen() {
               {i18n.t('share_thread_invite_b')}
             </GameButton>
           )}
-          <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
+          <GameButton variant="ink" onPress={() => goBack(router)}>{i18n.t('back')}</GameButton>
         </View>
       </View>
     );
@@ -86,7 +87,7 @@ export default function NewShipScreen() {
         paddingBottom: keyboardHeight > 0 ? keyboardHeight + insets.bottom : 0,
       }]}
     >
-      <HeaderBar title={i18n.t('weave_thread_title')} onBack={() => router.back()} />
+      <HeaderBar title={i18n.t('weave_thread_title')} onBack={() => goBack(router)} />
       {/* Scrolls, and a tap on the blank page dismisses the keyboard: a phone pad has no return
           key to close it with. */}
       <ScrollView

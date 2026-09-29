@@ -4,8 +4,8 @@ import { useWorldState } from '../../../hooks/useWorldState';
 import { ROOMS } from '../../../lib/world';
 import type { WorldState } from '../../../lib/world';
 
-const mockNavigate = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ navigate: mockNavigate }) }));
+const mockDismissTo = jest.fn();
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({ useRouter: () => ({ dismissTo: mockDismissTo }) }));
 jest.mock('../../../hooks/useWorldState');
 
 const mockState = useWorldState as jest.Mock;
@@ -41,7 +41,7 @@ describe('the atlas', () => {
     layout(tree);
     fireEvent.press(tree.getByTestId('atlas-room-forge'));
     expect(onClose).toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith(ROOMS.forge.route);
+    expect(mockDismissTo).toHaveBeenCalledWith(ROOMS.forge.route);
   });
 
   it('counts open delves on the Deep', () => {

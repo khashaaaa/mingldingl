@@ -4,7 +4,7 @@ import { useCampaign } from '../../../hooks/useCampaign';
 import type { Campaign } from '../../../hooks/useCampaign';
 import { WithSafeArea } from '../../../lib/testing/safeArea';
 
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({
   usePathname: () => '/test',
   useLocalSearchParams: () => ({ matchId: 'm1' }),
   useRouter: () => ({ back: jest.fn(), push: jest.fn() }),

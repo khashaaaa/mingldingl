@@ -5,7 +5,7 @@ import { useTownSquareSession } from '../../../hooks/useTownSquareSession';
 import { WithSafeArea } from '../../../lib/testing/safeArea';
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({
   usePathname: () => '/test',
   useRouter: () => ({ push: mockPush }),
   // townsquare.tsx's own ticker is irrelevant to this test; run the effect once like `useEffect`

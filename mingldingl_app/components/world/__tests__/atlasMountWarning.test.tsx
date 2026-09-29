@@ -16,7 +16,7 @@ import { apiClient } from '../../../lib/api/apiClient';
  * regression to chase, not this test.
  */
 
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({
   usePathname: () => '/test',
   useRouter: () => ({ push: jest.fn(), back: jest.fn(), navigate: jest.fn() }),
   useSegments: () => ['(tabs)', 'discover'],

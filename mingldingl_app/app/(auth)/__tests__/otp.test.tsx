@@ -6,7 +6,7 @@ import { signal } from '../../../lib/world/feedback';
 jest.mock('../../../lib/world/feedback', () => ({ signal: jest.fn() }));
 
 const mockReplace = jest.fn();
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({
   useRouter: () => ({ replace: mockReplace }),
   useLocalSearchParams: () => ({
     phone: '88110001',

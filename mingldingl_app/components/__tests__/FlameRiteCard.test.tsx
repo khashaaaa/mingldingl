@@ -8,7 +8,7 @@ const THEM = 'user-b';
 const base = { matchId: 'm1', proposedByUserId: null, proposedAt: null, acceptedAt: null, completedAt: null, durationMinutes: 5 };
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({
+jest.mock('expo-router', () => require('../../lib/testing/expoRouterMock').expoRouterMock({
   useRouter: () => ({ push: mockPush }),
 }));
 

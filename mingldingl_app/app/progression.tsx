@@ -18,6 +18,7 @@ import { StateBlock } from '../components/ui/StateBlock';
 import type { GemTier } from '../models/user';
 import { CardEyebrow } from '../components/ui/CardEyebrow';
 import { useScrollTail } from '../hooks/useScrollTail';
+import { goBack } from '../lib/navigation';
 
 /** Assumed width until `onLayout` reports the real one — see `GateScene`'s own note on the pattern. */
 const FALLBACK_SKY_WIDTH = 320;
@@ -48,7 +49,7 @@ export default function ProgressionScreen() {
     return (
       <StateBlock tone="danger" icon="trending-down" title={i18n.t('progression_load_error')}>
         <GameButton variant="primary" onPress={() => refetch()}>{i18n.t('retry')}</GameButton>
-        <GameButton variant="ink" onPress={() => router.back()}>{i18n.t('back')}</GameButton>
+        <GameButton variant="ink" onPress={() => goBack(router)}>{i18n.t('back')}</GameButton>
       </StateBlock>
     );
   }
