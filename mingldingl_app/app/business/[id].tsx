@@ -8,7 +8,8 @@ import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE } from '../../lib/theme';
+import { CardEyebrow } from '../../components/ui/CardEyebrow';
 import { EmptyHint, StateBlock } from '../../components/ui/StateBlock';
 import { Icon } from '../../components/ui/Icon';
 import { useScrollTail } from '../../hooks/useScrollTail';
@@ -138,7 +139,7 @@ export default function BusinessDetailScreen() {
           <Text style={styles.hours}>{i18n.t('operating_hours')}: {operatingHours}</Text>
         ) : null}
 
-        <Text style={styles.sectionTitle}>{i18n.t('memorable_moments')}</Text>
+        <CardEyebrow color={ACCENT.base} style={styles.sectionTitle}>{i18n.t('memorable_moments')}</CardEyebrow>
 
         {isLoading ? (
           <ReviewsSkeleton />
@@ -182,10 +183,8 @@ const styles = StyleSheet.create({
   rating: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.bodyBold },
   description: { color: INK.primary, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, lineHeight: LEADING.md, paddingHorizontal: SPACE.gutter, marginTop: SPACE.md },
   hours: { color: INK.dim, fontSize: FONT_SIZES.md, fontFamily: FONTS.body, paddingHorizontal: SPACE.gutter, marginTop: SPACE.sm },
-  sectionTitle: {
-    color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.display, letterSpacing: TRACKING.wide,
-    textTransform: 'uppercase', paddingHorizontal: SPACE.gutter, marginTop: SPACE.xxl, marginBottom: SPACE.md,
-  },
+  // The kit's eyebrow, like every other section label — it was a display-face heading of its own.
+  sectionTitle: { paddingHorizontal: SPACE.gutter, marginTop: SPACE.xxl, marginBottom: SPACE.md },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.md, paddingHorizontal: SPACE.xxxl },
   missingTitle: { color: INK.primary, fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, textAlign: 'center' },
   reviewList: { paddingHorizontal: SPACE.gutter, gap: SPACE.md },

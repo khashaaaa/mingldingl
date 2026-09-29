@@ -676,12 +676,23 @@ This is the whole of it, as of 2026-09-12; the sections below add the detail:
   English rewritten in Wave 4 and carry stale Mongolian** — `mystery_match_name`,
   `round_over_matches`, `round_over_no_matches`, `round_over_title`, `town_square_cancel_rsvp`,
   `town_square_empty_sub`, `town_square_in_progress`, `town_square_its_a_match`, `town_square_no`,
-  `town_square_rejoin`, `town_square_rsvp`, `town_square_waiting_for_round` — they are not on the
-  list (the parity test would fail) so the translator needs this sentence. `BusinessPartners` has
+  `town_square_rejoin`, `town_square_rsvp`, `town_square_waiting_for_round` — and, since the
+  2026-09-29 design pass, `deep_profile_hint` (the floors are the Hall and the High Table now, not
+  Silver and Gold) — they are not on the list (the parity test would fail) so the translator needs
+  this sentence. That pass also retired `rank_free/silver/gold`: the Character sheet's guild rank
+  now reads the `floor_*` names, so it shows English to an `mn` user until those are translated. `BusinessPartners` has
   `NameMn`/`CategoryMn`/`DistrictMn`/`DescriptionMn`, all NULL. All of it needs a native speaker;
   none of it may be guessed, and the report sheet least of all. `enableFallback` renders the keys in
   English for an `mn` user; the parity test fails if one is translated and left on the list. This
   is the single largest thing between the app and a Mongolian market.
+- **Android's system navigation bar is white under a dark app** (seen on every screen of the A51,
+  2026-09-29). Edge-to-edge is on, so the bar is a translucent scrim that Android paints light
+  because the window asks for dark buttons. It needs native config — `expo-navigation-bar` with
+  `barStyle: 'light-content'`/`enforceContrast: false`, or a dark `userInterfaceStyle` — and so a
+  new development build; JS cannot reach it.
+- **"What's next" on the Character sheet says `0/1 — finish today's quest for the chest`** while
+  the chest needs all three quests: the counter is the closest single quest's, the sentence is the
+  chest's. Naming the quest in the line fixes it, but changes translated copy.
 - **Device verification passes**, listed under "Manual verification still owed" — they need the
   Galaxy A51 and the development build rather than Expo Go (see `mingldingl_app/AGENTS.md`).
 - **Three items blocked on something outside the code.** `POST /video/complete` is a client

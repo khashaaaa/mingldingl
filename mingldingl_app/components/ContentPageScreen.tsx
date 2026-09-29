@@ -8,8 +8,9 @@ import { selectContentPageLocale } from '../models/content';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { LEADING, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
+import { ACCENT, LEADING, FONTS, FONT_SIZES, INK, SPACE } from '../lib/theme';
 import { StateBlock } from './ui/StateBlock';
+import { CardEyebrow } from './ui/CardEyebrow';
 import { useScrollTail } from '../hooks/useScrollTail';
 
 interface Props {
@@ -45,13 +46,37 @@ export function ContentPageScreen({ slug }: Props) {
             {i18n.t('content_last_updated', { date: formatDate(page.updatedAt) })}
           </Text>
         ) : null}
-        {localized && <Text style={styles.body}>{localized.body}</Text>}
+        {localized && toSections(localized.body).map((section, i) => (
+          <View key={i} style={styles.section}>
+            {section.heading ? <CardEyebrow color={ACCENT.base}>{section.heading}</CardEyebrow> : null}
+            {section.text ? <Text style={styles.body}>{section.text}</Text> : null}
+          </View>
+        ))}
       </ScrollView>
     </View>
   );
 }
 
+interface Section {
+  heading: string | null;
+  text: string;
+}
+
+/**
+ * Authored pages are plain text: blocks split by a blank line, a block whose first line is all
+ * capitals being a titled section. Setting that line as an eyebrow is what separates the sections;
+ * as body text the capitals read as one more paragraph.
+ */
+export function toSections(body: string): Section[] {
+  return body.split(/\n\s*\n/).map((block) => block.trim()).filter(Boolean).map((block) => {
+    const [first, ...rest] = block.split('\n');
+    const isHeading = rest.length > 0 && /\p{L}/u.test(first) && first === first.toLocaleUpperCase();
+    return isHeading ? { heading: first.trim(), text: rest.join('\n').trim() } : { heading: null, text: block };
+  });
+}
+
 const styles = StyleSheet.create({
+  section: { marginBottom: SPACE.xl },
   container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: SPACE.xl, paddingBottom: SPACE.scrollTail },
   updatedAt: {

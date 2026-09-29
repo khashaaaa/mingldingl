@@ -70,7 +70,7 @@ describe('ScoreHistoryList', () => {
       />,
     );
     expect(getByText('A silence fell, and the hold took its due, −15')).toBeTruthy();
-    expect(getByText('-15')).toBeTruthy();
+    expect(getByText('−15')).toBeTruthy();
   });
 
   // The Campaign awards these two; they were shipped without labels and rendered as

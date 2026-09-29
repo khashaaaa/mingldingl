@@ -319,7 +319,7 @@ export const en = {
   save: 'Save',
   save_error: "Your words didn't reach the scribe. Try again.",
   deep_profile_title: 'Deep Profile',
-  deep_profile_hint: 'Only visible to Silver and Gold matches, and only after %{count} messages exchanged',
+  deep_profile_hint: 'Only visible to matches in the Hall and at the High Table, and only after %{count} messages exchanged',
   has_kids: 'Have kids',
   has_kids_yes: 'Yes',
   has_kids_no: 'No',
@@ -641,9 +641,6 @@ export const en = {
   gem_sapphire: 'Sapphire',
   gem_ruby: 'Ruby',
   gem_emerald: 'Emerald',
-  rank_free: 'Free',
-  rank_silver: 'Silver',
-  rank_gold: 'Gold',
   town_square_yes: 'Light it',
   // 'Let pass' (Wave 4 Task 8): the Square's own law is "the app commands the world," and a
   // stranger's question that goes unanswered is let pass, not dismissed.

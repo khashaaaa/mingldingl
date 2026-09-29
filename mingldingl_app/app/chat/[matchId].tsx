@@ -465,7 +465,7 @@ export default function ChatScreen() {
       </KeyboardAvoidingView>
       <AlertModal
         visible={!!endedReason && !endedAcknowledged}
-        tone="warning"
+        tone={endedReason === 'ghosted' ? 'frost' : 'warning'}
         title={endedReason === 'ghosted' ? i18n.t('match_quiet_title') : i18n.t('match_ended_title')}
         message={endedReason === 'ghosted'
           ? (fire ? fireVerdict(fire) : null) ?? i18n.t('match_quiet_body')

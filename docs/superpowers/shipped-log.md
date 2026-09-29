@@ -10,6 +10,31 @@ written, not by date.
 
 ---
 
+## Design pass on the A51 (2026-09-29)
+
+Every reachable screen captured on the Galaxy A51 (seeded Мөнхболд) and read frame by frame.
+Fixed:
+- Mission Board: a counted quest's reward sat below its name (it centred on name + pips); it now
+  shares the name's line, and unfilled pips are a faint ink track instead of vanishing.
+- The Ascent: "the sky beyond" fell back to Roboto — `fontStyle="italic"` on an SVG text already
+  set in the italic face makes Android miss the font.
+- Chronicle of deeds: the ledger column wrote a hyphen (`-15`) beside a sentence with a true minus.
+- Guides (and every `ContentPageScreen`): the authored page's all-caps lines are set as accent
+  eyebrows with section spacing, instead of one undivided text block.
+- Venue page: "Memorable moments" is the kit eyebrow, not a display-face heading of its own.
+- A chat gone quiet: its strip is frost (glacier rule and wash, the ice glyph), not the olive
+  warning tone — a new `frost` tone on `AlertModal`; an unmatched end stays a warning.
+- Old membership names: the Character sheet's guild rank reads the Guild House's floors (the
+  Yard / the Hall / the High Table); `rank_*` keys removed. `deep_profile_hint` says the Hall and
+  the High Table.
+
+Left open (in the plan): the white Android navigation bar needs a native rebuild; the "What's
+next" quest counter reads as the chest's. Honours without a progress bar (Ally-Caller, True to
+Word) are deliberate — the app cannot count those deeds. Supabase had paused the project, which
+took down sign-in and every JWT; restoring it from the dashboard fixed it.
+
+---
+
 ## Design sweep + bug hunt (2026-09-15)
 
 Six read-only audits (app screens, app components, app logic, engine services, engine API

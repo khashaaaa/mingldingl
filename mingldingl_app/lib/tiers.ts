@@ -160,8 +160,10 @@ const TIER_NAME_KEYS: Record<GemTier, string> = {
   Garnet: 'gem_garnet', Opal: 'gem_opal', Amethyst: 'gem_amethyst',
   Sapphire: 'gem_sapphire', Ruby: 'gem_ruby', Emerald: 'gem_emerald',
 };
+// The floors the Guild House names — the Character sheet once said "Free/Silver/Gold" for the same
+// rank the Guild House calls the Yard, the Hall and the High Table.
 const MEMBERSHIP_NAME_KEYS: Record<string, string> = {
-  Free: 'rank_free', Silver: 'rank_silver', Gold: 'rank_gold',
+  Free: 'floor_Free', Silver: 'floor_Silver', Gold: 'floor_Gold',
 };
 
 /**

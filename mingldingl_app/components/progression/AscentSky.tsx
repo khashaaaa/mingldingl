@@ -118,7 +118,6 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
           y={topPoint.y - 30}
           fill={INK.muted}
           fontFamily={FONTS.bodyItalic}
-          fontStyle="italic"
           fontSize={FONT_SIZES.sm}
         >
           {i18n.t('ascent_beyond')}

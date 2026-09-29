@@ -105,7 +105,7 @@ export const CHRONICLE_KEYS: Record<string, string> = {
   CampaignBossBonus: 'chronicle_campaign_boss_bonus',
 };
 
-/** Signed for the sentence: a real minus sign, not a hyphen, so "−15" reads as a loss. */
+/** Signed for the sentence and its ledger column: a real minus sign, not a hyphen, so "−15" reads as a loss. */
 function signedDelta(delta: number): string {
   return delta >= 0 ? `+${delta}` : `−${Math.abs(delta)}`;
 }
@@ -185,7 +185,6 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage, join
       ) : null}
       renderItem={({ item, index }) => {
         const icon: EventGlyph = EVENT_ICONS[item.eventType] ?? 'star-four-points';
-        const sign = item.delta >= 0 ? '+' : '';
         const color = item.delta >= 0 ? METAL.gold : METAL.ember;
         return (
           <Entering index={index}>
@@ -194,7 +193,7 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage, join
               <View style={styles.body}>
                 <Text style={styles.line}>{eventLine(item.eventType, item.delta)}</Text>
               </View>
-              <Text style={[styles.delta, { color }]}>{sign}{item.delta}</Text>
+              <Text style={[styles.delta, { color }]}>{signedDelta(item.delta)}</Text>
             </View>
           </Entering>
         );

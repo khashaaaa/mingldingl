@@ -98,13 +98,17 @@ export function QuestBoard() {
                 <Glyph name={QUEST_ICONS[q.nameKey ?? ''] ?? 'knot'} size={ICON_SIZES.md} color={accent} />
               )}
             </View>
+            {/* The reward shares the name's line: beside the whole block it centred on name + pips,
+                so a counted quest's reward sat lower than its neighbours'. */}
             <View style={styles.questInfo}>
-              <Text style={[styles.questName, q.completed && styles.questNameDone]}>
-                {tKey(q.nameKey, '', { target: q.target })}
-              </Text>
+              <View style={styles.questNameRow}>
+                <Text style={[styles.questName, q.completed && styles.questNameDone]}>
+                  {tKey(q.nameKey, '', { target: q.target })}
+                </Text>
+                <Text style={styles.questXp}>+{q.xp}</Text>
+              </View>
               <ProgressPips progress={q.progress ?? 0} target={q.target ?? 1} />
             </View>
-            <Text style={styles.questXp}>+{q.xp}</Text>
           </View>
         ))}
         <View style={styles.chestRow}>
@@ -164,11 +168,13 @@ const styles = StyleSheet.create({
   runeText: { color: ACCENT.base, fontSize: FONT_SIZES.md, fontFamily: FONTS.display },
   runeTextDone: { color: INK.dim },
   questInfo: { flex: 1, gap: SPACE.xs },
-  questName: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.primary },
+  questNameRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  questName: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: INK.primary },
   questNameDone: { color: INK.dim, textDecorationLine: 'line-through' },
   questXp: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, color: ACCENT.base },
   pips: { flexDirection: 'row', gap: SPACE.xs },
-  pip: { width: 14, height: 4, borderRadius: RADIUS.pill, backgroundColor: SURFACE.raised },
+  // An unfilled pip is a faint ink track, as the honour bars' are: `SURFACE.raised` vanished into the card.
+  pip: { width: 14, height: 4, borderRadius: RADIUS.pill, backgroundColor: tint(INK.primary, 0.15) },
   pipFilled: { backgroundColor: ACCENT.base },
   chestRow: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginTop: SPACE.md, paddingTop: SPACE.md,
