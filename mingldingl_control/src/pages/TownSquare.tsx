@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Pagination } from '@/components/Pagination';
 import { useToast } from '@/hooks/use-toast';
+import { Loading, LoadError } from '@/components/QueryState';
 
 const PAGE_SIZE = 20;
 
@@ -65,13 +66,13 @@ function validateSchedule(form: ReturnType<typeof defaultScheduleForm>): string 
 }
 
 function SessionPairings({ sessionId }: { sessionId: string }) {
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.townSquarePairings(sessionId),
     queryFn: () => apiClient.townSquare.pairings(sessionId),
   });
 
-  if (isLoading) return <p className="text-muted-foreground p-4 text-sm">Loading pairings…</p>;
-  if (isError) return <p className="text-destructive p-4 text-sm">Couldn't load pairings.</p>;
+  if (isLoading) return <Loading label="Loading pairings…" className="p-4" />;
+  if (isError) return <LoadError what="pairings" onRetry={refetch} className="p-4" />;
   if (!data?.length) return <p className="text-muted-foreground p-4 text-sm">No pairings yet for this session.</p>;
 
   return (
@@ -128,7 +129,7 @@ export function TownSquare() {
   const [formError, setFormError] = useState<string | null>(null);
   const [pendingCancel, setPendingCancel] = useState<{ id: string; scheduledStartAt?: string } | null>(null);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.townSquareSessions(page),
     queryFn: () => apiClient.townSquare.sessions(page, PAGE_SIZE),
   });
@@ -195,8 +196,8 @@ export function TownSquare() {
         </Button>
       </div>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      {isError && <p className="text-destructive text-sm">Couldn't load sessions.</p>}
+      {isLoading && <Loading />}
+      {isError && <LoadError what="sessions" onRetry={refetch} />}
 
       {data && (
         <div className="space-y-3">

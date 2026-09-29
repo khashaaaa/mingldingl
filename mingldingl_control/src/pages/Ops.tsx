@@ -6,12 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { serverError } from '@/lib/apiError';
+import { Loading, LoadError } from '@/components/QueryState';
 
 export function Ops() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const { data: pricing, isLoading, isError } = useQuery({
+  const { data: pricing, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.pricing,
     queryFn: () => apiClient.ops.pricing(),
   });
@@ -64,8 +65,8 @@ export function Ops() {
             edited under Config → Membership; totals here recompute from those values.
           </p>
 
-          {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-          {isError && <p className="text-destructive text-sm">Couldn't load pricing.</p>}
+          {isLoading && <Loading />}
+          {isError && <LoadError what="pricing" onRetry={refetch} />}
 
           {pricing && (
             <Table>

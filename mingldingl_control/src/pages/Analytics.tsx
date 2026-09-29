@@ -5,15 +5,16 @@ import { StatTile } from '../components/StatTile';
 import { BarChart } from '../components/BarChart';
 import { LineChart } from '../components/LineChart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loading, LoadError } from '@/components/QueryState';
 
 export function Analytics() {
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.analyticsOverview,
     queryFn: () => apiClient.analytics.overview(),
   });
 
-  if (isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
-  if (isError || !data) return <p className="text-destructive text-sm">Couldn't load analytics.</p>;
+  if (isLoading) return <Loading />;
+  if (isError || !data) return <LoadError what="analytics" onRetry={refetch} />;
 
   const membershipData = Object.entries(data.usersByMembership ?? {}).map(([label, value]) => ({ label, value }));
   const gemTierData = Object.entries(data.usersByGemTier ?? {}).map(([label, value]) => ({ label, value }));

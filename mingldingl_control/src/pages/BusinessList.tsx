@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { Pagination } from '@/components/Pagination';
 import { serverError } from '@/lib/apiError';
+import { Loading, LoadError } from '@/components/QueryState';
 
 const PAGE_SIZE = 20;
 
@@ -34,7 +35,7 @@ export function BusinessList() {
   const { toast } = useToast();
   const debouncedSearch = useDebouncedValue(search);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.business(debouncedSearch, page),
     queryFn: () => apiClient.business.list(debouncedSearch, page, PAGE_SIZE),
   });
@@ -144,8 +145,8 @@ export function BusinessList() {
         </div>
       )}
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      {isError && <p className="text-destructive text-sm">Couldn't load businesses.</p>}
+      {isLoading && <Loading />}
+      {isError && <LoadError what="businesses" onRetry={refetch} />}
 
       {data && (
         <>

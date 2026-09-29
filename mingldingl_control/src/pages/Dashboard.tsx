@@ -4,6 +4,7 @@ import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { StatTile } from '../components/StatTile';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loading, LoadError } from '@/components/QueryState';
 
 const QUICK_LINKS = [
   { to: '/users', label: 'Users', description: 'Search, view, and moderate accounts' },
@@ -54,12 +55,7 @@ export function Dashboard() {
       <h1 className="text-lg font-semibold">Dashboard</h1>
 
       {statsError && (
-        <p className="text-destructive text-sm">
-          Couldn't load dashboard stats.{' '}
-          <button type="button" className="underline" onClick={retryStats}>
-            Try again
-          </button>
-        </p>
+        <LoadError what="dashboard stats" onRetry={retryStats} />
       )}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
@@ -97,14 +93,9 @@ export function Dashboard() {
         </CardHeader>
         <CardContent>
           {auditLogQuery.isError ? (
-            <p className="text-destructive text-sm">
-              Couldn't load admin activity.{' '}
-              <button type="button" className="underline" onClick={() => auditLogQuery.refetch()}>
-                Try again
-              </button>
-            </p>
+            <LoadError what="admin activity" onRetry={auditLogQuery.refetch} />
           ) : auditLogQuery.isLoading ? (
-            <p className="text-muted-foreground text-sm">Loading…</p>
+            <Loading />
           ) : auditLog?.items?.length ? (
             <ul className="space-y-2 text-sm">
               {auditLog.items.map((l) => (

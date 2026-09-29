@@ -4,13 +4,14 @@ import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination } from '@/components/Pagination';
+import { Loading, LoadError } from '@/components/QueryState';
 
 const PAGE_SIZE = 20;
 
 export function AuditLog() {
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.auditLog(page, PAGE_SIZE),
     queryFn: () => apiClient.auditLog.list(page, PAGE_SIZE),
   });
@@ -20,8 +21,8 @@ export function AuditLog() {
       <h1 className="mb-1 text-lg font-semibold">Audit Log</h1>
       <p className="text-muted-foreground mb-4 text-sm">Every admin write action taken from this dashboard, most recent first.</p>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      {isError && <p className="text-destructive text-sm">Couldn't load the audit log.</p>}
+      {isLoading && <Loading />}
+      {isError && <LoadError what="the audit log" onRetry={refetch} />}
 
       {data && (
         <>

@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Pagination } from '@/components/Pagination';
 import { useToast } from '@/hooks/use-toast';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { Loading, LoadError } from '@/components/QueryState';
 
 const PAGE_SIZE = 20;
 
@@ -22,7 +23,7 @@ export function UsersList() {
   const qc = useQueryClient();
   const debouncedSearch = useDebouncedValue(search);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.users(debouncedSearch, page),
     queryFn: () => apiClient.users.list(debouncedSearch, page, PAGE_SIZE),
   });
@@ -62,8 +63,8 @@ export function UsersList() {
         onChange={(e) => handleSearchChange(e.target.value)}
       />
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      {isError && <p className="text-destructive text-sm">Couldn't load users. Try again.</p>}
+      {isLoading && <Loading />}
+      {isError && <LoadError what="users" onRetry={refetch} />}
 
       {data && (
         <>

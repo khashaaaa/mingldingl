@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Pagination } from '@/components/Pagination';
+import { Loading, LoadError } from '@/components/QueryState';
 
 const PAGE_SIZE = 20;
 const STATUSES = ['Pending', 'Dismissed', 'Warned', 'Penalised', 'Banned'];
@@ -54,7 +55,7 @@ export function Reports() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.reports(status, page),
     queryFn: () => apiClient.reports.list(status, page, PAGE_SIZE),
   });
@@ -126,8 +127,8 @@ export function Reports() {
         same thing is the signal worth acting on.
       </p>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      {isError && <p className="text-destructive text-sm">Couldn't load reports.</p>}
+      {isLoading && <Loading />}
+      {isError && <LoadError what="reports" onRetry={refetch} />}
 
       {data && (
         <>

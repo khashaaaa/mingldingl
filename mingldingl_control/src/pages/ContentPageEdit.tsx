@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { serverError } from '@/lib/apiError';
+import { Loading, LoadError } from '@/components/QueryState';
 
 type ContentPage = NonNullable<Awaited<ReturnType<typeof apiClient.content.list>>>[number];
 
@@ -22,19 +23,14 @@ export function ContentPageEdit() {
   });
   const page = pages?.find((p) => p.slug === slug);
 
-  if (isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
+  if (isLoading) return <Loading />;
 
   // A failed request also leaves `page` undefined, and reporting that as "Page not found" sent an
   // admin looking for a missing row when the real answer was an unreachable engine or an expired
   // token — and offered nothing to do about it.
   if (isError) {
     return (
-      <p className="text-destructive text-sm">
-        Couldn't load content pages.{' '}
-        <button type="button" className="underline" onClick={() => refetch()}>
-          Try again
-        </button>
-      </p>
+      <LoadError what="content pages" onRetry={refetch} />
     );
   }
 

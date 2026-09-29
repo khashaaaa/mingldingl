@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Tap } from '../ui/Tap';
-import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { apiClient } from '../../lib/api/apiClient';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { i18n } from '../../lib/i18n';
 import { REPORT_REASONS, reportReasonKey, type ReportReason } from '../../models/report';
 import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
 import { GameButton } from '../ui/GameButton';
+import { TextField } from '../ui/TextField';
 import { Icon } from '../ui/Icon';
 import { SheetModal } from './SheetModal';
 import { AlertModal } from './AlertModal';
@@ -90,13 +91,13 @@ export function ReportUserSheet({ visible, reportedUserId, matchId, onClose, onR
         </ScrollView>
 
         <Text style={styles.detailsLabel}>{i18n.t('report_details_label')}</Text>
-        <TextInput
+        <TextField
           style={styles.details}
           value={details}
           onChangeText={setDetails}
           placeholder={i18n.t('report_details_placeholder')}
-          placeholderTextColor={INK.dim}
           multiline
+          minHeight={72}
           maxLength={MAX_DETAILS}
           accessibilityLabel={i18n.t('report_details_label')}
         />
@@ -165,16 +166,7 @@ const styles = StyleSheet.create({
   },
   details: {
     alignSelf: 'stretch',
-    minHeight: 72,
     marginTop: SPACE.xs,
     marginBottom: SPACE.md,
-    padding: SPACE.sm,
-    borderWidth: 1,
-    borderColor: LINE.edge,
-    borderRadius: RADIUS.sm,
-    color: INK.primary,
-    fontFamily: FONTS.body,
-    fontSize: FONT_SIZES.md,
-    textAlignVertical: 'top',
   },
 });

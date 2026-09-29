@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Loading, LoadError } from '@/components/QueryState';
 
 export function DeletionRequests() {
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.deletionRequests,
     queryFn: () => apiClient.users.deletionRequests(),
   });
@@ -17,8 +18,8 @@ export function DeletionRequests() {
         Read-only — accounts are auto-anonymized after the grace period (Config → Safety → account.deletion_grace_days) unless the user logs back in themselves. "Days left" below already uses the current value.
       </p>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      {isError && <p className="text-destructive text-sm">Couldn't load deletion requests.</p>}
+      {isLoading && <Loading />}
+      {isError && <LoadError what="deletion requests" onRetry={refetch} />}
 
       {data && (
         <div className="bg-background rounded-lg border shadow-sm">

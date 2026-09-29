@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination } from '@/components/Pagination';
 import { useToast } from '@/hooks/use-toast';
+import { Loading, LoadError } from '@/components/QueryState';
 
 const PAGE_SIZE = 20;
 const STATUSES = ['Pending', 'Sparked', 'Declined', 'Expired'];
@@ -34,7 +35,7 @@ export function Ships() {
     }
   }
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.ships(status, page),
     queryFn: () => apiClient.ships.list(status, page, PAGE_SIZE),
   });
@@ -64,8 +65,8 @@ export function Ships() {
         </Select>
       </div>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      {isError && <p className="text-destructive text-sm">Couldn't load ships.</p>}
+      {isLoading && <Loading />}
+      {isError && <LoadError what="ships" onRetry={refetch} />}
 
       {data && (
         <>

@@ -4,6 +4,7 @@ import { queryKeys } from '../lib/api/queryKeys';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfigField, type LadderBounds } from '@/components/ConfigField';
 import type { components } from '@/lib/api/api.generated';
+import { Loading, LoadError } from '@/components/QueryState';
 
 type AdminConfigDto = components['schemas']['AdminConfigDto'];
 
@@ -51,14 +52,9 @@ export function Config() {
         </p>
       </div>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+      {isLoading && <Loading />}
       {isError && (
-        <p className="text-destructive text-sm">
-          Couldn't load config.{' '}
-          <button type="button" className="underline" onClick={() => refetch()}>
-            Try again
-          </button>
-        </p>
+        <LoadError what="config" onRetry={refetch} />
       )}
 
       {categories.map((category) => (

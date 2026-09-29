@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { serverError } from '@/lib/apiError';
+import { Loading, LoadError } from '@/components/QueryState';
 
 function flameRiteStage(m: {
   flameRiteProposedAt?: string | null;
@@ -54,7 +55,7 @@ export function UserDetail() {
   const [confirmResetNoShow, setConfirmResetNoShow] = useState(false);
   const [confirmUnban, setConfirmUnban] = useState(false);
 
-  const { data: user, isLoading, isError } = useQuery({
+  const { data: user, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.user(id ?? ''),
     queryFn: () => apiClient.users.detail(id ?? ''),
     enabled: !!id,
@@ -166,8 +167,8 @@ export function UserDetail() {
         ← Back to users
       </Link>
 
-      {isLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
-      {isError && <p className="text-destructive text-sm">Couldn't load this user.</p>}
+      {isLoading && <Loading />}
+      {isError && <LoadError what="this user" onRetry={refetch} />}
 
       {user && (
         <div className="space-y-6">

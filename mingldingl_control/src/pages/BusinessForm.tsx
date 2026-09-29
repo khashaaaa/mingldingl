@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { serverError } from '@/lib/apiError';
+import { Loading, LoadError } from '@/components/QueryState';
 
 // The vocabulary the venues actually use, and the one the app's Mission Board maps to icons
 // (mingldingl_app/app/(tabs)/activity.tsx). The old list shared only 'Cafe' with the real data, so
@@ -29,7 +30,7 @@ export function BusinessForm() {
     enabled: isEditing,
   });
 
-  if (isEditing && isLoading) return <p className="text-muted-foreground text-sm">Loading…</p>;
+  if (isEditing && isLoading) return <Loading />;
 
   // Rendering the blank form here would let Save overwrite the real record with empty fields.
   if (isEditing && (isError || !existing)) {
@@ -38,12 +39,7 @@ export function BusinessForm() {
         <Link to="/business" className="text-primary mb-4 inline-block text-sm hover:underline">
           ← Back to businesses
         </Link>
-        <p className="text-destructive text-sm">
-          Couldn't load this business.{' '}
-          <button type="button" className="underline" onClick={() => refetch()}>
-            Try again
-          </button>
-        </p>
+        <LoadError what="this business" onRetry={refetch} />
       </div>
     );
   }
