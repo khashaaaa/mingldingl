@@ -156,7 +156,7 @@ describe('useNextAction priority order', () => {
     expect(result.current).toEqual({ kind: 'claim_chest' });
   });
 
-  it('picks the quest closest to completion by progress/target ratio, not list order', () => {
+  it('counts the whole board, since the chest needs every quest', () => {
     setAllSources({
       board: {
         allComplete: false,
@@ -169,10 +169,10 @@ describe('useNextAction priority order', () => {
       },
     });
     const { result } = renderHook(() => useNextAction());
-    expect(result.current).toEqual({ kind: 'quest_progress', progress: 3, target: 4 });
+    expect(result.current).toEqual({ kind: 'quest_progress', progress: 0, target: 3 });
   });
 
-  it('excludes already-completed quests from quest_progress selection', () => {
+  it('counts completed quests towards the board', () => {
     setAllSources({
       board: {
         allComplete: false,
@@ -184,10 +184,10 @@ describe('useNextAction priority order', () => {
       },
     });
     const { result } = renderHook(() => useNextAction());
-    expect(result.current).toEqual({ kind: 'quest_progress', progress: 1, target: 4 });
+    expect(result.current).toEqual({ kind: 'quest_progress', progress: 1, target: 2 });
   });
 
-  it('excludes quests with no target (target 0 or missing) from selection', () => {
+  it('excludes quests with no target (target 0 or missing) from the count', () => {
     setAllSources({
       board: {
         allComplete: false,

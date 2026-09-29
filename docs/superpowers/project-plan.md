@@ -690,9 +690,6 @@ This is the whole of it, as of 2026-09-12; the sections below add the detail:
   because the window asks for dark buttons. It needs native config — `expo-navigation-bar` with
   `barStyle: 'light-content'`/`enforceContrast: false`, or a dark `userInterfaceStyle` — and so a
   new development build; JS cannot reach it.
-- **"What's next" on the Character sheet says `0/1 — finish today's quest for the chest`** while
-  the chest needs all three quests: the counter is the closest single quest's, the sentence is the
-  chest's. Naming the quest in the line fixes it, but changes translated copy.
 - **Device verification passes**, listed under "Manual verification still owed" — they need the
   Galaxy A51 and the development build rather than Expo Go (see `mingldingl_app/AGENTS.md`).
 - **Three items blocked on something outside the code.** `POST /video/complete` is a client

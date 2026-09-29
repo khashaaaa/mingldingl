@@ -18,13 +18,14 @@ describe('i18n key parity', () => {
   });
 
   it('interpolation variables match between en and mn for every key', () => {
-    const varsIn = (s: string) => [...s.matchAll(/%\{(\w+)\}/g)].map((m) => m[1]).sort();
+    // A plural key is an object of forms ({ one, other }); its variables are those of every form.
+    const varsIn = (v: unknown) => [...new Set([...JSON.stringify(v ?? '').matchAll(/%\{(\w+)\}/g)].map((m) => m[1]))].sort();
     const mismatches: string[] = [];
     const awaiting = new Set<string>(AWAITING_MN_TRANSLATION);
     for (const key of Object.keys(translations.en)) {
       if (awaiting.has(key)) continue;
-      const enVars = varsIn((translations.en as Record<string, string>)[key]);
-      const mnVars = varsIn((translations.mn as Record<string, string>)[key]);
+      const enVars = varsIn((translations.en as Record<string, unknown>)[key]);
+      const mnVars = varsIn((translations.mn as Record<string, unknown>)[key]);
       if (JSON.stringify(enVars) !== JSON.stringify(mnVars)) {
         mismatches.push(`${key}: en=[${enVars}] mn=[${mnVars}]`);
       }

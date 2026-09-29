@@ -41,11 +41,12 @@ export function useNextAction(): NextAction | null {
     return { kind: 'claim_chest' };
   }
 
-  const closestQuest = (board?.quests ?? [])
-    .filter((q) => !q.completed && (q.target ?? 0) > 0)
-    .sort((a, b) => (b.progress ?? 0) / (b.target ?? 1) - (a.progress ?? 0) / (a.target ?? 1))[0];
-  if (closestQuest) {
-    return { kind: 'quest_progress', progress: closestQuest.progress ?? 0, target: closestQuest.target ?? 0 };
+  // Counted across the whole board, because the chest this line promises needs every quest. It
+  // used to count the closest single quest, so a three-quest day read "0/1 — finish today's quest".
+  const quests = (board?.quests ?? []).filter((q) => (q.target ?? 0) > 0);
+  const done = quests.filter((q) => q.completed).length;
+  if (done < quests.length) {
+    return { kind: 'quest_progress', progress: done, target: quests.length };
   }
 
   if ((scoreDetail?.currentStreak ?? 0) > 0) {

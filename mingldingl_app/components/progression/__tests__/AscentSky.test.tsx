@@ -101,6 +101,13 @@ describe('AscentSky', () => {
     expect(getByText('Longest Streak · 11')).toBeTruthy();
   });
 
+  it('says one dawn, not "1 dawns"', () => {
+    const { getByText } = render(
+      <AscentSky gemTier="Ruby" totalScore={1595} currentStreak={1} longestStreak={11} width={340} />,
+    );
+    expect(getByText('dawn in a row')).toBeTruthy();
+  });
+
   it('carries the tier, score, next-tier gap and streak in one accessible label', () => {
     const { getByLabelText } = render(
       <AscentSky gemTier="Ruby" totalScore={1595} currentStreak={4} longestStreak={11} width={340} />,

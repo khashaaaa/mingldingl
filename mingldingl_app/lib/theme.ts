@@ -576,6 +576,11 @@ export function mix(hex: string, target: string, amt: number): string {
   return `#${((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1)}`;
 }
 
+/** The same hue toward white: a lit end for a fill, without leaving the colour it started in. */
+export function lighten(hex: string, amt: number): string {
+  return mix(hex, '#FFFFFF', amt);
+}
+
 export function metalGradient(base: string): [string, string, string] {
-  return [mix(base, '#FFFFFF', 0.4), base, mix(base, '#000000', 0.55)];
+  return [lighten(base, 0.4), base, mix(base, '#000000', 0.55)];
 }

@@ -211,7 +211,7 @@ export default function SettingsScreen() {
             </View>
           </View>
           {!!ageRangeMessage && <FieldError>{ageRangeMessage}</FieldError>}
-          <GameButton variant="ink" size="compact" onPress={handleSaveAgeRange}>{i18n.t('save')}</GameButton>
+          <GameButton variant="ink" size="compact" style={styles.link} onPress={handleSaveAgeRange}>{i18n.t('save')}</GameButton>
         </View>
 
         <View style={styles.section}>
@@ -224,26 +224,24 @@ export default function SettingsScreen() {
             size="compact"
           />
           <Text style={styles.sectionHint}>{i18n.t('pause_profile_hint')}</Text>
+          <GameButton variant="ink" size="compact" icon="account-off-outline" style={styles.link} onPress={() => router.push('/blocked-users')}>
+            {i18n.t('view_blocked_users')}
+          </GameButton>
+          <GameButton variant="ink" size="compact" icon="crown-outline" style={styles.link} onPress={() => router.push('/membership')}>
+            {i18n.t('manage_membership')}
+          </GameButton>
         </View>
-
-        <GameButton variant="ink" size="compact" icon="account-off-outline" onPress={() => router.push('/blocked-users')}>
-          {i18n.t('view_blocked_users')}
-        </GameButton>
-
-        <GameButton variant="ink" size="compact" icon="crown-outline" onPress={() => router.push('/membership')}>
-          {i18n.t('manage_membership')}
-        </GameButton>
 
         <SectionDivider />
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{i18n.t('help_and_legal')}</Text>
-          <GameButton variant="ink" size="compact" icon="book-open-variant" onPress={() => router.push('/guides')}>
+          <GameButton variant="ink" size="compact" icon="book-open-variant" style={styles.link} onPress={() => router.push('/guides')}>
             {i18n.t('guides')}
           </GameButton>
-          <GameButton variant="ink" size="compact" icon="file-document-outline" onPress={() => router.push('/terms')}>
+          <GameButton variant="ink" size="compact" icon="file-document-outline" style={styles.link} onPress={() => router.push('/terms')}>
             {i18n.t('terms_of_service')}
           </GameButton>
-          <GameButton variant="ink" size="compact" icon="shield-lock-outline" onPress={() => router.push('/privacy')}>
+          <GameButton variant="ink" size="compact" icon="shield-lock-outline" style={styles.link} onPress={() => router.push('/privacy')}>
             {i18n.t('privacy_policy')}
           </GameButton>
         </View>
@@ -251,8 +249,8 @@ export default function SettingsScreen() {
         <SectionDivider />
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{i18n.t('phone_number')}</Text>
-          <Text style={styles.sectionHint}>{profile?.phoneNumber ?? '—'}</Text>
-          <GameButton variant="ink" size="compact" icon="phone-outline" onPress={() => setChangingPhone(true)}>
+          <Text style={styles.value}>{profile?.phoneNumber ?? '—'}</Text>
+          <GameButton variant="ink" size="compact" icon="phone-outline" style={styles.link} onPress={() => setChangingPhone(true)}>
             {i18n.t('change_phone')}
           </GameButton>
         </View>
@@ -331,6 +329,10 @@ const styles = StyleSheet.create({
   ageField: { gap: SPACE.hair, flex: 1 },
   sectionLabel: { color: ACCENT.base, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.md },
   sectionHint: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, lineHeight: LEADING.sm },
+  // Settings links are rows of the section above them, so they start where its heading starts: the
+  // ink slab's own side padding is pulled back so the glyph lines up with the heading's first letter.
+  link: { alignSelf: 'flex-start', marginLeft: -SPACE.md },
+  value: { color: INK.primary, fontFamily: FONTS.body, fontSize: FONT_SIZES.md, lineHeight: LEADING.md },
   fieldLabel: { color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm },
   dangerWrap: { marginTop: SPACE.lg },
   signOutWrap: { marginTop: SPACE.xs },

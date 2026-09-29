@@ -98,7 +98,7 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
   // line has to be said here, in words, or a screen reader never hears it at all. Reuses
   // `streak_longest`'s own English text rather than adding a key for one more number.
   const a11yLabel = `${tierLabel(gemTier)}. ${totalScore.toLocaleString()}. ${bodyLine}. `
-    + `${currentStreak} ${i18n.t('ascent_dawns')}. ${i18n.t('streak_longest')} ${longestStreak}.`;
+    + `${currentStreak} ${i18n.t('ascent_dawns', { count: currentStreak })}. ${i18n.t('streak_longest')} ${longestStreak}.`;
 
   const topPoint = points[TOP_INDEX];
 
@@ -152,7 +152,7 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
       </Svg>
       <View style={styles.streakBlock}>
         <Text style={styles.streakNumber}>{currentStreak}</Text>
-        <Text style={styles.streakCaption}>{i18n.t('ascent_dawns')}</Text>
+        <Text style={styles.streakCaption}>{i18n.t('ascent_dawns', { count: currentStreak })}</Text>
         <Text style={styles.longestLine}>{i18n.t('streak_longest')} · {longestStreak}</Text>
       </View>
     </View>

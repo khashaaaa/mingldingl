@@ -10,6 +10,26 @@ written, not by date.
 
 ---
 
+## Style consistency + second A51 pass (2026-09-29)
+
+- Control: every page's loading and load-failure state goes through `components/QueryState`
+  (`Loading`, `LoadError`), so every failed load offers a retry. Eleven pages had none.
+- App: the report sheet's details box is the shared `TextField` (it was a hand-rolled input).
+- "What's next" counts the whole quest board (`0/3 — finish today's quests for the chest`) rather
+  than the closest single quest, which read as `0/1` on a three-quest day. The Mongolian line
+  already said "today's tasks", so it stays correct and untouched.
+- XPBar: the fill is one gem hue lit toward its end (`lighten()` in the theme). Gem → gold crossed
+  the colour wheel for the cool tiers and went grey mid-bar. The shimmer now runs to the measured
+  track width; it used to stop at a fixed 320 and park as a pale block at the bar's end.
+- The Ascent's streak caption pluralises (`1 dawn in a row`). `ascent_dawns` is the first
+  `{ one, other }` key; the i18n parity test now reads variables from every plural form.
+- Settings: links are left-aligned rows of their section. The Frozen Gate and Membership moved
+  into the pause section instead of floating between dividers, and the phone number is shown as
+  a value rather than as a dim hint.
+- Seen and deliberately left: the chronicle's doubled amount (kept for scanning), the Satchel
+  row's missing glyph on the Hearth (it is not a room), the ghost slabs in modals (exempt by
+  `forged.test.ts`), and the dim locked honours.
+
 ## Design pass on the A51 (2026-09-29)
 
 Every reachable screen captured on the Galaxy A51 (seeded Мөнхболд) and read frame by frame.

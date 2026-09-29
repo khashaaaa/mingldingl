@@ -1,11 +1,11 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { View, Text, Image, Animated, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { tierLabel } from '../../lib/tiers';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
-import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TRACKING, tint } from '../../lib/theme';
+import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TRACKING, lighten, tint } from '../../lib/theme';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { GemTierBadge } from './GemTierBadge';
 import { CountText } from '../ui/CountText';
@@ -29,6 +29,9 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
   const flash = useRef(new Animated.Value(0)).current;
   const color = colorForTier(gemTier);
   const animate = motionAllowed(useVfxLevel());
+  // The sweep has to leave the track, not stop at a fixed x: it parked at 320 on a ~370-wide
+  // phone track and sat there as a pale block at the bar's end.
+  const [trackWidth, setTrackWidth] = useState(0);
 
   useEffect(() => {
     if (!animate) {
@@ -40,8 +43,10 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
     }
     Animated.timing(anim, { toValue: pct, duration: 900, useNativeDriver: false }).start();
     shimmer.setValue(-60);
-    Animated.timing(shimmer, { toValue: 320, duration: 700, delay: 300, useNativeDriver: true }).start();
-  }, [pct, animate, anim, shimmer, flash]);
+    if (trackWidth > 0) {
+      Animated.timing(shimmer, { toValue: trackWidth + 60, duration: 700, delay: 300, useNativeDriver: true }).start();
+    }
+  }, [pct, animate, anim, shimmer, flash, trackWidth]);
 
   // Kept apart from the fill so the drop is measured against the last value actually shown.
   const lastPct = useRef(pct);
@@ -68,7 +73,7 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
         </View>
         {nextTier && <Text style={styles.next}>{i18n.t('next_tier_arrow', { tier: tierLabel(nextTier) })}</Text>}
       </View>
-      <View style={styles.track}>
+      <View style={styles.track} onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}>
         <Image source={ORNAMENTS.fretGold} testID="ulzii-track-fret" style={styles.trackFret} />
         {/* Quarter marks belong to the empty road only. Drawn over the fill, the one at 75%
             landed where the gradient turns gold and made a full bar read as three-quarters. */}
@@ -76,8 +81,10 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
           <View key={t} style={[styles.tick, { left: `${t * 100}%` }]} />
         ))}
         <Animated.View style={[styles.fill, { width: fillWidth }]}>
+          {/* One stone, lit toward its end. Running the gem into the gold accent crossed the
+              colour wheel for the cool tiers and went grey in the middle. */}
           <LinearGradient
-            colors={[color, ACCENT.bright]}
+            colors={[color, lighten(color, 0.35)]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={StyleSheet.absoluteFill}
           />
