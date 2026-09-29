@@ -10,6 +10,18 @@ written, not by date.
 
 ---
 
+## Leftovers: nav bar config, Expo deps, admin chunks, Jest exit (2026-09-29)
+
+- `expo-navigation-bar` config for a dark bar with light buttons (see the plan: needs the next dev
+  build). `expo-doctor` is 18/18: `expo-asset`/`expo-linking` were only transitively present
+  (peer deps of `expo-audio`/`expo-router`, flagged as a crash risk outside Expo Go), and `expo`,
+  `expo-constants`, `jest-expo` were a patch behind. `@types/jest` stays on 30 through
+  `expo.install.exclude`.
+- Control: every page is a lazy chunk behind a `Suspense` in `Layout` (entry 545 kB → 271 kB, no
+  size warning).
+- Jest: TanStack Query's gc timers held workers open ("failed to exit gracefully"). `jest.setup.js`
+  unrefs them through `timeoutManager.setTimeoutProvider`.
+
 ## Navigation: no second tab bar, no dead back arrow (2026-09-29)
 
 Found on the A51 by reading the live React Navigation state over the Hermes inspector after each tap.

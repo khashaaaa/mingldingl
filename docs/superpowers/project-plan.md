@@ -686,10 +686,16 @@ This is the whole of it, as of 2026-09-12; the sections below add the detail:
   English for an `mn` user; the parity test fails if one is translated and left on the list. This
   is the single largest thing between the app and a Mongolian market.
 - **Android's system navigation bar is white under a dark app** (seen on every screen of the A51,
-  2026-09-29). Edge-to-edge is on, so the bar is a translucent scrim that Android paints light
-  because the window asks for dark buttons. It needs native config — `expo-navigation-bar` with
-  `barStyle: 'light-content'`/`enforceContrast: false`, or a dark `userInterfaceStyle` — and so a
-  new development build; JS cannot reach it.
+  2026-09-29). Config landed 2026-09-29: `expo-navigation-bar` plugin in `app.json`
+  (`backgroundColor: #0A0B10`, `barStyle: light`). It is native, so it shows only in the **next
+  development build**, and nothing imports the module from JS until then: the installed build
+  lacks it, so an import would crash it.
+- **A signed-in session was gone after its access token expired** (A51, 2026-09-29). Supabase
+  answered the refresh token with `refresh_token_not_found` (deleted server-side, not "already
+  used"). The app's own 401 path signs out with `scope: 'local'`, which never touches the server,
+  so the cause is outside it: a global sign-out, a password change on that test user (the device
+  sign-in script rewrites it), or a project session timeout. Check Auth → Sessions in the Supabase
+  dashboard before assuming an app bug.
 - **Device verification passes**, listed under "Manual verification still owed" — they need the
   Galaxy A51 and the development build rather than Expo Go (see `mingldingl_app/AGENTS.md`).
 - **Three items blocked on something outside the code.** `POST /video/complete` is a client

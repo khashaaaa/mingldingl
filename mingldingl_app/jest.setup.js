@@ -17,3 +17,17 @@ jest.mock('expo-audio', () => {
     setAudioModeAsync: jest.fn(() => Promise.resolve()),
   };
 });
+
+// TanStack Query schedules a garbage-collection timer for every cached query, and a test's
+// QueryClient is never torn down, so those timers held each worker open after its suite ended
+// ("A worker process has failed to exit gracefully"). Unreferenced, they still fire if a test
+// waits for them but no longer keep the process alive. `setTimeout` is looked up at call time, so
+// a test on fake timers still gets fake ones.
+const { timeoutManager } = require('@tanstack/query-core');
+const unref = (t) => { if (t && typeof t.unref === 'function') t.unref(); return t; };
+timeoutManager.setTimeoutProvider({
+  setTimeout: (cb, ms) => unref(setTimeout(cb, ms)),
+  clearTimeout: (t) => clearTimeout(t),
+  setInterval: (cb, ms) => unref(setInterval(cb, ms)),
+  clearInterval: (t) => clearInterval(t),
+});

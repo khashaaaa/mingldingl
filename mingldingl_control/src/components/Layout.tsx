@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { Loading } from '@/components/QueryState';
+import { Suspense, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Moon, Sun } from 'lucide-react';
@@ -76,7 +77,9 @@ export function Layout() {
       </nav>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <ErrorBoundary key={location.pathname}>
-          <Outlet />
+          <Suspense fallback={<Loading />}>
+            <Outlet />
+          </Suspense>
         </ErrorBoundary>
       </main>
     </div>

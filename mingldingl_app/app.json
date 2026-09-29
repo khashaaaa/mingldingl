@@ -45,7 +45,15 @@
           "locationWhenInUsePermission": "MingldIngl uses your location to show you nearby matches. It's only read while the app is open, never in the background."
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-navigation-bar",
+        {
+          "backgroundColor": "#0A0B10",
+          "barStyle": "light"
+        }
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
