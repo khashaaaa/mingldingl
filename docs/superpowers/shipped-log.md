@@ -12,8 +12,14 @@ written, not by date.
 
 ## Leftovers: nav bar config, Expo deps, admin chunks, Jest exit (2026-09-29)
 
-- `expo-navigation-bar` config for a dark bar with light buttons (see the plan: needs the next dev
-  build). `expo-doctor` is 18/18: `expo-asset`/`expo-linking` were only transitively present
+- **The white Android navigation bar is fixed** (dev build `589e5f1b`, seen on the A51 on a tab
+  screen, a modal notice and the chat Options sheet). The `expo-navigation-bar` plugin colour in
+  `app.json` did nothing: React Native's edge-to-edge setup makes the bar transparent, then picks
+  the buttons, and the contrast scrim behind them, from the light/dark mode of each window. The app
+  followed the phone's light mode, so every window (and every modal, each its own window) got a
+  near-white scrim. `app/_layout.tsx` now declares the app dark (`Appearance.setColorScheme`),
+  which covers windows created afterwards, and sets the main window's buttons light with
+  `NavigationBar.setButtonStyleAsync`, because that window was set up before JS ran. `expo-doctor` is 18/18: `expo-asset`/`expo-linking` were only transitively present
   (peer deps of `expo-audio`/`expo-router`, flagged as a crash risk outside Expo Go), and `expo`,
   `expo-constants`, `jest-expo` were a patch behind. `@types/jest` stays on 30 through
   `expo.install.exclude`.

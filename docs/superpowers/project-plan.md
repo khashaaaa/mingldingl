@@ -685,11 +685,6 @@ This is the whole of it, as of 2026-09-12; the sections below add the detail:
   none of it may be guessed, and the report sheet least of all. `enableFallback` renders the keys in
   English for an `mn` user; the parity test fails if one is translated and left on the list. This
   is the single largest thing between the app and a Mongolian market.
-- **Android's system navigation bar is white under a dark app** (seen on every screen of the A51,
-  2026-09-29). Config landed 2026-09-29: `expo-navigation-bar` plugin in `app.json`
-  (`backgroundColor: #0A0B10`, `barStyle: light`). It is native, so it shows only in the **next
-  development build**, and nothing imports the module from JS until then: the installed build
-  lacks it, so an import would crash it.
 - **A signed-in session was gone after its access token expired** (A51, 2026-09-29). Supabase
   answered the refresh token with `refresh_token_not_found` (deleted server-side, not "already
   used"). The app's own 401 path signs out with `scope: 'local'`, which never touches the server,

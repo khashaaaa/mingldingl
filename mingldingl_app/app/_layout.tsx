@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Appearance, Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
+import * as NavigationBar from 'expo-navigation-bar';
 
 import { YesevaOne_400Regular } from '@expo-google-fonts/yeseva-one/400Regular';
 import { Alegreya_400Regular } from '@expo-google-fonts/alegreya/400Regular';
@@ -50,6 +51,15 @@ import { getStoredLocale } from '../lib/localePreference';
 import { useLocaleStore } from '../store/localeStore';
 
 installGlobalErrorHandlers();
+
+// The app is dark-only, but it followed the phone's light mode, and React Native's edge-to-edge
+// setup reads that mode for every window: on a light-mode phone Android backed dark buttons with a
+// near-white scrim, a white band under the app and under every modal (each modal is its own
+// window). The `app.json` plugin colour cannot reach it, since the bar is transparent under
+// edge-to-edge. Declaring the app dark fixes windows created from here on (modals); the main
+// window was set up before this ran, so its buttons are set light directly.
+if (Platform.OS !== 'web') Appearance.setColorScheme('dark');
+if (Platform.OS === 'android') NavigationBar.setButtonStyleAsync('light').catch(() => {});
 
 /**
  * React Navigation paints `theme.colors.background` (#F2F2F2 by default) behind every navigator,
