@@ -15,229 +15,8 @@ ships, move its record over rather than leaving it in this file.
 
 # Open — Not Yet Built
 
-## The Sealed Fire: a redesign that makes the app strange on purpose (2026-09-11)
-
-**Status:** Waves 1 (the kit) and 2 (the thesis) shipped 2026-09-12, Wave 3 (the place) 2026-09-13 —
-Wave 4 (the hearth and the square) 2026-09-13 — see `shipped-log.md`. All four waves have shipped; the four
-decisions still stand on their defaults, and the Wave 4 device pass is owed.
-The one-page report is <https://claude.ai/code/artifact/c2542b0e-1c65-48ec-be04-e85b7caa61d3>
-(Export gives the PDF); the working canvas is
-<https://claude.ai/code/artifact/0697f213-d884-4ed5-b8b8-e62616403fb1> (pages: *Every screen*,
-*The kit*, *Before*; 54 boards, one per screen or sheet, superseded variants removed). Sources are
-in the repo under `docs/design/sealed-fire/` (`boards/*.dc.html` + `canvas.json` + `boards.txt`
-for the canvas; `report/Main.dc.html` + `report/img/` for the report). Re-seed either with the
-`design` skill's helper: `node <helper> --template <payload> --out x.html --title "..." $(cat
-boards.txt) --image ... --canvas canvas.json`. Nothing here depends on a session's scratchpad.
-
-**To continue:** the Wave 4 device pass on the A51 (reinstall the dev build first — the candidate
-wire shape changed), the translator's list, and the four decisions; see Outstanding Follow-ups.
-
-### Why
-
-The user's brief: "I want it to be weird, stand out from other apps." The audit that day found the
-app's oddness lives in nouns and borders on top of a generic dating-app skeleton (five tabs, a photo
-card with Skip/Send, messenger bubbles, a settings form, three pricing cards), while the actual
-differentiators (progressive reveal, accountability, gem tiers) are explained in Guides rather than
-felt. The direction keeps every token, font, knot and mechanic and spends them differently.
-
-### The direction in one paragraph
-
-The app is a place: a hearth you return to, a fire where sealed travellers wait, letters instead of
-a chat, a square with lanterns, a forge, a mirror. Faces are earned, not shown. Fires that go quiet
-visibly burn down. Every screen has one knotted hero and one forged button; everything else is rows
-on the floor. Time reads in candles, bells and dawns. The app speaks in its own voice everywhere,
-including the lock screen.
-
-### The fourteen moves (report page, in order)
-
-1. **Seek, sealed.** The candidate arrives as a silhouette under a wax seal with three seal-dots;
-   first name, age, gem, oath, district and the one-line bio show; the likeness does not. Seals break
-   with the existing reveal ladder. One forged "Send summons", an ink "Let them pass". The three chrome
-   strips (First Steps, summons budget, Gathering pill) leave the top of the screen.
-2. **Chat as letters.** No bubbles. A dashed thread, initials as sigils, day headings ("The third
-   day"), my lines italic gold, theirs roman silver, "A seal broke here" rows inline, a wax-seal send
-   button, "Write your line…".
-3. **Woodcut glyphs.** One hand-cut icon set (stroke 2.4, square caps, mitre joins) for the five
-   destinations and the six quests, replacing MaterialCommunityIcons where the icon is identity.
-4. **Room colours.** The six light signatures pushed until rooms are unmistakable: Fire ember,
-   Letters ink-blue, Square lantern amber, Forge soot-and-ember, Mirror the user's gem colour, War
-   Room cold steel.
-5. **Restraint.** Knots on one hero panel per screen; the forged button on one action per screen;
-   all other content as hairline rows; ink links for secondary actions.
-6. **The hearth.** A home scene replaces the tab bar: mirror, lantern, letters, fire, anvil as
-   destinations; the summons budget as candle stubs that burn down.
-7. **Fires that go out.** The Quest Log shows each thread's fire: burning / embers / cold hearth,
-   with plain copy on whose turn it is and who let it die. Ghosting becomes visible.
-8. **The Guild House.** Membership as a building you climb: Yard (Free) → Hall (Silver) → High
-   Table (Gold). Same prices, same perks.
-9. **The Square as a plaza.** Town Square as a top-down cobbled square: lit lanterns are RSVPs,
-   the bell is the round clock, gates are the RSVP window.
-10. **The keepsake card.** "Share my character" exports a Wanted-poster card with gem, score,
-    streak line and seal.
-11. **Hall of Names.** Leaderboard as carved stone: numerals, gem sigils, points, one torch at your
-    row. Names stay hidden (existing rule).
-12. **Blackletter titles.** Room names in a blackletter face at one size, once per screen, Latin
-    only; Mongolian titles stay in Yeseva until a Cyrillic blackletter is commissioned.
-13. **Time in the world's units.** Countdowns become candles, bells and dawns; exact times one tap
-    away.
-14. **Notifications in the voice.** Rewrite `PushCopy` EN lines in the app's register.
-
-### The dials, adopted after the first review (2026-09-11, late)
-
-The user asked "what if more fierce" and chose three dials: **law** up, **furnace** a little,
-**frost** as a second pole; then asked for cave, creatures and the night sky. Adopted:
-
-- **Temperature.** Fire is what is alive, answered and kept; frost is silence, absence and what
-  was left. Five tokens in `lib/theme.ts`: `furnace` #FF7A1A, `furnaceBright` #FFB347, `rime`
-  #E8F4FA, `ice` #BFE3F2, `glacier` #7FB6D6. One frost drawing reused as an edge overlay wherever
-  silence is: a frozen thread in Letters, the Frozen Gate (Banished), the War Room, the offline
-  strip, a meeting not kept, White Moon for three days. Break the Ice is literal.
-- **Furnace, a little.** The two hot tokens only on the Fire, the Oath, the Ascension, the Square's
-  bell and the Hall of Names; glows bleed further there and corners square off. Elsewhere gold and
-  rounded stay.
-- **Law.** Two words per button, short sentences with full stops; the app commands the world and
-  states the law, never scolds the person. EN rewrites: Summon / Dismiss / Choose / Decide; oaths
-  become A Bond / Fate / Kin; "Your turn. Two dawns. Judged at the third."
-- **The sky belongs to time.** The hearth's window shows the real sky from the existing day phases
-  (`lib/world/light.ts` `DayPhase`); the Ascent is drawn as a climb through the night sky with the
-  gems as stars. No new mechanic.
-- **The cave belongs to the Campaign.** Torchlight, caverns, the dragon at the threshold. Nowhere
-  else.
-
-- **The Satchel and materials** (adopted 23:00). One screen reached from the hearth showing what
-  the rules gave you today: candles (daily budget), arrows (Fated Threads), the lantern (RSVP), the
-  oath sigil and its proof, the key (membership), the ally's word (referral code), the worn honour,
-  seals held across threads, your card; each taps through to where it is used. Every object has one
-  material, drawn the same way everywhere: wax (consumed), wood and iron (used), bronze (stamped
-  once), gold (opens or rewards), parchment (written). Three new tokens: `wax`, `wood`,
-  `parchment`; the metals exist. Nothing is found, bought, dropped, crafted or stacked; no stats,
-  no shop; the Hall of Honours is the only armory.
-
-Dropped: **inventory as a system** (loot, drops, a shop, stackable items, stats, combat: a bag
-that grows turns a dating app into hoarding); **monsters and bats** as a category (sketch-level creature art is worse than none, and
-creatures outside the Campaign make the other person read as one); **iron** as a dial (shapes stay
-soft except where furnace is). Boards: the adopted versions are the only ones kept on the canvas and in the report.
-
-### Every screen (screens page), grouped by flow
-
-Arrival: The Gate (phone + OTP under one arch), The Naming (steps 1–3 as candles), The Oath (step 4,
-long-press the wax to swear). Home and the fire: The Hearth, The Fire, the keepsake card. Letters:
-Letters (Quest Log), a thread, Things to do together (one sheet, rows, sever/cast out/report at its
-foot), Break the Ice, The Rune Chamber (quiz, tap chooses and advances), The Flame Rite (call with a
-candle clock and an ember hang-up), The Campaign (a map that is a map), Under Open Sky (plan an
-encounter, seals as pledges). The Square: the plaza, The Second Bell (a round, "Light it / Let them
-pass"). The Forge: Missions, a venue page, Meetings Sworn (date log with kept/unkept), Weave a
-Thread. The Mirror: the character sheet, editing as three seals, The Ascent, The Hall of Honours (3×3
-hooks), Hall of Names, The Guild House. The War Room: settings as steel, The Banished, The Codex
-(guides + privacy + terms as one book).
-
-Also drawn after a coverage audit of every route in `app/` and every modal, sheet, toast and
-banner in `components/`: Your Likeness (onboarding step 3 with the ally's word), The Hold (the
-existing atlas overlay, redrawn), festival days and the First Dawns (the First Steps card moved to
-the hearth's mantel), the Square's closed / under-way / quiet states, Leaving the realm (deletion
-confirm and the pending banner), the sealed first letter with embers and a severed ending, The
-Seals (the reveal strip expanded, with locked chips and the deep seal for Hall and High Table),
-The Unsealing ceremony, a thread arriving (Fated Threads accept/pass) with threads woven and the
-ally invite, the toasts (reward, honour, streak, nudges), the offline strip and the crash screen,
-and the four small sheets (honour story, report, city picker, change number). A final sweep by
-copy-key family added: After the meeting (both seals on it, send word to a friend, rate the place,
-leave a memory), the Flame Rite card's five states with the camera-refused and could-not-connect
-strips, and a plain sign-out row in the War Room beside deletion.
-
-The kit page: three voices of type (blackletter / Yeseva / Alegreya), one forged button + ink links
-+ chips + seals, one hero panel then rows; the three states (waiting = candle, empty = a place,
-wrong = ember); the five interruptions (chest and ascension as full-screen ceremonies; reckoning,
-warning and faltering as bottom parchment strips, never a floating card).
-
-### Decisions (product, not paint) and the default used if none is given
-
-- **Level-zero reveal.** Sealed Seek hides the likeness at level 0; today level 0 grants one photo.
-  *Default:* blur the level-0 photo under the seal. No engine change; the Unsealing ceremony fits.
-- **Embers in the open.** The Quest Log shows the ghosting judgement before it lands. *Default:*
-  show it, with the report's copy ("Your turn, two dawns unanswered. One more and the fire is judged
-  yours to have let die."). Accountability is the thesis.
-- **The hearth replaces navigation.** *Default:* build it behind a kill switch (`HEARTH_ENABLED`,
-  like `WORLD_ENABLED`) with a small hearth glyph in every header as the way home; the tab bar stays
-  until the switch flips. Waves 1–3 do not depend on it.
-- **Blackletter and Cyrillic.** *Default:* Latin titles in blackletter, Mongolian titles stay in
-  Yeseva; revisit if a Cyrillic cut is commissioned.
-
-### Wave 1 — shipped 2026-09-12
-
-The task list lived here; its outcome is in `shipped-log.md` ("Sealed Fire — Wave 1"). What it
-left for later waves: header room icons in the glyph set (Wave 2), `SheetModal`'s entrance to match
-`AlertModal`'s slide, a shared parchment layer for `AppCard` and `DialogStrip`, per-route (not
-per-file) hero/forged rules, `FrostEdge` mounted (Wave 3), the pill and First Steps card onto the
-hearth (Wave 4).
-
-### Wave 2 — shipped 2026-09-12
-
-The task list lived here; its outcome is in `shipped-log.md` ("Sealed Fire — Wave 2"). What it
-left for later waves: `feedback.ts` rows for candle lit, bell and fire dying (added by the wave that
-first fires them); the chronicle's "thirteenth dawn" (needs a joining date on the profile); the
-Flame Rite's candle clock (Wave 3, with the rite card's five states); `mystery_match_name` in
-blackletter; an engine-side crop or blur for the sealed Seek photo (the client-side blur ships the
-full URLs); and, from Wave 1, `SheetModal`'s entrance, the shared parchment layer, per-route rules,
-`FrostEdge` (Wave 3), the pill and First Steps card onto the hearth (Wave 4).
-
-### Wave 3 — shipped 2026-09-13
-
-The task list lived here; its outcome is in `shipped-log.md` ("Sealed Fire — Wave 3"). What it
-left for Wave 4: the hearth, the plaza, the Second Bell, the Satchel, candle-lit and bell feedback
-rows; the cave frame, the dragon and the bats (illustrator); a Cyrillic blackletter; White Moon
-frost for three days (check `lib/festivals.ts` first); the Flame Rite card and the ember toast
-still unseen on a device. Wave 4's record follows in `shipped-log.md`.
-
-### Wave 4 — shipped 2026-09-13
-
-The task list lived here; its outcome is in `shipped-log.md` ("Sealed Fire — Wave 4"). Nothing is
-left for a fifth wave but the deferred cleanups listed there, the device pass, the translator's
-list and the four decisions.
-
-### Gaps found while writing the report (settle before the wave that touches them)
-
-- Mongolian strings run 20–40% longer than English; chips, eyebrows and plaza labels need a
-  Mongolian width pass (chips and eyebrows done in Wave 2; the plaza in Wave 4 — done).
-- Sound and haptics: `lib/world/feedback.ts` has seal break (Wave 2) and fire dying (Wave 3); candle
-  lit and bell landed in Wave 4. Sound stays opt-in.
-- Reduced motion: the new ceremonies and the hearth's embers must respect the existing switch.
-- Contrast: the blackletter face read at 44px on the A51 (Wave 1, done); ember-on-dark toasts asserted in the palette test (Wave 3, done).
-- Accessibility labels for every glyph and seal (glyphs done in Wave 1: labelled = image role, unlabelled = hidden; seals done in Wave 2).
-- The keepsake card exports only the sharer's own portrait (Wave 3, done — a test asserts it).
-- "Deleted User" and "Unknown" (`deleted_user`, `unknown_name`) still appear as names in threads and
-  on the wall; in the voice they are "A name struck" and "A sealed one" (done in Wave 2, EN only).
-- Admin panel and web build are out of scope; web renders the new screens without Skia, as today.
-
-### Build order (waves; each ends committed, pushed, CI green, device-checked on the A51)
-
-- **Wave 1 — the kit, no behaviour change.** Shipped 2026-09-12 (`shipped-log.md`).
-- **Wave 2 — the thesis.** Shipped 2026-09-12 (`shipped-log.md`).
-- **Wave 3 — the place.** Shipped 2026-09-13 (`shipped-log.md`).
-- **Wave 4 — the hearth and the square.** Shipped 2026-09-13 (`shipped-log.md`).
-- **Every wave** adds its EN strings only; every new MN string goes on `AWAITING_MN_TRANSLATION`.
-  The translator's list grew 87 → 245 across the four waves.
-
-### Readiness checklist (what "ready to build" means here)
-
-- [x] Every route, every modal/sheet/toast/banner, and every copy-key family has a board (54 boards, one per screen or sheet, including the adopted dials and the Satchel,
-      audited 2026-09-11 from three angles: `app/`, `components/`, `lib/i18n/en.ts`).
-- [x] Every board uses only existing tokens (`lib/theme.ts`), the two shipped faces, and the
-      Ulzii knot asset; the blackletter face is the one addition and is decided separately.
-- [x] Every state a screen has today (waiting, empty, wrong, completed, ended) has a drawn form.
-- [x] Every mechanic is unchanged: score deltas, tier thresholds, reveal ladder, ghosting rules,
-      budgets, prices. The four product decisions above are the only behaviour questions.
-- [ ] The four decisions answered by the user.
-- [x] The glyph set drawn as final SVGs (`components/ui/Glyph.tsx`, Wave 1).
-- [ ] The hearth, plaza and Hold scenes drawn as final assets or Skia scenes.
-- [ ] Mongolian for every new string, from the translator, before any wave is called done for
-      an `mn` user (EN ships first; keys go on `AWAITING_MN_TRANSLATION`).
-- [ ] Wave 4 verified on the Galaxy A51 (Waves 1–3 were, 2026-09-12 and 2026-09-13).
-
-### Out of scope
-
-Traditional Mongolian script (removed on purpose 2026-09-05); monsters, bats and any creature
-outside the Campaign; iron as a dial; a new icon library dependency; any change to score deltas,
-thresholds or ghosting rules; the admin panel.
+Nothing is specified and unbuilt right now. New feature work starts here; the Sealed Fire spec
+moved to `shipped-log.md` once its fourth wave shipped.
 
 ---
 
@@ -636,15 +415,10 @@ Shipped since the original MVP spec (no longer out of scope): push notifications
 The live backlog: items consciously deferred that still have a real consequence. Closed items
 are not struck through here — their record moves to [`shipped-log.md`](shipped-log.md).
 
-- **Sealed Fire Wave 3 leftovers (2026-09-13):** the Frozen Gate's "Shut out on the … dawn" line does
-  not tick past midnight while the screen is open (`app/blocked-users.tsx` reads `now` once; the
-  Quest Log and the thread use `useNowTicker`); `ShareCharacterButton` shows a stale `share_failed`
-  when the preview is reopened without a new attempt; `AscentSky` draws "the sky beyond" above the
-  top star for every tier; the campaign's "Boss" chip may be redundant beside the dragon's line;
-  `TownSquareControllerIntegrationTests.GetNextSession_UpcomingOpenSession_ReturnsItWithRsvpFlag`
-  needs the shared-DB workaround its neighbour has (a seeded Open session sorts before its fixture on
-  the dev database; CI is green); `lib/__tests__/i18nCoverage.test.ts` should strip comments from the
-  source blob before scanning for key literals (a JSDoc mention currently counts as a reader).
+- **Sealed Fire Wave 3 leftovers (2026-09-13):** `AscentSky` draws "the sky beyond" above the
+  top star for every tier; the campaign's "Boss" chip may be redundant beside the dragon's line.
+  (The Frozen Gate's ticker, the stale `share_failed`, the Town Square shared-DB test and the
+  i18n coverage scan's comment stripping were fixed since.)
 
 ## What is actually open, in one place
 
@@ -658,21 +432,28 @@ are not struck through here — their record moves to [`shipped-log.md`](shipped
   an `mn` user sees "THE THIRD DAY" over Mongolian chrome beside a countdown that stays Mongolian on
   purpose. The translator's Wave 2 batch (48 keys) settles both; until then it is a known asymmetry.
 - **Italic means two things in the chat.** `FONTS.bodyItalic` + `ACCENT.base` is both my own
-  letters and the app's voice (seal rows, the sheet's law, the Seek hint). Decide before Wave 3
-  touches either.
+  letters and the app's voice (seal rows, the sheet's law, the Seek hint). Still undecided;
+  Waves 3 and 4 shipped around it.
 
-This is the whole of it, as of 2026-09-12; the sections below add the detail:
+This is the whole of it, as of 2026-09-30; the sections below add the detail:
 
-- **The Sealed Fire redesign**, specified under "Open — Not Yet Built" above with a build order in
-  four waves, all shipped (Waves 1–2 on 2026-09-12, Waves 3–4 on 2026-09-13); the four product
-  decisions still stand on their defaults and the Wave 4 device pass is owed.
-- **Mongolian copy for 245 keys, plus four venue columns.** `AWAITING_MN_TRANSLATION` in
+- **The Sealed Fire redesign** shipped in four waves (Waves 1–2 on 2026-09-12, Waves 3–4 on
+  2026-09-13); its spec and records are in `shipped-log.md`. Still open: the four product
+  decisions below, which stand on their defaults; the hearth, plaza and Hold scenes as final
+  art or Skia scenes; Mongolian for every new string; and the rest of the Wave 4 device pass
+  (under "Manual verification still owed"). The four decisions and their defaults:
+  **level-zero reveal** — blur the level-0 photo under the seal; **embers in the open** — show the
+  ghosting judgement in the Quest Log before it lands; **the hearth replaces navigation** — behind
+  `HEARTH_ENABLED` (on) with a hearth glyph in every header, the tab bar stays; **blackletter and
+  Cyrillic** — Latin titles in blackletter, Mongolian titles stay in Yeseva.
+- **Mongolian copy for 263 keys, plus four venue columns.** `AWAITING_MN_TRANSLATION` in
   `lib/i18n/index.ts` holds the Sealed Fire Wave 2 batch (48: the seals, the ledger's day headings
   and ordinals, the clocks' world phrases, the sealed Seek's eyebrow and hint), Wave 3's 52 (the
   fires, the Guild House, the Hall, the Ascent, the cave, the keepsake, the rite), Wave 4's 95 (the
   hearth, the sky, the plaza, the bell, the Satchel, `ordinal_13`…`ordinal_31`, `chronicle_dawn`,
   `go_home`, `candles_left`), 11 world/atlas keys, the report sheet's 17 (`report_*`), the 9
-  narrated long-wait lines and the 2 empty-thread lines. **Twelve keys already translated had their
+  narrated long-wait lines, the 2 empty-thread lines, and smaller batches since (263 counted in
+  the array on 2026-09-30; the per-batch figures above are as recorded at the time). **Twelve keys already translated had their
   English rewritten in Wave 4 and carry stale Mongolian** — `mystery_match_name`,
   `round_over_matches`, `round_over_no_matches`, `round_over_title`, `town_square_cancel_rsvp`,
   `town_square_empty_sub`, `town_square_in_progress`, `town_square_its_a_match`, `town_square_no`,
@@ -710,9 +491,11 @@ This is the whole of it, as of 2026-09-12; the sections below add the detail:
 - **Seeded venues have no photos** (`PhotoUrls` is `'[]'::jsonb` for every `BusinessPartner`);
   `mingldingl_engine/scripts/gen-seed-photos.py` never has venue URLs to fill. Cast portraits come
   from `gen-cast-photos.py` under `seed/c2/` and must exist on the machine serving the engine.
-- **The seeded phone numbers (`810000xx`) cannot reach verify.mn** (`POST /auth/phone/start` → 503,
-  `81` is not a Mongolian mobile prefix). The dev DB has Undram (`091eadb0…`) on the test SIM
-  `88583269` (the throwaway `Khashaa` row's number nulled) so a rich character can be signed into.
+- **No dev account holds the test SIM `88583269`** since the 2026-09-15 reseed: the cast is
+  `a0000000-…-00NN` on `8800xxxx` numbers, and Undram and the earlier SIM-verified account are gone.
+  Device sessions sign into a seeded character (usually Мөнхболд, `…0009`) through the scratchpad
+  login script and the Hermes inspector, not verify.mn; a real SMS sign-in would create a new,
+  empty account.
 - **`app/icebreaker/[matchId].tsx` narrates a partner-wait with a static `Waiting` line** where
   `app/quiz/[matchId].tsx` uses `LongWait`; a fifth `WaitKind` was deferred rather than add two more
   untranslated strings.
@@ -733,17 +516,18 @@ All need the `verify` skill (real Supabase JWTs, full stack running) or the Gala
   distinct-match mismatches). **Referral guards** (self-referral, one per invitee, deleted inviter)
   are only reachable from `POST /users`; a live pass costs an SMS. **Membership — the duration
   `ChoiceRow`'s layout** (MN label length) and one real upgrade call.
-- **The world below the Gate, on hardware.** Only `(auth)` renders without a backend, so the six
-  light signatures, per-room state ramps, the atlas over a real profile and the descend/rise
-  transitions have been judged on web only. **The eight sounds have never been heard and no haptic
+- **The world below the Gate, on hardware.** The rooms have rendered on the A51 in the 2026-09-15
+  and 2026-09-29 passes, but the six light signatures, per-room state ramps, the atlas over a real
+  profile and the descend/rise transitions have not been judged against their spec there. **The eight sounds have never been heard and no haptic
   has fired on hardware**; the WAVs are synthesised, so their voicing is a guess, and the
   silent-switch behaviour is untested.
-- **Sealed Fire Wave 4 — never seen on hardware** (reinstall the dev build first; the candidate
-  wire changed): the hearth in each day phase and on White Moon (two stacked eyebrows), the sky's
-  stars under TalkBack, a sealed candidate card after `python3 scripts/gen-seed-photos.py`, the
-  candle row, the plaza open/locked/quiet, the bell header and strip, the Satchel full and empty,
-  the way-home glyph from several rooms, `candle.wav` and `bell.wav`.
-- **Never seen on hardware:** the white navigation bar fix (`AppModal`), the collapsed
+- **Sealed Fire Wave 4 — the rest of the device pass.** Seen on the A51 (2026-09-15, 09-29): all
+  five tabs, the hearth in the phase of the day, a sealed candidate card, the Quest Log's sealed and
+  revealed portraits, the plaza's quiet state, the Satchel, and the way-home glyph (the navigation
+  fixes were found through it). Still unseen: the hearth in the other day phases and on White Moon
+  (two stacked eyebrows), the sky's stars under TalkBack, the candle row, the plaza open and
+  locked, the bell header and strip, the Satchel empty, `candle.wav` and `bell.wav`.
+- **Never seen on hardware:** the collapsed
   getting-started board, the brighter photo dot, the empty-thread state, the design-system wave
   (shared state/dialog surfaces, the five ladders), the waiting vocabulary (narrated waits reaching
   their 8 s/25 s lines, skeletons against the world floor, the knot in a compact button, the

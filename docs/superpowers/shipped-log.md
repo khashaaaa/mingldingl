@@ -164,6 +164,230 @@ particular want the A51.
 
 ---
 
+## Sealed Fire — the direction and its four waves (spec 2026-09-11, shipped 2026-09-12 → 13)
+
+Moved here from the plan on 2026-09-30, once all four waves had shipped. The spec is kept whole
+because its rules (the kit, the fourteen moves, the dials) still govern new UI; the per-wave
+records follow below. What is still open — the four decisions, the Wave 4 device pass, the
+translator's list, the unchecked readiness items — is in the plan's Outstanding Follow-ups.
+
+**Status:** all four waves shipped (Waves 1–2 on 2026-09-12, Waves 3–4 on 2026-09-13).
+The one-page report is <https://claude.ai/code/artifact/c2542b0e-1c65-48ec-be04-e85b7caa61d3>
+(Export gives the PDF); the working canvas is
+<https://claude.ai/code/artifact/0697f213-d884-4ed5-b8b8-e62616403fb1> (pages: *Every screen*,
+*The kit*, *Before*; 54 boards, one per screen or sheet, superseded variants removed). Sources are
+in the repo under `docs/design/sealed-fire/` (`boards/*.dc.html` + `canvas.json` + `boards.txt`
+for the canvas; `report/Main.dc.html` + `report/img/` for the report). Re-seed either with the
+`design` skill's helper: `node <helper> --template <payload> --out x.html --title "..." $(cat
+boards.txt) --image ... --canvas canvas.json`. Nothing here depends on a session's scratchpad.
+
+### Why
+
+The user's brief: "I want it to be weird, stand out from other apps." The audit that day found the
+app's oddness lives in nouns and borders on top of a generic dating-app skeleton (five tabs, a photo
+card with Skip/Send, messenger bubbles, a settings form, three pricing cards), while the actual
+differentiators (progressive reveal, accountability, gem tiers) are explained in Guides rather than
+felt. The direction keeps every token, font, knot and mechanic and spends them differently.
+
+### The direction in one paragraph
+
+The app is a place: a hearth you return to, a fire where sealed travellers wait, letters instead of
+a chat, a square with lanterns, a forge, a mirror. Faces are earned, not shown. Fires that go quiet
+visibly burn down. Every screen has one knotted hero and one forged button; everything else is rows
+on the floor. Time reads in candles, bells and dawns. The app speaks in its own voice everywhere,
+including the lock screen.
+
+### The fourteen moves (report page, in order)
+
+1. **Seek, sealed.** The candidate arrives as a silhouette under a wax seal with three seal-dots;
+   first name, age, gem, oath, district and the one-line bio show; the likeness does not. Seals break
+   with the existing reveal ladder. One forged "Send summons", an ink "Let them pass". The three chrome
+   strips (First Steps, summons budget, Gathering pill) leave the top of the screen.
+2. **Chat as letters.** No bubbles. A dashed thread, initials as sigils, day headings ("The third
+   day"), my lines italic gold, theirs roman silver, "A seal broke here" rows inline, a wax-seal send
+   button, "Write your line…".
+3. **Woodcut glyphs.** One hand-cut icon set (stroke 2.4, square caps, mitre joins) for the five
+   destinations and the six quests, replacing MaterialCommunityIcons where the icon is identity.
+4. **Room colours.** The six light signatures pushed until rooms are unmistakable: Fire ember,
+   Letters ink-blue, Square lantern amber, Forge soot-and-ember, Mirror the user's gem colour, War
+   Room cold steel.
+5. **Restraint.** Knots on one hero panel per screen; the forged button on one action per screen;
+   all other content as hairline rows; ink links for secondary actions.
+6. **The hearth.** A home scene replaces the tab bar: mirror, lantern, letters, fire, anvil as
+   destinations; the summons budget as candle stubs that burn down.
+7. **Fires that go out.** The Quest Log shows each thread's fire: burning / embers / cold hearth,
+   with plain copy on whose turn it is and who let it die. Ghosting becomes visible.
+8. **The Guild House.** Membership as a building you climb: Yard (Free) → Hall (Silver) → High
+   Table (Gold). Same prices, same perks.
+9. **The Square as a plaza.** Town Square as a top-down cobbled square: lit lanterns are RSVPs,
+   the bell is the round clock, gates are the RSVP window.
+10. **The keepsake card.** "Share my character" exports a Wanted-poster card with gem, score,
+    streak line and seal.
+11. **Hall of Names.** Leaderboard as carved stone: numerals, gem sigils, points, one torch at your
+    row. Names stay hidden (existing rule).
+12. **Blackletter titles.** Room names in a blackletter face at one size, once per screen, Latin
+    only; Mongolian titles stay in Yeseva until a Cyrillic blackletter is commissioned.
+13. **Time in the world's units.** Countdowns become candles, bells and dawns; exact times one tap
+    away.
+14. **Notifications in the voice.** Rewrite `PushCopy` EN lines in the app's register.
+
+### The dials, adopted after the first review (2026-09-11, late)
+
+The user asked "what if more fierce" and chose three dials: **law** up, **furnace** a little,
+**frost** as a second pole; then asked for cave, creatures and the night sky. Adopted:
+
+- **Temperature.** Fire is what is alive, answered and kept; frost is silence, absence and what
+  was left. Five tokens in `lib/theme.ts`: `furnace` #FF7A1A, `furnaceBright` #FFB347, `rime`
+  #E8F4FA, `ice` #BFE3F2, `glacier` #7FB6D6. One frost drawing reused as an edge overlay wherever
+  silence is: a frozen thread in Letters, the Frozen Gate (Banished), the War Room, the offline
+  strip, a meeting not kept, White Moon for three days. Break the Ice is literal.
+- **Furnace, a little.** The two hot tokens only on the Fire, the Oath, the Ascension, the Square's
+  bell and the Hall of Names; glows bleed further there and corners square off. Elsewhere gold and
+  rounded stay.
+- **Law.** Two words per button, short sentences with full stops; the app commands the world and
+  states the law, never scolds the person. EN rewrites: Summon / Dismiss / Choose / Decide; oaths
+  become A Bond / Fate / Kin; "Your turn. Two dawns. Judged at the third."
+- **The sky belongs to time.** The hearth's window shows the real sky from the existing day phases
+  (`lib/world/light.ts` `DayPhase`); the Ascent is drawn as a climb through the night sky with the
+  gems as stars. No new mechanic.
+- **The cave belongs to the Campaign.** Torchlight, caverns, the dragon at the threshold. Nowhere
+  else.
+
+- **The Satchel and materials** (adopted 23:00). One screen reached from the hearth showing what
+  the rules gave you today: candles (daily budget), arrows (Fated Threads), the lantern (RSVP), the
+  oath sigil and its proof, the key (membership), the ally's word (referral code), the worn honour,
+  seals held across threads, your card; each taps through to where it is used. Every object has one
+  material, drawn the same way everywhere: wax (consumed), wood and iron (used), bronze (stamped
+  once), gold (opens or rewards), parchment (written). Three new tokens: `wax`, `wood`,
+  `parchment`; the metals exist. Nothing is found, bought, dropped, crafted or stacked; no stats,
+  no shop; the Hall of Honours is the only armory.
+
+Dropped: **inventory as a system** (loot, drops, a shop, stackable items, stats, combat: a bag
+that grows turns a dating app into hoarding); **monsters and bats** as a category (sketch-level creature art is worse than none, and
+creatures outside the Campaign make the other person read as one); **iron** as a dial (shapes stay
+soft except where furnace is). Boards: the adopted versions are the only ones kept on the canvas and in the report.
+
+### Every screen (screens page), grouped by flow
+
+Arrival: The Gate (phone + OTP under one arch), The Naming (steps 1–3 as candles), The Oath (step 4,
+long-press the wax to swear). Home and the fire: The Hearth, The Fire, the keepsake card. Letters:
+Letters (Quest Log), a thread, Things to do together (one sheet, rows, sever/cast out/report at its
+foot), Break the Ice, The Rune Chamber (quiz, tap chooses and advances), The Flame Rite (call with a
+candle clock and an ember hang-up), The Campaign (a map that is a map), Under Open Sky (plan an
+encounter, seals as pledges). The Square: the plaza, The Second Bell (a round, "Light it / Let them
+pass"). The Forge: Missions, a venue page, Meetings Sworn (date log with kept/unkept), Weave a
+Thread. The Mirror: the character sheet, editing as three seals, The Ascent, The Hall of Honours (3×3
+hooks), Hall of Names, The Guild House. The War Room: settings as steel, The Banished, The Codex
+(guides + privacy + terms as one book).
+
+Also drawn after a coverage audit of every route in `app/` and every modal, sheet, toast and
+banner in `components/`: Your Likeness (onboarding step 3 with the ally's word), The Hold (the
+existing atlas overlay, redrawn), festival days and the First Dawns (the First Steps card moved to
+the hearth's mantel), the Square's closed / under-way / quiet states, Leaving the realm (deletion
+confirm and the pending banner), the sealed first letter with embers and a severed ending, The
+Seals (the reveal strip expanded, with locked chips and the deep seal for Hall and High Table),
+The Unsealing ceremony, a thread arriving (Fated Threads accept/pass) with threads woven and the
+ally invite, the toasts (reward, honour, streak, nudges), the offline strip and the crash screen,
+and the four small sheets (honour story, report, city picker, change number). A final sweep by
+copy-key family added: After the meeting (both seals on it, send word to a friend, rate the place,
+leave a memory), the Flame Rite card's five states with the camera-refused and could-not-connect
+strips, and a plain sign-out row in the War Room beside deletion.
+
+The kit page: three voices of type (blackletter / Yeseva / Alegreya), one forged button + ink links
++ chips + seals, one hero panel then rows; the three states (waiting = candle, empty = a place,
+wrong = ember); the five interruptions (chest and ascension as full-screen ceremonies; reckoning,
+warning and faltering as bottom parchment strips, never a floating card).
+
+### Decisions (product, not paint) and the default used if none is given
+
+- **Level-zero reveal.** Sealed Seek hides the likeness at level 0; today level 0 grants one photo.
+  *Default:* blur the level-0 photo under the seal. No engine change; the Unsealing ceremony fits.
+- **Embers in the open.** The Quest Log shows the ghosting judgement before it lands. *Default:*
+  show it, with the report's copy ("Your turn, two dawns unanswered. One more and the fire is judged
+  yours to have let die."). Accountability is the thesis.
+- **The hearth replaces navigation.** *Default:* build it behind a kill switch (`HEARTH_ENABLED`,
+  like `WORLD_ENABLED`) with a small hearth glyph in every header as the way home; the tab bar stays
+  until the switch flips. Waves 1–3 do not depend on it.
+- **Blackletter and Cyrillic.** *Default:* Latin titles in blackletter, Mongolian titles stay in
+  Yeseva; revisit if a Cyrillic cut is commissioned.
+
+### Wave 1 — shipped 2026-09-12
+
+The task list lived here; its outcome is in `shipped-log.md` ("Sealed Fire — Wave 1"). What it
+left for later waves: header room icons in the glyph set (Wave 2), `SheetModal`'s entrance to match
+`AlertModal`'s slide, a shared parchment layer for `AppCard` and `DialogStrip`, per-route (not
+per-file) hero/forged rules, `FrostEdge` mounted (Wave 3), the pill and First Steps card onto the
+hearth (Wave 4).
+
+### Wave 2 — shipped 2026-09-12
+
+The task list lived here; its outcome is in `shipped-log.md` ("Sealed Fire — Wave 2"). What it
+left for later waves: `feedback.ts` rows for candle lit, bell and fire dying (added by the wave that
+first fires them); the chronicle's "thirteenth dawn" (needs a joining date on the profile); the
+Flame Rite's candle clock (Wave 3, with the rite card's five states); `mystery_match_name` in
+blackletter; an engine-side crop or blur for the sealed Seek photo (the client-side blur ships the
+full URLs); and, from Wave 1, `SheetModal`'s entrance, the shared parchment layer, per-route rules,
+`FrostEdge` (Wave 3), the pill and First Steps card onto the hearth (Wave 4).
+
+### Wave 3 — shipped 2026-09-13
+
+The task list lived here; its outcome is in `shipped-log.md` ("Sealed Fire — Wave 3"). What it
+left for Wave 4: the hearth, the plaza, the Second Bell, the Satchel, candle-lit and bell feedback
+rows; the cave frame, the dragon and the bats (illustrator); a Cyrillic blackletter; White Moon
+frost for three days (check `lib/festivals.ts` first); the Flame Rite card and the ember toast
+still unseen on a device. Wave 4's record follows in `shipped-log.md`.
+
+### Wave 4 — shipped 2026-09-13
+
+The task list lived here; its outcome is in `shipped-log.md` ("Sealed Fire — Wave 4"). Nothing is
+left for a fifth wave but the deferred cleanups listed there, the device pass, the translator's
+list and the four decisions.
+
+### Gaps found while writing the report (settle before the wave that touches them)
+
+- Mongolian strings run 20–40% longer than English; chips, eyebrows and plaza labels need a
+  Mongolian width pass (chips and eyebrows done in Wave 2; the plaza in Wave 4 — done).
+- Sound and haptics: `lib/world/feedback.ts` has seal break (Wave 2) and fire dying (Wave 3); candle
+  lit and bell landed in Wave 4. Sound stays opt-in.
+- Reduced motion: the new ceremonies and the hearth's embers must respect the existing switch.
+- Contrast: the blackletter face read at 44px on the A51 (Wave 1, done); ember-on-dark toasts asserted in the palette test (Wave 3, done).
+- Accessibility labels for every glyph and seal (glyphs done in Wave 1: labelled = image role, unlabelled = hidden; seals done in Wave 2).
+- The keepsake card exports only the sharer's own portrait (Wave 3, done — a test asserts it).
+- "Deleted User" and "Unknown" (`deleted_user`, `unknown_name`) still appear as names in threads and
+  on the wall; in the voice they are "A name struck" and "A sealed one" (done in Wave 2, EN only).
+- Admin panel and web build are out of scope; web renders the new screens without Skia, as today.
+
+### Build order (waves; each ends committed, pushed, CI green, device-checked on the A51)
+
+- **Wave 1 — the kit, no behaviour change.** Shipped 2026-09-12 (`shipped-log.md`).
+- **Wave 2 — the thesis.** Shipped 2026-09-12 (`shipped-log.md`).
+- **Wave 3 — the place.** Shipped 2026-09-13 (`shipped-log.md`).
+- **Wave 4 — the hearth and the square.** Shipped 2026-09-13 (`shipped-log.md`).
+- **Every wave** adds its EN strings only; every new MN string goes on `AWAITING_MN_TRANSLATION`.
+  The translator's list grew 87 → 245 across the four waves.
+
+### Readiness checklist (what "ready to build" means here)
+
+- [x] Every route, every modal/sheet/toast/banner, and every copy-key family has a board (54 boards, one per screen or sheet, including the adopted dials and the Satchel,
+      audited 2026-09-11 from three angles: `app/`, `components/`, `lib/i18n/en.ts`).
+- [x] Every board uses only existing tokens (`lib/theme.ts`), the two shipped faces, and the
+      Ulzii knot asset; the blackletter face is the one addition and is decided separately.
+- [x] Every state a screen has today (waiting, empty, wrong, completed, ended) has a drawn form.
+- [x] Every mechanic is unchanged: score deltas, tier thresholds, reveal ladder, ghosting rules,
+      budgets, prices. The four product decisions above are the only behaviour questions.
+- [ ] The four decisions answered by the user.
+- [x] The glyph set drawn as final SVGs (`components/ui/Glyph.tsx`, Wave 1).
+- [ ] The hearth, plaza and Hold scenes drawn as final assets or Skia scenes.
+- [ ] Mongolian for every new string, from the translator, before any wave is called done for
+      an `mn` user (EN ships first; keys go on `AWAITING_MN_TRANSLATION`).
+- [ ] Wave 4 verified on the Galaxy A51 (Waves 1–3 were, 2026-09-12 and 2026-09-13).
+
+### Out of scope
+
+Traditional Mongolian script (removed on purpose 2026-09-05); monsters, bats and any creature
+outside the Campaign; iron as a dial; a new icon library dependency; any change to score deltas,
+thresholds or ghosting rules; the admin panel.
+
 ## Sealed Fire — Wave 4, the hearth and the square (2026-09-13)
 
 Fifteen commits `7cc410c..1b1aede` (ten tasks, four fix rounds, one final fix wave), two engine
