@@ -48,6 +48,8 @@ export function useActivitySuggestions(matchId: string) {
       }));
     },
     enabled: !!matchId,
+    // The screen draws its own failure and locked states; the global notice doubled them.
+    meta: { silentError: true },
   });
 
   const { data: partnerPledged = false } = useQuery<boolean>({

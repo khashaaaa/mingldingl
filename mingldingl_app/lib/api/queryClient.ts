@@ -1,12 +1,12 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Alert } from 'react-native';
 import { i18n } from '../i18n';
 import { getApiErrorMessage, isApiError } from './errors';
 import { areTierThresholdsHydrated, tierForScore } from '../tiers';
 import { useAuthStore } from '../../store/authStore';
 import { queryKeys } from './queryKeys';
 import type { components } from './api.generated';
+import { showNotice } from '../../store/noticeStore';
 
 type ScoreDetailResponse = components['schemas']['ScoreDetailResponse'];
 
@@ -80,7 +80,7 @@ function createQueryCache(): QueryCache {
       if (now - lastNoticeAt < NOTICE_COOLDOWN_MS) return;
       lastNoticeAt = now;
 
-      Alert.alert(
+      showNotice(
         i18n.t('load_failed_title'),
         getApiErrorMessage(error, i18n.t('load_failed_body')),
       );
@@ -96,7 +96,7 @@ export function createAppQueryClient(overrides?: {
   const mutationCache = new MutationCache({
     onError: (error, _variables, _context, mutation) => {
       if (mutation.options.onError || mutation.options.meta?.silentError === true) return;
-      Alert.alert(
+      showNotice(
         i18n.t('action_failed_title'),
         getApiErrorMessage(error, i18n.t('action_failed_body')),
       );

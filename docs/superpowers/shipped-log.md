@@ -10,6 +10,19 @@ written, not by date.
 
 ---
 
+## A51 checks: cold back arrows, back-to-chat, the system dialogs (2026-09-30)
+
+- Seen on the A51 with dev build `589e5f1b`: a lone Settings (placed with `router.replace` from the
+  debugger, since a cold deep link stops at the dev launcher) goes back to the tabs, and "Back to
+  Chat" from an activity page opened over the tabs swaps it for the chat.
+- The activity page's suggestions query now sets `meta.silentError`: a failure showed the page's
+  own state and a system dialog together. The engine's `activity.locked` ("keep talking") is the
+  page's keep-chatting state, not "This page would not open" with a Retry that could never work.
+- The query and mutation caches' "couldn't load" / "action failed" notices go through
+  `store/noticeStore` and the root layout's `AlertModal`. They were `Alert.alert`, Android's grey
+  system dialog, the one element that looked like another app. The fatal-crash alert in
+  `globalErrorHandler` stays native on purpose: the React tree may be what broke.
+
 ## Leftovers: nav bar config, Expo deps, admin chunks, Jest exit (2026-09-29)
 
 - **The white Android navigation bar is fixed** (dev build `589e5f1b`, seen on the A51 on a tab

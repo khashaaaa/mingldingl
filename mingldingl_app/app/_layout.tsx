@@ -16,6 +16,7 @@ import { Alegreya_400Regular_Italic } from '@expo-google-fonts/alegreya/400Regul
 import { AlegreyaSC_700Bold } from '@expo-google-fonts/alegreya-sc/700Bold';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useAuthStore } from '../store/authStore';
+import { useNoticeStore } from '../store/noticeStore';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
 import { applyScoreBump, queryClient } from '../lib/api/queryClient';
@@ -147,6 +148,8 @@ function AppContent() {
   });
 
   const [dailyLoginFailed, setDailyLoginFailed] = useState(false);
+  const notice = useNoticeStore((s) => s.notice);
+  const dismissNotice = useNoticeStore((s) => s.dismiss);
   const [fontTimeout, setFontTimeout] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setFontTimeout(true), 3000);
@@ -285,6 +288,13 @@ function AppContent() {
           </ErrorBoundary>
           <WorldCanopy />
           <RewardToastHost />
+          <AlertModal
+            visible={!!notice}
+            tone="warning"
+            title={notice?.title ?? ''}
+            message={notice?.message}
+            onDismiss={dismissNotice}
+          />
           <AlertModal
             visible={dailyLoginFailed}
             tone="warning"

@@ -1,10 +1,9 @@
-import { Alert } from 'react-native';
 import { createAppQueryClient } from '../queryClient';
 import { useAuthStore } from '../../../store/authStore';
 
-// Spy rather than mock the module: react-native is pulled in transitively by i18n and the
-// theme, and replacing it wholesale breaks those imports.
-const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+const mockAlert = jest.fn();
+// The caches raise their notices through the store the root layout draws, not `Alert.alert`.
+jest.mock('../../../store/noticeStore', () => ({ showNotice: (...args: unknown[]) => mockAlert(...args) }));
 
 function client() {
   // Retries off so a rejection surfaces immediately.

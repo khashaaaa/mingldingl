@@ -114,4 +114,19 @@ describe('ActivitiesScreen pledge states', () => {
     expect(queryByText('Your match has pledged — your turn to seal it.')).toBeNull();
   });
 });
+
+  // The engine answers "not enough messages yet" with activity.locked. That is the keep-chatting
+  // state, not a failed load: it used to show "couldn't load" with a Retry that could never work.
+  it('shows the keep-chatting state, not a load error, when encounter ideas are still locked', () => {
+    stubSuggestions({
+      suggestions: undefined,
+      error: { isAxiosError: true, response: { status: 403, data: { code: 'activity.locked' } } } as never,
+    });
+    mockUseMatches.mockReturnValue({ data: [] });
+
+    const { queryByText } = render(<WithSafeArea><ActivitiesScreen /></WithSafeArea>);
+
+    expect(queryByText('No date ideas yet')).toBeTruthy();
+    expect(queryByText('This page would not open')).toBeNull();
+  });
 });

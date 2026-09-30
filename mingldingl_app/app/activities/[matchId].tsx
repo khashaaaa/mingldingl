@@ -21,6 +21,7 @@ import { useLocaleStore } from '../../store/localeStore';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SCRIM, SPACE, SURFACE, overlay } from '../../lib/theme';
 import { useScrollTail } from '../../hooks/useScrollTail';
 import { useBackToChat } from '../../hooks/useBackToChat';
+import { isApiError } from '../../lib/api/errors';
 
 const STAR_COUNT = 5;
 /** The platform's minimum touch target, in pt. */
@@ -95,7 +96,9 @@ export default function ActivitiesScreen() {
 
   // A failed load is a wrong, not an empty list — it used to share the "no date ideas yet" state
   // below, which told someone to keep chatting when the real answer was to try again.
-  if (error) return (
+  // "Keep talking to unlock encounter ideas" is the engine's answer before enough messages, which
+  // is the "keep chatting" state below, not a failed load.
+  if (error && !isApiError(error, 'activity.locked')) return (
     <View style={styles.screen}>
       <HeaderBar title={i18n.t('plan_encounter')} />
       <StateBlock tone="danger" icon="alert-circle-outline" title={i18n.t('screen_load_error')}>
