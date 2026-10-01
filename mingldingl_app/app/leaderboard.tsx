@@ -34,7 +34,7 @@ export default function LeaderboardScreen() {
   if (isLoading) {
     return (
       <View style={styles.screen}>
-        <GameHeader title={i18n.t('hall_of_names')} icon="podium-gold" showBack />
+        <GameHeader title={i18n.t('hall_of_names')} showBack />
         <View style={styles.list}>
           <SkeletonRows count={8} gap={SPACE.sm} row={() => (
             <View style={styles.rowShape}>
@@ -67,7 +67,7 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('hall_of_names')} icon="podium-gold" showBack />
+      <GameHeader title={i18n.t('hall_of_names')} showBack />
       <Text style={styles.sub}>{hallSub}</Text>
       <FlatList
         contentContainerStyle={[entries.length === 0 ? styles.listEmpty : styles.list, { paddingBottom: tail }]}

@@ -235,6 +235,13 @@ All need the `verify` skill (real Supabase JWTs, full stack running) or the Gala
 - **`reputation.penalty_dock` minimum is 0.01**, so the dock can no longer be switched off with 0.
 - **Mission cards lost their point badges** — the numbers were hardcoded while the deltas are admin
   config the app cannot read. An engine read path would bring them back truthfully.
+- **From the 2026-10-01 A51 UI pass (copy and emphasis, left for a call):** the Codex body
+  (`ContentPages` "guides") still describes Silver/Gold membership, while the app sells The Hall /
+  The High Table; "sigil" means three things (phone number in Settings, the oath in the Satchel, the
+  gem on the Hall of Names); Settings' one forged button is "Abandon this character", which makes
+  account deletion the loudest thing on the screen; the Guild House "Climb" button doesn't name the
+  tier or price it buys; "3/3 minimum" reads oddly at or above three photos; the Encounter Log's
+  empty state is a bare headline with no way forward; the Hold map marks no "you are here".
 
 ## Known gaps, deliberately not built
 

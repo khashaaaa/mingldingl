@@ -16,9 +16,11 @@ import { goBack } from '../lib/navigation';
 
 interface Props {
   slug: string;
+  /** Names the page the way the link to it does, instead of the stored page's own title. */
+  titleKey?: string;
 }
 
-export function ContentPageScreen({ slug }: Props) {
+export function ContentPageScreen({ slug, titleKey }: Props) {
   const tail = useScrollTail();
   const locale = useLocaleStore((s) => s.locale);
   const router = useRouter();
@@ -27,7 +29,7 @@ export function ContentPageScreen({ slug }: Props) {
 
   return (
     <View style={styles.container}>
-      <HeaderBar title={localized?.title ?? ''} onBack={() => goBack(router)} />
+      <HeaderBar title={titleKey ? i18n.t(titleKey) : localized?.title ?? ''} onBack={() => goBack(router)} />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
         {isLoading && <Waiting />}
         {isError && (

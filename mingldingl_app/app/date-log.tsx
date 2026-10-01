@@ -64,7 +64,7 @@ export default function DateLogScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('date_log_title')} icon="book-heart" showBack />
+      <GameHeader title={i18n.t('date_log_title')} showBack />
       {isLoading ? (
         <View style={styles.list}>
           <SkeletonRows count={4} gap={SPACE.md} row={() => (

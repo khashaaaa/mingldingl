@@ -7,6 +7,7 @@ import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { GemTierBadge } from './GemTierBadge';
 import { CountText } from '../ui/CountText';
 import { Icon } from '../ui/Icon';
+import { i18n } from '../../lib/i18n';
 
 interface Props {
   score: number;
@@ -60,7 +61,7 @@ export function ScoreHUD({ score, tier = 'Garnet', streak }: Props) {
         <View style={styles.topHighlight} pointerEvents="none" />
         <GemTierBadge tier={tier} size={BADGE_SIZES.inline} />
         <CountText value={score} style={[styles.score, { color }]} onLayout={onScoreLayout} />
-        <Text style={styles.pts}>XP</Text>
+        <Text style={styles.pts}>{i18n.t('pts')}</Text>
         {streak !== undefined && streak >= 2 && (
           <View style={styles.streakRow}>
             <Icon name="fire" size={ICON_SIZES.xs} color={METAL.ember} />

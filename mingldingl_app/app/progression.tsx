@@ -35,7 +35,7 @@ export default function ProgressionScreen() {
   if (isLoading) {
     return (
       <View style={styles.screen}>
-        <GameHeader title={i18n.t('progression_title')} icon="chart-line" showBack />
+        <GameHeader title={i18n.t('progression_title')} showBack />
         <View style={styles.loadingBody}>
           <Skeleton width="100%" height={14} radius={RADIUS.sm} />
           <Skeleton width="60%" height={FONT_SIZES.title} />
@@ -64,7 +64,7 @@ export default function ProgressionScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('progression_title')} icon="chart-line" showBack />
+      <GameHeader title={i18n.t('progression_title')} showBack />
       {/* The sky, the perk card and the leaderboard link scroll with the history rather than
           sitting fixed above it — fixed, they left the list a sliver on a short phone. */}
       <ScoreHistoryList

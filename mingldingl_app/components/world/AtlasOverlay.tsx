@@ -61,7 +61,9 @@ export function AtlasOverlay({ visible, onClose }: Props) {
         {/* Swallow presses on the panel itself so only the scrim dismisses. */}
         <Pressable style={styles.panel} onPress={() => {}} accessibilityViewIsModal>
           <Text style={styles.title}>{i18n.t('hold_title')}</Text>
-          <Image source={ORNAMENTS.fretGold} style={styles.fret} resizeMode="cover" />
+          <View style={styles.fretBand}>
+            <Image source={ORNAMENTS.fretGold} style={styles.fret} resizeMode="cover" />
+          </View>
 
           <View style={styles.grid} onLayout={onLayout} testID="atlas-grid">
             {grid.w > 0 && PASSAGES.map(([a, b]) => {
@@ -133,7 +135,9 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.display, fontSize: FONT_SIZES.title, lineHeight: LEADING.title,
     color: INK.primary, textAlign: 'center',
   },
-  fret: { width: FRET_HEIGHT * FRET_ASPECT, height: FRET_HEIGHT, alignSelf: 'center', opacity: 0.8 },
+  // The strip is wider than the panel; the band crops it to the panel instead of the screen.
+  fretBand: { height: FRET_HEIGHT, overflow: 'hidden', alignItems: 'center' },
+  fret: { width: FRET_HEIGHT * FRET_ASPECT, height: FRET_HEIGHT, opacity: 0.8 },
   grid: { height: 400, marginTop: SPACE.sm },
   passage: {
     position: 'absolute', height: 1,
