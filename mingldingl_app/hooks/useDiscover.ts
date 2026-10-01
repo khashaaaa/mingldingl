@@ -5,6 +5,7 @@ import { parseUserProfile, type Candidate, type GemTier } from '../models/user';
 import { parseMatch, type Match } from '../models/match';
 import type { components } from '../lib/api/api.generated';
 import { queryKeys } from '../lib/api/queryKeys';
+import { signal } from '../lib/world/feedback';
 
 function parseCandidate(c: components['schemas']['CandidateResponse']): Candidate {
   // parseUserProfile wants a photoUrls field to satisfy UserProfile's shape, but a candidate never
@@ -80,6 +81,9 @@ export function useRequestMatch() {
       qc.invalidateQueries({ queryKey: queryKeys.score });
     },
     onSuccess: ({ matchId, awarded: _awarded }, candidate) => {
+      // The summons candle catching — on the engine's yes, not the tap, so a refused summons
+      // (budget spent, candidate gone) never sounds like one that went out.
+      signal('candleLit');
       qc.setQueryData<string[]>(queryKeys.discoverSeen, (current) => [...(current ?? []), candidate.id]);
 
       const newMatch: Match = parseMatch({

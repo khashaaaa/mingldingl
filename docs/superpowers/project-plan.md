@@ -168,10 +168,10 @@ All need the `verify` skill (real Supabase JWTs, full stack running) or the Gala
   that day for a phone speaker — the low ones were 95-99% sub-400 Hz — and loudness-matched), and no
   longer take audio focus (they paused the user's music). Still open: Android has no silent switch
   and `playsInSilentMode` is iOS-only, so on Android the sounds follow media volume, not silent/
-  vibrate (a fix needs a native ringer-mode read); haptics are weak there — expo-haptics' impact
-  styles measured 0.12 (soft = light, indistinguishable) to 0.27 (heavy) amplitude, while
-  `performAndroidHapticsAsync` presets fire at the device default; `door.wav` (`enterDeep`) is never
-  fired, and `candleLit` fires from the Town Square session rather than on a summons.
+  vibrate (a fix needs a native ringer-mode read). Haptics were weak there (expo-haptics impact
+  styles measure 0.12-0.27 amplitude); after a hand-felt A/B on the A51, `heavy` (tier-up, seal
+  break) uses the system long-press preset at full strength and every other kind keeps its impact
+  style. `medium` (the bell) was not compared.
 - **Sealed Fire Wave 4 — the rest of the device pass.** Seen on the A51 (2026-09-15, 09-29): all
   five tabs, the hearth in the phase of the day, a sealed candidate card, the Quest Log's sealed and
   revealed portraits, the plaza's quiet state, the Satchel, and the way-home glyph (the navigation

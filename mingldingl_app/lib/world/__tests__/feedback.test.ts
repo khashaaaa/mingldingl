@@ -9,6 +9,8 @@ const player = (Audio as unknown as { __player: { play: jest.Mock; seekTo: jest.
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(() => Promise.resolve()),
   notificationAsync: jest.fn(() => Promise.resolve()),
+  performAndroidHapticsAsync: jest.fn(() => Promise.resolve()),
+  AndroidHaptics: { Long_Press: 'long-press' },
   ImpactFeedbackStyle: { Soft: 'soft', Light: 'light', Medium: 'medium', Heavy: 'heavy' },
   NotificationFeedbackType: { Success: 'success' },
 }));
@@ -135,6 +137,22 @@ describe('world feedback', () => {
       signal(event);
       expect(impact.mock.calls.length + notify.mock.calls.length).toBeGreaterThanOrEqual(1);
       expect(player.play).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('strikes the anvil at full strength on Android, where the impact style is a whisper', () => {
+    const original = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { value: 'android', configurable: true });
+    try {
+      signal('tierUp');
+      jest.advanceTimersByTime(200);
+      expect(Haptics.performAndroidHapticsAsync).toHaveBeenCalledTimes(2);
+      expect(Haptics.performAndroidHapticsAsync).toHaveBeenLastCalledWith('long-press');
+      expect(impact).not.toHaveBeenCalled();
+      signal('press');
+      expect(impact).toHaveBeenLastCalledWith('soft');
+    } finally {
+      Object.defineProperty(Platform, 'OS', { value: original, configurable: true });
     }
   });
 

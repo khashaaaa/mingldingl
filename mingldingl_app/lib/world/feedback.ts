@@ -32,8 +32,8 @@ const SIGNALS: Record<WorldEvent, EventDef> = {
   horn:      { haptic: 'light',   sound: require('../../assets/sounds/horn.wav') },
   // A thread going cold — Task 4 (the chat screen) fires this, not the Quest Log itself.
   fireDying: { haptic: 'soft',    sound: require('../../assets/sounds/dying.wav') },
-  // A summons candle catching (Task 7) and the Square's bell (Task 8) — the row exists from this
-  // task (W4 Task 4) so both later tasks have somewhere to fire into.
+  // A candle catching: a summons the engine accepted (`useRequestMatch`) and the plaza's lantern
+  // on an RSVP (`useTownSquareSession`). The bell is the Square's round changing.
   candleLit: { haptic: 'light',   sound: require('../../assets/sounds/candle.wav') },
   bell:      { haptic: 'medium',  sound: require('../../assets/sounds/bell.wav') },
 };
@@ -85,7 +85,13 @@ function ensurePlayers(): Partial<Record<WorldEvent, AudioPlayer>> {
 function fireHaptic(kind: HapticKind): void {
   // Web has no haptic engine at all; calling through would reject on every event.
   if (Platform.OS === 'web') return;
-  const call = kind === 'success'
+  // Android draws `heavy` as a 0.27-amplitude buzz — the tier-up, the app's biggest moment, felt
+  // like a button. The system's long-press preset fires at the device's own full strength, and on
+  // the A51 (2026-10-01) it was the one picked over the impact style; every other kind kept its
+  // impact style, which read better there.
+  const call = kind === 'heavy' && Platform.OS === 'android'
+    ? Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Long_Press)
+    : kind === 'success'
     ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
     : Haptics.impactAsync({
       soft: Haptics.ImpactFeedbackStyle.Soft,
