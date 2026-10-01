@@ -53,10 +53,10 @@ describe('world feedback', () => {
     expect(player.play).toHaveBeenCalledTimes(2);
   });
 
-  it('refuses to play over the silent switch', () => {
+  it('refuses to play over the silent switch, and never takes audio focus from music', () => {
     setSoundEnabled(true);
     signal('honour');
-    expect(Audio.setAudioModeAsync).toHaveBeenCalledWith({ playsInSilentMode: false });
+    expect(Audio.setAudioModeAsync).toHaveBeenCalledWith({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' });
   });
 
   it('loads nothing until sound is enabled', () => {

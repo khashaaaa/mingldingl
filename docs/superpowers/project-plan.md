@@ -163,9 +163,15 @@ All need the `verify` skill (real Supabase JWTs, full stack running) or the Gala
   `ChoiceRow`'s layout** (MN label length) and one real upgrade call.
 - **The world below the Gate, on hardware.** The rooms have rendered on the A51 in the 2026-09-15
   and 2026-09-29 passes, but the six light signatures, per-room state ramps, the atlas over a real
-  profile and the descend/rise transitions have not been judged against their spec there. **The eight sounds have never been heard and no haptic
-  has fired on hardware**; the WAVs are synthesised, so their voicing is a guess, and the
-  silent-switch behaviour is untested.
+  profile and the descend/rise transitions have not been judged against their spec there. **Sounds and haptics, measured on the A51
+  2026-10-01 but never yet judged by ear or hand:** all eleven sounds play on the speaker (re-voiced
+  that day for a phone speaker — the low ones were 95-99% sub-400 Hz — and loudness-matched), and no
+  longer take audio focus (they paused the user's music). Still open: Android has no silent switch
+  and `playsInSilentMode` is iOS-only, so on Android the sounds follow media volume, not silent/
+  vibrate (a fix needs a native ringer-mode read); haptics are weak there — expo-haptics' impact
+  styles measured 0.12 (soft = light, indistinguishable) to 0.27 (heavy) amplitude, while
+  `performAndroidHapticsAsync` presets fire at the device default; `door.wav` (`enterDeep`) is never
+  fired, and `candleLit` fires from the Town Square session rather than on a summons.
 - **Sealed Fire Wave 4 — the rest of the device pass.** Seen on the A51 (2026-09-15, 09-29): all
   five tabs, the hearth in the phase of the day, a sealed candidate card, the Quest Log's sealed and
   revealed portraits, the plaza's quiet state, the Satchel, and the way-home glyph (the navigation

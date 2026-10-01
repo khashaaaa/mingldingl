@@ -69,8 +69,11 @@ function releasePlayers(): void {
 function ensurePlayers(): Partial<Record<WorldEvent, AudioPlayer>> {
   if (players) return players;
   // `playsInSilentMode: false` is the whole point: a dating app that speaks while the phone is
-  // silenced is a bug no setting excuses.
-  setAudioModeAsync({ playsInSilentMode: false }).catch(() => {});
+  // silenced is a bug no setting excuses. It is iOS-only — Android has no silent switch, and these
+  // play on the media stream, so there the media volume is what silences them.
+  // `mixWithOthers` asks Android for no audio focus: left unset, every tick took transient focus
+  // and paused whatever music the user had playing.
+  setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' }).catch(() => {});
   players = {};
   for (const [event, def] of Object.entries(SIGNALS) as [WorldEvent, EventDef][]) {
     if (def.sound == null) continue;

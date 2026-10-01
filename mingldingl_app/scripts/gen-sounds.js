@@ -5,7 +5,13 @@
 // lowpass over white noise — pure Node, no dependencies, no sample library, no licences.
 //
 // Mono 16-bit PCM at 22.05 kHz, which is plenty for a half-second thud and keeps every file
-// under ~30 kB. Each sound ends on a forced 8 ms fade so no clip finishes on a click.
+// under ~30 kB. Each sound opens on a 2 ms fade and ends on an 8 ms one, so no clip starts or
+// finishes on a click.
+//
+// Voiced for a phone speaker, which plays next to nothing below ~400 Hz: every low body (the
+// door's thud, the seal's boom, the dying ember) carries upper harmonics, so the ear hears the
+// fundamental the speaker cannot move (the "missing fundamental"). Measured on the first set,
+// door/dying/seal/candle put 95-99% of their energy below 400 Hz and were near-silent on the A51.
 //
 // Rerun with: node scripts/gen-sounds.js   (writes assets/sounds/*.wav)
 
@@ -14,6 +20,7 @@ const path = require('path');
 
 const RATE = 22050;
 const FADE_OUT_S = 0.008;
+const FADE_IN_S = 0.002;
 
 // ---------- primitives ----------
 
@@ -42,6 +49,14 @@ function noiseSource(seed, cutoffHz) {
   };
 }
 
+/** A body at `f` plus harmonics 2..n at 1/k amplitude — what a speaker that cannot play `f` still
+ *  lets you hear as `f`. */
+function rich(t, f, n = 8, tilt = 1) {
+  let v = 0;
+  for (let k = 1; k <= n; k++) v += sine(t, f * k) / Math.pow(k, tilt);
+  return v;
+}
+
 function render(durationS, fn) {
   const n = Math.floor(durationS * RATE);
   const out = new Float64Array(n);
@@ -54,11 +69,13 @@ function render(durationS, fn) {
 /** Entering a delve: a door closing above you. Body, no sparkle. */
 function door() {
   const dur = 0.5;
-  const n = noiseSource(0x51ee7, 400);
+  const n = noiseSource(0x51ee7, 1400);
   return render(dur, (t) => {
-    const thud = sine(t, 62 - 18 * (t / dur)) * decay(t, dur, 6);
+    const thud = rich(t, 62 - 18 * (t / dur), 10, 0.8) * decay(t, dur, 6);
+    // The wood of the door itself, so the thud has a surface a phone can sound.
+    const panel = (sine(t, 196) * 0.6 + sine(t, 412) * 0.35) * decay(t, dur, 11);
     const body = n() * decay(t, dur, 14) * 0.9;
-    return thud * 0.8 + body * 0.5;
+    return thud * 0.3 + panel * 1.0 + body * 0.6;
   });
 }
 
@@ -67,7 +84,7 @@ function rise() {
   const dur = 0.26;
   return render(dur, (t) => {
     const f = 210 + 240 * (t / dur);
-    return (sine(t, f) * 0.6 + sine(t, f * 2) * 0.15) * decay(t, dur, 5);
+    return (sine(t, f) * 0.6 + sine(t, f * 2) * 0.3 + sine(t, f * 3) * 0.15) * decay(t, dur, 5);
   });
 }
 
@@ -90,12 +107,14 @@ function anvil() {
 function seal() {
   const dur = 0.7;
   const crack = noiseSource(0xb0552, 9000);
-  const rubble = noiseSource(0x5ea1, 900);
+  const rubble = noiseSource(0x5ea1, 2200);
   return render(dur, (t) => {
     const snap = crack() * decay(t, dur, 120) * 1.1;
-    const boom = sine(t, 88 - 30 * (t / dur)) * decay(t, dur, 7) * 0.8;
-    const debris = rubble() * decay(t, dur, 9) * 0.35;
-    return snap + boom + debris;
+    const boom = rich(t, 88 - 30 * (t / dur), 9, 0.9) * decay(t, dur, 7) * 0.45;
+    // The stone giving way: a dull 330/520 Hz ring under the rubble, so the weight is audible.
+    const stone = (sine(t, 330) * 0.5 + sine(t, 520) * 0.3) * decay(t, dur, 8);
+    const debris = rubble() * decay(t, dur, 9) * 0.6;
+    return snap * 0.8 + boom + stone + debris;
   });
 }
 
@@ -114,11 +133,12 @@ function honour() {
 /** A pledge kept: two soft taps, wood not metal. */
 function pledge() {
   const dur = 0.42;
-  const n = noiseSource(0x9e0d, 1600);
+  const n = noiseSource(0x9e0d, 3200);
   const tap = (t, at) => {
     const dt = t - at;
     if (dt < 0) return 0;
-    return (sine(dt, 300) * 0.5 + n() * 0.5) * decay(dt, 0.16, 16);
+    // 300 Hz is the block; the 2.3x partial is the knock of it, the part a phone actually plays.
+    return (sine(dt, 300) * 0.4 + sine(dt, 690) * 0.3 + n() * 0.5) * decay(dt, 0.16, 16);
   };
   return render(dur, (t) => (tap(t, 0) + tap(t, 0.13) * 0.75) * 0.7);
 }
@@ -151,7 +171,8 @@ function horn() {
     const f = 220 * bend * vibrato;
     const attack = Math.min(1, t / 0.02);
     const tail = t < 0.25 ? 1 : decay(t - 0.25, dur - 0.25, 4);
-    const v = sine(t, f) * 1.0 + sine(t, f * 2) * 0.55 + sine(t, f * 3) * 0.3 + sine(t, f * 4) * 0.12;
+    const v = sine(t, f) * 1.0 + sine(t, f * 2) * 0.55 + sine(t, f * 3) * 0.4 + sine(t, f * 4) * 0.25
+      + sine(t, f * 5) * 0.12;
     return v * attack * tail;
   });
 }
@@ -163,11 +184,11 @@ function horn() {
  */
 function dying() {
   const dur = 0.6;
-  const crackle = noiseSource(0x6f2c1, 240);
+  const crackle = noiseSource(0x6f2c1, 1600);
   return render(dur, (t) => {
-    const ember = sine(t, 90) * decay(t, dur, 7);
+    const ember = rich(t, 90, 8, 1.1) * decay(t, dur, 7);
     const crack = crackle() * decay(t, dur, 7);
-    return ember * 0.6 + crack * 0.4;
+    return ember * 0.4 + crack * 0.9;
   });
 }
 
@@ -179,10 +200,10 @@ function dying() {
  */
 function candle() {
   const dur = 0.35;
-  const breath = noiseSource(0x9c31a, 600);
+  const breath = noiseSource(0x9c31a, 2400);
   return render(dur, (t) => {
-    const wick = sine(t, 220) * decay(t, dur, 6);
-    return wick * 0.55 + breath() * decay(t, dur, 9) * 0.55;
+    const wick = rich(t, 220, 5, 1.2) * decay(t, dur, 6);
+    return wick * 0.45 + breath() * decay(t, dur, 9) * 0.9;
   });
 }
 
@@ -203,12 +224,52 @@ function bell() {
 
 // ---------- encode ----------
 
-function normalise(samples, peak = 0.82) {
+/**
+ * Scaled to a loudness, capped by a peak. Peak alone left the set 12 dB apart (the horn, a held
+ * note, at -10.5 dBFS RMS against the pledge's two taps at -22.7), so whichever fired loudest was
+ * an accident of its shape rather than a choice.
+ */
+function normalise(samples, peak = 0.82, rms = RMS_TARGET) {
   let max = 0;
   for (const s of samples) max = Math.max(max, Math.abs(s));
   if (max === 0) return samples;
-  const g = peak / max;
+  // Loudness is judged on what a phone speaker actually plays, not on the whole signal — a door
+  // that is all sub-bass measures loud and is heard as nothing.
+  const heard = highpass(highpass(samples, SPEAKER_HZ), SPEAKER_HZ);
+  let sum = 0;
+  for (const s of heard) sum += s * s;
+  const g = Math.min(peak / max, rms / Math.sqrt(sum / samples.length));
   for (let i = 0; i < samples.length; i++) samples[i] *= g;
+  return samples;
+}
+
+/** tanh saturation, level-matched at full scale. Tames the low voices' opening spike, which
+ *  otherwise sets the peak cap long before the band a phone plays gets loud, and the harmonics it
+ *  adds are exactly the ones that let a phone speaker sound a thud at all. */
+function saturate(samples, drive) {
+  if (!drive) return samples;
+  let max = 0;
+  for (const s of samples) max = Math.max(max, Math.abs(s));
+  const k = Math.tanh(drive);
+  for (let i = 0; i < samples.length; i++) samples[i] = Math.tanh((drive * samples[i]) / max) / k;
+  return samples;
+}
+
+/** One-pole highpass, returned as a new array. */
+function highpass(samples, hz) {
+  const a = Math.exp((-2 * Math.PI * hz) / RATE);
+  const out = new Float64Array(samples.length);
+  let low = 0;
+  for (let i = 0; i < samples.length; i++) {
+    low = samples[i] * (1 - a) + low * a;
+    out[i] = samples[i] - low;
+  }
+  return out;
+}
+
+function fadeIn(samples) {
+  const f = Math.floor(FADE_IN_S * RATE);
+  for (let i = 0; i < f; i++) samples[i] *= i / f;
   return samples;
 }
 
@@ -246,7 +307,16 @@ function toWav(samples) {
 // The tick is the one sound that fires on every press, so it is held well below the others; the
 // dying crackle is quiet for the same reason the brief gives it — amplitude 0.5, not the ~0.82
 // peak everything else normalises to.
-const PEAKS = { tick: 0.5, dying: 0.5, candle: 0.45, bell: 0.7 };
+// Peaks only cap; loudness is `RMS` below, which is what keeps the tick and the candle quiet.
+const PEAKS = { tick: 0.5, dying: 0.7, candle: 0.7, bell: 0.7 };
+/** Where a phone speaker starts to play anything, and below which the rendered sub-bass is cut. */
+const SPEAKER_HZ = 400;
+const SUB_HZ = 110;
+/** Speaker-band loudness: -22 dBFS RMS for a moment; the frequent and the quiet ones 6 dB under. */
+const RMS_TARGET = 0.08;
+const RMS = { tick: 0.04, candle: 0.04, dying: 0.04, rise: 0.057 };
+
+const DRIVE = { door: 3, seal: 2.5, dying: 2.5, candle: 2, pledge: 2 };
 
 const SOUNDS = { door, rise, anvil, seal, honour, pledge, tick, horn, dying, candle, bell };
 
@@ -254,7 +324,8 @@ const outDir = path.join(__dirname, '..', 'assets', 'sounds');
 fs.mkdirSync(outDir, { recursive: true });
 
 for (const [name, make] of Object.entries(SOUNDS)) {
-  const wav = toWav(fadeOut(normalise(make(), PEAKS[name])));
+  // The sub-bass a speaker cannot move only spends headroom the audible band then cannot use.
+  const wav = toWav(fadeOut(fadeIn(normalise(saturate(highpass(highpass(make(), SUB_HZ), SUB_HZ), DRIVE[name]), PEAKS[name], RMS[name]))));
   const file = path.join(outDir, `${name}.wav`);
   fs.writeFileSync(file, wav);
   console.log(`${name}.wav  ${(wav.length / 1024).toFixed(1)} kB`);
