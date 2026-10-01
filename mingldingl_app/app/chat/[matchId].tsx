@@ -34,13 +34,14 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
 import { queryKeys } from '../../lib/api/queryKeys';
-import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SCRIM, SPACE, SURFACE, TRACKING, overlay, tint } from '../../lib/theme';
+import { ACCENT, BADGE_SIZES, FONTS, HEAT, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SCRIM, SPACE, SURFACE, TEMPERATURE, TRACKING, overlay, tint } from '../../lib/theme';
 import { FieldError, StateBlock } from '../../components/ui/StateBlock';
 import { useAuthStore } from '../../store/authStore';
 import { useActivityGate, useGhostingWindows, useRevealLadder } from '../../hooks/useRevealThresholds';
 import { messagesUntilActivities, nextRevealThreshold } from '../../lib/reveal';
 import { letterMarks } from '../../lib/letters';
-import { fireOf, fireLine, fireVerdict, cap } from '../../lib/fire';
+import { fireOf, fireLine, fireVerdict, fireEyebrow, fireMark, cap } from '../../lib/fire';
+import { FireMarkGlyph } from '../../components/quest/FireMarkGlyph';
 import { countWord, ordinalWord } from '../../lib/worldTime';
 import type { MatchStatus } from '../../models/match';
 import { useProfile } from '../../hooks/useProfile';
@@ -430,28 +431,41 @@ export default function ChatScreen() {
         {endedReason ? (
           // Last thing on the screen where the composer used to be, so it owes the same debt to
           // the Android gesture bar that `MessageInput` pays for its own bar.
-          <View style={[styles.endedNotice, { paddingBottom: SPACE.lg + insets.bottom }]}>
+          <View style={[styles.endedNotice, { paddingBottom: SPACE.xl + insets.bottom }]}>
             {/* A frozen fire, not just a severed link — the crystal that reads "silence" wherever
                 else it appears in this redesign, reused rather than a second way to say it. A rim
-                reach, not the screen-edge default: this notice has only two lines of text beneath
-                it, and the default 96 drew straight through both of them. */}
+                reach, not the screen-edge default: the default 96 drew straight through the lines
+                beneath it. */}
             <View style={styles.endedNoticeFrost} pointerEvents="none">
               <FrostEdge edge="top" length={FROST_RIM_REACH} />
             </View>
-            <Icon name="link-variant-off" size={ICON_SIZES.sm} color={INK.dim} />
-            <View style={styles.endedNoticeTextWrap}>
-              {endedReason === 'ghosted' && fire ? (
-                <>
-                  <Text style={styles.endedNoticeText}>{fireLine(fire)}</Text>
-                  {/* Null whenever nobody spoke at all to be judged — see `fireVerdict`. */}
-                  {fireVerdict(fire) && <Text style={styles.endedNoticeVerdict}>{fireVerdict(fire)}</Text>}
-                </>
-              ) : (
+            {endedReason === 'ghosted' && fire ? (
+              <>
+                {/* The thread's last page: what it is (the Quest Log's own ice mark and word), how
+                    long the silence ran, and — set apart by a hairline — whose standing paid. */}
+                <View style={styles.endedEyebrowRow}>
+                  <FireMarkGlyph mark={fireMark('frozen')} size={ICON_SIZES.sm} />
+                  <Text style={styles.endedEyebrow}>{fireEyebrow(fire)}</Text>
+                </View>
+                <Text style={styles.endedNoticeText}>{fireLine(fire)}</Text>
+                {/* Null whenever nobody spoke at all to be judged — see `fireVerdict`. */}
+                {fireVerdict(fire) && (
+                  <>
+                    <View style={styles.endedRule} />
+                    <Text style={[styles.endedNoticeVerdict, fire.iLetIt && styles.endedNoticeVerdictMine]}>
+                      {fireVerdict(fire)}
+                    </Text>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <Icon name="link-variant-off" size={ICON_SIZES.md} color={INK.muted} />
                 <Text style={styles.endedNoticeText}>
                   {endedReason === 'ghosted' ? i18n.t('match_quiet_body') : i18n.t('match_ended_notice')}
                 </Text>
-              )}
-            </View>
+              </>
+            )}
           </View>
         ) : (
           // Sending is an explicit request to be at the bottom: the optimistic row is appended
@@ -710,33 +724,44 @@ const styles = StyleSheet.create({
     color: INK.primary,
   },
   endedNotice: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: SPACE.sm,
-    paddingHorizontal: SPACE.lg,
-    paddingVertical: SPACE.lg,
-    // Transparent for the same reason the composer it replaces is: the ledger ends on the floor.
-    backgroundColor: 'transparent',
-    borderTopColor: LINE.edge,
+    paddingHorizontal: SPACE.xl,
+    paddingTop: SPACE.xl + SPACE.sm,
+    // A sunken slab rather than the floor: the ledger is closed, and the composer's place is
+    // visibly filled in instead of left as a bare strip of text.
+    backgroundColor: SURFACE.sunken,
+    borderTopColor: tint(TEMPERATURE.glacier, 0.45),
     borderTopWidth: 1,
     // The frost is drawn absolutely, against this row's own edge.
     position: 'relative',
     overflow: 'hidden',
   },
   endedNoticeFrost: { position: 'absolute', top: 0, left: 0, right: 0 },
-  endedNoticeTextWrap: { flexShrink: 1, gap: SPACE.xs },
+  endedEyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+  endedEyebrow: {
+    fontFamily: FONTS.utility,
+    fontSize: FONT_SIZES.xs,
+    letterSpacing: TRACKING.eyebrow,
+    textTransform: 'uppercase',
+    color: TEMPERATURE.glacier,
+  },
   endedNoticeText: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.md,
-    color: INK.dim,
-    flexShrink: 1,
+    color: INK.primary,
+    textAlign: 'center',
   },
+  endedRule: { width: 48, height: 1, backgroundColor: LINE.edge, marginVertical: SPACE.xs },
   endedNoticeVerdict: {
     fontFamily: FONTS.bodyItalic,
     fontSize: FONT_SIZES.md,
     color: INK.dim,
+    textAlign: 'center',
   },
+  // Wrong is ember: the verdict that cost *you* is the one line here allowed warmth. The fire's
+  // own light rather than `METAL.ember`, which sank to ~2.5:1 on the sunken slab.
+  endedNoticeVerdictMine: { color: HEAT.flame },
   loadEarlierBtn: {
     flexDirection: 'row',
     alignItems: 'center',
