@@ -37,6 +37,10 @@ interface Props {
   children?: ReactNode;
 }
 
+/** The blackletter's ink sits low in its line box: on the A51 its centre read ~3dp below the back
+ *  arrow and the tail icons. Lifted by a share of its size, so every fit step stays level. */
+const BLACKLETTER_LIFT = 0.07;
+
 export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, children, chrome = true }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -82,7 +86,9 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
               glyphs but kept the two-line height. Each layout that still wraps drops one step;
               `numberOfLines={2}` stays only as the floor for a title too long for the last step. */}
           <Text
-            style={[titleStyle, { fontSize: baseSize * FIT_SCALES[step] }]}
+            style={[titleStyle, { fontSize: baseSize * FIT_SCALES[step] }, blackletter && {
+              transform: [{ translateY: -baseSize * FIT_SCALES[step] * BLACKLETTER_LIFT }],
+            }]}
             numberOfLines={2}
             onTextLayout={(e) => {
               if (e.nativeEvent.lines.length > 1 && step < FIT_SCALES.length - 1) {
