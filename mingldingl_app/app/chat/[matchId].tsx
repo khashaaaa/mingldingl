@@ -374,8 +374,9 @@ export default function ChatScreen() {
           <View style={styles.ledger}>
             {/* The thread the letters are strung on, running through the centre of every sigil ring.
                 Android draws a dashed border only when all four sides have a width, so this is a
-                1px-wide box rather than a lone borderLeftWidth. */}
-            <View pointerEvents="none" style={styles.thread} />
+                1px-wide box rather than a lone borderLeftWidth. No letters, no thread: on an empty
+                match it ran down through the empty state's copy. */}
+            {messages.length > 0 && <View pointerEvents="none" style={styles.thread} />}
             <FlatList
               ref={flatListRef}
               data={messages}

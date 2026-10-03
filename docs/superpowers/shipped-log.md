@@ -23,6 +23,8 @@ long versions.
   its seals line opened lowercase.
 - The Satchel link is off the Profile page: it sat, in English, among the profile's own actions
   (Encounter Log, edit, share, settings). The hearth's destinations are its one door.
+- An empty thread no longer draws the ledger's dashed line through its empty state, and the quiz
+  bar marks the open question in half gold (question 1 used to show nothing lit).
 
 ## 2026-10-03 — The road, smoothness, navigation, round trips and floods
 

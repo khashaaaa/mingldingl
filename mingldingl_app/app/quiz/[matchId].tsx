@@ -119,7 +119,12 @@ export default function QuizScreen() {
           {quiz.questions.map((_, i) => (
             <View
               key={i}
-              style={[styles.progressSegment, { backgroundColor: i < answeredCount ? ACCENT.base : LINE.edge }]}
+              // Answered in gold, the open question in half gold — "Question 1 of 4" over a bar
+              // with nothing lit read as if the bar were broken.
+              style={[styles.progressSegment, {
+                backgroundColor: i <= answeredCount ? ACCENT.base : LINE.edge,
+                opacity: i === answeredCount ? 0.5 : 1,
+              }]}
             />
           ))}
         </View>

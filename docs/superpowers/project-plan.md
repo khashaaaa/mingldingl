@@ -155,9 +155,7 @@ here and record it in [`shipped-log.md`](shipped-log.md).
   sign-in script rewriting the test user's password, or a session timeout). Check Supabase
   Auth → Sessions before assuming an app bug.
 
-- 2026-10-03 A51 audit leftovers: an empty thread still draws the ledger's dashed line through
-  its empty state; the quiz progress bar lights answered questions only, so question 1 shows no
-  lit segment; nine engine error codes (`quiz.not_found`, `rite.not_finished`,
+- 2026-10-03 A51 audit leftover: nine engine error codes (`quiz.not_found`, `rite.not_finished`,
   `membership.purchase_closed`, `profile.gender_immutable`, `rating.*`, `photo.not_found`,
   `user.already_deleted`, `quiz.answers_invalid`) have no app copy and show the caller's generic
   message.
