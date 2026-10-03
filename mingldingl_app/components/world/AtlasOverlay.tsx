@@ -157,10 +157,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     fontFamily: FONTS.display, fontSize: FONT_SIZES.sm, color: ACCENT.bright,
   },
+  // Backed in the panel's own colour and only as wide as its words: a passage leaving a medallion
+  // downward (the hearth's to the deep runs straight through its own label) breaks behind the name
+  // instead of striking it out.
   label: {
     marginTop: SPACE.xs,
     fontFamily: FONTS.utility, letterSpacing: TRACKING.wide, fontSize: FONT_SIZES.xs, lineHeight: LEADING.xs,
-    color: INK.primary, textAlign: 'center', width: '100%',
+    color: INK.primary, textAlign: 'center', maxWidth: '100%',
+    paddingHorizontal: SPACE.xs, backgroundColor: SURFACE.panel,
   },
   labelDim: { color: INK.dim },
 });

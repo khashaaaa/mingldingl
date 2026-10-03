@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Tap } from './Tap';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useRouter, usePathname, useRootNavigationState } from 'expo-router';
 import { goHome, stackHas, goBack } from '../../lib/navigation';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
@@ -63,6 +63,20 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
   // Keyed by the title, so a screen whose title changes (a venue loading its name) fits afresh.
   const [fit, setFit] = useState({ title, step: 0 });
   const step = fit.title === title ? fit.step : 0;
+  const stepDown = () => { if (step < FIT_SCALES.length - 1) setFit({ title, step: step + 1 }); };
+  // Android's text layout and Yoga's measure can disagree by a fraction of a dp at the wrap edge:
+  // on the A51 "Seek Companions" reported one 165dp line to `onTextLayout` while Yoga, measuring
+  // into 164.95dp, sized the box for two. The one line then drew at the top of a two-line box, ~13dp
+  // above the glyph and tail icons. So a box taller than its line also counts as wrapped.
+  // Both readings are keyed to the step and title they were taken at, so a stale two-line height
+  // never pairs with the next step's line and drops a size the title did not need to lose.
+  const box = useRef({ key: '', line: 0, height: 0 });
+  const measured = (part: 'line' | 'height', value: number) => {
+    const key = `${title}:${step}`;
+    if (box.current.key !== key) box.current = { key, line: 0, height: 0 };
+    box.current[part] = value;
+    if (box.current.line > 0 && box.current.height > box.current.line * 1.5) stepDown();
+  };
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
@@ -91,9 +105,12 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
             }]}
             numberOfLines={2}
             onTextLayout={(e) => {
-              if (e.nativeEvent.lines.length > 1 && step < FIT_SCALES.length - 1) {
-                setFit({ title, step: step + 1 });
-              }
+              const { lines } = e.nativeEvent;
+              if (lines.length > 1) { stepDown(); return; }
+              measured('line', lines[0]?.height ?? 0);
+            }}
+            onLayout={(e) => {
+              measured('height', e.nativeEvent.layout.height);
             }}
           >
             {title}
