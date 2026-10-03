@@ -187,9 +187,10 @@ const MEMBERSHIP_NAME_KEYS: Record<string, string> = {
  * goes through `tKey`: an identifier this map has not caught up with falls back to the raw value
  * instead of rendering i18n-js's literal `[missing "mn." translation]` marker.
  */
-export function tierLabel(tier: string | null | undefined): string {
+/** `locale` pins the name to one language, for a line `lineLocale` says in English as a whole. */
+export function tierLabel(tier: string | null | undefined, locale?: string): string {
   if (!tier) return '';
-  return tKey(TIER_NAME_KEYS[tier as GemTier], tier);
+  return tKey(TIER_NAME_KEYS[tier as GemTier], tier, locale ? { locale } : undefined);
 }
 
 export function membershipLabel(level: string | null | undefined): string {

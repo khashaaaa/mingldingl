@@ -94,15 +94,18 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
     return threshold > 0 ? `${name} · ${threshold.toLocaleString()}` : name;
   }
 
-  const bodyLine = nextTier
-    ? i18n.t('ascent_to_go', { points: pointsToGo!.toLocaleString() })
-    : i18n.t('ascent_beyond');
   // The whole drawing is one accessible group (the SVG is hidden, and an `accessible` ancestor
   // suppresses individual announcement of its RN `Text` descendants too) — so the longest-streak
   // line has to be said here, in words, or a screen reader never hears it at all. Reuses
-  // `streak_longest`'s own English text rather than adding a key for one more number.
-  const a11yLabel = `${tierLabel(gemTier)}. ${totalScore.toLocaleString()}. ${bodyLine}. `
-    + `${currentStreak} ${i18n.t('ascent_dawns', { count: currentStreak })}. ${i18n.t('streak_longest')} ${longestStreak}.`;
+  // `streak_longest`'s own English text rather than adding a key for one more number. Said whole in
+  // one language: its untranslated pieces between a Mongolian gem and "Хамгийн урт дараалал" made
+  // the one sentence switch language twice.
+  const said = { locale: lineLocale(nextTier ? 'ascent_to_go' : 'ascent_beyond', 'ascent_dawns', 'streak_longest') };
+  const saidBody = nextTier
+    ? i18n.t('ascent_to_go', { points: pointsToGo!.toLocaleString(), ...said })
+    : i18n.t('ascent_beyond', said);
+  const a11yLabel = `${tierLabel(gemTier, said.locale)}. ${totalScore.toLocaleString()}. ${saidBody}. `
+    + `${currentStreak} ${i18n.t('ascent_dawns', { count: currentStreak, ...said })}. ${i18n.t('streak_longest', said)} ${longestStreak}.`;
 
   const topPoint = points[TOP_INDEX];
 

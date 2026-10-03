@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react-native';
 import { AscentSky } from '../AscentSky';
 import { hydrateTierThresholds } from '../../../lib/tiers';
+import { i18n } from '../../../lib/i18n';
 
 /**
  * `react-native-svg`'s `Text` puts its string on the `content` prop of a nested `RNSVGTSpan`
@@ -124,6 +125,23 @@ describe('AscentSky', () => {
       <AscentSky gemTier="Ruby" totalScore={1595} currentStreak={4} longestStreak={11} width={340} />,
     );
     expect(getByLabelText(/Longest Streak 11/)).toBeTruthy();
+  });
+
+  // The label is one sentence. While its dawn and to-go words await Mongolian it is said whole in
+  // English, rather than a Mongolian gem and "Хамгийн урт дараалал" around English in between.
+  it('says the accessible label in one language while part of it is untranslated', () => {
+    const was = i18n.locale;
+    i18n.locale = 'mn';
+    try {
+      const { getByLabelText } = render(
+        <AscentSky gemTier="Ruby" totalScore={1595} currentStreak={4} longestStreak={11} width={340} />,
+      );
+      const label = getByLabelText(/Longest Streak 11/).props.accessibilityLabel as string;
+      expect(label).toMatch(/^Ruby\./);
+      expect(label).not.toMatch(/[Ѐ-ӿ]/);
+    } finally {
+      i18n.locale = was;
+    }
   });
 
   it('renders without a running loop under reduced motion, and without crashing when motion is allowed', () => {
