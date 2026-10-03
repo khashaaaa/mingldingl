@@ -30,14 +30,19 @@ import { useCancelDeletion } from '../../hooks/useCancelDeletion';
 import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, RADIUS, SPACE, TRACKING } from '../../lib/theme';
 import type { GemTier } from '../../models/user';
 import { useGoTo } from '../../hooks/useGoTo';
+import { useKindle } from '../../components/ui/Kindle';
 
 export default function ProfileScreen() {
   useLocaleStore((s) => s.locale);
   const go = useGoTo();
   const cancelDeletion = useCancelDeletion();
-  const { data: profile } = useProfile();
-  const { data: scoreDetail } = useScoreDetail();
+  const { data: profile, refetch: refetchProfile } = useProfile();
+  const { data: scoreDetail, refetch: refetchScore } = useScoreDetail();
   const { items } = useInventory();
+  const kindle = useKindle({
+    onRefresh: () => Promise.all([refetchProfile(), refetchScore()]),
+    contentContainerStyle: styles.content,
+  });
 
   if (!profile || !scoreDetail) {
     return (
@@ -61,7 +66,8 @@ export default function ProfileScreen() {
       {/* Pinned above the scroll like every other tab's header. Inside it, the header scrolled away
           and the sheet ran up under the status bar with nothing behind it. */}
       <GameHeader title={i18n.t('character_sheet')} glyph="gem" showScore />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.scroll} {...kindle.scrollProps}>
+        {kindle.header}
 
         {profile.deletionRequestedAt && (
           <DeletionPendingBanner

@@ -1,7 +1,10 @@
-import { type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { StyleSheet, Text, View } from 'react-native';
 import { Waiting } from './Waiting';
 import { TorchGlow } from '../vfx/TorchGlow';
+import { SCENES, useRoomScene } from '../vfx/scenes';
+import { useVfxLevel } from '../../lib/vfx';
 import { i18n } from '../../lib/i18n';
 import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../../lib/theme';
 import { useWaitStage, type WaitKind } from '../../lib/waiting';
@@ -30,6 +33,29 @@ function WaitCandle() {
   );
 }
 
+/** The scene's canvas height: the same hearth a list is pulled down into, a little taller. */
+const SCENE_H = 120;
+
+/**
+ * The room's scene (`ROOM_SCENES`), playing itself: gathered over the first moments, then at work
+ * for as long as the wait lasts. Nothing settles it — the wait ending unmounts it.
+ */
+function SceneWait() {
+  const Scene = SCENES[useRoomScene()];
+  const gather = useSharedValue(0);
+  const active = useSharedValue(0);
+  const settle = useSharedValue(0);
+  useEffect(() => {
+    gather.value = withTiming(1, { duration: 900 });
+    active.value = withDelay(800, withSequence(withTiming(1.3, { duration: 200 }), withSpring(1, { damping: 9, stiffness: 140 })));
+  }, [gather, active]);
+  return (
+    <View testID="longwait-scene" importantForAccessibility="no-hide-descendants" aria-hidden>
+      <Scene height={SCENE_H} gather={gather} active={active} settle={settle} />
+    </View>
+  );
+}
+
 interface Props {
   kind: WaitKind;
   /**
@@ -51,10 +77,12 @@ interface Props {
 export function LongWait({ kind, action }: Props) {
   const stage = useWaitStage(kind);
   const line = i18n.t(stage.key);
+  // The scene needs Skia and motion; anywhere else the candle keeps the wait.
+  const full = useVfxLevel() === 'full';
 
   return (
     <View style={styles.wrap} accessible accessibilityRole="progressbar" accessibilityLabel={line}>
-      <WaitCandle />
+      {full ? <SceneWait /> : <WaitCandle />}
       <Text testID="longwait-line" style={styles.line}>{line}</Text>
       {stage.isFinal && action}
     </View>

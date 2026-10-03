@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
-import { Bonfire } from '../vfx/Bonfire';
+import { SCENES, useRoomScene, type SceneName } from '../vfx/scenes';
 import { Waiting } from './Waiting';
 import { signal } from '../../lib/world/feedback';
 import { ICON_SIZES } from '../../lib/theme';
 import { useVfxLevel } from '../../lib/vfx';
 
 /**
- * Pull-to-refresh without the platform's control. `RefreshControl` draws Material's spinning arc
+ * Pull-to-refresh without the platform's control, painted with the room's scene (`ROOM_SCENES`):
+ * the pull is the scene's `gather`, the fetch its `active`, and the let-go its `settle`.
+ *
+ * Without the platform's control: `RefreshControl` draws Material's spinning arc
  * in a white disc on Android, and nothing on these screens may come from somebody else's design.
  *
  * No gesture is intercepted: the list simply starts scrolled one `HEARTH` down, and the hearth is
@@ -34,6 +37,8 @@ interface Options {
   contentContainerStyle?: StyleProp<ViewStyle>;
   /** The list's own scroll handler, still called on every scroll. */
   onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  /** The scene painted in the hearth; by default the room's own (`ROOM_SCENES`). */
+  scene?: SceneName;
 }
 
 type Scrollable = {
@@ -47,7 +52,9 @@ function paddingTopOf(style: StyleProp<ViewStyle>): number {
   return typeof v === 'number' ? v : 0;
 }
 
-export function useKindle({ onRefresh, contentContainerStyle, onScroll }: Options) {
+export function useKindle({ onRefresh, contentContainerStyle, onScroll, scene }: Options) {
+  const roomScene = useRoomScene();
+  const Scene = SCENES[scene ?? roomScene];
   const ref = useRef<Scrollable | null>(null);
   const laid = useSharedValue(0);
   const burn = useSharedValue(0);
@@ -181,7 +188,7 @@ export function useKindle({ onRefresh, contentContainerStyle, onScroll }: Option
       pointerEvents="none"
     >
       {awake && (level === 'full'
-        ? <Bonfire height={HEARTH} laid={laid} burn={burn} smoke={smoke} />
+        ? <Scene height={HEARTH} gather={laid} active={burn} settle={smoke} />
         // No Skia canvas (web) or no motion wanted: the waiting candle holds the hearth instead.
         : <View style={styles.candle}><Waiting size={ICON_SIZES.xl} /></View>)}
     </View>

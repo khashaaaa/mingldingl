@@ -4,11 +4,12 @@ import { HEARTH, useKindle } from '../Kindle';
 import { signal } from '../../../lib/world/feedback';
 
 jest.mock('../../../lib/world/feedback', () => ({ signal: jest.fn() }));
-// Skia's jest mock has no `usePathValue`/`useClock`; the drawing is checked on a device, and here
-// only where it stands.
-jest.mock('../../vfx/Bonfire', () => {
+// A stub stands in for the scene so a test can see where it stands; the drawing itself is
+// checked on a device.
+jest.mock('../../vfx/scenes', () => {
   const { View } = jest.requireActual('react-native');
-  return { Bonfire: () => <View testID="bonfire" /> };
+  const Stub = () => <View testID="bonfire" />;
+  return { SCENES: new Proxy({}, { get: () => Stub }), useRoomScene: () => 'bonfire' };
 });
 let mockLevel: 'full' | 'plain' | 'still' | 'off' = 'plain';
 jest.mock('../../../lib/vfx', () => ({

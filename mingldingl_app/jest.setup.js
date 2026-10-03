@@ -2,7 +2,22 @@
 // component used to throw "Native Skia Module failed to correctly install JSI Bindings". Tests
 // worked around it by mocking each Skia-using component by hand; this registers the library's
 // own mock once instead, so any component is free to render its vfx in a test.
-require('@shopify/react-native-skia/jestSetup.js');
+//
+// This is the library's `jestSetup.js` restated rather than required, because its mock stops
+// short of the Reanimated hooks the wait scenes (`components/vfx/scenes`) are built on: a path
+// value here is a shared value holding no path, and the clock stands still. (Requiring the file
+// as well would not work — its `jest.mock` runs after this hoisted one and replaces it.)
+jest.mock('@shopify/react-native-skia', () => {
+  jest.mock('@shopify/react-native-skia/lib/commonjs/Platform', () => {
+    const Noop = () => undefined;
+    return { OS: 'web', PixelRatio: 1, requireNativeComponent: Noop, resolveAsset: Noop, findNodeHandle: Noop, NativeModules: Noop, View: Noop };
+  });
+  jest.mock('@shopify/react-native-skia/lib/commonjs/skia/core/Font', () => ({
+    useFont: () => null, matchFont: () => null, listFontFamilies: () => [], useFonts: () => null,
+  }));
+  const mock = require('@shopify/react-native-skia/lib/commonjs/mock').Mock(global.CanvasKit);
+  return { ...mock, usePathValue: () => ({ value: null }), useClock: () => ({ value: 0 }) };
+});
 
 // expo-audio reaches for a native module at import time, so a component that merely *imports* the
 // feedback layer used to fail the whole suite. Mocked once here, with shared spies, so any test

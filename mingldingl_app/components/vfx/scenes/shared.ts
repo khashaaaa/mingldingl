@@ -1,0 +1,27 @@
+import type { SharedValue } from 'react-native-reanimated';
+
+/**
+ * A scene: one small animated painting a room shows while something is being fetched — pulled
+ * down into above a list (`useKindle`) or held through a long wait (`LongWait`). Every scene is
+ * the same three movements, so either host can play any of them:
+ *
+ * - `gather` 0 → 1: the thing being made ready — logs laid, a hammer raised, swords drawn.
+ *   Driven by the pull itself above a list, so it answers the finger.
+ * - `active` 0 → 1: the work, looping for as long as the wait lasts. The catch overshoots past
+ *   1 for a beat (a flare, a first strike) and every scene may use that.
+ * - `settle` 0 → 1: the work let go — smoke, steam, a shatter — once the wait is over.
+ */
+export interface SceneProps {
+  height: number;
+  gather: SharedValue<number>;
+  active: SharedValue<number>;
+  settle: SharedValue<number>;
+}
+
+/** Every scene is painted on the same canvas width, centred over whatever it sits above. */
+export const SCENE_W = 168;
+
+export function clamp01(v: number) {
+  'worklet';
+  return v < 0 ? 0 : v > 1 ? 1 : v;
+}

@@ -72,6 +72,25 @@ video call is the Flame Rite's flame, a locked quest the gate, the quiz the scro
 `StateBlock`'s `ICON_PLACES` are closed tables, so a name with no drawing is a compile error rather
 than a Material icon; `@expo/vector-icons` is no longer a dependency or a loaded font.
 
+## 2026-10-03 — Every room paints its own wait
+
+The bonfire became one of six scenes (`components/vfx/scenes/`), each the same three movements on
+one 168-wide Skia canvas — `gather` (made ready; driven by the pull itself), `active` (the work,
+looping, overshooting past 1 on the catch) and `settle` (let go). `ROOM_SCENES` picks one per room
+of the hold, like `ROOMS`, so a screen never chooses its own: hearth → the bonfire; forge → a
+hammer working a glowing bar on the anvil, sparks off every blow, steam on the quench; hall → two
+blades drawn back and swung together, locking with a flash; tavern and road → the mill, sails
+integrated frame by frame so the wind can rise and drop without a jump; gate → ice shards growing,
+glinting under falling snow, then shattering; deep → a wyrm rising out of the ground, gold slit
+eyes opening, looking, blinking, smoking from the nostrils (monsters were "Campaign only"; the
+user lifted that). `useKindle` paints the room's scene above Activity, Matches, the Hall of Names
+and now the Character sheet (the forge's home); `LongWait` plays it by itself (OTP → ice, quiz →
+wyrm, the Square's round → mill) where vfx are `full`, the candle elsewhere. `jest.setup.js` now
+restates Skia's jest mock with `usePathValue`/`useClock` added, instead of requiring the library's
+— a hoisted override is replaced by the library's own `jest.mock` if both run. All six checked on
+the A51; the clash first spent most of its cycle near "on guard" with a 70ms contact, too brief
+to read, and now holds the blades locked for nearly half of it.
+
 ## 2026-10-03 — Pull-to-refresh is a bonfire
 
 `RefreshControl` (Material's spinning arc in a white disc on Android) is gone from Activity,

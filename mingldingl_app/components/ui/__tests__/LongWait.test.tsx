@@ -11,6 +11,14 @@ jest.mock('../../../lib/vfx', () => ({
   useVfxLevel: () => mockLevel,
 }));
 
+// A stub stands in for the scene so a test can see where it stands; the drawing itself is
+// checked on a device.
+jest.mock('../../vfx/scenes', () => {
+  const { View } = jest.requireActual('react-native');
+  const Stub = () => <View testID="scene-stub" />;
+  return { SCENES: new Proxy({}, { get: () => Stub }), useRoomScene: () => 'bonfire' };
+});
+
 /** The candle is decorative inside the block, so the queries have to say they want it. */
 const HIDDEN = { includeHiddenElements: true };
 
@@ -61,6 +69,13 @@ describe('LongWait', () => {
     mockLevel = 'still';
     const { getByTestId } = render(<LongWait kind="squareRound" />);
     expect(getByTestId('waiting-candle', HIDDEN)).toBeTruthy();
+  });
+
+  it("plays the room's scene in place of the candle where vfx are drawn", () => {
+    mockLevel = 'full';
+    const { getByTestId, queryByTestId } = render(<LongWait kind="squareRound" />);
+    expect(getByTestId('scene-stub', HIDDEN)).toBeTruthy();
+    expect(queryByTestId('waiting-candle', HIDDEN)).toBeNull();
   });
 
   // The long wait is the same candle the buttons burn, only bigger — one drawing for waiting,

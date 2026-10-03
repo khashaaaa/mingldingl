@@ -1,32 +1,20 @@
 import { Canvas, Circle, Group, Path, BlurMask, useClock, usePathValue, type SkPath } from '@shopify/react-native-skia';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
-import { HEAT, INK, METAL } from '../../lib/theme';
+import { HEAT, INK, METAL } from '../../../lib/theme';
+import { clamp01, SCENE_W, type SceneProps } from './shared';
 
 /**
- * The hearth a list is pulled down into: a fire laid, struck and kept while the list is
- * fetched again, then let go. It replaces the platform's pull-to-refresh, which on Android is
- * Material's spinning arc in a white disc — the one thing on those screens that came from
- * somebody else's design.
+ * The hearth's scene: a fire laid, struck and kept, then let go.
  *
- * Driven entirely by three shared values the host (`useKindle`) owns:
- * - `laid`  0 → 1 as the list is pulled: the two logs brushed in one after the other, then the
- *   flint struck over them — sparks, and an ember glowing where the logs cross.
- * - `burn`  0 → 1 once it catches (with a flare past 1 on the catch), back to 0 when it is let go.
- * - `smoke` 0 → 1 as it goes out: a curl of smoke rising off the logs and fading.
+ * - gather: the two logs brushed in one after the other, then the flint struck over them —
+ *   sparks, and an ember glowing where the logs cross.
+ * - active: the fire, caught (a flare past 1 on the catch) and burning.
+ * - settle: a curl of smoke rising off the logs and fading.
  *
  * Drawn in the glyphs' pigments, not in new ones: the brass of the wood, the ember and gold of
  * the fire, and the ink's own light at its heart. `furnace` stays off — the guard in
  * `lib/__tests__/furnace.test.ts` keeps that heat for the few moments that earn it.
  */
-
-export const BONFIRE_W = 168;
-
-interface Props {
-  height: number;
-  laid: SharedValue<number>;
-  burn: SharedValue<number>;
-  smoke: SharedValue<number>;
-}
 
 /** The embers that leave the fire while it burns: horizontal offset, speed and phase. */
 const EMBERS = [
@@ -44,11 +32,6 @@ const SPARKS = [
   { a: -0.35, len: 7 }, { a: -2.85, len: 7 }, { a: -1.6, len: 14 },
 ] as const;
 
-function clamp01(v: number) {
-  'worklet';
-  return v < 0 ? 0 : v > 1 ? 1 : v;
-}
-
 /**
  * One tongue of flame, as a filled teardrop: a round foot on the logs, swelling sides, a tip
  * pulled sideways by `sway`.
@@ -63,9 +46,9 @@ function tongue(p: SkPath, cx: number, base: number, w: number, h: number, sway:
   p.close();
 }
 
-export function Bonfire({ height, laid, burn, smoke }: Props) {
+export function Bonfire({ height, gather: laid, active: burn, settle: smoke }: SceneProps) {
   const t = useClock();
-  const cx = BONFIRE_W / 2;
+  const cx = SCENE_W / 2;
   /** The ground the logs lie on. */
   const ground = height - 12;
   /** Where the logs cross, and where the fire stands. */
@@ -149,7 +132,7 @@ export function Bonfire({ height, laid, burn, smoke }: Props) {
   const smokeOpacity = useDerivedValue(() => 0.55 * (1 - clamp01((smoke.value - 0.55) / 0.45)));
 
   return (
-    <Canvas style={{ width: BONFIRE_W, height }} pointerEvents="none">
+    <Canvas style={{ width: SCENE_W, height }} pointerEvents="none">
       <Circle cx={cx} cy={heart - 10} r={glowR} color={METAL.gold} opacity={glowOpacity}>
         <BlurMask blur={16} style="normal" />
       </Circle>
