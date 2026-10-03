@@ -269,6 +269,8 @@ describe('ChatScreen', () => {
     const { queryByTestId, getByText } = renderScreen();
 
     expect(queryByTestId('chat-activities')).toBeNull();
+    // Severed is not frozen: only a thread left to freeze is closed over with ice.
+    expect(queryByTestId('frozen-over', HIDDEN)).toBeNull();
     expect(getByText('The bond was severed. This thread is kept as it was; no more letters can be written on it.')).toBeTruthy();
   });
 
@@ -336,6 +338,8 @@ describe('ChatScreen', () => {
     const { getByTestId, getByText, getAllByText } = renderScreen();
 
     expect(getByTestId('frost-edge-top', HIDDEN)).toBeTruthy();
+    // The thread is closed over with ice, not just edged with it.
+    expect(getByTestId('frozen-over', HIDDEN)).toBeTruthy();
     expect(getByText('Five dawns of silence. Judged at the second.')).toBeTruthy();
     // The verdict also stands in the AlertModal's own message, so more than one copy is expected
     // on screen at once — only its presence is asserted here.

@@ -8,6 +8,19 @@ long versions.
 
 ---
 
+## 2026-10-04 — Frost inked: icicles on every silent edge, ice over a frozen thread
+
+`FrostEdge` was three SVG zigzags that read as "curly lines". It is now baked ink
+(`gen-ice.js` → `assets/ice/`): a rime crust with hanging icicles, tiled along the edge at
+`length × 3` per tile (`rim-*` for top, transposed `rim-v-*` for left, flips for bottom/right),
+three layers tinted ice (translucent body) / glacier (brushed edges) / rime (shine). Same props,
+so the gate, offline strip, blocked list and White Moon window all got it.
+- A **ghosted** thread is closed over (`components/chat/FrozenOver.tsx`): crystal shards out of
+  a ledge at the foot of the ledger, tall at the sides and low in the middle, frost ferns and
+  six-armed crystals; translucent, so the Deep's painted monsters show through as frozen into
+  the wall. The ledger pads its foot by the field's height so the ice covers no letter until
+  scrolled back through. A severed (not frozen) thread keeps only the rim.
+
 ## 2026-10-03 — Rock carvings along every room's floor
 
 A second, older hand under the ink: each room has a frieze of Bronze Age petroglyphs

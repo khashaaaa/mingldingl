@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Tap } from '../../components/ui/Tap';
-import { View, Text, Image, FlatList, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Image, FlatList, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -29,6 +29,7 @@ import { QuestBanner } from '../../components/quest/QuestBanner';
 import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Waiting } from '../../components/ui/Waiting';
 import { FrostEdge, FROST_RIM_REACH } from '../../components/vfx/FrostEdge';
+import { FrozenOver, frozenOverHeight } from '../../components/chat/FrozenOver';
 import { PLACES } from '../../components/ui/Places';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
@@ -186,6 +187,7 @@ export default function ChatScreen() {
 
   const { data: myProfile } = useProfile();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const keyboardHeight = useAndroidKeyboardHeight();
   const router = useRouter();
   const go = useGoTo();
@@ -388,7 +390,7 @@ export default function ChatScreen() {
               ref={flatListRef}
               data={messages}
               keyExtractor={(m) => m.id}
-              contentContainerStyle={styles.messageList}
+              contentContainerStyle={[styles.messageList, endedReason === 'ghosted' && { paddingBottom: SPACE.lg + frozenOverHeight(windowWidth) }]}
               onScroll={(e) => {
                 const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
                 nearBottomRef.current =
@@ -445,6 +447,9 @@ export default function ChatScreen() {
                 );
               }}
             />
+            {/* A thread left to freeze is closed over: ice standing up off the slab below into
+                the space the ledger leaves free under its last letter. */}
+            {endedReason === 'ghosted' && <FrozenOver />}
           </View>
         )}
         {/* The fire down to its last coals, said above the composer rather than inside a modal —
