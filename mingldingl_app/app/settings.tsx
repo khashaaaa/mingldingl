@@ -88,6 +88,24 @@ export default function SettingsScreen() {
 
   const [ageRangeMessage, setAgeRangeMessage] = useState<string | null>(null);
 
+  const ageDirty = ageMinInput !== String(profile?.ageMin ?? 18) || ageMaxInput !== String(profile?.ageMax ?? 99);
+
+  // The range saves itself when a field lets go of the keyboard. Its only way to save used to be
+  // an ink link under the fields, which on hardware read as a caption and was easy to never press.
+  // Leaving a field half-edited (a min above the old max on the way to raising both) is not an
+  // error yet, so a blur saves only a range that is already valid and says nothing otherwise.
+  // "Done" on the number pad submits and then blurs; the second must not save the range again.
+  const ageSaving = useRef(false);
+
+  function handleAgeBlur() {
+    if (!ageDirty || ageSaving.current) return;
+    const min = Number(ageMinInput);
+    const max = Number(ageMaxInput);
+    if (Number.isInteger(min) && Number.isInteger(max) && min <= max && min >= 18 && max <= 99) {
+      void handleSaveAgeRange();
+    }
+  }
+
   async function handleSaveAgeRange() {
     const min = Number(ageMinInput);
     const max = Number(ageMaxInput);
@@ -104,11 +122,15 @@ export default function SettingsScreen() {
       return;
     }
     setAgeRangeMessage(null);
+    if (ageSaving.current) return;
+    ageSaving.current = true;
     try {
       await updateProfile.mutateAsync({ ageMin: min, ageMax: max });
       setSavedNotice(true);
     } catch {
       setSaveFailedAlert(true);
+    } finally {
+      ageSaving.current = false;
     }
   }
 
@@ -200,6 +222,7 @@ export default function SettingsScreen() {
               <TextField
                 value={ageMinInput} onChangeText={setAgeMinInput}
                 keyboardType="number-pad" maxLength={2}
+                onBlur={handleAgeBlur} onSubmitEditing={handleSaveAgeRange}
               />
             </View>
             <View style={styles.ageField}>
@@ -207,11 +230,14 @@ export default function SettingsScreen() {
               <TextField
                 value={ageMaxInput} onChangeText={setAgeMaxInput}
                 keyboardType="number-pad" maxLength={2}
+                onBlur={handleAgeBlur} onSubmitEditing={handleSaveAgeRange}
               />
             </View>
           </View>
           {!!ageRangeMessage && <FieldError>{ageRangeMessage}</FieldError>}
-          <GameButton variant="ink" size="compact" style={styles.link} onPress={handleSaveAgeRange}>{i18n.t('save')}</GameButton>
+          {ageDirty && (
+            <GameButton variant="ink" size="compact" style={styles.link} onPress={handleSaveAgeRange}>{i18n.t('save')}</GameButton>
+          )}
         </View>
 
         <View style={styles.section}>

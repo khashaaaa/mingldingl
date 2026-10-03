@@ -156,6 +156,13 @@ export const AWAITING_MN_TRANSLATION = [
   'event_scar_healed', 'chronicle_bond_trial_done', 'chronicle_scar_healed',
   // Audit W5: number-in-sentence formats (a translator only confirms the order) and the add-photo tile's label.
   'count_of_total', 'points_gain', 'next_tier_arrow', 'name_age', 'tier_score', 'getting_started_progress', 'add_photo',
+  // Province and district names (2026-10-03): stored in English by the engine, shown through cityLabel.
+  'city_tsetserleg', 'city_olgii', 'city_bayankhongor', 'city_bulgan', 'city_darkhan',
+  'city_choibalsan', 'city_sainshand', 'city_mandalgovi', 'city_altai', 'city_choir', 'city_chinggis',
+  'city_khovd', 'city_moron', 'city_dalanzadgad', 'city_erdenet', 'city_arvaikheer',
+  'city_sukhbaatar', 'city_baruun_urt', 'city_zuunmod', 'city_ulaangom', 'city_uliastai',
+  'city_bayangol', 'city_bayanzurkh', 'city_chingeltei', 'city_khan_uul', 'city_nalaikh',
+  'city_songino_khairkhan', 'city_sukhbaatar_ub', 'city_bagakhangai', 'city_baganuur'
 ] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

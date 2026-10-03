@@ -57,6 +57,17 @@ JS. Frames late / worst frame: first tab visit 34% / 400ms → 10% / 150ms; firs
 - `lineLocale(...keys)` keeps a composed line in one language; `ordinalWord` keeps English suffixes
   while a locale has no `ordinal_N`. MN terms unified — keys listed for proofreading in the plan.
 
+**A51 UI pass fixes**
+- City names (stored in English by `MongoliaGeo.cs`) are shown through `cityLabel` (`lib/tiers.ts`)
+  everywhere, with `city_*` keys awaiting Mongolian; Discover's card eyebrow goes through
+  `lineLocale`, so it no longer comes out half Mongolian, half English.
+- Discover's request toast sits over the next card's likeness instead of its name
+  (`LootToast.topOffset`). Room vignettes close in at half strength at the top (`HEADER_EDGE`), so
+  the Deep stopped greying a chat's name. A short honour row keeps the grid's slot width.
+  Match-list portraits decode at avatar size before blurring (`resizeMethod="resize"`), which
+  made the blur strong enough to hide the face. Settings' age range saves when a field loses focus.
+  Every tab header carries the score.
+
 **Round trips, floods, costly work**
 
 - Auth middleware reads account + standing in one query (two for an aliased returning user, was

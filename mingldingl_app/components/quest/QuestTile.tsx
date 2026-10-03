@@ -88,6 +88,9 @@ export function QuestTile({ match, fire, onPress }: Props) {
               <Image
                 source={{ uri: photo }}
                 style={styles.avatar}
+                // Decoded at the avatar's size before the blur, not at the photo's: a full-size
+                // bitmap took the same radius as a light haze and the face stayed recognisable.
+                resizeMethod="resize"
                 blurRadius={18}
                 onError={() => setFailedUrl(photo)}
               />

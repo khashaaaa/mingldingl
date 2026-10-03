@@ -4,6 +4,7 @@ import { Text, FlatList, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
+import { cityLabel } from '../../lib/tiers';
 import { FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
 import { scrimStyle } from './DialogSurface';
 import { AppModal } from './AppModal';
@@ -48,7 +49,7 @@ export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSe
             style={styles.list}
             renderItem={({ item }) => (
               <Tap style={styles.row} onPress={() => handlePress(item)} accessibilityRole="button">
-                <Text style={styles.rowText}>{item}</Text>
+                <Text style={styles.rowText}>{cityLabel(item)}</Text>
               </Tap>
             )}
           />

@@ -5,7 +5,7 @@ import { useLocaleStore } from '../../store/localeStore';
 import { useProfile } from '../../hooks/useProfile';
 import { useScoreDetail } from '../../hooks/useScoreDetail';
 import { useInventory } from '../../hooks/useInventory';
-import { colorForTier, itemLabel, membershipLabel } from '../../lib/tiers';
+import { colorForTier, itemLabel, membershipLabel, cityLabel } from '../../lib/tiers';
 import { AppCard } from '../../components/ui/AppCard';
 import { CardEyebrow } from '../../components/ui/CardEyebrow';
 import { CountText } from '../../components/ui/CountText';
@@ -60,7 +60,7 @@ export default function ProfileScreen() {
     <View style={styles.screen}>
       {/* Pinned above the scroll like every other tab's header. Inside it, the header scrolled away
           and the sheet ran up under the status bar with nothing behind it. */}
-      <GameHeader title={i18n.t('character_sheet')} glyph="gem" />
+      <GameHeader title={i18n.t('character_sheet')} glyph="gem" showScore />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
 
         {profile.deletionRequestedAt && (
@@ -79,7 +79,7 @@ export default function ProfileScreen() {
             {profile.equippedTitleId && (
               <Text style={styles.equippedTitle}>{itemLabel(profile.equippedTitleId)}</Text>
             )}
-            <Text style={styles.subText}>{profile.age} · {profile.city}</Text>
+            <Text style={styles.subText}>{profile.age} · {cityLabel(profile.city)}</Text>
           </View>
           <GemTierBadge tier={gemTier} size={BADGE_SIZES.hero} glow />
         </View>

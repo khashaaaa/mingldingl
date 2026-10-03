@@ -7,12 +7,12 @@ import { GameButton } from '../ui/GameButton';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { SealDots } from '../chat/SealDots';
 import { RoomLight } from '../world/RoomLight';
-import { oathLabel } from '../OathSigil';
-import { i18n } from '../../lib/i18n';
+import { OATH_NAME_KEYS, oathLabel } from '../OathSigil';
+import { i18n, lineLocale } from '../../lib/i18n';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { LEADING, ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, LINE, RADIUS, SCRIM, SPACE, SURFACE, TEMPERATURE, TRACKING, overlay, tint } from '../../lib/theme';
-import { itemLabel, tierLabel } from '../../lib/tiers';
-import type { Candidate } from '../../models/user';
+import { TIER_NAME_KEYS, itemLabel, tierLabel, cityKey, cityLabel } from '../../lib/tiers';
+import type { Candidate, GemTier, Oath } from '../../models/user';
 
 /** The wax over the likeness. Matched to `Unsealing`'s seal, one step down for a card. */
 const SEAL = 120;
@@ -51,10 +51,20 @@ export function CandidateCard({ candidate, onRequest, onSkip, requesting, reques
 
   // One line, in the order the board reads it: rank, then where they are, then what they are here
   // for. The oath was a bordered sigil badge of its own; as a phrase it costs a card no height.
+  // Said in one language as a whole: a piece still awaiting Mongolian used to leave the line half
+  // and half ("БОЛОР · BAYANGOL · SEEKING ХУВЬ ЗАЯАНД НЭЭЛТТЭЙ").
+  const oathKey = candidate.oathProven ? 'oath_sworn_to' : 'oath_seeking';
+  const said = lineLocale(...[
+    TIER_NAME_KEYS[candidate.gemTier as GemTier],
+    cityKey(candidate.city),
+    candidate.oath ? oathKey : null,
+    candidate.oath ? OATH_NAME_KEYS[candidate.oath as Oath] : null,
+  ].filter((key): key is string => !!key));
   const oathPhrase = candidate.oath
-    ? i18n.t(candidate.oathProven ? 'oath_sworn_to' : 'oath_seeking', { oath: oathLabel(candidate.oath) })
+    ? i18n.t(oathKey, { oath: oathLabel(candidate.oath, said), locale: said })
     : null;
-  const eyebrow = [tierLabel(candidate.gemTier), candidate.city, oathPhrase].filter(Boolean).join(' · ');
+  const eyebrow = [tierLabel(candidate.gemTier, said), cityLabel(candidate.city, said), oathPhrase]
+    .filter(Boolean).join(' · ');
 
   return (
     <View style={styles.card} onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}>

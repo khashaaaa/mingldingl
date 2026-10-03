@@ -105,8 +105,9 @@ here and record it in [`shipped-log.md`](shipped-log.md).
 
 ## Waiting on the user
 
-- **Mongolian copy — the single largest thing between the app and a Mongolian market.** 326
-  keys on `AWAITING_MN_TRANSLATION` (63 of them from the 2026-10-03 road mechanics) (`lib/i18n/index.ts`), rendered in English for `mn` via
+- **Mongolian copy — the single largest thing between the app and a Mongolian market.** 356
+  keys on `AWAITING_MN_TRANSLATION` (63 of them from the 2026-10-03 road mechanics, 30 the
+  `city_*` province/district names the engine stores in English) (`lib/i18n/index.ts`), rendered in English for `mn` via
   `enableFallback`. Plus thirteen already-translated keys whose English was rewritten and whose
   Mongolian is now stale (not on the list, or the parity test would fail): `mystery_match_name`,
   `round_over_matches`, `round_over_no_matches`, `round_over_title`, `town_square_cancel_rsvp`,

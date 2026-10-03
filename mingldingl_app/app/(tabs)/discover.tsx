@@ -17,6 +17,9 @@ import { RADIUS, SPACE } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
 import { isApiError } from '../../lib/api/errors';
 
+/** Where the request toast sits in the deck: the middle of the likeness, above the plaque. */
+const TOAST_AT = 0.3;
+
 export default function DiscoverScreen() {
   useLocaleStore((s) => s.locale);
   const [toast, setToast] = useState(false);
@@ -111,14 +114,16 @@ export default function DiscoverScreen() {
           />
         </PanelReveal>
         {deckSize.w > 0 && <EmberField width={deckSize.w} height={deckSize.h} density={8} />}
+        {/* Over the next card's sealed likeness: anchored to the bottom it covered that card's name
+            and age, the first thing read as it lands. */}
+        <LootToast
+          title={i18n.t('match_requested')}
+          points={toastPoints}
+          visible={toast}
+          onDismiss={() => setToast(false)}
+          topOffset={deckSize.h * TOAST_AT}
+        />
       </View>
-      <LootToast
-        title={i18n.t('match_requested')}
-        points={toastPoints}
-        visible={toast}
-        onDismiss={() => setToast(false)}
-        bottomOffset={68}
-      />
       <AlertModal
         visible={failAlert !== null}
         tone="warning"

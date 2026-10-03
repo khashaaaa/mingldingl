@@ -172,7 +172,7 @@ export const THREAD_HONOUR_NEEDED: Record<(typeof THREAD_HONOUR_IDS)[number], nu
 
 /** Consecutive dawns Seven Dawns asks for. */
 export const SEVEN_DAWNS_NEEDED = 7;
-const TIER_NAME_KEYS: Record<GemTier, string> = {
+export const TIER_NAME_KEYS: Record<GemTier, string> = {
   Garnet: 'gem_garnet', Opal: 'gem_opal', Amethyst: 'gem_amethyst',
   Sapphire: 'gem_sapphire', Ruby: 'gem_ruby', Emerald: 'gem_emerald',
 };
@@ -212,4 +212,51 @@ export interface DroppedItem {
 export function toDroppedItem(item?: { nameKey?: string | null; rarity?: string | null } | null): DroppedItem | null {
   if (!item?.nameKey || !item?.rarity) return null;
   return { nameKey: item.nameKey, rarity: item.rarity };
+}
+
+// The engine stores a profile's city as its English name (MongoliaGeo.cs), so the name is data:
+// keyed here, falling back to the raw value for anything this map has not caught up with.
+const CITY_NAME_KEYS: Record<string, string> = {
+  Ulaanbaatar: 'ulaanbaatar',
+  'Tsetserleg': 'city_tsetserleg',
+  'Ölgii': 'city_olgii',
+  'Bayankhongor': 'city_bayankhongor',
+  'Bulgan': 'city_bulgan',
+  'Darkhan': 'city_darkhan',
+  'Choibalsan': 'city_choibalsan',
+  'Sainshand': 'city_sainshand',
+  'Mandalgovi': 'city_mandalgovi',
+  'Altai': 'city_altai',
+  'Choir': 'city_choir',
+  'Chinggis': 'city_chinggis',
+  'Khovd': 'city_khovd',
+  'Mörön': 'city_moron',
+  'Dalanzadgad': 'city_dalanzadgad',
+  'Erdenet': 'city_erdenet',
+  'Arvaikheer': 'city_arvaikheer',
+  'Sükhbaatar': 'city_sukhbaatar',
+  'Baruun-Urt': 'city_baruun_urt',
+  'Zuunmod': 'city_zuunmod',
+  'Ulaangom': 'city_ulaangom',
+  'Uliastai': 'city_uliastai',
+  'Bayangol': 'city_bayangol',
+  'Bayanzürkh': 'city_bayanzurkh',
+  'Chingeltei': 'city_chingeltei',
+  'Khan-Uul': 'city_khan_uul',
+  'Nalaikh': 'city_nalaikh',
+  'Songino Khairkhan': 'city_songino_khairkhan',
+  'Sükhbaatar (UB)': 'city_sukhbaatar_ub',
+  'Bagakhangai': 'city_bagakhangai',
+  'Baganuur': 'city_baganuur',
+};
+
+/** `locale` pins the name to one language, for a line `lineLocale` says in English as a whole. */
+export function cityLabel(city: string | null | undefined, locale?: string): string {
+  if (!city) return '';
+  return tKey(CITY_NAME_KEYS[city], city, locale ? { locale } : undefined);
+}
+
+/** The key behind a city's name, for `lineLocale`; null when the city is unmapped. */
+export function cityKey(city: string | null | undefined): string | null {
+  return (city && CITY_NAME_KEYS[city]) || null;
 }

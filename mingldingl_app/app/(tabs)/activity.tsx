@@ -40,7 +40,7 @@ export default function ActivityScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('mission_board')} glyph="forge" />
+      <GameHeader title={i18n.t('mission_board')} glyph="forge" showScore />
       <ScrollView
         contentContainerStyle={styles.list}
         refreshControl={

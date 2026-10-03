@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, TextInput, View, Text, StyleSheet } from 'react-native';
 import { i18n } from '../../lib/i18n';
+import { cityLabel } from '../../lib/tiers';
 import { ACCENT, FONTS, FONT_SIZES, INK, SPACE } from '../../lib/theme';
 import { StepScaffold } from './StepScaffold';
 import { GameButton } from '../ui/GameButton';
@@ -66,7 +67,7 @@ export function AboutStep({ initialCity, initialLatitude, initialLongitude, init
             <Text style={{ color: INK.dim, fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, marginBottom: SPACE.xs }}>
               {i18n.t('your_area')}
             </Text>
-            <Text style={{ color: ACCENT.base, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xl }}>{city}</Text>
+            <Text style={{ color: ACCENT.base, fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.xl }}>{cityLabel(city)}</Text>
           </View>
         ) : isCapturing ? (
           <View style={styles.detecting}>

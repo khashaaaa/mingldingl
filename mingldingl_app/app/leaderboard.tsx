@@ -10,7 +10,7 @@ import { Entering } from '../components/ui/Entering';
 import { i18n, lineLocale, normalizeLocale } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { rankNumeral } from '../lib/numerals';
-import { tierLabel } from '../lib/tiers';
+import { tierLabel, cityKey, cityLabel } from '../lib/tiers';
 import {
   ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TEMPERATURE, TRACKING, tint,
 } from '../lib/theme';
@@ -63,7 +63,10 @@ export default function LeaderboardScreen() {
   // The engine hands a city or nothing; `hall_sub` reads "%{city}. Carved, not listed…", so a
   // missing city takes its own sentence rather than a regex trimming the translated one.
   const city = data.city ?? '';
-  const hallSub = city ? i18n.t('hall_sub', { city }) : i18n.t('hall_sub_no_city');
+  const said = lineLocale('hall_sub', ...(cityKey(city) ? [cityKey(city)!] : []));
+  const hallSub = city
+    ? i18n.t('hall_sub', { city: cityLabel(city, said), locale: said })
+    : i18n.t('hall_sub_no_city');
 
   return (
     <View style={styles.screen}>

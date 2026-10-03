@@ -42,6 +42,9 @@ const ROWS: readonly (readonly HonourId[])[] = [
   ['title_naadam', 'title_whitemoon'],
 ];
 
+/** Slots per full row; a shorter row is padded with empty space so its slots keep the grid's width. */
+const ROW_WIDTH = 3;
+
 const CHIP = 36;
 const IGNITE_MS = 700;
 const BREATH_MS = 1200;
@@ -141,6 +144,9 @@ export function HonourCase() {
                   slot,
                 ];
               })}
+              {!isTriptych && Array.from({ length: ROW_WIDTH - row.length }, (_, i) => (
+                <View key={`gap-${i}`} style={styles.slotGap} />
+              ))}
             </View>
           );
         })}
@@ -329,7 +335,7 @@ function HonourSlot({ id, held, ignited, progress, animate, onPress, onLongPress
             : <Text style={styles.dateTag}>{formatDate(held.acquiredAt)}</Text>
         ) : (
           <>
-            <Text style={styles.deedTag} numberOfLines={2}>{tKey(HONOUR_DEED_KEYS[id])}</Text>
+            <Text style={styles.deedTag} numberOfLines={3}>{tKey(HONOUR_DEED_KEYS[id])}</Text>
             {progress && (
               <View style={styles.progress} testID={`honour-progress-${id}`}>
                 <View style={styles.progressTrack}>
@@ -356,6 +362,8 @@ const styles = StyleSheet.create({
   triptych: { gap: 0, alignItems: 'center' },
   thread: { width: SPACE.md, height: 2, backgroundColor: INK.muted, opacity: 0.5 },
   threadLit: { backgroundColor: ACCENT.base, opacity: 1 },
+  // An empty cell in a short row: the slot's flex and floor, nothing drawn.
+  slotGap: { flex: 1, minWidth: 92 },
   slot: {
     flex: 1, minWidth: 92, borderWidth: 2, borderColor: INK.muted, borderRadius: RADIUS.md,
     backgroundColor: SURFACE.sunken,

@@ -31,6 +31,9 @@ import { Vignette } from './Vignette';
  */
 const TRAVEL_HOLD_MS = 700;
 
+/** The top margin holds the header bar, so the dark closes in there at half the floor's strength. */
+const HEADER_EDGE = 0.5;
+
 export function WorldCanopy() {
   const world = useWorld();
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -56,7 +59,7 @@ export function WorldCanopy() {
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill} onLayout={onLayout} testID="world-canopy">
-      <Vignette range={recipe.vignette} locations={ROOM_VIGNETTE_STOPS} />
+      <Vignette range={recipe.vignette} locations={ROOM_VIGNETTE_STOPS} leadStrength={HEADER_EDGE} />
       {vfx && size.w > 0 && (
         <View style={[styles.band, { height: bandHeight }]}>
           {vfx === 'ember'

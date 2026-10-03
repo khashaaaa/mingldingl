@@ -10,6 +10,7 @@ import { apiClient } from '../lib/api/apiClient';
 import { parseUserProfile } from '../models/user';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
+import { cityLabel } from '../lib/tiers';
 import { deepProfileThreshold } from '../lib/reveal';
 import { useRevealLadder } from '../hooks/useRevealThresholds';
 import { useLocaleStore } from '../store/localeStore';
@@ -240,7 +241,7 @@ export default function EditProfileScreen() {
                 </Text>
               </View>
             ) : (
-              <Text style={styles.city}>{city || '—'}</Text>
+              <Text style={styles.city}>{cityLabel(city) || '—'}</Text>
             )}
             <GameButton variant="ink" size="compact" icon="crosshairs-gps" loading={isCapturing} onPress={handleRefreshLocation}>
               {i18n.t('refresh_location')}

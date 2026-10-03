@@ -2,6 +2,13 @@ import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PHASE_EDGE } from '../../lib/world';
+import { tint } from '../../lib/theme';
+
+/** `color` with its alpha scaled by `k`. Edges are `rgba()` (NIGHT); a hex colour starts opaque. */
+function fade(color: string, k: number): string {
+  const m = color.match(/^rgba\(([^,]+),([^,]+),([^,]+),([^)]+)\)$/);
+  return m ? `rgba(${m[1]},${m[2]},${m[3]},${Number(m[4]) * k})` : tint(color, k);
+}
 import { useWorld } from './WorldProvider';
 
 interface Props {
@@ -16,6 +23,12 @@ interface Props {
 
   /** Left-to-right instead of top-to-bottom. */
   horizontal?: boolean;
+
+  /**
+   * How strong the leading (top) edge is against the trailing one, 0–1. The room vignette closes
+   * over the header bar, and at full strength the Deep's dimmed a chat's name to grey.
+   */
+  leadStrength?: number;
   testID?: string;
 }
 
@@ -32,7 +45,7 @@ interface Props {
  * One child, deliberately: an `Animated.View` with an animated alpha and more than one child
  * forces Android to composite the subtree offscreen for the whole transition.
  */
-export function Vignette({ range, locations, horizontal, testID }: Props) {
+export function Vignette({ range, locations, horizontal, leadStrength = 1, testID }: Props) {
   const world = useWorld();
   const light = world?.light;
   // By day the room keeps its own temperature; at other hours the sky lends its own — the same
@@ -54,7 +67,7 @@ export function Vignette({ range, locations, horizontal, testID }: Props) {
       style={[StyleSheet.absoluteFill, style]}
     >
       <LinearGradient
-        colors={[edge, 'transparent', 'transparent', edge]}
+        colors={[leadStrength < 1 ? fade(edge, leadStrength) : edge, 'transparent', 'transparent', edge]}
         locations={locations as unknown as [number, number, number, number]}
         style={StyleSheet.absoluteFill}
         {...(horizontal ? { start: { x: 0, y: 0.5 }, end: { x: 1, y: 0.5 } } : null)}

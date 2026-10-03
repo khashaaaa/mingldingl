@@ -16,12 +16,15 @@ interface Props {
   item?: { nameKey: string; rarity: string } | null;
 
   bottomOffset?: number;
+  /** Anchors the toast this far from the top of its parent instead of to the bottom, for a screen
+   *  whose bottom holds what the player reads next (Discover's plaque). */
+  topOffset?: number;
 }
 
 const RAY_ANGLES = [0, 30, 60, 90, 120, 150];
 const HIDDEN_Y = 140;
 
-export function LootToast({ title, points, visible, onDismiss, item, bottomOffset = 0 }: Props) {
+export function LootToast({ title, points, visible, onDismiss, item, bottomOffset = 0, topOffset }: Props) {
   const insets = useSafeAreaInsets();
   const scale = useRef(new Animated.Value(0.8)).current;
   const rays = useRef(new Animated.Value(0)).current;
@@ -46,7 +49,8 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
       style={[
         TOAST_STYLES.container,
         styles.container,
-        { bottom: insets.bottom + SPACE.gutter + bottomOffset, transform: [{ translateY }, { scale }], opacity },
+        topOffset != null ? { top: topOffset } : { bottom: insets.bottom + SPACE.gutter + bottomOffset },
+        { transform: [{ translateY }, { scale }], opacity },
       ]}
     >
       <Tap
