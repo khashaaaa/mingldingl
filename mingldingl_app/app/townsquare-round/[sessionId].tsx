@@ -13,6 +13,7 @@ import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Icon } from '../../components/ui/Icon';
 import { LongWait } from '../../components/ui/LongWait';
 import { useTownSquareRound, useTownSquareSessionSummary } from '../../hooks/useTownSquareRound';
+import { useGoTo } from '../../hooks/useGoTo';
 import { cap } from '../../lib/fire';
 import { ordinalWord } from '../../lib/worldTime';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TEMPERATURE } from '../../lib/theme';
@@ -33,6 +34,7 @@ export default function TownSquareRoundScreen() {
   useLocaleStore((s) => s.locale);
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const router = useRouter();
+  const goTo = useGoTo();
   const { round, isLoading, connectionLost, markJoined, submitResponse, hasResponded, matchId, isResponding, respondError, clearRespondError, joinError, clearJoinError } =
     useTownSquareRound(sessionId);
   const [muted, setMuted] = useState(false);
@@ -48,8 +50,10 @@ export default function TownSquareRoundScreen() {
     return () => clearInterval(id);
   }, []);
 
+  // Back down to the tabs already underneath: a `replace` to a tab route swapped this round for a
+  // second tab bar, and Back from the square then walked into the first.
   function leave() {
-    router.replace('/(tabs)/townsquare' as any);
+    goTo('/(tabs)/townsquare');
   }
 
   // Only asked for once the round has failed: a session that is not InProgress is refused by

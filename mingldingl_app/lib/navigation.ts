@@ -21,11 +21,11 @@ export function goTo(router: Router, href: Href, state?: NavState): void {
   // second progression over progression → leaderboard, and again over itself on every tap, so the
   // back button walked through copies; a notification for the chat you were in stacked that chat
   // on itself. With no state to read (a test, a cold start) it falls back to a plain push.
-  const path = hrefPath(href);
-  const open = findOpen(state, path);
-  if (open === 'top') return;
-  if (open === 'below') router.dismissTo(href);
-  else router.push(href);
+  // Popped by count, not `dismissTo`: POP_TO matches by route *name*, so with chat m1 under chat m2
+  // it stopped at m2 and relabelled it m1 — two copies of the one chat.
+  const above = screensAbove(state, hrefPath(href));
+  if (above === null) router.push(href);
+  else if (above > 0) router.dismiss(above);
 }
 
 /** The concrete path an href points at: `/chat/m1` for both `'/chat/m1'` and
@@ -45,15 +45,15 @@ function routePath(name: string, params: Record<string, unknown> | undefined): s
   return `/${segments.join('/')}`;
 }
 
-/** Whether `path` is open in the stack that holds the screens above the tabs: on top, further
- *  down, or not at all. */
-function findOpen(state: NavState | undefined, path: string): 'top' | 'below' | null {
+/** How many screens sit above `path` in the stack that holds it — 0 when it is on top — or null
+ *  when it is not open. */
+function screensAbove(state: NavState | undefined, path: string): number | null {
   if (!state?.routes) return null;
-  const at = state.routes.findIndex((r) => r.name !== '__root' && routePath(r.name, r.params as Record<string, unknown> | undefined) === path);
-  if (at >= 0) return at === (state.index ?? state.routes.length - 1) ? 'top' : 'below';
+  const at = state.routes.findLastIndex((r) => r.name !== '__root' && routePath(r.name, r.params as Record<string, unknown> | undefined) === path);
+  if (at >= 0) return (state.index ?? state.routes.length - 1) - at;
   for (const r of state.routes) {
-    const found = findOpen(r.state, path);
-    if (found) return found;
+    const found = screensAbove(r.state, path);
+    if (found !== null) return found;
   }
   return null;
 }
@@ -64,7 +64,7 @@ export function goHome(router: Router, hearthOpen: boolean): void {
   else router.push('/hearth');
 }
 
-interface NavState {
+export interface NavState {
   index?: number;
   routes?: readonly { name: string; params?: object; state?: NavState }[];
 }
@@ -90,9 +90,15 @@ const CHAT_PARENTS = ['chat/[matchId]', 'campaign/[matchId]'];
 /**
  * "Back to chat" that actually lands on the chat. A notification opens the Rite or the pledged
  * encounter straight over the tabs, so going back from there dropped you on whichever tab you had
- * last, under a button that promised the thread.
+ * last, under a button that promised the thread. `stack` is the stack this page sits in: a chat
+ * already open further down is returned to rather than replaced in again on top of itself.
  */
-export function backToChat(router: Router, previousRoute: string | undefined, matchId: string): void {
-  if (previousRoute && CHAT_PARENTS.includes(previousRoute)) router.back();
+export function backToChat(router: Router, stack: NavState | undefined, matchId: string): void {
+  const routes = stack?.routes ?? [];
+  const index = stack?.index ?? routes.length - 1;
+  const previous = index > 0 ? routes[index - 1]?.name : undefined;
+  if (previous && CHAT_PARENTS.includes(previous)) { router.back(); return; }
+  const above = screensAbove(stack, `/chat/${matchId}`);
+  if (above) router.dismiss(above);
   else router.replace(`/chat/${matchId}`);
 }
