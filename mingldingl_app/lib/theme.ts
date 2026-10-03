@@ -524,6 +524,19 @@ export const GROUND = {
 } as const;
 
 /**
+ * The rock carvings along the foot of each room (`components/world/Carvings.tsx`). `stone` is the
+ * pale of fresh-pecked rock where the dark skin of the boulder was knocked away; `ochre` is the
+ * rust-red the Deep is painted in, the pigment of the Khoit Tsenkher cave.
+ */
+export const CARVING = {
+  stone: '#C9BFA8',
+  ochre: '#B5532F',
+} as const;
+
+/** The tab bar's height above the device's own bottom inset. The floor's frieze stands on it. */
+export const TAB_BAR_HEIGHT = 74;
+
+/**
  * Hand-tuned metal surfaces for GameButton. They live here, not in the component, so the
  * palette file stays the single place any colour value is written down.
  *

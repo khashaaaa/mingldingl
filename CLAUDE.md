@@ -38,6 +38,8 @@ Design/product background, the full domain model, and live implementation plans 
   route must appear in a room's `match` list or in `UNLIT` (the route-coverage test in
   `lib/world/__tests__/world.test.ts` fails otherwise), and `useWorldState` reads the query cache
   without ever fetching. `WORLD_ENABLED` in `lib/world/index.ts` is a build-time kill switch.
+  Each room also has a petroglyph frieze on its floor (`Carvings`, baked by `scripts/gen-carvings.js`);
+  a new room needs a scene there too.
 - **World feedback is a table, never a call-site literal**, exactly like `PushCopy`:
   `lib/world/feedback.ts` maps every `WorldEvent` to a haptic and a sound. Haptics always fire;
   sound is opt-in (Settings → Sound, device-local), loads nothing until enabled, and never plays

@@ -5,6 +5,7 @@ import { ROOMS } from '../../lib/world';
 import { useReforgedTint } from '../../lib/world/session';
 import { GROUND, tint } from '../../lib/theme';
 import { useWorld } from './WorldProvider';
+import { Carvings } from './Carvings';
 
 /**
  * The ground each room stands on, and the light rising off it.
@@ -63,6 +64,8 @@ export function WorldFloor() {
         pointerEvents="none"
         style={[StyleSheet.absoluteFill, { backgroundColor: GROUND[texture] }, groundStyle]}
       />
+      {/* Under the tone, so the room's own fire is what colours the carvings it reaches. */}
+      {world?.room && light && <Carvings room={world.room} light={light} />}
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, toneStyle]}>
         <LinearGradient
           // Bottom-anchored: the room's fire is on its floor, not in its air.

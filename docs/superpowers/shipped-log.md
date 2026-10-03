@@ -8,6 +8,23 @@ long versions.
 
 ---
 
+## 2026-10-03 — Rock carvings along every room's floor
+
+A second, older hand under the ink: each room has a frieze of Bronze Age petroglyphs
+(`gen-carvings.js` → `assets/carvings/{room}.png`, shown by `components/world/Carvings.tsx` inside
+`WorldFloor`, under the room's rising tone so the fire is what lights them). Pecked-dot
+silhouettes in pale stone: horses at the serge (Gate), riders, ibex and a wolf (Road), a fiddler
+and dancers round a fire (Tavern), the ger and a family (Hearth), the smith at the anvil (Forge),
+archers and stags (Hall). The Deep alone is *painted* in Khoit Tsenkher ochre — garuda, a
+three-headed mangus, the luu, handprints — the first monsters outside a wait scene.
+- A band only, never a wall: the earlier textured wall fought every card. White alpha masks
+  tinted by `CARVING.stone`/`.ochre`; opacity 0.12–0.20 by room light (painted 0.22–0.34); width
+  capped at 540pt; stands on the tab bar on tab screens (`TAB_BAR_HEIGHT`, shared with the tabs
+  layout) and on the bottom inset elsewhere. Cards cover it on dense screens, by design.
+- Walking into a different room swings the torch at it (fade up past its level, then settle);
+  a push inside the same room does not replay it; none under reduced motion.
+- A new room needs a scene in `gen-carvings.js` — `carvings.test.tsx` fails otherwise.
+
 ## 2026-10-03 — The rest of the hand: frames, stones, medals, trails, cord, paper
 
 Everything ornamental now comes from the same brush as the glyphs, so no surface reads as a

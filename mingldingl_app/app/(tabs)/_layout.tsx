@@ -2,7 +2,7 @@ import { Tabs, useRouter, type Href } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { AppState, Animated, Easing, InteractionManager, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, SPACE, SURFACE, TAB_BAR_HEIGHT, TRACKING } from '../../lib/theme';
 import { Glyph, type GlyphName } from '../../components/ui/Glyph';
 import { i18n } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
@@ -95,7 +95,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: [styles.tabBar, { height: 74 + insets.bottom, paddingBottom: SPACE.md + insets.bottom }],
+        tabBarStyle: [styles.tabBar, { height: TAB_BAR_HEIGHT + insets.bottom, paddingBottom: SPACE.md + insets.bottom }],
         tabBarActiveTintColor: ACCENT.bright,
         tabBarInactiveTintColor: INK.dim,
         // Without this the label is laid out beside the icon on wide viewports and the two
