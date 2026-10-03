@@ -24,6 +24,7 @@ export function QuestTile({ match, fire, onPress }: Props) {
   const blurred = revealLevel < 2;
   const frozen = fire.state === 'frozen';
   const embers = fire.state === 'embers';
+  const unlit = fire.state === 'unlit';
 
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const photo = otherUser.firstPhoto;
@@ -75,57 +76,72 @@ export function QuestTile({ match, fire, onPress }: Props) {
           frozen && { borderColor: tint(TEMPERATURE.glacier, 0.35) },
         ]}
       >
-        {fire.state === 'unlit' && (
-          <View style={[styles.runeStrip, { backgroundColor: tint(ACCENT.base, 0.13), borderColor: tint(ACCENT.base, 0.4) }]}>
-            <View style={[styles.runeCorner, styles.runeCornerTl, { borderColor: ACCENT.base }]} />
-            <View style={[styles.runeCorner, styles.runeCornerBr, { borderColor: ACCENT.base }]} />
-            <Icon name="script-text" size={ICON_SIZES.md} color={ACCENT.base} />
+        {/* One portrait column for every row, so names start at the same x all the way down the
+            log. An unopened quest used to push its portrait right with a tablet of its own; it is
+            now said on the portrait — a gold ring and the scroll pressed on it as a seal. */}
+        <View style={styles.portrait}>
+          <View
+            style={[
+              styles.avatarRing,
+              unlit && { borderColor: ACCENT.base },
+              frozen && { borderColor: tint(TEMPERATURE.glacier, 0.5) },
+            ]}
+          >
+            {showPhoto ? (
+              <>
+                <Image
+                  source={{ uri: photo }}
+                  style={styles.avatar}
+                  // Decoded at the avatar's size before the blur, not at the photo's: a full-size
+                  // bitmap took the same radius as a light haze and the face stayed recognisable.
+                  resizeMethod="resize"
+                  blurRadius={18}
+                  onError={() => setFailedUrl(photo)}
+                />
+                <Animated.Image
+                  source={{ uri: photo }}
+                  style={[styles.avatar, styles.avatarSharpOverlay, { opacity: reveal }]}
+                  blurRadius={0}
+                />
+              </>
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Icon name="account" size={ICON_SIZES.xl} color={INK.dim} />
+              </View>
+            )}
+            {frozen && <View style={styles.frozenOverlay} accessible={false} importantForAccessibility="no" />}
           </View>
-        )}
-        <View style={[styles.avatarRing, frozen && { borderColor: tint(TEMPERATURE.glacier, 0.5) }]}>
-          {showPhoto ? (
-            <>
-              <Image
-                source={{ uri: photo }}
-                style={styles.avatar}
-                // Decoded at the avatar's size before the blur, not at the photo's: a full-size
-                // bitmap took the same radius as a light haze and the face stayed recognisable.
-                resizeMethod="resize"
-                blurRadius={18}
-                onError={() => setFailedUrl(photo)}
-              />
-              <Animated.Image
-                source={{ uri: photo }}
-                style={[styles.avatar, styles.avatarSharpOverlay, { opacity: reveal }]}
-                blurRadius={0}
-              />
-            </>
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Icon name="account" size={ICON_SIZES.xl} color={INK.dim} />
+          {unlit && (
+            <View style={styles.newSeal}>
+              <Icon name="script-text" size={ICON_SIZES.sm} color={ACCENT.base} />
             </View>
           )}
-          {frozen && <View style={styles.frozenOverlay} accessible={false} importantForAccessibility="no" />}
         </View>
         <View style={styles.info}>
-          {blurred ? (
-            <Text style={[styles.name, frozen && styles.nameFrozen]} numberOfLines={1}>{nameText}</Text>
-          ) : (
-            <Animated.Text
-              style={[
-                styles.name,
-                frozen && styles.nameFrozen,
-                { opacity: reveal, transform: [{ scale: reveal.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }] },
-              ]}
-              numberOfLines={1}
-            >
-              {nameText}
-            </Animated.Text>
-          )}
-          <OathSigil oath={otherUser.oath ?? null} proven={otherUser.oathProven ?? false} size="sm" />
-          <View style={styles.eyebrowRow}>
-            <FireMarkGlyph mark={mark} size={ICON_SIZES.sm} />
-            <CardEyebrow color={eyebrowColor} style={styles.eyebrowInline}>{eyebrow}</CardEyebrow>
+          <View style={styles.header}>
+            <View style={styles.titles}>
+              {blurred ? (
+                <Text style={[styles.name, frozen && styles.nameFrozen]} numberOfLines={1}>{nameText}</Text>
+              ) : (
+                <Animated.Text
+                  style={[
+                    styles.name,
+                    frozen && styles.nameFrozen,
+                    { opacity: reveal, transform: [{ scale: reveal.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }] },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {nameText}
+                </Animated.Text>
+              )}
+              <View style={styles.eyebrowRow}>
+                <FireMarkGlyph mark={mark} size={ICON_SIZES.sm} />
+                <CardEyebrow color={eyebrowColor} style={styles.eyebrowInline}>{eyebrow}</CardEyebrow>
+              </View>
+            </View>
+            {/* The vow sits at the row's right edge, out of the reading column: it used to stand
+                between the name and the fire, as wide as its own word, and shoved both apart. */}
+            <OathSigil oath={otherUser.oath ?? null} proven={otherUser.oathProven ?? false} size="sm" />
           </View>
           {/* `fireLine` is '' for `unlit` on purpose — an empty second line would still take a
            *  row's worth of space under the eyebrow. */}
@@ -140,7 +156,9 @@ export function QuestTile({ match, fire, onPress }: Props) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    // Top-aligned: the portrait sits beside the name it belongs to. Centred, it floated halfway
+    // down any row with a verdict under it, level with neither the name nor the verdict.
+    alignItems: 'flex-start',
     gap: SPACE.md,
     backgroundColor: SURFACE.panel,
     borderRadius: RADIUS.md,
@@ -148,24 +166,20 @@ const styles = StyleSheet.create({
     borderColor: LINE.edge,
     padding: SPACE.md,
     marginBottom: SPACE.md,
-    overflow: 'hidden',
   },
-  runeStrip: {
-    // Sized to the avatar beside it rather than stretched to the card: a card with an Oath sigil
-    // is taller than one without, and `stretch` made the same tablet two different heights down
-    // a single list.
-    alignSelf: 'center',
-    width: 30,
-    height: 56,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
+  portrait: { width: 56, height: 56 },
+  newSeal: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    zIndex: 1,
+    ...circle(24),
+    backgroundColor: SURFACE.panel,
+    borderWidth: 1.5,
+    borderColor: ACCENT.base,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
-  runeCorner: { position: 'absolute', width: 7, height: 7 },
-  runeCornerTl: { top: SPACE.hair, left: SPACE.hair, borderTopWidth: 1.5, borderLeftWidth: 1.5 },
-  runeCornerBr: { bottom: SPACE.hair, right: SPACE.hair, borderBottomWidth: 1.5, borderRightWidth: 1.5 },
   avatarRing: { ...circle(56), borderWidth: 2, borderColor: LINE.edge, overflow: 'hidden' },
   avatar: circle(52),
   avatarSharpOverlay: { position: 'absolute', top: 0, left: 0 },
@@ -183,7 +197,9 @@ const styles = StyleSheet.create({
     backgroundColor: TEMPERATURE.ice,
     opacity: 0.2,
   },
-  info: { flex: 1, gap: SPACE.xs },
+  info: { flex: 1, gap: SPACE.sm },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.sm, minHeight: 56 },
+  titles: { flex: 1, gap: SPACE.xs, justifyContent: 'center', alignSelf: 'stretch' },
   name: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg, color: INK.primary },
   nameFrozen: { color: INK.dim },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },

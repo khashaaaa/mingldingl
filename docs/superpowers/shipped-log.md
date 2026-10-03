@@ -72,6 +72,17 @@ video call is the Flame Rite's flame, a locked quest the gate, the quiz the scro
 `StateBlock`'s `ICON_PLACES` are closed tables, so a name with no drawing is a compile error rather
 than a Material icon; `@expo/vector-icons` is no longer a dependency or a loaded font.
 
+## 2026-10-03 — The Quest Log's rows aligned
+
+`QuestTile` had three columns' worth of drift: an unopened quest's scroll tablet pushed its
+portrait and name right of every other row's, the portrait sat centred in tall cards (level with
+neither the name nor the verdict), and the Oath chip stood between the name and the fire, as wide
+as its own word. Now every row has one portrait column; an unopened quest is said on the portrait
+(gold ring, the scroll pressed on it as a seal); the portrait is top-aligned beside a header of
+name + fire eyebrow, with the vow pinned to the row's right edge; the fire line and verdict run
+underneath. (On the A51 a Fast Refresh of this file left the unlit portraits as dark crescents
+until a cold start — an artefact, not the layout.)
+
 ## 2026-10-03 — Every room paints its own wait
 
 The bonfire became one of six scenes (`components/vfx/scenes/`), each the same three movements on
