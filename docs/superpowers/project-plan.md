@@ -229,8 +229,10 @@ All need the `verify` skill (real Supabase JWTs, full stack running) or the Gala
   needs the victim's Expo token, which no endpoint returns.
 - **Photo upload is per identity, not per IP.** Uploads now need an account or a claimed
   verification, which bounds anonymous abuse, but there is still no IP throttle.
-- **No general API rate limiting.** `POST /auth/phone/start` is bounded per IP (30 per 15 minutes)
-  and per number, `POST /photos/upload` per user; every other endpoint is unlimited.
+- **Rate limiting covers only the fan-out writes.** `POST /auth/phone/start` is bounded per IP and
+  per number, `POST /photos/upload` per user, and `UserWriteRateLimit` per account on message send,
+  match request, reports, ship create and rite propose. Reads and the remaining writes are
+  unlimited; the limiters are per-instance, like `LoginThrottleService`.
 - **`LoginThrottleService` is per-instance** — a second engine instance halves the effective
   lockout. Needs shared state if the engine is ever scaled out.
 - **`POST /video/complete` is a client assertion** — any participant can claim the score, honour
@@ -323,9 +325,6 @@ All need the `verify` skill (real Supabase JWTs, full stack running) or the Gala
   15.9° from `ACCENT.base` in hue (it separates on lightness and must always render as a filled
   banner with an icon), and `STATUS.success` is deliberately the same value as the Emerald jewel.
   Both are resolved by moving the accent off orange — the deferred "approach B" repalette.
-- Message pagination's `before` cursor is `CreatedAt`-only; a same-instant tie across a page
-  boundary would need a composite cursor (public API change). `SendMessage` has no happy-path
-  integration test because it opens its own transaction inside `IntegrationTestBase`'s rollback.
 - Historic `DuplicateLoot` score rows keep their label (`event_duplicate_loot`) so old chronicle
   entries render; the event is no longer emitted. `ScoreHistoryList.ENGINE_EVENT_TYPES` still
   omits `ReportPenalty` (its icon and label keys exist) although `ReportService` can award it now.

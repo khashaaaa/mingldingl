@@ -8,103 +8,72 @@ long versions.
 
 ---
 
-## 2026-10-03 — Round trips, floods and costly work
+## 2026-10-03 — The road, smoothness, navigation, round trips and floods
 
-- **Per-request auth:** `CurrentUserMiddleware` resolves the account and reads its standing in one
-  query (two for an aliased returning user, was four); `PhoneVerificationService.AliasedAccounts`
-  is the shared alias query.
-- **Message send:** one Supabase broadcast POST for the thread and both nudge topics (was two in
-  series, `BroadcastManyAsync`); new-message pushes coalesce to one per conversation per minute
-  (`PushCoalescer`).
-- **Floods:** per-account token bucket `UserWriteRateLimit` (burst 30, 30/min) on message send,
-  match request, reports, ship create and rite propose → `429 rate.too_many_writes`;
-  `UseRateLimiter` now runs after `CurrentUserMiddleware`. The push queue is bounded (10k, drops
-  with a throttled warning) and sends whatever has queued to Expo in batches of up to 100.
-- **Costly work:** indexes on `PushTokens.UserId` and `ActivitySuggestions.MatchId`; discover
-  pages after the first reuse page one's ranking for 5 min (`CandidatePoolCache`, slice re-read
-  through live eligibility); Town Square `current-round` is three queries (was six); the photo
-  prune/backfill sweep runs daily, not hourly, and never retries an original that failed to seal;
-  CSV exports project only their columns; dev logs no longer print every SQL statement.
-- **App:** the liker's own `match_created` echo no longer refetches matches/discover/score; the like
-  mutation stopped invalidating `matches` twice; per-match mutations invalidate `campaign(matchId)`,
-  not every campaign; Town Square session polling runs only on a focused screen; chat sorts without
-  `localeCompare` and drops a thread's cache 30 min after leaving it.
-
-## 2026-10-03 — Alignment, navigation, design and translation sweep (on the A51)
-
-- **Header titles level again.** Android's text layout and Yoga disagreed at the wrap edge: "Seek
-  Companions" was one line to `onTextLayout` but a two-line box, so it drew ~13dp above the icons.
-  `HeaderBar` also steps the title down when its box is taller than its line.
-- **No more stacked copies of a screen.** In-app links go through `hooks/useGoTo` → `goTo(router,
-  href, rootState)`: a screen already open is returned to (`dismissTo`), the one on top is left
-  alone, anything else is pushed. A source test forbids bare `router.push` (the phone → OTP step
-  excepted). The atlas's Hearth opens `/hearth`, not the Quest Log.
-- **Design:** atlas labels mask the passages behind them; chronicle rows show the score once (the
-  `%{delta}` left every `chronicle_*` string); a disabled forged button is cold ghost metal at full
-  opacity; `ContentPageScreen` sets display-face section headings with ornament rules, splits
-  paragraphs and opens long pages (4+ sections) on a chapter list; the Date Log's empty room draws
-  the calendar page and links the Mission Board.
-- **Translations:** `lineLocale(...keys)` says a composed line in one language (Satchel oath line,
-  Guild House perks); the leaderboard mark and Ascent star labels drop their untranslated words
-  instead, so gem names stay in one language down a column. `ordinalWord` keeps English suffixes
-  while a locale has no `ordinal_N` ("The 71 dawn"). MN terms unified to the dominant wording —
-  the keys are listed for proofreading in the plan.
-
-## 2026-10-03 — Smoothness pass (measured on the Galaxy A51)
-
-Measured with a production-mode bundle (`expo start --no-dev --minify`), `dumpsys gfxinfo` and
-Perfetto. Navigation jank was almost entirely Android's UI and render threads, not JS: building
-native views when a screen first opens, CPU-drawn SVG, and full-window redraws from the ever-running
-embers and fog. Before → after (cool phone, % frames late / worst frame): first visit to each tab
-34% / 400ms → 10% / 150ms; first chat open 72% / 500ms → 28% / 150ms; Hearth 80% / 450ms →
-7% / 53ms; Progression 40% / 250ms → 6% / 129ms.
-
-- `router.prefetch` builds the four other tabs in the background after launch (`app/(tabs)/_layout.tsx`).
-- `components/ui/Deferred` mounts below-the-fold sections a few frames late (Character Sheet, Hearth).
-- The world canopy holds its embers/fog still for 700ms after every route change; the fog banks are
-  blurred once into images and only moved per frame (was ~9ms of render thread per frame in the Deep).
-- Glyphs are baked PNGs (`scripts/gen-glyphs.js`); the Hearth's sky is native views (stops drawn
-  solid, as react-native-svg always drew them); the Ascent halo and `GlowText` breathe on the
-  native driver instead of JS.
-- `useVfxLevel` reads reduce-motion once for the app, not once per component; the world context
-  and the root stack's `screenOptions` are memoized; the ended-thread dialog waits until the chat lands.
-- Tried and dropped: `detachInactiveScreens={false}` (no gain) and `removeClippedSubviews` on the
-  Character Sheet (~30ms, not worth its Fabric risk). Embers and fog still repaint the whole window
-  at 60fps while visible — the price of the effect; the Fire also stacks its own ember canvas over
-  the room's.
-
-## 2026-10-03 — The road: party seats, scars, waypoints, seasons, weekly trials, retiring
-
-Six mechanics that turn the accountability rules into play; every number is admin config under
-the **Game** category, each with an off switch.
+**The road** — six mechanics that turn the accountability rules into play; every number is admin
+config under **Game**, each with an off switch. Honours went from nine to fourteen.
 
 - **Party seats** (`PartyService`): at most `party.seats.base` (4) + `per_tier` (1) × tier active
   matches. A summons past it is refused (`party.full`); a full target is refused
   (`party.target_full`) and dropped from discovery after the pool is drawn. Fated Threads and Town
-  Square still land past the limit — they are events the user chose. The check is a fast path
-  (two summons at once can land one seat over), same as the budget's.
+  Square still land past the limit — events the user chose. A fast-path check, like the budget's
+  (two summons at once can land one seat over).
 - **Scars** (`KeptEncounterService`): every ghost penalty opens one in the same UPDATE that docks
-  reputation (`Users.OpenScars`). `scars.heal.encounters` (2) *kept* encounters — both sides said
-  the other came — close the oldest, hand the dock back, write a `ScarHealed` event and grant
-  **Mended** on the first. Existing users start at zero scars: old ghostings were not back-filled.
+  reputation (`Users.OpenScars`); `scars.heal.encounters` (2) *kept* encounters close the oldest,
+  hand the dock back and grant **Mended** on the first. Old ghostings were not back-filled.
 - **Waypoints**: kept encounters chart their venue's district; `waypoints.cartographer.districts`
-  (3) earns **Cartographer**. The Encounter Log shows the count and marks charted rows.
+  (3) earns **Cartographer**.
 - **Seasons** (`SeasonService`): Naadam 11–13 July and Tsagaan Sar from a 2027–29 table — the same
-  windows as the app's `lib/festivals.ts`, add a year to both. An encounter *sworn* in season and
-  kept later earns **Of the Naadam** / **Of the White Moon**; the Hearth names the honour while the
-  festival runs.
-- **Weekly trial** per match (`BondTrialService`): `exchange` (each side sends
-  `trial.exchange.messages`, 5) or `rite` (hold the Flame Rite), fixed by a hash of match + week
-  and decided from state at the week's start. Either side claims; both get `BondTrialDone` (+25)
-  once — the `BondTrialClaims` (match, week) key is the lock. Shown first in the chat's activities
-  sheet.
-- **Retiring together** (`RetireService`): only a pair with a completed encounter. One proposes,
-  the other accepts (or declines / withdraws); the match ends `Completed`, both accounts are paused
-  out of discovery with `RetiredAt` set, both earn **Hearthbound**. The Hall of Names counts such
-  pairs nationwide. No push yet (see Outstanding Follow-ups).
-- Honours went from nine to fourteen. `GET /engagement/standing` feeds the character sheet's
-  Standing card (seats, scars, districts); `GET /engagement/season` exists but the app reads its
-  own festival table.
+  windows as the app's `lib/festivals.ts`; add a year to both. An encounter *sworn* in season and
+  kept later earns **Of the Naadam** / **Of the White Moon**.
+- **Weekly trial** (`BondTrialService`): `exchange` (each side sends `trial.exchange.messages`, 5)
+  or `rite`, fixed by a hash of match + week. Either side claims; both get `BondTrialDone` (+25)
+  once — the `BondTrialClaims` (match, week) key is the lock.
+- **Retiring together** (`RetireService`): only after a completed encounter; on acceptance the match
+  ends `Completed`, both accounts pause out of discovery with `RetiredAt`, both earn **Hearthbound**.
+- `GET /engagement/standing` feeds the Standing card; `GET /engagement/season` exists but the app
+  reads its own festival table.
+
+**Smoothness** (A51, production bundle, `dumpsys gfxinfo` + Perfetto). Jank was Android's UI and
+render threads — first-time native view builds, CPU-drawn SVG, full-window ember/fog redraws — not
+JS. Frames late / worst frame: first tab visit 34% / 400ms → 10% / 150ms; first chat 72% / 500ms →
+28% / 150ms; Hearth 80% / 450ms → 7% / 53ms.
+
+- `router.prefetch` builds the other tabs after launch; `components/ui/Deferred` mounts
+  below-the-fold sections a few frames late; the canopy holds embers/fog still for 700ms after a
+  route change, and fog banks are pre-blurred images.
+- Glyphs are baked PNGs (`scripts/gen-glyphs.js`); the Hearth sky is native views; the Ascent halo
+  and `GlowText` breathe on the native driver; reduce-motion is read once for the app.
+- Tried and dropped: `detachInactiveScreens={false}`, `removeClippedSubviews` on the Character Sheet.
+  Embers and fog still repaint the whole window while visible — the price of the effect.
+
+**Navigation, design, translation**
+
+- In-app links go through `hooks/useGoTo` → `goTo`: an open screen is returned to (`dismissTo`),
+  the top one left alone, anything else pushed. A source test forbids bare `router.push` (phone →
+  OTP excepted). `HeaderBar` steps a title down when Android wraps it into a taller box than its line.
+- `ContentPageScreen` sets display-face headings and opens long pages (4+ sections) on a chapter
+  list; a disabled forged button is cold ghost metal at full opacity.
+- `lineLocale(...keys)` keeps a composed line in one language; `ordinalWord` keeps English suffixes
+  while a locale has no `ordinal_N`. MN terms unified — keys listed for proofreading in the plan.
+
+**Round trips, floods, costly work**
+
+- Auth middleware reads account + standing in one query (two for an aliased returning user, was
+  four); `PhoneVerificationService.AliasedAccounts` is the shared alias query.
+- A message send makes one Supabase broadcast POST (`BroadcastManyAsync`); message pushes coalesce
+  to one per conversation per minute (`PushCoalescer`).
+- `UserWriteRateLimit` (per account, burst 30, 30/min) on message send, match request, reports,
+  ship create and rite propose → `429 rate.too_many_writes`; `UseRateLimiter` runs after
+  `CurrentUserMiddleware`. The push queue is bounded (10k, drops with a throttled warning) and
+  goes to Expo in batches of up to 100.
+- Indexes on `PushTokens.UserId` and `ActivitySuggestions.MatchId`; discover pages after the first
+  reuse page one's ranking for 5 min (`CandidatePoolCache`, slices re-read through live
+  eligibility); Town Square `current-round` is three queries; the photo sweep is daily and skips
+  originals that failed to seal; CSV exports project their columns; dev logs omit per-SQL lines.
+- App: a device's own `match_created` echo refetches nothing; per-match mutations invalidate
+  `campaign(matchId)`; Town Square session polling runs only on a focused screen; chat drops a
+  thread's cache 30 min after leaving it.
 
 ## 2026-09-29 → 30 — A51 passes, navigation, nav bar, in-app notices
 
