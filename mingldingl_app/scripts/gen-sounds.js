@@ -64,7 +64,7 @@ function render(durationS, fn) {
   return out;
 }
 
-// ---------- the nine ----------
+// ---------- the voices ----------
 
 /** Entering a delve: a door closing above you. Body, no sparkle. */
 function door() {
@@ -222,6 +222,43 @@ function bell() {
   });
 }
 
+/**
+ * A match made: a hearth catching. A breath of air drawn in, then two warm notes a fourth apart
+ * swelling up out of it — the one sound in the set that grows rather than decays at the start,
+ * because it is the one moment that is the beginning of something rather than the end of it.
+ */
+function kindle() {
+  const dur = 1.1;
+  const air = noiseSource(0x4ea27, 2800);
+  const SWELL_S = 0.18;
+  const note = (t, f, at) => {
+    const dt = t - at;
+    if (dt < 0) return 0;
+    const swell = Math.min(1, dt / SWELL_S);
+    return (sine(dt, f) * 0.7 + sine(dt, f * 2) * 0.3 + sine(dt, f * 3) * 0.12)
+      * swell * decay(dt, dur - at, 4);
+  };
+  return render(dur, (t) => {
+    const breath = air() * Math.min(1, t / 0.12) * decay(t, dur, 9);
+    return breath * 0.7 + note(t, 392, 0.06) * 0.8 + note(t, 523, 0.2) * 0.75;
+  });
+}
+
+/**
+ * A penalty: the hold taking its due. One dull, falling knock — a pitch that sags as it dies and a
+ * second partial a few hertz off it, so the two beat against each other and the note sounds
+ * cracked. No ring, no tail: a loss is felt and over, never dwelt on.
+ */
+function due() {
+  const dur = 0.5;
+  const n = noiseSource(0xd0e, 1800);
+  return render(dur, (t) => {
+    const f = 330 - 90 * (t / dur);
+    const body = (sine(t, f) * 0.6 + sine(t, f * 1.02) * 0.5 + sine(t, f * 2.01) * 0.25) * decay(t, dur, 7);
+    return body + n() * decay(t, dur, 40) * 0.5;
+  });
+}
+
 // ---------- encode ----------
 
 /**
@@ -316,9 +353,9 @@ const SUB_HZ = 110;
 const RMS_TARGET = 0.08;
 const RMS = { tick: 0.04, candle: 0.04, dying: 0.04, rise: 0.057 };
 
-const DRIVE = { door: 3, seal: 2.5, dying: 2.5, candle: 2, pledge: 2 };
+const DRIVE = { door: 3, seal: 2.5, dying: 2.5, candle: 2, pledge: 2, due: 1.5 };
 
-const SOUNDS = { door, rise, anvil, seal, honour, pledge, tick, horn, dying, candle, bell };
+const SOUNDS = { door, rise, anvil, seal, honour, pledge, tick, horn, dying, candle, bell, kindle, due };
 
 const outDir = path.join(__dirname, '..', 'assets', 'sounds');
 fs.mkdirSync(outDir, { recursive: true });

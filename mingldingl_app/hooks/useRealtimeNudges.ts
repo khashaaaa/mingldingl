@@ -6,6 +6,7 @@ import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
 import type { Match } from '../models/match';
 import { useProfile } from './useProfile';
+import { signal } from '../lib/world/feedback';
 
 type MatchSource = 'like' | 'ship' | 'townsquare';
 
@@ -103,7 +104,9 @@ export function useRealtimeNudges() {
           for (const key of MATCH_SOURCE_INVALIDATIONS[source ?? 'like'] ?? []) {
             queryClient.invalidateQueries({ queryKey: key });
           }
+          // Known means this device made the match itself and already heard the summons candle.
           if (alreadyKnown) return;
+          signal('matchMade');
           setPendingNudge({ icon: 'fire', title: i18n.t('nudge_new_match'), matchId });
         },
         message: (msg) => {
@@ -139,8 +142,10 @@ export function useRealtimeNudges() {
           queryClient.invalidateQueries({ queryKey: queryKeys.campaign(matchId) });
         },
         match_status_changed: (msg) => {
-          const { matchId, status } = msg.payload as { matchId: string; status: string };
+          const { matchId, status, userId } = msg.payload as { matchId: string; status: string; userId?: string | null };
           if (!isKnownMatch(matchId)) return;
+          // A ghosting names whoever the engine docked for it; the other side lost nothing.
+          if (status === 'Ghosted' && userId === myId) signal('penalty');
           queryClient.invalidateQueries({ queryKey: queryKeys.matches });
           // An ended match drops straight out of the matches list, so anyone standing in that chat
           // would otherwise lose the match object without ever being told what happened.

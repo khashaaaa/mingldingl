@@ -10,9 +10,9 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
  */
 export type WorldEvent =
   | 'enterDeep' | 'ascend' | 'tierUp' | 'sealBreak' | 'honour' | 'pledgeKept' | 'press' | 'horn'
-  | 'fireDying' | 'candleLit' | 'bell';
+  | 'fireDying' | 'candleLit' | 'bell' | 'matchMade' | 'penalty';
 
-type HapticKind = 'soft' | 'light' | 'medium' | 'heavy' | 'success';
+type HapticKind = 'soft' | 'light' | 'medium' | 'heavy' | 'success' | 'warning';
 
 interface EventDef {
   readonly haptic: HapticKind;
@@ -36,6 +36,13 @@ const SIGNALS: Record<WorldEvent, EventDef> = {
   // on an RSVP (`useTownSquareSession`). The bell is the Square's round changing.
   candleLit: { haptic: 'light',   sound: require('../../assets/sounds/candle.wav') },
   bell:      { haptic: 'medium',  sound: require('../../assets/sounds/bell.wav') },
+  // Someone summoned *you* (`useRealtimeNudges`, match_created). The sender already heard the
+  // candle; this is the other side of it, and the app's reason to exist, so it is never quieter
+  // than a tier-up.
+  matchMade: { haptic: 'heavy',   sound: require('../../assets/sounds/kindle.wav') },
+  // The hold docking you for a ghosting (match_status_changed naming you at fault). Only gains
+  // were ever voiced, which made accountability something read about in the chronicle afterwards.
+  penalty:   { haptic: 'warning', sound: require('../../assets/sounds/due.wav') },
 };
 
 const REPEAT_GAP_MS = 110;
@@ -93,6 +100,8 @@ function fireHaptic(kind: HapticKind): void {
     ? Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Long_Press)
     : kind === 'success'
     ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    : kind === 'warning'
+    ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
     : Haptics.impactAsync({
       soft: Haptics.ImpactFeedbackStyle.Soft,
       light: Haptics.ImpactFeedbackStyle.Light,

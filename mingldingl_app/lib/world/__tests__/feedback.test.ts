@@ -12,7 +12,7 @@ jest.mock('expo-haptics', () => ({
   performAndroidHapticsAsync: jest.fn(() => Promise.resolve()),
   AndroidHaptics: { Long_Press: 'long-press' },
   ImpactFeedbackStyle: { Soft: 'soft', Light: 'light', Medium: 'medium', Heavy: 'heavy' },
-  NotificationFeedbackType: { Success: 'success' },
+  NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
 }));
 
 const impact = Haptics.impactAsync as jest.Mock;
@@ -37,6 +37,12 @@ describe('world feedback', () => {
   it('routes success-shaped moments through the notification engine, not impact', () => {
     signal('honour');
     expect(notify).toHaveBeenCalledWith('success');
+    expect(impact).not.toHaveBeenCalled();
+  });
+
+  it('docks a penalty with the warning pattern, so a loss never feels like a gain', () => {
+    signal('penalty');
+    expect(notify).toHaveBeenCalledWith('warning');
     expect(impact).not.toHaveBeenCalled();
   });
 
@@ -129,7 +135,7 @@ describe('world feedback', () => {
     const events = {
       enterDeep: true, ascend: true, tierUp: true, sealBreak: true,
       honour: true, pledgeKept: true, press: true, horn: true, fireDying: true,
-      candleLit: true, bell: true,
+      candleLit: true, bell: true, matchMade: true, penalty: true,
     } satisfies Record<WorldEvent, true>;
     setSoundEnabled(true);
     for (const event of Object.keys(events) as WorldEvent[]) {

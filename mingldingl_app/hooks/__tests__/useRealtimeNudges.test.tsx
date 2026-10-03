@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { queryClient } from '../../lib/api/queryClient';
 import { queryKeys } from '../../lib/api/queryKeys';
 import type { Match } from '../../models/match';
+import { signal } from '../../lib/world/feedback';
 
 jest.mock('../../lib/supabase', () => ({
   supabase: {
@@ -14,6 +15,9 @@ jest.mock('../../lib/supabase', () => ({
   },
 }));
 
+jest.mock('../../lib/world/feedback', () => ({ signal: jest.fn() }));
+
+const mockSignal = signal as jest.Mock;
 const mockChannelFn = supabase.channel as jest.Mock;
 const mockRemoveChannel = supabase.removeChannel as jest.Mock;
 
@@ -323,6 +327,26 @@ describe('useRealtimeNudges', () => {
         expect(queryClient.getQueryData(queryKeys.matchStatus('m1'))).toBe(status);
       },
     );
+
+    it('sounds the penalty when a ghosting names me as the one at fault', () => {
+      const { handlers } = mount();
+
+      handlers.match_status_changed({ payload: { matchId: 'm1', status: 'Ghosted', userId: 'me1' } });
+
+      expect(mockSignal).toHaveBeenCalledWith('penalty');
+    });
+
+    it.each([
+      ['the other person at fault', 'Ghosted', 'other-user'],
+      ['nobody at fault', 'Ghosted', null],
+      ['my own unmatch', 'Unmatched', 'me1'],
+    ])('stays silent for %s', (_label, status, userId) => {
+      const { handlers } = mount();
+
+      handlers.match_status_changed({ payload: { matchId: 'm1', status, userId } });
+
+      expect(mockSignal).not.toHaveBeenCalled();
+    });
   });
 
   describe('message event', () => {
@@ -422,6 +446,7 @@ describe('useRealtimeNudges', () => {
         title: 'Fate has woven you a new match',
         matchId: 'm9',
       });
+      expect(mockSignal).toHaveBeenCalledWith('matchMade');
     });
 
     it('refreshes pending ships for a ship-sourced match', () => {
@@ -453,6 +478,7 @@ describe('useRealtimeNudges', () => {
 
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
       expect(useAuthStore.getState().pendingNudge).toBeNull();
+      expect(mockSignal).not.toHaveBeenCalled();
     });
   });
 });
