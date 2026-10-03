@@ -66,6 +66,17 @@ describe('ordinalWord', () => {
     expect(ordinalWord(111)).toBe('111th');
     expect(ordinalWord(112)).toBe('112th');
   });
+
+  // Untranslated, `mn` renders "The %{dawn} dawn" in English, so its numeral must be English too.
+  it('keeps the English suffix while a locale has no ordinal words of its own', () => {
+    const prev = i18n.locale;
+    i18n.locale = 'mn';
+    try {
+      expect(ordinalWord(71)).toBe('71st');
+    } finally {
+      i18n.locale = prev;
+    }
+  });
 });
 
 describe('threadDay', () => {

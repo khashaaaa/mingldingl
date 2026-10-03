@@ -1,4 +1,4 @@
-import { i18n } from './i18n';
+import { i18n, translations } from './i18n';
 
 /**
  * Time in the world's units (Sealed Fire move 13).
@@ -71,8 +71,12 @@ const ORDINAL_WORDS_TO = 31;
  *  build "twenty-first" out of "twenty" and "first" the way English does. */
 export function ordinalWord(n: number): string {
   if (n >= 1 && n <= ORDINAL_WORDS_TO) return i18n.t(`ordinal_${n}`);
-  // The suffixes are English grammar; any other language gets the bare numeral rather than "32nd".
-  if (i18n.locale !== 'en') return String(n);
+  // The suffixes are English grammar; a language with its own ordinal words gets the bare numeral
+  // rather than "32nd". Keyed on the words actually existing, not on the locale: while `mn` has no
+  // `ordinal_N` its phrases ("The %{dawn} dawn") still fall back to English, and a bare numeral
+  // there read "The 71 dawn" beside "The fifth dawn".
+  const locale = i18n.locale as keyof typeof translations;
+  if (locale !== 'en' && 'ordinal_1' in (translations[locale] ?? {})) return String(n);
   const rem100 = n % 100;
   const rem10 = n % 10;
   const suffix = rem100 >= 11 && rem100 <= 13 ? 'th' : rem10 === 1 ? 'st' : rem10 === 2 ? 'nd' : rem10 === 3 ? 'rd' : 'th';
