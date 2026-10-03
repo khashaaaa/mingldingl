@@ -1,25 +1,20 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { ACCENT } from '../../lib/theme';
 import { Glyph, type GlyphName as InkName } from './Glyph';
-type GlyphName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
 interface Props {
-  name: GlyphName;
+  name: IconName;
   size?: number;
   color?: string;
   style?: StyleProp<TextStyle>;
 }
 
 /**
- * The icon-font names that stand for something in the world — an honour, a deed in the score
- * history, a venue, a room — and the ink drawing (`Glyph`) each one is shown as. Every screen
- * that names one of these gets the brush hand without its call site changing; the names left out
- * are controls (back, close, chevrons, camera, video, phone), which stay plain on purpose so a
- * button never reads as ornament. A new identity mark gets drawn in `Glyph` and listed here,
- * never left to the font.
+ * Every name a call site may pass, and the ink drawing (`Glyph`) it is shown as. The names are the
+ * stock icon-font names the screens were written with; the font itself is gone (2026-10-03), so
+ * this table is closed — a name not listed here is a compile error, never a fallback to a
+ * Material icon. A new mark gets drawn in `Glyph` and listed here.
  */
-export const INKED: Partial<Record<GlyphName, InkName>> = {
+export const INKED = {
   // The honours.
   'hand-heart': 'oath',
   fire: 'flame',
@@ -86,10 +81,54 @@ export const INKED: Partial<Record<GlyphName, InkName>> = {
   // The kit keeps no monsters: a skull is an ember (a warning) or an empty chair (nobody came).
   'skull-crossbones': 'ember',
   'skull-outline': 'chair',
-};
+  // The rest of the world's marks, mapped onto drawings that already stand for them.
+  map: 'map',
+  'compass-rose': 'map',
+  'crosshairs-gps': 'target',
+  'party-popper': 'spark',
+  brain: 'scroll',
+  'calendar-check': 'page',
+  candle: 'candle',
+  chat: 'letters',
+  // The video call is the Flame Rite.
+  video: 'flame',
+  lock: 'gate',
+  'rhombus-outline': 'knot',
+  'alert-circle': 'ember',
+  'alert-octagon': 'ember',
+  'heart-broken': 'thread-cut',
+  'link-variant-off': 'thread-cut',
+  account: 'person',
+  'account-remove': 'chair',
+  'account-off-outline': 'chair',
+  'phone-outline': 'horn',
+  // Controls.
+  close: 'close',
+  'phone-hangup': 'close',
+  'arrow-left': 'back',
+  'chevron-right': 'chevron',
+  'chevron-double-up': 'rise',
+  'check-bold': 'check',
+  'check-circle': 'check-ring',
+  'checkbox-marked-circle': 'check-ring',
+  'circle-outline': 'ring',
+  'checkbox-blank-circle-outline': 'ring',
+  'dots-vertical': 'more',
+  refresh: 'turn',
+  star: 'star',
+  'star-outline': 'star-blank',
+  flag: 'pennant',
+  camera: 'eye',
+  'camera-plus': 'eye',
+  'video-off': 'eye-shut',
+  microphone: 'horn',
+  'microphone-off': 'horn-hushed',
+  'image-plus': 'frame',
+  'image-multiple': 'frame',
+} as const satisfies Record<string, InkName>;
+
+export type IconName = keyof typeof INKED;
 
 export function Icon({ name, size = 20, color = ACCENT.base, style }: Props) {
-  const ink = INKED[name];
-  if (ink) return <Glyph name={ink} size={size} color={color} style={style as StyleProp<ViewStyle>} />;
-  return <MaterialCommunityIcons name={name} size={size} color={color} style={style} />;
+  return <Glyph name={INKED[name]} size={size} color={color} style={style as StyleProp<ViewStyle>} />;
 }

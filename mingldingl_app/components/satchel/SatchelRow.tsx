@@ -43,8 +43,8 @@ export function SatchelRow({ material, glyph, name, line, to, testID }: Props) {
           <Text style={styles.name}>{name}</Text>
           <Text style={styles.line}>{line}</Text>
         </View>
-        {/* Plain MaterialCommunityIcons text, not itself an accessible node — the row's own
-            label already says everything a chevron would otherwise stand in for. */}
+        {/* A decorative glyph, not itself an accessible node — the row's own label already says
+            everything a chevron would otherwise stand in for. */}
         <Icon name="chevron-right" size={ICON_SIZES.lg} color={INK.dim} />
       </View>
     </Tap>

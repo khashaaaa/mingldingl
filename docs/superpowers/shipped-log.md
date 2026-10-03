@@ -63,8 +63,15 @@ thread honours grow a bead a rung), the score history's deeds, the chests, the s
 the Profile and Settings room links, the empty-state places (each baked with a separate ground
 layer, tinted brass under the place) and `Waiting`'s candle (wax and wick as two layers, so the
 flame still flickers). `Icon`'s `INKED` table hands an icon-font name to its drawing, so call
-sites did not change; controls (back, close, chevrons, camera, video, phone) stay in the font on
-purpose. The kit keeps no monsters: both skulls became an ember or an empty chair.
+sites did not change. The kit keeps no monsters: both skulls became an ember or an empty chair.
+
+Then the font itself went (73 glyphs): the controls were inked too — close, back, chevron, rise,
+check, check-ring, more, turn, star/star-blank, pennant, thread-cut, eye/eye-shut, horn-hushed,
+frame, person — and every other stock name was mapped onto a drawing that already meant it (the
+video call is the Flame Rite's flame, a locked quest the gate, the quiz the scroll). `INKED` and
+`StateBlock`'s `ICON_PLACES` are closed tables, so a name with no drawing is a compile error rather
+than a Material icon; `@expo/vector-icons` is no longer a dependency or a loaded font. Still
+Material on Android: `RefreshControl`'s pull-to-refresh spinner (activity, matches, leaderboard).
 
 ## 2026-10-03 — A51 translation and consistency audit
 

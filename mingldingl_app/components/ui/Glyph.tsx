@@ -8,8 +8,9 @@ import { ACCENT, ICON_SIZES } from '../../lib/theme';
  * Every app in the store draws the same shield, the same speech bubble and the same two people,
  * because every app in the store reaches for the same icon font. Where an icon carries the
  * identity of a place or a deed — the five destinations, the six quests — it is drawn here
- * instead. `Icon` (MaterialCommunityIcons) still serves everything else, which is most things; a
- * glyph is not a cheaper icon, it is a different job.
+ * instead — and since 2026-10-03 so is every other mark, controls included: there is no icon
+ * font in the app. `Icon` keeps the stock names its call sites were written with and maps each
+ * one onto a glyph here.
  *
  * The hand is a brush, not a ruler (chosen 2026-10-03 over a forged-metal and a framed-sigil
  * study): each path is one stroke of ink, swelling in its middle and tapering to a point at both
@@ -64,6 +65,10 @@ export const GLYPH_NAMES = [
   'medal', 'medal-blank',
   // A letter's ring in the ledger: the sender's mark is written inside it.
   'ring',
+  // The controls (2026-10-03): the font is gone, so a button's mark is inked in the same hand as
+  // everything around it — a back arrow is a brush stroke too.
+  'close', 'back', 'chevron', 'rise', 'check', 'check-ring', 'more', 'turn', 'star', 'star-blank',
+  'pennant', 'thread-cut', 'eye', 'eye-shut', 'horn-hushed', 'frame', 'person',
 ] as const;
 
 export type GlyphName = typeof GLYPH_NAMES[number];
@@ -430,6 +435,45 @@ export const GLYPHS: Record<GlyphName, Cuts> = {
   },
   /** The ring a letter hangs from on the thread, its sender's initial written inside. */
   ring: { lines: [], rings: [[12, 12, 10.4]] },
+  /** Close, dismiss, hang up: two strokes crossed. */
+  close: { lines: ['M5.4 5.4L18.6 18.6', 'M18.6 5.4L5.4 18.6'] },
+  /** Back the way you came. */
+  back: { lines: ['M20.4 12H4.4', 'M10.6 5.6L4.2 12L10.6 18.4'] },
+  /** Onward: a row that opens somewhere. */
+  chevron: { lines: ['M9 4.8L16.2 12L9 19.2'] },
+  /** Further up the thread: older letters. */
+  rise: { lines: ['M5.6 12.2L12 5.8L18.4 12.2', 'M5.6 18.4L12 12L18.4 18.4'] },
+  /** Done, chosen, yes. */
+  check: { lines: ['M3.8 12.8L9.4 18.4L20.4 5.8'] },
+  /** A step taken, a choice marked: the tick inside its ring. (Untaken, it is the bare `ring`.) */
+  'check-ring': { lines: ['M7.4 12.4L10.6 15.6L16.8 8.6'], rings: [[12, 12, 9.6]] },
+  /** More of what this is: three seals down the margin. */
+  more: { lines: [], dots: [[12, 4.8], [12, 12], [12, 19.2]] },
+  /** Again: the brush coming round to where it started. */
+  turn: { lines: ['M19 12A7 7 0 1 1 16.95 7.05', 'M17.8 3.2L17.2 7.4L13 7'] },
+  /** A star given: its outline with the seal pressed in it... */
+  star: { lines: ['M12.00 2.80L14.47 9.20L21.32 9.57L15.99 13.90L17.76 20.53L12.00 16.80L6.24 20.53L8.01 13.90L2.68 9.57L9.53 9.20Z'], dots: [[12, 13.2]] },
+  /** ...and one not given: the outline alone, nothing pressed in it. */
+  'star-blank': { lines: ['M12.00 2.80L14.47 9.20L21.32 9.57L15.99 13.90L17.76 20.53L12.00 16.80L6.24 20.53L8.01 13.90L2.68 9.57L9.53 9.20Z'] },
+  /** A report: the pennant run up a pole. */
+  pennant: { lines: ['M5.6 2.8V21.4', 'M6 4.2C10 2.6 13.4 6 18.8 4.2V12.6C13.4 14.4 10 11 6 12.6'] },
+  /** A bond let go: the thread between two hearts, cut and fraying. */
+  'thread-cut': {
+    lines: ['M6.6 15.8L10.2 13.3', 'M13.8 10.7L17.4 8.2', 'M10.2 13.3L11.4 14.8', 'M13.8 10.7L12.6 9.2'],
+    rings: [[5, 17, 1.8], [19, 7, 1.8]],
+  },
+  /** Being seen: the camera's open eye... */
+  eye: { lines: ['M2 12C5.6 6.2 18.4 6.2 22 12C18.4 17.8 5.6 17.8 2 12Z'], rings: [[12, 12, 3.4]] },
+  /** ...and the eye shut. */
+  'eye-shut': { lines: ['M2 10.8C5.6 16.4 18.4 16.4 22 10.8', 'M6.2 14.4L4.8 17', 'M12 15.6V18.6', 'M17.8 14.4L19.2 17'] },
+  /** The voice held: the horn with a stroke through it. */
+  'horn-hushed': {
+    lines: ['M3 9.8C7 9.6 12.6 7.2 17.6 3.8V20.2C12.6 16.8 7 14.4 3 14.2Z', 'M6.6 14.4L8 19.4', 'M2.4 3.4L21.6 20.6'],
+  },
+  /** A likeness: a framed picture of the steppe under its sun. */
+  frame: { lines: ['M3 4.6H21V19.4H3Z', 'M3.4 17L9 11.2L13 15.2L15.6 12.8L20.6 17.4'], rings: [[15.8, 8.6, 1.6]] },
+  /** Someone not yet shown: a head and shoulders, nothing else. */
+  person: { lines: ['M3.6 21.2C3.6 16 7.4 13.4 12 13.4C16.6 13.4 20.4 16 20.4 21.2'], rings: [[12, 7.6, 4]] },
   /** The waiting candle's wax and dish... */
   wax: {
     lines: [

@@ -4,10 +4,10 @@ import type { ReactNode } from 'react';
 import type { LayoutChangeEvent, StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { FogDrift } from '../vfx/FogDrift';
 import { ACCENT, FONTS, FONT_SIZES, HEAT, ICON_SIZES, INK, LEADING, LINE, RADIUS, SPACE, STATUS, SURFACE, type Tone } from '../../lib/theme';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { PLACES, type PlaceName } from './Places';
 
-type IconName = React.ComponentProps<typeof Icon>['name'];
+type StateIcon = PlaceName | StockName | IconName;
 
 /**
  * How loudly this block's mark is drawn, per `Tone` — the shared vocabulary in `theme.ts`, so a
@@ -35,15 +35,14 @@ const EMBER_COLORS: Partial<Record<Tone, string>> = {
 };
 
 /**
- * The stock names the 27 call sites still pass, and the drawing each one stood for. A screen may
+ * The stock names the call sites still pass, and the drawing each one stood for. A screen may
  * also pass a `PlaceName` directly — the two are one prop — but nothing had to be rewritten for
  * the costume to change.
  *
- * `wifi-off`, `trending-down` and `video-off` are absent on purpose rather than by omission: every
- * call site that passes one is `tone="danger"`, and a wrong is the ember whatever it is named. A
- * drawing mapped to them would be a drawing nothing ever renders.
+ * `wifi-off`, `trending-down` and `video-off` name the ember: every call site that passes one is
+ * `tone="danger"`, and a wrong is the ember whatever it is named.
  */
-const ICON_PLACES: Partial<Record<string, PlaceName>> = {
+const ICON_PLACES = {
   'door-closed-lock': 'gate',
   video: 'empty-stage',
   'help-circle-outline': 'signpost',
@@ -55,16 +54,20 @@ const ICON_PLACES: Partial<Record<string, PlaceName>> = {
   'party-popper': 'lantern',
   bank: 'door',
   'alert-circle-outline': 'ember',
-};
+  'wifi-off': 'ember',
+  'trending-down': 'ember',
+  'video-off': 'ember',
+} as const satisfies Record<string, PlaceName>;
+
+type StockName = keyof typeof ICON_PLACES;
 
 /**
  * The one mark this block draws: the ember when something went wrong, the place when a room is
- * simply empty, and the stock icon for any name with no drawing — every name the call sites pass
- * has one now, but the prop still takes the whole stock library, so a screen written tomorrow
- * renders something rather than nothing.
+ * simply empty, and otherwise the ink glyph `Icon` draws for the name.
  */
-function Mark({ tone, icon }: { tone: Tone; icon: PlaceName | IconName }) {
-  const place = icon in PLACES ? (icon as PlaceName) : ICON_PLACES[icon as string];
+function Mark({ tone, icon }: { tone: Tone; icon: StateIcon }) {
+  const place: PlaceName | undefined = icon in PLACES ? (icon as PlaceName)
+    : icon in ICON_PLACES ? ICON_PLACES[icon as StockName] : undefined;
   const ember = EMBER_COLORS[tone];
 
   if (ember || place === 'ember') {
@@ -77,13 +80,13 @@ function Mark({ tone, icon }: { tone: Tone; icon: PlaceName | IconName }) {
     const Place = PLACES[place];
     return <Place size={ICON_SIZES.hero} color={TONE_COLORS[tone]} />;
   }
-  // Everything `PLACES` and `ICON_PLACES` both missed is, by construction, a stock icon name.
+  // Everything `PLACES` and `ICON_PLACES` both missed is, by construction, an `Icon` name.
   return <Icon name={icon as IconName} size={ICON_SIZES.hero} color={TONE_COLORS[tone]} />;
 }
 
 interface Props {
   tone?: Tone;
-  icon?: PlaceName | IconName;
+  icon?: StateIcon;
   title: string;
   body?: string;
 

@@ -1,5 +1,4 @@
-import type { ComponentProps } from 'react';
-import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import type { IconName } from '../components/ui/Icon';
 import type { GemTier } from '../models/user';
 import { tKey } from './i18n';
 import { GEM_COLORS, GEM_SHADES, METAL, TIER_PRESENCE } from './theme';
@@ -138,7 +137,7 @@ export const HONOUR_LORE_KEYS: Record<HonourId, string> = {
   title_whitemoon: 'honour_lore_whitemoon',
 };
 
-export type HonourIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+export type HonourIconName = IconName;
 
 /**
  * The emblem struck on each honour. The three thread honours share one family that grows a

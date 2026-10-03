@@ -87,14 +87,14 @@ describe('StateBlock — waiting, empty, wrong', () => {
     expect(paints(good.toJSON())).toContainEqual(packed(ACCENT.base));
   });
 
-  // Every name the 27 call sites pass now has a drawing, but the prop still takes the whole stock
-  // library: a name arriving from a screen written tomorrow has to render something.
-  it('falls back to the stock icon for a name with no drawing', async () => {
+  // There is no icon font behind the block any more: a name with no place is drawn as its ink glyph.
+  it('draws the ink glyph for a name with no place', async () => {
     const { findByText, queryByTestId } = render(
-      <StateBlock icon="telescope" title="The square stands quiet" />,
+      <StateBlock icon="star" title="The square stands quiet" />,
     );
 
     expect(await findByText('The square stands quiet')).toBeTruthy();
+    expect(queryByTestId('glyph-star', HIDDEN)).not.toBeNull();
     expect(queryByTestId('state-ember', HIDDEN)).toBeNull();
     expect(PLACE_NAMES.every((name) => queryByTestId(`state-place-${name}`, HIDDEN) === null)).toBe(true);
   });
