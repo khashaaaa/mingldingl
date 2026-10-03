@@ -41,8 +41,11 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
   const pressY = useRef(new Animated.Value(0)).current;
   const pressScale = useRef(new Animated.Value(1)).current;
   const isMetal = METAL_VARIANTS.has(variant);
-  const metal = variant === 'ink' ? null : BUTTON_METALS[variant];
-  const labelColor = metal ? metal.label : INK.primary;
+  // A disabled forged button is cold metal, not faded gold: dark `onAccent` ink on gold at 40%
+  // opacity sank to a muddy slab whose label could not be read ("Weave a New Thread"'s, on the A51).
+  const cold = !!disabled && isMetal;
+  const metal = variant === 'ink' ? null : BUTTON_METALS[cold ? 'ghost' : variant];
+  const labelColor = cold ? INK.muted : metal ? metal.label : INK.primary;
   const sz = SIZES[size];
 
   function pressIn() {
@@ -64,9 +67,9 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
       style={[
         { transform: [{ translateY: pressY }, { scale: pressScale }] },
         flex !== undefined && { flex },
-        variant === 'primary' && styles.forgeGlow,
+        variant === 'primary' && !cold && styles.forgeGlow,
         style,
-        disabled && styles.disabled,
+        disabled && !cold && styles.disabled,
       ]}
     >
       <Pressable

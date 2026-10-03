@@ -15,6 +15,7 @@ import type { Trophy } from '../models/trophy';
 import { Icon } from '../components/ui/Icon';
 import { useScrollTail } from '../hooks/useScrollTail';
 import { useStanding } from '../hooks/useStanding';
+import { useGoTo } from '../hooks/useGoTo';
 
 function TrophyRow({ trophy }: { trophy: Trophy }) {
   const photo = trophy.myMomentPhotoUrl ?? trophy.businessPhoto;
@@ -68,6 +69,7 @@ function TrophyRow({ trophy }: { trophy: Trophy }) {
 }
 
 export default function DateLogScreen() {
+  const go = useGoTo();
   const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { data: trophies, isLoading, isError, refetch } = useMyTrophies();
@@ -107,8 +109,13 @@ export default function DateLogScreen() {
             </View>
           ) : null}
           // A drawn place, like every other empty room — a lone grey line floated in the middle of
-          // an otherwise blank screen.
-          ListEmptyComponent={<StateBlock icon="book-heart-outline" title={i18n.t('date_log_empty')} />}
+          // an otherwise blank screen. `book-heart-outline` had no drawing, so this one empty room
+          // still showed a stock icon under a whole sentence set as its title, with no way onward.
+          ListEmptyComponent={(
+            <StateBlock icon="calendar-page" title={i18n.t('date_log_empty')} body={i18n.t('date_log_empty_sub')}>
+              <GameButton variant="ink" size="compact" onPress={() => go('/(tabs)/activity')}>{i18n.t('mission_board')}</GameButton>
+            </StateBlock>
+          )}
           renderItem={({ item, index }) => (
             <Entering index={index}>
               <TrophyRow trophy={item} />

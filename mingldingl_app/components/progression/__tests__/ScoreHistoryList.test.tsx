@@ -53,12 +53,12 @@ function collectText(node: unknown, out: string[] = []): string[] {
 }
 
 describe('ScoreHistoryList', () => {
-  // Each row is a saga line with the signed delta folded into the sentence, its day named by the
-  // section heading above it (an uppercase eyebrow, absent a `joinedAt`), and the bare number kept
-  // at the right so totals can still be scanned.
-  it('tells a mapped event as a saga line with the delta substituted', () => {
-    const { getByText } = renderList(['DailyLogin']);
-    expect(getByText('The wanderer returned at dawn, +5')).toBeTruthy();
+  // Each row is a saga line, its day named by the section heading above it (an uppercase eyebrow,
+  // absent a `joinedAt`), and the number only at the right — once, so totals can be scanned.
+  it('tells a mapped event as a saga line with its number in the ledger column only', () => {
+    const { getByText, getAllByText } = renderList(['DailyLogin']);
+    expect(getByText('The wanderer returned at dawn')).toBeTruthy();
+    expect(getAllByText(/\+5/)).toHaveLength(1);
     expect(getByText('+5')).toBeTruthy();
     expect(getByText('SEP 1, 2026')).toBeTruthy();
   });
@@ -71,7 +71,7 @@ describe('ScoreHistoryList', () => {
         isFetchingNextPage={false}
       />,
     );
-    expect(getByText('A silence fell, and the hold took its due, −15')).toBeTruthy();
+    expect(getByText('A silence fell, and the hold took its due')).toBeTruthy();
     expect(getByText('−15')).toBeTruthy();
   });
 
@@ -79,8 +79,8 @@ describe('ScoreHistoryList', () => {
   // i18n-js's `[missing "en.CampaignRoomBonus" translation]` marker.
   it('tells the campaign awards the engine emits', () => {
     const { getByText } = renderList(['CampaignRoomBonus', 'CampaignBossBonus']);
-    expect(getByText('A chamber of the deep was cleared, +5')).toBeTruthy();
-    expect(getByText('The seal of the deep was broken, +5')).toBeTruthy();
+    expect(getByText('A chamber of the deep was cleared')).toBeTruthy();
+    expect(getByText('The seal of the deep was broken')).toBeTruthy();
   });
 
   it('gives every event type the engine can write a saga line in both locales', () => {
@@ -92,7 +92,7 @@ describe('ScoreHistoryList', () => {
         // A key still awaiting a native speaker renders in English for `mn` by design.
         if (locale === 'mn' && awaitingMn.has(key)) continue;
         const line = (translations[locale] as Record<string, string>)[key];
-        if (!line || !line.includes('%{delta}')) missing.push(`${locale}.${type}`);
+        if (!line || line.includes('%{delta}')) missing.push(`${locale}.${type}`);
       }
     }
     expect(missing).toEqual([]);

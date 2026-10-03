@@ -82,8 +82,8 @@ export const EVENT_TYPE_KEYS: Record<string, string> = {
 };
 
 /**
- * One saga line per event, taking the already-signed delta (`%{delta}`) so the sentence
- * carries the number in the wanderer's own tongue. Mirrors `EVENT_TYPE_KEYS` entry for entry.
+ * One saga line per event. The number is not in the sentence: the ledger column beside it already
+ * carries it, and a row read "…returned at dawn, +5   +5". Mirrors `EVENT_TYPE_KEYS` entry for entry.
  */
 export const CHRONICLE_KEYS: Record<string, string> = {
   ProfileComplete: 'chronicle_profile_complete',
@@ -110,7 +110,7 @@ export const CHRONICLE_KEYS: Record<string, string> = {
   ScarHealed: 'chronicle_scar_healed',
 };
 
-/** Signed for the sentence and its ledger column: a real minus sign, not a hyphen, so "−15" reads as a loss. */
+/** Signed for the ledger column: a real minus sign, not a hyphen, so "−15" reads as a loss. */
 function signedDelta(delta: number): string {
   return delta >= 0 ? `+${delta}` : `−${Math.abs(delta)}`;
 }
@@ -120,9 +120,9 @@ function signedDelta(delta: number): string {
  * not caught up with must show its raw identifier, not i18n-js's `[missing "en.X" translation]`.
  * A type with a plain label but no saga line falls back to that label.
  */
-function eventLine(eventType: string, delta: number): string {
+function eventLine(eventType: string): string {
   const chronicle = CHRONICLE_KEYS[eventType];
-  if (chronicle) return tKey(chronicle, eventType, { delta: signedDelta(delta) });
+  if (chronicle) return tKey(chronicle, eventType);
   return tKey(EVENT_TYPE_KEYS[eventType], eventType);
 }
 
@@ -196,7 +196,7 @@ export function ScoreHistoryList({ items, onEndReached, isFetchingNextPage, join
             <View style={styles.row}>
               <Icon name={icon} size={ICON_SIZES.md} color={INK.dim} style={styles.icon} />
               <View style={styles.body}>
-                <Text style={styles.line}>{eventLine(item.eventType, item.delta)}</Text>
+                <Text style={styles.line}>{eventLine(item.eventType)}</Text>
               </View>
               <Text style={[styles.delta, { color }]}>{signedDelta(item.delta)}</Text>
             </View>
