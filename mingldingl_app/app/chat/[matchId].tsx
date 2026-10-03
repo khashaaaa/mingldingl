@@ -63,6 +63,9 @@ const DEFAULT_RITE_DURATION_MINUTES = 5;
 /** How close to the newest message still counts as "following the conversation", in px. */
 const NEAR_BOTTOM_SLOP = 80;
 
+/** Past the stack's push animation, so the ended dialog's window is not built during it. */
+const ENDED_ALERT_DELAY_MS = 450;
+
 export default function ChatScreen() {
   useLocaleStore((s) => s.locale);
   const { matchId, name, wovenBy } = useLocalSearchParams<{ matchId: string; name?: string; wovenBy?: string }>();
@@ -233,6 +236,16 @@ export default function ChatScreen() {
 
   useEffect(() => {
     setEndedAcknowledged(false);
+  }, [matchId]);
+
+  // The ended-thread dialog waits for the screen to land. Raised in the same frame as the push it
+  // opened a second window mid-transition, and on the Galaxy A51 (2026-10-03) that frame ran to
+  // 460ms; a beat later it costs the slide nothing and still reads as the first thing you see.
+  const [landed, setLanded] = useState(false);
+  useEffect(() => {
+    setLanded(false);
+    const id = setTimeout(() => setLanded(true), ENDED_ALERT_DELAY_MS);
+    return () => clearTimeout(id);
   }, [matchId]);
 
   // `name` is a route param frozen when the quest-log row was tapped, so a match that crossed the
@@ -493,7 +506,7 @@ export default function ChatScreen() {
         )}
       </KeyboardAvoidingView>
       <AlertModal
-        visible={!!endedReason && !endedAcknowledged}
+        visible={landed && !!endedReason && !endedAcknowledged}
         tone={endedReason === 'ghosted' ? 'frost' : effectiveStatus === 'Completed' ? 'default' : 'warning'}
         title={endedReason === 'ghosted' ? i18n.t('match_quiet_title')
           : effectiveStatus === 'Completed' ? i18n.t('retired_title') : i18n.t('match_ended_title')}

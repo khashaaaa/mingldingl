@@ -8,6 +8,7 @@ import { CandleRow } from '../components/hearth/CandleRow';
 import { GameButton } from '../components/ui/GameButton';
 import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { StateBlock } from '../components/ui/StateBlock';
+import { Deferred } from '../components/ui/Deferred';
 import { DawnFires, type DawnFire } from '../components/hearth/DawnFires';
 import { Destinations } from '../components/hearth/Destinations';
 import { SkyWindow } from '../components/hearth/SkyWindow';
@@ -148,42 +149,47 @@ export default function HearthScreen() {
           </View>
         </AppCard>
 
-        {profile && (
-          <GettingStartedCard
-            isProfileComplete={profile.isProfileComplete}
-            achievedMilestoneIds={milestones.filter((m) => m.achievedAt).map((m) => m.id ?? '')}
-            onCompleteProfile={() => router.push('/edit-profile')}
-          />
-        )}
-        <NextGatheringPill />
-
-        <View style={styles.section}>
-          <Destinations />
-        </View>
-
-        <View style={styles.section}>
-          {/* The eyebrow stands in all three states: the ledger is the same part of the screen
-              whether it is waiting, broken or empty. */}
-          <CardEyebrow>{i18n.t('hearth_judged')}</CardEyebrow>
-          {matchesLoading && (
-            <SkeletonRows count={3} row={() => (
-              <View style={styles.fireRowShape}>
-                <Skeleton width={ICON_SIZES.md} height={ICON_SIZES.md} radius={RADIUS.pill} />
-                <Skeleton width="72%" height={FONT_SIZES.md} />
-              </View>
-            )} />
+        {/* Below the window: built over the frames after the push rather than inside it. */}
+        <Deferred stage={2}>
+          {profile && (
+            <GettingStartedCard
+              isProfileComplete={profile.isProfileComplete}
+              achievedMilestoneIds={milestones.filter((m) => m.achievedAt).map((m) => m.id ?? '')}
+              onCompleteProfile={() => router.push('/edit-profile')}
+            />
           )}
-          {!matchesLoading && matchesError && (
-            // `framed` rather than bare: an unframed block is `flex: 1` and would collapse to no
-            // height inside this scroll content. Ink, not forged — the hearth spends no forge.
-            <StateBlock framed tone="danger" icon="alert-circle-outline" title={i18n.t('screen_load_error')}>
-              <GameButton variant="ink" size="compact" onPress={() => refetchMatches()}>{i18n.t('retry')}</GameButton>
-            </StateBlock>
-          )}
-          {!matchesLoading && !matchesError && <DawnFires fires={fires} />}
-        </View>
+          <NextGatheringPill />
 
-        <Text style={styles.law}>{i18n.t('hearth_law')}</Text>
+          <View style={styles.section}>
+            <Destinations />
+          </View>
+        </Deferred>
+
+        <Deferred stage={4}>
+          <View style={styles.section}>
+            {/* The eyebrow stands in all three states: the ledger is the same part of the screen
+                whether it is waiting, broken or empty. */}
+            <CardEyebrow>{i18n.t('hearth_judged')}</CardEyebrow>
+            {matchesLoading && (
+              <SkeletonRows count={3} row={() => (
+                <View style={styles.fireRowShape}>
+                  <Skeleton width={ICON_SIZES.md} height={ICON_SIZES.md} radius={RADIUS.pill} />
+                  <Skeleton width="72%" height={FONT_SIZES.md} />
+                </View>
+              )} />
+            )}
+            {!matchesLoading && matchesError && (
+              // `framed` rather than bare: an unframed block is `flex: 1` and would collapse to no
+              // height inside this scroll content. Ink, not forged — the hearth spends no forge.
+              <StateBlock framed tone="danger" icon="alert-circle-outline" title={i18n.t('screen_load_error')}>
+                <GameButton variant="ink" size="compact" onPress={() => refetchMatches()}>{i18n.t('retry')}</GameButton>
+              </StateBlock>
+            )}
+            {!matchesLoading && !matchesError && <DawnFires fires={fires} />}
+          </View>
+
+          <Text style={styles.law}>{i18n.t('hearth_law')}</Text>
+        </Deferred>
       </ScrollView>
     </View>
   );

@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter, type Href } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet } from 'react-native';
+import { AppState, Animated, Easing, InteractionManager, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, LINE_HEIGHTS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
 import { Glyph, type GlyphName } from '../../components/ui/Glyph';
@@ -43,7 +43,50 @@ const tabIcon = (glyph: GlyphName) => ({ color, focused }: { color: string; focu
   <TabGlyphIcon glyph={glyph} color={color} focused={focused} />
 );
 
+/**
+ * The tabs other than the one the app opens on, in the order they are built in the background.
+ * A tab is otherwise built the first time it is tapped, and on the Galaxy A51 (2026-10-03) that
+ * first tap froze the screen for 300-800ms while the whole tab's views were created.
+ */
+const PRELOAD: readonly Href[] = ['/(tabs)/matches', '/(tabs)/profile', '/(tabs)/activity', '/(tabs)/townsquare'];
+/** Long enough after the tabs mount that the opening screen has finished its own first frames. */
+const PRELOAD_START_MS = 1500;
+/** Between tabs, so each build is its own short stall rather than one long one. */
+const PRELOAD_GAP_MS = 600;
+
+/**
+ * Builds the other tabs one at a time while the user is still on the first, so tapping one later
+ * only has to show it. Waits out any running interaction before each, and stops for good once the
+ * list is done or the tabs unmount.
+ */
+function usePreloadTabs() {
+  const router = useRouter();
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let task: { cancel: () => void } | undefined;
+    const next = (i: number) => {
+      if (cancelled || i >= PRELOAD.length) return;
+      timer = setTimeout(() => {
+        task = InteractionManager.runAfterInteractions(() => {
+          if (cancelled) return;
+          // A backgrounded app has no frames to spare and no reason to build anything.
+          if (AppState.currentState === 'active') router.prefetch(PRELOAD[i]);
+          next(i + 1);
+        });
+      }, i === 0 ? PRELOAD_START_MS : PRELOAD_GAP_MS);
+    };
+    next(0);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      task?.cancel();
+    };
+  }, [router]);
+}
+
 export default function TabsLayout() {
+  usePreloadTabs();
   // The tab labels are baked into the options objects below, so React Navigation keeps serving
   // the strings from this component's last render. Subscribing re-renders it on a locale switch.
   useLocaleStore((s) => s.locale);

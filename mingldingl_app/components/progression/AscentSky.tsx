@@ -7,8 +7,6 @@ import { FONTS, FONT_SIZES, GEM_COLORS, INK, LINE, NIGHT, SPACE, TRACKING } from
 import { i18n } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
 interface Props {
   gemTier: GemTier;
   totalScore: number;
@@ -56,8 +54,8 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
     if (!motionAllowed(vfxLevel)) return;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: HALO_OPACITY_HIGH, duration: PULSE_HALF_MS, useNativeDriver: false }),
-        Animated.timing(pulse, { toValue: HALO_OPACITY_LOW, duration: PULSE_HALF_MS, useNativeDriver: false }),
+        Animated.timing(pulse, { toValue: HALO_OPACITY_HIGH, duration: PULSE_HALF_MS, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: HALO_OPACITY_LOW, duration: PULSE_HALF_MS, useNativeDriver: true }),
       ]),
     );
     loop.start();
@@ -129,12 +127,8 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
           const radius = held ? HELD_RADIUS : reached ? STAR_RADIUS : DIM_RADIUS;
           return (
             <Fragment key={p.tier}>
-              {held && (
-                motionAllowed(vfxLevel) ? (
-                  <AnimatedCircle cx={p.x} cy={p.y} r={HALO_RADIUS} fill={color} opacity={pulse} />
-                ) : (
-                  <Circle cx={p.x} cy={p.y} r={HALO_RADIUS} fill={color} opacity={0.25} />
-                )
+              {held && !motionAllowed(vfxLevel) && (
+                <Circle cx={p.x} cy={p.y} r={HALO_RADIUS} fill={color} opacity={0.25} />
               )}
               <Circle testID={held ? 'ascent-star-held' : 'ascent-star'} cx={p.x} cy={p.y} r={radius} fill={color} />
               <SvgText
@@ -150,6 +144,26 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
           );
         })}
       </Svg>
+      {/* The breathing halo is a native view over the drawing rather than a circle inside it. As an
+          SVG prop the pulse crossed from JS on every frame and re-rendered the whole sky each time,
+          for as long as the screen was open; this way the opacity runs on the UI thread alone. It
+          is the held star's own colour, so lying over the star rather than under it reads the same. */}
+      {heldIndex >= 0 && motionAllowed(vfxLevel) && (
+        <Animated.View
+          testID="ascent-halo"
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: points[heldIndex].x - HALO_RADIUS,
+            top: points[heldIndex].y - HALO_RADIUS,
+            width: HALO_RADIUS * 2,
+            height: HALO_RADIUS * 2,
+            borderRadius: HALO_RADIUS,
+            backgroundColor: GEM_COLORS[points[heldIndex].tier],
+            opacity: pulse,
+          }}
+        />
+      )}
       <View style={styles.streakBlock}>
         <Text style={styles.streakNumber}>{currentStreak}</Text>
         <Text style={styles.streakCaption}>{i18n.t('ascent_dawns', { count: currentStreak })}</Text>

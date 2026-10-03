@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Appearance, Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter, useSegments } from 'expo-router';
@@ -234,6 +234,17 @@ function AppContent() {
     }
   }, [mounted, storeHydrated, session, profileLoading, profileError, userProfile, segments, router]);
 
+  // Stable across renders: this component re-renders on every navigation (it reads the segments),
+  // and a new options function each time made the navigator rebuild every screen's descriptor.
+  const still = vfxLevel === 'still';
+  const screenOptions = useCallback(({ route }: { route: { name: string } }) => ({
+    headerShown: false,
+    animation: animationFor(route.name, still),
+    // Native stack screens take their ground from `contentStyle` rather than the theme, so both
+    // are needed — see HOLD_THEME.
+    contentStyle: styles.transparent,
+  }), [still]);
+
   if (!fontsReady || !localeReady) {
     return (
       <View style={styles.splash}>
@@ -275,13 +286,7 @@ function AppContent() {
           <ErrorBoundary>
             <ThemeProvider value={HOLD_THEME}>
             <Stack
-              screenOptions={({ route }) => ({
-                headerShown: false,
-                animation: animationFor(route.name, vfxLevel === 'still'),
-                // Native stack screens take their ground from `contentStyle` rather than the
-                // theme, so both are needed — see HOLD_THEME.
-                contentStyle: styles.transparent,
-              })}
+              screenOptions={screenOptions}
               screenLayout={ScreenGround}
             />
             </ThemeProvider>

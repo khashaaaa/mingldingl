@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { Canvas, Circle } from '@shopify/react-native-skia';
-import { useSharedValue, withRepeat, withTiming, withDelay, useDerivedValue, Easing } from 'react-native-reanimated';
+import { cancelAnimation, useSharedValue, withRepeat, withSequence, withTiming, withDelay, useDerivedValue, Easing } from 'react-native-reanimated';
 import { METAL } from '../../lib/theme';
 import { useVfxLevel } from '../../lib/vfx';
 
-interface Props { width: number; height: number; density?: number; }
+interface Props {
+  width: number; height: number; density?: number;
+  /** Holds every ember where it is: no frames drawn, no animation callbacks, until it clears. */
+  paused?: boolean;
+}
 
 interface EmberCfg { x: number; drift: number; r: number; duration: number; delay: number; color: string; }
 
@@ -26,41 +30,59 @@ function configure(width: number, density: number): EmberCfg[] {
  * field drawn as plain views at half the density, which is what the browser can carry without a
  * canvas and is why this layer is no longer invisible during development.
  */
-export function EmberField({ width, height, density = 8 }: Props) {
+export function EmberField({ width, height, density = 8, paused = false }: Props) {
   const level = useVfxLevel();
   if (width === 0 || height === 0) return null;
-  if (level === 'full') return <SkiaEmbers width={width} height={height} density={density} />;
+  if (level === 'full') return <SkiaEmbers width={width} height={height} density={density} paused={paused} />;
   if (level === 'plain') return <PlainEmbers width={width} height={height} density={Math.max(3, Math.round(density / 2))} />;
   return null;
 }
 
-function SkiaEmbers({ width, height, density }: Required<Props>) {
+function SkiaEmbers({ width, height, density, paused }: Required<Props>) {
   // Re-rolled whenever the canvas changes shape. `height` is not a spawn input, so it is read
   // here to make that intent a real dependency; it is never 0 by the time this mounts.
   const embers = useMemo(() => (height > 0 ? configure(width, density) : []), [width, height, density]);
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
       <Canvas style={{ width, height }}>
-        {embers.map((cfg, i) => <Ember key={i} cfg={cfg} height={height} />)}
+        {embers.map((cfg, i) => <Ember key={i} cfg={cfg} height={height} paused={paused} />)}
       </Canvas>
     </View>
   );
 }
 
-function Ember({ cfg, height }: { cfg: EmberCfg; height: number }) {
+function Ember({ cfg, height, paused }: { cfg: EmberCfg; height: number; paused: boolean }) {
   const progress = useSharedValue(0);
+  const started = useRef(false);
   useEffect(() => {
-    progress.value = withDelay(cfg.delay, withRepeat(withTiming(1, { duration: cfg.duration, easing: Easing.linear }), -1, false));
-    // The climb is started once: a re-rolled cfg moves the ember, it does not restart it.
+    if (paused) {
+      cancelAnimation(progress);
+      return;
+    }
+    const climb = withTiming(1, { duration: cfg.duration, easing: Easing.linear });
+    if (!started.current) {
+      started.current = true;
+      progress.value = withDelay(cfg.delay, withRepeat(climb, -1, false));
+      return;
+    }
+    // Resuming mid-climb: finish this climb at the same speed, then loop from the floor. A plain
+    // `withRepeat` here would loop from wherever the pause left it, and the ember would only ever
+    // rise through the top of the band again.
+    const left = Math.max(0, 1 - progress.value);
+    progress.value = withSequence(
+      withTiming(1, { duration: cfg.duration * left, easing: Easing.linear }),
+      withRepeat(withSequence(withTiming(0, { duration: 0 }), climb), -1, false),
+    );
+    // A re-rolled cfg moves the ember, it does not restart it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progress]);
+  }, [progress, paused]);
   const cy = useDerivedValue(() => height - progress.value * height);
   const cx = useDerivedValue(() => cfg.x + Math.sin(progress.value * Math.PI * 2) * cfg.drift);
   const opacity = useDerivedValue(() => (progress.value < 0.1 ? progress.value * 6 : (1 - progress.value) * 0.7));
   return <Circle cx={cx} cy={cy} r={cfg.r} color={cfg.color} opacity={opacity} />;
 }
 
-function PlainEmbers({ width, height, density }: Required<Props>) {
+function PlainEmbers({ width, height, density }: Required<Omit<Props, 'paused'>>) {
   // Re-rolled whenever the canvas changes shape. `height` is not a spawn input, so it is read
   // here to make that intent a real dependency; it is never 0 by the time this mounts.
   const embers = useMemo(() => (height > 0 ? configure(width, density) : []), [width, height, density]);

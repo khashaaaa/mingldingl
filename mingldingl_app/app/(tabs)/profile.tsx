@@ -26,6 +26,7 @@ import { OathCard } from '../../components/profile/OathCard';
 import { StandingCard } from '../../components/profile/StandingCard';
 import { DeletionPendingBanner } from '../../components/profile/DeletionPendingBanner';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { Deferred } from '../../components/ui/Deferred';
 import { useCancelDeletion } from '../../hooks/useCancelDeletion';
 import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, RADIUS, SPACE, TRACKING } from '../../lib/theme';
 import type { GemTier } from '../../models/user';
@@ -114,65 +115,72 @@ export default function ProfileScreen() {
           </Tap>
         </AppCard>
 
-        <OathCard
-          oath={profile.oath}
-          oathProven={profile.oathProven}
-          encountersHeld={profile.oathEncountersHeld}
-          encountersNeeded={profile.oathEncountersNeeded}
-          gemTier={gemTier}
-          style={[styles.card, styles.cardPadding]}
-        />
-
-        <StandingCard gemTier={gemTier} style={[styles.card, styles.cardPadding]} />
-
-        <AppCard style={[styles.card, styles.cardPadding]}>
-          <Text style={styles.bioText}>{profile.bio}</Text>
-        </AppCard>
-
-        <InviteAllyCard referralCode={profile.referralCode} />
-
-        <ThreadLog ownedItemIds={items.map((i) => i.itemId ?? '')} />
-
-        <HonourCase />
-
-        <View style={styles.editButtonWrapper}>
-          <GameButton variant="ink" size="compact" icon="book-heart" onPress={() => router.push('/date-log')}>
-            {i18n.t('view_date_log')}
-          </GameButton>
-        </View>
-
-        <View style={styles.editButtonWrapper}>
-          {/* The Satchel (Wave 4 Task 9) reads nine rules already enforced elsewhere; this is a
-              second door to it, beside the Encounter Log, the way the hearth's own tap already
-              opens the same route. */}
-          <GameButton variant="ink" size="compact" icon="bag-personal-outline" onPress={() => router.push('/satchel')}>
-            {i18n.t('dest_satchel')}
-          </GameButton>
-        </View>
-
-        <View style={styles.editButtonWrapper}>
-          <GameButton variant="ink" size="compact" icon="pencil-outline" onPress={() => router.push('/edit-profile')}>
-            {i18n.t('edit_profile')}
-          </GameButton>
-        </View>
-
-        <View style={styles.editButtonWrapper}>
-          <ShareCharacterButton
-            displayName={profile.displayName}
-            photoUrl={firstPhoto}
-            gemTier={gemTier}
-            totalScore={scoreDetail.totalScore ?? 0}
-            currentStreak={scoreDetail.currentStreak ?? 0}
+        {/* Everything from here down is below the fold on a phone; it is built over the next few
+            frames rather than in the one the tab opens in (see Deferred). */}
+        <Deferred stage={2}>
+          <OathCard
             oath={profile.oath}
             oathProven={profile.oathProven}
+            encountersHeld={profile.oathEncountersHeld}
+            encountersNeeded={profile.oathEncountersNeeded}
+            gemTier={gemTier}
+            style={[styles.card, styles.cardPadding]}
           />
-        </View>
 
-        <View style={styles.signOutWrapper}>
-          <GameButton variant="ink" size="compact" icon="cog-outline" onPress={() => router.push('/settings')}>
-            {i18n.t('settings_title')}
-          </GameButton>
-        </View>
+          <StandingCard gemTier={gemTier} style={[styles.card, styles.cardPadding]} />
+        </Deferred>
+        <Deferred stage={4}>
+          <AppCard style={[styles.card, styles.cardPadding]}>
+            <Text style={styles.bioText}>{profile.bio}</Text>
+          </AppCard>
+
+          <InviteAllyCard referralCode={profile.referralCode} />
+
+          <ThreadLog ownedItemIds={items.map((i) => i.itemId ?? '')} />
+        </Deferred>
+
+        <Deferred stage={6}>
+          <HonourCase />
+
+          <View style={styles.editButtonWrapper}>
+            <GameButton variant="ink" size="compact" icon="book-heart" onPress={() => router.push('/date-log')}>
+              {i18n.t('view_date_log')}
+            </GameButton>
+          </View>
+
+          <View style={styles.editButtonWrapper}>
+            {/* The Satchel (Wave 4 Task 9) reads nine rules already enforced elsewhere; this is a
+                second door to it, beside the Encounter Log, the way the hearth's own tap already
+                opens the same route. */}
+            <GameButton variant="ink" size="compact" icon="bag-personal-outline" onPress={() => router.push('/satchel')}>
+              {i18n.t('dest_satchel')}
+            </GameButton>
+          </View>
+
+          <View style={styles.editButtonWrapper}>
+            <GameButton variant="ink" size="compact" icon="pencil-outline" onPress={() => router.push('/edit-profile')}>
+              {i18n.t('edit_profile')}
+            </GameButton>
+          </View>
+
+          <View style={styles.editButtonWrapper}>
+            <ShareCharacterButton
+              displayName={profile.displayName}
+              photoUrl={firstPhoto}
+              gemTier={gemTier}
+              totalScore={scoreDetail.totalScore ?? 0}
+              currentStreak={scoreDetail.currentStreak ?? 0}
+              oath={profile.oath}
+              oathProven={profile.oathProven}
+            />
+          </View>
+
+          <View style={styles.signOutWrapper}>
+            <GameButton variant="ink" size="compact" icon="cog-outline" onPress={() => router.push('/settings')}>
+              {i18n.t('settings_title')}
+            </GameButton>
+          </View>
+        </Deferred>
       </ScrollView>
     </View>
   );

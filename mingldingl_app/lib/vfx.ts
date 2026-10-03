@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { AccessibilityInfo, Platform } from 'react-native';
 
 /**
@@ -37,13 +37,43 @@ export function motionAllowed(level: VfxLevel): boolean {
   return level === 'full' || level === 'plain';
 }
 
-export function useVfxLevel(): VfxLevel {
-  const [reduceMotion, setReduceMotion] = useState(false);
-  useEffect(() => {
+/**
+ * The OS reduce-motion setting, read once for the whole app. Every caller used to ask Android for
+ * it on its own mount and add its own listener — two dozen components, a list row and a skeleton
+ * among them — so opening a screen queued a native round trip per row and then re-rendered each
+ * one when the answers came back.
+ */
+let reduceMotion = false;
+let subscribed = false;
+const listeners = new Set<() => void>();
+
+function setReduceMotion(next: boolean): void {
+  if (next === reduceMotion) return;
+  reduceMotion = next;
+  for (const l of listeners) l();
+}
+
+function subscribeReduceMotion(listener: () => void): () => void {
+  listeners.add(listener);
+  if (!subscribed) {
+    subscribed = true;
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion).catch(() => {});
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
-    return () => sub.remove();
-  }, []);
+    AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+  }
+  return () => { listeners.delete(listener); };
+}
+
+const readReduceMotion = () => reduceMotion;
+
+export function useVfxLevel(): VfxLevel {
+  const reduce = useSyncExternalStore(subscribeReduceMotion, readReduceMotion, readReduceMotion);
   if (process.env.EXPO_PUBLIC_VFX === 'off') return 'off';
-  return resolveVfxLevel(Platform.OS, reduceMotion);
+  return resolveVfxLevel(Platform.OS, reduce);
+}
+
+/** Test seam: forget the shared subscription so each test starts from the OS default. */
+export function __resetVfxLevel(): void {
+  reduceMotion = false;
+  subscribed = false;
+  listeners.clear();
 }

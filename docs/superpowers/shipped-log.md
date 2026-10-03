@@ -8,6 +8,29 @@ long versions.
 
 ---
 
+## 2026-10-03 — Smoothness pass (measured on the Galaxy A51)
+
+Measured with a production-mode bundle (`expo start --no-dev --minify`), `dumpsys gfxinfo` and
+Perfetto. Navigation jank was almost entirely Android's UI and render threads, not JS: building
+native views when a screen first opens, CPU-drawn SVG, and full-window redraws from the ever-running
+embers and fog. Before → after (cool phone, % frames late / worst frame): first visit to each tab
+34% / 400ms → 10% / 150ms; first chat open 72% / 500ms → 28% / 150ms; Hearth 80% / 450ms →
+7% / 53ms; Progression 40% / 250ms → 6% / 129ms.
+
+- `router.prefetch` builds the four other tabs in the background after launch (`app/(tabs)/_layout.tsx`).
+- `components/ui/Deferred` mounts below-the-fold sections a few frames late (Character Sheet, Hearth).
+- The world canopy holds its embers/fog still for 700ms after every route change; the fog banks are
+  blurred once into images and only moved per frame (was ~9ms of render thread per frame in the Deep).
+- Glyphs are baked PNGs (`scripts/gen-glyphs.js`); the Hearth's sky is native views (stops drawn
+  solid, as react-native-svg always drew them); the Ascent halo and `GlowText` breathe on the
+  native driver instead of JS.
+- `useVfxLevel` reads reduce-motion once for the app, not once per component; the world context
+  and the root stack's `screenOptions` are memoized; the ended-thread dialog waits until the chat lands.
+- Tried and dropped: `detachInactiveScreens={false}` (no gain) and `removeClippedSubviews` on the
+  Character Sheet (~30ms, not worth its Fabric risk). Embers and fog still repaint the whole window
+  at 60fps while visible — the price of the effect; the Fire also stacks its own ember canvas over
+  the room's.
+
 ## 2026-10-03 — The road: party seats, scars, waypoints, seasons, weekly trials, retiring
 
 Six mechanics that turn the accountability rules into play; every number is admin config under

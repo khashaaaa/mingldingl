@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { MaterialMark, type Material } from '../MaterialMark';
-import { marks } from '../../../lib/testing/svg';
+import { paints } from '../../../lib/testing/svg';
 import { ICON_SIZES, MATERIAL, tint } from '../../../lib/theme';
 
 /**
@@ -37,10 +37,9 @@ describe('MaterialMark', () => {
   });
 
   it("draws the glyph in the material's own colour", () => {
-    const { toJSON } = render(<MaterialMark material="iron" glyph="forge" />);
-    for (const mark of marks(toJSON())) {
-      expect(mark.props?.stroke ?? mark.props?.fill).toBeTruthy();
-    }
+    const drawn = paints(render(<MaterialMark material="iron" glyph="forge" />).toJSON());
+    expect(drawn.length).toBeGreaterThan(0);
+    for (const paint of drawn) expect(paint).toBeTruthy();
   });
 
   it('announces a labelled mark as an image', () => {

@@ -1,5 +1,5 @@
 import { View, StyleSheet } from 'react-native';
-import Svg, { Circle, ClipPath, Defs, Ellipse, G, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { FROST_RIM_REACH, FrostEdge } from '../vfx/FrostEdge';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, INK, NIGHT, RADIUS, tint } from '../../lib/theme';
@@ -16,7 +16,7 @@ import type { DayPhase } from '../../lib/world/light';
  * would run for as long as someone left the hearth open.
  */
 
-/** Fixed per the brief: an `Svg` `width × 160`. */
+/** Fixed per the brief: `width × 160`. */
 const SKY_HEIGHT = 160;
 
 /**
@@ -62,57 +62,57 @@ interface Props {
   whiteMoon: boolean;
 }
 
+/**
+ * The gradient's stops drawn solid. The window was an SVG until 2026-10-03, and react-native-svg
+ * takes a stop's colour without its alpha, so the day and dawn skies have always ended in the solid
+ * cream and gold people have seen; a native gradient honours the alpha and would turn them grey.
+ */
+function solid(color: string): string {
+  const m = color.match(/^rgba\((\d+),(\d+),(\d+),[\d.]+\)$/);
+  return m ? `rgb(${m[1]},${m[2]},${m[3]})` : color;
+}
+
 export function SkyWindow({ phase, width, whiteMoon }: Props) {
-  const [from, to] = SKY_GRADIENTS[phase];
+  const [from, to] = SKY_GRADIENTS[phase].map(solid);
+  const rx = width * GLOW_RX_RATIO;
 
   return (
     // One node, one sentence. A screen reader walking a dozen unnamed circles learns nothing; the
     // label says what the sky is doing, which is the whole content of the drawing.
+    //
+    // Native views rather than an `Svg`: on Android an SVG is rasterized on the CPU into a bitmap
+    // the size of the window, and this one was a large share of the Hearth's opening frame on the
+    // Galaxy A51 (2026-10-03). A gradient, an ellipse and twelve dots are all things a view draws
+    // on the GPU for nothing.
     <View
       testID="sky-window"
       accessible
       accessibilityLabel={i18n.t(`sky_${phase}`)}
     >
-      <Svg width={width} height={SKY_HEIGHT} accessible={false} importantForAccessibility="no">
-        <Defs>
-          <LinearGradient id="skyFill" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={from} />
-            <Stop offset="1" stopColor={to} />
-          </LinearGradient>
-          {/* The card's own corners, so the horizon glow cannot bleed past the sill. Only the top
-              two: the window sits at the head of the card, and a rect that rounded off at the sill
-              too would notch the sky open onto the parchment right where the copy begins — so the
-              rect runs `RADIUS.md` past the bottom of the canvas, where its own rounding is cut
-              off by the viewport instead. */}
-          <ClipPath id="skyClip">
-            <Rect x={0} y={0} width={width} height={SKY_HEIGHT + RADIUS.md} rx={RADIUS.md} ry={RADIUS.md} />
-          </ClipPath>
-        </Defs>
-        <G clipPath="url(#skyClip)">
-          <Rect x={0} y={0} width={width} height={SKY_HEIGHT} fill="url(#skyFill)" />
-          {HORIZON_LIT.includes(phase) && (
-            <Ellipse
-              testID="sky-glow"
-              cx={width / 2}
-              cy={SKY_HEIGHT}
-              rx={width * GLOW_RX_RATIO}
-              ry={GLOW_RY}
-              fill={ACCENT.bright}
-              opacity={GLOW_OPACITY}
-            />
-          )}
-          {STARLIT.includes(phase) && STARS.map(([x, y, r]) => (
-            <Circle
-              key={`${x},${y}`}
-              testID="sky-star"
-              cx={width * x}
-              cy={SKY_HEIGHT * y}
-              r={r}
-              fill={INK.muted}
-            />
-          ))}
-        </G>
-      </Svg>
+      {/* The card's own corners, top only: the window sits at the head of the card, and rounding
+          the sill too would notch the sky open onto the parchment right where the copy begins. */}
+      <View style={[styles.glass, { width }]}>
+        <LinearGradient colors={[from, to]} style={StyleSheet.absoluteFill} />
+        {HORIZON_LIT.includes(phase) && (
+          // A circle the glow's height, stretched to its width: views have no elliptical radius.
+          // Centred on the sill, so only its upper half shows and the light reads as coming from
+          // beyond it.
+          <View
+            testID="sky-glow"
+            style={[styles.glow, {
+              left: width / 2 - GLOW_RY,
+              transform: [{ scaleX: rx / GLOW_RY }],
+            }]}
+          />
+        )}
+        {STARLIT.includes(phase) && STARS.map(([x, y, r]) => (
+          <View
+            key={`${x},${y}`}
+            testID="sky-star"
+            style={[styles.star, { left: width * x - r, top: SKY_HEIGHT * y - r, width: r * 2, height: r * 2, borderRadius: r }]}
+          />
+        ))}
+      </View>
       {whiteMoon && (
         // `FrostEdge` only answers "what does frost look like" — where it sits is the caller's, so
         // the two rims are anchored here. `FROST_RIM_REACH` rather than the default 96: there is
@@ -131,6 +131,22 @@ export function SkyWindow({ phase, width, whiteMoon }: Props) {
 }
 
 const styles = StyleSheet.create({
+  glass: {
+    height: SKY_HEIGHT,
+    overflow: 'hidden',
+    borderTopLeftRadius: RADIUS.md,
+    borderTopRightRadius: RADIUS.md,
+  },
+  glow: {
+    position: 'absolute',
+    top: SKY_HEIGHT - GLOW_RY,
+    width: GLOW_RY * 2,
+    height: GLOW_RY * 2,
+    borderRadius: GLOW_RY,
+    backgroundColor: ACCENT.bright,
+    opacity: GLOW_OPACITY,
+  },
+  star: { position: 'absolute', backgroundColor: INK.muted },
   rimTop: { position: 'absolute', top: 0, left: 0, right: 0 },
   rimBottom: { position: 'absolute', bottom: 0, left: 0, right: 0 },
 });

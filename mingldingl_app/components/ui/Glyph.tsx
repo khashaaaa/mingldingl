@@ -1,5 +1,5 @@
-import type { StyleProp, ViewStyle } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { Image, PixelRatio, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
+import { GLYPH_IMAGES, GLYPH_PIXELS } from './glyphImages';
 import { ACCENT, ICON_SIZES } from '../../lib/theme';
 
 /**
@@ -23,8 +23,8 @@ import { ACCENT, ICON_SIZES } from '../../lib/theme';
  * three copies of it and any drawing that missed the change simply looked slightly wrong.
  */
 export const STROKE = 2.4;
-/** A seal, drawn as the smallest mark that still reads as pressed wax. */
-const DOT = 4;
+/** A seal, drawn as the smallest mark that still reads as pressed wax. Read by `scripts/gen-glyphs.js`. */
+export const DOT = 4;
 
 interface Cuts {
   /** Stroked paths, in draw order. */
@@ -49,7 +49,7 @@ export type GlyphName = typeof GLYPH_NAMES[number];
  * Typed by the name tuple rather than inferred from itself: a drawing with no name, or a name
  * with no drawing, is then a compile error instead of an empty box on someone's tab bar.
  */
-const GLYPHS: Record<GlyphName, Cuts> = {
+export const GLYPHS: Record<GlyphName, Cuts> = {
   /** Seek. A fire seen from above: four logs, a core, four sparks. */
   fire: {
     lines: [
@@ -142,58 +142,33 @@ interface Props {
   style?: StyleProp<ViewStyle>;
 }
 
+/** The smallest baked size that covers `pixels`, so a glyph is never shrunk more than 2x. */
+function sourceFor(name: GlyphName, size: number) {
+  const pixels = size * PixelRatio.get();
+  const baked = GLYPH_PIXELS.find((p) => p >= pixels) ?? GLYPH_PIXELS[GLYPH_PIXELS.length - 1];
+  return GLYPH_IMAGES[name][baked];
+}
+
+/**
+ * Draws a glyph from its baked image (`scripts/gen-glyphs.js`, which reads `GLYPHS` above), tinted
+ * to `color`. It used to be a live `<Svg>`, and on Android each one was a view rasterized on the
+ * CPU into its own bitmap whenever it appeared — the Hearth alone stood twenty-three of them up
+ * in its opening frame. The drawings did not change; only how they reach the screen.
+ */
 export function Glyph({ name, size = ICON_SIZES.lg, color = ACCENT.base, label, style }: Props) {
-  const { lines, rings, dots } = GLYPHS[name];
-  // `no` hides this view and nothing under it, so TalkBack walked straight past the `<Svg>` and
-  // announced its paths one by one — a decorative glyph read out as a dozen unnamed shapes.
-  // `no-hide-descendants` takes the whole drawing out of the tree, which is what decorative means.
+  // `no` hides this view and nothing under it; `no-hide-descendants` takes the whole drawing out
+  // of the tree, which is what decorative means.
   const a11y = label
     ? { accessible: true, accessibilityRole: 'image' as const, accessibilityLabel: label }
     : { accessible: false, importantForAccessibility: 'no-hide-descendants' as const, 'aria-hidden': true };
 
   return (
-    <Svg
+    <Image
       testID={`glyph-${name}`}
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      style={style}
+      source={sourceFor(name, size)}
+      style={[{ width: size, height: size, tintColor: color }, style as StyleProp<ImageStyle>]}
+      fadeDuration={0}
       {...a11y}
-    >
-      {lines.map((d) => (
-        <Path
-          key={d}
-          d={d}
-          fill="none"
-          stroke={color}
-          strokeWidth={STROKE}
-          strokeLinecap="square"
-          strokeLinejoin="miter"
-        />
-      ))}
-      {rings?.map(([cx, cy, r]) => (
-        <Circle
-          key={`${cx},${cy},${r}`}
-          cx={cx}
-          cy={cy}
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth={STROKE}
-          strokeLinecap="square"
-          strokeLinejoin="miter"
-        />
-      ))}
-      {dots?.map(([cx, cy]) => (
-        <Rect
-          key={`${cx},${cy}`}
-          x={cx - DOT / 2}
-          y={cy - DOT / 2}
-          width={DOT}
-          height={DOT}
-          fill={color}
-        />
-      ))}
-    </Svg>
+    />
   );
 }

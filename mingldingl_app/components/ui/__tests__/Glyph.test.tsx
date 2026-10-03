@@ -1,71 +1,55 @@
 import { render } from '@testing-library/react-native';
+import fs from 'fs';
 import path from 'path';
-import { Glyph, GLYPH_NAMES } from '../Glyph';
+import { StyleSheet } from 'react-native';
+import { Glyph, GLYPHS, GLYPH_NAMES, STROKE } from '../Glyph';
+import { GLYPH_IMAGES, GLYPH_PIXELS } from '../glyphImages';
 import { appSources } from '../../../lib/testing/sourceTree';
-import { marks, packed, type TreeNode } from '../../../lib/testing/svg';
 import { ACCENT, ICON_SIZES, INK } from '../../../lib/theme';
 
 /**
- * The glyphs are drawings, so the tests look at what was drawn. A component that renders an
- * empty `<Svg />` satisfies "it renders" and shows the user nothing, which is exactly the
- * failure a hand-cut set is prone to — a name added to the table with no path behind it.
+ * The glyphs are drawings, so the tests look at the drawing: the `GLYPHS` table every image is
+ * baked from (`scripts/gen-glyphs.js`). A name added to the table with no path behind it would
+ * bake an empty image and show the user nothing.
  */
-
-/** The two joinery props reach the native view as their enum positions: butt 0, round 1, square 2; miter 0. */
-const SQUARE_CAP = 2;
-const MITER_JOIN = 0;
 
 /** A decorative glyph is hidden from the queries too, which is the point of it. */
 const HIDDEN = { includeHiddenElements: true };
 
-/** Whether a mark is a cut line rather than a filled seal. */
-function isCut(mark: TreeNode) {
-  return !mark.props?.fill;
-}
+const BAKED = path.join(__dirname, '..', '..', '..', 'assets', 'glyphs');
 
 describe('Glyph', () => {
   it('cuts at least one mark for every name in the set', () => {
-    const empty = GLYPH_NAMES.filter((name) => marks(render(<Glyph name={name} />).toJSON()).length === 0);
+    const empty = GLYPH_NAMES.filter((name) => {
+      const { lines, rings, dots } = GLYPHS[name];
+      return lines.length + (rings?.length ?? 0) + (dots?.length ?? 0) === 0;
+    });
 
     expect(empty).toEqual([]);
   });
 
-  it('holds one hand across the set — 2.4, square caps, mitred corners', () => {
-    const wrong: string[] = [];
-    for (const name of GLYPH_NAMES) {
-      for (const mark of marks(render(<Glyph name={name} />).toJSON()).filter(isCut)) {
-        const { strokeWidth, strokeLinecap, strokeLinejoin } = mark.props ?? {};
-        if (strokeWidth !== 2.4 || strokeLinecap !== SQUARE_CAP || strokeLinejoin !== MITER_JOIN) {
-          wrong.push(`${name}: ${strokeWidth}/${strokeLinecap}/${strokeLinejoin}`);
-        }
-      }
-    }
+  it('holds one hand across the set — one stroke weight for every cut', () => {
+    expect(STROKE).toBe(2.4);
+  });
 
-    expect(wrong).toEqual([]);
+  it('has a baked image at every size for every name, and nothing left over', () => {
+    const wanted = GLYPH_NAMES.flatMap((name) => GLYPH_PIXELS.map((px) => `${name}-${px}.png`)).sort();
+    expect(fs.readdirSync(BAKED).sort()).toEqual(wanted);
+    for (const name of GLYPH_NAMES) expect(Object.keys(GLYPH_IMAGES[name]).map(Number)).toEqual([...GLYPH_PIXELS]);
   });
 
   it('draws in the accent at the icon ladder unless told otherwise', () => {
-    const { getByTestId, toJSON } = render(<Glyph name="fire" />);
+    const style = StyleSheet.flatten(render(<Glyph name="fire" />).getByTestId('glyph-fire', HIDDEN).props.style);
 
-    expect(getByTestId('glyph-fire', HIDDEN).props).toEqual(expect.objectContaining({
-      width: ICON_SIZES.lg,
-      height: ICON_SIZES.lg,
-    }));
-    for (const mark of marks(toJSON())) {
-      expect(mark.props?.stroke ?? mark.props?.fill).toEqual(packed(ACCENT.base));
-    }
+    expect(style).toEqual(expect.objectContaining({ width: ICON_SIZES.lg, height: ICON_SIZES.lg, tintColor: ACCENT.base }));
   });
 
   it('takes the size and colour it is given, seals included', () => {
-    const { getByTestId, toJSON } = render(<Glyph name="seal" size={ICON_SIZES.hero} color={INK.dim} />);
+    const style = StyleSheet.flatten(
+      render(<Glyph name="seal" size={ICON_SIZES.hero} color={INK.dim} />).getByTestId('glyph-seal', HIDDEN).props.style,
+    );
 
-    expect(getByTestId('glyph-seal', HIDDEN).props).toEqual(expect.objectContaining({
-      width: ICON_SIZES.hero,
-      height: ICON_SIZES.hero,
-    }));
-    for (const mark of marks(toJSON())) {
-      expect(mark.props?.stroke ?? mark.props?.fill).toEqual(packed(INK.dim));
-    }
+    expect(style).toEqual(expect.objectContaining({ width: ICON_SIZES.hero, height: ICON_SIZES.hero, tintColor: INK.dim }));
   });
 
   // The gap list asks for a label on every glyph that carries meaning by itself. A glyph beside
@@ -83,7 +67,6 @@ describe('Glyph', () => {
   it('hides an unlabelled glyph from the screen reader', () => {
     const { getByTestId, queryByTestId } = render(<Glyph name="bell" />);
 
-    // `no` would hide the `<Svg>` and leave its paths in the tree, to be read out one by one.
     expect(getByTestId('glyph-bell', HIDDEN).props).toEqual(expect.objectContaining({
       accessible: false,
       importantForAccessibility: 'no-hide-descendants',

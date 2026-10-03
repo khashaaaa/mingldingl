@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
 import { useSharedValue, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import { LIGHT, LIGHT_FADE_MS, LIGHT_SPRING, ROOMS, WORLD_ENABLED, applyPhase, dayPhase, roomFor, type DayPhase, type LightRecipe, type RoomName } from '../../lib/world';
@@ -86,8 +86,15 @@ export function WorldProvider({ children }: { children: ReactNode }) {
     signal(depth > previous ? 'enterDeep' : 'ascend');
   }, [room]);
 
+  // Every stack screen lays a floor that reads this, so a fresh object here re-rendered all of them
+  // on each minute tick and each navigation, whether or not anything they draw had changed.
+  const value = useMemo(
+    () => ({ room, recipe: room ? LIGHT[ROOMS[room].base] : null, light, phase }),
+    [room, light, phase],
+  );
+
   return (
-    <WorldContext.Provider value={{ room, recipe: room ? LIGHT[ROOMS[room].base] : null, light, phase }}>
+    <WorldContext.Provider value={value}>
       {children}
     </WorldContext.Provider>
   );

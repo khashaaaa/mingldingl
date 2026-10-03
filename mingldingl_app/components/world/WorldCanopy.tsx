@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'expo-router';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { EmberField } from '../vfx/EmberField';
 import { FogDrift } from '../vfx/FogDrift';
@@ -22,9 +23,26 @@ import { Vignette } from './Vignette';
  * and keeping them out of the middle keeps them off body copy, which is where the Ulzii doctrine
  * ("never behind text") and plain legibility agree.
  */
+/**
+ * How long the drift holds still after the route changes. A screen being built on Android builds
+ * on the same UI thread the embers and fog are drawn from, and each of their frames redraws the
+ * whole window under them; holding them for the length of a transition gives every frame of it
+ * back to the new screen. Measured on the Galaxy A51 (2026-10-03).
+ */
+const TRAVEL_HOLD_MS = 700;
+
 export function WorldCanopy() {
   const world = useWorld();
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const pathname = usePathname();
+  const [travelling, setTravelling] = useState(false);
+  const firstPath = useRef(true);
+  useEffect(() => {
+    if (firstPath.current) { firstPath.current = false; return; }
+    setTravelling(true);
+    const id = setTimeout(() => setTravelling(false), TRAVEL_HOLD_MS);
+    return () => clearTimeout(id);
+  }, [pathname]);
   const recipe = world?.recipe ?? null;
   const vfx = world?.room ? ROOMS[world.room].vfx : null;
 
@@ -42,8 +60,8 @@ export function WorldCanopy() {
       {vfx && size.w > 0 && (
         <View style={[styles.band, { height: bandHeight }]}>
           {vfx === 'ember'
-            ? <EmberField width={size.w} height={bandHeight} density={6} />
-            : <FogDrift width={size.w} height={bandHeight} />}
+            ? <EmberField width={size.w} height={bandHeight} density={6} paused={travelling} />
+            : <FogDrift width={size.w} height={bandHeight} paused={travelling} />}
         </View>
       )}
     </View>

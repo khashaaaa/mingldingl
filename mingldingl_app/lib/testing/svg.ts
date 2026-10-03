@@ -21,13 +21,23 @@ export function marks(node: unknown): TreeNode[] {
   if (Array.isArray(node)) return node.flatMap(marks);
   if (!node || typeof node !== 'object') return [];
   const el = node as TreeNode;
-  const here = /path|rect|circle|line|polygon|polyline/i.test(el.type ?? '') ? [el] : [];
+  // A `Glyph` is a baked, tinted image rather than SVG marks, but it is still a drawing on the page.
+  const isGlyph = el.type === 'Image' && String(el.props?.testID ?? '').startsWith('glyph-');
+  const here = isGlyph || /path|rect|circle|line|polygon|polyline/i.test(el.type ?? '') ? [el] : [];
   return [...here, ...marks(el.children)];
 }
 
 /** What each mark was painted in — its stroke, or its fill where it has no stroke. */
 export function paints(tree: unknown): unknown[] {
-  return marks(tree).map((mark) => mark.props?.stroke ?? mark.props?.fill);
+  return marks(tree).map((mark) => mark.props?.stroke ?? mark.props?.fill ?? glyphTint(mark));
+}
+
+/** A baked glyph's colour is its tint, given as hex; packed here so it compares like an SVG paint. */
+function glyphTint(mark: TreeNode): unknown {
+  const style = mark.props?.style as unknown;
+  const flat = (Array.isArray(style) ? style.flat(Infinity) : [style]).reduce<Record<string, unknown>>(
+    (acc, s) => (s && typeof s === 'object' ? { ...acc, ...(s as Record<string, unknown>) } : acc), {});
+  return typeof flat.tintColor === 'string' ? packed(flat.tintColor) : undefined;
 }
 
 /** react-native-svg packs a colour into an ARGB int before it reaches the native view. */
