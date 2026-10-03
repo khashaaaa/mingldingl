@@ -67,7 +67,7 @@ export function useIcebreaker(matchId: string) {
       return apiClient.engagement.icebreakerRespond(matchId, { icebreakerId: question.id, answer });
     },
     meta: {
-      invalidates: [queryKeys.quests, queryKeys.matches, queryKeys.campaignAll],
+      invalidates: [queryKeys.quests, queryKeys.matches, queryKeys.campaign(matchId)],
       awardedSelector: (data) => (data as { awarded?: number }).awarded,
     },
     onSuccess: (data) => {

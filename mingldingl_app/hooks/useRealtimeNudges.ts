@@ -99,13 +99,15 @@ export function useRealtimeNudges() {
           };
           if (!matchId || !userIds?.includes(myId)) return;
 
+          // Known means this device made the match itself: it already heard the summons candle, and
+          // the mutation that made it already refreshed everything below. Refreshing again on the
+          // echo refetched the match list a third time and every loaded page of the discover feed.
           const alreadyKnown = queryClient.getQueryData<Match[]>(queryKeys.matches)?.some((m) => m.matchId === matchId) ?? false;
+          if (alreadyKnown) return;
           queryClient.invalidateQueries({ queryKey: queryKeys.matches });
           for (const key of MATCH_SOURCE_INVALIDATIONS[source ?? 'like'] ?? []) {
             queryClient.invalidateQueries({ queryKey: key });
           }
-          // Known means this device made the match itself and already heard the summons candle.
-          if (alreadyKnown) return;
           signal('matchMade');
           setPendingNudge({ icon: 'fire', title: i18n.t('nudge_new_match'), matchId });
         },

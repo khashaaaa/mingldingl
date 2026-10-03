@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -63,6 +64,7 @@ public class MessagesController : ControllerBase
     }
 
     [HttpPost]
+    [EnableRateLimiting(UserWriteRateLimit.PolicyName)]
     [ProducesResponseType(typeof(SendMessageResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
@@ -150,21 +152,31 @@ public class MessagesController : ControllerBase
 
         if (newMessageCount >= 10) await _milestones.AchieveAsync(userId, "ten_messages_one_match");
 
-        var sender = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+        var senderName = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.DisplayName).FirstOrDefaultAsync();
         var recipientId = match.OtherParticipant(userId);
-        await _push.NotifyUserAsync(
+        // One buzz per conversation per minute, not one per line: a burst of messages was a burst of
+        // notifications. The first line of the burst is the one shown.
+        await _push.NotifyUserCoalescedAsync(
+            $"message:{matchId:N}", MessagePushWindow,
             recipientId,
             PushKind.NewMessage,
             new Dictionary<string, object> { ["matchId"] = matchId.ToString() },
-            sender?.DisplayName ?? "New message", req.Content);
+            senderName ?? "New message", req.Content);
 
         var response = ToResponse(message);
 
-        await _broadcast.BroadcastAsync($"chat:{matchId}", "INSERT", response);
-        await _broadcast.BroadcastToUsersAsync([match.InitiatorId, match.ReceiverId], "message", new { senderId = userId, matchId });
+        // One POST for the thread and both nudge topics: two sequential calls doubled the time every
+        // send spent waiting on Supabase.
+        await _broadcast.BroadcastManyAsync(
+        [
+            new BroadcastEvent($"chat:{matchId}", "INSERT", response),
+            .. SupabaseBroadcastService.ToUsers([match.InitiatorId, match.ReceiverId], "message", new { senderId = userId, matchId }),
+        ]);
 
         return Ok(new SendMessageResponse(response, awarded));
     }
+
+    private static readonly TimeSpan MessagePushWindow = TimeSpan.FromMinutes(1);
 
     private static MessageResponse ToResponse(Message m) =>
         new(m.Id, m.MatchId, m.SenderId, m.Content, m.CreatedAt);

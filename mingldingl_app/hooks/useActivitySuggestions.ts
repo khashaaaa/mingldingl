@@ -65,7 +65,7 @@ export function useActivitySuggestions(matchId: string) {
     mutationFn: (activitySuggestionId: string) =>
       apiClient.activities.confirm(matchId, { activitySuggestionId }),
     meta: {
-      invalidates: [queryKeys.quests, queryKeys.milestones, queryKeys.campaignAll],
+      invalidates: [queryKeys.quests, queryKeys.milestones, queryKeys.campaign(matchId)],
       awardedSelector: (data) => (data as { awarded?: number }).awarded,
     },
     onSuccess: (data, activitySuggestionId) => {

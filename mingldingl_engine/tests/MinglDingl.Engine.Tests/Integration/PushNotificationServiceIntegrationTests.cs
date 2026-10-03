@@ -262,6 +262,10 @@ public class PushNotificationServiceIntegrationTests : IntegrationTestBase
         await service.StartAsync(CancellationToken.None);
 
         await service.DispatchAsync(Envelope("ExponentPushToken[slow]"));
+        // Queued after the first request is under way; queued together they would share one batch.
+        var firstSent = DateTime.UtcNow.AddSeconds(5);
+        while (handler.RequestCount < 1 && DateTime.UtcNow < firstSent)
+            await Task.Delay(20);
         await service.DispatchAsync(Envelope("ExponentPushToken[after]"));
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (handler.RequestCount < 2 && DateTime.UtcNow < deadline)
@@ -270,6 +274,50 @@ public class PushNotificationServiceIntegrationTests : IntegrationTestBase
 
         Assert.Equal(2, handler.RequestCount);
         Assert.Contains("ExponentPushToken[after]", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task DispatchAsync_EnvelopesQueuedTogether_GoToExpoInOneRequest()
+    {
+        var handler = new RecordingHandler();
+        var service = BuildPushDispatch(Db, handler);
+
+        // Queued before the loop starts, so they are all waiting when it first reads.
+        for (int i = 0; i < 5; i++)
+            await service.DispatchAsync(Envelope($"ExponentPushToken[batch{i}]"));
+        await service.StartAsync(CancellationToken.None);
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (handler.RequestCount < 1 && DateTime.UtcNow < deadline)
+            await Task.Delay(20);
+        await Task.Delay(100);
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Equal(1, handler.RequestCount);
+        for (int i = 0; i < 5; i++)
+            Assert.Contains($"ExponentPushToken[batch{i}]", handler.LastRequestBody);
+    }
+
+    [Fact]
+    public async Task DeliverAsync_MoreThanExpoAcceptsAtOnce_SplitsIntoRequestsOfTheLimit()
+    {
+        var handler = new RecordingHandler();
+        var envelopes = Enumerable.Range(0, PushDispatchBackgroundService.ExpoBatchLimit + 1)
+            .Select(i => Envelope($"ExponentPushToken[many{i}]")).ToList();
+
+        await BuildPushDispatch(Db, handler).DeliverAsync(envelopes, CancellationToken.None);
+
+        Assert.Equal(2, handler.RequestCount);
+    }
+
+    [Fact]
+    public void PushCoalescer_SameKeyInsideTheWindow_AdmitsOnlyTheFirst()
+    {
+        var coalescer = new PushCoalescer();
+
+        Assert.True(coalescer.TryEnter("a", TimeSpan.FromMinutes(1)));
+        Assert.False(coalescer.TryEnter("a", TimeSpan.FromMinutes(1)));
+        Assert.True(coalescer.TryEnter("b", TimeSpan.FromMinutes(1)));
+        Assert.True(coalescer.TryEnter("a", TimeSpan.Zero));
     }
 
     private static HttpResponseMessage Json(string body) =>

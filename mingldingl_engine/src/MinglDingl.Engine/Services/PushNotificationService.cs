@@ -4,11 +4,24 @@ public class PushNotificationService
 {
     private readonly AppDbContext _db;
     private readonly IPushDispatcher _dispatcher;
+    private readonly PushCoalescer? _coalescer;
 
-    public PushNotificationService(AppDbContext db, IPushDispatcher dispatcher)
+    public PushNotificationService(AppDbContext db, IPushDispatcher dispatcher, PushCoalescer? coalescer = null)
     {
         _db = db;
         _dispatcher = dispatcher;
+        _coalescer = coalescer;
+    }
+
+    /// <summary>
+    /// As <see cref="NotifyUserAsync"/>, but at most once per <paramref name="window"/> for the same
+    /// <paramref name="coalesceKey"/> — for kinds that arrive in bursts, like chat messages.
+    /// </summary>
+    public Task NotifyUserCoalescedAsync(
+        string coalesceKey, TimeSpan window, Guid userId, PushKind kind, Dictionary<string, object>? data = null, params string[] args)
+    {
+        if (_coalescer is not null && !_coalescer.TryEnter($"{userId:N}:{coalesceKey}", window)) return Task.CompletedTask;
+        return NotifyUserAsync(userId, kind, data, args);
     }
 
     /// <summary>

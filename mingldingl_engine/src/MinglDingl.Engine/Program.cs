@@ -80,16 +80,32 @@ builder.Services.AddRateLimiter(options =>
 {
     options.OnRejected = async (context, ct) =>
     {
-        // The standard {Error, Code} body, with a code of its own so this cause can be told apart
+        // The standard {Error, Code} body, with a code per policy so each cause can be told apart
         // in logs and by the client.
+        var policy = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
+        var body = policy == UserWriteRateLimit.PolicyName
+            ? new ErrorResponse("Too many actions in a short time; slow down", "rate.too_many_writes")
+            : new ErrorResponse(
+                "Too many verification attempts from this network; wait a few minutes before trying again",
+                "phone.too_many_attempts_ip");
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         context.HttpContext.Response.ContentType = "application/json";
-        await context.HttpContext.Response.WriteAsJsonAsync(
-            new ErrorResponse(
-                "Too many verification attempts from this network; wait a few minutes before trying again",
-                "phone.too_many_attempts_ip"),
-            ct);
+        await context.HttpContext.Response.WriteAsJsonAsync(body, ct);
     };
+
+    options.AddPolicy(UserWriteRateLimit.PolicyName, httpContext =>
+        RateLimitPartition.GetTokenBucketLimiter(
+            // Keyed on the resolved account, so it needs CurrentUserMiddleware to have run first.
+            partitionKey: httpContext.Items["UserId"]?.ToString()
+                ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = UserWriteRateLimit.Burst,
+                TokensPerPeriod = UserWriteRateLimit.RefillPerPeriod,
+                ReplenishmentPeriod = UserWriteRateLimit.Period,
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
 
     options.AddPolicy(PhoneStartRateLimit.PolicyName, httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
@@ -170,9 +186,10 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/uploads",
 });
 app.UseCors();
-app.UseRateLimiter();
 app.UseAuthentication();
 app.UseMiddleware<CurrentUserMiddleware>();
+// After user resolution: the per-user write budget partitions on the resolved account id.
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
@@ -212,4 +229,18 @@ public static class PhoneStartRateLimit
     public const string PolicyName = "phone-verification-start";
     public const int PermitLimit = 30;
     public static readonly TimeSpan Window = TimeSpan.FromMinutes(15);
+}
+
+/// <summary>
+/// Per-account budget on the writes that fan out — a sent message is a dozen statements, a
+/// realtime broadcast and a push to someone else's phone. Nothing bounded them, so one client in a
+/// loop could flood a recipient with notifications and the engine with work. A token bucket lets a
+/// real burst through (a quick back-and-forth) and holds the sustained rate to 30 a minute.
+/// </summary>
+public static class UserWriteRateLimit
+{
+    public const string PolicyName = "user-writes";
+    public const int Burst = 30;
+    public const int RefillPerPeriod = 15;
+    public static readonly TimeSpan Period = TimeSpan.FromSeconds(30);
 }

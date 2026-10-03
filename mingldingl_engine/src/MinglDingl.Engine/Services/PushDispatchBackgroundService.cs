@@ -16,8 +16,10 @@ public interface IPushDispatcher
 
 /// <summary>
 /// Delivers pushes to Expo off the request path. A controller only pays for the recipient lookup;
-/// the HTTP round-trip (up to the client timeout when Expo is slow) happens here, one envelope at
-/// a time in the order they were queued. Expo answers with one ticket per message, and a
+/// the HTTP round-trip (up to the client timeout when Expo is slow) happens here, in queue order,
+/// with whatever has queued up meanwhile sent together — Expo takes up to
+/// <see cref="ExpoBatchLimit"/> messages per request, and one POST per recipient made every
+/// fan-out (a Town Square start, the ghosting sweep) drain at one Expo round trip per person. Expo answers with one ticket per message, and a
 /// <c>DeviceNotRegistered</c> ticket means the app is gone from that device, so the token is
 /// dropped rather than retried forever.
 /// </summary>
@@ -31,8 +33,19 @@ public sealed class PushDispatchBackgroundService : BackgroundService, IPushDisp
     /// </summary>
     public const string AndroidChannelId = "default";
 
-    private readonly Channel<PushEnvelope> _queue = Channel.CreateUnbounded<PushEnvelope>(
-        new UnboundedChannelOptions { SingleReader = true });
+    /// <summary>Expo's documented maximum number of messages in one push request.</summary>
+    public const int ExpoBatchLimit = 100;
+
+    /// <summary>
+    /// The queue is bounded so a stalled Expo cannot grow it without limit. Full drops the new push
+    /// rather than blocking: `DispatchAsync` is awaited on request paths, and a request must never
+    /// wait on someone else's notification.
+    /// </summary>
+    public const int QueueCapacity = 10_000;
+
+    private readonly Channel<PushEnvelope> _queue = Channel.CreateBounded<PushEnvelope>(
+        new BoundedChannelOptions(QueueCapacity) { SingleReader = true, FullMode = BoundedChannelFullMode.Wait });
+    private long _dropped;
     private readonly IHttpClientFactory _httpFactory;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<PushDispatchBackgroundService> _logger;
@@ -47,31 +60,61 @@ public sealed class PushDispatchBackgroundService : BackgroundService, IPushDisp
         _logger = logger;
     }
 
-    public ValueTask DispatchAsync(PushEnvelope envelope, CancellationToken ct = default) =>
-        _queue.Writer.WriteAsync(envelope, ct);
+    public ValueTask DispatchAsync(PushEnvelope envelope, CancellationToken ct = default)
+    {
+        if (_queue.Writer.TryWrite(envelope)) return ValueTask.CompletedTask;
+        // Logged on the first drop and then every hundredth, so the warning cannot itself become
+        // the flood.
+        long dropped = Interlocked.Increment(ref _dropped);
+        if (dropped == 1 || dropped % 100 == 0)
+            _logger.LogWarning("Push queue full ({Capacity}); {Dropped} pushes dropped so far", QueueCapacity, dropped);
+        return ValueTask.CompletedTask;
+    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var batch = new List<PushEnvelope>();
         try
         {
-            await foreach (var envelope in _queue.Reader.ReadAllAsync(stoppingToken))
-                await DeliverAsync(envelope, stoppingToken);
+            while (await _queue.Reader.WaitToReadAsync(stoppingToken))
+            {
+                batch.Clear();
+                int messages = 0;
+                while (messages < ExpoBatchLimit && _queue.Reader.TryRead(out var envelope))
+                {
+                    batch.Add(envelope);
+                    messages += envelope.Tokens.Count;
+                }
+                await DeliverAsync(batch, stoppingToken);
+            }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
         }
     }
 
-    internal async Task DeliverAsync(PushEnvelope envelope, CancellationToken ct)
-    {
-        if (envelope.Tokens.Count == 0) return;
+    internal Task DeliverAsync(PushEnvelope envelope, CancellationToken ct) => DeliverAsync([envelope], ct);
 
-        var messages = envelope.Tokens.Select(token => new
+    internal async Task DeliverAsync(IReadOnlyList<PushEnvelope> envelopes, CancellationToken ct)
+    {
+        var messages = envelopes
+            .SelectMany(e => e.Tokens.Select(token => (Token: token, Envelope: e)))
+            .ToList();
+        for (int i = 0; i < messages.Count; i += ExpoBatchLimit)
+            await DeliverChunkAsync(messages.GetRange(i, Math.Min(ExpoBatchLimit, messages.Count - i)), ct);
+    }
+
+    private async Task DeliverChunkAsync(List<(string Token, PushEnvelope Envelope)> chunk, CancellationToken ct)
+    {
+        if (chunk.Count == 0) return;
+        var tokens = chunk.Select(m => m.Token).ToList();
+
+        var messages = chunk.Select(m => new
         {
-            to = token,
-            title = envelope.Title,
-            body = envelope.Body,
-            data = envelope.Data,
+            to = m.Token,
+            title = m.Envelope.Title,
+            body = m.Envelope.Body,
+            data = m.Envelope.Data,
             // Android routes every notification through a channel and takes its importance from
             // there, not from the message. Naming the one the app creates on launch is what makes
             // these arrive as a heads-up with sound; unnamed, they land in Expo's fallback channel
@@ -91,14 +134,14 @@ public sealed class PushDispatchBackgroundService : BackgroundService, IPushDisp
             {
                 _logger.LogWarning(
                     "Expo rejected a push batch of {TokenCount} with {Status}: {Body}",
-                    envelope.Tokens.Count, (int)response.StatusCode, Excerpt(responseBody));
+                    tokens.Count, (int)response.StatusCode, Excerpt(responseBody));
                 return;
             }
-            deadTokens = DeadTokensIn(envelope.Tokens, responseBody);
+            deadTokens = DeadTokensIn(tokens, responseBody);
         }
         catch (Exception ex) when (!IsShutdown(ex, ct))
         {
-            _logger.LogWarning(ex, "Push delivery swallowed a failure ({TokenCount} tokens)", envelope.Tokens.Count);
+            _logger.LogWarning(ex, "Push delivery swallowed a failure ({TokenCount} tokens)", tokens.Count);
             return;
         }
 

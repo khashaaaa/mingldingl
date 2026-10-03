@@ -8,7 +8,7 @@ namespace MinglDingl.Engine.Tests.Integration;
 
 public class MatchesControllerIntegrationTests : IntegrationTestBase
 {
-    private MatchesController BuildController(Guid userId, ConfigService? config = null, LocalFileStorageService? storage = null)
+    private MatchesController BuildController(Guid userId, ConfigService? config = null, LocalFileStorageService? storage = null, CandidatePoolCache? poolCache = null)
     {
         config ??= new ConfigService();
         var httpContext = new DefaultHttpContext();
@@ -20,11 +20,39 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
         var push = BuildTestPush();
         var controller = new MatchesController(Db, score, ghosting, quests, milestones, push, config, BuildTestBroadcast(), storage ?? BuildTestStorage(),
-            BuildParty(config), BuildTrials(config, score), BuildRetire(config))
+            BuildParty(config), BuildTrials(config, score), BuildRetire(config), poolCache)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
         return controller;
+    }
+
+    /// <summary>
+    /// Later pages read the ranking page one cached instead of ranking the pool again — and must say
+    /// the same thing a fresh ranking would, minus anyone who left the feed since.
+    /// </summary>
+    [Fact]
+    public async Task GetCandidates_LaterPageFromCachedPool_MatchesAFreshRankingAndDropsTheNewlyBlocked()
+    {
+        var meId = Guid.NewGuid();
+        Db.Users.Add(NewCompleteUser(meId, "Male"));
+        for (int i = 0; i < 3; i++) Db.Users.Add(NewCompleteUser(Guid.NewGuid(), "Female"));
+        await Db.SaveChangesAsync();
+        var cache = new CandidatePoolCache();
+
+        static List<Guid> Ids(IActionResult r) =>
+            Assert.IsType<PagedResponse<CandidateResponse>>(Assert.IsType<OkObjectResult>(r).Value).Items.Select(c => c.Id).ToList();
+
+        Ids(await BuildController(meId, poolCache: cache).GetCandidates(page: 1, pageSize: 1));
+        var cachedSecond = Ids(await BuildController(meId, poolCache: cache).GetCandidates(page: 2, pageSize: 1));
+        var freshSecond = Ids(await BuildController(meId).GetCandidates(page: 2, pageSize: 1));
+        Assert.Equal(freshSecond, cachedSecond);
+        Assert.Single(cachedSecond);
+
+        Db.BlockedUsers.Add(new BlockedUser { BlockerId = meId, BlockedId = cachedSecond[0] });
+        await Db.SaveChangesAsync();
+        var afterBlock = Ids(await BuildController(meId, poolCache: cache).GetCandidates(page: 2, pageSize: 1));
+        Assert.DoesNotContain(cachedSecond[0], afterBlock);
     }
 
     /// <summary>

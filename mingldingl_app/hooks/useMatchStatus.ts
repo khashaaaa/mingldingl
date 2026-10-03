@@ -49,7 +49,9 @@ export function useMatchStatus(matchId: string) {
   // staleTime and nothing else tells it to recheck, so whatever reads `match.status` off it (the
   // chat screen's own `fire`, Task 4) would keep seeing `Active` for up to that long otherwise.
   useEffect(() => {
-    if (status === 'Ghosted') qc.invalidateQueries({ queryKey: queryKeys.matches });
+    // Joins a refetch already in flight (the ghosting broadcast asks for the same one) instead of
+    // cancelling it and starting over.
+    if (status === 'Ghosted') qc.invalidateQueries({ queryKey: queryKeys.matches }, { cancelRefetch: false });
   }, [status, qc]);
 
   return {

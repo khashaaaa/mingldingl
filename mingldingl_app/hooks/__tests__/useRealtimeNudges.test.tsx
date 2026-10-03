@@ -497,14 +497,14 @@ describe('useRealtimeNudges', () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.townSquareNextSession });
     });
 
-    it('still refreshes but does not nudge when the match is already in my cache (my own request added it)', () => {
+    it('neither refreshes nor nudges when the match is already in my cache (my own request added it and refreshed)', () => {
       queryClient.setQueryData(queryKeys.matches, [matchFixture({ matchId: 'm9' })]);
       const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
       const { handlers } = mount();
 
       handlers.match_created({ payload: { matchId: 'm9', userIds: ['me1', 'other-user'], source: 'like' } });
 
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+      expect(invalidateSpy).not.toHaveBeenCalled();
       expect(useAuthStore.getState().pendingNudge).toBeNull();
       expect(mockSignal).not.toHaveBeenCalled();
     });

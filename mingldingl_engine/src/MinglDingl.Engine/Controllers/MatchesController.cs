@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,9 +21,11 @@ public class MatchesController : ControllerBase
     private readonly PartyService _party;
     private readonly BondTrialService _trials;
     private readonly RetireService _retire;
+    private readonly CandidatePoolCache? _poolCache;
 
-    public MatchesController(AppDbContext db, ScoreService score, GhostingService ghosting, QuestService quests, MilestoneService milestones, PushNotificationService push, ConfigService config, SupabaseBroadcastService broadcast, LocalFileStorageService storage, PartyService party, BondTrialService trials, RetireService retire)
+    public MatchesController(AppDbContext db, ScoreService score, GhostingService ghosting, QuestService quests, MilestoneService milestones, PushNotificationService push, ConfigService config, SupabaseBroadcastService broadcast, LocalFileStorageService storage, PartyService party, BondTrialService trials, RetireService retire, CandidatePoolCache? poolCache = null)
     {
+        _poolCache = poolCache;
         _party = party;
         _trials = trials;
         _retire = retire;
@@ -71,6 +74,18 @@ public class MatchesController : ControllerBase
         // pull of the discover feed. The pool is bounded here instead, pre-ranked by the key the
         // in-memory sort weights most heavily so the cap, when it bites, drops the far-away rather
         // than the arbitrary: located people first, then a cheap degree-space proximity proxy.
+        // A later page reads its slice of the ranking page one just made, instead of ranking the
+        // whole pool again to skip to it.
+        if (safePage > 1 && _poolCache?.TryGet(userId) is { } rankedIds)
+        {
+            var sliceIds = rankedIds.Skip(skip).Take(safePageSize).ToList();
+            var byId = await eligible.Where(u => sliceIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id);
+            var slice = sliceIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
+            return Ok(new PagedResponse<CandidateResponse>(
+                slice.Select(ToCandidateResponse).ToList(), safePage, safePageSize, rankedIds.Count,
+                skip + sliceIds.Count < rankedIds.Count));
+        }
+
         double myLat = me.Latitude ?? 0, myLng = me.Longitude ?? 0;
         var pooled = me.Latitude.HasValue && me.Longitude.HasValue
             ? eligible
@@ -152,21 +167,21 @@ public class MatchesController : ControllerBase
                 .ThenBy(x => x.Compatibility.HasValue ? 0 : 1)
                 .ThenByDescending(x => x.Compatibility ?? 0);
 
-        var candidates = ordered
-            .Select(x => x.User)
-            .Skip(skip)
-            .Take(safePageSize)
-            .ToList();
+        var ranked = ordered.Select(x => x.User).ToList();
+        _poolCache?.Set(userId, ranked.Select(u => u.Id).ToList());
 
-        var items = candidates.Select(c => new CandidateResponse(
-            c.Id, c.DisplayName, c.Age, c.City, c.GemTier, c.ReputationScore,
-            _storage.SealedPublicUrlOf(c.PhotoUrls.FirstOrDefault()), c.Bio, c.EquippedTitleId,
-            c.Oath, c.OathProven)).ToList();
+        var items = ranked.Skip(skip).Take(safePageSize).Select(ToCandidateResponse).ToList();
 
         return Ok(new PagedResponse<CandidateResponse>(items, safePage, safePageSize, totalCount, skip + items.Count < totalCount));
     }
 
+    private CandidateResponse ToCandidateResponse(User c) => new(
+        c.Id, c.DisplayName, c.Age, c.City, c.GemTier, c.ReputationScore,
+        _storage.SealedPublicUrlOf(c.PhotoUrls.FirstOrDefault()), c.Bio, c.EquippedTitleId,
+        c.Oath, c.OathProven);
+
     [HttpPost]
+    [EnableRateLimiting(UserWriteRateLimit.PolicyName)]
     [ProducesResponseType(typeof(CreateMatchResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]

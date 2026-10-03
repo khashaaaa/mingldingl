@@ -56,37 +56,59 @@ public class TownSquareController : ControllerBase
     public async Task<IActionResult> GetCurrentRound(Guid sessionId)
     {
         var userId = this.CurrentUserId();
-        var session = await _db.TownSquareSessions.FindAsync(sessionId);
+        // Polled every ten seconds by everyone in a running session, so it is read in as few round
+        // trips as the checks allow: the session with the caller's locale, then the caller's pairing
+        // in the current round with that round's prompt, then the block check.
+        var session = await _db.TownSquareSessions.AsNoTracking()
+            .Where(s => s.Id == sessionId)
+            .Select(s => new
+            {
+                s.Status,
+                s.CurrentRoundNumber,
+                Locale = _db.Users.Where(u => u.Id == userId).Select(u => u.PreferredLocale).FirstOrDefault(),
+            })
+            .FirstOrDefaultAsync();
         if (session is null) return this.NotFoundError("Session not found", "square.session_not_found");
         if (session.Status != "InProgress") return this.BadRequestError("Session is not in progress", "square.not_in_progress");
 
-        var round = await _db.TownSquareRounds
-            .FirstOrDefaultAsync(r => r.SessionId == sessionId && r.RoundNumber == session.CurrentRoundNumber);
-        if (round is null) return this.NotFoundError("No active round", "square.no_active_round");
-
-        var pairing = await _db.TownSquarePairings
-            .FirstOrDefaultAsync(p => p.RoundId == round.Id && (p.UserAId == userId || p.UserBId == userId));
-        if (pairing is null) return this.NotFoundError("You are not paired in this round", "square.not_paired");
+        var seat = await (
+            from p in _db.TownSquarePairings.AsNoTracking()
+            join r in _db.TownSquareRounds on p.RoundId equals r.Id
+            where r.SessionId == sessionId && r.RoundNumber == session.CurrentRoundNumber
+                && (p.UserAId == userId || p.UserBId == userId)
+            select new
+            {
+                Pairing = p,
+                r.RoundNumber,
+                r.StartsAt,
+                r.DurationSeconds,
+                Question = r.Icebreaker == null ? null : r.Icebreaker.QuestionText,
+                QuestionEn = r.Icebreaker == null ? null : r.Icebreaker.QuestionTextEn,
+            }).FirstOrDefaultAsync();
+        if (seat is null)
+        {
+            // Only the failure path pays to tell "no round yet" apart from "sitting this one out".
+            bool roundExists = await _db.TownSquareRounds
+                .AnyAsync(r => r.SessionId == sessionId && r.RoundNumber == session.CurrentRoundNumber);
+            return roundExists
+                ? this.NotFoundError("You are not paired in this round", "square.not_paired")
+                : this.NotFoundError("No active round", "square.no_active_round");
+        }
+        var pairing = seat.Pairing;
 
         // The roster drops blocked pairs when it locks, but a block made after that still has to
         // keep the two apart: no token, and both sit the round out exactly as a dropped pairing does.
         if (await MatchPairing.IsPairBlockedAsync(_db, pairing.UserAId, pairing.UserBId))
             return this.NotFoundError("You are not paired in this round", "square.not_paired");
 
-        var icebreaker = await _db.Icebreakers.FindAsync(round.IcebreakerId);
-        var locale = await _db.Users.AsNoTracking()
-            .Where(u => u.Id == this.CurrentUserId())
-            .Select(u => u.PreferredLocale)
-            .FirstOrDefaultAsync();
-
         string token = _videoToken.GenerateToken(pairing.Id);
         string channelName = pairing.Id.ToString("N");
-        DateTime roundEndsAt = round.StartsAt.AddSeconds(round.DurationSeconds);
+        DateTime roundEndsAt = seat.StartsAt.AddSeconds(seat.DurationSeconds);
 
         return Ok(new CurrentRoundResponse(
             pairing.Id, pairing.OtherParticipant(userId), token, channelName, _videoToken.AppId,
-            icebreaker is null ? "" : LocalisedContent.Pick(locale, icebreaker.QuestionText, icebreaker.QuestionTextEn),
-            round.RoundNumber, roundEndsAt));
+            seat.Question is null ? "" : LocalisedContent.Pick(session.Locale, seat.Question, seat.QuestionEn),
+            seat.RoundNumber, roundEndsAt));
     }
 
     /// <summary>

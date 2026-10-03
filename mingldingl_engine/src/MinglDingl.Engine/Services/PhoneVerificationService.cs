@@ -242,20 +242,21 @@ public class PhoneVerificationService
     /// when the number has no account yet (a genuinely new user mid-onboarding). Static so the
     /// middleware can call it with only a <see cref="AppDbContext"/> in hand.
     /// </summary>
-    public static async Task<Guid?> ResolveAliasAsync(AppDbContext db, Guid authId, CancellationToken ct = default)
-    {
-        var phone = await db.PhoneVerifications.AsNoTracking()
+    public static async Task<Guid?> ResolveAliasAsync(AppDbContext db, Guid authId, CancellationToken ct = default) =>
+        await AliasedAccounts(db, authId).Select(u => (Guid?)u.Id).FirstOrDefaultAsync(ct);
+
+    /// <summary>
+    /// The account <see cref="ResolveAliasAsync"/> resolves to, as a query, so a caller can project
+    /// whatever else it needs from that row in the same round trip. The newest proven number is
+    /// picked first and only then matched to an account — joining before picking would fall back to
+    /// an older number's owner when the newest one has no account yet.
+    /// </summary>
+    public static IQueryable<User> AliasedAccounts(AppDbContext db, Guid authId) =>
+        db.Users.AsNoTracking().Where(u => u.PhoneNumber != null && u.PhoneNumber == db.PhoneVerifications
             .Where(v => v.ClaimedByUserId == authId && v.Status == PhoneVerificationStatus.Verified)
             .OrderByDescending(v => v.ClaimedAt)
             .Select(v => v.Phone)
-            .FirstOrDefaultAsync(ct);
-        if (phone is null) return null;
-
-        return await db.Users.AsNoTracking()
-            .Where(u => u.PhoneNumber == phone)
-            .Select(u => (Guid?)u.Id)
-            .FirstOrDefaultAsync(ct);
-    }
+            .FirstOrDefault());
 }
 
 public enum PhoneClaimResult

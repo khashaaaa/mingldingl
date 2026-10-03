@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,7 @@ public class ReportsController : ControllerBase
     /// already matched with. Filing one also blocks them and ends any live conversation.
     /// </summary>
     [HttpPost]
+    [EnableRateLimiting(UserWriteRateLimit.PolicyName)]
     [ProducesResponseType(typeof(CreateReportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]

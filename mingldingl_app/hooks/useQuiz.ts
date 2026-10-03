@@ -50,7 +50,7 @@ export function useQuiz(matchId: string) {
     mutationFn: (finalAnswers: Record<string, string>) =>
       apiClient.engagement.quizRespond(quiz!.id, { matchId, answers: finalAnswers }),
     meta: {
-      invalidates: [queryKeys.quests, queryKeys.campaignAll],
+      invalidates: [queryKeys.quests, queryKeys.campaign(matchId)],
       awardedSelector: (data) => (data as { awarded?: number }).awarded,
       silentError: true,
     },

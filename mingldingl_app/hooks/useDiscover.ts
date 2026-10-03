@@ -74,7 +74,9 @@ export function useRequestMatch() {
       return { matchId: data.matchId ?? '', awarded: data.awarded ?? 0 };
     },
     meta: {
-      invalidates: [queryKeys.quests, queryKeys.milestones, queryKeys.matches, queryKeys.score],
+      // `matches` is refreshed in onSuccess, after the optimistic row is seeded; listing it here too
+      // started a fetch that onSuccess then cancelled and restarted.
+      invalidates: [queryKeys.quests, queryKeys.milestones, queryKeys.score],
       awardedSelector: (data) => (data as { awarded: number }).awarded,
     },
     onError: () => {
@@ -106,9 +108,9 @@ export function useRequestMatch() {
           district: candidate.city,
         },
       });
-      // Only append to a list that is already there. The global mutation hook invalidated matches
-      // *before* this runs, and `setQueryData` marks the entry fresh again — so seeding an absent
-      // list with this one match left a single-item match list trusted for the full staleTime.
+      // Only append to a list that is already there — seeding an absent list with this one match
+      // left a single-item match list trusted for the full staleTime. `setQueryData` marks the entry
+      // fresh, so the server truth is asked for right after.
       qc.setQueryData<Match[]>(queryKeys.matches, (old) => (old ? [...old, newMatch] : old));
       qc.invalidateQueries({ queryKey: queryKeys.matches });
     },

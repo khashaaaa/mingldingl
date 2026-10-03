@@ -8,6 +8,28 @@ long versions.
 
 ---
 
+## 2026-10-03 — Round trips, floods and costly work
+
+- **Per-request auth:** `CurrentUserMiddleware` resolves the account and reads its standing in one
+  query (two for an aliased returning user, was four); `PhoneVerificationService.AliasedAccounts`
+  is the shared alias query.
+- **Message send:** one Supabase broadcast POST for the thread and both nudge topics (was two in
+  series, `BroadcastManyAsync`); new-message pushes coalesce to one per conversation per minute
+  (`PushCoalescer`).
+- **Floods:** per-account token bucket `UserWriteRateLimit` (burst 30, 30/min) on message send,
+  match request, reports, ship create and rite propose → `429 rate.too_many_writes`;
+  `UseRateLimiter` now runs after `CurrentUserMiddleware`. The push queue is bounded (10k, drops
+  with a throttled warning) and sends whatever has queued to Expo in batches of up to 100.
+- **Costly work:** indexes on `PushTokens.UserId` and `ActivitySuggestions.MatchId`; discover
+  pages after the first reuse page one's ranking for 5 min (`CandidatePoolCache`, slice re-read
+  through live eligibility); Town Square `current-round` is three queries (was six); the photo
+  prune/backfill sweep runs daily, not hourly, and never retries an original that failed to seal;
+  CSV exports project only their columns; dev logs no longer print every SQL statement.
+- **App:** the liker's own `match_created` echo no longer refetches matches/discover/score; the like
+  mutation stopped invalidating `matches` twice; per-match mutations invalidate `campaign(matchId)`,
+  not every campaign; Town Square session polling runs only on a focused screen; chat sorts without
+  `localeCompare` and drops a thread's cache 30 min after leaving it.
+
 ## 2026-10-03 — Alignment, navigation, design and translation sweep (on the A51)
 
 - **Header titles level again.** Android's text layout and Yoga disagreed at the wrap edge: "Seek

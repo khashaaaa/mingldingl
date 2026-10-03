@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { signal } from '../../lib/world/feedback';
 import { createAppQueryClient } from '../../lib/api/queryClient';
 
+jest.mock('expo-router', () => require('../../lib/testing/expoRouterMock').expoRouterMock());
 jest.mock('../../lib/api/apiClient', () => ({
   apiClient: {
     townSquare: {

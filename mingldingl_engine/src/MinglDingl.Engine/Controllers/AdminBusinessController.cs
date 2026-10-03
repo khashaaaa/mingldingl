@@ -149,7 +149,9 @@ public class AdminBusinessController : ControllerBase
                 EF.Functions.ILike(b.City, term) ||
                 EF.Functions.ILike(b.Category, term));
         }
-        var rows = await query.OrderByDescending(b => b.CreatedAt).ToListAsync();
+        var rows = await query.OrderByDescending(b => b.CreatedAt)
+            .Select(b => new { b.Name, b.Category, b.City, b.District, b.AverageRating, b.RatingCount, b.IsVerified, b.IsFeatured, b.CreatedAt })
+            .ToListAsync();
 
         var csv = CsvWriter.Write(
             ["Name", "Category", "City", "District", "AverageRating", "RatingCount", "IsVerified", "IsFeatured", "CreatedAt"],

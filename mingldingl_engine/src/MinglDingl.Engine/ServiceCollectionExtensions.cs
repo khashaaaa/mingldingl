@@ -33,6 +33,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MembershipCatalog>();
         services.AddSingleton<LoginThrottleService>();
         services.AddSingleton<PhotoUploadThrottleService>();
+        services.AddSingleton<PushCoalescer>();
+        services.AddSingleton<CandidatePoolCache>();
 
         services.AddScoped<PushNotificationService>();
         services.AddHttpClient(PushDispatchBackgroundService.HttpClientName, client =>

@@ -40,27 +40,39 @@ public class SupabaseBroadcastService
     public static string UserTopic(Guid userId) => $"user:{userId}";
 
     public Task BroadcastAsync(string topic, string eventName, object payload) =>
-        SendAsync([topic], eventName, payload);
+        SendAsync([new BroadcastEvent(topic, eventName, payload)]);
 
     /// <summary>One POST carrying the event to each distinct user's own topic.</summary>
     public Task BroadcastToUsersAsync(IEnumerable<Guid> userIds, string eventName, object payload) =>
-        SendAsync(userIds.Distinct().Select(UserTopic).ToList(), eventName, payload);
+        SendAsync(userIds.Distinct().Select(id => new BroadcastEvent(UserTopic(id), eventName, payload)).ToList());
 
-    private async Task SendAsync(IReadOnlyCollection<string> topics, string eventName, object payload)
+    /// <summary>
+    /// Several events in one POST. Each broadcast is an outbound HTTPS call the request waits on, so a
+    /// write that announces itself on more than one topic sends them together rather than in series.
+    /// </summary>
+    public Task BroadcastManyAsync(IReadOnlyCollection<BroadcastEvent> events) => SendAsync(events);
+
+    public static IEnumerable<BroadcastEvent> ToUsers(IEnumerable<Guid> userIds, string eventName, object payload) =>
+        userIds.Distinct().Select(id => new BroadcastEvent(UserTopic(id), eventName, payload));
+
+    private async Task SendAsync(IReadOnlyCollection<BroadcastEvent> events)
     {
-        if (!_configured || topics.Count == 0) return;
+        if (!_configured || events.Count == 0) return;
         try
         {
             var body = JsonSerializer.Serialize(new
             {
-                messages = topics.Select(topic => new { topic, @event = eventName, payload }).ToArray()
+                messages = events.Select(e => new { topic = e.Topic, @event = e.Event, payload = e.Payload }).ToArray()
             }, JsonOptions);
             using var content = new StringContent(body, Encoding.UTF8, "application/json");
             await _http.PostAsync("/realtime/v1/api/broadcast", content);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Supabase broadcast swallowed a failure for topics {Topics} (event {Event})", string.Join(",", topics), eventName);
+            _logger.LogWarning(ex, "Supabase broadcast swallowed a failure for topics {Topics} (events {Events})",
+                string.Join(",", events.Select(e => e.Topic)), string.Join(",", events.Select(e => e.Event).Distinct()));
         }
     }
 }
+
+public sealed record BroadcastEvent(string Topic, string Event, object Payload);

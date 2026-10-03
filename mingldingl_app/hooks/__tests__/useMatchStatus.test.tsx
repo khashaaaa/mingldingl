@@ -59,7 +59,7 @@ describe('useMatchStatus', () => {
 
     // Otherwise the match list's own 5-minute staleTime leaves it reading the pre-ghosting status
     // for as long as a screen reading `useMatches` stays mounted — see the hook's own comment.
-    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches }));
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches }, { cancelRefetch: false }));
   });
 
   it('leaves the matches list alone for a match that is still active', async () => {

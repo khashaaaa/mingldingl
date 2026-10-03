@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -137,6 +138,7 @@ public class VideoController : ControllerBase
     }
 
     [HttpPost("rite/propose")]
+    [EnableRateLimiting(UserWriteRateLimit.PolicyName)]
     [ProducesResponseType(typeof(FlameRiteStateResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]

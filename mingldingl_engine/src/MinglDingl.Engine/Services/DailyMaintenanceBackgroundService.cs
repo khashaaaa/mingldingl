@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 public class DailyMaintenanceBackgroundService : BackgroundService
 {
     private static readonly TimeSpan SweepInterval = TimeSpan.FromHours(1);
+    private static readonly TimeSpan PhotoSweepInterval = TimeSpan.FromHours(24);
     private static readonly TimeSpan VerificationRetention = TimeSpan.FromDays(1);
 
     public static TimeSpan GracePeriodFor(ConfigService config) =>
@@ -24,11 +25,16 @@ public class DailyMaintenanceBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var lastPhotoSweepAt = DateTime.MinValue;
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await RunSweepAsync(stoppingToken);
+                // The rules work is hourly; the photo work reads every row's photo list and walks the
+                // upload directory twice, and nothing about it is urgent, so it runs once a day.
+                bool photos = DateTime.UtcNow - lastPhotoSweepAt >= PhotoSweepInterval;
+                await RunSweepAsync(stoppingToken, includePhotos: photos);
+                if (photos) lastPhotoSweepAt = DateTime.UtcNow;
             }
             catch (Exception ex)
             {
@@ -39,7 +45,7 @@ public class DailyMaintenanceBackgroundService : BackgroundService
         }
     }
 
-    internal async Task RunSweepAsync(CancellationToken ct)
+    internal async Task RunSweepAsync(CancellationToken ct, bool includePhotos = true)
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -228,6 +234,7 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             }
         }
 
+        if (!includePhotos) return;
         await PruneOrphanedPhotosAsync(db, storage, ct);
         await BackfillSealedPhotosAsync(storage, scope.ServiceProvider.GetRequiredService<SealedPhotoService>(), ct);
     }
@@ -299,6 +306,10 @@ public class DailyMaintenanceBackgroundService : BackgroundService
     /// <summary>Sealed variants created per sweep, bounded so a backlog of pre-feature photos can't turn one sweep into a long-running image-processing job.</summary>
     private const int MaxSealedBackfillPerSweep = 200;
 
+    /// <summary>Originals that could not be sealed, remembered for this process's lifetime.</summary>
+    private readonly HashSet<string> _unsealable = new(StringComparer.Ordinal);
+    private const int MaxRememberedUnsealable = 10_000;
+
     /// <summary>
     /// Every profile photo uploaded before sealing existed (or whose upload-time seal failed) has
     /// no sealed sibling yet, and the candidate feed shows nothing for one until it does. This
@@ -314,6 +325,9 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             // A sealed file is never itself sealed, and already-sealed originals are skipped below.
             if (LocalFileStorageService.IsSealedPath(relativePath)) continue;
             if (storage.SealedVariantExists(relativePath)) continue;
+            // A file that failed once fails every time; decoding it again each sweep only repeated
+            // the work and the warning, and it never counted against the cap below.
+            lock (_unsealable) if (_unsealable.Contains(relativePath)) continue;
 
             try
             {
@@ -322,7 +336,8 @@ public class DailyMaintenanceBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not create sealed variant for {Path}", relativePath);
+                _logger.LogWarning(ex, "Could not create sealed variant for {Path}; not retrying it", relativePath);
+                lock (_unsealable) if (_unsealable.Count < MaxRememberedUnsealable) _unsealable.Add(relativePath);
             }
         }
 

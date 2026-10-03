@@ -76,6 +76,10 @@ public class AppDbContext : DbContext
         b.Entity<Referral>().HasIndex(r => r.InviteeUserId).IsUnique();
         b.Entity<UserMilestone>().HasIndex(m => new { m.UserId, m.MilestoneId }).IsUnique();
         b.Entity<PushToken>().HasIndex(t => t.Token).IsUnique();
+        // Every push looks a recipient's tokens up by user; only Token was indexed.
+        b.Entity<PushToken>().HasIndex(t => t.UserId);
+        // The activity screen and confirmations read suggestions per match.
+        b.Entity<ActivitySuggestion>().HasIndex(a => a.MatchId);
 
         b.Entity<IcebreakerResponse>().HasIndex(r => new { r.MatchId, r.IcebreakerId, r.UserId }).IsUnique();
         b.Entity<QuizResponse>().HasIndex(r => new { r.QuizId, r.UserId, r.MatchId }).IsUnique();

@@ -286,7 +286,11 @@ public class AdminUsersController : ControllerBase
                 EF.Functions.ILike(u.City, term) ||
                 (u.PhoneNumber != null && EF.Functions.ILike(u.PhoneNumber, term)));
         }
-        var rows = await query.OrderByDescending(u => u.CreatedAt).ToListAsync();
+        // Only the exported columns: the full row carries photo lists, bios and the rest of the
+        // profile for every account, none of which the file contains.
+        var rows = await query.OrderByDescending(u => u.CreatedAt)
+            .Select(u => new { u.DisplayName, u.Age, u.City, u.GemTier, u.MembershipLevel, u.TotalScore, u.IsPaused, u.IsDeleted, u.IsBanned, u.CreatedAt })
+            .ToListAsync();
 
         var csv = CsvWriter.Write(
             ["DisplayName", "Age", "City", "GemTier", "MembershipLevel", "TotalScore", "IsPaused", "IsDeleted", "IsBanned", "CreatedAt"],

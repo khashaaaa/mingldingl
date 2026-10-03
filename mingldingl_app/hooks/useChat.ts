@@ -88,17 +88,21 @@ export function useChat(matchId: string) {
       if (data.length < MESSAGE_PAGE_SIZE) setEarlierExhausted(true);
 
       const cached = qc.getQueryData<Message[]>(queryKeys.messages(matchId)) ?? [];
+      // ISO timestamps order as plain strings; `localeCompare` is far slower on Hermes and ran over
+      // the whole thread on every refetch.
       // Keep pages already pulled in by loadEarlier, plus anything still in flight locally —
       // otherwise a background refetch collapses the thread back to the newest page.
       const fresh = data.map(parseMessage);
       const freshIds = new Set(fresh.map((m) => m.id));
       const older = cached.filter((m) => m.status === 'sent' && !freshIds.has(m.id));
       const local = cached.filter((m) => m.status === 'sending' || m.status === 'failed');
-      return mergeMessages([...older, ...fresh].sort((a, b) => a.createdAt.localeCompare(b.createdAt)), local);
+      return mergeMessages([...older, ...fresh].sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0)), local);
     },
     enabled: !!matchId,
     staleTime: 15 * 1000,
-    gcTime: Infinity,
+    // Kept a while after leaving so a quick return is instant, but not for the life of the app:
+    // every thread ever opened, with every earlier page pulled in, used to stay in memory.
+    gcTime: 30 * 60 * 1000,
     // chat renders its own error state and retry.
     meta: { silentError: true },
   });
@@ -149,7 +153,7 @@ export function useChat(matchId: string) {
   const sendMutation = useMutation({
     mutationFn: (content: string) => apiClient.messages.send(matchId, content),
     meta: {
-      invalidates: [queryKeys.quests, queryKeys.milestones, queryKeys.matches, queryKeys.campaignAll],
+      invalidates: [queryKeys.quests, queryKeys.milestones, queryKeys.matches, queryKeys.campaign(matchId)],
       awardedSelector: (data) => (data as { awarded?: number }).awarded,
       silentError: true,
     },

@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/apiClient';
 import { subscribeToBroadcast } from '../lib/realtime/subscribeWithRetry';
@@ -20,6 +21,15 @@ export interface TownSquareNextSession {
 
 export function useTownSquareSession() {
   const qc = useQueryClient();
+  // The tab stays mounted once visited, and the hearth's pill and the satchel read this too, so an
+  // unconditional interval polled the engine every 15 seconds from anywhere in the app. Only a
+  // screen actually on display keeps polling; one in the background is caught up by focus and by
+  // the broadcast below.
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    return () => setFocused(false);
+  }, []));
   const { data: session, isLoading, isError, error, refetch } = useQuery<TownSquareNextSession>({
     queryKey: queryKeys.townSquareNextSession,
     queryFn: async () => {
@@ -36,6 +46,7 @@ export function useTownSquareSession() {
       };
     },
     refetchInterval: (query) => {
+      if (!focused) return false;
       const data = query.state.data;
       if (!data || data.sessionId == null) return 60000;
       // Keep polling while a session runs: it is the only signal that tells this screen the
