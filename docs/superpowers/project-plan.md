@@ -313,6 +313,12 @@ All need the `verify` skill (real Supabase JWTs, full stack running) or the Gala
 
 ## Code health
 
+- **An intermittent engine test failure.** CI's `dotnet test` failed once on `8912755`
+  (2026-10-03, an app-only commit) and passed on the next run with no engine change; two local
+  runs of all 1,047 also passed. The failing test's name is only in the job log, which needs a
+  GitHub login to download (`gh` is not installed here). Next red engine run on an unrelated
+  commit: read that log from the Actions page before re-running.
+
 - **Two palette seams** are documented in `lib/theme.ts` rather than solved: `STATUS.warning` sits
   15.9° from `ACCENT.base` in hue (it separates on lightness and must always render as a filled
   banner with an icon), and `STATUS.success` is deliberately the same value as the Emerald jewel.
