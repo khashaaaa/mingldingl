@@ -19,6 +19,14 @@ curves (campfire, sealed letter, carried lantern, anvil, faceted gem, jagged flo
 strapped chest, candle in its dish, bell, arched hearth). `gen-glyphs.js` does the inking, so a
 path in `GLYPHS` only says where the brush goes. Plaza's live bell went to round caps to match.
 
+Then the rest of the world's marks, in the same ink (53 glyphs in all): the fourteen honours (the
+thread honours grow a bead a rung), the score history's deeds, the chests, the six venue types,
+the Profile and Settings room links, the empty-state places (each baked with a separate ground
+layer, tinted brass under the place) and `Waiting`'s candle (wax and wick as two layers, so the
+flame still flickers). `Icon`'s `INKED` table hands an icon-font name to its drawing, so call
+sites did not change; controls (back, close, chevrons, camera, video, phone) stay in the font on
+purpose. The kit keeps no monsters: both skulls became an ember or an empty chair.
+
 ## 2026-10-03 — A51 translation and consistency audit
 
 - **Header titles were three different sizes** on sibling screens (13.7–22pt). Android's

@@ -1,7 +1,8 @@
 import { render } from '@testing-library/react-native';
 import { StateBlock } from '../StateBlock';
 import { PLACES, PLACE_NAMES } from '../Places';
-import { ACCENT, HEAT, ICON_SIZES, INK, STATUS } from '../../../lib/theme';
+import { StyleSheet } from 'react-native';
+import { ACCENT, HEAT, ICON_SIZES, INK, METAL, STATUS } from '../../../lib/theme';
 import { marks, packed, paints } from '../../../lib/testing/svg';
 
 /**
@@ -118,12 +119,14 @@ describe('the drawn places', () => {
 
   it('takes the size and colour it is given', () => {
     const Gate = PLACES.gate;
-    const { getByTestId, toJSON } = render(<Gate size={ICON_SIZES.splash} color={INK.dim} />);
+    const { getByTestId } = render(<Gate size={ICON_SIZES.splash} color={INK.dim} />);
 
-    expect(getByTestId('state-place-gate', HIDDEN).props).toEqual(expect.objectContaining({
+    expect(StyleSheet.flatten(getByTestId('state-place-gate', HIDDEN).props.style)).toEqual(expect.objectContaining({
       width: ICON_SIZES.splash,
       height: ICON_SIZES.splash,
     }));
-    expect(paints(toJSON())).toContainEqual(packed(INK.dim));
+    expect(StyleSheet.flatten(getByTestId('glyph-gate', HIDDEN).props.style).tintColor).toBe(INK.dim);
+    // What it stands on stays brass whatever tone the place takes.
+    expect(StyleSheet.flatten(getByTestId('glyph-gate-ground', HIDDEN).props.style).tintColor).toBe(METAL.brassDeep);
   });
 });

@@ -33,7 +33,10 @@ describe('Glyph', () => {
   });
 
   it('has a baked image at every size for every name, and nothing left over', () => {
-    const wanted = GLYPH_NAMES.flatMap((name) => GLYPH_PIXELS.map((px) => `${name}-${px}.png`)).sort();
+    const wanted = GLYPH_NAMES.flatMap((name) => [
+      ...GLYPH_PIXELS.map((px) => `${name}-${px}.png`),
+      ...(GLYPHS[name].ground ? GLYPH_PIXELS.map((px) => `${name}-ground-${px}.png`) : []),
+    ]).sort();
     expect(fs.readdirSync(BAKED).sort()).toEqual(wanted);
     for (const name of GLYPH_NAMES) expect(Object.keys(GLYPH_IMAGES[name]).map(Number)).toEqual([...GLYPH_PIXELS]);
   });
