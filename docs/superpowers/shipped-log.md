@@ -8,6 +8,39 @@ long versions.
 
 ---
 
+## 2026-10-03 — The road: party seats, scars, waypoints, seasons, weekly trials, retiring
+
+Six mechanics that turn the accountability rules into play; every number is admin config under
+the **Game** category, each with an off switch.
+
+- **Party seats** (`PartyService`): at most `party.seats.base` (4) + `per_tier` (1) × tier active
+  matches. A summons past it is refused (`party.full`); a full target is refused
+  (`party.target_full`) and dropped from discovery after the pool is drawn. Fated Threads and Town
+  Square still land past the limit — they are events the user chose. The check is a fast path
+  (two summons at once can land one seat over), same as the budget's.
+- **Scars** (`KeptEncounterService`): every ghost penalty opens one in the same UPDATE that docks
+  reputation (`Users.OpenScars`). `scars.heal.encounters` (2) *kept* encounters — both sides said
+  the other came — close the oldest, hand the dock back, write a `ScarHealed` event and grant
+  **Mended** on the first. Existing users start at zero scars: old ghostings were not back-filled.
+- **Waypoints**: kept encounters chart their venue's district; `waypoints.cartographer.districts`
+  (3) earns **Cartographer**. The Encounter Log shows the count and marks charted rows.
+- **Seasons** (`SeasonService`): Naadam 11–13 July and Tsagaan Sar from a 2027–29 table — the same
+  windows as the app's `lib/festivals.ts`, add a year to both. An encounter *sworn* in season and
+  kept later earns **Of the Naadam** / **Of the White Moon**; the Hearth names the honour while the
+  festival runs.
+- **Weekly trial** per match (`BondTrialService`): `exchange` (each side sends
+  `trial.exchange.messages`, 5) or `rite` (hold the Flame Rite), fixed by a hash of match + week
+  and decided from state at the week's start. Either side claims; both get `BondTrialDone` (+25)
+  once — the `BondTrialClaims` (match, week) key is the lock. Shown first in the chat's activities
+  sheet.
+- **Retiring together** (`RetireService`): only a pair with a completed encounter. One proposes,
+  the other accepts (or declines / withdraws); the match ends `Completed`, both accounts are paused
+  out of discovery with `RetiredAt` set, both earn **Hearthbound**. The Hall of Names counts such
+  pairs nationwide. No push yet (see Outstanding Follow-ups).
+- Honours went from nine to fourteen. `GET /engagement/standing` feeds the character sheet's
+  Standing card (seats, scars, districts); `GET /engagement/season` exists but the app reads its
+  own festival table.
+
 ## 2026-09-29 → 30 — A51 passes, navigation, nav bar, in-app notices
 
 - **Navigation** (`lib/navigation.ts`, guarded by `lib/__tests__/navigation.test.ts`):

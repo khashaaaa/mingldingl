@@ -12,6 +12,8 @@ export interface FestivalWindow {
   end: string;
 }
 
+// The engine grants the festival honours off the same windows (`SeasonService`: Naadam as
+// season.naadam.*_mmdd, Tsagaan Sar as its WhiteMoonCalendar) — add a year to both or neither.
 export const FESTIVALS: FestivalWindow[] = [
   { key: 'naadam-2026', nameKey: 'festival_naadam', icon: 'bow-arrow', color: METAL.ember, start: '2026-07-11', end: '2026-07-13' },
   { key: 'naadam-2027', nameKey: 'festival_naadam', icon: 'bow-arrow', color: METAL.ember, start: '2027-07-11', end: '2027-07-13' },

@@ -15,12 +15,13 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { RADIUS, SPACE } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
+import { isApiError } from '../../lib/api/errors';
 
 export default function DiscoverScreen() {
   useLocaleStore((s) => s.locale);
   const [toast, setToast] = useState(false);
   const [toastPoints, setToastPoints] = useState(0);
-  const [failAlert, setFailAlert] = useState<'generic' | 'dailyBudget' | 'unavailable' | null>(null);
+  const [failAlert, setFailAlert] = useState<'generic' | 'dailyBudget' | 'unavailable' | 'partyFull' | null>(null);
   const { candidates, isLoading, isError, refetch, markSeen } = useDiscover();
   const { mutate: requestMatch, isPending: isRequesting } = useRequestMatch();
   const dailyBudget = useDailyMatchBudget();
@@ -93,7 +94,10 @@ export default function DiscoverScreen() {
               },
               onError: (err) => {
                 const status = isAxiosError(err) ? err.response?.status : undefined;
-                if (status === 409 || status === 403) {
+                // Their seat count is not this candidate's fault: keep them in the deck for later.
+                if (isApiError(err, 'party.full')) {
+                  setFailAlert('partyFull');
+                } else if (status === 409 || status === 403) {
                   markSeen(candidate.id);
                   setFailAlert('unavailable');
                 } else if (status === 400) {
@@ -120,11 +124,13 @@ export default function DiscoverScreen() {
         tone="warning"
         title={i18n.t(
           failAlert === 'dailyBudget' ? 'daily_budget_title'
+            : failAlert === 'partyFull' ? 'party_full_title'
             : failAlert === 'unavailable' ? 'candidate_unavailable'
             : 'action_failed_title',
         )}
         message={i18n.t(
           failAlert === 'dailyBudget' ? 'daily_budget_body'
+            : failAlert === 'partyFull' ? 'party_full_body'
             : failAlert === 'unavailable' ? 'candidate_unavailable_body'
             : 'action_failed_body',
         )}

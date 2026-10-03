@@ -50,6 +50,11 @@ import { useSealedLetter } from '../../hooks/useSealedLetter';
 import { useFireDying } from '../../hooks/useFireDying';
 import { useNowTicker } from '../../hooks/useNowTicker';
 import { goBack } from '../../lib/navigation';
+import { useBondTrial } from '../../hooks/useBondTrial';
+import { useRetire } from '../../hooks/useRetire';
+import { BondTrialCard } from '../../components/chat/BondTrialCard';
+import { getApiErrorMessage } from '../../lib/api/errors';
+import { signal } from '../../lib/world/feedback';
 
 const Ember = PLACES.ember;
 
@@ -120,12 +125,19 @@ export default function ChatScreen() {
   const [reportVisible, setReportVisible] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [actionFailedAlert, setActionFailedAlert] = useState(false);
+  const [confirmRetire, setConfirmRetire] = useState(false);
+  const [retireError, setRetireError] = useState<string | null>(null);
+  const { trial, claim: claimTrial, isClaiming: claimingTrial } = useBondTrial(matchId, !endedReason);
+  const { retire, withdraw: withdrawRetire } = useRetire(matchId);
+  const retireAskedByThem = !!match?.retireProposedById && match.retireProposedById !== myId;
+  const retireAskedByMe = !!match?.retireProposedById && match.retireProposedById === myId;
 
   // Only things the other side has put in your court — an invitation you have not answered.
   const ritePendingMyAnswer =
     !!riteState.proposedByUserId && riteState.proposedByUserId !== myId
     && !riteState.acceptedAt && !riteState.completedAt;
-  const waitingOnYou = (attendanceDue ? 1 : 0) + (ritePendingMyAnswer ? 1 : 0);
+  const waitingOnYou = (attendanceDue ? 1 : 0) + (ritePendingMyAnswer ? 1 : 0) + (retireAskedByThem ? 1 : 0)
+    + (trial?.complete && !trial.claimed ? 1 : 0);
   // match.messageCount is the engine's mutual count, which is what the gate itself reads.
   const encounterLockedBy = messagesUntilActivities(match?.messageCount ?? 0, activityGate);
 
@@ -460,9 +472,11 @@ export default function ChatScreen() {
               </>
             ) : (
               <>
-                <Icon name="link-variant-off" size={ICON_SIZES.md} color={INK.muted} />
+                <Icon name={effectiveStatus === 'Completed' ? 'home-heart' : 'link-variant-off'} size={ICON_SIZES.md}
+                  color={effectiveStatus === 'Completed' ? ACCENT.base : INK.muted} />
                 <Text style={styles.endedNoticeText}>
-                  {endedReason === 'ghosted' ? i18n.t('match_quiet_body') : i18n.t('match_ended_notice')}
+                  {endedReason === 'ghosted' ? i18n.t('match_quiet_body')
+                    : effectiveStatus === 'Completed' ? i18n.t('retired_notice') : i18n.t('match_ended_notice')}
                 </Text>
               </>
             )}
@@ -480,11 +494,12 @@ export default function ChatScreen() {
       </KeyboardAvoidingView>
       <AlertModal
         visible={!!endedReason && !endedAcknowledged}
-        tone={endedReason === 'ghosted' ? 'frost' : 'warning'}
-        title={endedReason === 'ghosted' ? i18n.t('match_quiet_title') : i18n.t('match_ended_title')}
+        tone={endedReason === 'ghosted' ? 'frost' : effectiveStatus === 'Completed' ? 'default' : 'warning'}
+        title={endedReason === 'ghosted' ? i18n.t('match_quiet_title')
+          : effectiveStatus === 'Completed' ? i18n.t('retired_title') : i18n.t('match_ended_title')}
         message={endedReason === 'ghosted'
           ? (fire ? fireVerdict(fire) : null) ?? i18n.t('match_quiet_body')
-          : i18n.t('match_ended_body')}
+          : effectiveStatus === 'Completed' ? i18n.t('retired_body') : i18n.t('match_ended_body')}
         onDismiss={() => setEndedAcknowledged(true)}
       />
       <AlertModal
@@ -506,6 +521,32 @@ export default function ChatScreen() {
         isConfirming={blocking}
         onConfirm={handleBlock}
         onDismiss={() => setConfirmBlock(false)}
+      />
+      <AlertModal
+        visible={confirmRetire}
+        tone="default"
+        title={retireAskedByThem ? i18n.t('retire_accept_title') : i18n.t('retire_propose_title')}
+        message={i18n.t('retire_confirm_body')}
+        confirmLabel={retireAskedByThem ? i18n.t('retire_accept') : i18n.t('retire_propose')}
+        isConfirming={retire.isPending}
+        onConfirm={() => retire.mutate(undefined, {
+          onSuccess: (res) => {
+            setConfirmRetire(false);
+            if (res.outcome === 'Retired') signal('pledgeKept');
+          },
+          onError: (err) => {
+            setConfirmRetire(false);
+            setRetireError(getApiErrorMessage(err, i18n.t('action_failed_body')));
+          },
+        })}
+        onDismiss={() => setConfirmRetire(false)}
+      />
+      <AlertModal
+        visible={!!retireError}
+        tone="warning"
+        title={i18n.t('action_failed_title')}
+        message={retireError ?? undefined}
+        onDismiss={() => setRetireError(null)}
       />
       <AlertModal
         visible={actionFailedAlert}
@@ -538,6 +579,22 @@ export default function ChatScreen() {
           >
             <Text style={styles.optionsTitle}>{i18n.t('match_activities')}</Text>
             <ScrollView style={styles.activitiesScroll} contentContainerStyle={styles.activitiesScrollContent}>
+              {trial && <BondTrialCard trial={trial} onClaim={() => claimTrial()} isClaiming={claimingTrial} />}
+              {retireAskedByThem ? (
+                <>
+                  <QuestBanner icon="home-heart" tint={METAL.ember}
+                    title={i18n.t('retire_asked', { name: revealedName ?? name ?? '' })}
+                    onPress={() => { setActivitiesVisible(false); setConfirmRetire(true); }} />
+                  <QuestBanner icon="close" title={i18n.t('retire_decline')}
+                    onPress={() => withdrawRetire.mutate()} />
+                </>
+              ) : retireAskedByMe ? (
+                <QuestBanner icon="home-heart" title={i18n.t('retire_waiting')}
+                  onPress={() => withdrawRetire.mutate()} />
+              ) : match?.canRetire ? (
+                <QuestBanner icon="home-heart" title={i18n.t('retire_propose')}
+                  onPress={() => { setActivitiesVisible(false); setConfirmRetire(true); }} />
+              ) : null}
               {campaign && (
                 <QuestBanner icon="map" tint={ACCENT.bright} medallion="knot"
                   title={i18n.t('campaign_banner', { cleared: campaign.clearedCount, total: campaign.rooms.length })}

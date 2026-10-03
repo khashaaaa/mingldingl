@@ -101,11 +101,11 @@ describe('useRealtimeNudges', () => {
   });
 
   // Every client used to join one shared `app-nudges` topic and receive every user's events.
-  it("subscribes only to this user's own topic, with all ten broadcast handlers", () => {
+  it("subscribes only to this user's own topic, with all eleven broadcast handlers", () => {
     const { channel } = mount();
     expect(mockChannelFn).toHaveBeenCalledTimes(1);
     expect(mockChannelFn).toHaveBeenCalledWith('user:me1');
-    expect(channel.on).toHaveBeenCalledTimes(10);
+    expect(channel.on).toHaveBeenCalledTimes(11);
     expect(channel.subscribe).toHaveBeenCalled();
   });
 
@@ -328,6 +328,14 @@ describe('useRealtimeNudges', () => {
       },
     );
 
+    it('sounds the kept pledge when the other side accepts retiring together', () => {
+      const { handlers } = mount();
+
+      handlers.match_status_changed({ payload: { matchId: 'm1', status: 'Completed', userId: 'other-user' } });
+
+      expect(mockSignal).toHaveBeenCalledWith('pledgeKept');
+    });
+
     it('sounds the penalty when a ghosting names me as the one at fault', () => {
       const { handlers } = mount();
 
@@ -409,6 +417,26 @@ describe('useRealtimeNudges', () => {
         title: 'Casey sent a message',
         matchId: 'm2',
       });
+    });
+  });
+
+  describe('retire_proposed event', () => {
+    it('refreshes matches so the proposal shows in the chat', () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.retire_proposed({ payload: { matchId: 'm1', userId: 'other-user' } });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.matches });
+    });
+
+    it('ignores a match this device does not know', () => {
+      const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+      const { handlers } = mount();
+
+      handlers.retire_proposed({ payload: { matchId: 'stranger', userId: 'other-user' } });
+
+      expect(invalidateSpy).not.toHaveBeenCalled();
     });
   });
 

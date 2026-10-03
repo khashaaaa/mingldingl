@@ -41,7 +41,7 @@ export const ENGINE_EVENT_TYPES = [
   'ProfileComplete', 'DailyLogin', 'FirstMessage', 'IcebreakerDone', 'QuizDone', 'MatchReply',
   'DateConfirmed', 'VideoCallDone', 'ShipSparked', 'OathProven', 'GhostPenalty',
   'RepeatedNoShowPenalty', 'QuestComplete', 'QuestChest', 'MilestoneChest', 'DuplicateLoot',
-  'AdminAdjustment', 'CampaignRoomBonus', 'CampaignBossBonus',
+  'AdminAdjustment', 'CampaignRoomBonus', 'CampaignBossBonus', 'BondTrialDone', 'ScarHealed',
 ] as const;
 
 export const EVENT_ICONS: Record<string, EventGlyph> = {
@@ -53,6 +53,7 @@ export const EVENT_ICONS: Record<string, EventGlyph> = {
   AdminAdjustment: 'scale-balance', OathProven: 'seal-variant',
   RepeatedNoShowPenalty: 'account-cancel',
   CampaignRoomBonus: 'map-marker-path', CampaignBossBonus: 'trophy',
+  BondTrialDone: 'sword-cross', ScarHealed: 'bandage',
 };
 
 export const EVENT_TYPE_KEYS: Record<string, string> = {
@@ -76,6 +77,8 @@ export const EVENT_TYPE_KEYS: Record<string, string> = {
   RepeatedNoShowPenalty: 'event_repeated_no_show_penalty',
   CampaignRoomBonus: 'event_campaign_room_bonus',
   CampaignBossBonus: 'event_campaign_boss_bonus',
+  BondTrialDone: 'event_bond_trial_done',
+  ScarHealed: 'event_scar_healed',
 };
 
 /**
@@ -103,6 +106,8 @@ export const CHRONICLE_KEYS: Record<string, string> = {
   RepeatedNoShowPenalty: 'chronicle_repeated_no_show_penalty',
   CampaignRoomBonus: 'chronicle_campaign_room_bonus',
   CampaignBossBonus: 'chronicle_campaign_boss_bonus',
+  BondTrialDone: 'chronicle_bond_trial_done',
+  ScarHealed: 'chronicle_scar_healed',
 };
 
 /** Signed for the sentence and its ledger column: a real minus sign, not a hyphen, so "−15" reads as a loss. */

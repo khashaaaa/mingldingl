@@ -59,6 +59,10 @@ export interface Match {
   lastMessageAt?: string;
   /** Who sent the last letter, so the app can say whose turn it is. Null/absent until the first letter. */
   lastMessageSenderId?: string;
+  /** Who has asked to retire together, if anyone. */
+  retireProposedById?: string | null;
+  /** Retiring is open to this pair: they have completed an encounter and the match is live. */
+  canRetire?: boolean;
 }
 
 export function parseMatch(d: components['schemas']['MatchResponse']): Match {
@@ -103,5 +107,7 @@ export function parseMatch(d: components['schemas']['MatchResponse']): Match {
     createdAt: d.createdAt ?? undefined,
     lastMessageAt: d.lastMessageAt ?? undefined,
     lastMessageSenderId: d.lastMessageSenderId ?? undefined,
+    retireProposedById: d.retireProposedById ?? null,
+    canRetire: d.canRetire ?? false,
   };
 }

@@ -1,5 +1,6 @@
 import { useProfile } from './useProfile';
 import { useScoreDetail } from './useScoreDetail';
+import { useStanding } from './useStanding';
 import {
   SEVEN_DAWNS_NEEDED, THREAD_HONOUR_IDS, THREAD_HONOUR_NEEDED, type HonourId,
 } from '../lib/tiers';
@@ -13,12 +14,13 @@ export interface HonourProgress {
 /**
  * How close each still-dark honour is, for the ones the app can actually count. The engine grants
  * honours; this only reads figures it already serves — the login streak, the oath's encounter
- * tally, sparked threads — so a slot can show "4 of 7" instead of only the deed. Honours with no
+ * tally, sparked threads, districts charted, a scar's mending — so a slot can show "4 of 7" instead of only the deed. Honours with no
  * countable progress (Flame Rite, Seal-Breaker, Ally-Caller, True Word) are simply absent.
  */
 export function useHonourProgress(): Partial<Record<HonourId, HonourProgress>> {
   const { data: score } = useScoreDetail();
   const { data: profile } = useProfile();
+  const { data: standing } = useStanding();
 
   const out: Partial<Record<HonourId, HonourProgress>> = {};
 
@@ -32,6 +34,15 @@ export function useHonourProgress(): Partial<Record<HonourId, HonourProgress>> {
 
   if (score?.threadsSparked != null) {
     for (const id of THREAD_HONOUR_IDS) out[id] = clamp(score.threadsSparked, THREAD_HONOUR_NEEDED[id]);
+  }
+
+  if (standing?.districtsCharted != null && standing.cartographerNeeded) {
+    out.title_cartographer = clamp(standing.districtsCharted, standing.cartographerNeeded);
+  }
+
+  // Mended counts only while a scar is open; with none there is nothing to mend.
+  if (standing?.openScars && standing.scarHealNeeded) {
+    out.title_mended = clamp(standing.scarHealProgress ?? 0, standing.scarHealNeeded);
   }
 
   return out;

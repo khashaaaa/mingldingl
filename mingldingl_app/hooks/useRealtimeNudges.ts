@@ -141,11 +141,18 @@ export function useRealtimeNudges() {
           queryClient.invalidateQueries({ queryKey: queryKeys.matches });
           queryClient.invalidateQueries({ queryKey: queryKeys.campaign(matchId) });
         },
+        // A proposal to retire together, or its withdrawal: the match row carries who asked.
+        retire_proposed: (msg) => {
+          if (!isKnownMatch((msg.payload as { matchId?: string }).matchId)) return;
+          queryClient.invalidateQueries({ queryKey: queryKeys.matches });
+        },
         match_status_changed: (msg) => {
           const { matchId, status, userId } = msg.payload as { matchId: string; status: string; userId?: string | null };
           if (!isKnownMatch(matchId)) return;
           // A ghosting names whoever the engine docked for it; the other side lost nothing.
           if (status === 'Ghosted' && userId === myId) signal('penalty');
+          // The other side accepted retiring together: the proposer hears it land.
+          if (status === 'Completed' && userId !== myId) signal('pledgeKept');
           queryClient.invalidateQueries({ queryKey: queryKeys.matches });
           // An ended match drops straight out of the matches list, so anyone standing in that chat
           // would otherwise lose the match object without ever being told what happened.

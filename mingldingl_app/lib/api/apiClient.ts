@@ -127,6 +127,16 @@ export const apiClient = {
       api.get<Schemas['CampaignResponse']>(`/matches/${id}/campaign`).then((r) => r.data),
     claimCampaignRoom: (id: string, roomId: string) =>
       api.post<Schemas['ClaimCampaignRoomResponse']>(`/matches/${id}/campaign/rooms/${roomId}/claim`).then((r) => r.data),
+    trial: (id: string) =>
+      api.get<Schemas['BondTrialResponse']>(`/matches/${id}/trial`).then((r) => r.data),
+    claimTrial: (id: string) =>
+      api.post<Schemas['BondTrialResponse']>(`/matches/${id}/trial/claim`).then((r) => r.data),
+    /** Proposes retiring together, or accepts the other side's proposal. */
+    retire: (id: string) =>
+      api.post<Schemas['RetireResponse']>(`/matches/${id}/retire`).then((r) => r.data),
+    /** Withdraws this side's proposal, or declines the other's. */
+    withdrawRetire: (id: string) =>
+      api.delete<Schemas['RetireResponse']>(`/matches/${id}/retire`).then((r) => r.data),
   },
   reports: {
     /**
@@ -156,6 +166,7 @@ export const apiClient = {
       api.get<Schemas['BusinessReviewResponse'][]>(`/business/${id}/reviews`).then((r) => r.data),
   },
   engagement: {
+    standing: () => api.get<Schemas['StandingResponse']>('/engagement/standing').then((r) => r.data),
     revealThresholds: () =>
       api.get<Schemas['RevealThresholdsResponse']>('/engagement/reveal-thresholds').then((r) => r.data),
     icebreaker: (matchId: string) =>

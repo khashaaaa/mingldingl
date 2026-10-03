@@ -30,11 +30,16 @@ interface HeldHonour {
   acquiredAt?: string | null;
 }
 
-/** The hall is three rows: the honours with stakes, the thread triptych, the honours of habit. */
+/**
+ * The hall's rows: the honours with stakes, the thread triptych, the honours of habit, the honours
+ * of the road (a scar mended, districts charted, a hearth shared), and the two festivals.
+ */
 const ROWS: readonly (readonly HonourId[])[] = [
   ['title_oathkeeper', 'title_flamekeeper', 'title_sealbreaker'],
   THREAD_HONOUR_IDS,
   ['title_allycaller', 'title_trueword', 'title_sevendawns'],
+  ['title_mended', 'title_cartographer', 'title_hearthbound'],
+  ['title_naadam', 'title_whitemoon'],
 ];
 
 const CHIP = 36;
@@ -43,7 +48,7 @@ const BREATH_MS = 1200;
 const SWEEP_MS = 900;
 
 /**
- * The trophy hall: every honour the engine can grant, always all nine, lit in its metal once the
+ * The trophy hall: every honour the engine can grant, always every one, lit in its metal once the
  * deed is done and dark with the deed as the hint until then. Tapping a lit honour wears it as the
  * title other people see; a long press on any slot opens its story. An honour that is granted
  * while the hall is open catches fire in place — `useIgnition` tells the slot it just arrived —

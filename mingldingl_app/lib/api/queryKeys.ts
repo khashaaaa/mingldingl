@@ -43,6 +43,8 @@ export const queryKeys = {
   townSquareSessionSummary: (sessionId: string) => ['townSquareSessionSummary', sessionId] as const,
   pendingShips: ['pendingShips'] as const,
   campaign: (matchId: string) => ['campaign', matchId] as const,
+  trial: (matchId: string) => ['trial', matchId] as const,
+  standing: ['standing'] as const,
   // Prefix key so realtime handlers and mutations can invalidate every match's campaign at once.
   campaignAll: ['campaign'] as const,
 };

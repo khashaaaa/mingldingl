@@ -23,6 +23,7 @@ jest.mock('../../../components/progression/ThreadLog', () => ({ ThreadLog: () =>
 jest.mock('../../../components/progression/GemTierBadge', () => ({ GemTierBadge: () => null }));
 jest.mock('../../../components/cards/ShareCharacterButton', () => ({ ShareCharacterButton: () => null }));
 jest.mock('../../../components/profile/OathCard', () => ({ OathCard: () => null }));
+jest.mock('../../../components/profile/StandingCard', () => ({ StandingCard: () => null }));
 jest.mock('../../../components/profile/ProfileAvatar', () => ({ ProfileAvatar: () => null }));
 jest.mock('../../../components/profile/DeletionPendingBanner', () => ({ DeletionPendingBanner: () => null }));
 

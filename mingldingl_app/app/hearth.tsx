@@ -132,6 +132,13 @@ export default function HearthScreen() {
             ) : (
               <Text style={styles.appVoice}>{i18n.t('hearth_sky')}</Text>
             )}
+            {/* The festival's honour, named while it can still be earned: an encounter sworn
+                inside the window and kept afterwards (the engine's SeasonService). */}
+            {festival && (
+              <Text style={styles.appVoice}>
+                {i18n.t(whiteMoon ? 'season_hint_whitemoon' : 'season_hint_naadam')}
+              </Text>
+            )}
             {dailyBudget && (
               <View style={styles.waxBlock}>
                 <CandleRow remaining={dailyBudget.remaining} budget={dailyBudget.budget} />

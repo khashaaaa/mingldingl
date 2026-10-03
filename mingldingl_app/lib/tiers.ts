@@ -98,6 +98,8 @@ export const HONOUR_IDS = [
   'title_oathkeeper', 'title_flamekeeper', 'title_sealbreaker',
   'title_threadweaver', 'title_fateseer', 'title_bondkeeper',
   'title_allycaller', 'title_trueword', 'title_sevendawns',
+  'title_mended', 'title_cartographer', 'title_hearthbound',
+  'title_naadam', 'title_whitemoon',
 ] as const;
 export type HonourId = (typeof HONOUR_IDS)[number];
 
@@ -107,6 +109,9 @@ const ITEM_NAME_KEYS: Record<string, string> = {
   title_fateseer: 'item_title_fateseer', title_bondkeeper: 'item_title_bondkeeper',
   title_allycaller: 'item_title_allycaller', title_trueword: 'item_title_trueword',
   title_sevendawns: 'item_title_sevendawns',
+  title_mended: 'item_title_mended', title_cartographer: 'item_title_cartographer',
+  title_hearthbound: 'item_title_hearthbound', title_naadam: 'item_title_naadam',
+  title_whitemoon: 'item_title_whitemoon',
 };
 
 /** The deed that grants each honour, shown on the dark slot so the hall doubles as a list of things to do. */
@@ -116,6 +121,9 @@ export const HONOUR_DEED_KEYS: Record<HonourId, string> = {
   title_fateseer: 'honour_deed_fateseer', title_bondkeeper: 'honour_deed_bondkeeper',
   title_allycaller: 'honour_deed_allycaller', title_trueword: 'honour_deed_trueword',
   title_sevendawns: 'honour_deed_sevendawns',
+  title_mended: 'honour_deed_mended', title_cartographer: 'honour_deed_cartographer',
+  title_hearthbound: 'honour_deed_hearthbound', title_naadam: 'honour_deed_naadam',
+  title_whitemoon: 'honour_deed_whitemoon',
 };
 
 /** One sentence of story per honour, read from the slot's long-press sheet. */
@@ -125,6 +133,9 @@ export const HONOUR_LORE_KEYS: Record<HonourId, string> = {
   title_fateseer: 'honour_lore_fateseer', title_bondkeeper: 'honour_lore_bondkeeper',
   title_allycaller: 'honour_lore_allycaller', title_trueword: 'honour_lore_trueword',
   title_sevendawns: 'honour_lore_sevendawns',
+  title_mended: 'honour_lore_mended', title_cartographer: 'honour_lore_cartographer',
+  title_hearthbound: 'honour_lore_hearthbound', title_naadam: 'honour_lore_naadam',
+  title_whitemoon: 'honour_lore_whitemoon',
 };
 
 export type HonourIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -144,6 +155,11 @@ export const HONOUR_ICONS: Record<HonourId, HonourIconName> = {
   title_allycaller: 'bugle',
   title_trueword: 'handshake',
   title_sevendawns: 'weather-sunset-up',
+  title_mended: 'bandage',
+  title_cartographer: 'map-legend',
+  title_hearthbound: 'home-heart',
+  title_naadam: 'bow-arrow',
+  title_whitemoon: 'moon-full',
 };
 
 /** The thread honours in rung order — the hall chains these three into one row. */

@@ -18,6 +18,7 @@ const mockScore: { data: Record<string, unknown> | undefined } = { data: undefin
 const mockProfile: { data: Record<string, unknown> | null | undefined } = { data: undefined };
 jest.mock('../../../hooks/useScoreDetail', () => ({ useScoreDetail: () => mockScore }));
 jest.mock('../../../hooks/useProfile', () => ({ useProfile: () => mockProfile }));
+jest.mock('../../../hooks/useStanding', () => ({ useStanding: () => ({ data: undefined }) }));
 jest.mock('../../modals/ChestModal', () => ({ ChestModal: () => null }));
 jest.mock('../../modals/AlertModal', () => ({ AlertModal: () => null }));
 jest.mock('../../../lib/world/feedback', () => ({ signal: jest.fn() }));
@@ -37,9 +38,9 @@ describe('HonourCase', () => {
     mockProfile.data = undefined;
   });
 
-  it('shows all nine honours dark, each with its deed, when nothing has been earned', () => {
+  it('shows every honour dark, each with its deed, when nothing has been earned', () => {
     const { getByTestId, getByText } = render(<HonourCase />);
-    expect(getByTestId('honour-count').props.children).toBe('0 / 9');
+    expect(getByTestId('honour-count').props.children).toBe('0 / 14');
     for (const id of HONOUR_IDS) expect(getByText(i18n.t(HONOUR_DEED_KEYS[id]))).toBeTruthy();
     expect(getByTestId('honour-title_sevendawns').props.accessibilityState.selected).toBe(false);
     expect(getByText(i18n.t('honours_hint'))).toBeTruthy();
@@ -56,7 +57,7 @@ describe('HonourCase', () => {
   it('lights an earned honour with its date, keeps the rest dark, and lets it be worn', () => {
     mockItems.push(oathkeeper);
     const { getByTestId, getByText, queryByText } = render(<HonourCase />);
-    expect(getByTestId('honour-count').props.children).toBe('1 / 9');
+    expect(getByTestId('honour-count').props.children).toBe('1 / 14');
     expect(getByText('Oath-Keeper')).toBeTruthy();
     expect(getByText(i18n.t('honour_deed_flamekeeper'))).toBeTruthy();
     expect(getByText('Sep 3, 2026')).toBeTruthy();
@@ -83,7 +84,7 @@ describe('HonourCase', () => {
     mockItems.push({ itemId: 'frame_opal', nameKey: 'item_frame_opal', rarity: 'Gold', itemType: 'Frame', equipped: true, acquiredAt: '2026-09-03T10:00:00Z' });
     const { queryByTestId, getByTestId } = render(<HonourCase />);
     expect(queryByTestId('honour-frame_opal')).toBeNull();
-    expect(getByTestId('honour-count').props.children).toBe('0 / 9');
+    expect(getByTestId('honour-count').props.children).toBe('0 / 14');
   });
 
   it('shows how close a dark Seven Dawns is from the login streak', () => {

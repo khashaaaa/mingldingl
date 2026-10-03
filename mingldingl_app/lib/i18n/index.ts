@@ -137,6 +137,23 @@ export const AWAITING_MN_TRANSLATION = [
   'hall_sub_no_city', 'seals_next_at_sentence', 'seals_left_0_sentence', 'stars_of_five',
   // The plaza drawing's carved labels, moved out of the SVG as literals.
   'plaza_gate_north', 'plaza_gate_south', 'plaza_bell', 'plaza_you',
+  // Party, scars, waypoints, seasons, weekly trials and retiring together (2026-10-03).
+  'err_party_full', 'err_party_target_full', 'err_trial_incomplete', 'err_trial_already_claimed',
+  'err_trial_disabled', 'err_retire_no_encounter', 'err_retire_not_active', 'err_retire_disabled',
+  'party_full_title', 'party_full_body', 'standing_title', 'party_label',
+  'party_seats', 'scars_label', 'scars_open', 'scars_none',
+  'waypoints_label', 'waypoints_charted', 'waypoint_charted', 'retired_standing',
+  'trial_eyebrow', 'trial_exchange_title', 'trial_exchange_body', 'trial_rite_title',
+  'trial_rite_body', 'trial_you', 'trial_them', 'trial_claimed',
+  'trial_claim', 'trial_reward', 'retire_propose', 'retire_propose_title',
+  'retire_accept', 'retire_accept_title', 'retire_confirm_body', 'retire_asked',
+  'retire_decline', 'retire_waiting', 'retired_title', 'retired_body',
+  'retired_notice', 'season_hint_naadam', 'season_hint_whitemoon', 'hall_hearthbound',
+  'item_title_mended', 'item_title_cartographer', 'item_title_hearthbound', 'item_title_naadam',
+  'item_title_whitemoon', 'honour_deed_mended', 'honour_deed_cartographer', 'honour_deed_hearthbound',
+  'honour_deed_naadam', 'honour_deed_whitemoon', 'honour_lore_mended', 'honour_lore_cartographer',
+  'honour_lore_hearthbound', 'honour_lore_naadam', 'honour_lore_whitemoon', 'event_bond_trial_done',
+  'event_scar_healed', 'chronicle_bond_trial_done', 'chronicle_scar_healed',
   // Audit W5: number-in-sentence formats (a translator only confirms the order) and the add-photo tile's label.
   'count_of_total', 'points_gain', 'next_tier_arrow', 'name_age', 'tier_score', 'getting_started_progress', 'add_photo',
 ] as const;

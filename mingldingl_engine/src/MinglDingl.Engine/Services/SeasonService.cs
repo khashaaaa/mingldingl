@@ -3,9 +3,9 @@ public record Season(string Id, DateTime StartsOn, DateTime EndsOn, string Honou
 
 /// <summary>
 /// Festival seasons. Naadam sits on the same days every year, so it is a month-day window; the
-/// White Moon follows the lunar calendar and moves every year, so an admin sets its dates by hand
-/// and it stays off until they do — a guessed lunar date would be wrong more years than not.
-/// Days are UTC days, like every other "today" in the engine.
+/// White Moon follows the lunar calendar and moves every year, so its windows are a table — the
+/// same one the app paints its festival look from (<c>mingldingl_app/lib/festivals.ts</c>) — and
+/// an admin can override a year by hand. Days are UTC days, like every other "today" in the engine.
 /// </summary>
 public class SeasonService
 {
@@ -18,8 +18,7 @@ public class SeasonService
         if (!_config.GetBool("season.enabled", true)) return null;
         var day = utc.Date;
         return Naadam(day.Year) is { } naadam && Contains(naadam, day) ? naadam
-            : WhiteMoon() is { } moon && Contains(moon, day) ? moon
-            : null;
+            : WhiteMoons().FirstOrDefault(moon => Contains(moon, day));
     }
 
     public Season? Current() => At(DateTime.UtcNow);
@@ -29,15 +28,27 @@ public class SeasonService
     private Season? Naadam(int year)
     {
         var start = FromMonthDay(year, (int)_config.GetNumber("season.naadam.start_mmdd", 711));
-        var end = FromMonthDay(year, (int)_config.GetNumber("season.naadam.end_mmdd", 715));
+        var end = FromMonthDay(year, (int)_config.GetNumber("season.naadam.end_mmdd", 713));
         return start is null || end is null || end < start ? null : new Season("naadam", start.Value, end.Value, "title_naadam");
     }
 
-    private Season? WhiteMoon()
+    /// <summary>Tsagaan Sar's three days, year by year. Keep in step with the app's FESTIVALS table.</summary>
+    private static readonly (int Start, int End)[] WhiteMoonCalendar =
+    [
+        (20270206, 20270208),
+        (20280224, 20280226),
+        (20290213, 20290215),
+    ];
+
+    private IEnumerable<Season> WhiteMoons()
     {
         var start = FromYmd((int)_config.GetNumber("season.whitemoon.start_yyyymmdd", 0));
         var end = FromYmd((int)_config.GetNumber("season.whitemoon.end_yyyymmdd", 0));
-        return start is null || end is null || end < start ? null : new Season("whitemoon", start.Value, end.Value, "title_whitemoon");
+        if (start is not null && end is not null && end >= start)
+            yield return new Season("whitemoon", start.Value, end.Value, "title_whitemoon");
+        foreach (var (s, e) in WhiteMoonCalendar)
+            if (FromYmd(s) is DateTime from && FromYmd(e) is DateTime to)
+                yield return new Season("whitemoon", from, to, "title_whitemoon");
     }
 
     private static DateTime? FromMonthDay(int year, int mmdd) => SafeDate(year, mmdd / 100, mmdd % 100);

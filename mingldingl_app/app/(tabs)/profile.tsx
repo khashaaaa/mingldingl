@@ -23,6 +23,7 @@ import { NextActionCard } from '../../components/NextActionCard';
 import { ShareCharacterButton } from '../../components/cards/ShareCharacterButton';
 import { ProfileAvatar } from '../../components/profile/ProfileAvatar';
 import { OathCard } from '../../components/profile/OathCard';
+import { StandingCard } from '../../components/profile/StandingCard';
 import { DeletionPendingBanner } from '../../components/profile/DeletionPendingBanner';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useCancelDeletion } from '../../hooks/useCancelDeletion';
@@ -121,6 +122,8 @@ export default function ProfileScreen() {
           gemTier={gemTier}
           style={[styles.card, styles.cardPadding]}
         />
+
+        <StandingCard gemTier={gemTier} style={[styles.card, styles.cardPadding]} />
 
         <AppCard style={[styles.card, styles.cardPadding]}>
           <Text style={styles.bioText}>{profile.bio}</Text>

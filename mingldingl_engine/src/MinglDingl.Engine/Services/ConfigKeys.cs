@@ -104,9 +104,9 @@ public static class ConfigKeys
         Number("waypoints.cartographer.districts", "Game", "3", "Distinct districts a user must have kept an encounter in to earn the Cartographer honour", 1, 50),
         Bool("season.enabled", "Game", "true", "When false, no festival season is ever current: no seasonal banner and no seasonal honours"),
         Number("season.naadam.start_mmdd", "Game", "711", "First day of the Naadam season each year, as MMDD (711 = 11 July), in UTC", 101, 1231),
-        Number("season.naadam.end_mmdd", "Game", "715", "Last day of the Naadam season each year, as MMDD, in UTC", 101, 1231),
-        Number("season.whitemoon.start_yyyymmdd", "Game", "0", "First day of this year's Tsagaan Sar season as YYYYMMDD; the lunar date moves every year, so it is set by hand. 0 = off", 0, 99991231),
-        Number("season.whitemoon.end_yyyymmdd", "Game", "0", "Last day of this year's Tsagaan Sar season as YYYYMMDD. 0 = off", 0, 99991231),
+        Number("season.naadam.end_mmdd", "Game", "713", "Last day of the Naadam season each year, as MMDD, in UTC (the app's festival look runs 11-13 July)", 101, 1231),
+        Number("season.whitemoon.start_yyyymmdd", "Game", "0", "An extra Tsagaan Sar window's first day as YYYYMMDD, for a year the built-in calendar (2027-2029, shared with the app) does not cover. 0 = none", 0, 99991231),
+        Number("season.whitemoon.end_yyyymmdd", "Game", "0", "That extra Tsagaan Sar window's last day as YYYYMMDD. 0 = none", 0, 99991231),
         Bool("retire.enabled", "Game", "true", "When true, a pair with a completed encounter can retire together: the match ends as Completed, both accounts pause and both earn Hearthbound"),
     ];
 

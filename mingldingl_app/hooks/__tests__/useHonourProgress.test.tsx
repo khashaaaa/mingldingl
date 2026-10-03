@@ -5,11 +5,14 @@ const mockScore: { data: Record<string, unknown> | undefined } = { data: undefin
 const mockProfile: { data: Record<string, unknown> | null | undefined } = { data: undefined };
 jest.mock('../useScoreDetail', () => ({ useScoreDetail: () => mockScore }));
 jest.mock('../useProfile', () => ({ useProfile: () => mockProfile }));
+const mockStanding: { data: Record<string, unknown> | undefined } = { data: undefined };
+jest.mock('../useStanding', () => ({ useStanding: () => mockStanding }));
 
 describe('useHonourProgress', () => {
   beforeEach(() => {
     mockScore.data = undefined;
     mockProfile.data = undefined;
+    mockStanding.data = undefined;
   });
 
   it('reports nothing until the figures have arrived', () => {
@@ -48,6 +51,17 @@ describe('useHonourProgress', () => {
 
     mockProfile.data = { oath: 'Honesty', oathEncountersHeld: 2, oathEncountersNeeded: 3 };
     expect(renderHook(() => useHonourProgress()).result.current.title_oathkeeper).toEqual({ held: 2, needed: 3 });
+  });
+
+  it('counts districts toward Cartographer, and a scar mending only while one is open', () => {
+    mockStanding.data = { districtsCharted: 1, cartographerNeeded: 3, openScars: 0, scarHealProgress: 0, scarHealNeeded: 2 };
+    let progress = renderHook(() => useHonourProgress()).result.current;
+    expect(progress.title_cartographer).toEqual({ held: 1, needed: 3 });
+    expect(progress.title_mended).toBeUndefined();
+
+    mockStanding.data = { districtsCharted: 1, cartographerNeeded: 3, openScars: 1, scarHealProgress: 1, scarHealNeeded: 2 };
+    progress = renderHook(() => useHonourProgress()).result.current;
+    expect(progress.title_mended).toEqual({ held: 1, needed: 2 });
   });
 
   it('never reports the honours the app cannot count', () => {

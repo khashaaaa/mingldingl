@@ -260,20 +260,21 @@ public class GameRulesIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public void Season_WhiteMoonIsOffUntilAnAdminSetsIt()
+    public void Season_WhiteMoonFollowsTheCalendar_AndAnAdminCanAddAYear()
     {
         var config = new ConfigService();
         var seasons = new SeasonService(config);
-        var day = new DateTime(2027, 2, 7, 12, 0, 0, DateTimeKind.Utc);
-        Assert.Null(seasons.At(day));
+        Assert.Equal("whitemoon", seasons.At(new DateTime(2027, 2, 7, 12, 0, 0, DateTimeKind.Utc))?.Id);
+        Assert.Null(seasons.At(new DateTime(2027, 2, 9, 0, 0, 0, DateTimeKind.Utc)));
 
-        config.Set("season.whitemoon.start_yyyymmdd", "20270206");
-        config.Set("season.whitemoon.end_yyyymmdd", "20270208");
-        Assert.Equal("whitemoon", seasons.At(day)?.Id);
-        Assert.Null(seasons.At(day.AddDays(2)));
+        var later = new DateTime(2031, 1, 24, 12, 0, 0, DateTimeKind.Utc);
+        Assert.Null(seasons.At(later));
+        config.Set("season.whitemoon.start_yyyymmdd", "20310123");
+        config.Set("season.whitemoon.end_yyyymmdd", "20310125");
+        Assert.Equal("whitemoon", seasons.At(later)?.Id);
 
         config.Set("season.enabled", "false");
-        Assert.Null(seasons.At(day));
+        Assert.Null(seasons.At(later));
     }
 
     [Fact]
@@ -282,8 +283,8 @@ public class GameRulesIntegrationTests : IntegrationTestBase
         var seasons = new SeasonService(new ConfigService());
         Assert.Null(seasons.At(new DateTime(2026, 7, 10, 23, 59, 0, DateTimeKind.Utc)));
         Assert.Equal("naadam", seasons.At(new DateTime(2026, 7, 11, 0, 0, 0, DateTimeKind.Utc))?.Id);
-        Assert.Equal("naadam", seasons.At(new DateTime(2026, 7, 15, 23, 59, 0, DateTimeKind.Utc))?.Id);
-        Assert.Null(seasons.At(new DateTime(2026, 7, 16, 0, 0, 0, DateTimeKind.Utc)));
+        Assert.Equal("naadam", seasons.At(new DateTime(2026, 7, 13, 23, 59, 0, DateTimeKind.Utc))?.Id);
+        Assert.Null(seasons.At(new DateTime(2026, 7, 14, 0, 0, 0, DateTimeKind.Utc)));
     }
 
     // ---------- weekly trials ----------

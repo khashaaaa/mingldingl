@@ -74,7 +74,15 @@ export default function LeaderboardScreen() {
         data={entries}
         keyExtractor={(item, i) => `${item.rank ?? i}`}
         ListEmptyComponent={<EmptyHint>{i18n.t('leaderboard_empty')}</EmptyHint>}
-        ListFooterComponent={<Text style={styles.law}>{i18n.t('hall_law')}</Text>}
+        ListFooterComponent={
+          <>
+            {/* The pairs who stopped needing the hall. A count only, like every row above it. */}
+            {(data.hearthboundPairs ?? 0) > 0 && (
+              <Text style={styles.law}>{i18n.t('hall_hearthbound', { count: data.hearthboundPairs ?? 0 })}</Text>
+            )}
+            <Text style={styles.law}>{i18n.t('hall_law')}</Text>
+          </>
+        }
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT.base} colors={[ACCENT.base]} />
         }

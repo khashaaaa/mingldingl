@@ -14,6 +14,7 @@ import { StateBlock } from '../components/ui/StateBlock';
 import type { Trophy } from '../models/trophy';
 import { Icon } from '../components/ui/Icon';
 import { useScrollTail } from '../hooks/useScrollTail';
+import { useStanding } from '../hooks/useStanding';
 
 function TrophyRow({ trophy }: { trophy: Trophy }) {
   const photo = trophy.myMomentPhotoUrl ?? trophy.businessPhoto;
@@ -34,7 +35,16 @@ function TrophyRow({ trophy }: { trophy: Trophy }) {
           {trophy.businessName && trophy.activityTitle !== trophy.businessName && (
             <Text style={styles.subtitle} numberOfLines={1}>{trophy.activityTitle}</Text>
           )}
-          <Text style={styles.date}>{formatDate(trophy.confirmedAt)}</Text>
+          <Text style={styles.date}>
+            {formatDate(trophy.confirmedAt)}
+            {trophy.district ? ` · ${trophy.district}` : ''}
+          </Text>
+          {trophy.kept && trophy.district && (
+            <View style={styles.charted}>
+              <Icon name="map-marker-check" size={ICON_SIZES.sm} color={ACCENT.base} />
+              <Text style={styles.chartedText}>{i18n.t('waypoint_charted')}</Text>
+            </View>
+          )}
           {trophy.mismatched ? (
             <Text style={styles.unrated}>{i18n.t('date_log_unconfirmed')}</Text>
           ) : trophy.myStars ? (
@@ -61,6 +71,7 @@ export default function DateLogScreen() {
   const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const { data: trophies, isLoading, isError, refetch } = useMyTrophies();
+  const { data: standing } = useStanding();
 
   return (
     <View style={styles.screen}>
@@ -85,7 +96,16 @@ export default function DateLogScreen() {
         <FlatList
           contentContainerStyle={[(trophies ?? []).length === 0 ? styles.listEmpty : styles.list, { paddingBottom: tail }]}
           data={trophies ?? []}
-          keyExtractor={(t) => t.matchId}
+          // One match can hold more than one kept encounter, so the match alone is not a key.
+          keyExtractor={(t) => `${t.matchId}:${t.confirmedAt}`}
+          ListHeaderComponent={standing && (trophies ?? []).length > 0 ? (
+            <View style={styles.waypointsHead}>
+              <Icon name="map-legend" size={ICON_SIZES.md} color={ACCENT.base} />
+              <Text style={styles.waypointsText}>
+                {i18n.t('waypoints_charted', { charted: standing.districtsCharted ?? 0, needed: standing.cartographerNeeded ?? 0 })}
+              </Text>
+            </View>
+          ) : null}
           // A drawn place, like every other empty room — a lone grey line floated in the middle of
           // an otherwise blank screen.
           ListEmptyComponent={<StateBlock icon="book-heart-outline" title={i18n.t('date_log_empty')} />}
@@ -115,5 +135,9 @@ const styles = StyleSheet.create({
   starsRow: { flexDirection: 'row', gap: SPACE.hair },
   skeletonRow: { flexDirection: 'row', gap: SPACE.md, padding: SPACE.md },
   skeletonInfo: { flex: 1, justifyContent: 'center', gap: SPACE.xs },
+  charted: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+  chartedText: { color: ACCENT.base, fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.sm },
+  waypointsHead: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, marginBottom: SPACE.lg },
+  waypointsText: { flex: 1, color: INK.dim, fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.md },
   unrated: { color: INK.dim, fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.sm, marginTop: SPACE.hair },
 });

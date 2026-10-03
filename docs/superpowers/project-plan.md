@@ -69,7 +69,12 @@ tier index (`Math.Min(base + bonus + tierBonus, cap + tierBonus)`).
 - **No-show check** 48 h after a date; repeated mismatches dock reputation.
 - **Fated Threads** (a Weaver pairs two numbers, double-blind), **Recruit an Ally** (referrals),
   **Town Square** (scheduled speed-dating rounds over video), **the Campaign** (a per-match map
-  derived from progress), daily quests, streaks and nine honours.
+  derived from progress), daily quests, streaks and fourteen honours.
+- **The road** (all `Game` config): **party seats** cap live matches (4 + 1 per tier); a ghosting
+  leaves a **scar** that two kept encounters close, returning the reputation; kept encounters chart
+  **waypoints** (three districts → Cartographer); **festival seasons** (Naadam, Tsagaan Sar) give
+  their own honour to an encounter sworn in them; each match gets a **weekly shared trial**
+  (+25 each); a pair who met can **retire together** (match `Completed`, both paused, Hearthbound).
 - Video is Agora; call history is not stored.
 
 ### Business partners
@@ -100,8 +105,8 @@ here and record it in [`shipped-log.md`](shipped-log.md).
 
 ## Waiting on the user
 
-- **Mongolian copy — the single largest thing between the app and a Mongolian market.** 263
-  keys on `AWAITING_MN_TRANSLATION` (`lib/i18n/index.ts`), rendered in English for `mn` via
+- **Mongolian copy — the single largest thing between the app and a Mongolian market.** 326
+  keys on `AWAITING_MN_TRANSLATION` (63 of them from the 2026-10-03 road mechanics) (`lib/i18n/index.ts`), rendered in English for `mn` via
   `enableFallback`. Plus thirteen already-translated keys whose English was rewritten and whose
   Mongolian is now stale (not on the list, or the parity test would fail): `mystery_match_name`,
   `round_over_matches`, `round_over_no_matches`, `round_over_title`, `town_square_cancel_rsvp`,
@@ -133,6 +138,13 @@ here and record it in [`shipped-log.md`](shipped-log.md).
   401 path signs out locally only, so the cause is outside it (a global sign-out, the device
   sign-in script rewriting the test user's password, or a session timeout). Check Supabase
   Auth → Sessions before assuming an app bug.
+
+- **Retiring together sends no push.** The proposal reaches the other side only as a broadcast
+  (and the activities badge) while their app is open; a `PushKind` needs MN copy, which waits on a
+  native speaker. Same for the party-full and trial-ready moments.
+- **Party seats can overflow by one** under concurrent summons (fast-path check, like the budget).
+- **Retiring pauses but does not close the pair's other live matches**; they run on (and can
+  ghost). Decide whether retiring should end them too.
 
 ## Dev data
 
@@ -178,6 +190,11 @@ All need the `verify` skill (real Supabase JWTs, full stack running) or the Gala
   fixes were found through it). Still unseen: the hearth in the other day phases and on White Moon
   (two stacked eyebrows), the sky's stars under TalkBack, the candle row, the plaza open and
   locked, the bell header and strip, the Satchel empty, `candle.wav` and `bell.wav`.
+- **The road (2026-10-03) — jest + engine integration tests only.** Never driven end to end: a
+  summons refused at a full party, the Standing card, a scar closing after two kept encounters,
+  the Encounter Log's charted marks, the weekly trial card and its claim, retiring from both
+  phones, the Completed closing page, the Hall's hearthbound line, and the five new honours'
+  emblems in the hall's fourth and fifth rows.
 - **Never seen on hardware:** the collapsed
   getting-started board, the brighter photo dot, the empty-thread state, the design-system wave
   (shared state/dialog surfaces, the five ladders), the waiting vocabulary (narrated waits reaching
