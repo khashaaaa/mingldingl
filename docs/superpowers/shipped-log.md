@@ -8,6 +8,26 @@ long versions.
 
 ---
 
+## 2026-10-03 — Alignment, navigation, design and translation sweep (on the A51)
+
+- **Header titles level again.** Android's text layout and Yoga disagreed at the wrap edge: "Seek
+  Companions" was one line to `onTextLayout` but a two-line box, so it drew ~13dp above the icons.
+  `HeaderBar` also steps the title down when its box is taller than its line.
+- **No more stacked copies of a screen.** In-app links go through `hooks/useGoTo` → `goTo(router,
+  href, rootState)`: a screen already open is returned to (`dismissTo`), the one on top is left
+  alone, anything else is pushed. A source test forbids bare `router.push` (the phone → OTP step
+  excepted). The atlas's Hearth opens `/hearth`, not the Quest Log.
+- **Design:** atlas labels mask the passages behind them; chronicle rows show the score once (the
+  `%{delta}` left every `chronicle_*` string); a disabled forged button is cold ghost metal at full
+  opacity; `ContentPageScreen` sets display-face section headings with ornament rules, splits
+  paragraphs and opens long pages (4+ sections) on a chapter list; the Date Log's empty room draws
+  the calendar page and links the Mission Board.
+- **Translations:** `lineLocale(...keys)` says a composed line in one language (Satchel oath line,
+  Guild House perks); the leaderboard mark and Ascent star labels drop their untranslated words
+  instead, so gem names stay in one language down a column. `ordinalWord` keeps English suffixes
+  while a locale has no `ordinal_N` ("The 71 dawn"). MN terms unified to the dominant wording —
+  the keys are listed for proofreading in the plan.
+
 ## 2026-10-03 — Smoothness pass (measured on the Galaxy A51)
 
 Measured with a production-mode bundle (`expo start --no-dev --minify`), `dumpsys gfxinfo` and
