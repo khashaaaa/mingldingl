@@ -1,4 +1,4 @@
-import { translations, normalizeLocale, isLatin, AWAITING_MN_TRANSLATION, SUPPORTED_LOCALES } from '../i18n';
+import { translations, normalizeLocale, isLatin, lineLocale, i18n, AWAITING_MN_TRANSLATION, SUPPORTED_LOCALES } from '../i18n';
 
 describe('i18n key parity', () => {
   it('has the same keys in en and mn, bar the ones awaiting a native speaker', () => {
@@ -63,4 +63,19 @@ describe('normalizeLocale', () => {
     'falls back to en for %p', (locale) => {
       expect(normalizeLocale(locale)).toBe('en');
     });
+});
+
+describe('lineLocale', () => {
+  // A line joining an untranslated piece to translated ones must not come out half and half.
+  it('says the whole line in English while any of its keys awaits Mongolian', () => {
+    const prev = i18n.locale;
+    i18n.locale = 'mn';
+    try {
+      expect(lineLocale('your_mark')).toBe('en');
+      expect(lineLocale('pts')).toBe('mn');
+      expect(lineLocale('pts', 'your_mark')).toBe('en');
+    } finally {
+      i18n.locale = prev;
+    }
+  });
 });

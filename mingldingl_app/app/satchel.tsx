@@ -15,7 +15,7 @@ import { useInventory } from '../hooks/useInventory';
 import { useRevealLadder } from '../hooks/useRevealThresholds';
 import { itemLabel } from '../lib/tiers';
 import { oathLabel } from '../components/OathSigil';
-import { i18n } from '../lib/i18n';
+import { i18n, lineLocale } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { countWord } from '../lib/worldTime';
 import { useScrollTail } from '../hooks/useScrollTail';
@@ -86,6 +86,14 @@ export default function SatchelScreen() {
   // than defaulting either to 0, which would read as "0 of 0 kept" — a sworn oath that looks
   // already fulfilled instead of merely uncounted yet.
   const hasOathProgress = oathHeld != null && oathNeeded != null;
+  // The oath's name inside its line is said in the line's language (`lineLocale`): the lines still
+  // await Mongolian, and "Хувь заяанд нээлттэй · sworn" was the result.
+  function oathLine(): string {
+    if (!oath) return i18n.t('satchel_oath_none');
+    const key = oathProven ? 'satchel_oath_proven' : hasOathProgress ? 'satchel_oath_line' : 'satchel_oath_sworn';
+    const locale = lineLocale(key);
+    return i18n.t(key, { oath: oathLabel(oath, locale), held: oathHeld, needed: oathNeeded, locale });
+  }
 
   // Silver and Gold are the two floors above the Yard (`floor_Silver`/`floor_Gold`) — the key is
   // whatever opens the one the player is standing in, so a Free rank simply does not hold it.
@@ -144,13 +152,7 @@ export default function SatchelScreen() {
       material: 'bronze',
       glyph: 'seal',
       name: i18n.t('satchel_oath'),
-      line: !oath
-        ? i18n.t('satchel_oath_none')
-        : oathProven
-          ? i18n.t('satchel_oath_proven', { oath: oathLabel(oath) })
-          : hasOathProgress
-            ? i18n.t('satchel_oath_line', { oath: oathLabel(oath), held: oathHeld, needed: oathNeeded })
-            : i18n.t('satchel_oath_sworn', { oath: oathLabel(oath) }),
+      line: oathLine(),
       to: '/(tabs)/profile',
     },
     {

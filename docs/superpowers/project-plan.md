@@ -115,6 +115,16 @@ here and record it in [`shipped-log.md`](shipped-log.md).
   And the four NULL `BusinessPartners.*Mn` columns. A native speaker only — never guessed, the
   report sheet least of all. Until then `mn` keeps the exact clock (`worldTimeSpoken()`) while
   the ledger's day headings fall back to English, a known asymmetry.
+  2026-10-03 consistency pass, to proofread: seal unified to «лац» (`item_title_sealbreaker`,
+  `honour_deed_sealbreaker`, `honour_lore_sealbreaker`), character to «баатар»
+  (`profile_load_error_title`, `err_profile_display_name_required`), `discover_load_error` and
+  `err_match_self` off «дуудах», formal «тань» in `pledge_partner_first`, `video_end_confirm_body`,
+  `ship_invite_message`, `they_said` «Тэд» → «Тэр», `date_log_empty` split at its dash into
+  `date_log_empty_sub`. Still for the translator, needing a word not yet in the app: the Quest Log
+  empty state (`no_quests`, `no_quests_sub`) says «Даалгавар», the Missions tab's word, for matches;
+  `view_blocked_users` / `blocked_users_title` "The Frozen Gate" reads «Цөлөгдсөн хүмүүс» ("the exiled"); the Fate oath chip
+  «Хувь заяанд нээлттэй» is long for a chip. Composed lines go through `lineLocale` so an
+  untranslated piece never sits mid-line beside a translated one.
 - **Four Sealed Fire decisions, running on their defaults:** level-zero reveal (the level-0
   photo blurred under the seal); embers in the open (the Quest Log shows the ghosting judgement
   before it lands); the hearth replacing navigation (`HEARTH_ENABLED` on, tab bar stays, a hearth

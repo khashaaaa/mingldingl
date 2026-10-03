@@ -9,7 +9,7 @@ import { GameButton } from '../components/ui/GameButton';
 import { HeaderBar } from '../components/ui/HeaderBar';
 import { Waiting } from '../components/ui/Waiting';
 import { useMembership } from '../hooks/useMembership';
-import { i18n } from '../lib/i18n';
+import { i18n, lineLocale } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
 import { ACCENT, FONTS, FONT_SIZES, INK, LINE, MEMBERSHIP_METALS, SPACE, TRACKING } from '../lib/theme';
@@ -105,9 +105,12 @@ export default function MembershipScreen() {
             // The tier's daily budget, then whatever it actually unlocks — feature keys arrive
             // from the engine's tier table, so one can land before its translation does; the
             // fallback degrades to the readable key rather than i18n-js's missing marker.
+            // One language per line (`lineLocale`): "20 summons a night. Мөс хагалах…" was the
+            // budget still awaiting Mongolian beside perks that already had it.
+            const perksLocale = lineLocale('perk_summons_night', ...t.featureKeys.map((key) => `perk_${key}`));
             const perksLine = [
-              i18n.t('perk_summons_night', { count: t.dailyMatches }),
-              ...t.featureKeys.map((key) => i18n.t(`perk_${key}`, { defaultValue: key.replace(/_/g, ' ') })),
+              i18n.t('perk_summons_night', { count: t.dailyMatches, locale: perksLocale }),
+              ...t.featureKeys.map((key) => i18n.t(`perk_${key}`, { defaultValue: key.replace(/_/g, ' '), locale: perksLocale })),
             ].join(' ');
             const ink = isCurrent || isAbove ? styles.floorLit : styles.floorDim;
 

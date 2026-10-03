@@ -36,9 +36,9 @@ export const OATH_DESC_KEYS: Record<Oath, string> = {
  * the raw value rather than letting an unmapped oath render as i18n-js's literal
  * `[missing "en." translation]` marker.
  */
-export function oathLabel(oath: string | null | undefined): string {
+export function oathLabel(oath: string | null | undefined, locale?: string): string {
   if (!oath) return '';
-  return tKey(OATH_NAME_KEYS[oath as Oath], oath);
+  return tKey(OATH_NAME_KEYS[oath as Oath], oath, locale ? { locale } : undefined);
 }
 
 const SIZES = {

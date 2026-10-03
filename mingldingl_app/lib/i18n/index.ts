@@ -185,6 +185,18 @@ i18n.enableFallback = true;
 i18n.defaultLocale = 'en';
 
 /**
+ * The locale a line built from these keys can be said in whole: the current one when it has every
+ * key, otherwise English. A key still on `AWAITING_MN_TRANSLATION` falls back to English on its
+ * own, so a line that joined it to translated pieces came out half and half — "ИНДРАНИЛ · YOUR
+ * MARK", "Бадмаараг · 135 to go". Pass the result as `{ locale }` to every piece of the line.
+ */
+export function lineLocale(...keys: string[]): SupportedLocale {
+  const locale = normalizeLocale(i18n.locale);
+  const table = translations[locale] as Record<string, unknown>;
+  return keys.every((key) => key in table) ? locale : 'en';
+}
+
+/**
  * i18n-js renders a missing key as the literal string `[missing "mn." translation]`, and it does
  * that for an empty or undefined key too — so `i18n.t(someKey ?? '')` puts that marker straight in
  * front of a user. Use this wherever the key is data (an engine-supplied `nameKey`, a value looked

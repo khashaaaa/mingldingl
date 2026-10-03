@@ -4,7 +4,7 @@ import Svg, { Defs, LinearGradient, Stop, Rect, Path, Circle, Text as SvgText } 
 import type { GemTier } from '../../models/user';
 import { TIER_ORDER, tierThresholdsSnapshot, tierLabel } from '../../lib/tiers';
 import { FONTS, FONT_SIZES, GEM_COLORS, INK, LINE, NIGHT, SPACE, TRACKING } from '../../lib/theme';
-import { i18n } from '../../lib/i18n';
+import { i18n, lineLocale, normalizeLocale } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
 interface Props {
@@ -78,10 +78,16 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
   function labelFor(index: number): string {
     const tier = TIER_ORDER[index];
     const name = tierLabel(tier);
+    // The words beside a star are dropped, not switched, while they have no translation: the
+    // stars' gem names are translated, so "Бадмаараг · 135 to go" mixed two languages in a line,
+    // and an English gem there would sit among Mongolian ones. The number alone still reads.
+    const here = normalizeLocale(i18n.locale);
     if (index === heldIndex) {
-      return `${name} · ${i18n.t('ascent_you', { score: totalScore.toLocaleString() })}`;
+      return lineLocale('ascent_you') === here
+        ? `${name} · ${i18n.t('ascent_you', { score: totalScore.toLocaleString() })}`
+        : `${name} · ${totalScore.toLocaleString()}`;
     }
-    if (nextTier && index === heldIndex + 1) {
+    if (nextTier && index === heldIndex + 1 && lineLocale('ascent_to_go') === here) {
       return `${name} · ${i18n.t('ascent_to_go', { points: pointsToGo!.toLocaleString() })}`;
     }
     const threshold = thresholds[index] ?? 0;

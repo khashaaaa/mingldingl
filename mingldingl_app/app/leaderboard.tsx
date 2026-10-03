@@ -7,7 +7,7 @@ import { GemTierBadge } from '../components/progression/GemTierBadge';
 import { TorchGlow } from '../components/vfx/TorchGlow';
 import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
 import { Entering } from '../components/ui/Entering';
-import { i18n } from '../lib/i18n';
+import { i18n, lineLocale, normalizeLocale } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { rankNumeral } from '../lib/numerals';
 import { tierLabel } from '../lib/tiers';
@@ -98,7 +98,8 @@ export default function LeaderboardScreen() {
           const numeral = rankNumeral(rank);
           const tierName = tierLabel(item.gemTier ?? 'Garnet');
           const score = item.score ?? 0;
-          const label = `${numeral}. ${tierName}. ${score} ${i18n.t('pts')}${isOwn ? `. ${i18n.t('your_mark')}` : ''}`;
+          const mark = isOwn ? ownMark() : null;
+          const label = `${numeral}. ${tierName}. ${score} ${i18n.t('pts')}${mark ? `. ${mark}` : ''}`;
 
           const row = (
             <View style={styles.row} accessible accessibilityLabel={label}>
@@ -109,7 +110,7 @@ export default function LeaderboardScreen() {
                     stacked, it made this one row taller than the rest and dropped its score
                     below the others' line. */}
                 {isOwn ? (
-                  <Text style={styles.eyebrow}>{`${tierName} · ${i18n.t('your_mark')}`}</Text>
+                  <Text style={styles.eyebrow}>{mark ? `${tierName} · ${mark}` : tierName}</Text>
                 ) : (
                   <Text style={styles.tierName}>{tierName}</Text>
                 )}
@@ -213,3 +214,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.gutter,
   },
 });
+
+/** "Your mark", or nothing while it has no word in this language: the gem names down the column
+ *  are translated, so an English mark beside one read "ИНДРАНИЛ · YOUR MARK", and switching the
+ *  row's gem to English put "SAPPHIRE" among the Индранилs. The row's own glow still marks it. */
+function ownMark(): string | null {
+  return lineLocale('your_mark') === normalizeLocale(i18n.locale) ? i18n.t('your_mark') : null;
+}
