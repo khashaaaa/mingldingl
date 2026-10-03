@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { GameButton } from '../../components/ui/GameButton';
 import { SessionStatusCard } from '../../components/townsquare/SessionStatusCard';
@@ -10,11 +10,12 @@ import { getApiErrorMessage, isApiError } from '../../lib/api/errors';
 import { useLocaleStore } from '../../store/localeStore';
 import { SPACE } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
+import { useGoTo } from '../../hooks/useGoTo';
 const autoNavigatedSessions = new Set<string>();
 
 export default function TownSquareScreen() {
   useLocaleStore((s) => s.locale);
-  const router = useRouter();
+  const go = useGoTo();
   const { session, isError, error, refetch, rsvp, cancelRsvp, isRsvping, isCancelling } = useTownSquareSession();
   const [now, setNow] = useState(() => Date.now());
   // The switch can flip while a session is cached; the closed notice must win over stale data.
@@ -30,8 +31,8 @@ export default function TownSquareScreen() {
   }, [session?.sessionId]));
 
   const enterRound = useCallback((sessionId: string) => {
-    router.push(`/townsquare-round/${sessionId}` as any);
-  }, [router]);
+    go(`/townsquare-round/${sessionId}` as any);
+  }, [go]);
 
   useEffect(() => {
     if (

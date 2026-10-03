@@ -2,11 +2,10 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { useRouter } from 'expo-router';
-import { goTo } from '../lib/navigation';
 import { apiClient } from '../lib/api/apiClient';
 import { useAuthStore } from '../store/authStore';
 import { ACCENT } from '../lib/theme';
+import { useGoTo } from './useGoTo';
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const matchId = notification.request.content.data?.matchId as string | undefined;
@@ -68,7 +67,7 @@ async function ensureAndroidChannel() {
 }
 
 export function usePushNotifications() {
-  const router = useRouter();
+  const go = useGoTo();
   // Registration is an authenticated call, so it has to wait for a session and re-run when the
   // account changes. Running once on mount meant a cold start could register before the stored
   // session was restored (a swallowed 401, and no push for that whole run), and signing out —
@@ -123,7 +122,7 @@ export function usePushNotifications() {
       const type = data?.type as string | undefined;
       const matchId = data?.matchId as string | undefined;
       if (!matchId && type !== 'townsquare_started') return;
-      goTo(router, destinationFor(type, matchId ?? ''));
+      go(destinationFor(type, matchId ?? ''));
     }
 
     // A tap that cold-started the app happened before this listener existed. expo-notifications
@@ -139,5 +138,5 @@ export function usePushNotifications() {
     const sub = Notifications.addNotificationResponseReceivedListener(open);
 
     return () => { sub.remove(); };
-  }, [router]);
+  }, [go]);
 }

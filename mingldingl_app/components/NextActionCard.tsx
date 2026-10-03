@@ -1,6 +1,4 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { goTo } from '../lib/navigation';
 import { AppCard } from './ui/AppCard';
 import { QuestBanner } from './quest/QuestBanner';
 import { CardEyebrow } from './ui/CardEyebrow';
@@ -8,9 +6,10 @@ import { Icon } from './ui/Icon';
 import { useNextAction } from '../hooks/useNextAction';
 import { i18n } from '../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../lib/theme';
+import { useGoTo } from '../hooks/useGoTo';
 export function NextActionCard() {
   const action = useNextAction();
-  const router = useRouter();
+  const go = useGoTo();
   if (!action) return null;
 
   let icon: React.ComponentProps<typeof QuestBanner>['icon'] = 'star-four-points';
@@ -21,22 +20,22 @@ export function NextActionCard() {
     case 'finish_profile':
       icon = 'account-edit';
       title = i18n.t('next_action_finish_profile');
-      onPress = () => router.push('/edit-profile');
+      onPress = () => go('/edit-profile');
       break;
     case 'icebreaker':
       icon = 'target';
       title = i18n.t('next_action_icebreaker', { name: action.name });
-      onPress = () => router.push(`/icebreaker/${action.matchId}`);
+      onPress = () => go(`/icebreaker/${action.matchId}`);
       break;
     case 'claim_chest':
       icon = 'gift';
       title = i18n.t('next_action_claim_chest');
-      onPress = () => goTo(router, '/(tabs)/activity');
+      onPress = () => go('/(tabs)/activity');
       break;
     case 'quest_progress':
       icon = 'map';
       title = i18n.t('next_action_quest_progress', { progress: action.progress, target: action.target });
-      onPress = () => goTo(router, '/(tabs)/activity');
+      onPress = () => go('/(tabs)/activity');
       break;
     case 'streak':
       icon = 'fire';

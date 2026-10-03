@@ -2,7 +2,6 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { useAndroidKeyboardHeight } from '../hooks/useAndroidKeyboardHeight';
-import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { useCancelDeletion } from '../hooks/useCancelDeletion';
@@ -22,6 +21,7 @@ import { HeaderBar } from '../components/ui/HeaderBar';
 import { SectionDivider } from '../components/ui/SectionDivider';
 import { TextField } from '../components/ui/TextField';
 import { useScrollTail } from '../hooks/useScrollTail';
+import { useGoTo } from '../hooks/useGoTo';
 
 const LANGUAGE_OPTIONS = ['en', 'mn'] as const;
 const NOTIF_OPTIONS = ['on', 'off'] as const;
@@ -35,7 +35,7 @@ export default function SettingsScreen() {
   const keyboardHeight = useAndroidKeyboardHeight();
   const soundEnabled = useSoundStore((st) => st.enabled);
   const setSoundEnabled = useSoundStore((st) => st.set);
-  const router = useRouter();
+  const go = useGoTo();
   const { signOut } = useAuth();
   const { data: profile } = useProfile();
   const updateProfile = useUpdateProfile();
@@ -224,10 +224,10 @@ export default function SettingsScreen() {
             size="compact"
           />
           <Text style={styles.sectionHint}>{i18n.t('pause_profile_hint')}</Text>
-          <GameButton variant="ink" size="compact" icon="account-off-outline" style={styles.link} onPress={() => router.push('/blocked-users')}>
+          <GameButton variant="ink" size="compact" icon="account-off-outline" style={styles.link} onPress={() => go('/blocked-users')}>
             {i18n.t('view_blocked_users')}
           </GameButton>
-          <GameButton variant="ink" size="compact" icon="crown-outline" style={styles.link} onPress={() => router.push('/membership')}>
+          <GameButton variant="ink" size="compact" icon="crown-outline" style={styles.link} onPress={() => go('/membership')}>
             {i18n.t('manage_membership')}
           </GameButton>
         </View>
@@ -235,13 +235,13 @@ export default function SettingsScreen() {
         <SectionDivider />
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{i18n.t('help_and_legal')}</Text>
-          <GameButton variant="ink" size="compact" icon="book-open-variant" style={styles.link} onPress={() => router.push('/guides')}>
+          <GameButton variant="ink" size="compact" icon="book-open-variant" style={styles.link} onPress={() => go('/guides')}>
             {i18n.t('guides')}
           </GameButton>
-          <GameButton variant="ink" size="compact" icon="file-document-outline" style={styles.link} onPress={() => router.push('/terms')}>
+          <GameButton variant="ink" size="compact" icon="file-document-outline" style={styles.link} onPress={() => go('/terms')}>
             {i18n.t('terms_of_service')}
           </GameButton>
-          <GameButton variant="ink" size="compact" icon="shield-lock-outline" style={styles.link} onPress={() => router.push('/privacy')}>
+          <GameButton variant="ink" size="compact" icon="shield-lock-outline" style={styles.link} onPress={() => go('/privacy')}>
             {i18n.t('privacy_policy')}
           </GameButton>
         </View>

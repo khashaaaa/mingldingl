@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { View, Text, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
 import { AppCard } from './ui/AppCard';
 import { AlertModal } from './modals/AlertModal';
 import { GameButton } from './ui/GameButton';
@@ -11,6 +10,7 @@ import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
 import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, TRACKING } from '../lib/theme';
+import { useGoTo } from '../hooks/useGoTo';
 
 export interface FlameRiteState {
   matchId: string;
@@ -29,7 +29,7 @@ interface Props {
 
 export default function FlameRiteCard({ matchId, state, currentUserId }: Props) {
   const id = matchId ?? state.matchId;
-  const router = useRouter();
+  const go = useGoTo();
   const [actionFailedAlert, setActionFailedAlert] = useState(false);
 
   const onError = () => setActionFailedAlert(true);
@@ -73,7 +73,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
       <AppCard style={styles.card}>
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_ready')}</Text>
-        <GameButton variant="ink" style={styles.actionBtn} onPress={() => router.push(`/video/${id}`)}>
+        <GameButton variant="ink" style={styles.actionBtn} onPress={() => go(`/video/${id}`)}>
           {i18n.t('start_video_call')}
         </GameButton>
       </AppCard>

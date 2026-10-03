@@ -55,6 +55,7 @@ import { useRetire } from '../../hooks/useRetire';
 import { BondTrialCard } from '../../components/chat/BondTrialCard';
 import { getApiErrorMessage } from '../../lib/api/errors';
 import { signal } from '../../lib/world/feedback';
+import { useGoTo } from '../../hooks/useGoTo';
 
 const Ember = PLACES.ember;
 
@@ -186,6 +187,7 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const keyboardHeight = useAndroidKeyboardHeight();
   const router = useRouter();
+  const go = useGoTo();
   const qc = useQueryClient();
   const flatListRef = useRef<FlatList>(null);
   // Auto-scrolling on every content change threw you to the bottom mid-read whenever the other side
@@ -277,7 +279,7 @@ export default function ChatScreen() {
                 <Icon name="dots-vertical" size={ICON_SIZES.lg} color={INK.dim} />
               </Tap>
               {!endedReason && (
-                <Tap onPress={() => router.push(`/video/${matchId}`)} style={styles.videoBtn} accessibilityLabel={i18n.t('start_video_call')}>
+                <Tap onPress={() => go(`/video/${matchId}`)} style={styles.videoBtn} accessibilityLabel={i18n.t('start_video_call')}>
                   <Icon name="video" size={ICON_SIZES.lg} color={ACCENT.base} />
                 </Tap>
               )}
@@ -611,15 +613,15 @@ export default function ChatScreen() {
               {campaign && (
                 <QuestBanner icon="map" tint={ACCENT.bright} medallion="knot"
                   title={i18n.t('campaign_banner', { cleared: campaign.clearedCount, total: campaign.rooms.length })}
-                  onPress={() => { setActivitiesVisible(false); router.push(`/campaign/${matchId}`); }} />
+                  onPress={() => { setActivitiesVisible(false); go(`/campaign/${matchId}`); }} />
               )}
               <QuestBanner icon="target" title={i18n.t('break_ice')}
-                onPress={() => { setActivitiesVisible(false); router.push(`/icebreaker/${matchId}`); }} />
+                onPress={() => { setActivitiesVisible(false); go(`/icebreaker/${matchId}`); }} />
               {match?.icebreakerComplete && (match?.videoEnabled ?? true) && (
                 <FlameRiteCard matchId={matchId} state={riteState} currentUserId={myId ?? ''} />
               )}
               <QuestBanner icon="brain" title={i18n.t('trial_compat')}
-                onPress={() => { setActivitiesVisible(false); router.push(`/quiz/${matchId}`); }} />
+                onPress={() => { setActivitiesVisible(false); go(`/quiz/${matchId}`); }} />
               {/* The gate is the engine's (activity.suggestions.messages, served with the reveal
                   ladder). Offering the door unconditionally sent people to a screen that could
                   only say "keep chatting" with no idea how much more was needed. */}
@@ -628,7 +630,7 @@ export default function ChatScreen() {
                   title={i18n.t('encounter_locked', { count: encounterLockedBy })} />
               ) : (
                 <QuestBanner icon="map-marker" title={i18n.t('plan_encounter')}
-                  onPress={() => { setActivitiesVisible(false); router.push(`/activities/${matchId}`); }} />
+                  onPress={() => { setActivitiesVisible(false); go(`/activities/${matchId}`); }} />
               )}
               {attendanceDue && (
                 <QuestBanner icon="calendar-check" title={i18n.t('attendance_check_title')}

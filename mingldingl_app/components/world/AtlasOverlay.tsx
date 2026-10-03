@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import { useRouter } from 'expo-router';
-import { goTo } from '../../lib/navigation';
 import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
 import { ROOMS, PASSAGES, type RoomName } from '../../lib/world';
 import { useWorldState } from '../../hooks/useWorldState';
@@ -10,6 +8,7 @@ import { useLocaleStore } from '../../store/localeStore';
 import { AppModal } from '../modals/AppModal';
 import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TRACKING, circle, glow, tint } from '../../lib/theme';
 import { scrimStyle } from '../modals/DialogSurface';
+import { useGoTo } from '../../hooks/useGoTo';
 const COLS = 3;
 const ROWS = 5;
 const MEDALLION = 46;
@@ -31,7 +30,7 @@ interface Props {
  */
 export function AtlasOverlay({ visible, onClose }: Props) {
   useLocaleStore((s) => s.locale);
-  const router = useRouter();
+  const go = useGoTo();
   const state = useWorldState();
   const [grid, setGrid] = useState({ w: 0, h: 0 });
 
@@ -48,9 +47,9 @@ export function AtlasOverlay({ visible, onClose }: Props) {
     };
   }
 
-  function go(room: RoomName) {
+  function visit(room: RoomName) {
     onClose();
-    goTo(router, ROOMS[room].route);
+    go(ROOMS[room].route);
   }
 
   const delves = state.activeMatches ?? 0;
@@ -99,7 +98,7 @@ export function AtlasOverlay({ visible, onClose }: Props) {
                 <Pressable
                   key={name}
                   testID={`atlas-room-${name}`}
-                  onPress={() => go(name)}
+                  onPress={() => visit(name)}
                   accessibilityRole="button"
                   accessibilityLabel={i18n.t(ROOMS[name].key)}
                   style={[styles.room, { left: cx - MEDALLION, top: cy - MEDALLION / 2 }]}

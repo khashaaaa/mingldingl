@@ -15,9 +15,47 @@ export function isTabRoute(href: Href): boolean {
  * every one. A tab route pops back to the tabs that are already there and switches to the tab;
  * with nothing underneath (a cold deep link) the tabs replace the current screen instead.
  */
-export function goTo(router: Router, href: Href): void {
-  if (isTabRoute(href)) router.dismissTo(href);
+export function goTo(router: Router, href: Href, state?: NavState): void {
+  if (isTabRoute(href)) { router.dismissTo(href); return; }
+  // Any other screen already open is returned to, never stacked again. The atlas's Hall pushed a
+  // second progression over progression → leaderboard, and again over itself on every tap, so the
+  // back button walked through copies; a notification for the chat you were in stacked that chat
+  // on itself. With no state to read (a test, a cold start) it falls back to a plain push.
+  const path = hrefPath(href);
+  const open = findOpen(state, path);
+  if (open === 'top') return;
+  if (open === 'below') router.dismissTo(href);
   else router.push(href);
+}
+
+/** The concrete path an href points at: `/chat/m1` for both `'/chat/m1'` and
+ *  `{ pathname: '/chat/[matchId]', params: { matchId: 'm1' } }`. Query strings are dropped. */
+export function hrefPath(href: Href): string {
+  if (typeof href === 'string') return href.split('?')[0];
+  const params = (href.params ?? {}) as Record<string, unknown>;
+  return href.pathname.replace(/\[(\.\.\.)?(\w+)\]/g, (_, _rest, key) => String(params[key] ?? ''));
+}
+
+/** The path a stack entry stands for: `chat/[matchId]` + `{ matchId: 'm1' }` → `/chat/m1`. Groups
+ *  (`(tabs)`) and `index` segments are not part of the URL. */
+function routePath(name: string, params: Record<string, unknown> | undefined): string {
+  const segments = name.split('/')
+    .filter((seg) => !/^\(.*\)$/.test(seg) && seg !== 'index')
+    .map((seg) => seg.replace(/^\[(\.\.\.)?(\w+)\]$/, (_, _rest, key) => String(params?.[key] ?? '')));
+  return `/${segments.join('/')}`;
+}
+
+/** Whether `path` is open in the stack that holds the screens above the tabs: on top, further
+ *  down, or not at all. */
+function findOpen(state: NavState | undefined, path: string): 'top' | 'below' | null {
+  if (!state?.routes) return null;
+  const at = state.routes.findIndex((r) => r.name !== '__root' && routePath(r.name, r.params as Record<string, unknown> | undefined) === path);
+  if (at >= 0) return at === (state.index ?? state.routes.length - 1) ? 'top' : 'below';
+  for (const r of state.routes) {
+    const found = findOpen(r.state, path);
+    if (found) return found;
+  }
+  return null;
 }
 
 /** The way home. Back to the hearth already in the stack, or a fresh one when there is none. */
@@ -26,7 +64,10 @@ export function goHome(router: Router, hearthOpen: boolean): void {
   else router.push('/hearth');
 }
 
-interface NavState { routes?: readonly { name: string; state?: NavState }[] }
+interface NavState {
+  index?: number;
+  routes?: readonly { name: string; params?: object; state?: NavState }[];
+}
 
 /** Whether a route of this name is open anywhere in the tree. expo-router wraps the whole app in a
  *  `__root` route, so the stack a screen sits in is never the top level of the root state. */

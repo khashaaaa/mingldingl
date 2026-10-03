@@ -1,5 +1,4 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Tap } from '../ui/Tap';
 import { FireMarkGlyph } from '../quest/FireMarkGlyph';
 import { i18n } from '../../lib/i18n';
@@ -7,6 +6,7 @@ import { fireMark, fireVerdict, type Fire, type FireState } from '../../lib/fire
 import {
   FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, SPACE, tint,
 } from '../../lib/theme';
+import { useGoTo } from '../../hooks/useGoTo';
 
 /**
  * The fires as the hearth lists them: one hairline row per lit thread, one sentence each, the
@@ -49,7 +49,7 @@ function sentence(name: string, fire: Fire): string {
 }
 
 export function DawnFires({ fires }: { fires: DawnFire[] }) {
-  const router = useRouter();
+  const go = useGoTo();
 
   // Unlit is dropped here rather than by the screen: "which fires were judged" is this component's
   // own rule, and a thread with no letter in it was not judged — it was never lit.
@@ -72,7 +72,7 @@ export function DawnFires({ fires }: { fires: DawnFire[] }) {
             testID="dawn-fire-row"
             accessibilityRole="button"
             accessibilityLabel={line}
-            onPress={() => router.push(`/chat/${id}`)}
+            onPress={() => go(`/chat/${id}`)}
           >
             <View style={[styles.row, fire.state === 'embers' && { borderBottomColor: tint(METAL.ember, 0.6) }]}>
               {/* In a glyph-wide slot, so these rows' text starts in the same column as the room

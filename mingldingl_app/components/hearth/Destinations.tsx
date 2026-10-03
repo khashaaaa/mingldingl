@@ -1,10 +1,10 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
-import { goTo } from '../../lib/navigation';
+import { type Href } from 'expo-router';
 import { Tap } from '../ui/Tap';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, SPACE } from '../../lib/theme';
+import { useGoTo } from '../../hooks/useGoTo';
 
 /**
  * The five places the hold is made of, plus what you carry to them.
@@ -34,7 +34,7 @@ const DESTINATIONS: readonly Destination[] = [
 ];
 
 export function Destinations() {
-  const router = useRouter();
+  const go = useGoTo();
 
   return (
     <View>
@@ -48,7 +48,7 @@ export function Destinations() {
             // The name is the whole fact. The glyph beside it is unlabelled on purpose — labelled,
             // it would read the room's name twice.
             accessibilityLabel={name}
-            onPress={() => goTo(router, route)}
+            onPress={() => go(route)}
           >
             <View style={styles.row}>
               <Glyph name={glyph} size={ICON_SIZES.lg} color={ACCENT.base} />
@@ -61,7 +61,7 @@ export function Destinations() {
         testID="destination-satchel"
         accessibilityRole="button"
         accessibilityLabel={i18n.t('dest_satchel')}
-        onPress={() => router.push('/satchel')}
+        onPress={() => go('/satchel')}
       >
         <View style={[styles.row, styles.satchelRow]}>
           <Text style={styles.satchel}>{i18n.t('dest_satchel')}</Text>

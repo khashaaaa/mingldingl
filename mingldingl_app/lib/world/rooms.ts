@@ -58,10 +58,11 @@ export const ROOMS: Record<RoomName, RoomDef> = {
   hearth: {
     // The hearth screen (Task 5) and the Satchel (Task 9) are both reached through the hearth
     // tap, and both live in this room — the Satchel is what you carry *to* the hearth, not a
-    // place of its own on the atlas.
+    // place of its own on the atlas. The atlas's "The Hearth" opens the hearth itself: it opened
+    // the Quest Log, the same place as "The Deep", so the map's centre never led to the hearth.
     match: ['(tabs)/matches', 'ship', 'hearth', 'satchel'],
     base: 'soft', texture: 'wall', vfx: null, light: hearthLight,
-    atlas: { x: 1, y: 2 }, depth: 1, key: 'room_hearth', route: '/(tabs)/matches',
+    atlas: { x: 1, y: 2 }, depth: 1, key: 'room_hearth', route: '/hearth',
   },
   forge: {
     match: ['(tabs)/profile', 'edit-profile', 'membership', 'settings', 'blocked-users'],

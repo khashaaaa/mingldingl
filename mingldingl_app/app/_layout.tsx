@@ -50,6 +50,7 @@ import { useRevealThresholds } from '../hooks/useRevealThresholds';
 import { useSyncPreferredLocale } from '../hooks/useSyncPreferredLocale';
 import { getStoredLocale } from '../lib/localePreference';
 import { useLocaleStore } from '../store/localeStore';
+import { useGoTo } from '../hooks/useGoTo';
 
 installGlobalErrorHandlers();
 
@@ -139,6 +140,7 @@ function AppContent() {
   useRevealThresholds();
   const segments = useSegments();
   const router = useRouter();
+  const go = useGoTo();
   const [mounted, setMounted] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
     YesevaOne_400Regular,
@@ -318,7 +320,7 @@ function AppContent() {
               onPress={() => {
                 const matchId = pendingNudge.matchId;
                 setPendingNudge(null);
-                router.push(`/chat/${matchId}`);
+                go(`/chat/${matchId}`);
               }}
             />
           )}

@@ -1,5 +1,4 @@
 import { Text, View, ScrollView, RefreshControl, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Tap } from '../../components/ui/Tap';
 import { useActivity } from '../../hooks/useActivity';
 import { AppCard } from '../../components/ui/AppCard';
@@ -15,6 +14,7 @@ import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
 import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE } from '../../lib/theme';
 import { EmptyHint, StateBlock } from '../../components/ui/StateBlock';
+import { useGoTo } from '../../hooks/useGoTo';
 type CategoryGlyph = React.ComponentProps<typeof Icon>['name'];
 
 // Must stay in step with mingldingl_control's BusinessForm CATEGORIES — the venues the engine
@@ -36,7 +36,7 @@ function missionIcon(category: string): CategoryGlyph {
 export default function ActivityScreen() {
   useLocaleStore((s) => s.locale);
   const { data: businesses, isLoading, isError, isRefetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useActivity();
-  const router = useRouter();
+  const go = useGoTo();
 
   return (
     <View style={styles.screen}>
@@ -56,7 +56,7 @@ export default function ActivityScreen() {
         <GameButton
           variant="ink"
           icon="bow-arrow"
-          onPress={() => router.push('/ship/new')}
+          onPress={() => go('/ship/new')}
           style={styles.weaveButton}
         >
           {i18n.t('weave_new_thread_cta')}
@@ -80,7 +80,7 @@ export default function ActivityScreen() {
             <Entering index={index} key={b.id}>
               <Tap
                
-                onPress={() => router.push({
+                onPress={() => go({
                   pathname: `/business/${b.id}` as any,
                   params: {
                     name: b.name,

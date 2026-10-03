@@ -1,15 +1,14 @@
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { useRouter } from 'expo-router';
 import { AppCard } from '../ui/AppCard';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { SectionDivider } from '../ui/SectionDivider';
 import { Icon } from '../ui/Icon';
 import { Tap } from '../ui/Tap';
 import { useStanding } from '../../hooks/useStanding';
-import { goTo } from '../../lib/navigation';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, LINE, METAL, SPACE } from '../../lib/theme';
 import type { GemTier } from '../../models/user';
+import { useGoTo } from '../../hooks/useGoTo';
 
 /**
  * The character's standing beyond its score: the seats at their fire, any ghosting scar still
@@ -17,7 +16,7 @@ import type { GemTier } from '../../models/user';
  * Three hairline rows, no forge: nothing here is bought, only earned or owed.
  */
 export function StandingCard({ gemTier, style }: { gemTier: GemTier; style?: StyleProp<ViewStyle> }) {
-  const router = useRouter();
+  const go = useGoTo();
   const { data } = useStanding();
   if (!data) return null;
 
@@ -30,7 +29,7 @@ export function StandingCard({ gemTier, style }: { gemTier: GemTier; style?: Sty
       <CardEyebrow>{i18n.t('standing_title')}</CardEyebrow>
 
       {data.partyEnabled && (
-        <Tap onPress={() => goTo(router, '/(tabs)/matches')} accessibilityRole="button"
+        <Tap onPress={() => go('/(tabs)/matches')} accessibilityRole="button"
           accessibilityLabel={i18n.t('party_seats', { used, seats })}>
           <View style={styles.row}>
             <Text style={styles.label}>{i18n.t('party_label')}</Text>
@@ -56,7 +55,7 @@ export function StandingCard({ gemTier, style }: { gemTier: GemTier; style?: Sty
       </Text>
 
       <SectionDivider />
-      <Tap onPress={() => router.push('/date-log')} accessibilityRole="button">
+      <Tap onPress={() => go('/date-log')} accessibilityRole="button">
         <View style={styles.row}>
           <Text style={styles.label}>{i18n.t('waypoints_label')}</Text>
           <Icon name="map-legend" size={ICON_SIZES.sm} color={ACCENT.base} />

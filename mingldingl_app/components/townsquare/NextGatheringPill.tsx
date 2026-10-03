@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { Tap } from '../ui/Tap';
-import { useRouter } from 'expo-router';
-import { goTo } from '../../lib/navigation';
 import { Icon } from '../ui/Icon';
 import { useTownSquareSession } from '../../hooks/useTownSquareSession';
 import { formatCountdown } from '../../lib/townSquareTime';
 import { worldWhen, worldWhenText, worldTimeSpoken } from '../../lib/worldTime';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, LEADING, LINE, SPACE, TRACKING } from '../../lib/theme';
+import { useGoTo } from '../../hooks/useGoTo';
 // The Town Square tab already shows the full session state; this is the same countdown boiled
 // down to one line so the next gathering stays visible from the tabs people actually live on.
 // It reuses the tab's query (and its polling) rather than opening a second one.
 export function NextGatheringPill() {
-  const router = useRouter();
+  const go = useGoTo();
   const { session } = useTownSquareSession();
   const [now, setNow] = useState(() => Date.now());
 
@@ -52,7 +51,7 @@ export function NextGatheringPill() {
   return (
     <Tap
       style={styles.wrap}
-      onPress={() => goTo(router, '/(tabs)/townsquare')}
+      onPress={() => go('/(tabs)/townsquare')}
       accessibilityRole="link"
       accessibilityLabel={accessibilityLabel}
       testID="next-gathering-pill"

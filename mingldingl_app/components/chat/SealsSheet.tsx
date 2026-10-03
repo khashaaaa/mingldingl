@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
 import { SheetModal } from '../modals/SheetModal';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { GameButton } from '../ui/GameButton';
@@ -12,6 +11,7 @@ import { useRevealLadder } from '../../hooks/useRevealThresholds';
 import { sealsBroken } from './SealDots';
 import { FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, SURFACE } from '../../lib/theme';
 import type { DeepFields, PartialUser } from '../../models/match';
+import { useGoTo } from '../../hooks/useGoTo';
 
 interface Chip {
   key: string;
@@ -50,7 +50,7 @@ const PHOTO = 48;
  */
 export function SealsSheet({ visible, onClose, otherUser, messageCount, revealLevel }: Props) {
   const revealLadder = useRevealLadder();
-  const router = useRouter();
+  const go = useGoTo();
   const broken = sealsBroken(revealLevel);
   // Only as many slots as they actually have. A wax seal on a photo that does not exist reads as
   // "keep talking and this opens", and it never does.
@@ -117,7 +117,7 @@ export function SealsSheet({ visible, onClose, otherUser, messageCount, revealLe
           <GameButton
             variant="ink"
             size="compact"
-            onPress={() => { onClose(); router.push('/membership'); }}
+            onPress={() => { onClose(); go('/membership'); }}
           >
             {i18n.t('seals_climb')}
           </GameButton>

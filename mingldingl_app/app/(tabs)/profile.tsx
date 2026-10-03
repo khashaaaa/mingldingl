@@ -1,5 +1,4 @@
 import { Text, View, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Tap } from '../../components/ui/Tap';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
@@ -30,10 +29,11 @@ import { Deferred } from '../../components/ui/Deferred';
 import { useCancelDeletion } from '../../hooks/useCancelDeletion';
 import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, RADIUS, SPACE, TRACKING } from '../../lib/theme';
 import type { GemTier } from '../../models/user';
+import { useGoTo } from '../../hooks/useGoTo';
 
 export default function ProfileScreen() {
   useLocaleStore((s) => s.locale);
-  const router = useRouter();
+  const go = useGoTo();
   const cancelDeletion = useCancelDeletion();
   const { data: profile } = useProfile();
   const { data: scoreDetail } = useScoreDetail();
@@ -88,7 +88,7 @@ export default function ProfileScreen() {
 
         <Tap
           style={styles.card}
-          onPress={() => router.push('/progression')}
+          onPress={() => go('/progression')}
           accessibilityRole="button"
           accessibilityHint={i18n.t('progression_title')}
         >
@@ -106,7 +106,7 @@ export default function ProfileScreen() {
           <CardEyebrow>{i18n.t('total_score')}</CardEyebrow>
           <Text style={styles.scoreValue}><CountText value={scoreDetail.totalScore ?? 0} /> {i18n.t('pts')}</Text>
           <SectionDivider />
-          <Tap onPress={() => router.push('/membership')} accessibilityRole="button">
+          <Tap onPress={() => go('/membership')} accessibilityRole="button">
             <CardEyebrow>{i18n.t('guild_rank')}</CardEyebrow>
             <View style={styles.membershipRow}>
               <Text style={styles.membershipValue}>{membershipLabel(profile.membershipLevel)}</Text>
@@ -143,7 +143,7 @@ export default function ProfileScreen() {
           <HonourCase />
 
           <View style={styles.editButtonWrapper}>
-            <GameButton variant="ink" size="compact" icon="book-heart" onPress={() => router.push('/date-log')}>
+            <GameButton variant="ink" size="compact" icon="book-heart" onPress={() => go('/date-log')}>
               {i18n.t('view_date_log')}
             </GameButton>
           </View>
@@ -152,13 +152,13 @@ export default function ProfileScreen() {
             {/* The Satchel (Wave 4 Task 9) reads nine rules already enforced elsewhere; this is a
                 second door to it, beside the Encounter Log, the way the hearth's own tap already
                 opens the same route. */}
-            <GameButton variant="ink" size="compact" icon="bag-personal-outline" onPress={() => router.push('/satchel')}>
+            <GameButton variant="ink" size="compact" icon="bag-personal-outline" onPress={() => go('/satchel')}>
               {i18n.t('dest_satchel')}
             </GameButton>
           </View>
 
           <View style={styles.editButtonWrapper}>
-            <GameButton variant="ink" size="compact" icon="pencil-outline" onPress={() => router.push('/edit-profile')}>
+            <GameButton variant="ink" size="compact" icon="pencil-outline" onPress={() => go('/edit-profile')}>
               {i18n.t('edit_profile')}
             </GameButton>
           </View>
@@ -176,7 +176,7 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.signOutWrapper}>
-            <GameButton variant="ink" size="compact" icon="cog-outline" onPress={() => router.push('/settings')}>
+            <GameButton variant="ink" size="compact" icon="cog-outline" onPress={() => go('/settings')}>
               {i18n.t('settings_title')}
             </GameButton>
           </View>

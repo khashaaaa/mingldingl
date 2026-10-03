@@ -20,6 +20,7 @@ import { StateBlock } from '../../components/ui/StateBlock';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { useScrollTail } from '../../hooks/useScrollTail';
 import { goBack } from '../../lib/navigation';
+import { useGoTo } from '../../hooks/useGoTo';
 
 const BOSS_ROOM_ID = 'threshold';
 
@@ -28,6 +29,7 @@ export default function CampaignScreen() {
   useLocaleStore((s) => s.locale);
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const router = useRouter();
+  const go = useGoTo();
   const setPendingDrop = useAuthStore((s) => s.setPendingDrop);
   const {
     campaign, isLoading, unavailable, error,
@@ -48,10 +50,10 @@ export default function CampaignScreen() {
 
   const onHintPress = (roomId: string) => {
     switch (roomId) {
-      case 'echoes': router.push(`/icebreaker/${matchId}`); break;
-      case 'runes': router.push(`/quiz/${matchId}`); break;
+      case 'echoes': go(`/icebreaker/${matchId}`); break;
+      case 'runes': go(`/quiz/${matchId}`); break;
       case 'bridge':
-      case 'threshold': router.push(`/activities/${matchId}`); break;
+      case 'threshold': go(`/activities/${matchId}`); break;
       // 'voices' and 'flame' both live in the chat (messages, FlameRiteCard).
       default: goBack(router);
     }

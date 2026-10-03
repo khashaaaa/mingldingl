@@ -1,11 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
-import { goTo } from '../../lib/navigation';
+import { type Href } from 'expo-router';
 import { Tap } from '../ui/Tap';
 import { Icon } from '../ui/Icon';
 import { MaterialMark, type Material } from '../ui/MaterialMark';
 import type { GlyphName } from '../ui/Glyph';
 import { FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, SPACE } from '../../lib/theme';
+import { useGoTo } from '../../hooks/useGoTo';
 
 interface Props {
   material: Material;
@@ -28,14 +28,14 @@ interface Props {
  * this app follows.
  */
 export function SatchelRow({ material, glyph, name, line, to, testID }: Props) {
-  const router = useRouter();
+  const go = useGoTo();
 
   return (
     <Tap
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`${name}. ${line}`}
-      onPress={() => goTo(router, to)}
+      onPress={() => go(to)}
     >
       <View style={styles.row}>
         <MaterialMark material={material} glyph={glyph} />

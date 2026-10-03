@@ -31,6 +31,7 @@ import { dayPhase } from '../lib/world/light';
 import { ROOMS } from '../lib/world/rooms';
 import { FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, RADIUS, SPACE } from '../lib/theme';
 import type { Match } from '../models/match';
+import { useGoTo } from '../hooks/useGoTo';
 
 /**
  * Home (Sealed Fire move 6). The one screen that is a *place* rather than a task: the real sky in
@@ -71,6 +72,7 @@ function fireName(match: Match): string {
 export default function HearthScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
+  const go = useGoTo();
   const { data: profile, isLoading: profileLoading } = useProfile();
   // `useMatches` is `silentError`, so nothing else on the app will report a failed load — this
   // screen has to, or an empty ledger reads as "you have no threads".
@@ -155,7 +157,7 @@ export default function HearthScreen() {
             <GettingStartedCard
               isProfileComplete={profile.isProfileComplete}
               achievedMilestoneIds={milestones.filter((m) => m.achievedAt).map((m) => m.id ?? '')}
-              onCompleteProfile={() => router.push('/edit-profile')}
+              onCompleteProfile={() => go('/edit-profile')}
             />
           )}
           <NextGatheringPill />

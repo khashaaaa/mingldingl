@@ -1,6 +1,4 @@
 import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { goTo } from '../../lib/navigation';
 import { useMatches } from '../../hooks/useMatches';
 import { useMyUserId } from '../../hooks/useMyUserId';
 import { useNowTicker } from '../../hooks/useNowTicker';
@@ -15,11 +13,12 @@ import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { ACCENT, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
+import { useGoTo } from '../../hooks/useGoTo';
 
 export default function MatchesScreen() {
   useLocaleStore((s) => s.locale);
   const { data: matches, isLoading, isError, isRefetching, refetch } = useMatches();
-  const router = useRouter();
+  const go = useGoTo();
   const myId = useMyUserId();
   const windows = useGhostingWindows();
   // Fires-driven state (`lib/fire.ts`) turns over purely with time, so this screen needs `now` to
@@ -54,7 +53,7 @@ export default function MatchesScreen() {
           title={i18n.t('no_quests')}
           body={i18n.t('no_quests_sub')}
         >
-          <GameButton size="compact" onPress={() => goTo(router, '/(tabs)/discover')}>
+          <GameButton size="compact" onPress={() => go('/(tabs)/discover')}>
             {i18n.t('seek_title')}
           </GameButton>
         </StateBlock>
@@ -75,7 +74,7 @@ export default function MatchesScreen() {
               <QuestTile
                 match={item}
                 fire={fireOf(item, myId, now, windows)}
-                onPress={() => router.push({
+                onPress={() => go({
                   pathname: `/chat/${item.matchId}` as any,
                   params: {
                     name: item.otherUser.isDeleted

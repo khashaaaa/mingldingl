@@ -1,5 +1,5 @@
 import path from 'path';
-import { backToChat, goBack, goHome, goTo, isTabRoute, stackHas } from '../navigation';
+import { backToChat, goBack, goHome, goTo, hrefPath, isTabRoute, stackHas } from '../navigation';
 import { appSources } from '../testing/sourceTree';
 
 function router(canGoBack = true) {
@@ -19,6 +19,36 @@ describe('goTo', () => {
     const r = router();
     goTo(r, '/satchel');
     expect(r.push).toHaveBeenCalledWith('/satchel');
+  });
+
+  // The stack as expo-router nests it: everything sits under `__root`.
+  const open = (...routes: { name: string; params?: object }[]) => ({
+    routes: [{ name: '__root', state: { index: routes.length, routes: [{ name: '(tabs)' }, ...routes] } }],
+  });
+
+  it('returns to a screen already open further down instead of stacking a copy', () => {
+    const r = router();
+    goTo(r, '/progression', open({ name: 'progression' }, { name: 'leaderboard' }));
+    expect(r.dismissTo).toHaveBeenCalledWith('/progression');
+    expect(r.push).not.toHaveBeenCalled();
+  });
+
+  it('does nothing for the screen already on top', () => {
+    const r = router();
+    goTo(r, '/chat/m1', open({ name: 'chat/[matchId]', params: { matchId: 'm1' } }));
+    expect(r.dismissTo).not.toHaveBeenCalled();
+    expect(r.push).not.toHaveBeenCalled();
+  });
+
+  it('still pushes the same screen for a different subject', () => {
+    const r = router();
+    goTo(r, '/chat/m2', open({ name: 'chat/[matchId]', params: { matchId: 'm1' } }));
+    expect(r.push).toHaveBeenCalledWith('/chat/m2');
+  });
+
+  it('matches an object href by the path it fills in', () => {
+    expect(hrefPath({ pathname: '/chat/[matchId]', params: { matchId: 'm1', name: 'x' } })).toBe('/chat/m1');
+    expect(hrefPath('/business/7?from=board')).toBe('/business/7');
   });
 
   it('reads an object href by its pathname', () => {
@@ -89,6 +119,15 @@ describe('the navigation rules hold across the app', () => {
     const hits = sources.flatMap((f) =>
       f.text.split('\n').flatMap((line, i) =>
         /router\.(push|navigate)\(\s*['"`]\/\(tabs\)/.test(line) ? [`${f.rel}:${i + 1}`] : []));
+    expect(hits).toEqual([]);
+  });
+
+  // `useGoTo` returns to a screen already open; a bare push stacks a second copy of it. The phone
+  // screen's push to its own code step is the one push that can never meet itself.
+  it('never pushes a screen directly, which stacks copies of screens already open', () => {
+    const hits = sources.flatMap((f) =>
+      f.text.split('\n').flatMap((line, i) =>
+        /\brouter\.push\(/.test(line) && f.rel !== path.join('app', '(auth)', 'phone.tsx') ? [`${f.rel}:${i + 1}`] : []));
     expect(hits).toEqual([]);
   });
 

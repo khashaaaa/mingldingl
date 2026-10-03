@@ -19,6 +19,7 @@ import type { GemTier } from '../models/user';
 import { CardEyebrow } from '../components/ui/CardEyebrow';
 import { useScrollTail } from '../hooks/useScrollTail';
 import { goBack } from '../lib/navigation';
+import { useGoTo } from '../hooks/useGoTo';
 
 /** Assumed width until `onLayout` reports the real one — see `GateScene`'s own note on the pattern. */
 const FALLBACK_SKY_WIDTH = 320;
@@ -26,6 +27,7 @@ const FALLBACK_SKY_WIDTH = 320;
 export default function ProgressionScreen() {
   useLocaleStore((s) => s.locale);
   const router = useRouter();
+  const go = useGoTo();
   const tail = useScrollTail();
   const { data: detail, isLoading, error, refetch } = useScoreDetail();
   const { data: historyItems, fetchNextPage, hasNextPage, isFetchingNextPage } = useScoreHistory();
@@ -84,7 +86,7 @@ export default function ProgressionScreen() {
             </AppCard>
             <TierPerkCard gemTier={gemTier} tierBonus={detail.tierBonus ?? 0} nextTier={nextTier} dailyMatchBudget={detail.dailyMatchBudget} />
             <View style={styles.leaderboardButtonWrap}>
-              <GameButton variant="ink" icon="podium-gold" onPress={() => router.push('/leaderboard')}>
+              <GameButton variant="ink" icon="podium-gold" onPress={() => go('/leaderboard')}>
                 {i18n.t('hall_of_names')}
               </GameButton>
             </View>
