@@ -1,4 +1,4 @@
-import { Text, View, ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { Text, View, ScrollView, StyleSheet } from 'react-native';
 import { Tap } from '../../components/ui/Tap';
 import { useActivity } from '../../hooks/useActivity';
 import { AppCard } from '../../components/ui/AppCard';
@@ -14,6 +14,7 @@ import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
 import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE } from '../../lib/theme';
 import { EmptyHint, StateBlock } from '../../components/ui/StateBlock';
+import { useKindle } from '../../components/ui/Kindle';
 import { useGoTo } from '../../hooks/useGoTo';
 type CategoryGlyph = React.ComponentProps<typeof Icon>['name'];
 
@@ -35,24 +36,23 @@ function missionIcon(category: string): CategoryGlyph {
 
 export default function ActivityScreen() {
   useLocaleStore((s) => s.locale);
-  const { data: businesses, isLoading, isError, isRefetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useActivity();
+  const { data: businesses, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useActivity();
   const go = useGoTo();
+  const kindle = useKindle({
+    onRefresh: refetch,
+    contentContainerStyle: styles.list,
+    onScroll: ({ nativeEvent }) => {
+      const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+      const nearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
+      if (nearBottom && hasNextPage && !isFetchingNextPage) fetchNextPage();
+    },
+  });
 
   return (
     <View style={styles.screen}>
       <GameHeader title={i18n.t('mission_board')} glyph="forge" showScore />
-      <ScrollView
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT.base} colors={[ACCENT.base]} />
-        }
-        onScroll={({ nativeEvent }) => {
-          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-          const nearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
-          if (nearBottom && hasNextPage && !isFetchingNextPage) fetchNextPage();
-        }}
-        scrollEventThrottle={200}
-      >
+      <ScrollView {...kindle.scrollProps}>
+        {kindle.header}
         <GameButton
           variant="ink"
           icon="bow-arrow"

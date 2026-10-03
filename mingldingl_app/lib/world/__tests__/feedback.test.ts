@@ -135,7 +135,7 @@ describe('world feedback', () => {
     const events = {
       enterDeep: true, ascend: true, tierUp: true, sealBreak: true,
       honour: true, pledgeKept: true, press: true, horn: true, fireDying: true,
-      candleLit: true, bell: true, matchMade: true, penalty: true,
+      candleLit: true, bell: true, matchMade: true, penalty: true, stoke: true,
     } satisfies Record<WorldEvent, true>;
     setSoundEnabled(true);
     for (const event of Object.keys(events) as WorldEvent[]) {

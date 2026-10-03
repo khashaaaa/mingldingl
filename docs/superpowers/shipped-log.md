@@ -70,8 +70,21 @@ check, check-ring, more, turn, star/star-blank, pennant, thread-cut, eye/eye-shu
 frame, person — and every other stock name was mapped onto a drawing that already meant it (the
 video call is the Flame Rite's flame, a locked quest the gate, the quiz the scroll). `INKED` and
 `StateBlock`'s `ICON_PLACES` are closed tables, so a name with no drawing is a compile error rather
-than a Material icon; `@expo/vector-icons` is no longer a dependency or a loaded font. Still
-Material on Android: `RefreshControl`'s pull-to-refresh spinner (activity, matches, leaderboard).
+than a Material icon; `@expo/vector-icons` is no longer a dependency or a loaded font.
+
+## 2026-10-03 — Pull-to-refresh is a bonfire
+
+`RefreshControl` (Material's spinning arc in a white disc on Android) is gone from Activity,
+Matches and the Hall of Names. `useKindle` (`components/ui/Kindle.tsx`) needs no gesture library:
+the list opens scrolled one `HEARTH` (96dp) down with the hearth as its first content, so pulling
+is plain native scrolling, and `snapToOffsets` settles a release shut or fully open — open kindles
+it. `Bonfire` (Skia, `components/vfx/`) is driven by three shared values: the logs brush in and a
+flint throws sparks as you pull, the fire catches with a flare and burns (three swaying tongue
+layers, a glow, rising embers) for at least 1.1s while the refetch runs, then gutters into a curl
+of smoke and the list closes over it. `stoke` is its feedback row. Android's overscroll glow is
+off on those lists (`overScrollMode="never"`); off `full` vfx the hearth holds `Waiting`'s candle.
+Checked on the A51. Gotcha: the first scroll-to-`HEARTH` must wait until the content is a hearth
+taller than the viewport, or it clamps to 0 and the hearth sits open as a gap.
 
 ## 2026-10-03 — A51 translation and consistency audit
 

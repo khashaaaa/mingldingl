@@ -1,4 +1,5 @@
-import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { GameHeader } from '../components/ui/GameHeader';
@@ -12,12 +13,13 @@ import { useLocaleStore } from '../store/localeStore';
 import { rankNumeral } from '../lib/numerals';
 import { tierLabel, cityKey, cityLabel } from '../lib/tiers';
 import {
-  ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TEMPERATURE, TRACKING, tint,
+  BADGE_SIZES, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TEMPERATURE, TRACKING, tint,
 } from '../lib/theme';
 import { EmptyHint, StateBlock } from '../components/ui/StateBlock';
 import type { GemTier } from '../models/user';
 import { useScrollTail } from '../hooks/useScrollTail';
 import { goBack } from '../lib/navigation';
+import { useKindle } from '../components/ui/Kindle';
 
 const TOP_SLICE_SIZE = 50;
 
@@ -29,7 +31,13 @@ export default function LeaderboardScreen() {
   const tail = useScrollTail();
   useLocaleStore((s) => s.locale);
   const router = useRouter();
-  const { data, isLoading, error, isRefetching, refetch } = useLeaderboard();
+  const { data, isLoading, error, refetch } = useLeaderboard();
+  const emptyHall = (data?.entries ?? []).length === 0;
+  const listStyle = useMemo(
+    () => [emptyHall ? styles.listEmpty : styles.list, { paddingBottom: tail }],
+    [emptyHall, tail],
+  );
+  const kindle = useKindle({ onRefresh: refetch, contentContainerStyle: listStyle });
 
   if (isLoading) {
     return (
@@ -73,10 +81,13 @@ export default function LeaderboardScreen() {
       <GameHeader title={i18n.t('hall_of_names')} showBack />
       <Text style={styles.sub}>{hallSub}</Text>
       <FlatList
-        contentContainerStyle={[entries.length === 0 ? styles.listEmpty : styles.list, { paddingBottom: tail }]}
+        {...kindle.scrollProps}
+        ListHeaderComponent={kindle.header}
         data={entries}
         keyExtractor={(item, i) => `${item.rank ?? i}`}
-        ListEmptyComponent={<EmptyHint>{i18n.t('leaderboard_empty')}</EmptyHint>}
+        // Centred by its own box, not the list's: centring the list's content would carry the
+        // hearth above it down into the middle of the screen too.
+        ListEmptyComponent={<View style={styles.emptyWrap}><EmptyHint>{i18n.t('leaderboard_empty')}</EmptyHint></View>}
         ListFooterComponent={
           <>
             {/* The pairs who stopped needing the hall. A count only, like every row above it. */}
@@ -85,9 +96,6 @@ export default function LeaderboardScreen() {
             )}
             <Text style={styles.law}>{i18n.t('hall_law')}</Text>
           </>
-        }
-        refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT.base} colors={[ACCENT.base]} />
         }
         renderItem={({ item, index }) => {
           const isOwn = !!item.isCurrentUser;
@@ -167,7 +175,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.sm,
   },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
-  listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
+  listEmpty: { flexGrow: 1, paddingHorizontal: SPACE.gutter },
+  emptyWrap: { flex: 1, justifyContent: 'center' },
   gap: { color: INK.dim, textAlign: 'center', fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, marginVertical: SPACE.xs },
   row: {
     flexDirection: 'row',

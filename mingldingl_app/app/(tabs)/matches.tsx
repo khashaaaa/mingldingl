@@ -1,4 +1,4 @@
-import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { useMatches } from '../../hooks/useMatches';
 import { useMyUserId } from '../../hooks/useMyUserId';
 import { useNowTicker } from '../../hooks/useNowTicker';
@@ -11,14 +11,16 @@ import { Entering } from '../../components/ui/Entering';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { ACCENT, FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
+import { FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
 import { useGoTo } from '../../hooks/useGoTo';
+import { useKindle } from '../../components/ui/Kindle';
 
 export default function MatchesScreen() {
   useLocaleStore((s) => s.locale);
-  const { data: matches, isLoading, isError, isRefetching, refetch } = useMatches();
+  const { data: matches, isLoading, isError, refetch } = useMatches();
   const go = useGoTo();
+  const kindle = useKindle({ onRefresh: refetch, contentContainerStyle: styles.list });
   const myId = useMyUserId();
   const windows = useGhostingWindows();
   // Fires-driven state (`lib/fire.ts`) turns over purely with time, so this screen needs `now` to
@@ -62,10 +64,8 @@ export default function MatchesScreen() {
         <FlatList
           data={matches}
           keyExtractor={(m) => m.matchId}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT.base} colors={[ACCENT.base]} />
-          }
+          {...kindle.scrollProps}
+          ListHeaderComponent={kindle.header}
           ListFooterComponent={
             <Text style={styles.law}>{i18n.t('fire_law')}</Text>
           }
