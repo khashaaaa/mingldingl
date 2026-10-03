@@ -8,6 +8,20 @@ long versions.
 
 ---
 
+## 2026-10-03 — A51 translation and consistency audit
+
+- **Header titles were three different sizes** on sibling screens (13.7–22pt). Android's
+  `onTextLayout` reported a short Cyrillic title ("Өгсөлт", 79.7dp) as two lines inside the 80dp,
+  one-line box Yoga gave it, and `HeaderBar` stepped down on the line count alone. A wrap now
+  counts only when the box is two lines tall or the lines need more width than the box has.
+- **Activity screens named venues in English** however the reader's locale was set: the suggestion's title was stored
+  once as `"{Category} at {Name}"`, and suggestions, the date log and the attendance check served
+  raw `Name`/`District`, bypassing the `*Mn` overlay `BusinessController` already used. All three now
+  compose per reader through `LocalisedContent.Venue*`.
+- The hearth's First Steps count used `"%{held} of %{needed}"` beside a Mongolian label; it now
+  shares `count_of_total` ("3 / 4"). The Satchel's recap said "0 arrows." (now "No arrows.") and
+  its seals line opened lowercase.
+
 ## 2026-10-03 — The road, smoothness, navigation, round trips and floods
 
 **The road** — six mechanics that turn the accountability rules into play; every number is admin

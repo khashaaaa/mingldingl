@@ -154,7 +154,7 @@ describe('the Satchel, full', () => {
   it('sums the unbroken seals across every active thread', () => {
     // ladder length 4 (default), revealLevel 1 and 2 -> 3 + 2 = 5 seals across two threads.
     const { getByLabelText } = renderScreen();
-    expect(getByLabelText('Seals held. five unbroken on you, across two threads')).toBeTruthy();
+    expect(getByLabelText('Seals held. Five unbroken on you, across two threads')).toBeTruthy();
   });
 
   // Regression for reading `useRevealLadder()` rather than a one-off `revealLadderSnapshot()`
@@ -166,7 +166,7 @@ describe('the Satchel, full', () => {
     mockUseRevealLadder.mockReturnValue([1, 5, 15, 30, 45, 60]);
     // length 6, revealLevel 1 and 2 -> 5 + 4 = 9 seals across two threads.
     const { getByLabelText } = renderScreen();
-    expect(getByLabelText('Seals held. nine unbroken on you, across two threads')).toBeTruthy();
+    expect(getByLabelText('Seals held. Nine unbroken on you, across two threads')).toBeTruthy();
   });
 
   it('states the card the same way regardless of who holds it', () => {
@@ -232,5 +232,10 @@ describe('the Satchel, empty', () => {
     const { getByText, queryByText } = renderScreen();
     expect(getByText(/No candles\./)).toBeTruthy();
     expect(queryByText(/0 candles/)).toBeNull();
+  });
+
+  it('says "No arrows." in the recap when none are in flight, not "0 arrows."', () => {
+    const { getByText } = renderScreen();
+    expect(getByText(/No arrows\./)).toBeTruthy();
   });
 });

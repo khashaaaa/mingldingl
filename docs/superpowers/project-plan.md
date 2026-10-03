@@ -125,7 +125,12 @@ here and record it in [`shipped-log.md`](shipped-log.md).
   empty state (`no_quests`, `no_quests_sub`) says «Даалгавар», the Missions tab's word, for matches;
   `view_blocked_users` / `blocked_users_title` "The Frozen Gate" reads «Цөлөгдсөн хүмүүс» ("the exiled"); the Fate oath chip
   «Хувь заяанд нээлттэй» is long for a chip. Composed lines go through `lineLocale` so an
-  untranslated piece never sits mid-line beside a translated one.
+  untranslated piece never sits mid-line beside a translated one — which is why Discover's card
+  eyebrow shows the tier in English ("AMETHYST · BAYANGOL") until the `city_*` names land.
+  Grammar the translator must rephrase: `next_action_icebreaker` hardcodes `%{name}-тай` and
+  `woven_by` `%{name}-ийн`, but the suffix follows the name's vowels (Мөнхболдтой, Сэлэнгэтэй),
+  and `mystery_match_name` «??? • Нууц» reads as a placeholder. A venue's activity title in `mn`
+  is `{category} · {name}` (`LocalisedContent.VenueActivityTitle`) for want of a sentence.
 - **Four Sealed Fire decisions, running on their defaults:** level-zero reveal (the level-0
   photo blurred under the seal); embers in the open (the Quest Log shows the ghosting judgement
   before it lands); the hearth replacing navigation (`HEARTH_ENABLED` on, tab bar stays, a hearth
@@ -150,6 +155,12 @@ here and record it in [`shipped-log.md`](shipped-log.md).
   sign-in script rewriting the test user's password, or a session timeout). Check Supabase
   Auth → Sessions before assuming an app bug.
 
+- 2026-10-03 A51 audit leftovers: an empty thread still draws the ledger's dashed line through
+  its empty state; the quiz progress bar lights answered questions only, so question 1 shows no
+  lit segment; nine engine error codes (`quiz.not_found`, `rite.not_finished`,
+  `membership.purchase_closed`, `profile.gender_immutable`, `rating.*`, `photo.not_found`,
+  `user.already_deleted`, `quiz.answers_invalid`) have no app copy and show the caller's generic
+  message.
 - **Retiring together sends no push.** The proposal reaches the other side only as a broadcast
   (and the activities badge) while their app is open; a `PushKind` needs MN copy, which waits on a
   native speaker. Same for the party-full and trial-ready moments.

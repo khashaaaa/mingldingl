@@ -153,7 +153,7 @@ public class ActivityService
             .OrderByDescending(c => c.CompletedAt)
             .FirstOrDefaultAsync();
 
-    public async Task<(bool Due, string? ActivityTitle)> GetAttendanceCheckStatusAsync(Guid matchId, Guid userId)
+    public async Task<(bool Due, string? ActivityTitle)> GetAttendanceCheckStatusAsync(Guid matchId, Guid userId, string? locale = null)
     {
         var confirmation = await LoadLatestCompletedConfirmationAsync(matchId);
         if (confirmation is null) return (false, null);
@@ -166,8 +166,12 @@ public class ActivityService
         bool alreadyAnswered = isInitiator ? confirmation.InitiatorAttended.HasValue : confirmation.ReceiverAttended.HasValue;
         if (alreadyAnswered) return (false, null);
 
-        var suggestion = await _db.ActivitySuggestions.FindAsync(confirmation.ActivitySuggestionId);
-        return (true, suggestion?.Title);
+        var suggestion = await _db.ActivitySuggestions
+            .Include(s => s.BusinessPartner)
+            .FirstOrDefaultAsync(s => s.Id == confirmation.ActivitySuggestionId);
+        return (true, suggestion?.BusinessPartner is { } venue
+            ? LocalisedContent.VenueActivityTitle(locale, venue)
+            : suggestion?.Title);
     }
 
     public async Task<bool?> SubmitAttendanceAsync(Guid matchId, Guid userId, bool attended)

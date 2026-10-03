@@ -63,7 +63,7 @@ export function GettingStartedCard({ isProfileComplete, achievedMilestoneIds, on
         {/* Its own key rather than HonourCase's `honour_progress`: a rewording of the honours'
             progress would otherwise silently retext this board too. */}
         <Text style={styles.compactProgress}>
-          {i18n.t('getting_started_progress', { held: doneCount, needed: steps.length })}
+          {i18n.t('count_of_total', { held: doneCount, total: steps.length })}
         </Text>
       </View>
     );

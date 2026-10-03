@@ -32,4 +32,25 @@ public static class LocalisedContent
             && english.All(o => !string.IsNullOrWhiteSpace(o))
                 ? english
                 : mongolian;
+
+    /// <summary>
+    /// A venue's name, category and district in the reader's language — the same overlay
+    /// <c>BusinessController</c> serves, for every other screen that names a venue (an activity
+    /// suggestion, the date log, the attendance check).
+    /// </summary>
+    public static string VenueName(string? locale, BusinessPartner b) => Pick(locale, b.Name, b.NameMn, MarketLocale);
+    public static string VenueCategory(string? locale, BusinessPartner b) => Pick(locale, b.Category, b.CategoryMn, MarketLocale);
+    public static string VenueDistrict(string? locale, BusinessPartner b) => Pick(locale, b.District, b.DistrictMn, MarketLocale);
+
+    /// <summary>
+    /// What an encounter at a venue is called, composed per reader rather than stored: the stored
+    /// <c>ActivitySuggestion.Title</c> was written once, in English, and both participants — whatever
+    /// their language — were shown it. Mongolian joins the parts with a dot rather than a guessed
+    /// preposition; a native speaker can replace it with a sentence.
+    /// </summary>
+    public static string VenueActivityTitle(string? locale, BusinessPartner b) =>
+        locale == MarketLocale
+            ? $"{VenueCategory(locale, b)} · {VenueName(locale, b)}"
+            : $"{b.Category} at {b.Name}";
 }
+

@@ -129,7 +129,7 @@ export const AWAITING_MN_TRANSLATION = [
   'satchel_honour', 'satchel_honour_none',
   'satchel_seals', 'satchel_seals_line', 'satchel_seals_one_thread', 'satchel_seals_none',
   'satchel_card', 'satchel_card_line',
-  'satchel_sum_candles', 'satchel_sum_candles_one', 'satchel_sum_candles_none', 'satchel_sum_arrows', 'satchel_sum_arrows_one',
+  'satchel_sum_candles', 'satchel_sum_candles_one', 'satchel_sum_candles_none', 'satchel_sum_arrows', 'satchel_sum_arrows_one', 'satchel_sum_arrows_none',
   'satchel_sum_lantern',
   'satchel_law',
   // Copy that was reshaped in code (leaderboard's empty-city sub line, the unsealing ceremony's
@@ -155,7 +155,7 @@ export const AWAITING_MN_TRANSLATION = [
   'honour_lore_hearthbound', 'honour_lore_naadam', 'honour_lore_whitemoon', 'event_bond_trial_done',
   'event_scar_healed', 'chronicle_bond_trial_done', 'chronicle_scar_healed',
   // Audit W5: number-in-sentence formats (a translator only confirms the order) and the add-photo tile's label.
-  'count_of_total', 'points_gain', 'next_tier_arrow', 'name_age', 'tier_score', 'getting_started_progress', 'add_photo',
+  'count_of_total', 'points_gain', 'next_tier_arrow', 'name_age', 'tier_score', 'add_photo',
   // Province and district names (2026-10-03): stored in English by the engine, shown through cityLabel.
   'city_tsetserleg', 'city_olgii', 'city_bayankhongor', 'city_bulgan', 'city_darkhan',
   'city_choibalsan', 'city_sainshand', 'city_mandalgovi', 'city_altai', 'city_choir', 'city_chinggis',

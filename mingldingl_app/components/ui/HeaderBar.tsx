@@ -68,14 +68,21 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
   // on the A51 "Seek Companions" reported one 165dp line to `onTextLayout` while Yoga, measuring
   // into 164.95dp, sized the box for two. The one line then drew at the top of a two-line box, ~13dp
   // above the glyph and tail icons. So a box taller than its line also counts as wrapped.
-  // Both readings are keyed to the step and title they were taken at, so a stale two-line height
-  // never pairs with the next step's line and drops a size the title did not need to lose.
-  const box = useRef({ key: '', line: 0, height: 0 });
-  const measured = (part: 'line' | 'height', value: number) => {
+  // The reverse happens too, and is why a line count alone is not trusted: a short Cyrillic title
+  // ("Өгсөлт", 79.7dp of glyphs) got an 80dp, one-line box from Yoga while `onTextLayout` broke its
+  // last letter onto a second line. Believing that count shrank it three steps, so screens side by
+  // side drew their titles anywhere from 13.7 to 22pt. A reported wrap only counts when the lines
+  // really need more width than the box has.
+  // Every reading is keyed to the step and title it was taken at, so a stale two-line height never
+  // pairs with the next step's line and drops a size the title did not need to lose.
+  const box = useRef({ key: '', line: 0, height: 0, width: 0, lines: 0 });
+  const measured = (reading: Partial<Omit<typeof box.current, 'key'>>) => {
     const key = `${title}:${step}`;
-    if (box.current.key !== key) box.current = { key, line: 0, height: 0 };
-    box.current[part] = value;
-    if (box.current.line > 0 && box.current.height > box.current.line * 1.5) stepDown();
+    if (box.current.key !== key) box.current = { key, line: 0, height: 0, width: 0, lines: 0 };
+    Object.assign(box.current, reading);
+    const { line, height, width, lines } = box.current;
+    if (line > 0 && height > line * 1.5) stepDown();
+    else if (width > 0 && lines > width + 1) stepDown();
   };
   return (
     <View style={styles.wrap}>
@@ -106,11 +113,14 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
             numberOfLines={2}
             onTextLayout={(e) => {
               const { lines } = e.nativeEvent;
-              if (lines.length > 1) { stepDown(); return; }
-              measured('line', lines[0]?.height ?? 0);
+              measured({
+                line: lines[0]?.height ?? 0,
+                // Summed only past the first line: a single line's width is never a wrap.
+                lines: lines.length > 1 ? lines.reduce((sum, l) => sum + l.width, 0) : 0,
+              });
             }}
             onLayout={(e) => {
-              measured('height', e.nativeEvent.layout.height);
+              measured({ height: e.nativeEvent.layout.height, width: e.nativeEvent.layout.width });
             }}
           >
             {title}

@@ -19,6 +19,14 @@ public class ActivitiesController : ControllerBase
         _config = config;
     }
 
+    /// <summary>Venue text is served in the caller's stored language, as <c>BusinessController</c> does.</summary>
+    private async Task<string?> CallerLocaleAsync() =>
+        await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == this.CurrentUserId())
+            .Select(u => u.PreferredLocale)
+            .FirstOrDefaultAsync();
+
     public static int SuggestionThreshold(ConfigService config) =>
         Math.Max(1, (int)config.GetNumber("activity.suggestions.messages", 15));
 
@@ -41,8 +49,9 @@ public class ActivitiesController : ControllerBase
         var confirmations = await _db.DateConfirmations.Where(c => c.MatchId == matchId).ToListAsync();
         bool isInitiator = match.InitiatorId == userId;
         bool myRated = await _db.BusinessRatings.AnyAsync(r => r.MatchId == matchId && r.UserId == userId);
+        var locale = await CallerLocaleAsync();
 
-        return Ok(suggestions.Select(s => ToResponse(s, confirmations, isInitiator, myRated)).ToList());
+        return Ok(suggestions.Select(s => ToResponse(s, confirmations, isInitiator, myRated, locale)).ToList());
     }
 
     [HttpGet("mine")]
@@ -71,24 +80,26 @@ public class ActivitiesController : ControllerBase
         var myRatings = await _db.BusinessRatings.AsNoTracking()
             .Where(r => myMatchIds.Contains(r.MatchId) && r.UserId == userId)
             .ToListAsync();
+        var locale = await CallerLocaleAsync();
 
         var trophies = confirmations
             .Select(c =>
             {
                 suggestions.TryGetValue(c.ActivitySuggestionId, out var s);
+                var venue = s?.BusinessPartner;
                 var myRating = myRatings.FirstOrDefault(r => r.MatchId == c.MatchId);
                 bool mismatched = c.InitiatorAttended.HasValue && c.ReceiverAttended.HasValue
                     && c.InitiatorAttended != c.ReceiverAttended;
                 return new TrophyResponse(
                     c.MatchId,
-                    s?.Title ?? "",
-                    s?.BusinessPartner?.Name,
-                    s?.BusinessPartner?.PhotoUrls.FirstOrDefault(),
+                    venue is null ? s?.Title ?? "" : LocalisedContent.VenueActivityTitle(locale, venue),
+                    venue is null ? null : LocalisedContent.VenueName(locale, venue),
+                    venue?.PhotoUrls.FirstOrDefault(),
                     c.CreatedAt,
                     myRating?.Stars,
                     myRating?.PhotoUrl,
                     mismatched,
-                    string.IsNullOrEmpty(s?.BusinessPartner?.District) ? null : s.BusinessPartner.District,
+                    venue is null || string.IsNullOrEmpty(venue.District) ? null : LocalisedContent.VenueDistrict(locale, venue),
                     c.InitiatorAttended == true && c.ReceiverAttended == true);
             })
             .OrderByDescending(t => t.ConfirmedAt)
@@ -128,7 +139,7 @@ public class ActivitiesController : ControllerBase
         var (match, accessError) = await this.LoadParticipantMatchAsync(_db, matchId);
         if (accessError is not null) return accessError;
 
-        var (due, activityTitle) = await _activities.GetAttendanceCheckStatusAsync(matchId, userId);
+        var (due, activityTitle) = await _activities.GetAttendanceCheckStatusAsync(matchId, userId, await CallerLocaleAsync());
         return Ok(new AttendanceCheckStatusResponse(due, activityTitle));
     }
 
@@ -148,17 +159,18 @@ public class ActivitiesController : ControllerBase
         return Ok(new AttendanceCheckResponse(answered.Value));
     }
 
-    private static ActivitySuggestionResponse ToResponse(ActivitySuggestion s, List<DateConfirmation> confirmations, bool isInitiator, bool myRated)
+    private static ActivitySuggestionResponse ToResponse(ActivitySuggestion s, List<DateConfirmation> confirmations, bool isInitiator, bool myRated, string? locale)
     {
         var confirmation = confirmations.FirstOrDefault(c => c.ActivitySuggestionId == s.Id);
         bool myConfirmed = confirmation is not null && (isInitiator ? confirmation.InitiatorConfirmed : confirmation.ReceiverConfirmed);
         bool isComplete = confirmation?.IsComplete ?? false;
 
         return new(
-            s.Id, s.ActivityType, s.Title,
+            s.Id, s.ActivityType,
+            s.BusinessPartner is null ? s.Title : LocalisedContent.VenueActivityTitle(locale, s.BusinessPartner),
             s.BusinessPartner is null ? null : new BusinessSummary(
-                s.BusinessPartner.Id, s.BusinessPartner.Name, s.BusinessPartner.AverageRating,
-                s.BusinessPartner.District, s.BusinessPartner.PhotoUrls.FirstOrDefault()),
+                s.BusinessPartner.Id, LocalisedContent.VenueName(locale, s.BusinessPartner), s.BusinessPartner.AverageRating,
+                LocalisedContent.VenueDistrict(locale, s.BusinessPartner), s.BusinessPartner.PhotoUrls.FirstOrDefault()),
             myConfirmed, isComplete, myRated);
     }
 }

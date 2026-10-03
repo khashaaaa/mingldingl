@@ -276,6 +276,65 @@ public class ActivitiesControllerIntegrationTests : IntegrationTestBase
         Assert.Equal("Activity suggestion not found for this match", ErrorMessage(result));
     }
 
+    /// <summary>
+    /// The venue is named in each reader's own language on every activity endpoint, not once in
+    /// English when the suggestion was stored. Overlay values are placeholder ASCII, as in
+    /// BusinessControllerIntegrationTests — the real Mongolian is owed to a native speaker.
+    /// </summary>
+    [Theory]
+    [InlineData("en", "Outdoor at Sunset Point", "Sunset Point", "Khan-Uul")]
+    [InlineData("mn", "mn-category · mn-name", "mn-name", "mn-district")]
+    public async Task ActivityEndpoints_NameTheVenueInTheReadersLanguage(string locale, string title, string name, string district)
+    {
+        var initiator = NewCompleteUser();
+        initiator.PreferredLocale = locale;
+        var receiver = NewCompleteUser();
+        Db.Users.AddRange(initiator, receiver);
+        var venue = new BusinessPartner
+        {
+            Name = "Sunset Point", NameMn = "mn-name", Category = "Outdoor", CategoryMn = "mn-category",
+            City = "Ulaanbaatar", District = "Khan-Uul", DistrictMn = "mn-district", IsVerified = true,
+        };
+        Db.BusinessPartners.Add(venue);
+        var match = new Match
+        {
+            InitiatorId = initiator.Id, ReceiverId = receiver.Id, Status = "Active",
+            MessageCount = 20, InitiatorMessageCount = 10, ReceiverMessageCount = 10,
+        };
+        Db.Matches.Add(match);
+        var suggestion = new ActivitySuggestion
+        {
+            MatchId = match.Id, BusinessPartner = venue, ActivityType = "Outdoor", Title = "Outdoor at Sunset Point",
+        };
+        Db.ActivitySuggestions.Add(suggestion);
+        Db.DateConfirmations.Add(new DateConfirmation
+        {
+            MatchId = match.Id, ActivitySuggestionId = suggestion.Id,
+            InitiatorConfirmed = true, ReceiverConfirmed = true,
+            CompletedAt = DateTime.UtcNow.AddHours(-49),
+        });
+        await Db.SaveChangesAsync();
+        var controller = BuildController(initiator.Id);
+
+        var suggestions = Assert.IsType<List<ActivitySuggestionResponse>>(
+            Assert.IsType<OkObjectResult>(await controller.GetSuggestions(match.Id)).Value);
+        var offered = Assert.Single(suggestions);
+        Assert.Equal(title, offered.Title);
+        Assert.Equal(name, offered.Business!.Name);
+        Assert.Equal(district, offered.Business.District);
+
+        var trophy = Assert.Single(Assert.IsType<List<TrophyResponse>>(
+            Assert.IsType<OkObjectResult>(await controller.GetMyTrophies()).Value));
+        Assert.Equal(title, trophy.ActivityTitle);
+        Assert.Equal(name, trophy.BusinessName);
+        Assert.Equal(district, trophy.District);
+
+        var check = Assert.IsType<AttendanceCheckStatusResponse>(
+            Assert.IsType<OkObjectResult>(await controller.GetAttendanceCheck(match.Id)).Value);
+        Assert.True(check.Due);
+        Assert.Equal(title, check.ActivityTitle);
+    }
+
     private static string? ErrorMessage(ObjectResult result) =>
         (result.Value as ErrorResponse)?.Error;
 }

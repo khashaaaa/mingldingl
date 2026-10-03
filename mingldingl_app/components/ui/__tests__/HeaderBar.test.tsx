@@ -1,5 +1,5 @@
 import { render, fireEvent } from '@testing-library/react-native';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, type TextStyle } from 'react-native';
 import { HeaderBar } from '../HeaderBar';
 import { Glyph } from '../Glyph';
 import { i18n } from '../../../lib/i18n';
@@ -143,5 +143,43 @@ describe('HeaderBar chrome', () => {
     expect(getByText('The Bell')).toBeTruthy();
     expect(getByLabelText(i18n.t('back'))).toBeTruthy();
     expect(getByText('flag')).toBeTruthy();
+  });
+});
+
+/**
+ * The title steps down a size only when it really wraps. Android once reported a short Cyrillic
+ * title broken over two lines inside a one-line box with room to spare, and believing that count
+ * shrank sibling screens' titles to different sizes.
+ */
+describe('HeaderBar title fit', () => {
+  const originalLocale = i18n.locale;
+  beforeEach(() => { i18n.locale = 'mn'; });
+  afterEach(() => { i18n.locale = originalLocale; });
+
+  const size = (title: string, getByText: (t: string) => { props: { style: unknown } }) =>
+    StyleSheet.flatten(getByText(title).props.style as TextStyle).fontSize;
+
+  it('ignores a reported wrap whose lines fit the one-line box they were given', () => {
+    const { getByText } = render(<HeaderBar title="Өгсөлт" showBack={false} />);
+    const text = getByText('Өгсөлт');
+    fireEvent(text, 'textLayout', { nativeEvent: { lines: [{ width: 67.3, height: 26.3 }, { width: 12.4, height: 24.8 }] } });
+    fireEvent(text, 'layout', { nativeEvent: { layout: { width: 80, height: 28.2 } } });
+    expect(size('Өгсөлт', getByText)).toBe(FONT_SIZES.title);
+  });
+
+  it('steps down when the lines need more width than the box has', () => {
+    const { getByText } = render(<HeaderBar title="Даалгаврын самбар" showBack={false} />);
+    const text = getByText('Даалгаврын самбар');
+    fireEvent(text, 'textLayout', { nativeEvent: { lines: [{ width: 120, height: 26 }, { width: 70, height: 26 }] } });
+    fireEvent(text, 'layout', { nativeEvent: { layout: { width: 150, height: 28 } } });
+    expect(size('Даалгаврын самбар', getByText)).toBeLessThan(FONT_SIZES.title);
+  });
+
+  it('steps down when the box is two lines tall', () => {
+    const { getByText } = render(<HeaderBar title="Хамтрагч хайх" showBack={false} />);
+    const text = getByText('Хамтрагч хайх');
+    fireEvent(text, 'textLayout', { nativeEvent: { lines: [{ width: 160, height: 26 }] } });
+    fireEvent(text, 'layout', { nativeEvent: { layout: { width: 160, height: 52 } } });
+    expect(size('Хамтрагч хайх', getByText)).toBeLessThan(FONT_SIZES.title);
   });
 });

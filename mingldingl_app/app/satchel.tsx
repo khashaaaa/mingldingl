@@ -48,6 +48,11 @@ function countText(n: number): number {
   return countWord(n) as unknown as number;
 }
 
+/** These lines open on a spelled-out count ("three unbroken…"); every other row's line is capitalised. */
+function sentenceCase(line: string): string {
+  return line.charAt(0).toUpperCase() + line.slice(1);
+}
+
 /**
  * The read-only inventory (Sealed Fire move — Wave 4 Task 9). Every row here already exists as a
  * rule enforced somewhere else in the app; this is the first screen to lay all nine side by side
@@ -192,8 +197,8 @@ export default function SatchelScreen() {
       line: threadCount === 0
         ? i18n.t('satchel_seals_none')
         : threadCount === 1
-          ? i18n.t('satchel_seals_one_thread', { seals: countWord(totalSeals) })
-          : i18n.t('satchel_seals_line', { seals: countWord(totalSeals), threads: countWord(threadCount) }),
+          ? sentenceCase(i18n.t('satchel_seals_one_thread', { seals: countWord(totalSeals) }))
+          : sentenceCase(i18n.t('satchel_seals_line', { seals: countWord(totalSeals), threads: countWord(threadCount) })),
       to: '/(tabs)/matches',
     },
     {
@@ -215,9 +220,11 @@ export default function SatchelScreen() {
       : remaining === 1
         ? i18n.t('satchel_sum_candles_one')
         : i18n.t('satchel_sum_candles', { count: countText(remaining) }),
-    arrowCount === 1
-      ? i18n.t('satchel_sum_arrows_one')
-      : i18n.t('satchel_sum_arrows', { count: countText(arrowCount) }),
+    arrowCount === 0
+      ? i18n.t('satchel_sum_arrows_none')
+      : arrowCount === 1
+        ? i18n.t('satchel_sum_arrows_one')
+        : i18n.t('satchel_sum_arrows', { count: countText(arrowCount) }),
     ...(lanternLit ? [i18n.t('satchel_sum_lantern')] : []),
   ];
 

@@ -571,7 +571,6 @@ export const en = {
   next_tier_arrow: '→ %{tier}',
   name_age: '%{name}, %{age}',
   tier_score: '%{tier} · %{score}',
-  getting_started_progress: '%{held} of %{needed}',
   add_photo: 'Add a photo',
   countdown_any_moment: 'Any moment',
   countdown_dh: '%{days}d %{hours}h',
@@ -832,6 +831,7 @@ export const en = {
   satchel_sum_candles_none: 'No candles.',
   satchel_sum_arrows: '%{count} arrows.',
   satchel_sum_arrows_one: 'One arrow.',
+  satchel_sum_arrows_none: 'No arrows.',
   satchel_sum_lantern: 'Your lantern is lit.',
   satchel_law: 'Nothing here can be bought, found or stacked. What you carry is what the rules gave you. The bag never grows; it only fills and empties with the day.',
   // Copy that code used to reshape at the call site (a regex strip, a capital and a full stop
