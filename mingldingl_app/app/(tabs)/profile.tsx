@@ -149,15 +149,6 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.editButtonWrapper}>
-            {/* The Satchel (Wave 4 Task 9) reads nine rules already enforced elsewhere; this is a
-                second door to it, beside the Encounter Log, the way the hearth's own tap already
-                opens the same route. */}
-            <GameButton variant="ink" size="compact" icon="bag-personal-outline" onPress={() => go('/satchel')}>
-              {i18n.t('dest_satchel')}
-            </GameButton>
-          </View>
-
-          <View style={styles.editButtonWrapper}>
             <GameButton variant="ink" size="compact" icon="pencil-outline" onPress={() => go('/edit-profile')}>
               {i18n.t('edit_profile')}
             </GameButton>

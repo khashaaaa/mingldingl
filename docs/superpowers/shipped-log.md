@@ -21,6 +21,8 @@ long versions.
 - The hearth's First Steps count used `"%{held} of %{needed}"` beside a Mongolian label; it now
   shares `count_of_total` ("3 / 4"). The Satchel's recap said "0 arrows." (now "No arrows.") and
   its seals line opened lowercase.
+- The Satchel link is off the Profile page: it sat, in English, among the profile's own actions
+  (Encounter Log, edit, share, settings). The hearth's destinations are its one door.
 
 ## 2026-10-03 — The road, smoothness, navigation, round trips and floods
 
