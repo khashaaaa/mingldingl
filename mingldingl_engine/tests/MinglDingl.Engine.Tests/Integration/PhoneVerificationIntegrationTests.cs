@@ -477,7 +477,16 @@ public class PhoneStartRateLimitTests : IClassFixture<PhoneStartRateLimitTests.F
         {
             builder.UseEnvironment("Development");
             builder.ConfigureAppConfiguration((_, config) =>
-                config.AddInMemoryCollection(new Dictionary<string, string?> { ["VerifyMn:ApiKey"] = "" }));
+                config.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["VerifyMn:ApiKey"] = "",
+                    // The rate limiter runs after authentication (it partitions writes on the
+                    // resolved account), so every request now reaches the JWT handler. CI has no
+                    // gitignored appsettings.Development.json, and with no project URL the handler's
+                    // authority is a bare "/auth/v1" that it refuses on every request — a 500 where
+                    // this test expects a 429. No token is sent, so nothing is ever fetched from it.
+                    ["Supabase:ProjectUrl"] = "https://test.supabase.invalid",
+                }));
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<IHostedService>();
@@ -555,7 +564,7 @@ public class PhoneStartRateLimitTests : IClassFixture<PhoneStartRateLimitTests.F
         for (int i = 0; i < PhoneStartRateLimit.PermitLimit; i++)
         {
             var res = await PostStart(client, ip, NewPhone());
-            Assert.NotEqual(HttpStatusCode.TooManyRequests, res.StatusCode);
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, res.StatusCode); // permitted, and not a 500 hiding behind "not 429"
         }
 
         var blocked = await PostStart(client, ip, NewPhone());
@@ -581,7 +590,7 @@ public class PhoneStartRateLimitTests : IClassFixture<PhoneStartRateLimitTests.F
         // carrier NAT: it only ever penalises the address that actually burned its own budget.
         var otherIp = "203.0.113.21";
         var res = await PostStart(client, otherIp, NewPhone());
-        Assert.NotEqual(HttpStatusCode.TooManyRequests, res.StatusCode);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, res.StatusCode);
     }
 
     [Fact]
@@ -600,6 +609,7 @@ public class PhoneStartRateLimitTests : IClassFixture<PhoneStartRateLimitTests.F
             request.Headers.Add("X-Test-Client-Ip", ip);
             var res = await client.SendAsync(request);
             Assert.NotEqual(HttpStatusCode.TooManyRequests, res.StatusCode);
+            Assert.NotEqual(HttpStatusCode.InternalServerError, res.StatusCode);
         }
     }
 }
