@@ -8,6 +8,17 @@ long versions.
 
 ---
 
+## 2026-10-03 — The glyphs, re-inked
+
+The fourteen glyphs (tab bar, hearth destinations, quests, seals) were one square-capped weight
+of straight lines and read as a stock icon font. The user chose an ink-cut hand from three studies
+(forged metal, ink-cut, framed sigil): every path is now one brush stroke, swelling in the middle
+and tapering at both ends, closed paths breathe, short flicks carry less ink, and a seal is a
+pressed wax disc with its die ring lifted off the line beneath. The drawings were redone with
+curves (campfire, sealed letter, carried lantern, anvil, faceted gem, jagged floe, Ulzii knot,
+strapped chest, candle in its dish, bell, arched hearth). `gen-glyphs.js` does the inking, so a
+path in `GLYPHS` only says where the brush goes. Plaza's live bell went to round caps to match.
+
 ## 2026-10-03 — A51 translation and consistency audit
 
 - **Header titles were three different sizes** on sibling screens (13.7–22pt). Android's

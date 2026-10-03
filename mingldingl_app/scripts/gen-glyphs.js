@@ -1,4 +1,4 @@
-// scripts/gen-glyphs.js — rasterizes the hand-cut glyph set (components/ui/Glyph.tsx) to PNGs.
+// scripts/gen-glyphs.js — inks the glyph set (components/ui/Glyph.tsx) and bakes it to PNGs.
 //
 // The drawings stay where they are: this reads the GLYPHS table, STROKE and DOT straight out of
 // Glyph.tsx, so that file is still the one place a glyph is cut. What changes is how the app
@@ -7,9 +7,13 @@
 // 400ms opening frame on the Galaxy A51 (2026-10-03). As a white PNG tinted at draw time it is a
 // texture the GPU already has.
 //
-// Rendered with canvaskit-wasm (Skia, already installed for the web build), so square caps and
-// mitred corners are drawn by the same library that draws them on device. Three sizes per glyph
-// so nothing is ever shrunk more than 2x on screen (bilinear scaling past that loses thin lines).
+// Rendered with canvaskit-wasm (Skia, already installed for the web build). Each path is walked
+// and inked as a brush stroke: a run of discs along it, sized by where the brush is (an open stroke
+// swells from a point to its full width and back; a closed one breathes) and by its direction
+// (a nib laid at 45°, so strokes running one diagonal sit fuller than the other). The discs are
+// unioned into one path and filled once, so the edge is anti-aliased once and stays clean. Three
+// sizes per glyph so nothing is ever shrunk more than 2x on screen (bilinear scaling past that
+// loses thin lines).
 //
 // Rerun with: node scripts/gen-glyphs.js   (writes assets/glyphs/*.png and components/ui/glyphImages.ts)
 
@@ -40,17 +44,61 @@ async function main() {
   const { glyphs, stroke, dot } = readCuts();
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
-  const line = new CK.Paint();
-  line.setAntiAlias(true);
-  line.setColor(CK.WHITE);
-  line.setStyle(CK.PaintStyle.Stroke);
-  line.setStrokeWidth(stroke);
-  line.setStrokeCap(CK.StrokeCap.Square);
-  line.setStrokeJoin(CK.StrokeJoin.Miter);
-  const fill = new CK.Paint();
-  fill.setAntiAlias(true);
-  fill.setColor(CK.WHITE);
-  fill.setStyle(CK.PaintStyle.Fill);
+  const ink = new CK.Paint();
+  ink.setAntiAlias(true);
+  ink.setColor(CK.WHITE);
+  ink.setStyle(CK.PaintStyle.Fill);
+  const lift = new CK.Paint();
+  lift.setAntiAlias(true);
+  lift.setBlendMode(CK.BlendMode.Clear);
+  const die = new CK.Paint();
+  die.setAntiAlias(true);
+  die.setBlendMode(CK.BlendMode.Clear);
+  die.setStyle(CK.PaintStyle.Stroke);
+
+  /** One brush stroke along every contour of `svg`, as a single filled outline. */
+  function brush(svg, name) {
+    const source = CK.Path.MakeFromSVGString(svg);
+    if (!source) throw new Error(`${name}: unreadable path ${svg}`);
+    const out = new CK.Path();
+    const contours = new CK.ContourMeasureIter(source, false, 1);
+    let contour;
+    while ((contour = contours.next())) {
+      const length = contour.length();
+      const closed = contour.isClosed();
+      const steps = Math.max(12, Math.ceil(length / 0.04));
+      const breaths = Math.max(1, Math.round(length / 12));
+      // A flick (a spark, a hanging ring) carries less ink than a full stroke, or it blots.
+      const load = Math.min(1, 0.5 + length / 10);
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const [x, y, tx, ty] = contour.getPosTan(t * length);
+        const swell = closed
+          ? 0.82 + 0.18 * Math.sin(2 * Math.PI * breaths * t + 0.6)
+          : 0.26 + 0.74 * Math.pow(Math.sin(Math.PI * t), 0.45);
+        const nib = 0.8 + 0.2 * Math.abs(Math.sin(Math.atan2(ty, tx) - Math.PI / 4));
+        out.addCircle(x, y, (stroke / 2) * swell * nib * load);
+      }
+      contour.delete();
+    }
+    contours.delete();
+    source.delete();
+    return out;
+  }
+
+  /** A pressed wax disc, its rim a little uneven, as a closed path. */
+  function wax(cx, cy, r) {
+    const p = new CK.Path();
+    const n = 72;
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * 2 * Math.PI;
+      const rr = r * (1 + 0.06 * Math.sin(9 * a));
+      const [x, y] = [cx + rr * Math.cos(a), cy + rr * Math.sin(a)];
+      if (i === 0) p.moveTo(x, y); else p.lineTo(x, y);
+    }
+    p.close();
+    return p;
+  }
 
   const names = Object.keys(glyphs);
   for (const name of names) {
@@ -60,14 +108,26 @@ async function main() {
       const canvas = surface.getCanvas();
       canvas.clear(CK.TRANSPARENT);
       canvas.scale(px / VIEWBOX, px / VIEWBOX);
-      for (const d of lines) {
-        const p = CK.Path.MakeFromSVGString(d);
-        if (!p) throw new Error(`${name}: unreadable path ${d}`);
-        canvas.drawPath(p, line);
+      const strokes = [
+        ...lines,
+        ...rings.map(([cx, cy, r]) => `M${cx + r} ${cy}A${r} ${r} 0 1 1 ${cx - r} ${cy}A${r} ${r} 0 1 1 ${cx + r} ${cy}Z`),
+      ];
+      for (const d of strokes) {
+        const p = brush(d, name);
+        canvas.drawPath(p, ink);
         p.delete();
       }
-      for (const [cx, cy, r] of rings) canvas.drawCircle(cx, cy, r, line);
-      for (const [cx, cy] of dots) canvas.drawRect(CK.XYWHRect(cx - dot / 2, cy - dot / 2, dot, dot), fill);
+      // A seal is pressed over whatever it sits on: lift the ink in a margin around it first, so it
+      // reads as wax on the line rather than a blot in it, then the disc, then its die ring.
+      const r = dot / 2;
+      for (const [cx, cy] of dots) {
+        canvas.drawCircle(cx, cy, r + stroke * 0.4, lift);
+        const p = wax(cx, cy, r);
+        canvas.drawPath(p, ink);
+        p.delete();
+        die.setStrokeWidth(r * 0.24);
+        canvas.drawCircle(cx, cy, r * 0.52, die);
+      }
       const image = surface.makeImageSnapshot();
       fs.writeFileSync(path.join(OUT_DIR, `${name}-${px}.png`), Buffer.from(image.encodeToBytes()));
       image.delete();

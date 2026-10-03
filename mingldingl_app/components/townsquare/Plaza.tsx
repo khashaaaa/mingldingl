@@ -144,7 +144,7 @@ export function Plaza({ width, lanterns, mine, open }: Props) {
         <Circle testID="plaza-bell" cx={cx} cy={cy} r={BELL_R} fill={tint(ACCENT.bright, 0.35)} />
         <G transform={`translate(${cx} ${cy}) scale(${bellScale}) translate(-12 -12)`}>
           {BELL_PATHS.map((d) => (
-            <Path key={d} d={d} fill="none" stroke={ACCENT.bright} strokeWidth={STROKE} strokeLinecap="square" strokeLinejoin="miter" />
+            <Path key={d} d={d} fill="none" stroke={ACCENT.bright} strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round" />
           ))}
         </G>
         <SvgText x={cx} y={cy + BELL_R + 12} fontFamily={FONTS.utility} fontSize={FONT_SIZES.xs} fill={INK.dim} textAnchor="middle">
