@@ -1,6 +1,5 @@
 import { render } from '@testing-library/react-native';
-import { SKY_GRADIENTS, SkyWindow } from '../SkyWindow';
-import { ACCENT, INK, NIGHT, tint } from '../../../lib/theme';
+import { SKY_PAINTINGS, SkyWindow } from '../SkyWindow';
 
 const WIDTH = 340;
 /** Frost is decorative, so it is hidden from assistive tech and from the default queries with it —
@@ -8,42 +7,13 @@ const WIDTH = 340;
 const HIDDEN = { includeHiddenElements: true };
 
 describe('SkyWindow', () => {
-  it('holds one gradient per phase, and it is the sky rather than a room colour', () => {
-    // Pinned against the tokens, not against hex: the window is the *real* sky, so re-tuning
-    // `NIGHT` or the gold has to carry the sky with it rather than leaving it behind.
-    expect(SKY_GRADIENTS).toEqual({
-      night: [NIGHT.black, NIGHT.blue],
-      dawn: [NIGHT.blue, tint(ACCENT.bright, 0.5)],
-      day: [NIGHT.blue, tint(INK.primary, 0.25)],
-      dusk: [NIGHT.brown, NIGHT.black],
-    });
-  });
-
-  it('hangs twelve stars at night', () => {
-    const { getAllByTestId } = render(<SkyWindow phase="night" width={WIDTH} whiteMoon={false} />);
-    expect(getAllByTestId('sky-star')).toHaveLength(12);
-  });
-
-  it('keeps the same twelve at dawn — they have not set yet', () => {
-    const { getAllByTestId } = render(<SkyWindow phase="dawn" width={WIDTH} whiteMoon={false} />);
-    expect(getAllByTestId('sky-star')).toHaveLength(12);
-  });
-
-  it('draws no star by day or at dusk', () => {
-    const day = render(<SkyWindow phase="day" width={WIDTH} whiteMoon={false} />);
-    expect(day.queryAllByTestId('sky-star')).toHaveLength(0);
-    const dusk = render(<SkyWindow phase="dusk" width={WIDTH} whiteMoon={false} />);
-    expect(dusk.queryAllByTestId('sky-star')).toHaveLength(0);
-  });
-
-  it('lights the horizon at dawn and at dusk, and only then', () => {
-    for (const phase of ['dawn', 'dusk'] as const) {
+  it('shows its own painting for each hour', () => {
+    const phases = ['night', 'dawn', 'day', 'dusk'] as const;
+    // Four distinct pictures: the same place, never the same light twice.
+    expect(new Set(phases.map((p) => SKY_PAINTINGS[p])).size).toBe(4);
+    for (const phase of phases) {
       const { getByTestId } = render(<SkyWindow phase={phase} width={WIDTH} whiteMoon={false} />);
-      expect(getByTestId('sky-glow')).toBeTruthy();
-    }
-    for (const phase of ['night', 'day'] as const) {
-      const { queryByTestId } = render(<SkyWindow phase={phase} width={WIDTH} whiteMoon={false} />);
-      expect(queryByTestId('sky-glow')).toBeNull();
+      expect(getByTestId(`sky-${phase}`).props.source).toBe(SKY_PAINTINGS[phase]);
     }
   });
 

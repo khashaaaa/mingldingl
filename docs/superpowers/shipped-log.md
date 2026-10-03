@@ -8,6 +8,18 @@ long versions.
 
 ---
 
+## 2026-10-03 — The hearth's sky, painted
+
+The window over the hearth was a two-stop gradient with twelve dots and read as an empty box at
+the top of home. It is now four ink-wash paintings of one place — the steppe in three ranges to the
+far peaks, a ger on the near rise with its smoke, a hitching post, grass — one per hour the device
+is in: the Milky Way and moon at night, the sun still under the ridge at dawn, washed snow ranges
+and dragged clouds by day, the sun going into the peaks at dusk, the ger's door lit whenever it is
+dark. `scripts/gen-sky.js` paints them with the glyphs' Skia and brush (seeded, so the hills never
+move), with valley mist clipped to the hills, a quantised paper grain and a vignette; 720×320 PNGs,
+about 1.1 MB for the four. Give the `Image` explicit width/height: with `absoluteFill` Android drew
+it at its intrinsic size from the top-left corner.
+
 ## 2026-10-03 — The glyphs, re-inked
 
 The fourteen glyphs (tab bar, hearth destinations, quests, seals) were one square-capped weight

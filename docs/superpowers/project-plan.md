@@ -136,7 +136,8 @@ here and record it in [`shipped-log.md`](shipped-log.md).
   before it lands); the hearth replacing navigation (`HEARTH_ENABLED` on, tab bar stays, a hearth
   glyph in every header); blackletter only for Latin titles (Mongolian stays in Yeseva until a
   Cyrillic cut is commissioned).
-- **Art:** the hearth, plaza and Hold scenes, the cave frame, dragon and bats as final assets.
+- **Art:** the plaza and Hold scenes, the cave frame, dragon and bats as final assets (the hearth's
+  sky window is painted — `scripts/gen-sky.js`, 2026-10-03).
 - **Payment provider** (QPay vs HiPay); membership upgrades are mocked.
 
 ## Small open items
