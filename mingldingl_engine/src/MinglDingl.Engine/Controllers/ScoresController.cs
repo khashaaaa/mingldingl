@@ -202,7 +202,11 @@ public class ScoresController : ControllerBase
             entries.Add(new LeaderboardEntryDto(myRank, user.GemTier, user.TotalScore, true));
         }
 
-        return Ok(new LeaderboardResponse(MongoliaGeo.CanonicalCity(user.City), entries, myRank));
+        // Every pair that retired together, nationwide: the hall's count of people who stopped
+        // needing it. A number only, like the rows above it — the hall names nobody.
+        int hearthbound = await _db.Matches.CountAsync(m => m.Status == "Completed");
+
+        return Ok(new LeaderboardResponse(MongoliaGeo.CanonicalCity(user.City), entries, myRank, hearthbound));
     }
 
     [HttpPost("daily-login")]

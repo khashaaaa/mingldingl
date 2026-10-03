@@ -12,7 +12,11 @@ public record TrophyResponse(
     DateTime ConfirmedAt,
     int? MyStars,
     string? MyMomentPhotoUrl,
-    bool Mismatched = false);
+    bool Mismatched = false,
+    /// <summary>The venue's district — a waypoint once the encounter is <see cref="Kept"/>.</summary>
+    string? District = null,
+    /// <summary>Both sides said the other turned up; only these chart a district.</summary>
+    bool Kept = false);
 
 public record AttendanceCheckStatusResponse(bool Due, string? ActivityTitle);
 

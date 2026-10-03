@@ -87,7 +87,9 @@ public class ActivitiesController : ControllerBase
                     c.CreatedAt,
                     myRating?.Stars,
                     myRating?.PhotoUrl,
-                    mismatched);
+                    mismatched,
+                    string.IsNullOrEmpty(s?.BusinessPartner?.District) ? null : s.BusinessPartner.District,
+                    c.InitiatorAttended == true && c.ReceiverAttended == true);
             })
             .OrderByDescending(t => t.ConfirmedAt)
             .ToList();

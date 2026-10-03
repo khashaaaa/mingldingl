@@ -32,6 +32,11 @@ public class HonourService
         new("title_allycaller",   "item_title_allycaller",   MetalGold,  "Title"),
         new("title_trueword",     "item_title_trueword",     MetalGold,  "Title"),
         new("title_sevendawns",   "item_title_sevendawns",   MetalGold,  "Title"),
+        new("title_mended",       "item_title_mended",       MetalEmber, "Title"),
+        new("title_hearthbound",  "item_title_hearthbound",  MetalEmber, "Title"),
+        new("title_cartographer", "item_title_cartographer", MetalGold,  "Title"),
+        new("title_naadam",       "item_title_naadam",       MetalGold,  "Title"),
+        new("title_whitemoon",    "item_title_whitemoon",    MetalGold,  "Title"),
     ];
 
     public static ItemDef? Find(string? id) => id is null ? null : Honours.FirstOrDefault(c => c.Id == id);

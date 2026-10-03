@@ -84,6 +84,16 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
     protected PushNotificationService BuildTestPush() => BuildTestPush(Db);
 
+    protected PartyService BuildParty(ConfigService config) => new(Db, config);
+
+    protected BondTrialService BuildTrials(ConfigService config, ScoreService score) => new(Db, config, score);
+
+    protected RetireService BuildRetire(ConfigService config) =>
+        new(Db, config, new HonourService(Db, NullLogger<HonourService>.Instance), BuildTestBroadcast());
+
+    protected KeptEncounterService BuildKeptEncounters(ConfigService config, ScoreService score) =>
+        new(Db, config, score, new HonourService(Db, NullLogger<HonourService>.Instance), new SeasonService(config));
+
     protected PushNotificationService BuildTestPush(HttpMessageHandler handler) => BuildTestPush(Db, handler);
 
     /// <summary>A push service whose Expo POST bodies are captured instead of sent.</summary>

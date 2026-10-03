@@ -31,6 +31,19 @@ public class User
     public decimal ReputationScore { get; set; } = 1.0m;
 
     public int NoShowFlagCount { get; set; }
+
+    /// <summary>
+    /// Ghostings not yet answered for. Each ghost penalty opens one; it closes after
+    /// <c>scars.heal.encounters</c> kept encounters, which also hand back the reputation it took
+    /// (<see cref="ScarService"/>).
+    /// </summary>
+    public int OpenScars { get; set; }
+
+    /// <summary>Kept encounters counted toward closing the oldest open scar.</summary>
+    public int ScarHealProgress { get; set; }
+
+    /// <summary>When this account retired together with a match (<c>POST /matches/{id}/retire</c>); null while still searching.</summary>
+    public DateTime? RetiredAt { get; set; }
     public string MembershipLevel { get; set; } = "Free";
     public DateTime? MembershipExpiresAt { get; set; }
     public int DailyMatchesUsed { get; set; }

@@ -20,6 +20,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<PhoneVerificationService>();
         services.AddScoped<CampaignService>();
         services.AddScoped<ReportService>();
+        services.AddScoped<PartyService>();
+        services.AddScoped<KeptEncounterService>();
+        services.AddScoped<BondTrialService>();
+        services.AddScoped<RetireService>();
+        services.AddSingleton<SeasonService>();
         services.AddSingleton<VideoTokenService>();
         services.AddSingleton<PhotoCompressionService>();
         services.AddSingleton<LocalFileStorageService>();

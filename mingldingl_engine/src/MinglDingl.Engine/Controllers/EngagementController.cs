@@ -15,10 +15,48 @@ public class EngagementController : ControllerBase
     private readonly MilestoneService _milestones;
     private readonly SupabaseBroadcastService _broadcast;
     private readonly ConfigService _config;
+    private readonly PartyService _party;
+    private readonly KeptEncounterService _kept;
+    private readonly SeasonService _seasons;
 
-    public EngagementController(AppDbContext db, EngagementService engagement, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config)
+    public EngagementController(AppDbContext db, EngagementService engagement, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config, PartyService party, KeptEncounterService kept, SeasonService seasons)
     {
         _db = db; _engagement = engagement; _score = score; _quests = quests; _milestones = milestones; _broadcast = broadcast; _config = config;
+        _party = party; _kept = kept; _seasons = seasons;
+    }
+
+    /// <summary>
+    /// The character's standing beyond its score: seats at the fire, open scars and how close the
+    /// next is to closing, and how many districts their kept encounters have charted.
+    /// </summary>
+    [HttpGet("standing")]
+    [ProducesResponseType(typeof(StandingResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetStanding()
+    {
+        var userId = this.CurrentUserId();
+        var me = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+        if (me is null) return this.NotFoundError("User not found", "user.not_found");
+
+        return Ok(new StandingResponse(
+            _party.Enabled,
+            _party.Seats(me.GemTier),
+            await _party.UsedAsync(userId),
+            me.OpenScars,
+            me.ScarHealProgress,
+            _kept.HealNeeded,
+            await _kept.DistrictsChartedAsync(userId),
+            _kept.CartographerNeeded,
+            me.RetiredAt));
+    }
+
+    /// <summary>The festival season today falls in, if any. Anonymous-safe: it says nothing about the caller.</summary>
+    [HttpGet("season")]
+    [ProducesResponseType(typeof(SeasonResponse), StatusCodes.Status200OK)]
+    public IActionResult GetSeason()
+    {
+        var season = _seasons.Current();
+        return Ok(new SeasonResponse(season?.Id, season?.StartsOn, season?.EndsOn, season?.HonourId));
     }
 
     [HttpGet("reveal-thresholds")]

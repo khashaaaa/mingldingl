@@ -57,7 +57,17 @@ public record MatchResponse(
     /// <summary>When the last letter was sent and by whom, so the app can say whose turn it is and
     /// how long a fire has been quiet without opening the thread. Null until the first letter.</summary>
     DateTime? LastMessageAt = null,
-    Guid? LastMessageSenderId = null);
+    Guid? LastMessageSenderId = null,
+    /// <summary>Who has asked to retire together, if anyone; the other side accepting completes the match.</summary>
+    Guid? RetireProposedById = null,
+    /// <summary>Whether this pair may retire together at all: retiring is on and they have completed an encounter.</summary>
+    bool CanRetire = false);
+
+public record BondTrialResponse(
+    string Kind, DateTime WeekStart, DateTime EndsAt, int Target,
+    int MyProgress, int TheirProgress, bool Complete, bool Claimed, int Reward);
+
+public record RetireResponse(string Outcome);
 
 public record PartialUserProfile(
     string? DisplayName,

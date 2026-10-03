@@ -2441,6 +2441,85 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/engagement/standing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StandingResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/engagement/season": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SeasonResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/engagement/reveal-thresholds": {
         parameters: {
             query?: never;
@@ -3489,6 +3568,237 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/matches/{id}/trial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BondTrialResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/matches/{id}/trial/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BondTrialResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/matches/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RetireResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RetireResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -6165,6 +6475,23 @@ export interface components {
             /** Format: date-time */
             blockedAt?: string;
         };
+        BondTrialResponse: {
+            kind?: string | null;
+            /** Format: date-time */
+            weekStart?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            /** Format: int32 */
+            target?: number;
+            /** Format: int32 */
+            myProgress?: number;
+            /** Format: int32 */
+            theirProgress?: number;
+            complete?: boolean;
+            claimed?: boolean;
+            /** Format: int32 */
+            reward?: number;
+        };
         BusinessResponse: {
             /** Format: uuid */
             id?: string;
@@ -6458,6 +6785,8 @@ export interface components {
             entries?: components["schemas"]["LeaderboardEntryDto"][] | null;
             /** Format: int32 */
             myRank?: number;
+            /** Format: int32 */
+            hearthboundPairs?: number;
         };
         MatchResponse: {
             /** Format: uuid */
@@ -6491,6 +6820,9 @@ export interface components {
             lastMessageAt?: string | null;
             /** Format: uuid */
             lastMessageSenderId?: string | null;
+            /** Format: uuid */
+            retireProposedById?: string | null;
+            canRetire?: boolean;
         };
         MatchResponsePagedResponse: {
             items?: components["schemas"]["MatchResponse"][] | null;
@@ -6713,6 +7045,9 @@ export interface components {
         RespondToShipResponse: {
             sparked?: boolean;
         };
+        RetireResponse: {
+            outcome?: string | null;
+        };
         RevealThresholdDto: {
             /** Format: int32 */
             level?: number;
@@ -6781,6 +7116,14 @@ export interface components {
             /** Format: int32 */
             dailyMatchesRemaining?: number;
         };
+        SeasonResponse: {
+            id?: string | null;
+            /** Format: date-time */
+            startsOn?: string | null;
+            /** Format: date-time */
+            endsOn?: string | null;
+            honourId?: string | null;
+        };
         SendMessageRequest: {
             content?: string | null;
         };
@@ -6801,6 +7144,25 @@ export interface components {
             /** Format: int32 */
             roundsPlayed?: number;
             matches?: components["schemas"]["SessionSummaryMatch"][] | null;
+        };
+        StandingResponse: {
+            partyEnabled?: boolean;
+            /** Format: int32 */
+            partySeats?: number;
+            /** Format: int32 */
+            partyUsed?: number;
+            /** Format: int32 */
+            openScars?: number;
+            /** Format: int32 */
+            scarHealProgress?: number;
+            /** Format: int32 */
+            scarHealNeeded?: number;
+            /** Format: int32 */
+            districtsCharted?: number;
+            /** Format: int32 */
+            cartographerNeeded?: number;
+            /** Format: date-time */
+            retiredAt?: string | null;
         };
         StartPhoneVerificationRequest: {
             phone?: string | null;
@@ -6851,6 +7213,8 @@ export interface components {
             myStars?: number | null;
             myMomentPhotoUrl?: string | null;
             mismatched?: boolean;
+            district?: string | null;
+            kept?: boolean;
         };
         UnmatchResponse: {
             unmatched?: boolean;

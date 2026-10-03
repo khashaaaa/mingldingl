@@ -2361,6 +2361,54 @@
         }
       }
     },
+    "/engagement/standing": {
+      "get": {
+        "tags": [
+          "Engagement"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandingResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/engagement/season": {
+      "get": {
+        "tags": [
+          "Engagement"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeasonResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/engagement/reveal-thresholds": {
       "get": {
         "tags": [
@@ -3305,6 +3353,234 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UnmatchResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/matches/{id}/trial": {
+      "get": {
+        "tags": [
+          "Matches"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BondTrialResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/matches/{id}/trial/claim": {
+      "post": {
+        "tags": [
+          "Matches"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BondTrialResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/matches/{id}/retire": {
+      "post": {
+        "tags": [
+          "Matches"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetireResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Matches"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetireResponse"
                 }
               }
             }
@@ -6584,6 +6860,46 @@
         },
         "additionalProperties": false
       },
+      "BondTrialResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "nullable": true
+          },
+          "weekStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "target": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "myProgress": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "theirProgress": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "claimed": {
+            "type": "boolean"
+          },
+          "reward": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "BusinessResponse": {
         "type": "object",
         "properties": {
@@ -7442,6 +7758,10 @@
           "myRank": {
             "type": "integer",
             "format": "int32"
+          },
+          "hearthboundPairs": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -7526,6 +7846,14 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          },
+          "retireProposedById": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "canRetire": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -8159,6 +8487,16 @@
         },
         "additionalProperties": false
       },
+      "RetireResponse": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RevealThresholdDto": {
         "type": "object",
         "properties": {
@@ -8330,6 +8668,30 @@
         },
         "additionalProperties": false
       },
+      "SeasonResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "endsOn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "honourId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "SendMessageRequest": {
         "type": "object",
         "properties": {
@@ -8387,6 +8749,48 @@
             "items": {
               "$ref": "#/components/schemas/SessionSummaryMatch"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StandingResponse": {
+        "type": "object",
+        "properties": {
+          "partyEnabled": {
+            "type": "boolean"
+          },
+          "partySeats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "partyUsed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openScars": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scarHealProgress": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scarHealNeeded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "districtsCharted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cartographerNeeded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "retiredAt": {
+            "type": "string",
+            "format": "date-time",
             "nullable": true
           }
         },
@@ -8538,6 +8942,13 @@
             "nullable": true
           },
           "mismatched": {
+            "type": "boolean"
+          },
+          "district": {
+            "type": "string",
+            "nullable": true
+          },
+          "kept": {
             "type": "boolean"
           }
         },

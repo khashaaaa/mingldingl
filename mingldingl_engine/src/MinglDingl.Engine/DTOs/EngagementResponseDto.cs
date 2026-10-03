@@ -20,3 +20,17 @@ public record ClaimChestResponse(int Awarded, bool AlreadyClaimed, DroppedItem? 
 
 public record MilestoneResponse(string Id, string NameKey, int Xp, DateTime? AchievedAt, DateTime? OpenedAt);
 public record OpenMilestoneResponse(int Awarded, DroppedItem? Item, bool AlreadyOpened);
+
+public record StandingResponse(
+    bool PartyEnabled,
+    int PartySeats,
+    int PartyUsed,
+    int OpenScars,
+    int ScarHealProgress,
+    int ScarHealNeeded,
+    int DistrictsCharted,
+    int CartographerNeeded,
+    DateTime? RetiredAt);
+
+/// <summary>All null outside a festival season.</summary>
+public record SeasonResponse(string? Id, DateTime? StartsOn, DateTime? EndsOn, string? HonourId);

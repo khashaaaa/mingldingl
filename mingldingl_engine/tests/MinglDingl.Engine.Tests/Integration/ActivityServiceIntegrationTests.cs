@@ -18,7 +18,7 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
         var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, new HonourService(Db, NullLogger<HonourService>.Instance));
-        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, BuildTestPush(), new HonourService(Db, NullLogger<HonourService>.Instance));
+        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, BuildTestPush(), new HonourService(Db, NullLogger<HonourService>.Instance), BuildKeptEncounters(config, score));
     }
 
     private ActivityService BuildService(SupabaseBroadcastService broadcast, PushNotificationService? push = null)
@@ -28,7 +28,7 @@ public class ActivityServiceIntegrationTests : IntegrationTestBase
         var quests = new QuestService(Db, score, config, NullLogger<QuestService>.Instance);
         var milestones = new MilestoneService(Db, NullLogger<MilestoneService>.Instance);
         var oaths = new OathService(Db, config, score, milestones, new HonourService(Db, NullLogger<HonourService>.Instance));
-        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, push ?? BuildTestPush(), new HonourService(Db, NullLogger<HonourService>.Instance));
+        return new ActivityService(Db, score, quests, milestones, broadcast, config, oaths, push ?? BuildTestPush(), new HonourService(Db, NullLogger<HonourService>.Instance), BuildKeptEncounters(config, score));
     }
 
     [Fact]

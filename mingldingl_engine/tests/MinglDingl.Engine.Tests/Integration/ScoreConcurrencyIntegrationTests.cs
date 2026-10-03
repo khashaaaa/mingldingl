@@ -225,7 +225,7 @@ public class ScoreConcurrencyIntegrationTests : IntegrationTestBase
         var score = new ScoreService(Db, config);
         return new EngagementController(Db, new EngagementService(Db, score), score,
             new QuestService(Db, score, config, NullLogger<QuestService>.Instance),
-            new MilestoneService(Db, NullLogger<MilestoneService>.Instance), BuildTestBroadcast(), config)
+            new MilestoneService(Db, NullLogger<MilestoneService>.Instance), BuildTestBroadcast(), config, BuildParty(config), BuildKeptEncounters(config, score), new SeasonService(config))
         {
             ControllerContext = new ControllerContext { HttpContext = HttpContextFor(userId) },
         };

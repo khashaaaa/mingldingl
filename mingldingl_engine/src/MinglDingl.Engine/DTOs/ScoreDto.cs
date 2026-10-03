@@ -47,7 +47,7 @@ public record ScoreHistoryResponse(IReadOnlyList<ScoreEventDto> Items, DateTime?
 // distinguishable from the next, so it is the one figure worth showing.
 public record LeaderboardEntryDto(int Rank, string GemTier, int Score, bool IsCurrentUser);
 
-public record LeaderboardResponse(string City, IReadOnlyList<LeaderboardEntryDto> Entries, int MyRank);
+public record LeaderboardResponse(string City, IReadOnlyList<LeaderboardEntryDto> Entries, int MyRank, int HearthboundPairs = 0);
 
 public record TierThresholdDto(string Tier, int MinScore);
 

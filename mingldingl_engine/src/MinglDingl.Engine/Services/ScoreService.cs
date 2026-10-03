@@ -27,6 +27,7 @@ public class ScoreService
         ["VideoCallDone"]   = 30,
         ["ShipSparked"]     = 40,
         ["OathProven"]      = 40,
+        ["BondTrialDone"]   = 25,
         ["GhostPenalty"]    = -15,
         // Reserved: the design table specifies -30 for a negative report, but no reporting
         // endpoint exists yet, so nothing awards this. Tracked under Outstanding Follow-ups.
@@ -45,7 +46,7 @@ public class ScoreService
     public int QuestChestXp => (int)_config.GetNumber("score.quest_chest", 30);
 
     /// <summary>How much ReputationScore a ghost or repeated no-show costs.</summary>
-    private decimal ReputationDock => (decimal)_config.GetNumber("reputation.penalty_dock", 0.1);
+    public decimal ReputationDock => (decimal)_config.GetNumber("reputation.penalty_dock", 0.1);
 
     private static readonly (string Tier, int DefaultMinScore)[] TierDefaults =
     [
@@ -367,7 +368,7 @@ public class ScoreService
         });
     }
 
-    private sealed record ScoreRow(int TotalScore, string GemTier, decimal ReputationScore);
+    private sealed record ScoreRow(int TotalScore, string GemTier, decimal ReputationScore, int OpenScars);
 
     private async Task<int?> ApplyScoreDeltaAsync(Guid userId, int delta, bool isGhostPenalty)
     {
@@ -379,7 +380,9 @@ public class ScoreService
         string reputation = "";
         if (isGhostPenalty)
         {
-            reputation = ", \"ReputationScore\" = GREATEST(0, \"ReputationScore\" - @dock)";
+            // The scar opens in the same statement as the dock it will one day hand back, so a ghost
+            // can never be paid for without being owed (ScarService closes it).
+            reputation = ", \"ReputationScore\" = GREATEST(0, \"ReputationScore\" - @dock), \"OpenScars\" = \"OpenScars\" + 1";
             parameters.Add(new NpgsqlParameter("dock", ReputationDock));
         }
 
@@ -388,7 +391,7 @@ public class ScoreService
             $"""
             UPDATE "Users" SET "TotalScore" = {newScore}, "GemTier" = {TierCaseSql(newScore)}{reputation}
             WHERE "Id" = @userId
-            RETURNING "TotalScore", "GemTier", "ReputationScore"
+            RETURNING "TotalScore", "GemTier", "ReputationScore", "OpenScars"
             """,
             parameters.ToArray()).ToListAsync();
 #pragma warning restore EF1002
@@ -400,7 +403,11 @@ public class ScoreService
         {
             _db.SyncFromDatabase(tracked, u => u.TotalScore, row.TotalScore);
             _db.SyncFromDatabase(tracked, u => u.GemTier, row.GemTier);
-            if (isGhostPenalty) _db.SyncFromDatabase(tracked, u => u.ReputationScore, row.ReputationScore);
+            if (isGhostPenalty)
+            {
+                _db.SyncFromDatabase(tracked, u => u.ReputationScore, row.ReputationScore);
+                _db.SyncFromDatabase(tracked, u => u.OpenScars, row.OpenScars);
+            }
         }
         return row.TotalScore;
     }

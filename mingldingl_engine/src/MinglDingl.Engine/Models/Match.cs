@@ -43,6 +43,13 @@ public class Match
 
     public DateTime? FlameRiteCompletedAt { get; set; }
 
+    /// <summary>
+    /// Who asked to retire together and when. The other side accepting ends the match as
+    /// <c>Completed</c>; either side can withdraw it before then.
+    /// </summary>
+    public Guid? RetireProposedById { get; set; }
+    public DateTime? RetireProposedAt { get; set; }
+
     public Guid? ShipId { get; set; }
     public DateTime? LastMessageAt { get; set; }
     public Guid? LastMessageSenderId { get; set; }

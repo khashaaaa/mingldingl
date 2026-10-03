@@ -19,7 +19,8 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var oaths = new OathService(Db, config, score, milestones, new HonourService(Db, NullLogger<HonourService>.Instance));
         var ghosting = new GhostingService(Db, score, oaths, BuildTestBroadcast(), config, BuildTestPush());
         var push = BuildTestPush();
-        var controller = new MatchesController(Db, score, ghosting, quests, milestones, push, config, BuildTestBroadcast(), storage ?? BuildTestStorage())
+        var controller = new MatchesController(Db, score, ghosting, quests, milestones, push, config, BuildTestBroadcast(), storage ?? BuildTestStorage(),
+            BuildParty(config), BuildTrials(config, score), BuildRetire(config))
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
@@ -654,7 +655,8 @@ public class MatchesControllerIntegrationTests : IntegrationTestBase
         var httpContext = new DefaultHttpContext();
         httpContext.Items["UserId"] = userId;
         var controller = new MatchesController(Db, score, new GhostingService(Db, score, oaths, broadcast, config, BuildTestPush()), quests, milestones,
-            BuildTestPush(), config, broadcast, BuildTestStorage())
+            BuildTestPush(), config, broadcast, BuildTestStorage(),
+            BuildParty(config), BuildTrials(config, score), BuildRetire(config))
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };

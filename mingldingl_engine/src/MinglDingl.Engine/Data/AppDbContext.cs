@@ -35,6 +35,7 @@ public class AppDbContext : DbContext
     public DbSet<Ship> Ships => Set<Ship>();
     public DbSet<PhoneVerification> PhoneVerifications => Set<PhoneVerification>();
     public DbSet<CampaignRoomClaim> CampaignRoomClaims => Set<CampaignRoomClaim>();
+    public DbSet<BondTrialClaim> BondTrialClaims => Set<BondTrialClaim>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -111,6 +112,8 @@ public class AppDbContext : DbContext
         b.Entity<Ship>().HasIndex(s => s.SlotBUserId);
         b.Entity<CampaignRoomClaim>().HasIndex(c => new { c.MatchId, c.UserId, c.RoomId }).IsUnique();
         b.Entity<CampaignRoomClaim>().Property(c => c.RoomId).HasMaxLength(32);
+        b.Entity<BondTrialClaim>().HasKey(c => new { c.MatchId, c.WeekStart });
+        b.Entity<BondTrialClaim>().Property(c => c.Kind).HasMaxLength(16);
         b.Entity<Membership>().HasIndex(m => m.UserId);
         b.Entity<PhoneVerification>().HasIndex(v => new { v.Phone, v.Status });
         b.Entity<PhoneVerification>().HasIndex(v => v.ClaimedByUserId);

@@ -93,6 +93,21 @@ public static class ConfigKeys
         Number("campaign.room.bonus", "Scoring", "5", "Bonus score for claiming a cleared campaign room (per user, per room)", 0, 10000),
         Number("campaign.boss.bonus", "Scoring", "25", "Bonus score for claiming the campaign boss room (a completed real date with both attended)", 0, 10000),
         Number("campaign.voices.messages", "Growth", "15", "Messages a match needs before the campaign's Voices room counts as cleared", 1, 10000),
+
+        // Game — the party, scars, trials, waypoints, seasons, retiring
+        Bool("party.enabled", "Game", "true", "When true, a user can hold only so many active matches at once (the seats at their fire) and cannot summon or be summoned past it; Fated Threads and Town Square matches still land, they just fill seats"),
+        Number("party.seats.base", "Game", "4", "Active matches a Garnet user can hold at once", 1, 100),
+        Number("party.seats.per_tier", "Game", "1", "Extra seats per gem tier above Garnet (Emerald gets five times this)", 0, 20),
+        Number("scars.heal.encounters", "Game", "2", "Kept encounters (both said the other showed up) that close one ghosting scar and hand back the reputation it docked", 1, 50),
+        Bool("trial.enabled", "Game", "true", "When false, matches get no weekly shared trial and claiming one returns 404"),
+        Number("trial.exchange.messages", "Game", "5", "Messages EACH side must send in a week to pass the 'exchange' trial", 1, 500),
+        Number("waypoints.cartographer.districts", "Game", "3", "Distinct districts a user must have kept an encounter in to earn the Cartographer honour", 1, 50),
+        Bool("season.enabled", "Game", "true", "When false, no festival season is ever current: no seasonal banner and no seasonal honours"),
+        Number("season.naadam.start_mmdd", "Game", "711", "First day of the Naadam season each year, as MMDD (711 = 11 July), in UTC", 101, 1231),
+        Number("season.naadam.end_mmdd", "Game", "715", "Last day of the Naadam season each year, as MMDD, in UTC", 101, 1231),
+        Number("season.whitemoon.start_yyyymmdd", "Game", "0", "First day of this year's Tsagaan Sar season as YYYYMMDD; the lunar date moves every year, so it is set by hand. 0 = off", 0, 99991231),
+        Number("season.whitemoon.end_yyyymmdd", "Game", "0", "Last day of this year's Tsagaan Sar season as YYYYMMDD. 0 = off", 0, 99991231),
+        Bool("retire.enabled", "Game", "true", "When true, a pair with a completed encounter can retire together: the match ends as Completed, both accounts pause and both earn Hearthbound"),
     ];
 
     public static ConfigKeyDefinition? Find(string key) => All.FirstOrDefault(d => d.Key == key);

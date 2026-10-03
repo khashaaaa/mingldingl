@@ -84,7 +84,7 @@ public class FlameRiteTokenIntegrationTests : IntegrationTestBase
         {
             var httpContext = new DefaultHttpContext();
             httpContext.Items["UserId"] = userId;
-            return new EngagementController(Db, engagement, score, quests, milestones, broadcast, new ConfigService())
+            return new EngagementController(Db, engagement, score, quests, milestones, broadcast, new ConfigService(), BuildParty(new ConfigService()), BuildKeptEncounters(new ConfigService(), score), new SeasonService(new ConfigService()))
             {
                 ControllerContext = new ControllerContext { HttpContext = httpContext },
             };

@@ -3,10 +3,10 @@ namespace MinglDingl.Engine.Tests.Services;
 public class HonourServiceTests
 {
     [Fact]
-    public void Honours_AreNineUniqueTitles()
+    public void Honours_AreFourteenUniqueTitles()
     {
-        Assert.Equal(9, HonourService.Honours.Count);
-        Assert.Equal(9, HonourService.Honours.Select(c => c.Id).Distinct().Count());
+        Assert.Equal(14, HonourService.Honours.Count);
+        Assert.Equal(14, HonourService.Honours.Select(c => c.Id).Distinct().Count());
         Assert.All(HonourService.Honours, h => Assert.Equal("Title", h.ItemType));
     }
 

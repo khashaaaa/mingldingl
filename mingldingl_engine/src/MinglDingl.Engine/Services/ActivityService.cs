@@ -19,9 +19,11 @@ public class ActivityService
     private readonly OathService _oaths;
     private readonly PushNotificationService _push;
     private readonly HonourService _honours;
+    private readonly KeptEncounterService _kept;
 
-    public ActivityService(AppDbContext db, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config, OathService oaths, PushNotificationService push, HonourService honours)
+    public ActivityService(AppDbContext db, ScoreService score, QuestService quests, MilestoneService milestones, SupabaseBroadcastService broadcast, ConfigService config, OathService oaths, PushNotificationService push, HonourService honours, KeptEncounterService kept)
     {
+        _kept = kept;
         _push = push;
         _db = db;
         _score = score;
@@ -208,6 +210,10 @@ public class ActivityService
         {
             await _honours.GrantAsync(match.InitiatorId, "title_trueword", "encounter_kept");
             await _honours.GrantAsync(match.ReceiverId, "title_trueword", "encounter_kept");
+            // Reached once per confirmation: only the answer that completes the pair sees both
+            // set, and an answer already given is refused above.
+            await _kept.RecordAsync(match.InitiatorId, confirmation);
+            await _kept.RecordAsync(match.ReceiverId, confirmation);
         }
 
         // Each side is asked whether THE OTHER showed up — that is what

@@ -17,9 +17,15 @@ public class MatchesController : ControllerBase
     private readonly ConfigService _config;
     private readonly SupabaseBroadcastService _broadcast;
     private readonly LocalFileStorageService _storage;
+    private readonly PartyService _party;
+    private readonly BondTrialService _trials;
+    private readonly RetireService _retire;
 
-    public MatchesController(AppDbContext db, ScoreService score, GhostingService ghosting, QuestService quests, MilestoneService milestones, PushNotificationService push, ConfigService config, SupabaseBroadcastService broadcast, LocalFileStorageService storage)
+    public MatchesController(AppDbContext db, ScoreService score, GhostingService ghosting, QuestService quests, MilestoneService milestones, PushNotificationService push, ConfigService config, SupabaseBroadcastService broadcast, LocalFileStorageService storage, PartyService party, BondTrialService trials, RetireService retire)
     {
+        _party = party;
+        _trials = trials;
+        _retire = retire;
         _db = db;
         _score = score;
         _ghosting = ghosting;
@@ -73,6 +79,14 @@ public class MatchesController : ControllerBase
             : eligible.OrderByDescending(u => u.TotalScore).ThenBy(u => u.Id);
 
         var unmatched = await pooled.Take(CandidatePoolLimit).ToListAsync();
+
+        // Someone whose every seat is taken cannot be summoned, so they are not offered. Filtered
+        // after the pool is drawn because seats depend on tier, which the SQL above does not know.
+        if (_party.Enabled)
+        {
+            var seated = await _party.UsedByAsync(unmatched.Select(u => u.Id).ToList());
+            unmatched = unmatched.Where(u => seated.GetValueOrDefault(u.Id) < _party.Seats(u.GemTier)).ToList();
+        }
 
         const double PriorityCompatibilityBandKm = 15;
 
@@ -180,6 +194,13 @@ public class MatchesController : ControllerBase
         if (!MatchEligibility.IsEligibleFor(me).Compile()(target))
             return this.ForbiddenError("Cannot match with this user", "match.not_allowed");
 
+        // A fast path, like the budget check: two summons to different targets can both pass it and
+        // land one seat over. A seat over is a softer failure than serialising every summons.
+        if (await _party.IsFullAsync(me))
+            return this.ConflictError("Every seat at your fire is taken", "party.full");
+        if (await _party.IsFullAsync(target))
+            return this.ConflictError("Their fire has no free seat", "party.target_full");
+
         var (outcome, matchId) = await _db.InTransactionAsync(async () =>
         {
             await _db.Database.ExecuteSqlInterpolatedAsync(
@@ -250,7 +271,14 @@ public class MatchesController : ControllerBase
                 .Join(_db.Users, s => s.ShipperUserId, u => u.Id, (s, u) => new { s.Id, u.DisplayName })
                 .ToDictionaryAsync(x => x.Id, x => x.DisplayName);
 
-        var items = matches.Select(m => BuildMatchResponse(m, userId, me.MembershipLevel, weaverNamesByShipId)).ToList();
+        var matchIds = matches.Select(m => m.Id).ToList();
+        var metIds = _retire.Enabled
+            ? (await _db.DateConfirmations.AsNoTracking()
+                .Where(c => matchIds.Contains(c.MatchId) && c.CompletedAt != null)
+                .Select(c => c.MatchId).Distinct().ToListAsync()).ToHashSet()
+            : [];
+
+        var items = matches.Select(m => BuildMatchResponse(m, userId, me.MembershipLevel, weaverNamesByShipId, metIds.Contains(m.Id))).ToList();
         return Ok(new PagedResponse<MatchResponse>(items, safePage, safePageSize, totalCount, skip + items.Count < totalCount));
     }
 
@@ -324,7 +352,7 @@ public class MatchesController : ControllerBase
         return Ok(new UnmatchResponse(true));
     }
 
-    private MatchResponse BuildMatchResponse(Match m, Guid viewerId, string membership, IReadOnlyDictionary<Guid, string> weaverNamesByShipId)
+    private MatchResponse BuildMatchResponse(Match m, Guid viewerId, string membership, IReadOnlyDictionary<Guid, string> weaverNamesByShipId, bool canRetire)
     {
         var other = m.InitiatorId == viewerId ? m.Receiver : m.Initiator;
         int level = RevealService.GetRevealLevel(_config, m);
@@ -358,7 +386,65 @@ public class MatchesController : ControllerBase
             _config.GetBool("video.enabled", true),
             m.CreatedAt,
             m.LastMessageAt,
-            m.LastMessageSenderId);
+            m.LastMessageSenderId,
+            m.RetireProposedById,
+            canRetire && m.Status == "Active");
+    }
+
+    [HttpGet("{id}/trial")]
+    [ProducesResponseType(typeof(BondTrialResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetTrial(Guid id)
+    {
+        if (!_trials.Enabled) return this.NotFoundError("Trials are not open", "trial.disabled");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, id, requireActive: true);
+        if (accessError is not null) return accessError;
+        return Ok(ToResponse(await _trials.GetAsync(match, this.CurrentUserId())));
+    }
+
+    [HttpPost("{id}/trial/claim")]
+    [ProducesResponseType(typeof(BondTrialResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ClaimTrial(Guid id)
+    {
+        if (!_trials.Enabled) return this.NotFoundError("Trials are not open", "trial.disabled");
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, id, requireActive: true);
+        if (accessError is not null) return accessError;
+        return Ok(ToResponse(await _trials.ClaimAsync(match, this.CurrentUserId())));
+    }
+
+    private static BondTrialResponse ToResponse(BondTrial t) =>
+        new(t.Kind, t.WeekStart, t.EndsAt, t.Target, t.MyProgress, t.TheirProgress, t.Complete, t.Claimed, t.Reward);
+
+    /// <summary>Proposes retiring together, or accepts the other side's proposal.</summary>
+    [HttpPost("{id}/retire")]
+    [ProducesResponseType(typeof(RetireResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Retire(Guid id)
+    {
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, id, requireActive: true);
+        if (accessError is not null) return accessError;
+        var outcome = await _retire.ProposeOrAcceptAsync(match, this.CurrentUserId());
+        return Ok(new RetireResponse(outcome.ToString()));
+    }
+
+    /// <summary>Withdraws this side's proposal, or declines the other's.</summary>
+    [HttpDelete("{id}/retire")]
+    [ProducesResponseType(typeof(RetireResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> WithdrawRetire(Guid id)
+    {
+        var (match, accessError) = await this.LoadParticipantMatchAsync(_db, id, requireActive: true);
+        if (accessError is not null) return accessError;
+        await _retire.WithdrawAsync(match, this.CurrentUserId());
+        return Ok(new RetireResponse(RetireOutcome.Withdrawn.ToString()));
     }
 }
 

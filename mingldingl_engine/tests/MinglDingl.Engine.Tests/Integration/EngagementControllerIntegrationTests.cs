@@ -22,7 +22,7 @@ public class EngagementControllerIntegrationTests : IntegrationTestBase
         mockConfig.Setup(c => c["Supabase:ProjectUrl"]).Returns("https://test.supabase.co");
         mockConfig.Setup(c => c["Supabase:SecretKey"]).Returns("test-key");
         var broadcast = new SupabaseBroadcastService(httpClient, mockConfig.Object, NullLogger<SupabaseBroadcastService>.Instance);
-        var controller = new EngagementController(Db, new EngagementService(Db, score), score, quests, milestones, broadcast, config)
+        var controller = new EngagementController(Db, new EngagementService(Db, score), score, quests, milestones, broadcast, config, BuildParty(config), BuildKeptEncounters(config, score), new SeasonService(config))
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
         };
