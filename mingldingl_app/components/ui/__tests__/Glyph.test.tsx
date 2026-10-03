@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { StyleSheet } from 'react-native';
 import { Glyph, GLYPHS, GLYPH_NAMES, STROKE } from '../Glyph';
-import { GLYPH_IMAGES, GLYPH_PIXELS } from '../glyphImages';
+import { GLYPH_DRAWS, GLYPH_IMAGES, GLYPH_PIXELS } from '../glyphImages';
 import { appSources } from '../../../lib/testing/sourceTree';
 import { ACCENT, ICON_SIZES, INK } from '../../../lib/theme';
 
@@ -36,6 +36,7 @@ describe('Glyph', () => {
     const wanted = GLYPH_NAMES.flatMap((name) => [
       ...GLYPH_PIXELS.map((px) => `${name}-${px}.png`),
       ...(GLYPHS[name].ground ? GLYPH_PIXELS.map((px) => `${name}-ground-${px}.png`) : []),
+      ...(GLYPH_DRAWS[name] ? [`${name}-draw-192.png`] : []),
     ]).sort();
     expect(fs.readdirSync(BAKED).sort()).toEqual(wanted);
     for (const name of GLYPH_NAMES) expect(Object.keys(GLYPH_IMAGES[name]).map(Number)).toEqual([...GLYPH_PIXELS]);

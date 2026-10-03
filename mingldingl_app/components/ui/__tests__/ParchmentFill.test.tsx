@@ -25,10 +25,10 @@ describe('ParchmentFill', () => {
     }));
   });
 
-  it('defaults the texture to 6% opacity', () => {
+  it('defaults the texture to 14% opacity — enough to read as paper', () => {
     const { getByTestId } = render(<ParchmentFill />);
     const texture = getByTestId('parchment-texture');
-    expect(StyleSheet.flatten(texture.props.style).opacity).toBe(0.06);
+    expect(StyleSheet.flatten(texture.props.style).opacity).toBe(0.14);
   });
 
   it('takes the opacity it is given', () => {

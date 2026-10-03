@@ -3,6 +3,7 @@ import { Animated, View, Text, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { ChestBurst } from '../vfx/ChestBurst';
 import { Icon } from '../ui/Icon';
+import { InkDraw } from '../ui/InkDraw';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, SPACE } from '../../lib/theme';
 import { DIALOG_STYLES, DialogCard, DialogScrim } from './DialogSurface';
@@ -60,7 +61,10 @@ export function ChestModal({ visible, xp, onDismiss }: Props) {
             ],
           }}
         >
-          <Icon name={revealed ? 'treasure-chest' : 'treasure-chest-outline'} size={ICON_SIZES.splash} color={ACCENT.base} />
+          {/* Shut while it shakes; once it gives, the open chest is painted where it stood. */}
+          {revealed
+            ? <InkDraw name="chest-open" size={ICON_SIZES.splash} color={ACCENT.base} />
+            : <Icon name="treasure-chest-outline" size={ICON_SIZES.splash} color={ACCENT.base} />}
         </Animated.View>
         <View style={{ width: 220, height: 220, position: 'absolute' }} pointerEvents="none">
           <ChestBurst size={220} trigger={burst} />

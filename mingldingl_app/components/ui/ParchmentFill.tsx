@@ -30,7 +30,7 @@ interface Props {
   style?: StyleProp<ViewStyle>;
 }
 
-export function ParchmentFill({ opacity = 0.06, style }: Props) {
+export function ParchmentFill({ opacity = 0.14, style }: Props) {
   return (
     <View
       style={[StyleSheet.absoluteFillObject, style]}
@@ -43,7 +43,8 @@ export function ParchmentFill({ opacity = 0.06, style }: Props) {
         <Image
           source={require('../../assets/textures/parchment.png')}
           style={styles.image}
-          resizeMode="cover"
+          // Tiled, never stretched: the paper's tooth stays its own size on any card.
+          resizeMode="repeat"
         />
       </View>
     </View>

@@ -25,6 +25,13 @@ const SOURCE = path.join(ROOT, 'components', 'ui', 'Glyph.tsx');
 const OUT_DIR = path.join(ROOT, 'assets', 'glyphs');
 const MAP_FILE = path.join(ROOT, 'components', 'ui', 'glyphImages.ts');
 const SIZES = [48, 96, 192];
+/**
+ * The glyphs a ceremony paints in front of the viewer (`InkDraw`), each baked as a strip of
+ * `DRAW_FRAMES` frames that lay its strokes down in order, then press its seals.
+ */
+const DRAWN = ['chest-open', 'flame', 'seal', 'medal'];
+const DRAW_FRAMES = 14;
+const DRAW_PX = 192;
 const VIEWBOX = 24;
 
 function readCuts() {
@@ -56,8 +63,9 @@ async function main() {
   die.setBlendMode(CK.BlendMode.Clear);
   die.setStyle(CK.PaintStyle.Stroke);
 
-  /** One brush stroke along every contour of `svg`, as a single filled outline. */
-  function brush(svg, name) {
+  /** One brush stroke along every contour of `svg`, as a single filled outline. With `budget`,
+   *  only that much of its length is laid down (and the rest of the budget handed back). */
+  function brush(svg, name, budget = Infinity) {
     const source = CK.Path.MakeFromSVGString(svg);
     if (!source) throw new Error(`${name}: unreadable path ${svg}`);
     const out = new CK.Path();
@@ -65,6 +73,8 @@ async function main() {
     let contour;
     while ((contour = contours.next())) {
       const length = contour.length();
+      const laid = Math.min(length, Math.max(0, budget));
+      budget -= length;
       const closed = contour.isClosed();
       const steps = Math.max(12, Math.ceil(length / 0.04));
       const breaths = Math.max(1, Math.round(length / 12));
@@ -72,6 +82,7 @@ async function main() {
       const load = Math.min(1, 0.5 + length / 10);
       for (let i = 0; i <= steps; i++) {
         const t = i / steps;
+        if (t * length > laid) break;
         const [x, y, tx, ty] = contour.getPosTan(t * length);
         const swell = closed
           ? 0.82 + 0.18 * Math.sin(2 * Math.PI * breaths * t + 0.6)
@@ -83,7 +94,19 @@ async function main() {
     }
     contours.delete();
     source.delete();
+    out.remaining = budget;
     return out;
+  }
+
+  /** Every stroke's length, in draw order: what a drawn strip spends its frames on. */
+  function lengthOf(svg) {
+    const source = CK.Path.MakeFromSVGString(svg);
+    const contours = new CK.ContourMeasureIter(source, false, 1);
+    let total = 0, contour;
+    while ((contour = contours.next())) { total += contour.length(); contour.delete(); }
+    contours.delete();
+    source.delete();
+    return total;
   }
 
   /** A pressed wax disc, its rim a little uneven, as a closed path. */
@@ -151,6 +174,49 @@ async function main() {
   }
   const grounded = names.filter((n) => glyphs[n].ground);
 
+  for (const name of DRAWN) {
+    const { lines = [], rings = [], dots = [] } = glyphs[name];
+    const strokes = [
+      ...lines,
+      ...rings.map(([cx, cy, r]) => `M${cx + r} ${cy}A${r} ${r} 0 1 1 ${cx - r} ${cy}A${r} ${r} 0 1 1 ${cx + r} ${cy}Z`),
+    ];
+    const total = strokes.reduce((sum, d) => sum + lengthOf(d), 0);
+    const strip = CK.MakeSurface(DRAW_PX * DRAW_FRAMES, DRAW_PX);
+    const sc = strip.getCanvas();
+    sc.clear(CK.TRANSPARENT);
+    for (let f = 0; f < DRAW_FRAMES; f++) {
+      sc.save();
+      sc.translate(f * DRAW_PX, 0);
+      sc.clipRect(CK.LTRBRect(0, 0, DRAW_PX, DRAW_PX), CK.ClipOp.Intersect, true);
+      sc.scale(DRAW_PX / VIEWBOX, DRAW_PX / VIEWBOX);
+      // The strokes take all but the last frame; the seals are pressed in the last.
+      let budget = total * Math.min(1, f / (DRAW_FRAMES - 2));
+      for (const d of strokes) {
+        const p = brush(d, name, budget);
+        budget = p.remaining;
+        sc.drawPath(p, ink);
+        p.delete();
+        if (budget <= 0) break;
+      }
+      if (f === DRAW_FRAMES - 1) {
+        const r = dot / 2;
+        for (const [cx, cy] of dots) {
+          sc.drawCircle(cx, cy, r + stroke * 0.4, lift);
+          const p = wax(cx, cy, r);
+          sc.drawPath(p, ink);
+          p.delete();
+          die.setStrokeWidth(r * 0.24);
+          sc.drawCircle(cx, cy, r * 0.52, die);
+        }
+      }
+      sc.restore();
+    }
+    const image = strip.makeImageSnapshot();
+    fs.writeFileSync(path.join(OUT_DIR, `${name}-draw-${DRAW_PX}.png`), Buffer.from(image.encodeToBytes()));
+    image.delete();
+    strip.delete();
+  }
+
   const key = (n) => (/^[a-z]+$/.test(n) ? n : `'${n}'`);
   const entries = names.map((n) => `  ${key(n)}: { ${SIZES.map((s) => `${s}: require('../../assets/glyphs/${n}-${s}.png')`).join(', ')} },`);
   fs.writeFileSync(MAP_FILE, [
@@ -163,6 +229,14 @@ async function main() {
     '',
     `export const GLYPH_IMAGES: Record<GlyphName, Record<(typeof GLYPH_PIXELS)[number], ImageSourcePropType>> = {`,
     ...entries,
+    '};',
+    '',
+    `/** Frames in each drawn strip (\`InkDraw\`), each ${DRAW_PX}px square, laid side by side. */`,
+    `export const GLYPH_DRAW_FRAMES = ${DRAW_FRAMES};`,
+    '',
+    '/** The ceremony glyphs, painted stroke by stroke: one horizontal strip of frames each. */',
+    `export const GLYPH_DRAWS: Partial<Record<GlyphName, ImageSourcePropType>> = {`,
+    ...DRAWN.map((n) => `  ${key(n)}: require('../../assets/glyphs/${n}-draw-${DRAW_PX}.png'),`),
     '};',
     '',
     '/** The ground each place stands on, baked apart so it takes its own tint (see `Places`). */',

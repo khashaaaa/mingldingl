@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Tap } from '../../components/ui/Tap';
-import { View, Text, FlatList, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Image, FlatList, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -30,6 +30,7 @@ import { HeaderBar } from '../../components/ui/HeaderBar';
 import { Waiting } from '../../components/ui/Waiting';
 import { FrostEdge, FROST_RIM_REACH } from '../../components/vfx/FrostEdge';
 import { PLACES } from '../../components/ui/Places';
+import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
@@ -372,11 +373,17 @@ export default function ChatScreen() {
           </StateBlock>
         ) : (
           <View style={styles.ledger}>
-            {/* The thread the letters are strung on, running through the centre of every sigil ring.
-                Android draws a dashed border only when all four sides have a width, so this is a
-                1px-wide box rather than a lone borderLeftWidth. No letters, no thread: on an empty
+            {/* The cord the letters are strung on, running through the centre of every ring: two
+                strands twisted, one tile repeated down the ledger. No letters, no cord: on an empty
                 match it ran down through the empty state's copy. */}
-            {messages.length > 0 && <View pointerEvents="none" style={styles.thread} />}
+            {messages.length > 0 && (
+              <Image
+                source={ORNAMENTS.cord}
+                resizeMode="repeat"
+                style={[styles.thread, { tintColor: LINE.edge }]}
+                accessible={false}
+              />
+            )}
             <FlatList
               ref={flatListRef}
               data={messages}
@@ -733,14 +740,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     bottom: 0,
-    // Less one: a 1pt box with a 1pt border draws 2pt wide, so its left edge must sit a point left of
-    // the ring's centre for the line itself to run through it (on hardware it ran visibly right).
-    left: SPACE.gutter + BADGE_SIZES.row / 2 - 1,
-    width: 1,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: LINE.edge,
-    borderRadius: 1,
+    // Centred on the rings: the cord is 6pt wide.
+    left: SPACE.gutter + BADGE_SIZES.row / 2 - 3,
+    width: 6,
+    opacity: 0.9,
+    pointerEvents: 'none',
   },
   messageList: {
     paddingHorizontal: SPACE.gutter,

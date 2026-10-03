@@ -1,14 +1,18 @@
 // scripts/gen-ornaments.js — generates the Ulzii Design Language assets.
 //
-// Мөнгөлог өлзий хээ (endless-knot interlace) and алхан хээ (walking fret), rendered
-// from geometry: knots are billiard paths traced inside an integer rectangle, woven
-// over/under by crossing parity; frets are lattice meanders. Pure Node — capsule-stroke
-// rasterizer with analytic AA and a zlib PNG encoder (same pattern as gen-parchment.js).
-// Crossing punch-outs are alpha ERASES, so every asset sits on any background.
+// Мөнгөлог өлзий хээ (endless-knot interlace) and алхан хээ (walking fret), drawn from geometry:
+// knots are billiard paths traced inside an integer rectangle, woven over/under by crossing
+// parity; frets are lattice meanders.
+//
+// Inked, not gilded (2026-10-03). They were capsule strokes shaded as metal tubes, a third hand
+// beside the glyphs' brush and the hearth's painted sky, which is why every card's corners looked
+// machined while its contents looked drawn. Now each strand is one brush stroke in its metal's
+// colour, swelling and thinning along its length, with a warm-to-deep wash down the knot; at every
+// crossing the ink is lifted around the strand that passes over, so the weave still reads.
+// Rendered with canvaskit-wasm, like `gen-glyphs.js` and `gen-sky.js`.
 //
 // Rerun with: node scripts/gen-ornaments.js   (writes assets/ornaments/*.png)
 
-const zlib = require('zlib');
 const fs = require('fs');
 const path = require('path');
 
@@ -19,10 +23,9 @@ const METALS = {
   brass: { dark: '#4A3A17', main: '#B8923F', bright: '#E8C97A' },
   dim:   { dark: '#2B3140', main: '#4A5A6B', bright: '#6B7C8F' },
 };
-const SHADOW = [0, 0, 0, 0.55];
 
-function hex(c) {
-  return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16), 1];
+function hex(c, a = 1) {
+  return [parseInt(c.slice(1, 3), 16) / 255, parseInt(c.slice(3, 5), 16) / 255, parseInt(c.slice(5, 7), 16) / 255, a];
 }
 
 // ---------- knot geometry: billiard trace ----------
@@ -83,175 +86,206 @@ function strandPolyline(pts, m, n, s, pad) {
   return out;
 }
 
-function polylineSegs(pts) {
-  const segs = [];
-  for (let i = 0; i + 1 < pts.length; i++) segs.push([pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]]);
-  return segs;
-}
-
-// ---------- rasterizer: sequential capsule ops over an RGBA buffer ----------
-function makeBuf(w, h) {
-  return { w, h, d: new Float32Array(w * h * 4) };
-}
-
-function applyOp(buf, op) {
-  const { w, h, d } = buf;
-  const hw = op.hw, aa = 0.9;
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const [x1, y1, x2, y2] of op.segs) {
-    minX = Math.min(minX, x1, x2); maxX = Math.max(maxX, x1, x2);
-    minY = Math.min(minY, y1, y2); maxY = Math.max(maxY, y1, y2);
+// ---------- the brush ----------
+/** Discs along a polyline, unioned into one path: the glyphs' brush. `breath` > 0 swells and thins
+ *  the line along its length; `taper` brings both ends to a point. */
+function brush(CK, pts, width, { breath = 0.16, taper = false, phase = 0 } = {}) {
+  const out = new CK.Path();
+  const dense = [];
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const [x0, y0] = pts[i], [x1, y1] = pts[i + 1];
+    const k = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 0.6));
+    for (let j = 0; j < k; j++) dense.push([x0 + ((x1 - x0) * j) / k, y0 + ((y1 - y0) * j) / k]);
   }
-  const x0 = Math.max(0, Math.floor(minX - hw - 1)), x9 = Math.min(w - 1, Math.ceil(maxX + hw + 1));
-  const y0 = Math.max(0, Math.floor(minY - hw - 1)), y9 = Math.min(h - 1, Math.ceil(maxY + hw + 1));
-  for (let y = y0; y <= y9; y++) {
-    for (let x = x0; x <= x9; x++) {
-      let dist = Infinity;
-      for (const [ax, ay, bx, by] of op.segs) {
-        const vx = bx - ax, vy = by - ay;
-        const len2 = vx * vx + vy * vy;
-        let t = len2 === 0 ? 0 : ((x - ax) * vx + (y - ay) * vy) / len2;
-        t = t < 0 ? 0 : t > 1 ? 1 : t;
-        const ddx = x - (ax + t * vx), ddy = y - (ay + t * vy);
-        const dd = ddx * ddx + ddy * ddy;
-        if (dd < dist) dist = dd;
-      }
-      const cov = Math.max(0, Math.min(1, (hw + aa / 2 - Math.sqrt(dist)) / aa));
-      if (cov <= 0) continue;
-      const i = (y * w + x) * 4;
-      if (op.erase) {
-        d[i + 3] *= 1 - cov;
-      } else {
-        const [r, g, b, ca] = op.color;
-        const a = cov * ca;
-        const da = d[i + 3];
-        const outA = a + da * (1 - a);
-        if (outA > 0) {
-          d[i] = (r * a + d[i] * da * (1 - a)) / outA;
-          d[i + 1] = (g * a + d[i + 1] * da * (1 - a)) / outA;
-          d[i + 2] = (b * a + d[i + 2] * da * (1 - a)) / outA;
-        }
-        d[i + 3] = outA;
-      }
-    }
-  }
+  dense.push(pts[pts.length - 1]);
+  const n = dense.length - 1;
+  dense.forEach(([x, y], i) => {
+    const t = n ? i / n : 0;
+    let r = (width / 2) * (1 - breath / 2 + (breath / 2) * Math.sin(2 * Math.PI * 3 * t + phase));
+    if (taper) r *= 0.2 + 0.8 * Math.pow(Math.sin(Math.PI * t), 0.5);
+    out.addCircle(x, y, r);
+  });
+  return out;
 }
 
-// The five-layer "gild" from the design probe: shadow, dark edge, metal, highlight.
-function gildOps(segs, W, metal) {
-  return [
-    { segs, hw: (W + 4.5) / 2, color: SHADOW },
-    { segs, hw: (W + 2.5) / 2, color: hex(metal.dark) },
-    { segs, hw: W / 2, color: hex(metal.main) },
-    { segs, hw: Math.max(1.2, W * 0.3) / 2, color: hex(metal.bright) },
-  ];
+function inkPaint(CK, metal, h) {
+  const p = new CK.Paint();
+  p.setAntiAlias(true);
+  p.setShader(CK.Shader.MakeLinearGradient([0, 0], [0, h],
+    [CK.Color4f(...hex(metal.bright)), CK.Color4f(...hex(metal.main)), CK.Color4f(...hex(metal.main)), CK.Color4f(...hex(metal.dark))],
+    [0, 0.35, 0.7, 1], CK.TileMode.Clamp));
+  return p;
 }
 
-function renderKnot(m, n, s, W, metalName) {
+function lift(CK) {
+  const p = new CK.Paint();
+  p.setAntiAlias(true);
+  p.setBlendMode(CK.BlendMode.Clear);
+  return p;
+}
+
+function save(CK, surface, file) {
+  const image = surface.makeImageSnapshot();
+  const bytes = image.encodeToBytes();
+  fs.writeFileSync(file, Buffer.from(bytes));
+  console.log('wrote', path.basename(file), `${image.width()}x${image.height()}`, bytes.length, 'bytes');
+  image.delete();
+  surface.delete();
+}
+
+function renderKnot(CK, m, n, s, W, metalName, file) {
   const metal = METALS[metalName];
   const pad = 0.62 * s;
   const w = Math.ceil(m * s + 2 * pad), h = Math.ceil(n * s + 2 * pad);
-  const buf = makeBuf(w, h);
-  const ops = [];
-  for (const pts of traceStrands(m, n)) {
-    ops.push(...gildOps(polylineSegs(strandPolyline(pts, m, n, s, pad)), W, metal));
-  }
-  // weave: punch out then re-lay the "over" diagonal at every cell crossing
+  const surface = CK.MakeSurface(w, h);
+  const canvas = surface.getCanvas();
+  canvas.clear(CK.TRANSPARENT);
+  const ink = inkPaint(CK, metal, h);
+  traceStrands(m, n).forEach((pts, i) => {
+    const line = strandPolyline(pts, m, n, s, pad);
+    const p = brush(CK, line, W, { phase: i * 1.7 });
+    canvas.drawPath(p, ink);
+    p.delete();
+  });
+  // The weave: at every crossing, lift the ink around the strand that passes over, then lay it.
   const seg = 0.42 * s;
   for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) {
     const cx = pad + (i + 0.5) * s, cy = pad + (j + 0.5) * s;
     const dy = (i + j) % 2 === 0 ? 1 : -1;
-    const cross = [[cx - seg, cy - dy * seg, cx + seg, cy + dy * seg]];
-    ops.push({ segs: cross, hw: (W + 9) / 2, erase: true });
-    ops.push(...gildOps(cross, W, metal));
+    const over = [[cx - seg, cy - dy * seg], [cx + seg, cy + dy * seg]];
+    const gap = brush(CK, over, W + W * 0.9, { breath: 0 });
+    canvas.drawPath(gap, lift(CK));
+    gap.delete();
+    const p = brush(CK, over, W, { breath: 0.1, phase: i + j });
+    canvas.drawPath(p, ink);
+    p.delete();
   }
-  for (const op of ops) applyOp(buf, op);
-  return buf;
+  save(CK, surface, file);
 }
 
 // ---------- walking fret (алхан хээ) ----------
-function renderMeander(units, g, W, metalName, darkOnly) {
-  const metal = METALS[metalName];
+function renderMeander(CK, units, g, W, metalName, darkOnly, file) {
   const uw = 4 * g;
   const w = Math.ceil(units * uw + g), h = Math.ceil(5 * g);
-  const buf = makeBuf(w, h);
-  const segs = [[0, 4 * g, w, 4 * g]];
+  const surface = CK.MakeSurface(w, h);
+  const canvas = surface.getCanvas();
+  canvas.clear(CK.TRANSPARENT);
+  let paint;
+  if (darkOnly) {
+    paint = new CK.Paint();
+    paint.setAntiAlias(true);
+    paint.setColor(CK.Color4f(0, 0, 0, 0.6));
+  } else {
+    paint = inkPaint(CK, METALS[metalName], h);
+  }
+  const base = brush(CK, [[0, 4 * g], [w, 4 * g]], W, { breath: 0.12 });
+  canvas.drawPath(base, paint);
+  base.delete();
   for (let k = 0; k < units; k++) {
     const x = k * uw + g;
-    const hook = [
-      [x, 4 * g, x, g],
-      [x, g, x + 3 * g, g],
-      [x + 3 * g, g, x + 3 * g, 3 * g],
-      [x + 3 * g, 3 * g, x + 1.5 * g, 3 * g],
-      [x + 1.5 * g, 3 * g, x + 1.5 * g, 2 * g + W],
-    ];
-    segs.push(...hook);
+    // One hook, one stroke: up, across, down, back, and the little turn in.
+    const hook = [[x, 4 * g], [x, g], [x + 3 * g, g], [x + 3 * g, 3 * g], [x + 1.5 * g, 3 * g], [x + 1.5 * g, 2 * g + W * 0.5]];
+    const p = brush(CK, hook, W, { breath: 0.18, phase: k * 0.9 });
+    canvas.drawPath(p, paint);
+    p.delete();
   }
-  const ops = darkOnly
-    ? [{ segs, hw: W / 2, color: [0, 0, 0, 0.6] }]
-    : [
-        { segs, hw: (W + 2) / 2, color: hex(metal.dark) },
-        { segs, hw: W / 2, color: hex(metal.main) },
-      ];
-  for (const op of ops) applyOp(buf, op);
-  return buf;
+  save(CK, surface, file);
 }
 
-// ---------- PNG encode (RGBA, 8-bit) ----------
-const crcTable = [...Array(256)].map((_, nn) => {
-  let c = nn;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-function crc32(b) {
-  let c = 0xffffffff;
-  for (const v of b) c = crcTable[(c ^ v) & 0xff] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
+/** The divider's rule: a single brushed line, swelling from a hair at its far end to full at the
+ *  knot. Baked white and tinted by `SectionDivider`, which mirrors it for the other side. */
+function renderRule(CK, file) {
+  const w = 600, h = 12;
+  const surface = CK.MakeSurface(w, h);
+  const canvas = surface.getCanvas();
+  canvas.clear(CK.TRANSPARENT);
+  const p = new CK.Path();
+  for (let x = 2; x <= w - 4; x += 0.8) {
+    const t = x / w;
+    const r = 0.3 + 3.2 * Math.pow(t, 1.6) * (0.9 + 0.1 * Math.sin(t * 40));
+    p.addCircle(x, h / 2, r);
+  }
+  const ink = new CK.Paint();
+  ink.setAntiAlias(true);
+  ink.setColor(CK.WHITE);
+  canvas.drawPath(p, ink);
+  p.delete();
+  save(CK, surface, file);
 }
-function chunk(type, data) {
-  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type), data]);
-  const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(body));
-  return Buffer.concat([len, body, crc]);
+
+/** The campaign's path between caves: footsteps, left then right, as one tile that repeats down
+ *  the column. Baked white; tinted gold where the pair has walked, dim ahead. 3x of 12×24pt. */
+function renderTrail(CK, file) {
+  const w = 36, h = 72;
+  const surface = CK.MakeSurface(w, h);
+  const canvas = surface.getCanvas();
+  canvas.clear(CK.TRANSPARENT);
+  const ink = new CK.Paint();
+  ink.setAntiAlias(true);
+  ink.setColor(CK.WHITE);
+  // A foot: the sole as a short brushed oval, the heel as a drop behind it.
+  const foot = (x, y, lean) => {
+    const sole = brush(CK, [[x - lean, y - 7], [x, y + 2]], 7.5, { breath: 0, taper: true });
+    canvas.drawPath(sole, ink);
+    sole.delete();
+    canvas.drawCircle(x + lean * 0.4, y + 8, 3, ink);
+  };
+  foot(12, 14, 1.5);
+  foot(24, 50, -1.5);
+  save(CK, surface, file);
 }
-function writePng(buf, file) {
-  const { w, h, d } = buf;
-  const raw = Buffer.alloc(h * (w * 4 + 1));
-  for (let y = 0; y < h; y++) {
-    const row = y * (w * 4 + 1);
-    raw[row] = 0;
-    for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4, o = row + 1 + x * 4;
-      raw[o] = Math.round(d[i]);
-      raw[o + 1] = Math.round(d[i + 1]);
-      raw[o + 2] = Math.round(d[i + 2]);
-      raw[o + 3] = Math.round(d[i + 3] * 255);
+
+/** The ledger's cord: two strands twisted round each other, as one tile that repeats down the
+ *  chat. Baked white; tinted the line colour. 3x of 6×10pt; each strand meets its own end across
+ *  the tile's seam. */
+function renderCord(CK, file) {
+  const w = 18, h = 30;
+  const surface = CK.MakeSurface(w, h);
+  const canvas = surface.getCanvas();
+  canvas.clear(CK.TRANSPARENT);
+  const ink = new CK.Paint();
+  ink.setAntiAlias(true);
+  ink.setColor(CK.WHITE);
+  const strand = (from, to) => {
+    const pts = [];
+    for (let i = 0; i <= 40; i++) {
+      const t = i / 40;
+      pts.push([from + (to - from) * (0.5 - 0.5 * Math.cos(Math.PI * t)), -2 + t * (h + 4)]);
     }
-  }
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4);
-  ihdr[8] = 8; ihdr[9] = 6; // 8-bit RGBA
-  const png = Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk('IHDR', ihdr),
-    chunk('IDAT', zlib.deflateSync(raw, { level: 9 })),
-    chunk('IEND', Buffer.alloc(0)),
-  ]);
-  fs.writeFileSync(file, png);
-  console.log('wrote', path.basename(file), `${w}x${h}`, png.length, 'bytes');
+    return brush(CK, pts, 4.2, { breath: 0 });
+  };
+  const back = strand(13, 5);
+  const shade = new CK.Paint();
+  shade.setAntiAlias(true);
+  shade.setColor(CK.Color4f(1, 1, 1, 0.55));
+  canvas.drawPath(back, shade);
+  back.delete();
+  const front = strand(5, 13);
+  canvas.drawPath(front, ink);
+  front.delete();
+  save(CK, surface, file);
 }
 
-// ---------- the asset set (sizes are 3x display points) ----------
-const outDir = path.join(__dirname, '..', 'assets', 'ornaments');
-fs.mkdirSync(outDir, { recursive: true });
-const out = f => path.join(outDir, f);
+async function main() {
+  const CanvasKitInit = require('canvaskit-wasm/bin/canvaskit.js');
+  const CK = await CanvasKitInit({ locateFile: (f) => require.resolve(`canvaskit-wasm/bin/${f}`) });
+  // ---------- the asset set (sizes are 3x display points) ----------
+  const outDir = path.join(__dirname, '..', 'assets', 'ornaments');
+  fs.mkdirSync(outDir, { recursive: true });
+  const out = f => path.join(outDir, f);
 
-writePng(renderKnot(2, 2, 39, 7.8, 'gold'), out('knot_gold.png'));       // 44pt corner/medallion knot
-writePng(renderKnot(2, 2, 39, 7.8, 'dim'), out('knot_dim.png'));         // sealed rooms, empty states
-writePng(renderKnot(2, 2, 39, 7.8, 'ember'), out('knot_ember.png'));     // stakes at small size
-writePng(renderKnot(5, 5, 27, 4.8, 'ember'), out('knot_boss_ember.png')); // the one grand knot per screen
-writePng(renderKnot(3, 3, 22, 5.2, 'gold'), out('sigil_bond.png'));
-writePng(renderKnot(3, 4, 20, 4.8, 'ember'), out('sigil_fate.png'));
-writePng(renderKnot(4, 3, 20, 4.8, 'brass'), out('sigil_kinship.png'));
-writePng(renderMeander(40, 10, 4.5, 'gold'), out('fret_gold.png'));      // dividers, XP track
-writePng(renderMeander(40, 10, 4.5, null, true), out('fret_dark.png'));  // engraving overlay on fills
+  renderKnot(CK, 2, 2, 39, 7.8, 'gold', out('knot_gold.png'));        // 44pt corner/medallion knot
+  renderKnot(CK, 2, 2, 39, 7.8, 'dim', out('knot_dim.png'));          // sealed rooms, empty states
+  renderKnot(CK, 2, 2, 39, 7.8, 'ember', out('knot_ember.png'));      // stakes at small size
+  renderKnot(CK, 5, 5, 27, 4.8, 'ember', out('knot_boss_ember.png')); // the one grand knot per screen
+  renderKnot(CK, 3, 3, 22, 5.2, 'gold', out('sigil_bond.png'));
+  renderKnot(CK, 3, 4, 20, 4.8, 'ember', out('sigil_fate.png'));
+  renderKnot(CK, 4, 3, 20, 4.8, 'brass', out('sigil_kinship.png'));
+  renderMeander(CK, 40, 10, 4.5, 'gold', false, out('fret_gold.png')); // dividers, XP track
+  renderMeander(CK, 40, 10, 4.5, null, true, out('fret_dark.png'));    // engraving overlay on fills
+  renderRule(CK, out('rule.png'));                                     // SectionDivider's two lines
+  renderTrail(CK, out('trail.png'));                                   // the campaign's path between caves
+  renderCord(CK, out('cord.png'));                                     // the chat's thread
+}
+
+main().catch((e) => { console.error(e); process.exit(1); });

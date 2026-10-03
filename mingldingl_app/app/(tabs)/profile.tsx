@@ -71,7 +71,7 @@ export default function ProfileScreen() {
           />
         )}
 
-        <ProfileAvatar photoUrls={profile.photoUrls ?? []} tierColor={tierColor} />
+        <ProfileAvatar photoUrls={profile.photoUrls ?? []} tierColor={tierColor} tier={gemTier} />
 
         <View style={styles.nameRow}>
           <View style={styles.nameBlock}>

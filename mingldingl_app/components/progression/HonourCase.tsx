@@ -11,6 +11,8 @@ import { ChestModal } from '../modals/ChestModal';
 import { SheetModal } from '../modals/SheetModal';
 import { ChestBurst } from '../vfx/ChestBurst';
 import { Icon } from '../ui/Icon';
+import { Glyph } from '../ui/Glyph';
+import { InkDraw } from '../ui/InkDraw';
 import { useInventory } from '../../hooks/useInventory';
 import { useMilestones } from '../../hooks/useMilestones';
 import { useOptimisticScoreBump } from '../../hooks/useOptimisticScoreBump';
@@ -45,7 +47,9 @@ const ROWS: readonly (readonly HonourId[])[] = [
 /** Slots per full row; a shorter row is padded with empty space so its slots keep the grid's width. */
 const ROW_WIDTH = 3;
 
-const CHIP = 36;
+const CHIP = 40;
+/** The emblem struck inside the coin's rim. */
+const EMBLEM = 20;
 const IGNITE_MS = 700;
 const BREATH_MS = 1200;
 const SWEEP_MS = 900;
@@ -306,12 +310,25 @@ function HonourSlot({ id, held, ignited, progress, animate, onPress, onLongPress
           />
         )}
         <View style={styles.slotIconChip} testID={`honour-emblem-${id}`}>
+          {/* The coin the honour is struck on: a blank with its edge marked out until the deed is
+              done, then struck and milled in the honour's metal. */}
+          <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: held ? dimOpacity : 1 }]}>
+            <Glyph name="medal-blank" size={CHIP} color={INK.muted} />
+          </Animated.View>
+          {held && (
+            <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: lit }]}>
+              {/* Earned while you watched: the coin is struck in front of you, rim and milling. */}
+              {ignited
+                ? <InkDraw name="medal" size={CHIP} color={metal} duration={IGNITE_MS} />
+                : <Glyph name="medal" size={CHIP} color={metal} />}
+            </Animated.View>
+          )}
           <Animated.View style={[StyleSheet.absoluteFillObject, styles.chipCentre, { opacity: held ? dimOpacity : 1 }]}>
-            <Icon name={HONOUR_ICONS[id]} size={ICON_SIZES.lg} color={INK.muted} />
+            <Icon name={HONOUR_ICONS[id]} size={EMBLEM} color={INK.muted} />
           </Animated.View>
           {held && (
             <Animated.View style={[StyleSheet.absoluteFillObject, styles.chipCentre, { opacity: Animated.multiply(lit, breath) }]}>
-              <Icon name={HONOUR_ICONS[id]} size={ICON_SIZES.lg} color={metal} />
+              <Icon name={HONOUR_ICONS[id]} size={EMBLEM} color={metal} />
             </Animated.View>
           )}
           {shimmer && (
@@ -373,7 +390,6 @@ const styles = StyleSheet.create({
   ring: { ...StyleSheet.absoluteFillObject, margin: -2, borderWidth: 2, borderRadius: RADIUS.md },
   slotIconChip: {
     ...circle(CHIP),
-    backgroundColor: SURFACE.raised,
     overflow: 'hidden',
   },
   chipCentre: { alignItems: 'center', justifyContent: 'center' },

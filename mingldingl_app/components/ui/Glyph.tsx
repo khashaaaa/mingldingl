@@ -60,6 +60,10 @@ export const GLYPH_NAMES = [
   'gate', 'stage', 'signpost', 'page', 'chair', 'door', 'night', 'ember',
   // `Waiting`'s candle in two layers, so the flame can flicker over still wax.
   'wax', 'wick',
+  // An honour's coin: struck once it is earned, a blank until then.
+  'medal', 'medal-blank',
+  // A letter's ring in the ledger: the sender's mark is written inside it.
+  'ring',
 ] as const;
 
 export type GlyphName = typeof GLYPH_NAMES[number];
@@ -409,6 +413,23 @@ export const GLYPHS: Record<GlyphName, Cuts> = {
     ],
     ground: 'M4 20.8H20',
   },
+  /** An honour once earned: the coin struck, its rim milled. */
+  medal: {
+    lines: [
+      'M19.60 12.00L20.80 12.00', 'M19.02 14.91L20.13 15.37', 'M17.37 17.37L18.22 18.22', 'M14.91 19.02L15.37 20.13', 'M12.00 19.60L12.00 20.80', 'M9.09 19.02L8.63 20.13', 'M6.63 17.37L5.78 18.22', 'M4.98 14.91L3.87 15.37',
+      'M4.40 12.00L3.20 12.00', 'M4.98 9.09L3.87 8.63', 'M6.63 6.63L5.78 5.78', 'M9.09 4.98L8.63 3.87', 'M12.00 4.40L12.00 3.20', 'M14.91 4.98L15.37 3.87', 'M17.37 6.63L18.22 5.78', 'M19.02 9.09L20.13 8.63',
+    ],
+    rings: [[12, 12, 10.6]],
+  },
+  /** An honour not yet earned: the blank waiting for its die, only its edge marked out. */
+  'medal-blank': {
+    lines: [
+      'M22.40 12.00A10.4 10.4 0 0 1 21.97 14.95', 'M21.01 17.20A10.4 10.4 0 0 1 19.16 19.54', 'M17.20 21.01A10.4 10.4 0 0 1 14.43 22.11', 'M12.00 22.40A10.4 10.4 0 0 1 9.05 21.97', 'M6.80 21.01A10.4 10.4 0 0 1 4.46 19.16', 'M2.99 17.20A10.4 10.4 0 0 1 1.89 14.43',
+      'M1.60 12.00A10.4 10.4 0 0 1 2.03 9.05', 'M2.99 6.80A10.4 10.4 0 0 1 4.84 4.46', 'M6.80 2.99A10.4 10.4 0 0 1 9.57 1.89', 'M12.00 1.60A10.4 10.4 0 0 1 14.95 2.03', 'M17.20 2.99A10.4 10.4 0 0 1 19.54 4.84', 'M21.01 6.80A10.4 10.4 0 0 1 22.11 9.57',
+    ],
+  },
+  /** The ring a letter hangs from on the thread, its sender's initial written inside. */
+  ring: { lines: [], rings: [[12, 12, 10.4]] },
   /** The waiting candle's wax and dish... */
   wax: {
     lines: [

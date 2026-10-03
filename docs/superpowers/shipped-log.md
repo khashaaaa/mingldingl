@@ -8,6 +8,33 @@ long versions.
 
 ---
 
+## 2026-10-03 — The rest of the hand: frames, stones, medals, trails, cord, paper
+
+Everything ornamental now comes from the same brush as the glyphs, so no surface reads as a
+second hand:
+- **Knots, sigils and frets** (`gen-ornaments.js`) are inked instead of shaded as metal tubes:
+  each strand one brush stroke in its metal with a warm-to-deep wash, the weave kept by lifting
+  the ink around the strand that passes over. Same files and pixel sizes, so no layout moved.
+  `SectionDivider`'s lines are a brushed rule (`rule.png`) swelling from a hair to the knot.
+- **Tier stones** (`gen-gems.js`): each tier cut its own way — round brilliant garnet, opal
+  cabochon, amethyst crystal point, cushion sapphire, trillion ruby, emerald cut — baked as four
+  white layers (body, shade, light, setting) the badge tints, so colour overrides still work.
+  Rank stays in presence: the setting's ink by ring weight, the glow, and a spark glint that
+  replaced the sweep (a cut stone has no square edge to sweep across).
+- **Portrait frame** on Profile: an inked ring that grows one piece per rung (quarter knots,
+  outer ring, beads, sunburst, compass points), tinted the tier colour.
+- **Honour medals:** every honour sits on a coin — a blank with its edge marked out until earned,
+  struck and milled in the honour's metal after.
+- **Ink that draws itself** (`InkDraw`): the opened chest, the loot toast's flame and a newly
+  earned honour's coin paint stroke by stroke and press their seals last — a baked strip of 14
+  frames stepped on the native driver; the finished glyph under reduced motion.
+- **Trails:** the Ascent's path bows between stars, gold where walked and dotted ahead; the
+  campaign's path between caves is ink footsteps (`trail.png`), gold where the pair has been.
+- **The chat cord:** two twisted strands repeated down the ledger (`cord.png`), each letter's
+  ring a brushed `ring` glyph in the sender's colour.
+- **Paper:** `parchment.png` is now a 512px seamless tile of blooms, fibres and tooth, repeated
+  rather than stretched, washed in at 14% instead of an invisible 6%.
+
 ## 2026-10-03 — The hearth's sky, painted
 
 The window over the hearth was a two-stop gradient with twelve dots and read as an empty box at

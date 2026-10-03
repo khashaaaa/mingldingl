@@ -1,8 +1,9 @@
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import type { Message } from '../../hooks/useChat';
-import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, LINE, PRESS, SPACE, STATUS, SURFACE } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, LINE, PRESS, SPACE, STATUS, SURFACE, tint } from '../../lib/theme';
 import { FieldError } from '../ui/StateBlock';
 import { Icon } from '../ui/Icon';
+import { Glyph } from '../ui/Glyph';
 import { i18n } from '../../lib/i18n';
 
 interface Props {
@@ -29,6 +30,8 @@ export function LetterRow({ message, myId, initial, onRetry }: Props) {
       style={[styles.row, isSending && styles.sending, isFailed && styles.failed]}
     >
       <View style={styles.ring}>
+        {/* The ring inked, in the sender's colour: gold for mine, the line's for theirs. */}
+        <Glyph name="ring" size={RING} color={isMine ? tint(ACCENT.base, 0.7) : LINE.edge} style={StyleSheet.absoluteFill} />
         <Text style={[styles.initial, { color: isMine ? ACCENT.base : INK.dim }]}>{initial}</Text>
       </View>
       <View style={styles.body}>
@@ -68,8 +71,6 @@ const styles = StyleSheet.create({
     width: RING,
     height: RING,
     borderRadius: RING / 2,
-    borderWidth: 1,
-    borderColor: LINE.edge,
     // Filled, so the thread behind the letters stops at the ring instead of running through the
     // sender's initial.
     backgroundColor: SURFACE.panel,

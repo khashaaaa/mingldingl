@@ -3,7 +3,7 @@ import { View, Text, Animated, StyleSheet } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Path, Circle, Text as SvgText } from 'react-native-svg';
 import type { GemTier } from '../../models/user';
 import { TIER_ORDER, tierThresholdsSnapshot, tierLabel } from '../../lib/tiers';
-import { FONTS, FONT_SIZES, GEM_COLORS, INK, LINE, NIGHT, SPACE, TRACKING } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, GEM_COLORS, INK, NIGHT, SPACE, TRACKING } from '../../lib/theme';
 import { i18n, lineLocale, normalizeLocale } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
@@ -73,7 +73,20 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
     y: BOTTOM_Y - (BOTTOM_Y - TOP_Y) * (i / TOP_INDEX),
   }));
 
-  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join(' ');
+  // The climb as a trail rather than a ruler line: each leg bows a little to alternate sides, the
+  // way a path drawn by hand between stars does. The walked part is inked in gold; the rest is a
+  // faint dotted way still to go.
+  const leg = (a: (typeof points)[number], b: (typeof points)[number], i: number) => {
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const bow = (i % 2 ? 1 : -1) * len * 0.12;
+    return `Q${mx - (dy / len) * bow} ${my + (dx / len) * bow} ${b.x} ${b.y}`;
+  };
+  const trail = (from: number, to: number) =>
+    to <= from ? '' : `M${points[from].x} ${points[from].y} ` + points.slice(from + 1, to + 1).map((p, k) => leg(points[from + k], p, from + k)).join(' ');
+  const walked = trail(0, Math.max(0, heldIndex));
+  const ahead = trail(Math.max(0, heldIndex), TOP_INDEX);
 
   function labelFor(index: number): string {
     const tier = TIER_ORDER[index];
@@ -119,7 +132,16 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
           </LinearGradient>
         </Defs>
         <Rect x={0} y={0} width={width} height={SKY_HEIGHT} fill="url(#ascentSky)" />
-        <Path d={pathD} stroke={LINE.edge} strokeWidth={1} strokeDasharray="4 4" fill="none" opacity={0.5} />
+        {walked !== '' && (
+          <>
+            {/* The ink's bleed, then the line itself. */}
+            <Path d={walked} stroke={ACCENT.base} strokeWidth={6} strokeLinecap="round" fill="none" opacity={0.12} />
+            <Path testID="ascent-walked" d={walked} stroke={ACCENT.base} strokeWidth={2} strokeLinecap="round" fill="none" opacity={0.85} />
+          </>
+        )}
+        {ahead !== '' && (
+          <Path testID="ascent-ahead" d={ahead} stroke={INK.muted} strokeWidth={2.2} strokeLinecap="round" strokeDasharray="0.1 7" fill="none" opacity={0.6} />
+        )}
         <SvgText
           x={topPoint.x}
           y={topPoint.y - 30}

@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colorForTier, shadeForTier, presenceForTier } from '../../lib/tiers';
+import { View, Animated, Image, PixelRatio, StyleSheet } from 'react-native';
+import { colorForTier, shadeForTier, presenceForTier, TIER_ORDER } from '../../lib/tiers';
+import type { GemTier } from '../../models/user';
 import { BADGE_SIZES, INK, tint } from '../../lib/theme';
+import { GEM_IMAGES, GEM_PIXELS, type GemLayer } from './gemImages';
+import { Glyph } from '../ui/Glyph';
 import { TorchGlow } from '../vfx/TorchGlow';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 
@@ -23,102 +25,80 @@ interface Props {
 
 /**
  * Rank is drawn here, and only here. The jewels are luminance-matched on purpose — see the
- * `GEM_COLORS` note in `theme.ts` — so hue says *which stone* and this badge's ring weight, glow
- * and shimmer say *how high*. Before this the badge gated all three on `tierIndex >= 3`, which
+ * `GEM_COLORS` note in `theme.ts` — so hue and cut say *which stone* (each tier is cut its own way,
+ * `scripts/gen-gems.js`: round brilliant, cabochon, crystal point, cushion, trillion, emerald cut)
+ * and this badge's setting, glow and glint say *how high*. Before this the badge gated all three on `tierIndex >= 3`, which
  * made tiers 1-3 identical to each other and tiers 4-6 identical to each other: the ladder was
  * six rungs of data rendered as two.
  */
+/** The setting's ink by ring weight: a hairline bezel for the first rungs, a bold one at the top. */
+const SETTING_ALPHA = [0, 0.18, 0.32, 0.5] as const;
+
+function layerFor(tier: GemTier, layer: GemLayer, size: number) {
+  const pixels = size * PixelRatio.get();
+  const baked = GEM_PIXELS.find((p) => p >= pixels) ?? GEM_PIXELS[GEM_PIXELS.length - 1];
+  return GEM_IMAGES[tier][layer][baked];
+}
+
 export function GemTierBadge({ tier, size = BADGE_SIZES.hero, glow = false, color: colorOverride, shade: shadeOverride }: Props) {
   const color = colorOverride ?? colorForTier(tier);
   const shade = shadeOverride ?? shadeForTier(tier);
   const presence = presenceForTier(tier, size);
+  const stone: GemTier = (TIER_ORDER as string[]).includes(tier) ? (tier as GemTier) : TIER_ORDER[0];
 
-  // Reduce motion keeps the rank (ring weight, glow) and drops only the sweep: a shimmer is nothing
-  // but motion, so its still form is no shimmer at all.
   const animate = motionAllowed(useVfxLevel());
   const hasShimmer = presence.shimmer > 0 && animate;
   const hasGlow = glow && presence.glowStrength > 0;
-  const gemSize = size * 0.68;
-  const highlightSize = gemSize * 0.55;
 
-  // A higher rank shines both brighter and more often, so the ramp still reads on a badge that is
-  // only glanced at. Emerald keeps the 800ms cadence and 0.55 highlight that shipped before.
-  const sweepDelay = 2400 - 1600 * presence.shimmer;
-  const sweepAlpha = 0.2 + 0.35 * presence.shimmer;
-
-  const sweep = useRef(new Animated.Value(0)).current;
+  // The glint: a spark that catches on the stone's upper facets now and then, sooner and brighter
+  // the higher the tier. It replaced a bar swept across a square, which a cut stone has no edge for.
+  const glintDelay = 2400 - 1600 * presence.shimmer;
+  const glintPeak = 0.45 + 0.5 * presence.shimmer;
+  const glint = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!hasShimmer) return;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.delay(sweepDelay),
-        Animated.timing(sweep, { toValue: 1, duration: 900, useNativeDriver: true }),
-        Animated.timing(sweep, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.delay(glintDelay),
+        Animated.timing(glint, { toValue: 1, duration: 450, useNativeDriver: true }),
+        Animated.timing(glint, { toValue: 0, duration: 450, useNativeDriver: true }),
       ]),
     );
     loop.start();
     return () => loop.stop();
-  }, [hasShimmer, sweepDelay, sweep]);
+  }, [hasShimmer, glintDelay, glint]);
+
+  const fill = { width: size, height: size };
+  const layer = (name: GemLayer, tintColor: string, opacity = 1) => (
+    <Image
+      key={name}
+      source={layerFor(stone, name, size)}
+      style={[StyleSheet.absoluteFill, fill, { tintColor, opacity }]}
+      fadeDuration={0}
+    />
+  );
+  const sparkSize = size * 0.34;
 
   const badge = (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <View
-        style={{
-          width: gemSize,
-          height: gemSize,
-          borderRadius: Math.max(2, size * 0.05),
-          borderWidth: presence.ringWidth,
-          // A heavier bezel that stayed at the same alpha read as a smudge rather than as weight.
-          borderColor: tint(INK.primary, 0.28 + 0.08 * (presence.ringWidth - 1)),
-          overflow: 'hidden',
-          transform: [{ rotate: '45deg' }],
-        }}
-      >
-        <LinearGradient
-          colors={[color, shade]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <View
+    <View style={fill}>
+      {layer('setting', INK.primary, SETTING_ALPHA[presence.ringWidth] ?? SETTING_ALPHA[1])}
+      {layer('body', color)}
+      {layer('shade', shade)}
+      {layer('light', tint(INK.primary, 0.95))}
+      {hasShimmer && (
+        <Animated.View
           pointerEvents="none"
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            width: 0,
-            height: 0,
-            borderLeftWidth: highlightSize,
-            borderLeftColor: 'transparent',
-            borderBottomWidth: highlightSize,
-            borderBottomColor: tint(INK.primary, 0.32),
+            left: size * 0.2,
+            top: size * 0.14,
+            opacity: glint.interpolate({ inputRange: [0, 1], outputRange: [0, glintPeak] }),
+            transform: [{ scale: glint.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }],
           }}
-        />
-        {hasShimmer && (
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: -gemSize * 0.5,
-              left: -gemSize * 0.5,
-              width: gemSize * 0.5,
-              height: gemSize * 2,
-              transform: [
-                {
-                  translateX: sweep.interpolate({ inputRange: [0, 1], outputRange: [-gemSize * 0.5, gemSize * 1.5] }),
-                },
-              ],
-            }}
-          >
-            <LinearGradient
-              colors={['transparent', tint(INK.primary, sweepAlpha), 'transparent']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ width: '100%', height: '100%' }}
-            />
-          </Animated.View>
-        )}
-      </View>
+        >
+          <Glyph name="spark" size={sparkSize} color={INK.primary} />
+        </Animated.View>
+      )}
     </View>
   );
 

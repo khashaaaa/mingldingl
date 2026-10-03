@@ -15,7 +15,7 @@ import { signal } from '../../lib/world/feedback';
 import { useLocaleStore } from '../../store/localeStore';
 import { toDroppedItem } from '../../lib/tiers';
 import { romanNumeral } from '../../lib/numerals';
-import { PRESS, ACCENT, FONTS, FONT_SIZES, HEAT, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, TRACKING, circle } from '../../lib/theme';
+import { PRESS, ACCENT, FONTS, FONT_SIZES, HEAT, ICON_SIZES, INK, METAL, RADIUS, SPACE, TRACKING, circle } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
 import { ORNAMENTS } from '../../lib/ornaments';
 import { useScrollTail } from '../../hooks/useScrollTail';
@@ -141,7 +141,17 @@ export default function CampaignScreen() {
               importantForAccessibility="no"
             />
           </View>
-          {index < rooms.length - 1 && <View style={styles.pathLine} />}
+          {/* Footsteps down to the next cave: gold where the pair has already walked. */}
+          {index < rooms.length - 1 && (
+            <Image
+              testID={`room-path-${room.roomId}`}
+              source={ORNAMENTS.trail}
+              resizeMode="repeat"
+              style={[styles.pathLine, { tintColor: room.cleared ? ACCENT.base : INK.muted }]}
+              accessible={false}
+              importantForAccessibility="no"
+            />
+          )}
         </View>
 
         <View
@@ -248,7 +258,7 @@ const styles = StyleSheet.create({
   },
   roomKnot: { width: 38, height: 38 },
   bossKnot: { width: 44, height: 44 },
-  pathLine: { flex: 1, width: 2, backgroundColor: LINE.edge, marginVertical: SPACE.xs, minHeight: 16 },
+  pathLine: { flex: 1, width: 12, marginVertical: SPACE.xs, minHeight: 24, opacity: 0.8 },
   roomBody: {
     flex: 1,
     paddingLeft: SPACE.sm,

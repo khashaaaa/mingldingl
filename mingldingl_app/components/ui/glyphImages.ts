@@ -57,8 +57,22 @@ export const GLYPH_IMAGES: Record<GlyphName, Record<(typeof GLYPH_PIXELS)[number
   door: { 48: require('../../assets/glyphs/door-48.png'), 96: require('../../assets/glyphs/door-96.png'), 192: require('../../assets/glyphs/door-192.png') },
   night: { 48: require('../../assets/glyphs/night-48.png'), 96: require('../../assets/glyphs/night-96.png'), 192: require('../../assets/glyphs/night-192.png') },
   ember: { 48: require('../../assets/glyphs/ember-48.png'), 96: require('../../assets/glyphs/ember-96.png'), 192: require('../../assets/glyphs/ember-192.png') },
+  medal: { 48: require('../../assets/glyphs/medal-48.png'), 96: require('../../assets/glyphs/medal-96.png'), 192: require('../../assets/glyphs/medal-192.png') },
+  'medal-blank': { 48: require('../../assets/glyphs/medal-blank-48.png'), 96: require('../../assets/glyphs/medal-blank-96.png'), 192: require('../../assets/glyphs/medal-blank-192.png') },
+  ring: { 48: require('../../assets/glyphs/ring-48.png'), 96: require('../../assets/glyphs/ring-96.png'), 192: require('../../assets/glyphs/ring-192.png') },
   wax: { 48: require('../../assets/glyphs/wax-48.png'), 96: require('../../assets/glyphs/wax-96.png'), 192: require('../../assets/glyphs/wax-192.png') },
   wick: { 48: require('../../assets/glyphs/wick-48.png'), 96: require('../../assets/glyphs/wick-96.png'), 192: require('../../assets/glyphs/wick-192.png') },
+};
+
+/** Frames in each drawn strip (`InkDraw`), each 192px square, laid side by side. */
+export const GLYPH_DRAW_FRAMES = 14;
+
+/** The ceremony glyphs, painted stroke by stroke: one horizontal strip of frames each. */
+export const GLYPH_DRAWS: Partial<Record<GlyphName, ImageSourcePropType>> = {
+  'chest-open': require('../../assets/glyphs/chest-open-draw-192.png'),
+  flame: require('../../assets/glyphs/flame-draw-192.png'),
+  seal: require('../../assets/glyphs/seal-draw-192.png'),
+  medal: require('../../assets/glyphs/medal-draw-192.png'),
 };
 
 /** The ground each place stands on, baked apart so it takes its own tint (see `Places`). */

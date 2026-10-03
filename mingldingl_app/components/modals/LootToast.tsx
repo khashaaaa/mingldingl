@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE, TRACKING } from '../../lib/theme';
 import { metalForRarity } from '../../lib/tiers';
-import { Glyph } from '../ui/Glyph';
+import { InkDraw } from '../ui/InkDraw';
 import { TOAST_STYLES, useToastMotion } from './Toast';
 
 interface Props {
@@ -66,7 +66,7 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
               style={[styles.ray, { opacity: rays, transform: [{ rotate: `${deg}deg` }] }]}
             />
           ))}
-          <Glyph name="flame" size={ICON_SIZES.xl} color={METAL.ember} />
+          <InkDraw name="flame" size={ICON_SIZES.xl} color={METAL.ember} duration={700} />
         </View>
         <View style={styles.textCol}>
           <Text style={styles.title}>{title}</Text>

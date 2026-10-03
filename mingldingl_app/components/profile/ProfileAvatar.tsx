@@ -9,18 +9,23 @@ import { Icon } from '../ui/Icon';
 import { Waiting } from '../ui/Waiting';
 import { TorchGlow } from '../vfx/TorchGlow';
 import { usePhotoUpload } from '../../hooks/usePhotoUpload';
+import { GEM_FRAMES } from '../progression/gemImages';
+import { TIER_ORDER } from '../../lib/tiers';
 import { useUpdateProfile } from '../../hooks/useProfile';
 import { i18n } from '../../lib/i18n';
-import { ACCENT, ICON_SIZES, METAL, RADIUS, SCRIM, SPACE, SURFACE, circle, overlay } from '../../lib/theme';
+import { ACCENT, ICON_SIZES, METAL, SCRIM, SPACE, SURFACE, circle, overlay } from '../../lib/theme';
 interface Props {
   /** The whole list, not just the first: replacing the portrait rewrites slot 0 and keeps the rest. */
   photoUrls: string[];
-  /** The current gem tier's colour: the ring, the torch glow and the ring's cast shadow all wear it. */
+  /** The current gem tier's colour: the frame and the torch glow both wear it. */
   tierColor: string;
+  /** The current gem tier: the frame grows a piece of ornament per rung (`scripts/gen-gems.js`). */
+  tier?: string;
 }
 
 /** The character portrait, and the picker + upload flow behind tapping it. */
-export function ProfileAvatar({ photoUrls, tierColor }: Props) {
+export function ProfileAvatar({ photoUrls, tierColor, tier }: Props) {
+  const rung = Math.max(0, (TIER_ORDER as string[]).indexOf(tier ?? ''));
   const { pickPhoto, takePhoto, uploadPhoto, uploading, lastError, clearLastError, permissionDenied, clearPermissionDenied } =
     usePhotoUpload();
   const { mutateAsync: saveProfile, previewPatch } = useUpdateProfile();
@@ -66,8 +71,7 @@ export function ProfileAvatar({ photoUrls, tierColor }: Props) {
       >
         <TorchGlow size={118} color={tierColor}>
           <View style={styles.avatarFrame}>
-            <View style={[styles.avatarFrameRotated, { borderColor: tierColor }]} />
-            <View style={[styles.avatarRing, { borderColor: tierColor, shadowColor: tierColor }]}>
+            <View style={styles.avatarRing}>
               <View style={styles.avatarClip}>
                 {showPhoto ? (
                   <Image
@@ -88,6 +92,13 @@ export function ProfileAvatar({ photoUrls, tierColor }: Props) {
                 )}
               </View>
             </View>
+            {/* Drawn over the photo's edge, so the ink ring closes it rather than sitting beside it. */}
+            <Image
+              source={GEM_FRAMES[rung]}
+              style={[StyleSheet.absoluteFill, { tintColor: tierColor }]}
+              contentFit="contain"
+              testID={`avatar-frame-${rung}`}
+            />
             <View style={styles.avatarEditBadge}>
               <Icon name="pencil" size={ICON_SIZES.sm} color={SURFACE.ground} />
             </View>
@@ -142,26 +153,11 @@ export function ProfileAvatar({ photoUrls, tierColor }: Props) {
 const styles = StyleSheet.create({
   avatarTouchable: { alignSelf: 'center', marginTop: SPACE.sm, marginBottom: SPACE.xl },
   avatarFrame: { width: 118, height: 118, alignItems: 'center', justifyContent: 'center' },
-  avatarFrameRotated: {
-    position: 'absolute',
-    width: 106,
-    height: 106,
-    borderWidth: 2,
-    borderRadius: RADIUS.lg,
-    transform: [{ rotate: '45deg' }],
-    opacity: 0.5,
-  },
   avatarRing: {
     width: 106,
     height: 106,
-    borderRadius: RADIUS.lg,
-    borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 14,
-    elevation: 10,
   },
   avatarClip: {
     ...circle(100),

@@ -10,6 +10,9 @@ export const ORNAMENTS = {
   sigilKinship: require('../assets/ornaments/sigil_kinship.png'),
   fretGold: require('../assets/ornaments/fret_gold.png'),
   fretDark: require('../assets/ornaments/fret_dark.png'),
+  rule: require('../assets/ornaments/rule.png'),
+  trail: require('../assets/ornaments/trail.png'),
+  cord: require('../assets/ornaments/cord.png'),
 } as const;
 
 // fret_gold/fret_dark are 1610x50 px. Displayed at FRET_DISPLAY_HEIGHT, an undistorted

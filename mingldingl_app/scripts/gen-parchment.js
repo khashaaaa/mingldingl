@@ -1,48 +1,85 @@
-// scripts/gen-parchment.js — one-off: writes a 256x256 grayscale grain PNG
-const zlib = require('zlib');
+// scripts/gen-parchment.js — the paper under every hero card and rising strip (`ParchmentFill`).
+//
+// It was 256px of even noise stretched across the card, which blurred to nothing at a card's size:
+// at the 6% it was washed in, nobody could tell it was there. Now it is paper: a few soft blooms
+// where the wash pooled, long fibres laid mostly one way, and a fine tooth — a 512px tile that
+// repeats edge to edge (every mark wraps across the seam), so it stays crisp on any card. White
+// light and black dark on a mid-grey, so it lightens and darkens whatever gradient it sits on.
+//
+// Rerun with: node scripts/gen-parchment.js   (writes assets/textures/parchment.png)
+
 const fs = require('fs');
 const path = require('path');
 
-const W = 256, H = 256;
-const crcTable = [...Array(256)].map((_, n) => {
-  let c = n;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-function crc32(buf) {
-  let c = 0xffffffff;
-  for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-}
-function chunk(type, data) {
-  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
-  const body = Buffer.concat([Buffer.from(type), data]);
-  const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(body));
-  return Buffer.concat([len, body, crc]);
+const N = 512;
+
+function rng(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
-// scanlines: filter byte 0 + grayscale pixels (base 200, soft noise ±18)
-const raw = Buffer.alloc(H * (W + 1));
-let seed = 42;
-const rand = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
-for (let y = 0; y < H; y++) {
-  raw[y * (W + 1)] = 0;
-  for (let x = 0; x < W; x++) {
-    const grain = (rand() - 0.5) * 36 + Math.sin(x / 9) * 4 + Math.sin(y / 13) * 4;
-    raw[y * (W + 1) + 1 + x] = Math.max(0, Math.min(255, Math.round(200 + grain)));
+async function main() {
+  const CanvasKitInit = require('canvaskit-wasm/bin/canvaskit.js');
+  const CK = await CanvasKitInit({ locateFile: (f) => require.resolve(`canvaskit-wasm/bin/${f}`) });
+  const surface = CK.MakeSurface(N, N);
+  const c = surface.getCanvas();
+  c.clear(CK.Color4f(0.5, 0.5, 0.5, 1));
+  const r = rng(2026);
+  /** Draw at (x, y) and at every wrapped copy, so the tile has no seam. */
+  const wrapped = (draw) => {
+    for (const dx of [-N, 0, N]) for (const dy of [-N, 0, N]) {
+      c.save();
+      c.translate(dx, dy);
+      draw();
+      c.restore();
+    }
+  };
+  const paint = (v, a, blur = 0) => {
+    const p = new CK.Paint();
+    p.setAntiAlias(true);
+    p.setColor(CK.Color4f(v, v, v, a));
+    if (blur) p.setMaskFilter(CK.MaskFilter.MakeBlur(CK.BlurStyle.Normal, blur, true));
+    return p;
+  };
+
+  // Blooms: where the wash pooled and dried, light and dark.
+  for (let i = 0; i < 26; i++) {
+    const x = r() * N, y = r() * N, rad = 30 + r() * 90, dark = r() < 0.5;
+    const p = paint(dark ? 0.32 : 0.7, 0.22 + r() * 0.18, rad * 0.45);
+    wrapped(() => c.drawOval(CK.LTRBRect(x - rad, y - rad * (0.5 + r() * 0.4), x + rad, y + rad * 0.6), p));
   }
+  // Fibres: long, thin, mostly running one way, a few across.
+  for (let i = 0; i < 380; i++) {
+    const x = r() * N, y = r() * N;
+    const len = 12 + r() * 46;
+    const a = (r() < 0.8 ? 0.15 : 1.4) + (r() - 0.5) * 0.5;
+    const bend = (r() - 0.5) * 10;
+    const path = new CK.Path();
+    path.moveTo(x, y);
+    path.quadTo(x + Math.cos(a) * len * 0.5 - Math.sin(a) * bend, y + Math.sin(a) * len * 0.5 + Math.cos(a) * bend, x + Math.cos(a) * len, y + Math.sin(a) * len);
+    const p = paint(r() < 0.55 ? 0.82 : 0.25, 0.35 + r() * 0.35);
+    p.setStyle(CK.PaintStyle.Stroke);
+    p.setStrokeWidth(0.5 + r() * 0.8);
+    p.setStrokeCap(CK.StrokeCap.Round);
+    wrapped(() => c.drawPath(path, p));
+    path.delete();
+  }
+  // The tooth: a fine grain over everything.
+  for (let i = 0; i < 9000; i++) {
+    const x = r() * N, y = r() * N;
+    c.drawCircle(x, y, 0.4 + r() * 0.7, paint(r() < 0.5 ? 0.2 : 0.85, 0.25 + r() * 0.3));
+  }
+
+  const image = surface.makeImageSnapshot();
+  const out = path.join(__dirname, '..', 'assets', 'textures', 'parchment.png');
+  fs.writeFileSync(out, Buffer.from(image.encodeToBytes()));
+  console.log('wrote parchment.png', `${N}x${N}`);
 }
 
-const ihdr = Buffer.alloc(13);
-ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(H, 4);
-ihdr[8] = 8; ihdr[9] = 0; // 8-bit grayscale
-const png = Buffer.concat([
-  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-  chunk('IHDR', ihdr),
-  chunk('IDAT', zlib.deflateSync(raw)),
-  chunk('IEND', Buffer.alloc(0)),
-]);
-const out = path.join(__dirname, '..', 'assets', 'textures', 'parchment.png');
-fs.mkdirSync(path.dirname(out), { recursive: true });
-fs.writeFileSync(out, png);
-console.log('wrote', out, png.length, 'bytes');
+main().catch((e) => { console.error(e); process.exit(1); });
