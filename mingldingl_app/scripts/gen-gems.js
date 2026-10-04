@@ -218,61 +218,95 @@ async function main() {
     entries.push(`  ${tier}: {\n${LAYERS.map((l) => `    ${l}: { ${SIZES.map((s) => `${s}: require('../../assets/gems/${tier.toLowerCase()}-${l}-${s}.png')`).join(', ')} },`).join('\n')}\n  },`);
   }
 
-  // The portrait's frame on Profile, one per rung: each tier adds the next piece of ornament, so
-  // the frame says how far someone has climbed before the gem beside it is read. Drawn on the
-  // avatar's own 118pt box at 3x; the photo is the 100pt circle in the middle.
-  const F = 118, FX = 354;
+  // The portrait's frame on Profile, one per rung: each tier adds the next piece of the carving, so
+  // the frame says how far someone has climbed before the gem beside it is read. Cut by the same
+  // hand as the floor friezes (`scripts/gen-carvings.js`): drawn clean, then pecked into the stone
+  // dot by dot. The portrait is a sun, as every rock in the steppe has one — a ring, then rays,
+  // then cup-marks, then the animals walking round it. Baked on a 160pt box at 3x, centred on the
+  // avatar's 118pt one (it overhangs by 21 a side); the photo is the 100pt circle in the middle.
+  const carver = require('./gen-carvings');
+  const F = 160, FX = 480, O = F / 2, K = FX / F;
+  const at = (r, a) => [O + r * Math.cos(a), O + r * Math.sin(a)];
+  const deg = Math.PI / 180;
+  // [figure, angle, facing, first rung]: a procession round the sun, feet on the ring, heads out.
+  // The edit badge sits at the lower right (about 45°), so nothing is carved there.
+  const herd = [
+    [carver.ibex, -106, 1, 3], [carver.ibex, -74, -1, 3],
+    [carver.stag, -145, 1, 4], [carver.horse, -35, -1, 4],
+    [carver.wolf, 174, -1, 5], [carver.horse, 6, -1, 5],
+  ];
+  const BADGE = 45;
+  const clear = (a, level) =>
+    Math.abs(((a - BADGE + 540) % 360) - 180) > 16 &&
+    herd.every(([, fa, , from]) => level < from || Math.abs(((a - fa + 540) % 360) - 180) > 15);
   const frames = [];
   for (let level = 0; level < 6; level++) {
-    const surface = CK.MakeSurface(FX, FX);
-    const c = surface.getCanvas();
-    c.clear(CK.TRANSPARENT);
-    c.scale(FX / F, FX / F);
-    const at = (r, a) => [59 + r * Math.cos(a), 59 + r * Math.sin(a)];
-    const circle = (r, n = 120) => Array.from({ length: n }, (_, k) => at(r, (k / n) * Math.PI * 2));
-    const lift = new CK.Paint();
-    lift.setAntiAlias(true);
-    lift.setBlendMode(CK.BlendMode.Clear);
-    if (level >= 5) {
-      // The top rung: four long points on the diagonals, a compass rose round the face.
-      for (let k = 0; k < 4; k++) {
-        const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
-        c.drawPath(brush([at(54, a), at(64.5, a)], 4.4, { taper: true }), white(1));
-      }
-    }
-    if (level >= 4) {
-      // A sunburst of short strokes between the rings.
-      for (let k = 0; k < 24; k++) {
-        const a = (k / 24) * Math.PI * 2 + Math.PI / 24;
-        c.drawPath(brush([at(57.5, a), at(k % 2 ? 61 : 63, a)], 1.6, { taper: true }), white(0.75));
+    const r = carver.rng(0x5a7 + level);
+    // 1. The carving as the carver meant it, clean.
+    const maskSurface = CK.MakeSurface(FX, FX);
+    const m = maskSurface.getCanvas();
+    m.clear(CK.TRANSPARENT);
+    m.scale(K, K);
+    const d = carver.chisel(CK, m);
+    d.ring(O, O, 52.8, 5.2);
+    if (level >= 1) {
+      // Rays, short and blunt, the way the sun is pecked on the rocks.
+      for (let k = 0; k < 20; k++) {
+        const a = (k / 20) * 360 + 9;
+        if (!clear(a, level)) continue;
+        d.line([at(58.4, a * deg), at(64.5, a * deg)], 2.6);
       }
     }
     if (level >= 2) {
-      c.drawPath(brush(circle(57.5), 1.4, { closed: true }), white(0.8));
-    }
-    // The ring itself, every rung.
-    c.drawPath(brush(circle(52.5), 3.6, { closed: true }), white(1));
-    if (level >= 3) {
-      for (let k = 0; k < 8; k++) {
-        const [x, y] = at(57.5, (k / 8) * Math.PI * 2 + Math.PI / 8);
-        c.drawCircle(x, y, 2.6, lift);
-        c.drawCircle(x, y, 1.8, white(1));
+      // Cup-marks between the rays: the oldest mark there is, a pit ground into the rock.
+      for (let k = 0; k < 20; k++) {
+        const a = (k / 20) * 360;
+        if (k % 2 || !clear(a, level)) continue;
+        const [x, y] = at(62, a * deg);
+        d.dot(x, y, 2.3);
       }
     }
-    if (level >= 1) {
-      // A knot at each of the four quarters, lifted off the rings it sits on.
-      for (let k = 0; k < 4; k++) {
-        const [x, y] = at(55, (k / 4) * Math.PI * 2 - Math.PI / 2);
-        c.drawCircle(x, y, 6.4, lift);
-        for (const [dx, dy] of [[-1.9, 0], [1.9, 0], [0, -1.9], [0, 1.9]]) {
-          c.drawPath(brush(circle(2.1, 24).map(([px, py]) => [px - 59 + x + dx, py - 59 + y + dy]), 1.2, { closed: true }), white(1));
-        }
-      }
+    for (const [fig, a, facing, from] of herd) {
+      if (level < from) continue;
+      const [x, y] = at(55.4, a * deg);
+      m.save();
+      m.translate(x, y);
+      m.rotate(a + 90, 0, 0);
+      m.scale(0.165 * facing, 0.165);
+      fig(carver.chisel(CK, m, 1.6), r);
+      m.restore();
     }
+    const maskImage = maskSurface.makeImageSnapshot();
+    const px = maskImage.readPixels(0, 0, {
+      width: FX, height: FX, colorType: CK.ColorType.RGBA_8888,
+      alphaType: CK.AlphaType.Unpremul, colorSpace: CK.ColorSpace.SRGB,
+    });
+    const inside = (x, y) => {
+      const xi = x | 0, yi = y | 0;
+      if (xi < 0 || yi < 0 || xi >= FX || yi >= FX) return 0;
+      return px[(yi * FX + xi) * 4 + 3] / 255;
+    };
+
+    // 2. What is actually on the rock: a faint worn groove where the ring runs, so the photo's
+    // edge is closed even between pecks, and the pecks themselves.
+    const surface = CK.MakeSurface(FX, FX);
+    const c = surface.getCanvas();
+    c.clear(CK.TRANSPARENT);
+    c.save();
+    c.scale(K, K);
+    const groove = white(0.3);
+    groove.setStyle(CK.PaintStyle.Stroke);
+    groove.setStrokeWidth(3.4);
+    c.drawCircle(O, O, 51.9, groove);
+    c.restore();
+    carver.peck(CK, c, inside, FX, FX, r, 0.62);
+
     const image = surface.makeImageSnapshot();
     fs.writeFileSync(path.join(OUT_DIR, `frame-${level}.png`), Buffer.from(image.encodeToBytes()));
     image.delete();
+    maskImage.delete();
     surface.delete();
+    maskSurface.delete();
     frames.push(`  require('../../assets/gems/frame-${level}.png'),`);
   }
 

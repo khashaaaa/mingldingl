@@ -130,4 +130,20 @@ describe('QuestTile', () => {
     const { getByLabelText } = render(<QuestTile match={BASE_MATCH} fire={UNLIT_FIRE} onPress={jest.fn()} />);
     expect(getByLabelText('Riley. New Quest')).toBeTruthy();
   });
+
+  it('threads the cord through a middle bead, and stops it at the first and last', () => {
+    const middle = render(<QuestTile match={BASE_MATCH} fire={BURNING_FIRE} onPress={jest.fn()} />);
+    expect(middle.getByTestId('quest-cord-top')).toBeTruthy();
+    expect(middle.getByTestId('quest-cord-bottom')).toBeTruthy();
+    const ends = render(<QuestTile match={BASE_MATCH} fire={BURNING_FIRE} first last onPress={jest.fn()} />);
+    expect(ends.queryByTestId('quest-cord-top')).toBeNull();
+    expect(ends.queryByTestId('quest-cord-bottom')).toBeNull();
+  });
+
+  it('cuts the cord at a severed match', () => {
+    const severed: Fire = { ...FROZEN_FIRE, frozenBy: 'severed', iLetIt: null };
+    const { queryByTestId } = render(<QuestTile match={BASE_MATCH} fire={severed} onPress={jest.fn()} />);
+    expect(queryByTestId('quest-cord-top')).toBeNull();
+    expect(queryByTestId('quest-cord-bottom')).toBeNull();
+  });
 });

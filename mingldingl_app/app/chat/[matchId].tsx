@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Tap } from '../../components/ui/Tap';
-import { View, Text, Image, FlatList, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, FlatList, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -31,7 +31,6 @@ import { Waiting } from '../../components/ui/Waiting';
 import { FrostEdge, FROST_RIM_REACH } from '../../components/vfx/FrostEdge';
 import { FrozenOver, frozenOverHeight } from '../../components/chat/FrozenOver';
 import { PLACES } from '../../components/ui/Places';
-import { ORNAMENTS } from '../../lib/ornaments';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
 import { apiClient } from '../../lib/api/apiClient';
@@ -46,7 +45,6 @@ import { fireOf, fireLine, fireVerdict, fireEyebrow, fireMark, cap } from '../..
 import { FireMarkGlyph } from '../../components/quest/FireMarkGlyph';
 import { countWord, ordinalWord } from '../../lib/worldTime';
 import type { MatchStatus } from '../../models/match';
-import { useProfile } from '../../hooks/useProfile';
 import { useUnsealing } from '../../hooks/useUnsealing';
 import { useSealedLetter } from '../../hooks/useSealedLetter';
 import { useFireDying } from '../../hooks/useFireDying';
@@ -185,7 +183,6 @@ export default function ChatScreen() {
     ? i18n.t('seals_deep_membership')
     : i18n.t(`seal_broke_${unsealedLevel}`);
 
-  const { data: myProfile } = useProfile();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const keyboardHeight = useAndroidKeyboardHeight();
@@ -265,11 +262,6 @@ export default function ChatScreen() {
         : i18n.t('mystery_match_name')
     : null;
 
-  // The sigil beside each line, standing in for a portrait there is no room for. A masked match
-  // has no name to take a letter from, so theirs falls back to the question mark the header uses;
-  // mine falls back to a mid dot rather than a letter I have not given yet.
-  const theirInitial = (revealedName ?? name ?? '?').trim().charAt(0).toUpperCase() || '?';
-  const myInitial = (myProfile?.displayName ?? '').trim().charAt(0).toUpperCase() || '·';
 
   return (
     <View style={styles.container}>
@@ -375,17 +367,6 @@ export default function ChatScreen() {
           </StateBlock>
         ) : (
           <View style={styles.ledger}>
-            {/* The cord the letters are strung on, running through the centre of every ring: two
-                strands twisted, one tile repeated down the ledger. No letters, no cord: on an empty
-                match it ran down through the empty state's copy. */}
-            {messages.length > 0 && (
-              <Image
-                source={ORNAMENTS.cord}
-                resizeMode="repeat"
-                style={[styles.thread, { tintColor: LINE.edge }]}
-                accessible={false}
-              />
-            )}
             <FlatList
               ref={flatListRef}
               data={messages}
@@ -431,17 +412,16 @@ export default function ChatScreen() {
                   {earlierError && <FieldError style={styles.loadErrorText}>{i18n.t('load_earlier_failed')}</FieldError>}
                 </>
               ) : null}
-              renderItem={({ item }) => {
+              renderItem={({ item, index }) => {
                 const day = marks.dayStarts.get(item.id);
                 const broke = marks.sealBreaks.get(item.id);
-                const mine = item.senderId === 'me' || (!!myId && item.senderId === myId);
                 return (
                   <>
                     {day && <DayHeading day={day.day} iso={day.iso} />}
                     {item.id === sealedMessageId
                       // The match carries no tier for the other side, so the wax is gold.
                       ? <SealedLetter onOpen={unseal} sealColor={METAL.gold} />
-                      : <LetterRow message={item} myId={myId ?? undefined} initial={mine ? myInitial : theirInitial} onRetry={retryMessage} />}
+                      : <LetterRow message={item} myId={myId ?? undefined} onRetry={retryMessage} floating={index === messages.length - 1} />}
                     {broke != null && <SealBreakRow level={broke} gated={broke === 4 && !match?.otherUser.deep} />}
                   </>
                 );
@@ -740,17 +720,6 @@ const styles = StyleSheet.create({
   },
   loadErrorText: { textAlign: 'center', paddingHorizontal: SPACE.huge },
   ledger: { flex: 1 },
-  // Half of LetterRow's 28px sigil ring (`BADGE_SIZES.row`), so the thread passes through its centre.
-  thread: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    // Centred on the rings: the cord is 6pt wide.
-    left: SPACE.gutter + BADGE_SIZES.row / 2 - 3,
-    width: 6,
-    opacity: 0.9,
-    pointerEvents: 'none',
-  },
   messageList: {
     paddingHorizontal: SPACE.gutter,
     paddingVertical: SPACE.lg,

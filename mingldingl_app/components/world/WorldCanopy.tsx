@@ -63,7 +63,7 @@ export function WorldCanopy() {
       {vfx && size.w > 0 && (
         <View style={[styles.band, { height: bandHeight }]}>
           {vfx === 'ember'
-            ? <EmberField width={size.w} height={bandHeight} density={6} paused={travelling} />
+            ? <EmberField width={size.w} height={bandHeight} density={14} paused={travelling} />
             : <FogDrift width={size.w} height={bandHeight} paused={travelling} />}
         </View>
       )}

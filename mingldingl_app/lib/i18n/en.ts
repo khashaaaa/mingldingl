@@ -614,6 +614,8 @@ export const en = {
   // The fire's state (Sealed Fire W3 move 2 — lib/fire.ts). `fireOf` only describes what the
   // engine will judge; these are the words for that description, never a new rule.
   fire_burning: 'Burning', fire_embers: 'Embers', fire_frozen: 'Frozen',
+  // The Quest Log's mark over the frozen fires, which sink to the foot of the thread.
+  quest_log_gone_cold: 'Gone cold',
   fire_line_their_turn: '%{day} day. Their turn.',
   fire_line_my_turn: '%{day} day. Your turn.',
   fire_line_embers: 'Your turn. %{dawns} dawns. Judged at the %{judged}.',

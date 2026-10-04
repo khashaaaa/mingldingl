@@ -1,5 +1,5 @@
 import { render, fireEvent } from '@testing-library/react-native';
-import { StyleSheet, Text, type TextStyle } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { HeaderBar } from '../HeaderBar';
 import { Glyph } from '../Glyph';
 import { i18n } from '../../../lib/i18n';
@@ -12,14 +12,6 @@ jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').ex
   usePathname: () => mockPathname,
 }));
 
-// `AtlasSigil` reads `WorldProvider` context and mounts `AtlasOverlay` (which itself reads the
-// query cache), none of which this file wires up — its own behaviour is covered in
-// `atlasMountWarning.test.tsx`. Stood in for here as a plain tagged node so the `chrome` prop's
-// gating of it can be asserted without dragging in that whole tree.
-jest.mock('../../world/AtlasSigil', () => {
-  const { View: RNView } = require('react-native');
-  return { AtlasSigil: () => <RNView testID="atlas-sigil" /> };
-});
 
 /**
  * Move 12 (Task 7): room names render in `FONTS.wordmark` (the blackletter face) once per
@@ -37,7 +29,7 @@ describe('HeaderBar blackletter titles', () => {
     const { getByText } = render(<HeaderBar title="The Fire" showBack={false} />);
     const style = StyleSheet.flatten(getByText('The Fire').props.style);
     expect(style.fontFamily).toBe(FONTS.wordmark);
-    expect(style.fontSize).toBe(FONT_SIZES.roomName);
+    expect(style.fontSize).toBe(FONT_SIZES.headerTitle);
   });
 
   it('renders an MN title in Yeseva, not blackletter', () => {
@@ -54,15 +46,11 @@ describe('HeaderBar blackletter titles', () => {
     expect(style.fontFamily).toBe(FONTS.display);
   });
 
-  it('keeps a blackletter EN title in blackletter, only smaller, in the compact variant', () => {
+  it('sets the title at one size whether or not the screen has a right-hand control', () => {
     i18n.locale = 'en';
-    const { getByText } = render(
-      <HeaderBar title="The Fire" showBack={false} right={<Text>x</Text>} />,
-    );
-    const style = StyleSheet.flatten(getByText('The Fire').props.style);
-    expect(style.fontFamily).toBe(FONTS.wordmark);
-    expect(style.fontSize).toBe(FONT_SIZES.hero);
-    expect(style.fontSize).toBeLessThan(FONT_SIZES.roomName);
+    const bare = render(<HeaderBar title="The Fire" showBack={false} />).getByText('The Fire');
+    const withRight = render(<HeaderBar title="The Fire" showBack={false} right={<Text>x</Text>} />).getByText('The Fire');
+    expect(StyleSheet.flatten(withRight.props.style).fontSize).toBe(StyleSheet.flatten(bare.props.style).fontSize);
   });
 
   it('does not letter-space the blackletter face', () => {
@@ -72,11 +60,13 @@ describe('HeaderBar blackletter titles', () => {
     expect(style.letterSpacing).toBeLessThan(1);
   });
 
-  it('draws a room glyph beside the title when given one', () => {
-    // The hearth tap draws its own glyph (see below), so more than one may be on screen —
-    // this only cares that the title's own glyph is among them.
-    const { UNSAFE_getAllByType } = render(<HeaderBar title="The Fire" glyph="fire" showBack={false} />);
-    expect(UNSAFE_getAllByType(Glyph).some((g) => g.props.name === 'fire')).toBe(true);
+  it('keeps to its four marks — no room glyph, no atlas knot, no knot in the rule', () => {
+    mockPathname = '/progression';
+    const { UNSAFE_getAllByType, queryByTestId } = render(<HeaderBar title="The Fire" showBack={false} />);
+    // The hearth tap is the header's only glyph.
+    expect(UNSAFE_getAllByType(Glyph).map((g) => g.props.name)).toEqual(['hearth']);
+    expect(queryByTestId('atlas-sigil')).toBeNull();
+    expect(queryByTestId('ulzii-divider-knot')).toBeNull();
   });
 });
 
@@ -115,8 +105,7 @@ describe('HeaderBar hearth tap', () => {
 
 /**
  * `chrome` (final fix wave, item 1): a screen holding a live call must not offer an exit that
- * leaves the call mounted underneath (`router.push` from the hearth tap or the atlas sigil's
- * overlay does exactly that). Only the round screen sets `chrome={false}` — everywhere else
+ * leaves the call mounted underneath (`router.push` from the hearth tap does exactly that). Only the round screen sets `chrome={false}` — everywhere else
  * defaults to `true`, so the title, back arrow and `right` slot are unaffected either way.
  */
 describe('HeaderBar chrome', () => {
@@ -124,16 +113,12 @@ describe('HeaderBar chrome', () => {
     mockPathname = '/townsquare-round/x';
   });
 
-  it('shows both the hearth tap and the atlas sigil by default', () => {
-    const { getByTestId } = render(<HeaderBar title="The Bell" showBack={false} />);
-    expect(getByTestId('header-hearth')).toBeTruthy();
-    expect(getByTestId('atlas-sigil')).toBeTruthy();
+  it('shows the hearth tap by default', () => {
+    expect(render(<HeaderBar title="The Bell" showBack={false} />).getByTestId('header-hearth')).toBeTruthy();
   });
 
-  it('hides both the hearth tap and the atlas sigil when chrome is false', () => {
-    const { queryByTestId } = render(<HeaderBar title="The Bell" showBack={false} chrome={false} />);
-    expect(queryByTestId('header-hearth')).toBeNull();
-    expect(queryByTestId('atlas-sigil')).toBeNull();
+  it('hides the hearth tap when chrome is false', () => {
+    expect(render(<HeaderBar title="The Bell" showBack={false} chrome={false} />).queryByTestId('header-hearth')).toBeNull();
   });
 
   it('leaves the title, back arrow and right slot alone when chrome is false', () => {
@@ -147,39 +132,25 @@ describe('HeaderBar chrome', () => {
 });
 
 /**
- * The title steps down a size only when it really wraps. Android once reported a short Cyrillic
- * title broken over two lines inside a one-line box with room to spare, and believing that count
- * shrank sibling screens' titles to different sizes.
+ * One line, one size. A title that cannot fit at full size (a narrow phone, or a title from data)
+ * is shrunk by the platform on that line alone — never by a measuring loop, which over-stepped on
+ * Android and set five tab titles at five sizes.
  */
 describe('HeaderBar title fit', () => {
-  const originalLocale = i18n.locale;
-  beforeEach(() => { i18n.locale = 'mn'; });
-  afterEach(() => { i18n.locale = originalLocale; });
-
-  const size = (title: string, getByText: (t: string) => { props: { style: unknown } }) =>
-    StyleSheet.flatten(getByText(title).props.style as TextStyle).fontSize;
-
-  it('ignores a reported wrap whose lines fit the one-line box they were given', () => {
-    const { getByText } = render(<HeaderBar title="Өгсөлт" showBack={false} />);
-    const text = getByText('Өгсөлт');
-    fireEvent(text, 'textLayout', { nativeEvent: { lines: [{ width: 67.3, height: 26.3 }, { width: 12.4, height: 24.8 }] } });
-    fireEvent(text, 'layout', { nativeEvent: { layout: { width: 80, height: 28.2 } } });
-    expect(size('Өгсөлт', getByText)).toBe(FONT_SIZES.title);
+  it('holds every title to one line and lets only that title shrink, not below the floor', () => {
+    const t = render(<HeaderBar title="Trial of Compatibility" showBack={false} />).getByText('Trial of Compatibility');
+    expect(t.props.numberOfLines).toBe(1);
+    expect(t.props.adjustsFontSizeToFit).toBe(true);
+    expect(t.props.minimumFontScale).toBeGreaterThanOrEqual(0.5);
   });
 
-  it('steps down when the lines need more width than the box has', () => {
-    const { getByText } = render(<HeaderBar title="Даалгаврын самбар" showBack={false} />);
-    const text = getByText('Даалгаврын самбар');
-    fireEvent(text, 'textLayout', { nativeEvent: { lines: [{ width: 120, height: 26 }, { width: 70, height: 26 }] } });
-    fireEvent(text, 'layout', { nativeEvent: { layout: { width: 150, height: 28 } } });
-    expect(size('Даалгаврын самбар', getByText)).toBeLessThan(FONT_SIZES.title);
-  });
-
-  it('steps down when the box is two lines tall', () => {
-    const { getByText } = render(<HeaderBar title="Хамтрагч хайх" showBack={false} />);
-    const text = getByText('Хамтрагч хайх');
-    fireEvent(text, 'textLayout', { nativeEvent: { lines: [{ width: 160, height: 26 }] } });
-    fireEvent(text, 'layout', { nativeEvent: { layout: { width: 160, height: 52 } } });
-    expect(size('Хамтрагч хайх', getByText)).toBeLessThan(FONT_SIZES.title);
+  it('sets a Cyrillic title at the one Yeseva size on every screen', () => {
+    const original = i18n.locale;
+    i18n.locale = 'mn';
+    const short = render(<HeaderBar title="Гал" showBack={false} />).getByText('Гал');
+    const long = render(<HeaderBar title="Даалгаврын самбар" showBack={false} right={<Text>x</Text>} />).getByText('Даалгаврын самбар');
+    expect(StyleSheet.flatten(short.props.style).fontSize).toBe(FONT_SIZES.title);
+    expect(StyleSheet.flatten(long.props.style).fontSize).toBe(FONT_SIZES.title);
+    i18n.locale = original;
   });
 });

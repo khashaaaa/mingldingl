@@ -134,6 +134,12 @@ export const FONT_SIZES = {
   title: 22,
   display: 28,
   /**
+   * Every screen's blackletter title in `HeaderBar`, one size everywhere. The largest at which the
+   * longest tab title ("Seek Companions") still fits beside the hearth tap and the score on a
+   * 411pt phone; a narrower phone shrinks only the titles that need it.
+   */
+  headerTitle: 30,
+  /**
    * One step above display, for the single loudest thing on a screen. It exists because the app
    * had no such thing: the scale stopped at 28 and almost nothing reached it, so a person's own
    * name on their character sheet was set at `title` — the same size as the word "Honours" three
@@ -165,6 +171,8 @@ export const LINE_HEIGHTS = {
   wordmark: 46,
   /** Board shows 1.1× the room-name size, rounded to the 4px grid. */
   roomName: 48,
+  /** 1.2× the header title, on the 4px grid — blackletter's tall ascenders need the room. */
+  headerTitle: 36,
 } as const;
 
 /**
@@ -191,6 +199,7 @@ export const LEADING = {
   hero: LINE_HEIGHTS.hero,
   wordmark: LINE_HEIGHTS.wordmark,
   roomName: LINE_HEIGHTS.roomName,
+  headerTitle: LINE_HEIGHTS.headerTitle,
 } as const satisfies Record<keyof typeof FONT_SIZES, number>;
 
 /**
@@ -399,6 +408,8 @@ export const METAL = {
  */
 export const HEAT = {
   flame: COLORS.emberLight,
+  /** A spark the instant it leaves the fire, before it cools through gold to ember. */
+  spark: '#FFF1C9',
 } as const;
 
 /**

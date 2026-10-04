@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { type Href } from 'expo-router';
 import { Tap } from '../ui/Tap';
@@ -5,6 +6,7 @@ import { Glyph, type GlyphName } from '../ui/Glyph';
 import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, SPACE } from '../../lib/theme';
 import { useGoTo } from '../../hooks/useGoTo';
+import { AtlasOverlay } from '../world/AtlasOverlay';
 
 /**
  * The five places the hold is made of, plus what you carry to them.
@@ -15,6 +17,9 @@ import { useGoTo } from '../../hooks/useGoTo';
  *
  * The Satchel is the one row drawn in ink rather than gold, and the one without a glyph: it is not
  * a room on the atlas, it is the bag — what today's rules gave you, on the way to somewhere else.
+ *
+ * Under the rooms, the Hold: the atlas of the whole place. It used to be a knot in every screen's
+ * header; the header was carrying too many marks, and the hearth is the centre of the map anyway.
  */
 
 interface Destination {
@@ -35,6 +40,7 @@ const DESTINATIONS: readonly Destination[] = [
 
 export function Destinations() {
   const go = useGoTo();
+  const [atlasOpen, setAtlasOpen] = useState(false);
 
   return (
     <View>
@@ -57,6 +63,20 @@ export function Destinations() {
           </Tap>
         );
       })}
+      <Tap
+        testID="destination-hold"
+        accessibilityRole="button"
+        accessibilityLabel={i18n.t('hold_open')}
+        onPress={() => setAtlasOpen(true)}
+      >
+        <View style={styles.row}>
+          <Glyph name="map" size={ICON_SIZES.lg} color={ACCENT.base} />
+          <Text style={styles.name}>{i18n.t('hold_title')}</Text>
+        </View>
+      </Tap>
+      {/* Mounted only while open: the map reads the whole hold's state, and a hearth that is just
+          being looked at has no reason to pay for it. */}
+      {atlasOpen && <AtlasOverlay visible onClose={() => setAtlasOpen(false)} />}
       <Tap
         testID="destination-satchel"
         accessibilityRole="button"

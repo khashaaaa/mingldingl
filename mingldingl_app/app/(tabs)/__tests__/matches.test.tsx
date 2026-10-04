@@ -96,4 +96,18 @@ describe('MatchesScreen', () => {
       queryByText("A fire is judged at dawn. Whoever's turn it was when it froze is the one who let it."),
     ).toBeNull();
   });
+
+  it('sinks frozen fires below a gone-cold mark, and draws no mark when none are frozen', () => {
+    expect(renderScreen().queryByTestId('quest-log-gone-cold')).toBeNull();
+    mockUseMatches.mockReturnValue({
+      data: [
+        { ...BASE_MATCH, matchId: 'cold', status: 'Ghosted', otherUser: { displayName: 'Frost' } },
+        { ...BASE_MATCH, matchId: 'live', otherUser: { displayName: 'Ember' } },
+      ],
+      isLoading: false, isError: false, isRefetching: false, refetch: jest.fn(),
+    });
+    const { getAllByText } = renderScreen();
+    const order = getAllByText(/^(Ember|Frost|GONE COLD)$/).map((n) => n.props.children);
+    expect(order).toEqual(['Ember', 'GONE COLD', 'Frost']);
+  });
 });

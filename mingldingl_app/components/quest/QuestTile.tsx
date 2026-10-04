@@ -5,21 +5,32 @@ import { i18n } from '../../lib/i18n';
 import { fireEyebrow, fireLine, fireMark, fireVerdict, type Fire } from '../../lib/fire';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import {
-  ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, RADIUS, SPACE, SURFACE, TEMPERATURE, circle, tint,
+  ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, METAL, SPACE, SURFACE, TEMPERATURE, circle, tint,
 } from '../../lib/theme';
 import { Icon } from '../ui/Icon';
 import { FireMarkGlyph } from './FireMarkGlyph';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import OathSigil from '../OathSigil';
 import type { Match } from '../../models/match';
+import { ORNAMENTS } from '../../lib/ornaments';
 
 interface Props {
   match: Match;
   fire: Fire;
   onPress: () => void;
+  /** Where this bead sits on its thread: the cord stops at the first bead above and the last below. */
+  first?: boolean;
+  last?: boolean;
 }
 
-export function QuestTile({ match, fire, onPress }: Props) {
+/** The thread's colour through a bead: the fire's own temperature, a dim gold before it is lit. */
+function threadColor(fire: Fire): string {
+  if (fire.state === 'unlit') return tint(ACCENT.base, 0.45);
+  if (fire.state === 'frozen') return tint(TEMPERATURE.glacier, 0.55);
+  return fireMark(fire.state).color;
+}
+
+export function QuestTile({ match, fire, onPress, first = false, last = false }: Props) {
   const { otherUser, revealLevel } = match;
   const blurred = revealLevel < 2;
   const frozen = fire.state === 'frozen';
@@ -55,6 +66,9 @@ export function QuestTile({ match, fire, onPress }: Props) {
   // `unlit` keeps the tile's original "New Quest" gold: not a temperature yet, just an unopened scroll.
   const mark = fireMark(fire.state, ACCENT.base);
   const eyebrowColor = mark.color;
+  // A severed match is a cut thread: no cord runs into or out of its bead.
+  const cut = frozen && fire.frozenBy === 'severed';
+  const cord = threadColor(fire);
 
   return (
     <Tap
@@ -66,58 +80,53 @@ export function QuestTile({ match, fire, onPress }: Props) {
       // `line` would otherwise leave dangling.
       accessibilityLabel={[nameText, eyebrow, line, verdict].filter(Boolean).join('. ')}
     >
-      {/* A frozen fire is told by temperature alone — a cold hairline, the same move embers make in
-          ember. The left-edge `FrostEdge` it used to carry read as a ruler scribbled behind the
-          portrait on hardware, and the glacier mark, line and verdict already say "frozen". */}
-      <View
-        style={[
-          styles.row,
-          embers && { borderColor: tint(METAL.ember, 0.6) },
-          frozen && { borderColor: tint(TEMPERATURE.glacier, 0.35) },
-        ]}
-      >
-        {/* One portrait column for every row, so names start at the same x all the way down the
-            log. An unopened quest used to push its portrait right with a tablet of its own; it is
-            now said on the portrait — a gold ring and the scroll pressed on it as a seal. */}
-        <View style={styles.portrait}>
-          <View
-            style={[
-              styles.avatarRing,
-              unlit && { borderColor: ACCENT.base },
-              frozen && { borderColor: tint(TEMPERATURE.glacier, 0.5) },
-            ]}
-          >
-            {showPhoto ? (
-              <>
-                <Image
-                  source={{ uri: photo }}
-                  style={styles.avatar}
-                  // Decoded at the avatar's size before the blur, not at the photo's: a full-size
-                  // bitmap took the same radius as a light haze and the face stayed recognisable.
-                  resizeMethod="resize"
-                  blurRadius={18}
-                  onError={() => setFailedUrl(photo)}
-                />
-                <Animated.Image
-                  source={{ uri: photo }}
-                  style={[styles.avatar, styles.avatarSharpOverlay, { opacity: reveal }]}
-                  blurRadius={0}
-                />
-              </>
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Icon name="account" size={ICON_SIZES.xl} color={INK.dim} />
+      {/* No box: the log is one thread with every quest a bead on it. The cord runs down the
+          portrait column, coloured by each fire's temperature, so the whole log reads as one
+          strand going from gold to ember to ice; a severed match is where the strand is cut. */}
+      <View style={styles.row}>
+        <View style={styles.rail}>
+          <View style={styles.cordTop}>
+            {!first && !cut && <Image source={ORNAMENTS.cord} resizeMode="repeat" style={[styles.cordStrand, { tintColor: cord }]} testID="quest-cord-top" />}
+          </View>
+          {/* One portrait column for every row, so names start at the same x all the way down the
+              log; an unopened quest is said on the portrait — a gold ring and the scroll as a seal. */}
+          <View style={styles.portrait}>
+            <View style={[styles.avatarRing, { borderColor: cord }, unlit && { borderColor: ACCENT.base }]}>
+              {showPhoto ? (
+                <>
+                  <Image
+                    source={{ uri: photo }}
+                    style={styles.avatar}
+                    // Decoded at the avatar's size before the blur, not at the photo's: a full-size
+                    // bitmap took the same radius as a light haze and the face stayed recognisable.
+                    resizeMethod="resize"
+                    blurRadius={18}
+                    onError={() => setFailedUrl(photo)}
+                  />
+                  <Animated.Image
+                    source={{ uri: photo }}
+                    style={[styles.avatar, styles.avatarSharpOverlay, { opacity: reveal }]}
+                    blurRadius={0}
+                  />
+                </>
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Icon name="account" size={ICON_SIZES.xl} color={INK.dim} />
+                </View>
+              )}
+              {frozen && <View style={styles.frozenOverlay} accessible={false} importantForAccessibility="no" />}
+            </View>
+            {unlit && (
+              <View style={styles.newSeal}>
+                <Icon name="script-text" size={ICON_SIZES.sm} color={ACCENT.base} />
               </View>
             )}
-            {frozen && <View style={styles.frozenOverlay} accessible={false} importantForAccessibility="no" />}
           </View>
-          {unlit && (
-            <View style={styles.newSeal}>
-              <Icon name="script-text" size={ICON_SIZES.sm} color={ACCENT.base} />
-            </View>
-          )}
+          <View style={styles.cordBottom}>
+            {!last && !cut && <Image source={ORNAMENTS.cord} resizeMode="repeat" style={[styles.cordStrand, { tintColor: cord }]} testID="quest-cord-bottom" />}
+          </View>
         </View>
-        <View style={styles.info}>
+        <View style={[styles.info, !last && styles.infoRule, embers && { borderBottomColor: tint(METAL.ember, 0.5) }]}>
           <View style={styles.header}>
             <View style={styles.titles}>
               {blurred ? (
@@ -139,9 +148,9 @@ export function QuestTile({ match, fire, onPress }: Props) {
                 <CardEyebrow color={eyebrowColor} style={styles.eyebrowInline}>{eyebrow}</CardEyebrow>
               </View>
             </View>
-            {/* The vow sits at the row's right edge, out of the reading column: it used to stand
-                between the name and the fire, as wide as its own word, and shoved both apart. */}
-            <OathSigil oath={otherUser.oath ?? null} proven={otherUser.oathProven ?? false} size="sm" />
+            {/* The vow at the row's right edge, out of the reading column, and unboxed: a sigil
+                over its state word, the only mark in the row that is not the fire's. */}
+            <OathSigil oath={otherUser.oath ?? null} proven={otherUser.oathProven ?? false} size="sm" bare />
           </View>
           {/* `fireLine` is '' for `unlit` on purpose — an empty second line would still take a
            *  row's worth of space under the eyebrow. */}
@@ -153,21 +162,19 @@ export function QuestTile({ match, fire, onPress }: Props) {
   );
 }
 
+const PORTRAIT = 56;
+const CORD = 2;
+/** The twisted cord's own width (`scripts/gen-ornaments.js`, `cord.png`: 6×10pt, repeating). */
+const STRAND = 6;
+
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    // Top-aligned: the portrait sits beside the name it belongs to. Centred, it floated halfway
-    // down any row with a verdict under it, level with neither the name nor the verdict.
-    alignItems: 'flex-start',
-    gap: SPACE.md,
-    backgroundColor: SURFACE.panel,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: LINE.edge,
-    padding: SPACE.md,
-    marginBottom: SPACE.md,
-  },
-  portrait: { width: 56, height: 56 },
+  row: { flexDirection: 'row', gap: SPACE.md },
+  // The portrait column, stretched to the row's height so the cord below the bead reaches the next.
+  rail: { width: PORTRAIT, alignItems: 'center', alignSelf: 'stretch' },
+  cordTop: { width: STRAND, height: SPACE.md },
+  cordBottom: { width: STRAND, flex: 1, minHeight: SPACE.md },
+  cordStrand: { ...StyleSheet.absoluteFillObject, width: STRAND, height: undefined },
+  portrait: { width: PORTRAIT, height: PORTRAIT },
   newSeal: {
     position: 'absolute',
     right: -2,
@@ -180,8 +187,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarRing: { ...circle(56), borderWidth: 2, borderColor: LINE.edge, overflow: 'hidden' },
-  avatar: circle(52),
+  avatarRing: { ...circle(PORTRAIT), borderWidth: CORD, overflow: 'hidden', backgroundColor: SURFACE.panel },
+  avatar: circle(PORTRAIT - CORD * 2),
   avatarSharpOverlay: { position: 'absolute', top: 0, left: 0 },
   avatarPlaceholder: {
     flex: 1,
@@ -197,10 +204,13 @@ const styles = StyleSheet.create({
     backgroundColor: TEMPERATURE.ice,
     opacity: 0.2,
   },
-  info: { flex: 1, gap: SPACE.sm },
-  header: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.sm, minHeight: 56 },
+  // The hairline between quests starts after the thread, so the cord is never crossed by it.
+  info: { flex: 1, gap: SPACE.sm, paddingVertical: SPACE.md },
+  infoRule: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE.hairline },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.sm, minHeight: PORTRAIT },
   titles: { flex: 1, gap: SPACE.xs, justifyContent: 'center', alignSelf: 'stretch' },
-  name: { fontFamily: FONTS.bodyBold, fontSize: FONT_SIZES.lg, color: INK.primary },
+  // The person's name in the display voice: the row's one heading.
+  name: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: INK.primary },
   nameFrozen: { color: INK.dim },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
   // `CardEyebrow`'s own bottom margin is for an eyebrow above a block; beside a mark in a centred

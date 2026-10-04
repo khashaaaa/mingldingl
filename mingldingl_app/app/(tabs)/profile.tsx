@@ -65,7 +65,7 @@ export default function ProfileScreen() {
     <View style={styles.screen}>
       {/* Pinned above the scroll like every other tab's header. Inside it, the header scrolled away
           and the sheet ran up under the status bar with nothing behind it. */}
-      <GameHeader title={i18n.t('character_sheet')} glyph="gem" showScore />
+      <GameHeader title={i18n.t('character_sheet')} showScore />
       <ScrollView style={styles.scroll} {...kindle.scrollProps}>
         {kindle.header}
 

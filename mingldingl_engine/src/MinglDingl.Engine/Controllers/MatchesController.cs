@@ -252,7 +252,9 @@ public class MatchesController : ControllerBase
             new Dictionary<string, object> { ["matchId"] = matchId!.Value.ToString() },
             me.DisplayName);
         await _broadcast.BroadcastToUsersAsync([userId, req.TargetUserId], "match_created",
-            new { matchId = matchId!.Value, userIds = new[] { userId, req.TargetUserId }, source = "like" });
+            // `summonerId`: this echo reaches the summoner before the HTTP response does, so their
+            // device cannot yet tell its own summons from someone else's by its cache alone.
+            new { matchId = matchId!.Value, userIds = new[] { userId, req.TargetUserId }, source = "like", summonerId = userId });
 
         return Ok(new CreateMatchResponse(matchId!.Value, awarded));
     }

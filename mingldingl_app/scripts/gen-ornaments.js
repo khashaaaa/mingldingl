@@ -235,9 +235,9 @@ function renderTrail(CK, file) {
   save(CK, surface, file);
 }
 
-/** The ledger's cord: two strands twisted round each other, as one tile that repeats down the
- *  chat. Baked white; tinted the line colour. 3x of 6×10pt; each strand meets its own end across
- *  the tile's seam. */
+/** The Quest Log's cord: two strands twisted round each other, as one tile that repeats down the
+ *  log through every portrait. Baked white; tinted the fire's temperature. 3x of 6×10pt; each
+ *  strand meets its own end across the tile's seam. */
 function renderCord(CK, file) {
   const w = 18, h = 30;
   const surface = CK.MakeSurface(w, h);
@@ -285,7 +285,7 @@ async function main() {
   renderMeander(CK, 40, 10, 4.5, null, true, out('fret_dark.png'));    // engraving overlay on fills
   renderRule(CK, out('rule.png'));                                     // SectionDivider's two lines
   renderTrail(CK, out('trail.png'));                                   // the campaign's path between caves
-  renderCord(CK, out('cord.png'));                                     // the chat's thread
+  renderCord(CK, out('cord.png'));                                     // the Quest Log's thread
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

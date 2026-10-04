@@ -94,10 +94,14 @@ export function useRealtimeNudges() {
         // The one event that introduces a match this device has not cached yet, so it is gated on
         // the participant list rather than on the cache.
         match_created: (msg) => {
-          const { matchId, userIds, source } = msg.payload as {
-            matchId: string; userIds?: string[]; source?: MatchSource;
+          const { matchId, userIds, source, summonerId } = msg.payload as {
+            matchId: string; userIds?: string[]; source?: MatchSource; summonerId?: string;
           };
           if (!matchId || !userIds?.includes(myId)) return;
+          // My own summons: the engine broadcasts before it answers the request, so the echo can
+          // beat the mutation that seeds the cache below and was announced as someone else's —
+          // a second toast over Discover's own. The mutation does the refreshing.
+          if (summonerId === myId) return;
 
           // Known means this device made the match itself: it already heard the summons candle, and
           // the mutation that made it already refreshed everything below. Refreshing again on the

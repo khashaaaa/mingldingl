@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import { Canvas, Circle } from '@shopify/react-native-skia';
-import { cancelAnimation, useSharedValue, withRepeat, withSequence, withTiming, withDelay, useDerivedValue, Easing } from 'react-native-reanimated';
-import { METAL } from '../../lib/theme';
+import { BlurMask, Canvas, Circle, Line, vec } from '@shopify/react-native-skia';
+import { cancelAnimation, interpolateColor, useSharedValue, withRepeat, withSequence, withTiming, withDelay, useDerivedValue, Easing } from 'react-native-reanimated';
+import { ACCENT, HEAT, METAL } from '../../lib/theme';
 import { useVfxLevel } from '../../lib/vfx';
 
 interface Props {
@@ -11,17 +11,33 @@ interface Props {
   paused?: boolean;
 }
 
-interface EmberCfg { x: number; drift: number; r: number; duration: number; delay: number; color: string; }
+interface EmberCfg {
+  x: number; drift: number; r: number; duration: number; delay: number; color: string;
+  /** How far up the band it is thrown before the air takes it, 0..1. */
+  reach: number;
+  /** A second, faster sway on top of the first: the flutter of a spark on rising heat. */
+  flutter: number; phase: number;
+  /** A spit: small, fast, short-lived, flung off the fire rather than carried up by it. */
+  spit: boolean;
+}
 
 function configure(width: number, density: number): EmberCfg[] {
-  return Array.from({ length: density }).map((_, i) => ({
-    x: Math.random() * width,
-    drift: (Math.random() - 0.5) * 30,
-    r: 1.5 + Math.random() * 1.8,
-    duration: 3500 + Math.random() * 3000,
-    delay: (i / density) * 3000,
-    color: Math.random() < 0.6 ? METAL.gold : METAL.ember,
-  }));
+  // Each slot is one spark or one spit; about a third of them spit.
+  return Array.from({ length: density }).map((_, i) => {
+    const spit = Math.random() < 0.34;
+    return {
+      x: Math.random() * width,
+      drift: (Math.random() - 0.5) * (spit ? 60 : 36),
+      r: spit ? 1.1 + Math.random() * 0.7 : 1.7 + Math.random() * 1.6,
+      duration: spit ? 1100 + Math.random() * 900 : 2600 + Math.random() * 2400,
+      delay: (i / density) * 2600,
+      color: Math.random() < 0.6 ? METAL.gold : METAL.ember,
+      reach: spit ? 0.35 + Math.random() * 0.35 : 0.75 + Math.random() * 0.25,
+      flutter: 3 + Math.random() * 4,
+      phase: Math.random() * Math.PI * 2,
+      spit,
+    };
+  });
 }
 
 /**
@@ -76,10 +92,49 @@ function Ember({ cfg, height, paused }: { cfg: EmberCfg; height: number; paused:
     // A re-rolled cfg moves the ember, it does not restart it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress, paused]);
-  const cy = useDerivedValue(() => height - progress.value * height);
-  const cx = useDerivedValue(() => cfg.x + Math.sin(progress.value * Math.PI * 2) * cfg.drift);
-  const opacity = useDerivedValue(() => (progress.value < 0.1 ? progress.value * 6 : (1 - progress.value) * 0.7));
-  return <Circle cx={cx} cy={cy} r={cfg.r} color={cfg.color} opacity={opacity} />;
+
+  // Thrown up hard and slowed by the air: the climb eases out, so a spark leaves the fire fast and
+  // hangs at the top of its throw while it cools.
+  const at = (p: number) => {
+    'worklet';
+    const rise = 1 - Math.pow(1 - p, 2.2);
+    return {
+      x: cfg.x + Math.sin(p * Math.PI * 2 + cfg.phase) * cfg.drift * Math.sqrt(p) + Math.sin(p * Math.PI * 2 * cfg.flutter + cfg.phase) * 6 * Math.sqrt(p),
+      y: height - rise * cfg.reach * height,
+    };
+  };
+  const head = useDerivedValue(() => { const q = at(progress.value); return vec(q.x, q.y); });
+  // The streak: where the spark was a moment ago. Long while it is fast, gone once it hangs.
+  const tail = useDerivedValue(() => { const q = at(Math.max(0, progress.value - (cfg.spit ? 0.03 : 0.016))); return vec(q.x, q.y); });
+  // White-hot as it leaves, cooling through gold to its own ember colour, then dark.
+  const color = useDerivedValue(() =>
+    interpolateColor(progress.value, [0, 0.18, 0.55, 1], [HEAT.spark, ACCENT.bright, cfg.color, METAL.emberDeep]),
+  );
+  // The core runs a step hotter than the streak behind it.
+  const core = useDerivedValue(() =>
+    interpolateColor(progress.value * 0.6, [0, 0.18, 0.55, 1], [HEAT.spark, ACCENT.bright, cfg.color, METAL.emberDeep]),
+  );
+  const opacity = useDerivedValue(() => {
+    const p = progress.value;
+    const life = p < 0.06 ? p / 0.06 : Math.pow(1 - p, 0.8);
+    // Flicker: a spark burns unevenly as it tumbles.
+    return life * (0.72 + 0.28 * Math.sin(p * 61 + cfg.phase));
+  });
+  const r = useDerivedValue(() => cfg.r * (1 - 0.55 * progress.value));
+  const trail = useDerivedValue(() => r.value * 1.1);
+  const glowR = useDerivedValue(() => r.value * 4.5);
+  const glowOpacity = useDerivedValue(() => opacity.value * 0.6);
+  return (
+    <>
+      {!cfg.spit && (
+        <Circle c={head} r={glowR} color={color} opacity={glowOpacity}>
+          <BlurMask blur={6} style="normal" />
+        </Circle>
+      )}
+      <Line p1={tail} p2={head} color={color} opacity={opacity} strokeWidth={trail} strokeCap="round" style="stroke" />
+      <Circle c={head} r={r} color={core} opacity={opacity} />
+    </>
+  );
 }
 
 function PlainEmbers({ width, height, density }: Required<Omit<Props, 'paused'>>) {

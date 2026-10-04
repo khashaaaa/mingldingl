@@ -1,16 +1,17 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DiscoverScreen from '../../../app/(tabs)/discover';
 import { WorldProvider } from '../WorldProvider';
+import { Destinations } from '../../hearth/Destinations';
 import { WithSafeArea } from '../../../lib/testing/safeArea';
 import { apiClient } from '../../../lib/api/apiClient';
 
 /**
  * Regression guard for a backlog entry claiming React logs "Cannot update a component
  * (`AtlasOverlay`) while rendering a different component (`DiscoverScreen`)" on every Discover
- * mount. `AtlasOverlay`'s only state write (`setGrid`) lives inside its grid's `onLayout`, and
- * `AtlasSigil`'s only write lives inside `onPress` — both are legal event-handler writes, not
- * render-time ones. `WorldProvider`, the other suspect, writes `light.value`/`setNow` only inside
+ * mount. `AtlasOverlay`'s only state write (`setGrid`) lives inside its grid's `onLayout`, and the
+ * hearth's Hold row (the atlas's only door since 2026-10-04) writes only inside `onPress` — both
+ * legal event-handler writes, not render-time ones. `WorldProvider`, the other suspect, writes `light.value`/`setNow` only inside
  * `useEffect`. This mounts the real Discover + world tree (the same composition `app/_layout.tsx`
  * builds) and asserts React never logs that warning — if this ever starts failing, that is the
  * regression to chase, not this test.
@@ -67,11 +68,35 @@ describe('Discover mount', () => {
   });
 });
 
+describe('the atlas, opened from the hearth', () => {
+  it('opens from the Hold row without a setState-during-render warning', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { getByTestId } = render(
+      <WithSafeArea>
+        <QueryClientProvider client={client}>
+          <WorldProvider>
+            <Destinations />
+          </WorldProvider>
+        </QueryClientProvider>
+      </WithSafeArea>,
+    );
+    fireEvent.press(getByTestId('destination-hold'));
+    const offenders = spy.mock.calls.filter(
+      (args) => typeof args[0] === 'string' && args[0].includes('Cannot update a component'),
+    );
+    spy.mockRestore();
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('Discover chrome (task 8: moved off Seek)', () => {
   // The three chrome strips (First Steps, the summons budget meter, the gathering pill) used to
   // sit above the candidate deck. All three are on the hearth now (Sealed Fire W4 task 5) — the
-  // budget as candle stubs rather than a meter — and Discover keeps its header and the deck.
-  it('renders the loaded deck without the getting-started card, budget or gathering pill', async () => {
+  // budget as candle stubs rather than a meter — and Discover keeps its header and the deck. The
+  // candles came back on 2026-10-04 inside the card, under the Summon that burns one: one row, no
+  // strip above the deck.
+  it('renders the loaded deck without the getting-started card or gathering pill, candles only in the card', async () => {
     mockCandidates.mockResolvedValueOnce({
       items: [{ id: 'c1', displayName: 'Amara', age: 28, sealedPhotoUrl: 'c1-sealed.jpg' }],
       page: 1,
@@ -79,12 +104,12 @@ describe('Discover chrome (task 8: moved off Seek)', () => {
     });
     mockScore.mockResolvedValueOnce({ dailyMatchBudget: 5, dailyMatchesUsed: 2, dailyMatchesRemaining: 3 });
 
-    const { findByText, queryByText, queryByTestId } = renderScreen();
+    const { findByText, queryByText, queryByTestId, queryAllByTestId } = renderScreen();
     await waitFor(() => expect(findByText('Amara, 28')).resolves.toBeTruthy());
 
     // CardEyebrow uppercases its own children — this is the literal rendered text, not a style.
     expect(queryByText('FIRST STEPS')).toBeNull();
-    expect(queryByTestId('candle-row')).toBeNull();
+    expect(queryAllByTestId('candle-row')).toHaveLength(1);
     expect(queryByTestId('next-gathering-pill')).toBeNull();
   });
 });

@@ -3,7 +3,8 @@ import { useMatches } from '../../hooks/useMatches';
 import { useMyUserId } from '../../hooks/useMyUserId';
 import { useNowTicker } from '../../hooks/useNowTicker';
 import { useGhostingWindows } from '../../hooks/useRevealThresholds';
-import { fireOf } from '../../lib/fire';
+import { fireMark, fireOf, type Fire } from '../../lib/fire';
+import type { Match } from '../../models/match';
 import { QuestTile } from '../../components/quest/QuestTile';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { GameButton } from '../../components/ui/GameButton';
@@ -11,10 +12,27 @@ import { Entering } from '../../components/ui/Entering';
 import { Skeleton, SkeletonRows } from '../../components/ui/Skeleton';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../../lib/theme';
+import { FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, TEMPERATURE, tint } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
 import { useGoTo } from '../../hooks/useGoTo';
 import { useKindle } from '../../components/ui/Kindle';
+import { CardEyebrow } from '../../components/ui/CardEyebrow';
+import { FireMarkGlyph } from '../../components/quest/FireMarkGlyph';
+
+type Entry =
+  | { kind: 'quest'; match: Match; fire: Fire; first: boolean; last: boolean }
+  | { kind: 'cold' };
+
+/** Live fires first, as one thread; the frozen ones sink below a mark of their own, a second
+ *  thread gone to ice. Order inside each keeps the engine's. */
+function thread(matches: Match[], fireFor: (m: Match) => Fire): Entry[] {
+  const all = matches.map((match) => ({ match, fire: fireFor(match) }));
+  const strand = (xs: typeof all): Entry[] =>
+    xs.map((x, i) => ({ kind: 'quest', ...x, first: i === 0, last: i === xs.length - 1 }));
+  const live = all.filter((x) => x.fire.state !== 'frozen');
+  const cold = all.filter((x) => x.fire.state === 'frozen');
+  return [...strand(live), ...(cold.length ? [{ kind: 'cold' } as const] : []), ...strand(cold)];
+}
 
 export default function MatchesScreen() {
   useLocaleStore((s) => s.locale);
@@ -26,10 +44,11 @@ export default function MatchesScreen() {
   // Fires-driven state (`lib/fire.ts`) turns over purely with time, so this screen needs `now` to
   // actually change on its own — see `useNowTicker`'s own comment.
   const now = useNowTicker();
+  const entries = matches ? thread(matches, (m) => fireOf(m, myId, now, windows)) : [];
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('tab_quest_log')} glyph="letters" showScore />
+      <GameHeader title={i18n.t('tab_quest_log')} showScore />
       {isLoading && (
         <View style={styles.list}>
           <SkeletonRows count={5} row={() => (
@@ -62,27 +81,36 @@ export default function MatchesScreen() {
       )}
       {!isError && matches && matches.length > 0 && (
         <FlatList
-          data={matches}
-          keyExtractor={(m) => m.matchId}
+          data={entries}
+          keyExtractor={(e) => (e.kind === 'quest' ? e.match.matchId : 'gone-cold')}
           {...kindle.scrollProps}
           ListHeaderComponent={kindle.header}
           ListFooterComponent={
             <Text style={styles.law}>{i18n.t('fire_law')}</Text>
           }
-          renderItem={({ item, index }) => (
+          renderItem={({ item, index }) => item.kind === 'cold' ? (
+            <View style={styles.coldMark} testID="quest-log-gone-cold">
+              <View style={styles.coldRule} />
+              <FireMarkGlyph mark={fireMark('frozen')} size={ICON_SIZES.sm} />
+              <CardEyebrow color={fireMark('frozen').color} style={styles.coldLabel}>{i18n.t('quest_log_gone_cold')}</CardEyebrow>
+              <View style={styles.coldRule} />
+            </View>
+          ) : (
             <Entering index={index}>
               <QuestTile
-                match={item}
-                fire={fireOf(item, myId, now, windows)}
+                match={item.match}
+                fire={item.fire}
+                first={item.first}
+                last={item.last}
                 onPress={() => go({
-                  pathname: `/chat/${item.matchId}` as any,
+                  pathname: `/chat/${item.match.matchId}` as any,
                   params: {
-                    name: item.otherUser.isDeleted
+                    name: item.match.otherUser.isDeleted
                       ? i18n.t('deleted_user')
-                      : item.revealLevel >= 2
-                        ? (item.otherUser.displayName ?? '')
+                      : item.match.revealLevel >= 2
+                        ? (item.match.otherUser.displayName ?? '')
                         : i18n.t('mystery_match_name'),
-                    wovenBy: item.weaverDisplayName ?? '',
+                    wovenBy: item.match.weaverDisplayName ?? '',
                   },
                 })}
               />
@@ -100,6 +128,9 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.sm },
   rowShape: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, padding: SPACE.md },
   rowLines: { flex: 1, gap: SPACE.xs },
+  coldMark: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, marginTop: SPACE.xl, marginBottom: SPACE.sm },
+  coldRule: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: tint(TEMPERATURE.glacier, 0.4) },
+  coldLabel: { marginBottom: 0 },
   // The app speaking, not either person in a thread — same register as SealsSheet's own `law`.
   law: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'center', padding: SPACE.lg },
 });

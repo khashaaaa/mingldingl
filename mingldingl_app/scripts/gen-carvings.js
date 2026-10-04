@@ -46,9 +46,10 @@ function rng(seed) {
 /* ── The carver's hand ────────────────────────────────────────────────────────────────────────
  * Figures are drawn in their own coordinates: origin at the feet, y up is negative, about 100
  * units tall. `d` is the chisel: strokes, filled bodies and dots, nothing finer — a carving has no
- * hairlines, so the thinnest mark is still a fat line.
+ * hairlines, so the thinnest mark is still a fat line. `bold` fattens every stroke, for figures
+ * cut small enough that their lines would otherwise be thinner than a peck.
  */
-function chisel(CK, c) {
+function chisel(CK, c, bold = 1) {
   const stroke = new CK.Paint();
   stroke.setAntiAlias(true);
   stroke.setColor(CK.WHITE);
@@ -62,7 +63,7 @@ function chisel(CK, c) {
   const run = (build, w) => {
     const p = new CK.Path();
     build(p);
-    stroke.setStrokeWidth(w);
+    stroke.setStrokeWidth(w * bold);
     c.drawPath(p, stroke);
     p.delete();
   };
@@ -98,10 +99,34 @@ function chisel(CK, c) {
     },
     dot(x, y, r) { c.drawCircle(x, y, r, fill); },
     ring(x, y, r, w = 6) {
-      stroke.setStrokeWidth(w);
+      stroke.setStrokeWidth(w * bold);
       c.drawCircle(x, y, r, stroke);
     },
   };
+}
+
+/** Pecked: the stone knocked out a dot at a time, wherever `inside(x, y)` says the drawing is.
+ *  Dense inside it, with a few stray blows just past its edge, and gaps where a peck missed.
+ *  `fine` below 1 is a smaller chisel, for carving cut small. */
+function peck(CK, c, inside, w, h, r, fine = 1) {
+  const dotPaint = new CK.Paint();
+  dotPaint.setAntiAlias(true);
+  const step = 3.6 * fine;
+  for (let y = 0; y < h; y += step) {
+    for (let x = 0; x < w; x += step) {
+      const jx = x + (r() - 0.5) * step * 1.2, jy = y + (r() - 0.5) * step * 1.2;
+      const a = inside(jx, jy);
+      let hit = a > 0.5 && r() < 0.86;
+      if (!hit && a <= 0.5) {
+        const near = inside(jx + 6, jy) + inside(jx - 6, jy) + inside(jx, jy + 6) + inside(jx, jy - 6);
+        hit = near > 0.5 && r() < 0.07;
+      }
+      if (!hit) continue;
+      dotPaint.setColor(CK.Color4f(1, 1, 1, 0.6 + r() * 0.4));
+      c.drawCircle(jx, jy, (1.4 + r() * 1.3) * fine, dotPaint);
+    }
+  }
+  dotPaint.delete();
 }
 
 /* ── The figures ──────────────────────────────────────────────────────────────────────────── */
@@ -417,23 +442,7 @@ async function main() {
     dotPaint.setAntiAlias(true);
 
     if (!scene.painted) {
-      // Pecked: the stone knocked out a dot at a time. Dense inside the drawing, with a few stray
-      // blows just past its edge, and gaps where a peck missed.
-      const step = 3.6;
-      for (let y = 0; y < H; y += step) {
-        for (let x = 0; x < W; x += step) {
-          const jx = x + (r() - 0.5) * step * 1.2, jy = y + (r() - 0.5) * step * 1.2;
-          const a = inside(jx, jy);
-          let hit = a > 0.5 && r() < 0.86;
-          if (!hit && a <= 0.5) {
-            const near = inside(jx + 6, jy) + inside(jx - 6, jy) + inside(jx, jy + 6) + inside(jx, jy - 6);
-            hit = near > 0.5 && r() < 0.07;
-          }
-          if (!hit) continue;
-          dotPaint.setColor(CK.Color4f(1, 1, 1, 0.6 + r() * 0.4));
-          c.drawCircle(jx, jy, 1.4 + r() * 1.3, dotPaint);
-        }
-      }
+      peck(CK, c, inside, W, H, r);
     } else {
       // Painted: ochre laid on with a finger and a pad, gone patchy with age. The silhouette,
       // softened; then weathered away in flakes and in broad faded patches.
@@ -498,4 +507,7 @@ async function main() {
   console.log('wrote components/world/carvingImages.ts');
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// The same hand cuts the portrait frames in `scripts/gen-gems.js`.
+module.exports = { rng, chisel, peck, ibex, stag, horse, wolf, sun };
+
+if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });

@@ -132,15 +132,14 @@ describe('TownSquareRoundScreen — the bell header', () => {
 });
 
 describe('TownSquareRoundScreen — a live call keeps its own door shut', () => {
-  // Final fix wave, item 1: `router.push` from the hearth tap or the atlas sigil kept this screen
-  // (and its call) mounted underneath, so `AgoraVideoCall`'s `leaveChannel()` cleanup never ran.
-  // `HeaderBar`'s `chrome={false}` here removes both; only the back arrow, already routed through
+  // Final fix wave, item 1: `router.push` from the hearth tap kept this screen (and its call)
+  // mounted underneath, so `AgoraVideoCall`'s `leaveChannel()` cleanup never ran.
+  // `HeaderBar`'s `chrome={false}` here removes it; only the back arrow, already routed through
   // the leave-confirmation dialog, may exit.
-  it('offers neither the hearth tap nor the atlas sigil while a round is live', () => {
+  it('offers no hearth tap while a round is live', () => {
     stubRound();
     const { queryByTestId } = renderScreen();
     expect(queryByTestId('header-hearth')).toBeNull();
-    expect(queryByTestId('atlas-sigil')).toBeNull();
   });
 
   it('opens the leave-confirmation dialog from the header back arrow', () => {

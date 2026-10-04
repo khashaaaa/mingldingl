@@ -47,7 +47,7 @@ export default function TownSquareScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('town_square_title')} glyph="lantern" showScore />
+      <GameHeader title={i18n.t('town_square_title')} showScore />
       <View style={styles.content}>
         {closed ? (
           // Switched off by the house, not broken: a shut gate, with nothing to retry.

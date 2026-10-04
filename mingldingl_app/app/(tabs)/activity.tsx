@@ -50,7 +50,7 @@ export default function ActivityScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('mission_board')} glyph="forge" showScore />
+      <GameHeader title={i18n.t('mission_board')} showScore />
       <ScrollView {...kindle.scrollProps}>
         {kindle.header}
         <GameButton

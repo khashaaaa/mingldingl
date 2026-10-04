@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Tap } from './Tap';
-import { useRef, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { useRouter, usePathname, useRootNavigationState } from 'expo-router';
 import { goHome, stackHas, goBack } from '../../lib/navigation';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
@@ -8,29 +8,28 @@ import { i18n, isLatin } from '../../lib/i18n';
 import { HEARTH_ENABLED } from '../../lib/world';
 import { SectionDivider } from './SectionDivider';
 import { Icon } from './Icon';
-import { Glyph, type GlyphName } from './Glyph';
-import { AtlasSigil } from '../world/AtlasSigil';
+import { Glyph } from './Glyph';
 
-/** The sizes a title steps through, as fractions of its style's size, until it fits on one line. */
-const FIT_SCALES = [1, 0.88, 0.76, 0.66, 0.58] as const;
+/**
+ * How far a title may shrink to stay on one line, as a last resort. Every fixed title fits at full
+ * size on a 411pt phone (the A51); this only catches a narrower phone and the titles that come
+ * from data — a name, a venue, a quiz.
+ */
+const MIN_TITLE_SCALE = 0.6;
 
 interface Props {
   title: string;
   showBack?: boolean;
   onBack?: () => void;
-  icon?: React.ComponentProps<typeof Icon>['name'];
-  glyph?: GlyphName;
 
   right?: ReactNode;
 
   /**
-   * False hides the way-home tap and `AtlasSigil` — the title, back arrow and `right` slot are
+   * False hides the way-home tap — the title, back arrow and `right` slot are
    * unaffected. A screen holding a live call (Town Square's round) must not offer an exit that
    * leaves the call mounted: `router.push` keeps the screen alive underneath, so
    * `AgoraVideoCall`'s `leaveChannel()` cleanup never runs and the camera/mic keep publishing
-   * while the user is elsewhere with no controls. `AtlasSigil`'s own comment already says the
-   * video call is deliberately kept off the chrome for the same reason — this just extends that
-   * rule to the header's own hearth tap. Defaults to `true`: only a live-call screen opts out.
+   * while the user is elsewhere with no controls. Defaults to `true`: only a live-call screen opts out.
    */
   chrome?: boolean;
 
@@ -41,7 +40,15 @@ interface Props {
  *  arrow and the tail icons. Lifted by a share of its size, so every fit step stays level. */
 const BLACKLETTER_LIFT = 0.07;
 
-export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, children, chrome = true }: Props) {
+/**
+ * The top of every screen: back, the room's name, the way home, and the screen's own control.
+ *
+ * Kept to that on purpose (2026-10-04). It used to also carry the room's glyph beside the title,
+ * the atlas knot, and a second knot in the rule under it — up to six marks before any content,
+ * two of them the same knot. The title already names the room (and the floor's light and carvings
+ * say it again), and the atlas now opens from the hearth, the centre of the map, one tap away.
+ */
+export function HeaderBar({ title, showBack = true, onBack, right, children, chrome = true }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   // Whether a hearth is already somewhere in the stack, so the way home returns to it rather than
@@ -54,36 +61,11 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
   // The way home, everywhere but home itself — a hearth already standing on the hearth screen
   // would just point at the room it is in. Also gated on `chrome`: see its doc comment above.
   const showHearthTap = HEARTH_ENABLED && pathname !== '/hearth' && chrome;
-  const titleStyle = StyleSheet.flatten([
-    styles.title,
-    blackletter && styles.titleBlackletter,
-    right ? (blackletter ? styles.titleBlackletterCompact : styles.titleCompact) : null,
-  ]);
-  const baseSize = titleStyle.fontSize ?? FONT_SIZES.title;
-  // Keyed by the title, so a screen whose title changes (a venue loading its name) fits afresh.
-  const [fit, setFit] = useState({ title, step: 0 });
-  const step = fit.title === title ? fit.step : 0;
-  const stepDown = () => { if (step < FIT_SCALES.length - 1) setFit({ title, step: step + 1 }); };
-  // Android's text layout and Yoga's measure can disagree by a fraction of a dp at the wrap edge:
-  // on the A51 "Seek Companions" reported one 165dp line to `onTextLayout` while Yoga, measuring
-  // into 164.95dp, sized the box for two. The one line then drew at the top of a two-line box, ~13dp
-  // above the glyph and tail icons. So a box taller than its line also counts as wrapped.
-  // The reverse happens too, and is why a line count alone is not trusted: a short Cyrillic title
-  // ("Өгсөлт", 79.7dp of glyphs) got an 80dp, one-line box from Yoga while `onTextLayout` broke its
-  // last letter onto a second line. Believing that count shrank it three steps, so screens side by
-  // side drew their titles anywhere from 13.7 to 22pt. A reported wrap only counts when the lines
-  // really need more width than the box has.
-  // Every reading is keyed to the step and title it was taken at, so a stale two-line height never
-  // pairs with the next step's line and drops a size the title did not need to lose.
-  const box = useRef({ key: '', line: 0, height: 0, width: 0, lines: 0 });
-  const measured = (reading: Partial<Omit<typeof box.current, 'key'>>) => {
-    const key = `${title}:${step}`;
-    if (box.current.key !== key) box.current = { key, line: 0, height: 0, width: 0, lines: 0 };
-    Object.assign(box.current, reading);
-    const { line, height, width, lines } = box.current;
-    if (line > 0 && height > line * 1.5) stepDown();
-    else if (width > 0 && lines > width + 1) stepDown();
-  };
+  // One size on every screen (2026-10-04). It used to drop a size whenever the screen had a
+  // right-hand control and then step down again until the title fitted, measured by a loop that
+  // over-stepped on Android — five tab titles came out at five sizes from 22 to 34.
+  const titleStyle = [styles.title, blackletter && styles.titleBlackletter];
+  const size = blackletter ? FONT_SIZES.headerTitle : FONT_SIZES.title;
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
@@ -98,30 +80,11 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
               <Icon name="arrow-left" size={ICON_SIZES.xl} color={ACCENT.base} />
             </Tap>
           )}
-          {icon && <Icon name={icon} size={ICON_SIZES.lg} style={styles.titleIcon} />}
-          {/* Unlabelled: the title text right beside it already names the room. */}
-          {glyph && <Glyph name={glyph} size={ICON_SIZES.lg} color={ACCENT.base} style={styles.titleIcon} />}
-          {/* One line, stepped down to fit. Wrapping a 48pt blackletter title onto a second line
-              doubled the header's height and left the back arrow and tail icons floating beside
-              the middle of a two-line block, and `adjustsFontSizeToFit` on Android shrank the
-              glyphs but kept the two-line height. Each layout that still wraps drops one step;
-              `numberOfLines={2}` stays only as the floor for a title too long for the last step. */}
           <Text
-            style={[titleStyle, { fontSize: baseSize * FIT_SCALES[step] }, blackletter && {
-              transform: [{ translateY: -baseSize * FIT_SCALES[step] * BLACKLETTER_LIFT }],
-            }]}
-            numberOfLines={2}
-            onTextLayout={(e) => {
-              const { lines } = e.nativeEvent;
-              measured({
-                line: lines[0]?.height ?? 0,
-                // Summed only past the first line: a single line's width is never a wrap.
-                lines: lines.length > 1 ? lines.reduce((sum, l) => sum + l.width, 0) : 0,
-              });
-            }}
-            onLayout={(e) => {
-              measured({ height: e.nativeEvent.layout.height, width: e.nativeEvent.layout.width });
-            }}
+            style={[titleStyle, blackletter && { transform: [{ translateY: -size * BLACKLETTER_LIFT }] }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={MIN_TITLE_SCALE}
           >
             {title}
           </Text>
@@ -140,11 +103,10 @@ export function HeaderBar({ title, showBack = true, onBack, icon, glyph, right, 
               <Glyph name="hearth" size={ICON_SIZES.lg} color={ACCENT.base} style={styles.hearthGlyph} />
             </Tap>
           )}
-          {chrome && <AtlasSigil />}
           {right}
         </View>
       </View>
-      <SectionDivider tint={ACCENT.base} />
+      <SectionDivider tint={ACCENT.base} knot={false} />
       {children}
     </View>
   );
@@ -157,7 +119,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, flexShrink: 1 },
   tail: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
-  titleIcon: { marginTop: SPACE.hair },
   backBtn: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
   // The glyph is 20pt; the target is the platform's 44pt minimum around it.
   hearthBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
@@ -169,14 +130,11 @@ const styles = StyleSheet.create({
     letterSpacing: TRACKING.eyebrow,
     flexShrink: 1,
   },
-  titleCompact: { fontSize: FONT_SIZES.xl, letterSpacing: TRACKING.wide },
   // Blackletter must not be letter-spaced (`TRACKING.body`, a whisper rather than the eyebrow's
-  // wide air) — the hand already carries its own rhythm. Compact reuses `hero` rather than a
-  // second dedicated blackletter step; see the note on `FONT_SIZES.roomName`.
+  // wide air) — the hand already carries its own rhythm.
   titleBlackletter: {
     fontFamily: FONTS.wordmark,
-    fontSize: FONT_SIZES.roomName,
+    fontSize: FONT_SIZES.headerTitle,
     letterSpacing: TRACKING.body,
   },
-  titleBlackletterCompact: { fontSize: FONT_SIZES.hero, letterSpacing: TRACKING.body },
 });

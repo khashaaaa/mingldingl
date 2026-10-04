@@ -188,4 +188,24 @@ describe('CandidateCard under the room light', () => {
       for (const stop of clear) expect(stop.colour).toBe(0);
     }
   });
+
+  it('makes what they wrote the face of the stone, whole rather than cut to two lines', () => {
+    const long = 'Vet by day. '.repeat(20).trim();
+    const { getByTestId } = render(
+      <CandidateCard candidate={{ ...CANDIDATE, bio: long }} onRequest={jest.fn()} onSkip={jest.fn()} />,
+    );
+    const bio = getByTestId('candidate-bio');
+    expect(bio.props.children).toBe(long);
+    expect(bio.props.numberOfLines).toBeUndefined();
+  });
+
+  it('burns the day\'s summons as candles beside the button, only when a budget is known', () => {
+    const { getAllByTestId, queryByTestId } = render(
+      <CandidateCard candidate={CANDIDATE} onRequest={jest.fn()} onSkip={jest.fn()} budget={{ remaining: 2, budget: 5 }} />,
+    );
+    expect(getAllByTestId('candle-lit')).toHaveLength(2);
+    expect(getAllByTestId('candle-spent')).toHaveLength(3);
+    expect(renderCard().queryByTestId('candle-row')).toBeNull();
+    expect(queryByTestId('candle-row')).toBeTruthy();
+  });
 });

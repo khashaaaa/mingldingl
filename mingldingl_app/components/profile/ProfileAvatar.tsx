@@ -92,10 +92,11 @@ export function ProfileAvatar({ photoUrls, tierColor, tier }: Props) {
                 )}
               </View>
             </View>
-            {/* Drawn over the photo's edge, so the ink ring closes it rather than sitting beside it. */}
+            {/* Pecked over the photo's edge, so the carved ring closes it rather than sitting beside it;
+                it overhangs the box so the rays and animals have room past the ring. */}
             <Image
               source={GEM_FRAMES[rung]}
-              style={[StyleSheet.absoluteFill, { tintColor: tierColor }]}
+              style={[styles.carvedFrame, { tintColor: tierColor }]}
               contentFit="contain"
               testID={`avatar-frame-${rung}`}
             />
@@ -151,7 +152,7 @@ export function ProfileAvatar({ photoUrls, tierColor, tier }: Props) {
 }
 
 const styles = StyleSheet.create({
-  avatarTouchable: { alignSelf: 'center', marginTop: SPACE.sm, marginBottom: SPACE.xl },
+  avatarTouchable: { alignSelf: 'center', marginTop: SPACE.lg, marginBottom: SPACE.xl },
   avatarFrame: { width: 118, height: 118, alignItems: 'center', justifyContent: 'center' },
   avatarRing: {
     width: 106,
@@ -164,6 +165,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: SURFACE.raised,
   },
+  /** `scripts/gen-gems.js` carves the frame on a 160pt box centred on this 118pt one. */
+  carvedFrame: { position: 'absolute', left: -21, top: -21, width: 160, height: 160 },
   avatarEditBadge: {
     position: 'absolute',
     bottom: SPACE.hair,

@@ -10,6 +10,8 @@ interface Props {
   size?: 'sm' | 'md';
 
   progress?: { held: number; needed: number } | null;
+  /** No box: the sigil stacked over its state word, for a row that is itself only hairlines. */
+  bare?: boolean;
 }
 
 export const OATH_VALUES: readonly Oath[] = ['Bond', 'Fate', 'Kinship'];
@@ -46,11 +48,28 @@ const SIZES = {
   md: { sigil: ICON_SIZES.xl, name: FONT_SIZES.md, state: FONT_SIZES.sm, padH: SPACE.md, padV: SPACE.sm, gap: SPACE.sm },
 } as const;
 
-export default function OathSigil({ oath, proven, size = 'md', progress }: Props) {
+export default function OathSigil({ oath, proven, size = 'md', progress, bare = false }: Props) {
   if (!oath) return null;
   const sz = SIZES[size];
   const tint = proven ? ACCENT.bright : INK.muted;
   const stateText = i18n.t(proven ? 'oath_state_proven' : 'oath_state_sworn');
+
+  if (bare) {
+    return (
+      <RNView style={styles.bare} accessibilityLabel={`${oathLabel(oath)}, ${stateText}`}>
+        {!!OATH_SIGILS[oath] && (
+          <RNImage
+            source={OATH_SIGILS[oath]}
+            testID={`oath-sigil-${oath}`}
+            style={{ width: sz.sigil, height: sz.sigil, opacity: proven ? 1 : 0.6 }}
+          />
+        )}
+        <RNText style={[styles.state, isLatin(stateText) && styles.stateCaps, { fontSize: sz.state, color: tint }]}>
+          {stateText}
+        </RNText>
+      </RNView>
+    );
+  }
 
   return (
     <RNView
@@ -100,6 +119,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: RADIUS.md,
   },
+  bare: { alignItems: 'center', gap: SPACE.hair },
   name: { fontFamily: FONTS.bodyBold, color: INK.primary, letterSpacing: TRACKING.body },
   state: { fontFamily: FONTS.utility, letterSpacing: TRACKING.label },
   // Caps are a Latin habit: a tracked, uppercased Cyrillic word reads as shouting, not as a label.

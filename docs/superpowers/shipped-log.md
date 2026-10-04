@@ -8,6 +8,79 @@ long versions.
 
 ---
 
+## 2026-10-04 — The Seek card is a carved stone
+
+`CandidateCard` was a blurred photo plate filling ~60% of the card with nothing on it, and the
+bio cut to two lines in a plaque at the foot. Now the likeness is a 132pt wax medallion (blurred,
+veiled, gold knot pressed in) over the three seals and the law. The stone's face is the bio,
+centred, uncut, stepped 22/18/16pt by length, then the bare oath sigil. The plaque keeps name, gem,
+eyebrow and title. The day's summons burn as the Hearth's `CandleRow` under Summon. Discover draws
+the next one or two candidates as stone edges behind the card. Habits are deliberately absent:
+they are the reveal ladder's last rung, and `CandidateResponse` does not carry them.
+
+Summoning showed two toasts: Discover's "Match Requested!" and the summoned side's "Fate has woven
+you a new match". The engine broadcasts `match_created` before it answers the request, so the
+echo beat the cache seed that `useRealtimeNudges` used to recognise its own summons. The like
+payload now carries `summonerId`, and the summoner skips it. The remaining toast is centred on the
+next card's medallion, inside the frame (`MEDALLION_CENTER`, `LootToast inset`), not over its top edge.
+
+## 2026-10-04 — The Quest Log is a thread
+
+The Quest Log's boxed cards broke Sealed Fire's "hairline rows" rule. Each quest is now a bead on
+one thread: the twisted `cord.png` ornament (until now unused) runs down the portrait column
+through every portrait, tinted by that fire's temperature — dim gold unlit, gold burning, ember,
+glacier once frozen — and stops at the first and last bead. A severed match cuts it. Rows are
+divided by a hairline that starts after the cord; names take the display voice; the vow is unboxed
+(`OathSigil bare`: sigil over its state word). Frozen fires sink below a "Gone cold" mark as a
+second, iced thread (`quest_log_gone_cold`, awaiting MN).
+
+## 2026-10-04 — Embers become sparks
+
+`EmberField` (the warm rooms' canopy, Discover, the Quest Log heading, the phone screen) drew soft
+gold dots drifting up. Each is now a spark: thrown up hard and slowed by the air (eased-out climb
+to a per-spark `reach`), tumbling sideways from the start, white-hot (`HEAT.spark`) cooling through
+gold to its ember colour and dark, flickering, with a short streak behind it and a blurred halo.
+About a third are spits — small, fast, low. The room canopy runs 14 instead of 6. The web
+(`plain`) fallback is unchanged.
+
+## 2026-10-04 — The portrait frame, carved
+
+The Profile avatar's six tier frames (`scripts/gen-gems.js`, `frame-0..5.png`) were ruled circles
+and stamped dots; they are now a petroglyph sun pecked by the floor friezes' own hand —
+`gen-carvings.js` exports `chisel`, `peck` and its figures, with a `bold` stroke and a `fine` chisel
+for carving this small (the friezes bake byte-identical). Rungs add, in order: the pecked ring,
+rays, cup-marks, two ibex facing each other at the top, a stag and a horse on the shoulders, a wolf
+and a horse at the sides — a procession round the sun, feet on the ring. Nothing is cut at the edit
+badge (lower right). A faint groove under the ring closes the photo's edge between pecks. A
+brush-ink version was tried first and rejected as not fitting the style. Baked on a 160pt box
+overhanging the 118pt avatar by 21 a side (`carvedFrame` in `ProfileAvatar`).
+
+## 2026-10-04 — A quieter header
+
+`HeaderBar` carried up to six marks — room glyph, title, hearth tap, atlas knot, the screen's
+control, and a second knot in the rule beneath. Now: back, title, hearth tap, the screen's own
+control. The room glyph is gone (the title and the floor already name the room; `glyph`/`icon`
+props removed from `HeaderBar`/`GameHeader`), the header's rule runs straight across
+(`SectionDivider knot={false}`; a festival tints the rule instead), and `AtlasSigil` is deleted —
+the atlas opens from **The Hold** row on the hearth (`Destinations`, mounted only while open).
+- **One title size everywhere:** blackletter at `FONT_SIZES.headerTitle` (30), Cyrillic at
+  `title` (22), with or without a right-hand control. The old compact variant and the measuring
+  fit-loop are gone (the loop over-stepped on Android: five tab titles at five sizes, 22–34);
+  `numberOfLines={1}` + `adjustsFontSizeToFit` (floor 0.6) catches only narrow phones and titles
+  from data. Every fixed title fits at full size on the A51 (row 371pt, tail 149pt on tabs).
+
+## 2026-10-04 — Letters on floating stone
+
+The ledger set every line flush left, told apart only by italic and a ring's colour — hard to
+tell whose was whose. Now each letter is a shard of rock hovering over its own shadow
+(`LetterRow`, art from `gen-stones.js` → `assets/stones/`): mine on the right in warm sandstone,
+theirs on the left in cold slate. Five baked aspect ratios × three breaks of rock per stone; the
+row measures itself, takes the nearest shard (variant fixed by message id) and stretches it the
+rest of the way. The stone is sized in points off `onLayout` — on Android a `require`d image
+takes its asset's pixel size over absolute fills and percentages. Only the newest letter drifts
+(±3pt, reduced motion off). Text is `INK.primary` on both, mine italic. The sigil rings and the
+cord down the ledger are gone; side and stone say who spoke.
+
 ## 2026-10-04 — Frost inked: icicles on every silent edge, ice over a frozen thread
 
 `FrostEdge` was three SVG zigzags that read as "curly lines". It is now baked ink

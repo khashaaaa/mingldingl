@@ -19,12 +19,14 @@ interface Props {
   /** Anchors the toast this far from the top of its parent instead of to the bottom, for a screen
    *  whose bottom holds what the player reads next (Discover's plaque). */
   topOffset?: number;
+  /** Extra room on each side, beyond the page gutter — to sit inside a card rather than over its frame. */
+  inset?: number;
 }
 
 const RAY_ANGLES = [0, 30, 60, 90, 120, 150];
 const HIDDEN_Y = 140;
 
-export function LootToast({ title, points, visible, onDismiss, item, bottomOffset = 0, topOffset }: Props) {
+export function LootToast({ title, points, visible, onDismiss, item, bottomOffset = 0, topOffset, inset = 0 }: Props) {
   const insets = useSafeAreaInsets();
   const scale = useRef(new Animated.Value(0.8)).current;
   const rays = useRef(new Animated.Value(0)).current;
@@ -49,6 +51,7 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
       style={[
         TOAST_STYLES.container,
         styles.container,
+        inset > 0 && { left: SPACE.gutter + inset, right: SPACE.gutter + inset },
         topOffset != null ? { top: topOffset } : { bottom: insets.bottom + SPACE.gutter + bottomOffset },
         { transform: [{ translateY }, { scale }], opacity },
       ]}

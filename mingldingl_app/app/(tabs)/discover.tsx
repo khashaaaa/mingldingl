@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { isAxiosError } from 'axios';
 import { useDiscover, useRequestMatch } from '../../hooks/useDiscover';
 import { useDailyMatchBudget } from '../../hooks/useScore';
-import { CandidateCard } from '../../components/cards/CandidateCard';
+import { CandidateCard, MEDALLION_CENTER } from '../../components/cards/CandidateCard';
 import { LootToast } from '../../components/modals/LootToast';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { GameButton } from '../../components/ui/GameButton';
@@ -13,12 +13,14 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { EmberField } from '../../components/vfx/EmberField';
 import { i18n } from '../../lib/i18n';
 import { useLocaleStore } from '../../store/localeStore';
-import { RADIUS, SPACE } from '../../lib/theme';
+import { LINE, RADIUS, SPACE, SURFACE } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
 import { isApiError } from '../../lib/api/errors';
 
-/** Where the request toast sits in the deck: the middle of the likeness, above the plaque. */
-const TOAST_AT = 0.3;
+/** The request toast's own height, roughly, so it can be centred on the medallion. */
+const TOAST_HALF = 30;
+/** How far each stone behind shows below the one in front of it. */
+const STONE_STEP = 6;
 
 export default function DiscoverScreen() {
   useLocaleStore((s) => s.locale);
@@ -43,7 +45,7 @@ export default function DiscoverScreen() {
   // only the card area swaps when the deck lands — the header itself never jumps into place.
   if (isLoading) return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('seek_title')} glyph="fire" showScore />
+      <GameHeader title={i18n.t('seek_title')} showScore />
       <View
         style={styles.cardArea}
         onLayout={(e) => setLoadingCardHeight(e.nativeEvent.layout.height)}
@@ -83,10 +85,14 @@ export default function DiscoverScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('seek_title')} glyph="fire" showScore />
+      <GameHeader title={i18n.t('seek_title')} showScore />
       <View style={styles.cardArea} onLayout={onDeckLayout}>
-        <PanelReveal style={{ flex: 1 }}>
+        {/* The deck: the next stones stand behind this one, their edges showing at the foot. */}
+        {(candidates?.length ?? 0) > 2 && <View style={[styles.stone, styles.stoneFar]} testID="deck-stone" />}
+        {(candidates?.length ?? 0) > 1 && <View style={[styles.stone, styles.stoneNear]} testID="deck-stone" />}
+        <PanelReveal style={styles.deckTop}>
           <CandidateCard
+            budget={dailyBudget}
             candidate={candidate}
             requesting={isRequesting}
             requestDisabled={budgetSpent}
@@ -114,14 +120,15 @@ export default function DiscoverScreen() {
           />
         </PanelReveal>
         {deckSize.w > 0 && <EmberField width={deckSize.w} height={deckSize.h} density={8} />}
-        {/* Over the next card's sealed likeness: anchored to the bottom it covered that card's name
-            and age, the first thing read as it lands. */}
+        {/* On the next card's wax medallion, inside its frame: the wax is the same on every card, so
+            the toast hides neither the bio nor the name, the first things read as it lands. */}
         <LootToast
           title={i18n.t('match_requested')}
           points={toastPoints}
           visible={toast}
           onDismiss={() => setToast(false)}
-          topOffset={deckSize.h * TOAST_AT}
+          topOffset={MEDALLION_CENTER - TOAST_HALF}
+          inset={SPACE.lg}
         />
       </View>
       <AlertModal
@@ -149,4 +156,15 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
   cardArea: { flex: 1, paddingHorizontal: SPACE.gutter, paddingBottom: SPACE.lg },
+  deckTop: { flex: 1, marginBottom: STONE_STEP * 2 },
+  stone: {
+    position: 'absolute',
+    top: STONE_STEP * 2,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: LINE.edge,
+    backgroundColor: SURFACE.panel,
+  },
+  stoneNear: { left: SPACE.gutter + STONE_STEP, right: SPACE.gutter + STONE_STEP, bottom: SPACE.lg + STONE_STEP, opacity: 0.8 },
+  stoneFar: { left: SPACE.gutter + STONE_STEP * 2, right: SPACE.gutter + STONE_STEP * 2, bottom: SPACE.lg, opacity: 0.5 },
 });
