@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
 import { STATUS_SOFT, STATUS, LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE, TEMPERATURE, tint } from '../../lib/theme';
-import { DialogScrim, DialogStrip } from './DialogSurface';
+import { DIALOG_STYLES, DialogScrim, DialogStrip } from './DialogSurface';
 import { Icon } from '../ui/Icon';
 import { Glyph } from '../ui/Glyph';
 import { AppModal } from './AppModal';
@@ -48,7 +48,7 @@ export function AlertModal({
           {isFrost
             ? <Glyph name="ice" size={ICON_SIZES.xl} color={accent} />
             : <Icon name={isWarning ? 'alert' : 'rhombus-outline'} size={ICON_SIZES.xl} color={accent} />}
-          <Text style={styles.title}>{title}</Text>
+          <Text style={DIALOG_STYLES.title}>{title}</Text>
           {!!message && <Text style={styles.message}>{message}</Text>}
           {children && <View style={styles.childrenWrap}>{children}</View>}
           {onConfirm ? (
@@ -81,7 +81,6 @@ export function AlertModal({
 }
 
 const styles = StyleSheet.create({
-  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary, textAlign: 'center' },
   message: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center', lineHeight: LEADING.md },
   childrenWrap: { alignSelf: 'stretch', marginTop: SPACE.xs },
   btnWrap: { marginTop: SPACE.md, alignSelf: 'stretch' },

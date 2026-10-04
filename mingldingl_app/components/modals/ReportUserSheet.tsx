@@ -10,6 +10,7 @@ import { GameButton } from '../ui/GameButton';
 import { TextField } from '../ui/TextField';
 import { Icon } from '../ui/Icon';
 import { SheetModal } from './SheetModal';
+import { DIALOG_STYLES } from './DialogSurface';
 import { AlertModal } from './AlertModal';
 
 interface Props {
@@ -63,7 +64,7 @@ export function ReportUserSheet({ visible, reportedUserId, matchId, onClose, onR
         visible={visible}
         onClose={() => { reset(); onClose(); }}
       >
-        <Text style={styles.title}>{i18n.t('report_sheet_title')}</Text>
+        <Text style={[DIALOG_STYLES.title, styles.title]}>{i18n.t('report_sheet_title')}</Text>
         <Text style={styles.intro}>{i18n.t('report_sheet_intro')}</Text>
 
         <ScrollView style={styles.reasons} keyboardShouldPersistTaps="handled">
@@ -135,10 +136,7 @@ export function ReportUserSheet({ visible, reportedUserId, matchId, onClose, onR
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: ACCENT.base,
-    textAlign: 'center', marginBottom: SPACE.xs,
-  },
+  title: { marginBottom: SPACE.xs },
   intro: {
     fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim,
     lineHeight: LEADING.md, textAlign: 'center', marginBottom: SPACE.md,

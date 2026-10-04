@@ -82,7 +82,6 @@ export const en = {
   match_ended_title: 'This bond has been severed',
   match_ended_body: 'You can no longer send messages here.',
   match_ended_notice: 'The bond was severed. This thread is kept as it was; no more letters can be written on it.',
-  total_score: 'Total score',
   progression_title: 'The Ascent',
   progression_history_title: 'Chronicle of Deeds',
   progression_load_error: 'Your progress would not open',
@@ -91,6 +90,8 @@ export const en = {
   chat_load_error: 'This thread would not open',
   chat_empty_title: 'No words spoken yet',
   chat_empty_sub: 'Send the first message to open this thread.',
+  // Under a ceremony once it has played out: how to leave it.
+  ceremony_continue: 'Tap to go on',
   letter_sealed_hint: 'A first word, sealed. Tap to break the wax.',
   screen_load_error: 'This page would not open',
   offline_banner: 'The road is out. What is here stays; nothing new arrives until it returns.',
@@ -98,10 +99,10 @@ export const en = {
   daily_matches: 'daily matches',
   tier_perk_next_preview: 'Next tier: +%{bonus} daily matches',
   streak_longest: 'Longest Streak',
-  // The Ascent as a night sky (Wave 3): the progression screen's six gem stars, climbing bottom-left
-  // to top-right. `ascent_you`/`ascent_to_go` label the held and next star; `ascent_beyond` sits
-  // above the top of the ladder, since nothing outranks Emerald.
-  ascent_sub: 'The tiers as a climb through the night sky. Each gem is a star you reach; the one you hold burns brightest.',
+  // The Ascent (Wave 3, set in rock 2026-10-04): the six gems in a cliff, climbed by a switchback
+  // path. `ascent_you`/`ascent_to_go` label the held and next gem; `ascent_beyond` is the strip of
+  // night over the summit, since nothing outranks Emerald.
+  ascent_sub: 'The tiers as a climb up the rock. Each gem is set in the stone where you reach it; the one you hold burns brightest.',
   ascent_you: 'you, %{score}',
   ascent_to_go: '%{points} to go',
   ascent_beyond: 'the sky beyond',
@@ -469,7 +470,6 @@ export const en = {
   error_boundary_message: 'Something went wrong on this leg of the journey. Try again, brave one.',
   error_boundary_retry: 'Try Again',
   mystery_match_name: 'A sealed one',
-  unknown_name: 'A sealed one',
   deleted_user: 'A name struck',
   tier_up_title: 'Ascended to %{tier}!',
   alert_dismiss: 'Understood',
@@ -568,7 +568,6 @@ export const en = {
   // can put the number where its own grammar wants it (Sealed Fire audit, W5).
   count_of_total: '%{held} / %{total}',
   points_gain: '+%{points}',
-  next_tier_arrow: '→ %{tier}',
   name_age: '%{name}, %{age}',
   tier_score: '%{tier} · %{score}',
   add_photo: 'Add a photo',
@@ -752,6 +751,8 @@ export const en = {
   // The hearth's scaffolding (Sealed Fire W4 Task 4): the header's way-home tap and the candle
   // row's label. `go_home` is label-only — the tap carries no visible text, just the hearth glyph.
   go_home: 'Home',
+  // The header's points badge, read aloud as the link it is.
+  score_hud_open: '%{score} points. Open The Ascent',
   candles_left: '%{remaining} of %{budget} candles left',
 
   // The hearth itself (Sealed Fire W4 Task 5, move 6). The room's name is `room_hearth` above —

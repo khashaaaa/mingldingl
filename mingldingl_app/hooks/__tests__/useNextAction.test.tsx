@@ -95,10 +95,10 @@ describe('useNextAction priority order', () => {
 
   // The engine hands over the name from reveal level 1, but the quest log and chat header keep a
   // match nameless until level 2 — this card has to agree with them.
-  it('keeps the match nameless below reveal level 2, even when the engine sent a name', () => {
+  it('names the match from level 1 — the name comes with the match, only the face waits', () => {
     setAllSources({ matches: [match({ matchId: 'm42', icebreakerComplete: false, revealLevel: 1, otherUser: { displayName: 'Sam' } })] });
     const { result } = renderHook(() => useNextAction());
-    expect(result.current).toEqual({ kind: 'icebreaker', matchId: 'm42', name: 'A sealed one' });
+    expect(result.current).toEqual({ kind: 'icebreaker', matchId: 'm42', name: 'Sam' });
   });
 
   it('falls back to the mystery name if the pending match has no displayName', () => {

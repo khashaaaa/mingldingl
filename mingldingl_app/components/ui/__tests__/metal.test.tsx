@@ -4,7 +4,6 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { MetalPlate } from '../MetalPlate';
 import { Strongbox } from '../Strongbox';
-import { Lamellar } from '../Lamellar';
 import { GameButton } from '../GameButton';
 import { METAL_IMAGES, PLATE, grainFor } from '../metal';
 
@@ -13,7 +12,7 @@ const layout = (width: number, height: number) => ({ nativeEvent: { layout: { x:
 describe('metal', () => {
   it('has every bake gen-metal.js writes on disk', () => {
     const dir = path.join(__dirname, '../../../assets/metal');
-    const names = ['plate-worn', 'plate-fine', 'grain-0', 'grain-1', 'grain-2', 'strap', 'lamellar-body', 'lamellar-detail',
+    const names = ['plate-worn', 'plate-fine', 'grain-0', 'grain-1', 'grain-2', 'strap',
       'box-body-wood', 'box-body-iron', 'box-body-detail', 'box-lid-wood', 'box-lid-iron', 'box-lid-detail', 'seal-body', 'seal-detail'];
     for (const n of names) expect(fs.existsSync(path.join(dir, `${n}.png`))).toBe(true);
   });
@@ -62,9 +61,5 @@ describe('metal', () => {
     expect(getByTestId('strongbox-shut')).toBeTruthy();
     rerender(<Strongbox open />);
     expect(getByTestId('strongbox-open')).toBeTruthy();
-  });
-
-  it('draws lamellar', () => {
-    expect(render(<Lamellar />).getByTestId('lamellar')).toBeTruthy();
   });
 });

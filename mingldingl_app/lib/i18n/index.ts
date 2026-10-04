@@ -20,6 +20,7 @@ export const AWAITING_MN_TRANSLATION = [
   'room_gate', 'room_road', 'room_tavern', 'room_hearth', 'room_forge', 'room_hall', 'room_deep',
   'sound',
   'quest_log_gone_cold',
+  'score_hud_open', 'ceremony_continue',
   // The engine's 403 for an identity whose account the deletion sweep has already anonymised.
   'err_account_deleted',
   // The report sheet. Safety copy is the last place for an AI guess at Mongolian, so it renders in
@@ -156,7 +157,7 @@ export const AWAITING_MN_TRANSLATION = [
   'honour_lore_hearthbound', 'honour_lore_naadam', 'honour_lore_whitemoon', 'event_bond_trial_done',
   'event_scar_healed', 'chronicle_bond_trial_done', 'chronicle_scar_healed',
   // Audit W5: number-in-sentence formats (a translator only confirms the order) and the add-photo tile's label.
-  'count_of_total', 'points_gain', 'next_tier_arrow', 'name_age', 'tier_score', 'add_photo',
+  'count_of_total', 'points_gain', 'name_age', 'tier_score', 'add_photo',
   // Province and district names (2026-10-03): stored in English by the engine, shown through cityLabel.
   'city_tsetserleg', 'city_olgii', 'city_bayankhongor', 'city_bulgan', 'city_darkhan',
   'city_choibalsan', 'city_sainshand', 'city_mandalgovi', 'city_altai', 'city_choir', 'city_chinggis',

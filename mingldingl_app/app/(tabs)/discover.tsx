@@ -19,8 +19,8 @@ import { isApiError } from '../../lib/api/errors';
 
 /** The request toast's own height, roughly, so it can be centred on the medallion. */
 const TOAST_HALF = 30;
-/** How far each stone behind shows below the one in front of it. */
-const STONE_STEP = 6;
+/** How far each card behind shows below the one in front of it. */
+const DECK_STEP = 6;
 
 export default function DiscoverScreen() {
   useLocaleStore((s) => s.locale);
@@ -45,7 +45,7 @@ export default function DiscoverScreen() {
   // only the card area swaps when the deck lands — the header itself never jumps into place.
   if (isLoading) return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('seek_title')} showScore />
+      <GameHeader title={i18n.t('seek_title')} />
       <View
         style={styles.cardArea}
         onLayout={(e) => setLoadingCardHeight(e.nativeEvent.layout.height)}
@@ -85,11 +85,14 @@ export default function DiscoverScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('seek_title')} showScore />
+      <GameHeader title={i18n.t('seek_title')} />
       <View style={styles.cardArea} onLayout={onDeckLayout}>
-        {/* The deck: the next stones stand behind this one, their edges showing at the foot. */}
-        {(candidates?.length ?? 0) > 2 && <View style={[styles.stone, styles.stoneFar]} testID="deck-stone" />}
-        {(candidates?.length ?? 0) > 1 && <View style={[styles.stone, styles.stoneNear]} testID="deck-stone" />}
+        {/* Sparks rise behind the deck, at its edges: over the card they crossed the words and the
+            Summon button. */}
+        {deckSize.w > 0 && <EmberField width={deckSize.w} height={deckSize.h} density={6} />}
+        {/* The deck: the next cards wait behind this one, their edges showing at the foot. */}
+        {(candidates?.length ?? 0) > 2 && <DeckEdge depth={2} />}
+        {(candidates?.length ?? 0) > 1 && <DeckEdge depth={1} />}
         <PanelReveal style={styles.deckTop}>
           <CandidateCard
             budget={dailyBudget}
@@ -119,7 +122,6 @@ export default function DiscoverScreen() {
             onSkip={() => markSeen(candidate.id)}
           />
         </PanelReveal>
-        {deckSize.w > 0 && <EmberField width={deckSize.w} height={deckSize.h} density={8} />}
         {/* On the next card's wax medallion, inside its frame: the wax is the same on every card, so
             the toast hides neither the bio nor the name, the first things read as it lands. */}
         <LootToast
@@ -152,19 +154,33 @@ export default function DiscoverScreen() {
   );
 }
 
+/** A card waiting behind the one in front, `depth` steps back: narrower, lower, and dimmer. */
+function DeckEdge({ depth }: { depth: 1 | 2 }) {
+  const inset = SPACE.gutter + DECK_STEP * depth;
+  return (
+    <View
+      testID="deck-edge"
+      accessible={false}
+      pointerEvents="none"
+      style={[
+        styles.deckEdge,
+        { left: inset, right: inset, bottom: SPACE.lg + DECK_STEP * (2 - depth), opacity: depth === 1 ? 0.7 : 0.4 },
+      ]}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   center: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
   cardArea: { flex: 1, paddingHorizontal: SPACE.gutter, paddingBottom: SPACE.lg },
-  deckTop: { flex: 1, marginBottom: STONE_STEP * 2 },
-  stone: {
+  deckTop: { flex: 1, marginBottom: DECK_STEP * 2 },
+  deckEdge: {
     position: 'absolute',
-    top: STONE_STEP * 2,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: LINE.edge,
+    top: DECK_STEP * 2,
     backgroundColor: SURFACE.panel,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: LINE.hairline,
   },
-  stoneNear: { left: SPACE.gutter + STONE_STEP, right: SPACE.gutter + STONE_STEP, bottom: SPACE.lg + STONE_STEP, opacity: 0.8 },
-  stoneFar: { left: SPACE.gutter + STONE_STEP * 2, right: SPACE.gutter + STONE_STEP * 2, bottom: SPACE.lg, opacity: 0.5 },
 });

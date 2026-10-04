@@ -58,17 +58,17 @@ export const GEM_SHADES = {
 } as const;
 
 /**
- * What rank looks like once the jewel stops encoding it. Ring weight and glow strength climb with
- * the tier and nothing else does, so the ramp cannot disagree with `TIER_ORDER` the way six
+ * What rank looks like once the jewel stops encoding it. Glow strength climbs with the tier (and so
+ * does the cut, baked into the stone by `scripts/gen-gems.js`) and nothing else does, so the ramp cannot disagree with `TIER_ORDER` the way six
  * independently chosen hues could.
  */
 export const TIER_PRESENCE = {
-  Garnet:   { ring: 1, glow: 0.00 },
-  Opal:     { ring: 1, glow: 0.16 },
-  Amethyst: { ring: 2, glow: 0.32 },
-  Sapphire: { ring: 2, glow: 0.48 },
-  Ruby:     { ring: 3, glow: 0.64 },
-  Emerald:  { ring: 3, glow: 0.80 },
+  Garnet:   { glow: 0.00 },
+  Opal:     { glow: 0.16 },
+  Amethyst: { glow: 0.32 },
+  Sapphire: { glow: 0.48 },
+  Ruby:     { glow: 0.64 },
+  Emerald:  { glow: 0.80 },
 } as const;
 
 // One name per face. `displayBlack` and `displayRegular` used to sit beside `display` and
@@ -545,6 +545,14 @@ export const CARVING = {
 } as const;
 
 /** The tab bar's height above the device's own bottom inset. The floor's frieze stands on it. */
+/**
+ * Needlework. The Seek banner is dyed wool sewn in gold thread (`scripts/gen-banner.js`): its
+ * border, herd and band. Not a `MATERIAL` — that board is the six things objects are made of.
+ */
+export const THREAD = {
+  gold: '#D9B25E',
+} as const;
+
 export const TAB_BAR_HEIGHT = 74;
 
 /**

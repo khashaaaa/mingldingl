@@ -13,28 +13,48 @@ interface Props {
 
   tint?: string;
   /**
-   * The one panel a screen is *for*. Knots, parchment and the glow are its alone — the kit's
-   * rule is "one hero panel, then rows", and "its glow is the only glow". Every other card keeps
-   * the panel fill, the hairline, the top highlight and the border, and gives up the ornament
-   * and both shadows, so it lies flat on the floor. At most one per screen; the rule is enforced
+   * The one panel a screen is *for*. Knots, parchment, the frame and the glow are its alone —
+   * the kit's rule is "one hero panel, then rows", and "its glow is the only glow". Every other
+   * card is a ledger section: no fill, no border, one hairline across its top, and its contents
+   * on the screen's gutter like every row list's. At most one per screen; the rule is enforced
    * in `lib/__tests__/hero.test.ts`.
+   *
+   * (2026-10-04) Ordinary cards used to keep the panel fill and border, so half the app read as
+   * hairline rows (Quest Log, Satchel, Settings) and the other half as a stack of boxes (Profile,
+   * Edit, Missions, Town Square) — the same rule drawn two ways.
    */
   hero?: boolean;
   /**
    * Clip the card's contents to its rounded corners (art that runs edge to edge, like the hearth's
    * sky). Use this, never `overflow: 'hidden'` in `style`: the knots sit 6pt outside the card, so
    * clipping the card itself cut them in half. Here only an inner layer clips; the knots stay out.
+   * Art needs an edge to run to, so a clipped card keeps its frame even when it is not the hero.
    */
   clip?: boolean;
+  /**
+   * An object on the floor rather than a section of the page — a struck plaque (the Oath, the
+   * Flame Rite). It keeps its border and its call site's inset, so what is written on the plate
+   * sits inside it. Without this, the ledger-section inset put the oath against the plate's edge.
+   */
+  framed?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
-export function AppCard({ children, tier, tint: tintOverride, hero, clip, style }: Props) {
+export function AppCard({ children, tier, tint: tintOverride, hero, clip, framed, style }: Props) {
   const tint = tintOverride ?? (tier ? colorForTier(tier) : ACCENT.base);
   // On a festival day the gold knots take the festival's colour. The PNGs are metal-shaded over
   // alpha, so tintColor flattens them to one colour while keeping their shape.
   const festival = useActiveFestival();
   const knotTint = festival ? { tintColor: festival.color } : undefined;
+  if (!hero && !clip && !framed) {
+    // Horizontal padding is dropped after the call site's style, so a section's text starts on
+    // the same gutter as the rows above and below it rather than one card-inset further in.
+    return (
+      <View testID="app-card" style={[styles.section, style, styles.sectionInset]}>
+        {children}
+      </View>
+    );
+  }
   const body = (
     <>
       {hero ? (
@@ -69,6 +89,11 @@ export function AppCard({ children, tier, tint: tintOverride, hero, clip, style 
 }
 
 const styles = StyleSheet.create({
+  section: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: LINE.hairline,
+  },
+  sectionInset: { paddingHorizontal: 0, paddingLeft: 0, paddingRight: 0, backgroundColor: 'transparent', borderWidth: 0, borderTopWidth: StyleSheet.hairlineWidth, borderRadius: 0 },
   card: {
     backgroundColor: SURFACE.panel,
     borderRadius: RADIUS.md,

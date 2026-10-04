@@ -13,6 +13,7 @@ import { useNowTicker } from '../hooks/useNowTicker';
 import { ordinalWord, threadDay } from '../lib/worldTime';
 import type { BlockedUser } from '../models/blockedUser';
 import { useScrollTail } from '../hooks/useScrollTail';
+import { ScreenLede } from '../components/ui/ScreenLede';
 
 /** How far the left `FrostEdge` reaches in from the edge — a horizontal distance, not the row's height. */
 const FROST_REACH = 84;
@@ -28,7 +29,7 @@ export default function BlockedUsersScreen() {
   return (
     <View style={styles.screen}>
       <HeaderBar title={i18n.t('blocked_users_title')} />
-      <Text style={styles.sub}>{i18n.t('frozen_gate_sub')}</Text>
+      <ScreenLede style={styles.sub}>{i18n.t('frozen_gate_sub')}</ScreenLede>
       {isLoading ? (
         <View style={styles.list}>
           <SkeletonRows count={3} gap={SPACE.md} row={() => (
@@ -92,13 +93,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // The app speaking, not either person in this list — same register as the Quest Log's own
   // `law` line (`app/(tabs)/matches.tsx`).
-  sub: {
-    fontFamily: FONTS.bodyItalic,
-    fontSize: FONT_SIZES.sm,
-    color: INK.dim,
-    paddingHorizontal: SPACE.gutter,
-    paddingBottom: SPACE.sm,
-  },
+  sub: { paddingHorizontal: SPACE.gutter, marginBottom: SPACE.sm },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: SPACE.gutter },
   row: {

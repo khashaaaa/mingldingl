@@ -4,7 +4,7 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
-import { ACCENT, LINE, RADIUS, SCRIM, SPACE, SURFACE, overlay } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, LINE, RADIUS, SCRIM, SPACE, SURFACE, overlay } from '../../lib/theme';
 import { ParchmentFill } from '../ui/ParchmentFill';
 
 /**
@@ -148,6 +148,8 @@ export function DialogStrip({ accent, wash, children, style }: {
 
 export const DIALOG_STYLES = StyleSheet.create({
   scrim: { flex: 1 },
+  // Every dialog and sheet titles itself the same way; five sheets once set five different ones.
+  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary, textAlign: 'center' },
   card: {
     backgroundColor: SURFACE.panel,
     borderRadius: RADIUS.md,

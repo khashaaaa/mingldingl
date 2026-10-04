@@ -62,8 +62,7 @@ afterEach(() => {
 });
 
 function renderScreen() {
-  // GameHeader reads useScoreDetail (react-query) unconditionally, even though this screen
-  // doesn't show the score HUD — it just needs a client in the tree.
+  // GameHeader reads useScoreDetail (react-query), so the screen needs a client in the tree.
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <WithSafeArea>

@@ -2,56 +2,40 @@
 import type { ImageSourcePropType } from 'react-native';
 import type { GemTier } from '../../models/user';
 
-/** The pixel sizes each stone is baked at; the badge picks the smallest that covers its size. */
-export const GEM_PIXELS = [64, 128, 256] as const;
+/** The pixel sizes each stone's still is baked at; the badge picks the smallest that covers its size. */
+export const GEM_STILL_PIXELS = [64, 128, 256] as const;
+/** The cell sizes of the sway sheets. */
+export const GEM_SWAY_PIXELS = [128, 256] as const;
+/** A sway sheet holds this many poses, left to right then down, this many to a row. */
+export const GEM_SWAY_FRAMES = 24;
+export const GEM_SWAY_COLS = 6;
 
-export type GemLayer = 'body' | 'shade' | 'light' | 'setting';
-
-export const GEM_IMAGES: Record<GemTier, Record<GemLayer, Record<(typeof GEM_PIXELS)[number], ImageSourcePropType>>> = {
+export const GEM_IMAGES: Record<GemTier, {
+  still: Record<(typeof GEM_STILL_PIXELS)[number], ImageSourcePropType>;
+  sway: Record<(typeof GEM_SWAY_PIXELS)[number], ImageSourcePropType>;
+}> = {
   Garnet: {
-    body: { 64: require('../../assets/gems/garnet-body-64.png'), 128: require('../../assets/gems/garnet-body-128.png'), 256: require('../../assets/gems/garnet-body-256.png') },
-    shade: { 64: require('../../assets/gems/garnet-shade-64.png'), 128: require('../../assets/gems/garnet-shade-128.png'), 256: require('../../assets/gems/garnet-shade-256.png') },
-    light: { 64: require('../../assets/gems/garnet-light-64.png'), 128: require('../../assets/gems/garnet-light-128.png'), 256: require('../../assets/gems/garnet-light-256.png') },
-    setting: { 64: require('../../assets/gems/garnet-setting-64.png'), 128: require('../../assets/gems/garnet-setting-128.png'), 256: require('../../assets/gems/garnet-setting-256.png') },
+    still: { 64: require('../../assets/gems/garnet-still-64.png'), 128: require('../../assets/gems/garnet-still-128.png'), 256: require('../../assets/gems/garnet-still-256.png') },
+    sway: { 128: require('../../assets/gems/garnet-sway-128.png'), 256: require('../../assets/gems/garnet-sway-256.png') },
   },
   Opal: {
-    body: { 64: require('../../assets/gems/opal-body-64.png'), 128: require('../../assets/gems/opal-body-128.png'), 256: require('../../assets/gems/opal-body-256.png') },
-    shade: { 64: require('../../assets/gems/opal-shade-64.png'), 128: require('../../assets/gems/opal-shade-128.png'), 256: require('../../assets/gems/opal-shade-256.png') },
-    light: { 64: require('../../assets/gems/opal-light-64.png'), 128: require('../../assets/gems/opal-light-128.png'), 256: require('../../assets/gems/opal-light-256.png') },
-    setting: { 64: require('../../assets/gems/opal-setting-64.png'), 128: require('../../assets/gems/opal-setting-128.png'), 256: require('../../assets/gems/opal-setting-256.png') },
+    still: { 64: require('../../assets/gems/opal-still-64.png'), 128: require('../../assets/gems/opal-still-128.png'), 256: require('../../assets/gems/opal-still-256.png') },
+    sway: { 128: require('../../assets/gems/opal-sway-128.png'), 256: require('../../assets/gems/opal-sway-256.png') },
   },
   Amethyst: {
-    body: { 64: require('../../assets/gems/amethyst-body-64.png'), 128: require('../../assets/gems/amethyst-body-128.png'), 256: require('../../assets/gems/amethyst-body-256.png') },
-    shade: { 64: require('../../assets/gems/amethyst-shade-64.png'), 128: require('../../assets/gems/amethyst-shade-128.png'), 256: require('../../assets/gems/amethyst-shade-256.png') },
-    light: { 64: require('../../assets/gems/amethyst-light-64.png'), 128: require('../../assets/gems/amethyst-light-128.png'), 256: require('../../assets/gems/amethyst-light-256.png') },
-    setting: { 64: require('../../assets/gems/amethyst-setting-64.png'), 128: require('../../assets/gems/amethyst-setting-128.png'), 256: require('../../assets/gems/amethyst-setting-256.png') },
+    still: { 64: require('../../assets/gems/amethyst-still-64.png'), 128: require('../../assets/gems/amethyst-still-128.png'), 256: require('../../assets/gems/amethyst-still-256.png') },
+    sway: { 128: require('../../assets/gems/amethyst-sway-128.png'), 256: require('../../assets/gems/amethyst-sway-256.png') },
   },
   Sapphire: {
-    body: { 64: require('../../assets/gems/sapphire-body-64.png'), 128: require('../../assets/gems/sapphire-body-128.png'), 256: require('../../assets/gems/sapphire-body-256.png') },
-    shade: { 64: require('../../assets/gems/sapphire-shade-64.png'), 128: require('../../assets/gems/sapphire-shade-128.png'), 256: require('../../assets/gems/sapphire-shade-256.png') },
-    light: { 64: require('../../assets/gems/sapphire-light-64.png'), 128: require('../../assets/gems/sapphire-light-128.png'), 256: require('../../assets/gems/sapphire-light-256.png') },
-    setting: { 64: require('../../assets/gems/sapphire-setting-64.png'), 128: require('../../assets/gems/sapphire-setting-128.png'), 256: require('../../assets/gems/sapphire-setting-256.png') },
+    still: { 64: require('../../assets/gems/sapphire-still-64.png'), 128: require('../../assets/gems/sapphire-still-128.png'), 256: require('../../assets/gems/sapphire-still-256.png') },
+    sway: { 128: require('../../assets/gems/sapphire-sway-128.png'), 256: require('../../assets/gems/sapphire-sway-256.png') },
   },
   Ruby: {
-    body: { 64: require('../../assets/gems/ruby-body-64.png'), 128: require('../../assets/gems/ruby-body-128.png'), 256: require('../../assets/gems/ruby-body-256.png') },
-    shade: { 64: require('../../assets/gems/ruby-shade-64.png'), 128: require('../../assets/gems/ruby-shade-128.png'), 256: require('../../assets/gems/ruby-shade-256.png') },
-    light: { 64: require('../../assets/gems/ruby-light-64.png'), 128: require('../../assets/gems/ruby-light-128.png'), 256: require('../../assets/gems/ruby-light-256.png') },
-    setting: { 64: require('../../assets/gems/ruby-setting-64.png'), 128: require('../../assets/gems/ruby-setting-128.png'), 256: require('../../assets/gems/ruby-setting-256.png') },
+    still: { 64: require('../../assets/gems/ruby-still-64.png'), 128: require('../../assets/gems/ruby-still-128.png'), 256: require('../../assets/gems/ruby-still-256.png') },
+    sway: { 128: require('../../assets/gems/ruby-sway-128.png'), 256: require('../../assets/gems/ruby-sway-256.png') },
   },
   Emerald: {
-    body: { 64: require('../../assets/gems/emerald-body-64.png'), 128: require('../../assets/gems/emerald-body-128.png'), 256: require('../../assets/gems/emerald-body-256.png') },
-    shade: { 64: require('../../assets/gems/emerald-shade-64.png'), 128: require('../../assets/gems/emerald-shade-128.png'), 256: require('../../assets/gems/emerald-shade-256.png') },
-    light: { 64: require('../../assets/gems/emerald-light-64.png'), 128: require('../../assets/gems/emerald-light-128.png'), 256: require('../../assets/gems/emerald-light-256.png') },
-    setting: { 64: require('../../assets/gems/emerald-setting-64.png'), 128: require('../../assets/gems/emerald-setting-128.png'), 256: require('../../assets/gems/emerald-setting-256.png') },
+    still: { 64: require('../../assets/gems/emerald-still-64.png'), 128: require('../../assets/gems/emerald-still-128.png'), 256: require('../../assets/gems/emerald-still-256.png') },
+    sway: { 128: require('../../assets/gems/emerald-sway-128.png'), 256: require('../../assets/gems/emerald-sway-256.png') },
   },
 };
-
-/** The portrait frame for each rung, `TIER_ORDER` order; tinted the tier colour by `ProfileAvatar`. */
-export const GEM_FRAMES: readonly ImageSourcePropType[] = [
-  require('../../assets/gems/frame-0.png'),
-  require('../../assets/gems/frame-1.png'),
-  require('../../assets/gems/frame-2.png'),
-  require('../../assets/gems/frame-3.png'),
-  require('../../assets/gems/frame-4.png'),
-  require('../../assets/gems/frame-5.png'),
-];

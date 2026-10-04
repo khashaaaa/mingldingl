@@ -76,7 +76,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
     );
   } else if (state.acceptedAt) {
     content = (
-      <AppCard style={styles.card}>
+      <AppCard framed style={styles.card}>
         {plaque(true)}
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_ready')}</Text>
@@ -87,7 +87,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
     );
   } else if (proposedByMe) {
     content = (
-      <AppCard style={styles.card}>
+      <AppCard framed style={styles.card}>
         {plaque(false)}
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <View style={styles.waitingRow}>
@@ -98,7 +98,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
     );
   } else if (proposedByThem) {
     content = (
-      <AppCard style={styles.card}>
+      <AppCard framed style={styles.card}>
         {plaque(false)}
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_incoming')}</Text>
@@ -114,7 +114,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
     );
   } else {
     content = (
-      <AppCard style={styles.card}>
+      <AppCard framed style={styles.card}>
         {plaque(false)}
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_explainer', { minutes: state.durationMinutes })}</Text>

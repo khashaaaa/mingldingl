@@ -4,6 +4,7 @@ import { Glyph, type GlyphName } from './Glyph';
 import { GLYPH_DRAWS, GLYPH_DRAW_FRAMES } from './glyphImages';
 import { ACCENT, ICON_SIZES } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
+import { useInkBleeding } from '../vfx/inkBleedContext';
 
 interface Props {
   name: GlyphName;
@@ -32,14 +33,16 @@ function steps(size: number) {
  * presses its seals last, instead of the finished mark simply appearing. Baked as a strip of frames
  * (`scripts/gen-glyphs.js`, `DRAWN`) and stepped through on the native driver, so it costs what one
  * image costs. Under reduced motion, or for a glyph with no strip, it is the finished `Glyph`.
+ * Inside an `InkBleed` the brush waits, its place left empty, until the bleed has settled.
  */
 export function InkDraw({ name, size = ICON_SIZES.splash, color = ACCENT.base, duration = 900, delay = 0, style }: Props) {
   const animate = motionAllowed(useVfxLevel());
   const strip = GLYPH_DRAWS[name];
   const frame = useRef(new Animated.Value(0)).current;
+  const waiting = useInkBleeding();
 
   useEffect(() => {
-    if (!animate || !strip) return;
+    if (!animate || !strip || waiting) return;
     frame.setValue(0);
     const run = Animated.timing(frame, {
       toValue: GLYPH_DRAW_FRAMES - 1,
@@ -50,9 +53,10 @@ export function InkDraw({ name, size = ICON_SIZES.splash, color = ACCENT.base, d
     });
     run.start();
     return () => run.stop();
-  }, [animate, strip, frame, duration, delay]);
+  }, [animate, strip, frame, duration, delay, waiting]);
 
   if (!animate || !strip) return <Glyph name={name} size={size} color={color} style={style} />;
+  if (waiting) return <View style={[{ width: size, height: size }, style]} />;
 
   return (
     <View

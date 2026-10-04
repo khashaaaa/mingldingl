@@ -1,3 +1,5 @@
+import { i18n } from './i18n';
+
 /**
  * The progressive-reveal ladder. The engine's `reveal.levelN.messages` keys are admin-tunable,
  * so the counts here are only a pre-fetch fallback: `useRevealThresholds` hydrates the live
@@ -119,4 +121,20 @@ export function resetRevealThresholdsForTests(): void {
   ghosting = { ...DEFAULT_GHOSTING };
   hydrated = false;
   listeners.clear();
+}
+
+/** The first rung a conversation earns: the face unblurs here. The name came with the match. */
+export const FACE_LEVEL = 2;
+
+/**
+ * What any screen calls the other person in a match. The name is handed over with the match
+ * itself (level 1, the floor every match is born with — the same name the Seek card already
+ * showed); only the face waits for `FACE_LEVEL`. Every surface used to hold the name back until
+ * the face, so the Quest Log was a column of identical "A sealed one" rows for people the user
+ * had just read the names of.
+ */
+export function matchName(match: { revealLevel: number; otherUser: { displayName?: string; isDeleted?: boolean } }): string {
+  if (match.otherUser.isDeleted) return i18n.t('deleted_user');
+  if (match.revealLevel < 1) return i18n.t('mystery_match_name');
+  return match.otherUser.displayName || i18n.t('mystery_match_name');
 }

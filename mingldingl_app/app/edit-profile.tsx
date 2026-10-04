@@ -17,7 +17,6 @@ import { useLocaleStore } from '../store/localeStore';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, SPACE } from '../lib/theme';
 import { FieldError } from '../components/ui/StateBlock';
 import { FIELD_LIMITS } from '../lib/fieldLimits';
-import { DismissKeyboardView } from '../components/ui/DismissKeyboardView';
 import { AppCard } from '../components/ui/AppCard';
 import { GameButton } from '../components/ui/GameButton';
 import { ChoiceRow } from '../components/ui/ChoiceRow';
@@ -132,8 +131,7 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <DismissKeyboardView>
-      <View style={[styles.screen, Platform.OS === 'android' && {
+    <View style={[styles.screen, Platform.OS === 'android' && {
         // Edge-to-edge does not resize the window for the keyboard, so the bio field and the footer
         // sat underneath it. Pad by the measured keyboard plus the navigation bar its height stops
         // at, as the chat composer does (see `useAndroidKeyboardHeight`).
@@ -142,7 +140,11 @@ export default function EditProfileScreen() {
       <HeaderBar title={i18n.t('edit_profile')} onBack={() => goBack(router)} />
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: SPACE.gutter, paddingVertical: SPACE.xxl, gap: SPACE.lg }}
+        // The ScrollView dismisses the keyboard itself: a tap on empty space (`handled`) or a drag.
+        // It used to sit inside `DismissKeyboardView`, whose touchable claimed most drags before
+        // the ScrollView could, so the form only scrolled when a swipe started on the bio field.
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <AppCard style={{ padding: SPACE.lg }}>
           <View style={styles.cardBody}>
@@ -281,8 +283,7 @@ export default function EditProfileScreen() {
           {i18n.t('save')}
         </GameButton>
       </View>
-      </View>
-    </DismissKeyboardView>
+    </View>
   );
 }
 

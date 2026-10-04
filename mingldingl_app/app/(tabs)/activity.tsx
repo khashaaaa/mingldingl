@@ -14,7 +14,7 @@ import { Icon } from '../../components/ui/Icon';
 import { useLocaleStore } from '../../store/localeStore';
 import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, SURFACE } from '../../lib/theme';
 import { EmptyHint, StateBlock } from '../../components/ui/StateBlock';
-import { useKindle } from '../../components/ui/Kindle';
+import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus';
 import { useGoTo } from '../../hooks/useGoTo';
 type CategoryGlyph = React.ComponentProps<typeof Icon>['name'];
 
@@ -38,21 +38,20 @@ export default function ActivityScreen() {
   useLocaleStore((s) => s.locale);
   const { data: businesses, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useActivity();
   const go = useGoTo();
-  const kindle = useKindle({
-    onRefresh: refetch,
-    contentContainerStyle: styles.list,
-    onScroll: ({ nativeEvent }) => {
-      const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-      const nearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
-      if (nearBottom && hasNextPage && !isFetchingNextPage) fetchNextPage();
-    },
-  });
+  useRefreshOnFocus(refetch);
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('mission_board')} showScore />
-      <ScrollView {...kindle.scrollProps}>
-        {kindle.header}
+      <GameHeader title={i18n.t('mission_board')} />
+      <ScrollView
+        contentContainerStyle={styles.list}
+        scrollEventThrottle={16}
+        onScroll={({ nativeEvent }) => {
+          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+          const nearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
+          if (nearBottom && hasNextPage && !isFetchingNextPage) fetchNextPage();
+        }}
+      >
         <GameButton
           variant="ink"
           icon="bow-arrow"

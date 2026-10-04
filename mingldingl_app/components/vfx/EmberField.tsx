@@ -46,7 +46,7 @@ function configure(width: number, density: number): EmberCfg[] {
  * field drawn as plain views at half the density, which is what the browser can carry without a
  * canvas and is why this layer is no longer invisible during development.
  */
-export function EmberField({ width, height, density = 8, paused = false }: Props) {
+export function EmberField({ width, height, density = 6, paused = false }: Props) {
   const level = useVfxLevel();
   if (width === 0 || height === 0) return null;
   if (level === 'full') return <SkiaEmbers width={width} height={height} density={density} paused={paused} />;
@@ -105,7 +105,7 @@ function Ember({ cfg, height, paused }: { cfg: EmberCfg; height: number; paused:
   };
   const head = useDerivedValue(() => { const q = at(progress.value); return vec(q.x, q.y); });
   // The streak: where the spark was a moment ago. Long while it is fast, gone once it hangs.
-  const tail = useDerivedValue(() => { const q = at(Math.max(0, progress.value - (cfg.spit ? 0.03 : 0.016))); return vec(q.x, q.y); });
+  const tail = useDerivedValue(() => { const q = at(Math.max(0, progress.value - (cfg.spit ? 0.016 : 0.008))); return vec(q.x, q.y); });
   // White-hot as it leaves, cooling through gold to its own ember colour, then dark.
   const color = useDerivedValue(() =>
     interpolateColor(progress.value, [0, 0.18, 0.55, 1], [HEAT.spark, ACCENT.bright, cfg.color, METAL.emberDeep]),
@@ -121,7 +121,7 @@ function Ember({ cfg, height, paused }: { cfg: EmberCfg; height: number; paused:
     return life * (0.72 + 0.28 * Math.sin(p * 61 + cfg.phase));
   });
   const r = useDerivedValue(() => cfg.r * (1 - 0.55 * progress.value));
-  const trail = useDerivedValue(() => r.value * 1.1);
+  const trail = useDerivedValue(() => r.value * 0.8);
   const glowR = useDerivedValue(() => r.value * 4.5);
   const glowOpacity = useDerivedValue(() => opacity.value * 0.6);
   return (

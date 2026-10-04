@@ -87,7 +87,7 @@ export function QuestBoard() {
             <Icon name={headingIcon} size={ICON_SIZES.md} color={accent} />
             <CardEyebrow color={accent} style={styles.heading}>{headingText}</CardEyebrow>
           </View>
-          {headingWidth > 0 && <EmberField width={headingWidth} height={30} density={4} />}
+          {headingWidth > 0 && <EmberField width={headingWidth} height={30} density={3} />}
         </View>
         {board.quests?.map((q) => (
           <View key={q.questId} style={styles.questRow}>

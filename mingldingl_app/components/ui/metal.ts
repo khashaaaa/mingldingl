@@ -9,7 +9,6 @@ import type { ImageSourcePropType } from 'react-native';
 export const PLATE = { width: 160, height: 48, cap: 14 } as const;
 export const GRAIN = { width: 440, height: 200 } as const;
 export const STRAP = { width: 240, height: 18 } as const;
-export const LAMELLAR = { width: 400, height: 18 } as const;
 export const BOX = 72;
 export const SEAL = 32;
 
@@ -26,10 +25,6 @@ export const METAL_IMAGES = {
     require('../../assets/metal/grain-2.png'),
   ] as ImageSourcePropType[],
   strap: require('../../assets/metal/strap.png') as ImageSourcePropType,
-  lamellar: {
-    body: require('../../assets/metal/lamellar-body.png') as ImageSourcePropType,
-    detail: require('../../assets/metal/lamellar-detail.png') as ImageSourcePropType,
-  },
   box: {
     body: {
       wood: require('../../assets/metal/box-body-wood.png') as ImageSourcePropType,

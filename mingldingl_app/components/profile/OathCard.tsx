@@ -4,11 +4,11 @@ import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-na
 import { Image } from 'expo-image';
 import { AlertModal } from '../modals/AlertModal';
 import { SheetModal } from '../modals/SheetModal';
+import { DIALOG_STYLES } from '../modals/DialogSurface';
 import { AppCard } from '../ui/AppCard';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import { GameButton } from '../ui/GameButton';
 import { MetalPlate } from '../ui/MetalPlate';
-import { Lamellar } from '../ui/Lamellar';
 import { grainFor } from '../ui/metal';
 import OathSigil, { OATH_VALUES, OATH_SIGILS, OATH_NAME_KEYS, OATH_DESC_KEYS, oathLabel } from '../OathSigil';
 import { useSwearOath } from '../../hooks/useOath';
@@ -47,14 +47,12 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
 
   return (
     <>
-      {/* Laced iron plates instead of a hairline: the one place the metal is ancestral armour. */}
-      <Lamellar style={styles.lamellar} />
       <Tap
         onPress={() => setPickerVisible(true)}
         accessibilityRole="button"
         accessibilityLabel={`${i18n.t('oath_title')}. ${oath ? oathLabel(oath) : i18n.t('oath_prompt_banner')}`}
       >
-        <AppCard tier={gemTier} style={style}>
+        <AppCard framed tier={gemTier} style={style}>
           {/* The plaque the vow is struck onto; once proven, sealed in ember wax. */}
           <MetalPlate
             fill={tint(MATERIAL.bronze, 0.14)}
@@ -86,7 +84,7 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
       <SheetModal visible={pickerVisible} onClose={() => setPickerVisible(false)}>
         {(closeThen) => (
           <>
-            <Text style={styles.sheetTitle}>{i18n.t('oath_step_heading')}</Text>
+            <Text style={[DIALOG_STYLES.title, styles.sheetTitle]}>{i18n.t('oath_step_heading')}</Text>
             {OATH_VALUES.map((option) => {
               const isCurrent = oath === option;
               return (
@@ -145,10 +143,9 @@ export function OathCard({ oath, oathProven, encountersHeld, encountersNeeded, g
 
 const styles = StyleSheet.create({
   oathRow: { marginTop: SPACE.hair },
-  lamellar: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.sm },
   plaque: { borderRadius: RADIUS.md - 1, overflow: 'hidden' },
   oathPrompt: { fontSize: FONT_SIZES.md, color: ACCENT.base, fontFamily: FONTS.body, lineHeight: LEADING.md },
-  sheetTitle: { fontSize: FONT_SIZES.xl, fontFamily: FONTS.display, color: INK.primary, marginBottom: SPACE.hair },
+  sheetTitle: { marginBottom: SPACE.hair },
   sheetHelp: { fontSize: FONT_SIZES.sm, color: INK.dim, fontFamily: FONTS.body, lineHeight: LEADING.sm },
   option: {
     flexDirection: 'row',

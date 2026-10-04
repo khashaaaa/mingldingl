@@ -270,13 +270,10 @@ describe('the fires judged at this dawn', () => {
     expect(getByText("Riley's fire burns. Your turn.")).toBeTruthy();
   });
 
-  it('keeps a sealed thread sealed — the fire is named for the seal, not the person', () => {
+  it('names the person from the match itself — only the face waits for the seals', () => {
     mockUseMatches.mockReturnValue({ data: [burningMatch({ revealLevel: 1, messageCount: 1 })] });
-    const { getByText, queryByText } = renderScreen();
-    // `unknown_name`, not the Quest Log's `mystery_match_name` — a tile can wear a placeholder
-    // where a name goes, but the two keys are free to read differently once either one changes.
-    expect(getByText("A sealed one's fire burns. Your turn.")).toBeTruthy();
-    expect(queryByText(/Riley/)).toBeNull();
+    const { getByText } = renderScreen();
+    expect(getByText("Riley's fire burns. Your turn.")).toBeTruthy();
   });
 
   it('names a deleted traveller as struck once the seals are broken', () => {
@@ -287,15 +284,12 @@ describe('the fires judged at this dawn', () => {
     expect(getByText("A name struck's fire burns. Your turn.")).toBeTruthy();
   });
 
-  it('keeps the seal ahead of the struck name — a sealed thread stays sealed even if they left', () => {
-    // `QuestTile` checks the seal first for exactly this reason: "A name struck" is a fact about a
-    // person the reveal ladder has not handed over yet, so saying it is a leak through the wax.
+  it('strikes the name of someone who left even before the first seal breaks', () => {
     mockUseMatches.mockReturnValue({
       data: [burningMatch({ revealLevel: 1, messageCount: 1, otherUser: { displayName: 'Riley', isDeleted: true } })],
     });
-    const { getByText, queryByText } = renderScreen();
-    expect(getByText("A sealed one's fire burns. Your turn.")).toBeTruthy();
-    expect(queryByText(/name struck/)).toBeNull();
+    const { getByText } = renderScreen();
+    expect(getByText("A name struck's fire burns. Your turn.")).toBeTruthy();
   });
 });
 

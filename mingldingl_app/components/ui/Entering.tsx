@@ -17,8 +17,9 @@ interface Props {
  * A list row arriving: a short fade and an 8px rise, staggered by position, as if the rows were
  * lit one at a time.
  *
- * First mount only. Re-running on every refetch would make pull-to-refresh flicker the whole
- * list, which is why the animation lives in a `useRef` guard rather than keying off the data.
+ * First mount only. Re-running on every refetch would flicker the whole list each time a
+ * screen is refocused, which is why the animation lives in a `useRef` guard rather than keying
+ * off the data.
  */
 export function Entering({ index, children }: Props) {
   const level = useVfxLevel();

@@ -63,7 +63,7 @@ export default function PhoneScreen() {
         // the root SafeAreaView's top edge.
         keyboardVerticalOffset={insets.top}
       >
-        {screenSize.w > 0 && <EmberField width={screenSize.w} height={screenSize.h} density={10} />}
+        {screenSize.w > 0 && <EmberField width={screenSize.w} height={screenSize.h} density={7} />}
         <View style={styles.inner}>
           <GlowText style={styles.logo}>MINGLDINGL</GlowText>
           <Text style={styles.subtitle}>{i18n.t('enter_the_realm')}</Text>

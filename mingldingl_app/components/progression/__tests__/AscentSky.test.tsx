@@ -54,12 +54,12 @@ afterEach(() => {
 });
 
 describe('AscentSky', () => {
-  it('draws all six tiers as stars, the held one distinguished from the rest', () => {
+  it('sets all six tiers in the rock as gems, the held one distinguished from the rest', () => {
     const { getAllByTestId, getByTestId } = render(
       <AscentSky gemTier="Ruby" totalScore={1595} currentStreak={4} longestStreak={11} width={340} />,
     );
-    expect(getAllByTestId(/^ascent-star/)).toHaveLength(6);
-    expect(getByTestId('ascent-star-held')).toBeTruthy();
+    expect(getAllByTestId(/^ascent-gem/)).toHaveLength(6);
+    expect(getByTestId('ascent-gem-held')).toBeTruthy();
   });
 
   it('labels the tier below zero with just its name, an ordinary one with its threshold', () => {
@@ -68,7 +68,8 @@ describe('AscentSky', () => {
     );
     const texts = svgTexts(toJSON());
     expect(texts).toContain('Garnet');
-    expect(texts).toContain('Opal · 100');
+    expect(texts).toContain('Opal');
+    expect(texts).toContain('100');
   });
 
   it('labels the held tier "you, <score>" and the next tier the exact points still owed', () => {
@@ -76,8 +77,8 @@ describe('AscentSky', () => {
       <AscentSky gemTier="Ruby" totalScore={1595} currentStreak={4} longestStreak={11} width={340} />,
     );
     const texts = svgTexts(toJSON());
-    expect(texts).toContain('Ruby · you, 1,595');
-    expect(texts).toContain('Emerald · 405 to go');
+    expect(texts).toContain('you, 1,595');
+    expect(texts).toContain('405 to go');
     // "The sky beyond" sits over the top of the whole ladder — a fixed part of the drawing, not
     // something that only appears once someone actually reaches Emerald.
     expect(texts).toContain('the sky beyond');
@@ -88,16 +89,16 @@ describe('AscentSky', () => {
       <AscentSky gemTier="Emerald" totalScore={2500} currentStreak={2} longestStreak={9} width={340} />,
     );
     const texts = svgTexts(toJSON());
-    expect(texts).toContain('Emerald · you, 2,500');
+    expect(texts).toContain('you, 2,500');
     expect(texts.some((t) => t.includes('to go'))).toBe(false);
     expect(texts).toContain('the sky beyond');
   });
 
   it('shows the streak as a big numeral, the dawns caption, and the longest streak beneath it', () => {
-    const { getByText } = render(
+    const { getByText, getByLabelText } = render(
       <AscentSky gemTier="Ruby" totalScore={1595} currentStreak={4} longestStreak={11} width={340} />,
     );
-    expect(getByText('4')).toBeTruthy();
+    expect(getByLabelText('4')).toBeTruthy();
     expect(getByText('dawns in a row')).toBeTruthy();
     expect(getByText('Longest Streak · 11')).toBeTruthy();
   });
@@ -149,6 +150,6 @@ describe('AscentSky', () => {
     const { getByTestId } = render(
       <AscentSky gemTier="Ruby" totalScore={1595} currentStreak={4} longestStreak={11} width={340} />,
     );
-    expect(getByTestId('ascent-star-held')).toBeTruthy();
+    expect(getByTestId('ascent-gem-held')).toBeTruthy();
   });
 });

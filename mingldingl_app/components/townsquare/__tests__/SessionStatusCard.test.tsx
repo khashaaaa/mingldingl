@@ -133,12 +133,13 @@ describe('SessionStatusCard', () => {
     expect(getByText('6, a bell each')).toBeTruthy();
   });
 
-  it('names the empty state through a shut door, not a bank', () => {
-    const { getByTestId } = render(
+  it('paints the shut gate for the empty state, not a door glyph', () => {
+    const { getByTestId, queryByTestId } = render(
       <SessionStatusCard session={{ sessionId: null, rsvpOpensAt: null, rsvpClosesAt: null, scheduledStartAt: null, status: null, isRsvpd: false, rsvpCount: 0, roundCount: 0 }}
         now={NOW} onRsvp={jest.fn()} onCancelRsvp={jest.fn()} onEnter={jest.fn()} isRsvping={false} isCancelling={false} />,
     );
-    expect(getByTestId('state-place-door', { includeHiddenElements: true })).toBeTruthy();
+    expect(getByTestId('square-gate', { includeHiddenElements: true })).toBeTruthy();
+    expect(queryByTestId('state-place-door', { includeHiddenElements: true })).toBeNull();
   });
 
   it('shows no festival eyebrow on an ordinary day', () => {

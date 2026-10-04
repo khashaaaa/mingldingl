@@ -33,22 +33,28 @@ describe('useWorldState', () => {
     expect(client.getQueryCache().getAll()).toHaveLength(0);
   });
 
-  it('reads the open conversation from the cached messages', () => {
+  // Cache changes reach the world a tick late, through the query library's own notifier, so a
+  // write is followed by letting that tick run.
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it('reads the open conversation from the cached messages', async () => {
     const { client, wrapper } = setup();
     const { result } = renderHook(() => useWorldState('m1', 1_000), { wrapper });
     expect(result.current.conversation).toBeNull();
 
-    act(() => {
+    await act(async () => {
       client.setQueryData<Message[]>(queryKeys.messages('m1'), []);
+      await tick();
     });
     expect(result.current.conversation).toEqual({ lastMessageAt: null });
 
-    act(() => {
+    await act(async () => {
       client.setQueryData<Message[]>(queryKeys.messages('m1'), [
         msg('a', '2026-09-10T10:00:00.000Z'),
         msg('b', '2026-09-10T11:30:00.000Z'),
         msg('c', '2026-09-10T09:00:00.000Z'),
       ]);
+      await tick();
     });
     expect(result.current.conversation).toEqual({ lastMessageAt: '2026-09-10T11:30:00.000Z' });
     expect(result.current.now).toBe(1_000);

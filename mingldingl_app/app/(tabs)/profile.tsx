@@ -8,11 +8,9 @@ import { useInventory } from '../../hooks/useInventory';
 import { colorForTier, itemLabel, membershipLabel, cityLabel } from '../../lib/tiers';
 import { AppCard } from '../../components/ui/AppCard';
 import { CardEyebrow } from '../../components/ui/CardEyebrow';
-import { CountText } from '../../components/ui/CountText';
 import { GameButton } from '../../components/ui/GameButton';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { Icon } from '../../components/ui/Icon';
-import { SectionDivider } from '../../components/ui/SectionDivider';
 import { XPBar } from '../../components/progression/XPBar';
 import { GemTierBadge } from '../../components/progression/GemTierBadge';
 import { InviteAllyCard } from '../../components/progression/InviteAllyCard';
@@ -30,7 +28,7 @@ import { useCancelDeletion } from '../../hooks/useCancelDeletion';
 import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, RADIUS, SPACE, TRACKING } from '../../lib/theme';
 import type { GemTier } from '../../models/user';
 import { useGoTo } from '../../hooks/useGoTo';
-import { useKindle } from '../../components/ui/Kindle';
+import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus';
 
 export default function ProfileScreen() {
   useLocaleStore((s) => s.locale);
@@ -39,10 +37,7 @@ export default function ProfileScreen() {
   const { data: profile, refetch: refetchProfile } = useProfile();
   const { data: scoreDetail, refetch: refetchScore } = useScoreDetail();
   const { items } = useInventory();
-  const kindle = useKindle({
-    onRefresh: () => Promise.all([refetchProfile(), refetchScore()]),
-    contentContainerStyle: styles.content,
-  });
+  useRefreshOnFocus(() => Promise.all([refetchProfile(), refetchScore()]));
 
   if (!profile || !scoreDetail) {
     return (
@@ -65,9 +60,8 @@ export default function ProfileScreen() {
     <View style={styles.screen}>
       {/* Pinned above the scroll like every other tab's header. Inside it, the header scrolled away
           and the sheet ran up under the status bar with nothing behind it. */}
-      <GameHeader title={i18n.t('character_sheet')} showScore />
-      <ScrollView style={styles.scroll} {...kindle.scrollProps}>
-        {kindle.header}
+      <GameHeader title={i18n.t('character_sheet')} />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
 
         {profile.deletionRequestedAt && (
           <DeletionPendingBanner
@@ -104,14 +98,12 @@ export default function ProfileScreen() {
               totalScore={scoreDetail.totalScore ?? 0}
               pct={(scoreDetail.progressPct ?? 0) / 100}
               nextTier={nextTier}
+              nextTierThreshold={scoreDetail.nextTierThreshold}
             />
           </AppCard>
         </Tap>
 
         <AppCard tier={gemTier} style={[styles.card, styles.cardPadding]}>
-          <CardEyebrow>{i18n.t('total_score')}</CardEyebrow>
-          <Text style={styles.scoreValue}><CountText value={scoreDetail.totalScore ?? 0} /> {i18n.t('pts')}</Text>
-          <SectionDivider />
           <Tap onPress={() => go('/membership')} accessibilityRole="button">
             <CardEyebrow>{i18n.t('guild_rank')}</CardEyebrow>
             <View style={styles.membershipRow}>
@@ -210,11 +202,6 @@ const styles = StyleSheet.create({
   subText: { fontSize: FONT_SIZES.md, color: INK.dim, fontFamily: FONTS.body },
   card: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   cardPadding: { padding: SPACE.lg },
-  scoreValue: {
-    fontSize: FONT_SIZES.display,
-    fontFamily: FONTS.display,
-    color: ACCENT.base,
-  },
   membershipRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   // Both halves carry the same size and leading, or `alignItems: center` centres two line boxes
   // of different heights and the arrow reads as having slipped below the word.

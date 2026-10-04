@@ -9,7 +9,7 @@ import { Icon } from '../ui/Icon';
 import { Waiting } from '../ui/Waiting';
 import { TorchGlow } from '../vfx/TorchGlow';
 import { usePhotoUpload } from '../../hooks/usePhotoUpload';
-import { GEM_FRAMES } from '../progression/gemImages';
+import { BRUSH_FRAMES } from '../ui/brushImages';
 import { TIER_ORDER } from '../../lib/tiers';
 import { useUpdateProfile } from '../../hooks/useProfile';
 import { i18n } from '../../lib/i18n';
@@ -19,7 +19,7 @@ interface Props {
   photoUrls: string[];
   /** The current gem tier's colour: the frame and the torch glow both wear it. */
   tierColor: string;
-  /** The current gem tier: the frame grows a piece of ornament per rung (`scripts/gen-gems.js`). */
+  /** The current gem tier: the frame grows a stroke of ornament per rung (`scripts/gen-brush.js`). */
   tier?: string;
 }
 
@@ -92,10 +92,10 @@ export function ProfileAvatar({ photoUrls, tierColor, tier }: Props) {
                 )}
               </View>
             </View>
-            {/* Pecked over the photo's edge, so the carved ring closes it rather than sitting beside it;
-                it overhangs the box so the rays and animals have room past the ring. */}
+            {/* Brushed over the photo's edge, so the ring closes it rather than sitting beside it; it
+                overhangs the box so the rays and arcs have room past the ring. */}
             <Image
-              source={GEM_FRAMES[rung]}
+              source={BRUSH_FRAMES[rung]}
               style={[styles.carvedFrame, { tintColor: tierColor }]}
               contentFit="contain"
               testID={`avatar-frame-${rung}`}
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: SURFACE.raised,
   },
-  /** `scripts/gen-gems.js` carves the frame on a 160pt box centred on this 118pt one. */
+  /** `scripts/gen-brush.js` paints the frame on a 160pt box centred on this 118pt one. */
   carvedFrame: { position: 'absolute', left: -21, top: -21, width: 160, height: 160 },
   avatarEditBadge: {
     position: 'absolute',

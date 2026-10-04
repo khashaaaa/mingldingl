@@ -83,7 +83,8 @@ describe('route coverage', () => {
       if (entry.isDirectory()) return routes(full, [...prefix, entry.name]);
       if (!/\.tsx$/.test(entry.name) || /\.test\.tsx$/.test(entry.name)) return [];
       const base = entry.name.replace(/\.tsx$/, '');
-      if (base === '_layout') return [];
+      // Layouts and expo-router's special files (`+native-intent`, `+not-found`…) are not screens.
+      if (base === '_layout' || base.startsWith('+')) return [];
       return [pathOf([...prefix, base])];
     });
   }

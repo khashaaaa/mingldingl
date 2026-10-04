@@ -1,11 +1,12 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { SatchelRow } from '../SatchelRow';
+import { SATCHEL_IMAGES } from '../satchelImages';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => require('../../../lib/testing/expoRouterMock').expoRouterMock({ useRouter: () => ({ push: mockPush }) }));
 
-/** The material mark and the glyph inside it are hidden from assistive tech (unlabelled), so the
- *  default queries skip them — the same opt-in the hearth's own frost tests use. */
+/** The painting is hidden from assistive tech (unlabelled), so the default queries skip it — the
+ *  same opt-in the hearth's own frost tests use. */
 const HIDDEN = { includeHiddenElements: true };
 
 describe('SatchelRow', () => {
@@ -13,17 +14,16 @@ describe('SatchelRow', () => {
     mockPush.mockClear();
   });
 
-  it('draws the object in its material, glyph included', () => {
+  it('draws the object itself, painted', () => {
     const { getByTestId } = render(
-      <SatchelRow material="wax" glyph="candle" name="Candles" line="3 of 5 left" to="/(tabs)/discover" />,
+      <SatchelRow object="candles" name="Candles" line="3 of 5 left" to="/(tabs)/discover" />,
     );
-    expect(getByTestId('material-wax', HIDDEN)).toBeTruthy();
-    expect(getByTestId('glyph-candle', HIDDEN)).toBeTruthy();
+    expect(getByTestId('satchel-art-candles', HIDDEN).props.source).toBe(SATCHEL_IMAGES.candles);
   });
 
   it('names the object and states its line', () => {
     const { getByText } = render(
-      <SatchelRow material="wax" glyph="candle" name="Candles" line="3 of 5 left" to="/(tabs)/discover" />,
+      <SatchelRow object="candles" name="Candles" line="3 of 5 left" to="/(tabs)/discover" />,
     );
     expect(getByText('Candles')).toBeTruthy();
     expect(getByText('3 of 5 left')).toBeTruthy();
@@ -31,17 +31,17 @@ describe('SatchelRow', () => {
 
   // The Tap groups its children under one accessible node (the global rule for a labelled group),
   // so the whole fact — what it is and its state — has to live in this one label.
-  it('puts the whole fact in one accessibility label, the material mark unlabelled', () => {
+  it('puts the whole fact in one accessibility label, the painting unlabelled', () => {
     const { getByLabelText, getByTestId } = render(
-      <SatchelRow material="wood" glyph="pledge" name="Arrows" line="Two await your answer" to="/(tabs)/matches" />,
+      <SatchelRow object="arrows" name="Arrows" line="Two await your answer" to="/(tabs)/matches" />,
     );
     expect(getByLabelText('Arrows. Two await your answer')).toBeTruthy();
-    expect(getByTestId('material-wood', HIDDEN).props.accessible).toBe(false);
+    expect(getByTestId('satchel-art-arrows', HIDDEN).props.accessible).toBe(false);
   });
 
   it('goes where the object is used when tapped', () => {
     const { getByLabelText } = render(
-      <SatchelRow material="gold" glyph="knot" name="The key" line="Held · The Hall" to="/membership" />,
+      <SatchelRow object="key" name="The key" line="Held · The Hall" to="/membership" />,
     );
     fireEvent.press(getByLabelText('The key. Held · The Hall'));
     expect(mockPush).toHaveBeenCalledWith('/membership');
@@ -50,8 +50,7 @@ describe('SatchelRow', () => {
   it('carries a testID through to the row for a screen to find it by', () => {
     const { getByTestId } = render(
       <SatchelRow
-        material="parchment"
-        glyph="gem"
+        object="card"
         name="Your card"
         line="Wanted, honestly kept"
         to="/(tabs)/profile"

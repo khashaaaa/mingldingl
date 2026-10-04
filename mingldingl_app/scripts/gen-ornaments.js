@@ -192,27 +192,6 @@ function renderMeander(CK, units, g, W, metalName, darkOnly, file) {
   save(CK, surface, file);
 }
 
-/** The divider's rule: a single brushed line, swelling from a hair at its far end to full at the
- *  knot. Baked white and tinted by `SectionDivider`, which mirrors it for the other side. */
-function renderRule(CK, file) {
-  const w = 600, h = 12;
-  const surface = CK.MakeSurface(w, h);
-  const canvas = surface.getCanvas();
-  canvas.clear(CK.TRANSPARENT);
-  const p = new CK.Path();
-  for (let x = 2; x <= w - 4; x += 0.8) {
-    const t = x / w;
-    const r = 0.3 + 3.2 * Math.pow(t, 1.6) * (0.9 + 0.1 * Math.sin(t * 40));
-    p.addCircle(x, h / 2, r);
-  }
-  const ink = new CK.Paint();
-  ink.setAntiAlias(true);
-  ink.setColor(CK.WHITE);
-  canvas.drawPath(p, ink);
-  p.delete();
-  save(CK, surface, file);
-}
-
 /** The campaign's path between caves: footsteps, left then right, as one tile that repeats down
  *  the column. Baked white; tinted gold where the pair has walked, dim ahead. 3x of 12×24pt. */
 function renderTrail(CK, file) {
@@ -282,8 +261,6 @@ async function main() {
   renderKnot(CK, 3, 4, 20, 4.8, 'ember', out('sigil_fate.png'));
   renderKnot(CK, 4, 3, 20, 4.8, 'brass', out('sigil_kinship.png'));
   renderMeander(CK, 40, 10, 4.5, 'gold', false, out('fret_gold.png')); // dividers, XP track
-  renderMeander(CK, 40, 10, 4.5, null, true, out('fret_dark.png'));    // engraving overlay on fills
-  renderRule(CK, out('rule.png'));                                     // SectionDivider's two lines
   renderTrail(CK, out('trail.png'));                                   // the campaign's path between caves
   renderCord(CK, out('cord.png'));                                     // the Quest Log's thread
 }

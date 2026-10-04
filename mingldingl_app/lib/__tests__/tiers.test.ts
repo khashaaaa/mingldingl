@@ -13,7 +13,6 @@ describe('presenceForTier', () => {
     const ramp = TIER_ORDER.map((t) => presenceForTier(t, HERO));
     for (let i = 1; i < ramp.length; i++) {
       expect(ramp[i].glowStrength).toBeGreaterThan(ramp[i - 1].glowStrength);
-      expect(ramp[i].ringWidth).toBeGreaterThanOrEqual(ramp[i - 1].ringWidth);
       expect(ramp[i].shimmer).toBeGreaterThan(ramp[i - 1].shimmer);
     }
   });
@@ -29,14 +28,6 @@ describe('presenceForTier', () => {
     // the hero badge past what the design was signed off at.
     const top = TIER_ORDER[TIER_ORDER.length - 1];
     expect(TIER_PRESENCE[top].glow).toBe(Math.max(...TIER_ORDER.map((t) => TIER_PRESENCE[t].glow)));
-  });
-
-  it('clamps the ring on badges too small to carry one', () => {
-    // 16px is the ScoreHUD/XPBar badge; a 3px bezel there is a filled diamond, not a rank.
-    for (const tier of TIER_ORDER) {
-      expect(presenceForTier(tier, 16).ringWidth).toBe(1);
-    }
-    expect(presenceForTier('Emerald', 44).ringWidth).toBeGreaterThan(1);
   });
 
   it('drops the shimmer below the size where a sweep has room to travel', () => {

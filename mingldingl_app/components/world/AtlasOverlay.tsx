@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   knot: { width: ICON_SIZES.huge, height: ICON_SIZES.huge },
   count: {
     position: 'absolute',
-    fontFamily: FONTS.display, fontSize: FONT_SIZES.sm, color: ACCENT.bright,
+    fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: ACCENT.bright,
   },
   // Backed in the panel's own colour and only as wide as its words: a passage leaving a medallion
   // downward (the hearth's to the deep runs straight through its own label) breaks behind the name

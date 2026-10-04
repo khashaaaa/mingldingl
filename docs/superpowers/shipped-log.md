@@ -8,6 +8,238 @@ long versions.
 
 ---
 
+## 2026-10-04 — Ink: bleed, wash, pools, splatter, painted numbers
+
+From the Ink Board (https://claude.ai/artifact/Jsd3whsoieNvKbRm6eG2BD) the user took five; the
+тамга, stamped verdicts, empty-state paintings and felt were left ("not sure"). All baked by
+`scripts/gen-brush.js`:
+- **Brushed numerals** (`BrushNumber`): each numeral one stroke, two hands alternating so "955"
+  is not two stamps, comma a dab. Ticks like `CountText` (its tick is now `useCountedValue`).
+  On the header score (`ScoreHUD`, every tab) and the Ascent's streak. Label = the number.
+- **Ink pool under every room name** (`HeaderBar`): four pools, full colour (darker dried rim,
+  blooms), picked by the title so a room keeps its pool. Edge noise loops, so no seam.
+- **Splatter** off the Seek card's edge stroke (the bake is deeper to hold it) and the portrait
+  frame's outer arcs.
+- **Ink-wash passage** (`InkWash`, 14 frames stretched to the screen, native driver): tapping a
+  *new match* nudge carries you into the chat through ink (`passThroughInk`, `InkWashHost` at the
+  root); the Unsealing opens from ink, the wash becoming its dark ground before the seal arrives
+  (its timings shift by `COVER_MS`). Never on ordinary navigation.
+- **Ink bleed** (`InkBleed`): Skia photographs the children once (`makeImageFromView`) and draws
+  the picture displaced by turbulence and blurred, settling to crisp in 1.1s, then hands back to
+  the real views. On every reward toast (`LootToast`) and an unopened quest the first time it is
+  seen in a session. Falls back to plain children if the photograph fails or motion is off.
+Seen on the A51 (screen-recorded), which turned up four faults, all fixed:
+- The wash drew back onto the room being left: chat's `slide_from_bottom` (and on the A51 the
+  chat's mount alone) outlasted the fixed 220ms hold. Under a wash the push is now a cut (`_layout`
+  `screenOptions` reads `useInkWashStore`), and `InkWashHost` holds the cover until `usePathname`
+  has moved and two frames have painted (`ready`, capped at `ARRIVAL_CAP_MS`).
+- The reward toast bled in with its flame as a row of flames: Skia's `makeImageFromView` ignores
+  `overflow: hidden` on Android, so `InkDraw`'s one-frame clip photographed as the whole strip.
+  Inside a settling bleed (`InkBleedingContext`) `InkDraw` now leaves its place empty and brushes
+  once the bleed hands over: the toast soaks in, then the flame is painted.
+- A new quest bled in unseen: the log stays mounted under a chat and behind the tabs, so "first
+  seen" was "first rendered". `InkBleed hold` keeps it hidden and unphotographed until the log is
+  focused (`useFocusEffect`); only then is it marked sighted.
+- Released from a hold, the photograph was bare text (portrait, rings, sigil and rule popped in at
+  the handover): a screen coming back hands Android its images and borders a few frames late.
+  `UNHOLD_SETTLE_MS` (150ms) before the photograph.
+The Unsealing's ink opening, the pools, the brushed score and streak look as intended.
+
+## 2026-10-04 — The dry brush, wherever a line was ruled
+
+The Seek card's dry brush became the app's (`scripts/gen-brush.js`, one generator for every
+stroke, `components/ui/brushImages.ts`):
+- **The trail to the next gem** (`XPBar`) is one brushed stroke, laid bare in stone and inked over
+  in the held gem's colour as far as the score has come. The pecked marks are gone. The ink is a
+  window slid in from the left with the stroke slid back inside it, so it fills on the native driver.
+- **The portrait frame** is brushed, still one stroke more per rung: a ring (open at the edit
+  badge); flicked rays, each curving as the wrist turns; ink dabs between; an arc over the top;
+  one under; and at Emerald the arcs drawn longer and the rays alternately long. The pecked sun
+  and its herd are gone from `gen-gems.js` (gems re-baked byte-identical).
+- **`SectionDivider`'s rule** (the header under every tab title, and every knotted divider) is
+  dry-brushed, 6pt tall, hair at the margin to full at the knot. `ornaments/rule.png` is gone.
+Seen on the A51.
+
+## 2026-10-04 — The Seek card is a plain card again
+
+Four objects in one day (blurred plate → carved stone → deer stone → herald's banner) and each
+still felt off: every one built a bigger frame round very little (name, rank, district, oath, a few
+sentences), and the frame drowned the person while the world layer already carried the mood. The
+user chose to go back to a simple card, keeping the thesis. `CandidateCard` is now `SURFACE.panel`
+with a hairline edge and a 2pt top edge in the candidate's `GEM_COLORS`; the wax seal on its
+ribbons (112pt, blurred likeness under the pressed face) and the three seals with the law at the
+head; name, gem and eyebrow; the bio, uncut and stepped by length, as the face; one hairline, then
+Dismiss / Summon and the candle count. No baked cloth, rod, herd, band, sun ring, iron plaque or
+sway. The deck behind is two plain card edges (`DeckEdge`). `scripts/gen-banner.js` now bakes only
+`seal.png` and `ring.png` (byte-identical; the ring is still the chat's Unsealing sun). Seen on the A51.
+
+Then an ink touch, on the card's own lines rather than new objects: the gem edge, a ring round
+the seal, and the rule over the buttons are dry-brushed (`scripts/gen-brush.js` →
+`assets/brush/`, `components/ui/brushImages.ts`). Each stroke is ~40 bristles that each
+carry their own ink and run dry at their own rate, edge bristles first, so it lands wet and breaks
+into streaks. White masks, tinted: the edge in the gem's `GEM_COLORS`, the ring `ACCENT.base` at
+0.4 left open where the brush lifts, the rule `LINE.edge`. Seen on the A51.
+
+## 2026-10-04 — Style drift sweep
+
+Token use was already clean (no raw colours, sizes or spacing anywhere); the drift was in shared
+pieces built by hand. Every sheet and dialog title is now `DIALOG_STYLES.title` (Yeseva 18, ink,
+centred) — Report, Oath, City picker, Attendance check and the chat's activities and options sheets had
+their own titles, three of them tracked uppercase eyebrows. Checked on the A51. The frozen chat's label is a `CardEyebrow`. `GameHeader`
+is now only the tab header (always the points badge, never a back arrow); The Ascent, Hall of
+Names and Date Log use `HeaderBar` like every other stack screen. The Atlas delve count moved off
+the display face, which smears at 12pt. Left as is on purpose: the tab labels in the display face
+at 10pt (see the comment in `(tabs)/_layout.tsx`), 1px rules (the norm, 63 to 6), and
+`StateBlock` copy in roman even though the app otherwise speaks in italic — that one is a call for
+the user.
+
+## 2026-10-04 — The quiet Town Square's gate painted
+
+The empty Town Square (most days) keeps its door, now painted in the Satchel/armoury style
+(`scripts/gen-square.js` → `assets/square/gate.png`, 480px, shown at 152pt): a planked double gate
+under a stone arch, iron straps and bronze rings, the bar dropped across it — shut until the horn
+sounds. Two scene versions came first (a coloured moonlit steppe, then a petroglyph carving of
+the square); the user wanted neither — no landscape here, just the previous art made different.
+
+## 2026-10-04 — The Seek card reordered: who first
+
+The deer stone now reads head to foot as seal → name → words → Summon. The sealed medallion
+shrank (132→104pt, the same knot on every card was the first thing read) with the three seals
+and the law on one line beside it; the name, gem and eyebrow moved up under it from the foot. The
+oath is said once (in the eyebrow; the separate sigil under the bio said PROVEN again). The
+15-candle row under the button became one candle and "15 of 15 candles left". The Seek sparks now
+rise behind the stones instead of crossing the words and the button.
+
+## 2026-10-04 — The Satchel's objects painted
+
+The Satchel's nine rows show the things themselves at glyph size (32pt), painted like the rocks and
+gems (lit warm face, cool shadow, cast shadow, brush texture): candles, arrows, lantern, oath
+medallion, key, a sealed letter, the honour medal, wax seals, the card. Baked by
+`scripts/gen-satchel.js` (canvaskit's Canvas2D shim; its gradients ignore the transform and its
+`drawImage` borrows the fill alpha, so parts are painted upright and only finished images turned).
+`MaterialMark` went with it — the Satchel was its only user. Painted arms were prototyped for
+honours and ceremonies too (https://claude.ai/artifact/2xenH48rqeMrQsCJCPxh9b); the user said
+"apply it if only necessary", so only the Satchel took them — ink stays everywhere else.
+
+## 2026-10-04 — Quest Log rows tightened
+
+Only live fires (Burning/Embers) carry an eyebrow now: an unopened quest says it on the portrait
+(gold ring + scroll seal) and a frozen one sits under "Gone cold", so the repeated NEW QUEST /
+FROZEN labels are gone (still in the screen-reader label). The text block is centred on the
+portrait instead of hanging under it, and a frozen row's verdict runs on in italic in the same
+paragraph. Rows went from ~165 to ~110pt on the A51; the whole live list fits one screen.
+
+## 2026-10-04 — The Seek card is a deer stone
+
+- **The Summon card is a буган хөшөө** (`scripts/gen-stele.js` → `assets/stele/`,
+  `components/cards/steleImages.ts`): hewn grey granite with a domed, chipped crown instead of a
+  bordered panel. Read top to bottom like a real stone: the sealed medallion set in a pecked sun
+  ring, the bio, a herd of three flying deer (beaked muzzle, antlers rolling back along the body),
+  the chevron belt, then the name and Summon. Deck stones behind are the same slab, mirrored.
+- The slab is baked at three aspects (0.5/0.6/0.72, one each, ~1 MB total) and the card picks the
+  nearest (`nearestStele`), sized in points off `onLayout` like `LetterRow`'s shards. The herd is
+  left off below a 600pt card so a small phone keeps the words. A herd drawn *behind* the bio was
+  tried first and read as a smudge: carvings go where nothing is written.
+- **The Ascent is a cliff, not a night sky** (`scripts/gen-cliff.js` → `assets/cliff/cliff.png`,
+  `components/progression/cliffImages.ts`; `AscentSky`). Each tier's real cut gem (`GemTierBadge`)
+  sits in a socket chiselled into granite, and a pecked path switchbacks up between them, lit gold
+  as far as the score has climbed. Gems below are polished (row size), the held one glows (hero
+  size), and the ones above are still rough in the rock (chip size, dimmed). A strip of night over
+  the summit keeps "the sky beyond". Socket positions are written once by the generator
+  (`ASCENT_STOPS`), so the gems land in their sockets at any width. Labels sit on the outward side
+  of each turn as name over number, because both legs of a turn leave toward the middle. The halo
+  pulse is gone; the held gem's own `TorchGlow` replaces it. `ascent_sub` was reworded (it had no
+  Mongolian yet).
+- **The six stones are painted, not tinted** (`scripts/gen-gems.js` → `assets/gems/`,
+  `gemImages.ts`; `GemTierBadge`), ported from the gem prototype the user chose. Each tier is a
+  faceted 3D solid, cut better the higher the rung: rough garnet, tumbled opal with moving fire,
+  amethyst cluster, sapphire shard with light veins, ten-sided ruby brilliant, emerald step cut.
+  Each is lit from the upper left, every facet brush-stroked along its grain, with edges caught in
+  light, inner glow and a small halo. Full-colour stills at 64/128/256px for every badge. Hero
+  badges (`glow`) play a 24-pose sway sheet (128/256px cells): the stone rocks ±0.38 rad and its
+  light breathes, stepped on the native driver, with the sparks baked in, so the runtime glint
+  only runs on stills. The cut now carries rank, so the bezel layer, `TIER_PRESENCE.ring` and
+  `presenceForTier().ringWidth` are gone. The `color`/`shade` overrides are replaced by `dim`
+  (the Ascent's unreached stones: the ground laid over the stone's own silhouette). CanvasKit's 2D
+  emulation ignores the transform for gradients, so the generator places everything in device
+  pixels by hand. Seen on the A51: Seek card, header, Character sheet (sway running), and the Ascent.
+- **Edit Your Character scrolls from anywhere.** On the A51, only 2 of 8 test swipes moved the
+  form; the ones that worked started on the bio field. The cause was `DismissKeyboardView`, a
+  touchable wrapped round the whole screen that claimed the drag before the ScrollView could.
+  Without it, 8 of 8 scroll. The ScrollView now closes the keyboard itself
+  (`keyboardShouldPersistTaps="handled"` + `keyboardDismissMode="on-drag"`; both checked on
+  device). Tapping the header no longer closes it. The same shape was in the city picker's list and
+  the chat's Activities and Options sheets, a touchable sheet inside a touchable scrim. The dismiss
+  tap is now an absolute-fill `Tap` *behind* a plain `View` sheet (checked on device: a tap on the
+  sheet keeps it open, a tap outside closes it). Town Square's session card and the
+  end-of-gathering summary had no scroll view at all and could run off a small phone; both scroll
+  now. Guarded by `lib/__tests__/scrolling.test.ts` (no scroll view opened inside a
+  Tap/Pressable/TouchableWithoutFeedback, no `DismissKeyboardView` on a scrolling screen).
+- **A new chat, driven end to end on the A51** (Мөнхболд ↔ Нарантуяа, 17 letters, two seals
+  broken live). Three fixes came out of it:
+  - **The seal-break ceremony matches the world** (`Unsealing`). The face now resolves inside
+    the round medallion and pecked sun ring it was sealed in on the Seek card, instead of a
+    grey-bordered rounded square. The ring is gold, not furnace, because the thread is not the
+    Fire. The subline moved from tiny tracked utility caps to italic body ("the app speaking"),
+    and a quiet "Tap to go on" (`ceremony_continue`, awaiting MN) fades in once the face has
+    resolved. Before, nothing said the screen was waiting for a tap.
+  - **A letter appears on its stone or not at all** (`LetterRow`). It is held transparent until
+    the shard has measured, because opening a thread showed bare text on the floor for seconds
+    on a busy open.
+  - **"Cannot update `WorldProvider` while rendering"** (seen when sign-out cleared the cache) is
+    fixed. `useWorldState` hears the query cache through `notifyManager.schedule` instead of
+    synchronously: a screen's `useQuery` builds its query mid-render, and the cache tells
+    listeners at once.
+- **The header's points badge opens The Ascent** (`GameHeader`, via `useGoTo('/progression')`),
+  on every tab that shows it. Its spoken label `score_hud_open` is on `AWAITING_MN_TRANSLATION`.
+- The generator clears old bakes file by file. Deleting the folder loses it from a running Metro
+  ("Unable to resolve module"), which then needs a restart.
+
+## 2026-10-04 — Names at match, a pecked score trail, no pull-to-refresh
+
+- **Names come with the match, as the spec always said** (match → first name, sealed photo, bio).
+  The app held the name back until the face (reveal 2), so the Quest Log was a column of identical
+  "A sealed one" rows — for people whose names the Seek card had just shown. One rule now,
+  `matchName` / `FACE_LEVEL` in `lib/reveal.ts`, used by the Quest Log, its rows, the chat header,
+  the hearth and the next-action card. Only the photo still waits for level 2. A new quest's row
+  shows the bio under the name instead of an empty line.
+- **Pull-to-refresh removed** (`useKindle` and its `stoke` event deleted): the user found the
+  pulled-down hearth scenes creative but unneeded on Quest Log, Missions, Character and the Hall.
+  Those screens refetch when refocused instead (`hooks/useRefreshOnFocus.ts`). The room scenes
+  still play in `LongWait`.
+- **The points bar is a pecked trail** (`XPBar`): hand-struck marks lit in your gem's colour, bare
+  rock ahead, the next stone waiting unlit at the far end — replacing a Greek-key strip with a
+  sheen sweep. The Character sheet's "N pts to Ruby" line was missing (the threshold was never
+  passed in); it is back, and the separate "Total score" block that repeated the number a third
+  time is gone.
+- **Chat:** a frozen thread's last letter landed under the ice — `scrollToEnd` ignores bottom
+  padding and counts a footer only once measured, so the ice's room is a footer that re-follows
+  the tail, and only the reader's own drag can mark them as having left the bottom. "Things to do
+  together" is a hairline row, not a brass-edged box.
+
+## 2026-10-04 — Incoming links stop stacking copies
+
+- A link arriving while the app was open (notification, shared link, OS) was a plain push, so
+  settings → satchel → settings → satchel stacked four screens and back walked every copy.
+  `app/+native-intent.tsx` → `lib/incomingLinks.ts` now sends warm links through `goTo` (return to
+  an open screen; tab links switch tab) and swallows them; cold-start and dev-client links still go
+  to the router. expo-router's `dangerouslySingular` was rejected: it moves the old copy to the top.
+
+## 2026-10-04 — One hero, then rows — drawn one way everywhere
+
+- **Ordinary `AppCard`s are ledger sections now:** no fill, no border, one hairline across the
+  top, contents forced onto the screen gutter. Before, the "one hero, then rows" rule was drawn
+  two ways — Quest Log / Satchel / Settings as rows, Profile / Edit / Missions / Town Square as a
+  stack of boxes. Only the hero and `clip` cards (edge-to-edge art, e.g. the hearth sky) keep a frame.
+- **`StateBlock framed` no longer draws a panel** — it only hugs its copy. Empty and error states
+  look the same whether they fill a screen or stand among content.
+- **`ScreenLede`** (`components/ui/ScreenLede.tsx`): the italic line under a screen title, which six
+  screens wrote by hand in three sizes, one upright (Guild House).
+- Sparks thinned (~30 % fewer per field) with shorter, thinner streaks.
+- **Plaques are `AppCard framed`** (Oath, Flame Rite): an object keeps its edge and inset, so the
+  vow sits inside the plate. The lamellar strip above the Oath was removed (read as a fence),
+  with its bake.
+
 ## 2026-10-04 — Riveted metal, only where a thing binds
 
 `scripts/gen-metal.js` bakes the light on worn metal — rubbed rims, domed rivets, scratches — as

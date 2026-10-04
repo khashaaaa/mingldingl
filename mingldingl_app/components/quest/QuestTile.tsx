@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Tap } from '../ui/Tap';
 import { Animated, View, Text, Image, StyleSheet } from 'react-native';
-import { i18n } from '../../lib/i18n';
 import { fireEyebrow, fireLine, fireMark, fireVerdict, type Fire } from '../../lib/fire';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import {
@@ -12,6 +11,7 @@ import { FireMarkGlyph } from './FireMarkGlyph';
 import { CardEyebrow } from '../ui/CardEyebrow';
 import OathSigil from '../OathSigil';
 import type { Match } from '../../models/match';
+import { FACE_LEVEL, matchName } from '../../lib/reveal';
 import { ORNAMENTS } from '../../lib/ornaments';
 
 interface Props {
@@ -32,7 +32,7 @@ function threadColor(fire: Fire): string {
 
 export function QuestTile({ match, fire, onPress, first = false, last = false }: Props) {
   const { otherUser, revealLevel } = match;
-  const blurred = revealLevel < 2;
+  const blurred = revealLevel < FACE_LEVEL;
   const frozen = fire.state === 'frozen';
   const embers = fire.state === 'embers';
   const unlit = fire.state === 'unlit';
@@ -54,13 +54,12 @@ export function QuestTile({ match, fire, onPress, first = false, last = false }:
     wasBlurred.current = blurred;
   }, [blurred, animate, reveal]);
 
-  const nameText = blurred
-    ? i18n.t('mystery_match_name')
-    : otherUser.isDeleted
-      ? i18n.t('deleted_user')
-      : (otherUser.displayName ?? i18n.t('unknown_name'));
+  const nameText = matchName(match);
 
   const eyebrow = fireEyebrow(fire);
+  // An unopened quest has no letters to report on, so the line under the name is theirs: the bio
+  // that came with the match. Without it every new quest read the same two words.
+  const bio = unlit && !otherUser.isDeleted ? otherUser.bio?.trim() : undefined;
   const line = fireLine(fire);
   const verdict = fireVerdict(fire);
   // `unlit` keeps the tile's original "New Quest" gold: not a temperature yet, just an unopened scroll.
@@ -78,7 +77,7 @@ export function QuestTile({ match, fire, onPress, first = false, last = false }:
       // under this one label, so a screen reader never reaches it on its own — it has to be
       // folded in here. `filter(Boolean)` also drops the trailing ". " an unlit row's empty
       // `line` would otherwise leave dangling.
-      accessibilityLabel={[nameText, eyebrow, line, verdict].filter(Boolean).join('. ')}
+      accessibilityLabel={[nameText, eyebrow, line, bio, verdict].filter(Boolean).join('. ')}
     >
       {/* No box: the log is one thread with every quest a bead on it. The cord runs down the
           portrait column, coloured by each fire's temperature, so the whole log reads as one
@@ -129,33 +128,31 @@ export function QuestTile({ match, fire, onPress, first = false, last = false }:
         <View style={[styles.info, !last && styles.infoRule, embers && { borderBottomColor: tint(METAL.ember, 0.5) }]}>
           <View style={styles.header}>
             <View style={styles.titles}>
-              {blurred ? (
-                <Text style={[styles.name, frozen && styles.nameFrozen]} numberOfLines={1}>{nameText}</Text>
-              ) : (
-                <Animated.Text
-                  style={[
-                    styles.name,
-                    frozen && styles.nameFrozen,
-                    { opacity: reveal, transform: [{ scale: reveal.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }] },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {nameText}
-                </Animated.Text>
+              <Text style={[styles.name, frozen && styles.nameFrozen]} numberOfLines={1}>{nameText}</Text>
+              {/* Only a live fire says its state under the name. An unopened quest already says it
+                  on the portrait (the gold ring and the scroll seal), and a frozen one sits under
+                  the log's own "Gone cold" mark — six rows of NEW QUEST read as one label stamped
+                  down the page, and their bios were pushed a whole portrait lower to make room. */}
+              {!unlit && !frozen && (
+                <View style={styles.eyebrowRow}>
+                  <FireMarkGlyph mark={mark} size={ICON_SIZES.sm} />
+                  <CardEyebrow color={eyebrowColor} style={styles.eyebrowInline}>{eyebrow}</CardEyebrow>
+                </View>
               )}
-              <View style={styles.eyebrowRow}>
-                <FireMarkGlyph mark={mark} size={ICON_SIZES.sm} />
-                <CardEyebrow color={eyebrowColor} style={styles.eyebrowInline}>{eyebrow}</CardEyebrow>
-              </View>
+              {/* `fireLine` is '' for `unlit` on purpose. A frozen row's verdict runs on in the
+                  same paragraph, in the app's italic voice, instead of taking a line of its own. */}
+              {line ? (
+                <Text style={styles.fireLine}>
+                  {line}
+                  {verdict ? <Text style={styles.verdict}>{` ${verdict}`}</Text> : null}
+                </Text>
+              ) : null}
+              {bio ? <Text style={styles.bio} numberOfLines={2}>{bio}</Text> : null}
             </View>
             {/* The vow at the row's right edge, out of the reading column, and unboxed: a sigil
                 over its state word, the only mark in the row that is not the fire's. */}
             <OathSigil oath={otherUser.oath ?? null} proven={otherUser.oathProven ?? false} size="sm" bare />
           </View>
-          {/* `fireLine` is '' for `unlit` on purpose — an empty second line would still take a
-           *  row's worth of space under the eyebrow. */}
-          {line ? <Text style={styles.fireLine}>{line}</Text> : null}
-          {verdict ? <Text style={styles.verdict}>{verdict}</Text> : null}
         </View>
       </View>
     </Tap>
@@ -205,10 +202,12 @@ const styles = StyleSheet.create({
     opacity: 0.2,
   },
   // The hairline between quests starts after the thread, so the cord is never crossed by it.
-  info: { flex: 1, gap: SPACE.sm, paddingVertical: SPACE.md },
+  info: { flex: 1, paddingVertical: SPACE.md },
   infoRule: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE.hairline },
-  header: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.sm, minHeight: PORTRAIT },
-  titles: { flex: 1, gap: SPACE.xs, justifyContent: 'center', alignSelf: 'stretch' },
+  // At least the portrait's height, with the text centred on it: a name alone sits level with the
+  // face, and a name with two lines under it fills the same block instead of hanging below it.
+  header: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, minHeight: PORTRAIT },
+  titles: { flex: 1, gap: SPACE.xs },
   // The person's name in the display voice: the row's one heading.
   name: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: INK.primary },
   nameFrozen: { color: INK.dim },
@@ -217,5 +216,6 @@ const styles = StyleSheet.create({
   // row it lifted the label and left the mark sitting visibly lower.
   eyebrowInline: { marginBottom: 0 },
   fireLine: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
-  verdict: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.md, color: INK.dim },
+  bio: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
+  verdict: { fontFamily: FONTS.bodyItalic },
 });

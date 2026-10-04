@@ -1,7 +1,7 @@
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useMyTrophies } from '../hooks/useMyTrophies';
-import { GameHeader } from '../components/ui/GameHeader';
+import { HeaderBar } from '../components/ui/HeaderBar';
 import { GameButton } from '../components/ui/GameButton';
 import { AppCard } from '../components/ui/AppCard';
 import { Skeleton, SkeletonRows } from '../components/ui/Skeleton';
@@ -77,7 +77,7 @@ export default function DateLogScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('date_log_title')} showBack />
+      <HeaderBar title={i18n.t('date_log_title')} />
       {isLoading ? (
         <View style={styles.list}>
           <SkeletonRows count={4} gap={SPACE.md} row={() => (

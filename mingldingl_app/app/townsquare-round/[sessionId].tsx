@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Tap } from '../../components/ui/Tap';
-import { View, Text, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AgoraVideoCall } from '../../components/video/AgoraVideoCall';
 import { VideoControls } from '../../components/video/VideoControls';
@@ -67,6 +67,9 @@ export default function TownSquareRoundScreen() {
   // matches made in it were never surfaced anywhere at all.
   if (connectionLost && summary?.status === 'Completed') {
     return (
+      // Scrolls because a good gathering lists a row per match, which pushed the way out below the
+      // bottom of a small phone.
+      <ScrollView contentContainerStyle={styles.summaryScroll}>
       <StateBlock
         tone="good"
         icon="party-popper"
@@ -109,6 +112,7 @@ export default function TownSquareRoundScreen() {
           {i18n.t('town_square_rejoin')}
         </GameButton>
       </StateBlock>
+      </ScrollView>
     );
   }
 
@@ -275,6 +279,7 @@ const styles = StyleSheet.create({
   // so the world's floor, light ramp and vfx render beneath it. It was the one lit screen
   // painting an opaque ground over all three.
   screen: { flex: 1, backgroundColor: 'transparent' },
+  summaryScroll: { flexGrow: 1 },
   waitGround: { backgroundColor: 'transparent' },
   center: { alignItems: 'center', justifyContent: 'center', gap: SPACE.lg, paddingHorizontal: SPACE.xxxl },
   status: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center' },

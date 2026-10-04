@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { ScrollView, View, StyleSheet } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { GameHeader } from '../../components/ui/GameHeader';
 import { GameButton } from '../../components/ui/GameButton';
@@ -47,8 +47,10 @@ export default function TownSquareScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('town_square_title')} showScore />
-      <View style={styles.content}>
+      <GameHeader title={i18n.t('town_square_title')} />
+      {/* The open session's card (the plaza, its stats, the gates' clock, the button) is taller
+          than a small phone has room for under the header and tab bar, so it scrolls. */}
+      <ScrollView contentContainerStyle={styles.content}>
         {closed ? (
           // Switched off by the house, not broken: a shut gate, with nothing to retry.
           <StateBlock icon="door-closed-lock" title={getApiErrorMessage(error, i18n.t('screen_load_error'))} />
@@ -67,12 +69,12 @@ export default function TownSquareScreen() {
             isCancelling={isCancelling}
           />
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
-  content: { flex: 1, paddingTop: SPACE.lg },
+  content: { flexGrow: 1, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
 });

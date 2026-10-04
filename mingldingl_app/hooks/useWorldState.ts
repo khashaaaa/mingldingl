@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
-import { useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { notifyManager, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/api/queryKeys';
 import { profileCompleteness, type WorldState } from '../lib/world/light';
 import type { Match } from '../models/match';
@@ -18,7 +18,15 @@ interface OwnedItemShape { itemType?: string | null }
  * behaviour is tuned per screen; subscribing to the cache directly cannot.
  */
 function useCached<T>(qc: QueryClient, key: readonly unknown[] | null): T | undefined {
-  const subscribe = useCallback((cb: () => void) => qc.getQueryCache().subscribe(cb), [qc]);
+  // The cache tells its listeners synchronously, and a screen's `useQuery` builds its query (an
+  // `added` event) *while that screen renders* — so a direct callback updated the provider in the
+  // middle of another component's render ("Cannot update a component (`WorldProvider`) while
+  // rendering …", seen whenever sign-out cleared the cache). Scheduling it through the query
+  // library's own notifier moves it past the render; the snapshot is re-read either way.
+  const subscribe = useCallback(
+    (cb: () => void) => qc.getQueryCache().subscribe(() => notifyManager.schedule(cb)),
+    [qc],
+  );
   // The key is a fresh array each render, so it is hashed and rebuilt from the hash: a key that
   // is structurally the same then keeps the same snapshot function, and the cache lookup is by
   // structure anyway, so the rebuilt key finds exactly what the original would.

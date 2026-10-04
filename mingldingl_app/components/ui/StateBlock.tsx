@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import type { ReactNode } from 'react';
 import type { LayoutChangeEvent, StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { FogDrift } from '../vfx/FogDrift';
-import { ACCENT, FONTS, FONT_SIZES, HEAT, ICON_SIZES, INK, LEADING, LINE, RADIUS, SPACE, STATUS, SURFACE, type Tone } from '../../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, HEAT, ICON_SIZES, INK, LEADING, SPACE, STATUS, type Tone } from '../../lib/theme';
 import { Icon, type IconName } from './Icon';
 import { PLACES, type PlaceName } from './Places';
 
@@ -101,9 +101,10 @@ interface Props {
   fog?: boolean;
 
   /**
-   * Draw the block on its own panel rather than bare on the screen. Two screens had built this
-   * card by hand, byte for byte identical, which is how the pair would have drifted apart the
-   * first time one of them was touched.
+   * Hug the copy instead of filling the screen — for a block that stands among other content.
+   * It used to draw its own panel too, so an empty Town Square sat in a box while an empty Frozen
+   * Gate stood bare on the floor: one state, two drawings. No state gets a box now (2026-10-04);
+   * the only framed panel on a screen is its hero.
    */
   framed?: boolean;
   testID?: string;
@@ -204,12 +205,7 @@ const styles = StyleSheet.create({
   framed: {
     flexGrow: 0,
     flexBasis: 'auto',
-    backgroundColor: SURFACE.panel,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: LINE.edge,
-    padding: SPACE.giant,
-    overflow: 'hidden',
+    paddingVertical: SPACE.giant,
   },
   actions: { alignSelf: 'stretch', gap: SPACE.sm, marginTop: SPACE.sm },
 

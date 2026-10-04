@@ -44,7 +44,7 @@ function hueGap(a: string, b: string): number {
 /**
  * Every hex-colour leaf under a role, however deeply nested (`MEMBERSHIP_METALS.Gold.color`).
  * Skips anything that is not a 6-digit hex string — an `rgba(...)` from `tint()`/`mix()`, or a
- * bare number like `TIER_PRESENCE`'s `ring`/`glow` — so a table that mixes colour with other data
+ * bare number like `TIER_PRESENCE`'s `glow` — so a table that mixes colour with other data
  * can be folded in without hand-picking its colour fields out first.
  */
 function hexLeaves(value: unknown): string[] {
@@ -90,7 +90,6 @@ describe('gem tiers', () => {
     const ramp = TIER_ORDER.map((t) => TIER_PRESENCE[t]);
     for (let i = 1; i < ramp.length; i++) {
       expect(ramp[i].glow).toBeGreaterThan(ramp[i - 1].glow);
-      expect(ramp[i].ring).toBeGreaterThanOrEqual(ramp[i - 1].ring);
     }
     expect(TIER_PRESENCE[TIER_ORDER[TIER_ORDER.length - 1]].glow)
       .toBeGreaterThan(TIER_PRESENCE[TIER_ORDER[0]].glow);
@@ -274,7 +273,7 @@ describe('temperature', () => {
   it('keeps all five tokens distinct from every existing pigment in the palette', () => {
     // Every role that can hold a colour, not just the eight flat ones: `STATUS_SOFT`/`STATUS_DEEP`
     // are `rgba(...)` from `tint()`/`mix()` (skipped by `hexLeaves`, not by hand), `MEMBERSHIP_METALS`
-    // nests `color`/`shade` per tier, and `TIER_PRESENCE` mixes colour with `ring`/`glow` numbers —
+    // nests `color`/`shade` per tier, and `TIER_PRESENCE` mixes colour with `glow` numbers —
     // `hexLeaves` walks all of them the same way rather than trusting a hand-picked list.
     const existing = new Set(
       hexLeaves([
@@ -302,7 +301,7 @@ describe('temperature', () => {
 });
 
 /**
- * Materials: `docs/design/sealed-fire/boards/Materials.dc.html`'s six, `MaterialMark`'s colour
+ * Materials: `docs/design/sealed-fire/boards/Materials.dc.html`'s six, the colour
  * table. `bronze` and `gold` are not new pigment — the board says the metals already exist as
  * tokens — so the guard here is the same one `theme.ts`'s own docstring makes: they alias
  * `METAL.brass`/`METAL.gold` rather than repeating those hexes as fresh literals, which is what

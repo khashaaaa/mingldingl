@@ -70,7 +70,7 @@ const FROZEN_FIRE: Fire = fireOf(
 
 describe('QuestTile', () => {
   it('does not render a lock glyph for an unstarted quest — messaging is never gated', () => {
-    const { UNSAFE_queryAllByProps, getByText } = render(
+    const { UNSAFE_queryAllByProps, queryByText } = render(
       <QuestTile match={BASE_MATCH} fire={UNLIT_FIRE} onPress={jest.fn()} />,
     );
 
@@ -78,7 +78,8 @@ describe('QuestTile', () => {
     // only the video-call button reads it (app/chat/[matchId].tsx).
     expect(UNSAFE_queryAllByProps({ name: 'lock' }).length).toBe(0);
     expect(UNSAFE_queryAllByProps({ name: 'script-text' }).length).toBeGreaterThan(0);
-    expect(getByText('NEW QUEST')).toBeTruthy();
+    // The seal says it; the eyebrow no longer repeats NEW QUEST down every unopened row.
+    expect(queryByText('NEW QUEST')).toBeNull();
   });
 
   it('renders the burning eyebrow and line', () => {
@@ -99,13 +100,14 @@ describe('QuestTile', () => {
     expect(queryByTestId('state-ember', HIDDEN)).toBeNull();
   });
 
-  it('renders the frozen eyebrow and verdict without the left frost drawing', () => {
-    const { getByText, queryByTestId } = render(
+  it('runs the frozen line and verdict as one paragraph, with no eyebrow and no left frost drawing', () => {
+    const { getByText, queryByText, queryByTestId } = render(
       <QuestTile match={BASE_MATCH} fire={FROZEN_FIRE} onPress={jest.fn()} />,
     );
-    expect(getByText('FROZEN')).toBeTruthy();
-    expect(getByText('Five dawns of silence. Judged at the second.')).toBeTruthy();
-    expect(getByText('They let it freeze. Their standing paid.')).toBeTruthy();
+    // The log's "Gone cold" mark already says it for every row beneath it.
+    expect(queryByText('FROZEN')).toBeNull();
+    expect(getByText('Five dawns of silence. Judged at the second. They let it freeze. Their standing paid.')).toBeTruthy();
+    expect(getByText(' They let it freeze. Their standing paid.')).toBeTruthy();
     // Dropped after the A51 pass: it read as a ruler scribbled behind the portrait.
     expect(queryByTestId('frost-edge-left', HIDDEN)).toBeNull();
   });
@@ -145,5 +147,21 @@ describe('QuestTile', () => {
     const { queryByTestId } = render(<QuestTile match={BASE_MATCH} fire={severed} onPress={jest.fn()} />);
     expect(queryByTestId('quest-cord-top')).toBeNull();
     expect(queryByTestId('quest-cord-bottom')).toBeNull();
+  });
+});
+
+describe('QuestTile — the name and the face', () => {
+  it('names the person at the first rung, with their bio under an unopened quest', () => {
+    const match: Match = { ...BASE_MATCH, revealLevel: 1, otherUser: { displayName: 'Riley', bio: 'Vet nurse. Prefers dogs.' } };
+    const { getByText, queryByText } = render(<QuestTile match={match} fire={UNLIT_FIRE} onPress={() => {}} />);
+    expect(getByText('Riley')).toBeTruthy();
+    expect(getByText('Vet nurse. Prefers dogs.')).toBeTruthy();
+    expect(queryByText('A sealed one')).toBeNull();
+  });
+
+  it('keeps the bio out of a thread that has letters — the line under the name is the fire', () => {
+    const match: Match = { ...BASE_MATCH, otherUser: { displayName: 'Riley', bio: 'Vet nurse. Prefers dogs.' } };
+    const { queryByText } = render(<QuestTile match={match} fire={BURNING_FIRE} onPress={() => {}} />);
+    expect(queryByText('Vet nurse. Prefers dogs.')).toBeNull();
   });
 });

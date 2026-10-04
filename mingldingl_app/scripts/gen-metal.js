@@ -7,10 +7,6 @@
 // a drop arrives in — and never on cards, rows, chat or headers, where they would stop meaning
 // anything and the app would read as a generic RPG skin.
 //
-// The Mongol thread is lamellar: armour of small riveted iron plates laced together. A lamellar
-// strip stands in for a hairline at the one place that earns it, above the Oath, which makes the
-// metal ancestral rather than steampunk beside the Bronze Age carvings.
-//
 // Nothing here carries a colour. A plate's metal is the fill of the view under it (a token from
 // `lib/theme.ts`); what is baked is only the light on it, as black and white at low alpha — rubbed
 // edges bright, recesses dark, rivets domed, scratches — so the same wear sits on gold, silver or
@@ -22,7 +18,6 @@
 //                       each corner stays fixed; the edges stretch along their length only.
 //   grain-{0,1,2}       scratches and pitting for a plate's face, three seeds so no two plates match
 //   strap               an iron strap with studs, for the Gate
-//   lamellar-{body,detail}  laced plates in a row, the strip above the Oath
 //   box-{body,lid}-{wood,iron,detail}  an iron-bound strongbox in two halves, so the lid can open
 //   seal-{body,detail}  a wax seal, pressed over a plaque's rivet
 //
@@ -44,8 +39,6 @@ const GRAIN_W = 1320;
 const GRAIN_H = 600;
 const STRAP_W = 720;
 const STRAP_H = 54;
-const LAMELLAR_W = 1200;
-const LAMELLAR_H = 54;
 const BOX = 144;
 /** The box is drawn on a 144 grid and baked 1.5× larger: shown at `ICON_SIZES.splash` (72pt). */
 const BOX_SCALE = 1.5;
@@ -247,49 +240,6 @@ function bakeStrap(CK) {
   save(CK, K, 'strap');
 }
 
-/* ── Lamellar ─────────────────────────────────────────────────────────────────────────────── */
-
-function bakeLamellar(CK) {
-  const body = sheet(CK, LAMELLAR_W, LAMELLAR_H);
-  const det = sheet(CK, LAMELLAR_W, LAMELLAR_H);
-  const r = rng(0x1a3e);
-  const PW = 36, STEP = 30; // each lamella overlaps the last by 6px
-  const top = 4, bottom = LAMELLAR_H - 3;
-  for (let x = -PW; x < LAMELLAR_W + PW; x += STEP) {
-    const jitter = (r() - 0.5) * 2;
-    const y0 = top + jitter;
-    // Silhouette: a narrow plate with a rounded top and a squarer foot.
-    body.rrect(x, y0, PW, bottom - y0, 10, true, 1);
-    body.rect(x, y0 + 12, PW, bottom - y0 - 12, true, 1);
-    // The plate under this one shows a shadow down this one's left edge.
-    det.rect(x - 1, y0 + 2, 5, bottom - y0 - 2, false, 0.5, 2);
-    // A ridge down the middle, lit on its left.
-    det.line([[x + PW / 2 - 1, y0 + 8], [x + PW / 2 - 1, bottom - 6]], true, 0.22, 2);
-    det.line([[x + PW / 2 + 2, y0 + 8], [x + PW / 2 + 2, bottom - 6]], false, 0.25, 2);
-    // Rim: lit top, dark foot.
-    det.line([[x + 6, y0 + 1.5], [x + PW - 6, y0 + 1.5]], true, 0.4, 2);
-    det.line([[x + 2, bottom - 1.5], [x + PW - 2, bottom - 1.5]], false, 0.55, 3);
-    // Wear: a few bright scuffs.
-    for (let k = 0; k < 3; k++) {
-      const sx = x + 6 + r() * (PW - 12), sy = y0 + 10 + r() * (bottom - y0 - 20);
-      det.line([[sx, sy], [sx + 3 + r() * 6, sy + (r() - 0.5) * 3]], true, 0.18, 1);
-    }
-    // Two rivets up top, and the lace holes the cord runs through.
-    rivet(det, x + 10, y0 + 9, 3.2, 0.9);
-    rivet(det, x + PW - 10, y0 + 9, 3.2, 0.9);
-  }
-  // The lacing: a dark cord across the middle, stitched over each seam.
-  const cy = LAMELLAR_H * 0.62;
-  det.line([[0, cy], [LAMELLAR_W, cy]], false, 0.55, 5);
-  det.line([[0, cy - 1.6], [LAMELLAR_W, cy - 1.6]], true, 0.12, 1);
-  for (let x = -PW; x < LAMELLAR_W + PW; x += STEP) {
-    det.line([[x - 4, cy - 6], [x + 4, cy + 6]], false, 0.6, 3.2);
-    det.line([[x - 3, cy - 6.5], [x + 4.5, cy + 5]], true, 0.14, 1);
-  }
-  save(CK, body, 'lamellar-body');
-  save(CK, det, 'lamellar-detail');
-}
-
 /* ── The strongbox ────────────────────────────────────────────────────────────────────────── */
 
 // The box in front view: the body from LID_Y down, the lid's barrel above it. Left/right edges.
@@ -411,7 +361,6 @@ async function main() {
   bakePlate(CK, 'plate-fine', 0xf17e, { rivetR: 5.5, wear: 0.35, recess: 0.5 });
   [0x6a1, 0x6a2, 0x6a3].forEach((s, i) => bakeGrain(CK, i, s));
   bakeStrap(CK);
-  bakeLamellar(CK);
   boxPart(CK, 'body');
   boxPart(CK, 'lid');
   bakeSeal(CK);

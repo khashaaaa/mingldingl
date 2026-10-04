@@ -1,4 +1,5 @@
-import { act, render } from '@testing-library/react-native';
+import { Image, StyleSheet } from 'react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 import { ScoreHUD } from '../ScoreHUD';
 import { ThreadLog } from '../ThreadLog';
 import { XPBar } from '../XPBar';
@@ -41,6 +42,17 @@ describe('ThreadLog', () => {
   });
 });
 
+describe('XPBar trail', () => {
+  it('inks the brushed stroke across the measured width and reports how far along it is', () => {
+    const { getByTestId, queryByTestId } = render(<XPBar gemTier="Garnet" totalScore={60} pct={0.6} nextTier="Opal" nextTierThreshold={100} />);
+    const trail = getByTestId('xp-trail');
+    expect(queryByTestId('xp-trail-lit')).toBeNull();
+    fireEvent(trail, 'layout', { nativeEvent: { layout: { width: 120, height: 10, x: 0, y: 0 } } });
+    expect(StyleSheet.flatten(getByTestId('xp-trail-lit').props.style).width).toBe(120);
+    expect(trail.props.accessibilityValue).toEqual({ min: 0, max: 100, now: 60 });
+  });
+});
+
 describe('XPBar next-tier threshold', () => {
   it('shows how many points remain to the next tier when a threshold is known', () => {
     const { getByText } = render(<XPBar gemTier="Garnet" totalScore={60} pct={0.6} nextTier="Opal" nextTierThreshold={100} />);
@@ -77,22 +89,27 @@ describe('TierPerkCard daily budget', () => {
 });
 
 describe('ScoreHUD', () => {
+  it('paints the score in brushed numerals, one per digit and a dab for the comma', () => {
+    const score = render(<ScoreHUD score={1240} tier="Garnet" />).getByTestId('score-hud-score');
+    expect(score.findAllByType(Image)).toHaveLength(5);
+  });
+
   // The float is hidden from assistive tech on purpose, which also hides it from RNTL's default
   // queries; these opt back in so the tests see the same tree the screen draws.
   const hidden = { includeHiddenElements: true };
 
   it('shows the score with separators and no delta on first render', () => {
-    const { getByText, queryByTestId } = render(<ScoreHUD score={1240} tier="Garnet" />);
-    expect(getByText('1,240')).toBeTruthy();
+    const { getByLabelText, queryByTestId } = render(<ScoreHUD score={1240} tier="Garnet" />);
+    expect(getByLabelText('1,240')).toBeTruthy();
     expect(queryByTestId('score-delta', hidden)).toBeNull();
   });
 
   it('floats +N when the score rises, then removes it once the rise is over', () => {
-    const { getByText, getByTestId, queryByTestId, rerender } = render(<ScoreHUD score={1240} tier="Garnet" />);
+    const { getByLabelText, getByTestId, queryByTestId, rerender } = render(<ScoreHUD score={1240} tier="Garnet" />);
     rerender(<ScoreHUD score={1265} tier="Garnet" />);
     expect(getByTestId('score-delta', hidden).props.children).toBe('+25');
     act(() => { jest.runAllTimers(); });
-    expect(getByText('1,265')).toBeTruthy();
+    expect(getByLabelText('1,265')).toBeTruthy();
     expect(queryByTestId('score-delta', hidden)).toBeNull();
   });
 
@@ -104,9 +121,9 @@ describe('ScoreHUD', () => {
 
   it('jumps straight to the new score with no float under still', () => {
     mockLevel = 'still';
-    const { getByText, queryByTestId, rerender } = render(<ScoreHUD score={100} tier="Garnet" />);
+    const { getByLabelText, queryByTestId, rerender } = render(<ScoreHUD score={100} tier="Garnet" />);
     rerender(<ScoreHUD score={150} tier="Garnet" />);
-    expect(getByText('150')).toBeTruthy();
+    expect(getByLabelText('150')).toBeTruthy();
     expect(queryByTestId('score-delta', hidden)).toBeNull();
   });
 });

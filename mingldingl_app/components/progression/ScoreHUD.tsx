@@ -5,7 +5,7 @@ import { colorForTier } from '../../lib/tiers';
 import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, HEAT, ICON_SIZES, INK, METAL, RADIUS, SPACE, STATUS, SURFACE, TRACKING, metalGradient, tint } from '../../lib/theme';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
 import { GemTierBadge } from './GemTierBadge';
-import { CountText } from '../ui/CountText';
+import { BrushNumber } from '../ui/BrushNumber';
 import { Icon } from '../ui/Icon';
 import { i18n } from '../../lib/i18n';
 
@@ -15,6 +15,8 @@ interface Props {
   streak?: number;
 }
 
+/** The score's numerals stand this tall: the display face's digits at `FONT_SIZES.md`, a hair more. */
+const SCORE_INK = 12;
 const FLOAT_RISE = 18;
 const FLOAT_MS = 900;
 
@@ -60,7 +62,8 @@ export function ScoreHUD({ score, tier = 'Garnet', streak }: Props) {
         <LinearGradient colors={metalGradient(SURFACE.sunken)} style={StyleSheet.absoluteFill} />
         <View style={styles.topHighlight} pointerEvents="none" />
         <GemTierBadge tier={tier} size={BADGE_SIZES.inline} />
-        <CountText value={score} style={[styles.score, { color }]} onLayout={onScoreLayout} />
+        {/* The score is painted, in the gem's colour: the one number on every tab. */}
+        <BrushNumber value={score} size={SCORE_INK} color={color} onLayout={onScoreLayout} testID="score-hud-score" />
         <Text style={styles.pts}>{i18n.t('pts')}</Text>
         {streak !== undefined && streak >= 2 && (
           <View style={styles.streakRow}>
@@ -106,7 +109,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   topHighlight: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: tint(INK.primary, 0.14) },
-  score: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: TRACKING.label },
   pts: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: INK.dim, letterSpacing: TRACKING.wide },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginLeft: SPACE.xs },
   streak: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: HEAT.flame, letterSpacing: TRACKING.wide },

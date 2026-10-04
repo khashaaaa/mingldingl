@@ -84,6 +84,6 @@ describe('ProfileScreen chrome (Sealed Fire W4 task 5: moved on to the hearth)',
     // render the two things they say are gone.
     const { getByText } = renderScreen();
     expect(getByText('Bataar')).toBeTruthy();
-    expect(getByText('TOTAL SCORE')).toBeTruthy();
+    expect(getByText('GUILD RANK')).toBeTruthy();
   });
 });

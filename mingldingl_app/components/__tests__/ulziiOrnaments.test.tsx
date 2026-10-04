@@ -3,7 +3,6 @@ import { Text } from 'react-native';
 import { AppCard } from '../ui/AppCard';
 import { SectionDivider } from '../ui/SectionDivider';
 import { QuestBanner } from '../quest/QuestBanner';
-import { XPBar } from '../progression/XPBar';
 import { CharacterCard } from '../cards/CharacterCard';
 import OathSigil from '../OathSigil';
 
@@ -33,14 +32,6 @@ describe('ulzii ornament layer', () => {
       <QuestBanner icon="map" title="Campaign Map" onPress={() => {}} medallion="knot" />,
     );
     expect(getByTestId('ulzii-medallion')).toBeTruthy();
-  });
-
-  it('XPBar walks: dim fret on the track, dark fret engraved on the fill', () => {
-    const { getByTestId } = render(
-      <XPBar gemTier="Garnet" totalScore={60} pct={0.6} nextTier="Opal" nextTierThreshold={100} />,
-    );
-    expect(getByTestId('ulzii-track-fret')).toBeTruthy();
-    expect(getByTestId('ulzii-fill-fret')).toBeTruthy();
   });
 
   it('CharacterCard, redrawn as a Wanted poster (Sealed Fire W3 move 10), knots the portrait\'s corner', () => {

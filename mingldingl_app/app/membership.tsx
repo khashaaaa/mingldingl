@@ -17,6 +17,7 @@ import { formatDate } from '../lib/formatDate';
 import { ACCENT, FONTS, FONT_SIZES, INK, LINE, MEMBERSHIP_METALS, RADIUS, SPACE, TRACKING, tint } from '../lib/theme';
 import type { MembershipTier } from '../models/membership';
 import { useScrollTail } from '../hooks/useScrollTail';
+import { ScreenLede } from '../components/ui/ScreenLede';
 
 const DURATIONS = ['1', '3', '6'] as const;
 const DURATION_LABEL_KEY: Record<(typeof DURATIONS)[number], string> = {
@@ -86,7 +87,7 @@ export default function MembershipScreen() {
     <View style={styles.container}>
       <HeaderBar title={i18n.t('guild_house')} />
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tail }]}>
-        <Text style={styles.subtitle}>{i18n.t(SUB_KEY[standingOn] ?? 'guild_house_sub')}</Text>
+        <ScreenLede>{i18n.t(SUB_KEY[standingOn] ?? 'guild_house_sub')}</ScreenLede>
         {currentLevel && currentLevel !== 'Free' && expiresAt && (
           <Text style={styles.expiryLine}>
             {i18n.t('membership_active_until', { date: formatDate(expiresAt) })}
@@ -200,12 +201,6 @@ const styles = StyleSheet.create({
     paddingTop: SPACE.lg,
     gap: SPACE.lg,
     paddingBottom: SPACE.scrollTail,
-  },
-  subtitle: {
-    color: INK.dim,
-    fontSize: FONT_SIZES.md,
-    fontFamily: FONTS.body,
-    marginBottom: SPACE.xs,
   },
   expiryLine: {
     color: ACCENT.base,

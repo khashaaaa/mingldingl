@@ -33,9 +33,15 @@ describe('Unsealing', () => {
     render(<Unsealing {...PROPS} visible />);
     // The haptic is deliberately on a timer, landing with the break rather than with the mount.
     expect(signal).not.toHaveBeenCalled();
-    act(() => { jest.advanceTimersByTime(1000); });
+    // The wash covers the chat first, so the break lands that much later.
+    act(() => { jest.advanceTimersByTime(1500); });
     expect(signal).toHaveBeenCalledWith('sealBreak');
     jest.useRealTimers();
+  });
+
+  it('opens from ink: a wash covers the chat before the seal arrives', () => {
+    const { getByTestId } = render(<Unsealing {...PROPS} visible />);
+    expect(getByTestId('ink-wash')).toBeTruthy();
   });
 
   it('still reveals a rung that unlocked no photo', () => {

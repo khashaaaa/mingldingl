@@ -10,7 +10,7 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
  */
 export type WorldEvent =
   | 'enterDeep' | 'ascend' | 'tierUp' | 'sealBreak' | 'honour' | 'pledgeKept' | 'press' | 'horn'
-  | 'fireDying' | 'candleLit' | 'bell' | 'matchMade' | 'penalty' | 'stoke';
+  | 'fireDying' | 'candleLit' | 'bell' | 'matchMade' | 'penalty';
 
 type HapticKind = 'soft' | 'light' | 'medium' | 'heavy' | 'success' | 'warning';
 
@@ -43,8 +43,6 @@ const SIGNALS: Record<WorldEvent, EventDef> = {
   // The hold docking you for a ghosting (match_status_changed naming you at fault). Only gains
   // were ever voiced, which made accountability something read about in the chronicle afterwards.
   penalty:   { haptic: 'warning', sound: require('../../assets/sounds/due.wav') },
-  // A list pulled down far enough that its hearth catches (`useKindle`): the pull-to-refresh.
-  stoke:     { haptic: 'light',   sound: require('../../assets/sounds/candle.wav') },
 };
 
 const REPEAT_GAP_MS = 110;

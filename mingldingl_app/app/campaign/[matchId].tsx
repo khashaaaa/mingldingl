@@ -21,6 +21,7 @@ import { ORNAMENTS } from '../../lib/ornaments';
 import { useScrollTail } from '../../hooks/useScrollTail';
 import { goBack } from '../../lib/navigation';
 import { useGoTo } from '../../hooks/useGoTo';
+import { ScreenLede } from '../../components/ui/ScreenLede';
 
 const BOSS_ROOM_ID = 'threshold';
 
@@ -200,7 +201,7 @@ export default function CampaignScreen() {
         </StateBlock>
       ) : (
         <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: tail }]}>
-          <Text style={styles.sub}>{i18n.t('campaign_sub')}</Text>
+          <ScreenLede style={styles.sub}>{i18n.t('campaign_sub')}</ScreenLede>
           <Text style={styles.progress}>
             {i18n.t('campaign_progress', { cleared: campaign.clearedCount, total: campaign.rooms.length })}
           </Text>
@@ -221,13 +222,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.md, padding: SPACE.xxl },
   scrollContent: { padding: SPACE.lg, paddingBottom: SPACE.scrollTail },
-  sub: {
-    fontFamily: FONTS.bodyItalic,
-    fontSize: FONT_SIZES.md,
-    color: INK.dim,
-    textAlign: 'center',
-    marginBottom: SPACE.sm,
-  },
+  sub: { textAlign: 'center', marginBottom: SPACE.sm },
   progress: {
     fontFamily: FONTS.display,
     fontSize: FONT_SIZES.lg,

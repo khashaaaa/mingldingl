@@ -36,6 +36,8 @@ import { useVfxLevel } from '../lib/vfx';
 import { WorldFloor } from '../components/world/WorldFloor';
 import { WorldCanopy } from '../components/world/WorldCanopy';
 import { RewardToastHost } from '../components/RewardToastHost';
+import { InkWashHost } from '../components/vfx/InkWash';
+import { passThroughInk, useInkWashStore } from '../store/inkWashStore';
 import { AlertModal } from '../components/modals/AlertModal';
 import { GameButton } from '../components/ui/GameButton';
 import { i18n } from '../lib/i18n';
@@ -50,6 +52,7 @@ import { useSyncPreferredLocale } from '../hooks/useSyncPreferredLocale';
 import { getStoredLocale } from '../lib/localePreference';
 import { useLocaleStore } from '../store/localeStore';
 import { useGoTo } from '../hooks/useGoTo';
+import { setIncomingLinkHandler } from '../lib/incomingLinks';
 
 installGlobalErrorHandlers();
 
@@ -140,6 +143,11 @@ function AppContent() {
   const segments = useSegments();
   const router = useRouter();
   const go = useGoTo();
+  // Links that arrive while the app is open return to an open screen rather than stacking a copy.
+  useEffect(() => {
+    setIncomingLinkHandler(go);
+    return () => setIncomingLinkHandler(null);
+  }, [go]);
   const [mounted, setMounted] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
     YesevaOne_400Regular,
@@ -237,13 +245,17 @@ function AppContent() {
   // Stable across renders: this component re-renders on every navigation (it reads the segments),
   // and a new options function each time made the navigator rebuild every screen's descriptor.
   const still = vfxLevel === 'still';
+  // Under an ink wash the wash is the passage: the screen it hides is cut in, not slid. A chat's
+  // slide from below outlasted the wash's hold, so the ink drew back onto the old room with the
+  // new one still rising over it.
+  const washing = useInkWashStore((s) => s.job !== null);
   const screenOptions = useCallback(({ route }: { route: { name: string } }) => ({
     headerShown: false,
-    animation: animationFor(route.name, still),
+    animation: washing ? 'none' as const : animationFor(route.name, still),
     // Native stack screens take their ground from `contentStyle` rather than the theme, so both
     // are needed — see HOLD_THEME.
     contentStyle: styles.transparent,
-  }), [still]);
+  }), [still, washing]);
 
   if (!fontsReady || !localeReady) {
     return (
@@ -316,12 +328,15 @@ function AppContent() {
               visible
               onDismiss={() => setPendingNudge(null)}
               onPress={() => {
-                const matchId = pendingNudge.matchId;
+                const { matchId, icon } = pendingNudge;
                 setPendingNudge(null);
-                go(`/chat/${matchId}`);
+                // A new match is the big moment: the player is carried into it through ink.
+                if (icon === 'fire') passThroughInk(() => go(`/chat/${matchId}`));
+                else go(`/chat/${matchId}`);
               }}
             />
           )}
+          <InkWashHost />
         </View>
         </WorldProvider>
       </SafeAreaView>

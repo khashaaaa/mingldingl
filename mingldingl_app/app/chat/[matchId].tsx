@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Tap } from '../../components/ui/Tap';
-import { View, Text, FlatList, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, FlatList, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAndroidKeyboardHeight } from '../../hooks/useAndroidKeyboardHeight';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,6 +12,8 @@ import { useAttendanceCheck } from '../../hooks/useAttendanceCheck';
 import { useMatches } from '../../hooks/useMatches';
 import { AlertModal } from '../../components/modals/AlertModal';
 import { AppModal } from '../../components/modals/AppModal';
+import { DIALOG_STYLES } from '../../components/modals/DialogSurface';
+import { CardEyebrow } from '../../components/ui/CardEyebrow';
 import { AttendanceCheckModal } from '../../components/modals/AttendanceCheckModal';
 import { ReportUserSheet } from '../../components/modals/ReportUserSheet';
 import FlameRiteCard, { type FlameRiteState } from '../../components/FlameRiteCard';
@@ -39,7 +41,7 @@ import { ACCENT, BADGE_SIZES, FONTS, HEAT, FONT_SIZES, ICON_SIZES, INK, LINE, ME
 import { FieldError, StateBlock } from '../../components/ui/StateBlock';
 import { useAuthStore } from '../../store/authStore';
 import { useActivityGate, useGhostingWindows, useRevealLadder } from '../../hooks/useRevealThresholds';
-import { messagesUntilActivities, nextRevealThreshold } from '../../lib/reveal';
+import { matchName, messagesUntilActivities, nextRevealThreshold } from '../../lib/reveal';
 import { letterMarks } from '../../lib/letters';
 import { fireOf, fireLine, fireVerdict, fireEyebrow, fireMark, cap } from '../../lib/fire';
 import { FireMarkGlyph } from '../../components/quest/FireMarkGlyph';
@@ -200,6 +202,11 @@ export default function ChatScreen() {
    * false, and the thread never follows a new message again. The second pass runs once the rows
    * have settled.
    */
+  function onReaderScrolled(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    nearBottomRef.current = contentSize.height - contentOffset.y - layoutMeasurement.height <= NEAR_BOTTOM_SLOP;
+  }
+
   function scrollToEndSoon() {
     flatListRef.current?.scrollToEnd({ animated: false });
     requestAnimationFrame(() => flatListRef.current?.scrollToEnd({ animated: false }));
@@ -254,13 +261,7 @@ export default function ChatScreen() {
   // level-2 reveal threshold mid-conversation kept its stale mystery-name header while the reveal
   // strip right below it already read "2 of 3 photos". Derive it from the live match instead, and
   // keep the param only as the first-paint value while `useMatches` is still in flight.
-  const revealedName = match
-    ? match.otherUser.isDeleted
-      ? i18n.t('deleted_user')
-      : match.revealLevel >= 2
-        ? (match.otherUser.displayName ?? i18n.t('unknown_name'))
-        : i18n.t('mystery_match_name')
-    : null;
+  const revealedName = match ? matchName(match) : null;
 
 
   return (
@@ -371,13 +372,23 @@ export default function ChatScreen() {
               ref={flatListRef}
               data={messages}
               keyExtractor={(m) => m.id}
-              contentContainerStyle={[styles.messageList, endedReason === 'ghosted' && { paddingBottom: SPACE.lg + frozenOverHeight(windowWidth) }]}
-              onScroll={(e) => {
-                const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-                nearBottomRef.current =
-                  contentSize.height - contentOffset.y - layoutMeasurement.height <= NEAR_BOTTOM_SLOP;
-              }}
-              scrollEventThrottle={16}
+              contentContainerStyle={styles.messageList}
+              // The room the ice of a frozen thread stands in, kept free below the last letter. A
+              // footer, not bottom padding: `scrollToEnd` counts a footer's height and ignores
+              // padding — but only once it is measured, which is after the rows, so the footer
+              // re-follows the tail itself. Either miss left the last letter under the ice.
+              ListFooterComponent={endedReason === 'ghosted' ? (
+                <View
+                  style={{ height: frozenOverHeight(windowWidth) }}
+                  onLayout={() => { if (nearBottomRef.current) scrollToEndSoon(); }}
+                />
+              ) : null}
+              // Only the reader's own scroll says whether they have left the tail. Read off every
+              // scroll event, the rows still measuring after landing (stones settle a frame late)
+              // grew the content under a list that had not moved, latched this false, and the
+              // last letter was left under the ice of a frozen thread.
+              onScrollEndDrag={onReaderScrolled}
+              onMomentumScrollEnd={onReaderScrolled}
               // Prepending a page of history otherwise leaves the scroll offset where it was, so the
               // 50 new rows above it shove the message you were reading off-screen.
               maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
@@ -465,7 +476,7 @@ export default function ChatScreen() {
                     long the silence ran, and — set apart by a hairline — whose standing paid. */}
                 <View style={styles.endedEyebrowRow}>
                   <FireMarkGlyph mark={fireMark('frozen')} size={ICON_SIZES.sm} />
-                  <Text style={styles.endedEyebrow}>{fireEyebrow(fire)}</Text>
+                  <CardEyebrow color={TEMPERATURE.glacier} style={styles.endedEyebrow}>{fireEyebrow(fire)}</CardEyebrow>
                 </View>
                 <Text style={styles.endedNoticeText}>{fireLine(fire)}</Text>
                 {/* Null whenever nobody spoke at all to be judged — see `fireVerdict`. */}
@@ -579,13 +590,12 @@ export default function ChatScreen() {
         onDismiss={() => { clearSubmitFailed(); setAttendanceModalVisible(true); }}
       />
       <AppModal visible={activitiesVisible} transparent animationType="fade" onRequestClose={() => setActivitiesVisible(false)}>
-        <Tap style={styles.optionsOverlay} feedback="none" onPress={() => setActivitiesVisible(false)}>
-          <Tap
-            feedback="none"
-            onPress={() => {}}
-            style={[styles.optionsSheet, { paddingBottom: SPACE.lg + insets.bottom }]}
-          >
-            <Text style={styles.optionsTitle}>{i18n.t('match_activities')}</Text>
+        {/* The dismiss tap sits behind the sheet, not around it: a touchable wrapped round the
+            ScrollView claimed most drags first, so a long list of activities barely scrolled. */}
+        <View style={styles.optionsOverlay}>
+          <Tap style={StyleSheet.absoluteFill} feedback="none" onPress={() => setActivitiesVisible(false)} accessibilityLabel={i18n.t('back')} />
+          <View style={[styles.optionsSheet, { paddingBottom: SPACE.lg + insets.bottom }]}>
+            <Text style={[DIALOG_STYLES.title, styles.optionsTitle]}>{i18n.t('match_activities')}</Text>
             <ScrollView style={styles.activitiesScroll} contentContainerStyle={styles.activitiesScrollContent}>
               {trial && <BondTrialCard trial={trial} onClaim={() => claimTrial()} isClaiming={claimingTrial} />}
               {retireAskedByThem ? (
@@ -630,18 +640,14 @@ export default function ChatScreen() {
                   onPress={() => { setActivitiesVisible(false); setAttendanceModalVisible(true); }} />
               )}
             </ScrollView>
-          </Tap>
-        </Tap>
+          </View>
+        </View>
       </AppModal>
       <AppModal visible={optionsVisible} transparent animationType="fade" onRequestClose={() => setOptionsVisible(false)}>
-        <Tap style={styles.optionsOverlay} feedback="none" onPress={() => setOptionsVisible(false)}>
-          {/* Swallows taps so pressing the sheet's own padding or title does not dismiss it. */}
-          <Tap
-            feedback="none"
-            onPress={() => {}}
-            style={[styles.optionsSheet, { paddingBottom: SPACE.lg + insets.bottom }]}
-          >
-            <Text style={styles.optionsTitle}>{i18n.t('chat_options_title')}</Text>
+        <View style={styles.optionsOverlay}>
+          <Tap style={StyleSheet.absoluteFill} feedback="none" onPress={() => setOptionsVisible(false)} accessibilityLabel={i18n.t('back')} />
+          <View style={[styles.optionsSheet, { paddingBottom: SPACE.lg + insets.bottom }]}>
+            <Text style={[DIALOG_STYLES.title, styles.optionsTitle]}>{i18n.t('chat_options_title')}</Text>
             <GameButton variant="ink" icon="heart-broken" onPress={() => { setOptionsVisible(false); setConfirmUnmatch(true); }}>
               {i18n.t('unmatch')}
             </GameButton>
@@ -651,8 +657,8 @@ export default function ChatScreen() {
             <GameButton variant="danger" icon="flag" onPress={() => { setOptionsVisible(false); setReportVisible(true); }}>
               {i18n.t('report_user')}
             </GameButton>
-          </Tap>
-        </Tap>
+          </View>
+        </View>
       </AppModal>
       {match && (
         <ReportUserSheet
@@ -731,15 +737,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACE.md,
     minHeight: 48,
-    marginHorizontal: SPACE.md,
-    marginTop: SPACE.sm,
-    marginBottom: SPACE.xs,
+    // A hairline row like every other door on the sheet — it was the screen's one boxed card,
+    // brass-edged on a panel, louder than the letters it sits above.
+    marginHorizontal: SPACE.gutter,
     paddingVertical: SPACE.sm,
-    paddingHorizontal: SPACE.md,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: METAL.brass,
-    backgroundColor: SURFACE.panel,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: LINE.hairline,
   },
   activitiesLabel: { flex: 1 },
   activitiesTitle: { fontFamily: FONTS.bodyMedium, fontSize: FONT_SIZES.md, color: ACCENT.base },
@@ -790,13 +793,7 @@ const styles = StyleSheet.create({
   },
   endedNoticeFrost: { position: 'absolute', top: 0, left: 0, right: 0 },
   endedEyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
-  endedEyebrow: {
-    fontFamily: FONTS.utility,
-    fontSize: FONT_SIZES.xs,
-    letterSpacing: TRACKING.eyebrow,
-    textTransform: 'uppercase',
-    color: TEMPERATURE.glacier,
-  },
+  endedEyebrow: { marginBottom: 0 },
   endedNoticeText: {
     fontFamily: FONTS.body,
     fontSize: FONT_SIZES.md,
@@ -847,13 +844,5 @@ const styles = StyleSheet.create({
     padding: SPACE.lg,
     gap: SPACE.md,
   },
-  optionsTitle: {
-    fontFamily: FONTS.display,
-    fontSize: FONT_SIZES.sm,
-    color: INK.dim,
-    letterSpacing: TRACKING.eyebrow,
-    textAlign: 'center',
-    marginBottom: SPACE.xs,
-    textTransform: 'uppercase',
-  },
+  optionsTitle: { marginBottom: SPACE.xs },
 });

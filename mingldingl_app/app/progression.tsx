@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, type LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useScoreDetail } from '../hooks/useScoreDetail';
 import { useScoreHistory } from '../hooks/useScoreHistory';
 import { useProfile } from '../hooks/useProfile';
-import { GameHeader } from '../components/ui/GameHeader';
+import { HeaderBar } from '../components/ui/HeaderBar';
 import { AppCard } from '../components/ui/AppCard';
 import { AscentSky } from '../components/progression/AscentSky';
 import { TierPerkCard } from '../components/progression/TierPerkCard';
@@ -13,13 +13,14 @@ import { GameButton } from '../components/ui/GameButton';
 import { Skeleton } from '../components/ui/Skeleton';
 import { i18n } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
-import { FONTS, FONT_SIZES, INK, RADIUS, SPACE } from '../lib/theme';
+import { FONT_SIZES, RADIUS, SPACE } from '../lib/theme';
 import { StateBlock } from '../components/ui/StateBlock';
 import type { GemTier } from '../models/user';
 import { CardEyebrow } from '../components/ui/CardEyebrow';
 import { useScrollTail } from '../hooks/useScrollTail';
 import { goBack } from '../lib/navigation';
 import { useGoTo } from '../hooks/useGoTo';
+import { ScreenLede } from '../components/ui/ScreenLede';
 
 /** Assumed width until `onLayout` reports the real one — see `GateScene`'s own note on the pattern. */
 const FALLBACK_SKY_WIDTH = 320;
@@ -37,7 +38,7 @@ export default function ProgressionScreen() {
   if (isLoading) {
     return (
       <View style={styles.screen}>
-        <GameHeader title={i18n.t('progression_title')} showBack />
+        <HeaderBar title={i18n.t('progression_title')} />
         <View style={styles.loadingBody}>
           <Skeleton width="100%" height={14} radius={RADIUS.sm} />
           <Skeleton width="60%" height={FONT_SIZES.title} />
@@ -66,13 +67,13 @@ export default function ProgressionScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('progression_title')} showBack />
+      <HeaderBar title={i18n.t('progression_title')} />
       {/* The sky, the perk card and the leaderboard link scroll with the history rather than
           sitting fixed above it — fixed, they left the list a sliver on a short phone. */}
       <ScoreHistoryList
         header={
           <>
-            <Text style={styles.sub}>{i18n.t('ascent_sub')}</Text>
+            <ScreenLede style={styles.sub}>{i18n.t('ascent_sub')}</ScreenLede>
             <AppCard hero clip style={styles.skyCard}>
               <View onLayout={onSkyLayout}>
                 <AscentSky
@@ -110,13 +111,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   centered: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
   loadingBody: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.giant, gap: SPACE.lg },
-  sub: {
-    fontFamily: FONTS.bodyItalic,
-    fontSize: FONT_SIZES.md,
-    color: INK.dim,
-    paddingHorizontal: SPACE.gutter,
-    marginBottom: SPACE.sm,
-  },
+  sub: { paddingHorizontal: SPACE.gutter, marginBottom: SPACE.sm },
   skyCard: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.lg },
   leaderboardButtonWrap: { marginHorizontal: SPACE.gutter, marginBottom: SPACE.xs },
   historyTitle: { marginHorizontal: SPACE.gutter },

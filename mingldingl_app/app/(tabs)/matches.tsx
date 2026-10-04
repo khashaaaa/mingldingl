@@ -1,9 +1,12 @@
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useMatches } from '../../hooks/useMatches';
 import { useMyUserId } from '../../hooks/useMyUserId';
 import { useNowTicker } from '../../hooks/useNowTicker';
 import { useGhostingWindows } from '../../hooks/useRevealThresholds';
 import { fireMark, fireOf, type Fire } from '../../lib/fire';
+import { matchName } from '../../lib/reveal';
 import type { Match } from '../../models/match';
 import { QuestTile } from '../../components/quest/QuestTile';
 import { GameHeader } from '../../components/ui/GameHeader';
@@ -15,9 +18,10 @@ import { useLocaleStore } from '../../store/localeStore';
 import { FONTS, FONT_SIZES, ICON_SIZES, INK, RADIUS, SPACE, TEMPERATURE, tint } from '../../lib/theme';
 import { StateBlock } from '../../components/ui/StateBlock';
 import { useGoTo } from '../../hooks/useGoTo';
-import { useKindle } from '../../components/ui/Kindle';
+import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus';
 import { CardEyebrow } from '../../components/ui/CardEyebrow';
 import { FireMarkGlyph } from '../../components/quest/FireMarkGlyph';
+import { InkBleed } from '../../components/vfx/InkBleed';
 
 type Entry =
   | { kind: 'quest'; match: Match; fire: Fire; first: boolean; last: boolean }
@@ -38,7 +42,13 @@ export default function MatchesScreen() {
   useLocaleStore((s) => s.locale);
   const { data: matches, isLoading, isError, refetch } = useMatches();
   const go = useGoTo();
-  const kindle = useKindle({ onRefresh: refetch, contentContainerStyle: styles.list });
+  useRefreshOnFocus(refetch);
+  // A tab mounts when it is opened, so it starts focused; leaving it is what turns this off.
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    return () => setFocused(false);
+  }, []));
   const myId = useMyUserId();
   const windows = useGhostingWindows();
   // Fires-driven state (`lib/fire.ts`) turns over purely with time, so this screen needs `now` to
@@ -48,7 +58,7 @@ export default function MatchesScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('tab_quest_log')} showScore />
+      <GameHeader title={i18n.t('tab_quest_log')} />
       {isLoading && (
         <View style={styles.list}>
           <SkeletonRows count={5} row={() => (
@@ -82,9 +92,9 @@ export default function MatchesScreen() {
       {!isError && matches && matches.length > 0 && (
         <FlatList
           data={entries}
+          extraData={focused}
           keyExtractor={(e) => (e.kind === 'quest' ? e.match.matchId : 'gone-cold')}
-          {...kindle.scrollProps}
-          ListHeaderComponent={kindle.header}
+          contentContainerStyle={styles.list}
           ListFooterComponent={
             <Text style={styles.law}>{i18n.t('fire_law')}</Text>
           }
@@ -97,29 +107,41 @@ export default function MatchesScreen() {
             </View>
           ) : (
             <Entering index={index}>
-              <QuestTile
-                match={item.match}
-                fire={item.fire}
-                first={item.first}
-                last={item.last}
-                onPress={() => go({
-                  pathname: `/chat/${item.match.matchId}` as any,
-                  params: {
-                    name: item.match.otherUser.isDeleted
-                      ? i18n.t('deleted_user')
-                      : item.match.revealLevel >= 2
-                        ? (item.match.otherUser.displayName ?? '')
-                        : i18n.t('mystery_match_name'),
-                    wovenBy: item.match.weaverDisplayName ?? '',
-                  },
-                })}
-              />
+              <NewQuestBleed matchId={item.match.matchId} unopened={item.fire.state === 'unlit'} focused={focused}>
+                <QuestTile
+                  match={item.match}
+                  fire={item.fire}
+                  first={item.first}
+                  last={item.last}
+                  onPress={() => go({
+                    pathname: `/chat/${item.match.matchId}` as any,
+                    params: {
+                      name: matchName(item.match),
+                      wovenBy: item.match.weaverDisplayName ?? '',
+                    },
+                  })}
+                />
+              </NewQuestBleed>
             </Entering>
           )}
         />
       )}
     </View>
   );
+}
+
+/** Quests already shown this session, so a new one bleeds in once and not on every visit. */
+const SIGHTED = new Set<string>();
+
+/**
+ * A quest no one has opened yet soaks into the log like ink, the first time it is seen. Seen, not
+ * rendered: the log stays mounted under a chat and behind the other tabs, and a match arriving
+ * there bled in unseen and came back plain. It waits for the log to be on screen.
+ */
+function NewQuestBleed({ matchId, unopened, focused, children }: { matchId: string; unopened: boolean; focused: boolean; children: ReactNode }) {
+  const [bleed] = useState(() => unopened && !SIGHTED.has(matchId));
+  useEffect(() => { if (focused) SIGHTED.add(matchId); }, [focused, matchId]);
+  return <InkBleed bleed={bleed} hold={!focused}>{children}</InkBleed>;
 }
 
 const styles = StyleSheet.create({

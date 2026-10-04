@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Tap } from '../ui/Tap';
-import { Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
 import { cityLabel } from '../../lib/tiers';
-import { FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TRACKING } from '../../lib/theme';
-import { scrimStyle } from './DialogSurface';
+import { FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE } from '../../lib/theme';
+import { DIALOG_STYLES, scrimStyle } from './DialogSurface';
 import { AppModal } from './AppModal';
 
 interface Props {
@@ -38,9 +38,12 @@ export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSe
 
   return (
     <AppModal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
-      <Tap style={scrimStyle('sheet', 'bottom')} feedback="none" onPress={onDismiss}>
-        <Tap style={styles.sheet} feedback="none" onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>
+      {/* The scrim's dismiss tap sits behind the sheet, not around it: a touchable wrapped round
+          the list claimed most drags first, so the city list would barely scroll. */}
+      <View style={scrimStyle('sheet', 'bottom')}>
+        <Tap style={StyleSheet.absoluteFill} feedback="none" onPress={onDismiss} accessibilityLabel={i18n.t('back')} />
+        <View style={styles.sheet}>
+          <Text style={[DIALOG_STYLES.title, styles.title]}>
             {showingDistricts ? i18n.t('select_district') : i18n.t('select_city')}
           </Text>
           <FlatList
@@ -60,8 +63,8 @@ export function CityPickerModal({ visible, provinces, ulaanbaatarDistricts, onSe
           >
             {i18n.t('back')}
           </GameButton>
-        </Tap>
-      </Tap>
+        </View>
+      </View>
     </AppModal>
   );
 }
@@ -76,15 +79,7 @@ const styles = StyleSheet.create({
     maxHeight: '70%',
     paddingTop: SPACE.lg,
   },
-  title: {
-    fontFamily: FONTS.display,
-    fontSize: FONT_SIZES.md,
-    color: INK.dim,
-    letterSpacing: TRACKING.eyebrow,
-    textAlign: 'center',
-    marginBottom: SPACE.sm,
-    textTransform: 'uppercase',
-  },
+  title: { marginBottom: SPACE.sm },
   list: { maxHeight: '100%' },
   cancelWrap: { padding: SPACE.lg },
   row: {

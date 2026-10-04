@@ -64,4 +64,12 @@ describe('LetterRow', () => {
     fireEvent.press(getByLabelText('A line. Failed to send — tap to retry'));
     expect(onRetry).toHaveBeenCalledWith('m1');
   });
+
+  it('shows a letter only once its stone can be drawn, never as bare text', () => {
+    const el = render(<LetterRow message={base} myId="me" />);
+    expect(flat(el.getByTestId('letter-shard').props.style).opacity).toBe(0);
+    fireEvent(el.getByText('A line').parent!.parent!, 'layout', { nativeEvent: { layout: { width: 200, height: 60 } } });
+    expect(flat(el.getByTestId('letter-shard').props.style).opacity).not.toBe(0);
+  });
+
 });

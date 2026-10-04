@@ -50,7 +50,10 @@ export function LetterRow({ message, myId, onRetry, floating = false }: Props) {
       testID="letter"
       style={[styles.row, isMine ? styles.rowMine : styles.rowTheirs, isSending && styles.sending, isFailed && styles.failed]}
     >
-      <Animated.View style={[styles.shardWrap, drift]}>
+      {/* Held unseen until the shard has measured and its stone can be drawn: the frame between
+          was bare text on the floor, and on a busy open it lasted seconds. A letter arrives on its
+          stone or not at all. */}
+      <Animated.View testID="letter-shard" style={[styles.shardWrap, drift, !size && styles.unmeasured]}>
         <Image source={STONE_SHADOW} resizeMode="stretch" style={styles.shadow} accessible={false} />
         <View style={styles.shard} onLayout={onLayout}>
           {/* Sized in points off the row's own measure: percentages and absolute fills both lost
@@ -135,6 +138,7 @@ const styles = StyleSheet.create({
   sending: { opacity: 0.8 },
   failed: { opacity: PRESS.dimmed },
   shardWrap: { maxWidth: '100%' },
+  unmeasured: { opacity: 0 },
   shard: {
     paddingHorizontal: SPACE.lg + SPACE.xs,
     paddingTop: SPACE.md,

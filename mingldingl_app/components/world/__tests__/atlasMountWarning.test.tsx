@@ -109,7 +109,7 @@ describe('Discover chrome (task 8: moved off Seek)', () => {
 
     // CardEyebrow uppercases its own children — this is the literal rendered text, not a style.
     expect(queryByText('FIRST STEPS')).toBeNull();
-    expect(queryAllByTestId('candle-row')).toHaveLength(1);
+    expect(queryAllByTestId('candle-tally')).toHaveLength(1);
     expect(queryByTestId('next-gathering-pill')).toBeNull();
   });
 });

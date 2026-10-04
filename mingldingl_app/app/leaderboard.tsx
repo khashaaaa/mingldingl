@@ -2,7 +2,7 @@ import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { useLeaderboard } from '../hooks/useLeaderboard';
-import { GameHeader } from '../components/ui/GameHeader';
+import { HeaderBar } from '../components/ui/HeaderBar';
 import { GameButton } from '../components/ui/GameButton';
 import { GemTierBadge } from '../components/progression/GemTierBadge';
 import { TorchGlow } from '../components/vfx/TorchGlow';
@@ -19,7 +19,8 @@ import { EmptyHint, StateBlock } from '../components/ui/StateBlock';
 import type { GemTier } from '../models/user';
 import { useScrollTail } from '../hooks/useScrollTail';
 import { goBack } from '../lib/navigation';
-import { useKindle } from '../components/ui/Kindle';
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
+import { ScreenLede } from '../components/ui/ScreenLede';
 
 const TOP_SLICE_SIZE = 50;
 
@@ -37,12 +38,12 @@ export default function LeaderboardScreen() {
     () => [emptyHall ? styles.listEmpty : styles.list, { paddingBottom: tail }],
     [emptyHall, tail],
   );
-  const kindle = useKindle({ onRefresh: refetch, contentContainerStyle: listStyle });
+  useRefreshOnFocus(refetch);
 
   if (isLoading) {
     return (
       <View style={styles.screen}>
-        <GameHeader title={i18n.t('hall_of_names')} showBack />
+        <HeaderBar title={i18n.t('hall_of_names')} />
         <View style={styles.list}>
           <SkeletonRows count={8} gap={SPACE.sm} row={() => (
             <View style={styles.rowShape}>
@@ -78,15 +79,12 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={styles.screen}>
-      <GameHeader title={i18n.t('hall_of_names')} showBack />
-      <Text style={styles.sub}>{hallSub}</Text>
+      <HeaderBar title={i18n.t('hall_of_names')} />
+      <ScreenLede style={styles.sub}>{hallSub}</ScreenLede>
       <FlatList
-        {...kindle.scrollProps}
-        ListHeaderComponent={kindle.header}
+        contentContainerStyle={listStyle}
         data={entries}
         keyExtractor={(item, i) => `${item.rank ?? i}`}
-        // Centred by its own box, not the list's: centring the list's content would carry the
-        // hearth above it down into the middle of the screen too.
         ListEmptyComponent={<View style={styles.emptyWrap}><EmptyHint>{i18n.t('leaderboard_empty')}</EmptyHint></View>}
         ListFooterComponent={
           <>
@@ -167,13 +165,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl, gap: SPACE.lg },
   // Behind the row, not around it — a layer, not a wrapper that lays the row's own children out.
   ownGlow: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  sub: {
-    fontFamily: FONTS.bodyItalic,
-    fontSize: FONT_SIZES.md,
-    color: INK.dim,
-    paddingHorizontal: SPACE.gutter,
-    marginBottom: SPACE.sm,
-  },
+  sub: { paddingHorizontal: SPACE.gutter, marginBottom: SPACE.sm },
   list: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.lg, paddingBottom: SPACE.scrollTail },
   listEmpty: { flexGrow: 1, paddingHorizontal: SPACE.gutter },
   emptyWrap: { flex: 1, justifyContent: 'center' },

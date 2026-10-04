@@ -36,7 +36,7 @@ export function shadeForTier(tier: string): string {
 
 /**
  * How rank is drawn, now that the jewels are luminance-matched and hue can no longer carry it.
- * `TIER_PRESENCE` holds the ramp; this turns one row of it into the three numbers a badge needs,
+ * `TIER_PRESENCE` holds the ramp; this turns one row of it into the two numbers a badge needs,
  * clamped for the size it is actually being drawn at.
  *
  * Kept a pure function rather than inlined into `GemTierBadge` so the ladder can be asserted
@@ -44,16 +44,12 @@ export function shadeForTier(tier: string): string {
  * identical and tiers 4-6 were identical) was invisible to every test the badge had.
  */
 export interface TierPresence {
-  /** Bezel weight. Rank you can see at a glance without any animation running. */
-  readonly ringWidth: number;
   /** 0..1, normalised against the top of the ladder so Emerald keeps the glow it has today. */
   readonly glowStrength: number;
   /** 0..1 sweep-highlight strength. 0 means the badge does not shimmer at all. */
   readonly shimmer: number;
 }
 
-/** Under this a heavy ring is not a rank, it is a filled diamond — the 16px HUD badges live here. */
-const RING_MIN_SIZE = 28;
 /** A sweep needs room to travel; below this it reads as a flicker rather than a shine. */
 const SHIMMER_MIN_SIZE = 32;
 
@@ -65,7 +61,6 @@ export function presenceForTier(tier: string, size: number): TierPresence {
   // ramp existed, so wiring the ladder up brightens nothing — it only dims what outranks nothing.
   const strength = MAX_GLOW > 0 ? row.glow / MAX_GLOW : 0;
   return {
-    ringWidth: size >= RING_MIN_SIZE ? row.ring : 1,
     glowStrength: strength,
     shimmer: size >= SHIMMER_MIN_SIZE ? strength : 0,
   };

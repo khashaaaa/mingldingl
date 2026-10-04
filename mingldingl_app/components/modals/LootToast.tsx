@@ -6,6 +6,7 @@ import { i18n } from '../../lib/i18n';
 import { ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, SPACE, TRACKING } from '../../lib/theme';
 import { metalForRarity } from '../../lib/tiers';
 import { InkDraw } from '../ui/InkDraw';
+import { InkBleed } from '../vfx/InkBleed';
 import { TOAST_STYLES, useToastMotion } from './Toast';
 
 interface Props {
@@ -56,31 +57,34 @@ export function LootToast({ title, points, visible, onDismiss, item, bottomOffse
         { transform: [{ translateY }, { scale }], opacity },
       ]}
     >
-      <Tap
-        style={[TOAST_STYLES.card, styles.card]}
-        onPress={hide}
-        accessibilityRole="button"
-        accessibilityLabel={i18n.t('alert_dismiss')}
-      >
-        <View style={styles.iconWrap}>
-          {RAY_ANGLES.map((deg) => (
-            <Animated.View
-              key={deg}
-              style={[styles.ray, { opacity: rays, transform: [{ rotate: `${deg}deg` }] }]}
-            />
-          ))}
-          <InkDraw name="flame" size={ICON_SIZES.xl} color={METAL.ember} duration={700} />
-        </View>
-        <View style={styles.textCol}>
-          <Text style={styles.title}>{title}</Text>
-          {points > 0 && <Text style={styles.points}>{i18n.t('xp_earned', { points })}</Text>}
-          {item && (
-            <Text style={[styles.itemLine, { color: metalForRarity(item.rarity) }]}>
-              ✦ {i18n.t(item.nameKey)}
-            </Text>
-          )}
-        </View>
-      </Tap>
+      {/* A reward soaks in like ink rather than simply appearing. */}
+      <InkBleed>
+        <Tap
+          style={[TOAST_STYLES.card, styles.card]}
+          onPress={hide}
+          accessibilityRole="button"
+          accessibilityLabel={i18n.t('alert_dismiss')}
+        >
+          <View style={styles.iconWrap}>
+            {RAY_ANGLES.map((deg) => (
+              <Animated.View
+                key={deg}
+                style={[styles.ray, { opacity: rays, transform: [{ rotate: `${deg}deg` }] }]}
+              />
+            ))}
+            <InkDraw name="flame" size={ICON_SIZES.xl} color={METAL.ember} duration={700} />
+          </View>
+          <View style={styles.textCol}>
+            <Text style={styles.title}>{title}</Text>
+            {points > 0 && <Text style={styles.points}>{i18n.t('xp_earned', { points })}</Text>}
+            {item && (
+              <Text style={[styles.itemLine, { color: metalForRarity(item.rarity) }]}>
+                ✦ {i18n.t(item.nameKey)}
+              </Text>
+            )}
+          </View>
+        </Tap>
+      </InkBleed>
     </Animated.View>
   );
 }

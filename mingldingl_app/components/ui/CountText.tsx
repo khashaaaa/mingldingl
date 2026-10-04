@@ -24,7 +24,11 @@ const defaultFormat = (n: number) => n.toLocaleString();
  *
  * Screen readers are given the final value as the label, so they never announce a frame.
  */
-export function CountText({ value, style, format = defaultFormat, duration = 600, ...rest }: Props) {
+/**
+ * The integer to show this frame while `value` ticks to its new number (see `CountText`). Shared
+ * with `BrushNumber`, which paints the same tick in brushed numerals.
+ */
+export function useCountedValue(value: number, duration = 600): number {
   const level = useVfxLevel();
   const animate = motionAllowed(level);
   const anim = useRef(new Animated.Value(value)).current;
@@ -60,8 +64,11 @@ export function CountText({ value, style, format = defaultFormat, duration = 600
     };
   }, [value, animate, duration, anim]);
 
-  const displayed = animate ? shown : value;
+  return animate ? shown : value;
+}
 
+export function CountText({ value, style, format = defaultFormat, duration = 600, ...rest }: Props) {
+  const displayed = useCountedValue(value, duration);
   return (
     <Text {...rest} style={style} accessibilityLabel={format(Math.round(value))}>
       {format(displayed)}

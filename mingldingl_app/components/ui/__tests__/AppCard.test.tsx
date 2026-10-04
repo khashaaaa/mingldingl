@@ -47,9 +47,25 @@ describe('AppCard ornaments', () => {
     expect(rowCard.elevation).toBeUndefined();
     expect(rowCard.shadowColor).toBeUndefined();
     expect(row.queryByTestId('card-bottom-shadow')).toBeNull();
-    // The panel itself survives — fill and border are what still make it a card.
-    expect(rowCard.borderWidth).toBe(1);
-    expect(rowCard.backgroundColor).toBe(SURFACE.panel);
+    // No panel either: an ordinary card is a ledger section — one hairline over it, no fill,
+    // and its contents on the screen's gutter whatever padding the call site asked for.
+    expect(rowCard.borderWidth).toBe(0);
+    expect(rowCard.borderTopWidth).toBeGreaterThan(0);
+    expect(rowCard.backgroundColor).toBe('transparent');
+  });
+
+  it('keeps its contents on the gutter even when the call site pads the card', () => {
+    const row = render(<AppCard style={{ padding: 16 }}><Text>body</Text></AppCard>);
+    const rowCard = StyleSheet.flatten(row.getByTestId('app-card').props.style);
+    expect(rowCard.paddingHorizontal).toBe(0);
+    expect(rowCard.paddingTop ?? rowCard.padding).toBe(16);
+  });
+
+  it('keeps the frame on a clipped card, which has art that runs to its edge', () => {
+    const art = render(<AppCard clip><Text>sky</Text></AppCard>);
+    const card = StyleSheet.flatten(art.getByTestId('app-card').props.style);
+    expect(card.borderWidth).toBe(1);
+    expect(card.backgroundColor).toBe(SURFACE.panel);
   });
 
   it('tints every corner knot with the festival colour while a festival is on', () => {

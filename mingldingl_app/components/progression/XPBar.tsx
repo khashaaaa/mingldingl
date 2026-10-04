@@ -1,19 +1,23 @@
 import { useRef, useEffect, useState } from 'react';
-import { View, Text, Image, Animated, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, Animated, StyleSheet } from 'react-native';
 import { colorForTier } from '../../lib/tiers';
 import { i18n } from '../../lib/i18n';
 import { tierLabel } from '../../lib/tiers';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
-import { ACCENT, BADGE_SIZES, FONTS, FONT_SIZES, INK, LINE, RADIUS, SPACE, SURFACE, TRACKING, lighten, tint } from '../../lib/theme';
-import { ORNAMENTS, FRET_ASPECT } from '../../lib/ornaments';
+import { BADGE_SIZES, CARVING, FONTS, FONT_SIZES, INK, SPACE, TRACKING, lighten, tint } from '../../lib/theme';
 import { GemTierBadge } from './GemTierBadge';
 import { CountText } from '../ui/CountText';
+import { BRUSH_TRAIL } from '../ui/brushImages';
 import type { GemTier } from '../../models/user';
 
 // Stands in for the number inside a translated sentence, so the sentence keeps its own word
 // order in every language and only the number is swapped for a counting one.
-const SLOT = '\uFFFC';
+const SLOT = '￼';
+
+/** The stroke's height on the sheet, in points. */
+const TRAIL_HEIGHT = 10;
+/** The ink runs out along the trail over this long, the first time it is seen. */
+const FILL_MS = 900;
 
 interface Props {
   gemTier: GemTier;
@@ -23,42 +27,29 @@ interface Props {
   nextTierThreshold?: number | null;
 }
 
+/**
+ * The way to the next stone, as one dry-brushed stroke (`scripts/gen-brush.js`): laid bare across
+ * the sheet, then inked over in the stone you hold as far as the score has come. The stone you are
+ * walking toward waits, unlit, at the far end — a bar said how full; a trail says where to.
+ *
+ * It was a tiled Greek-key strip with a sheen, then a trail of pecked marks like the floor's
+ * friezes; the brush is the glyphs' own hand, which the rest of the sheet is drawn in.
+ */
 export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }: Props) {
   const anim = useRef(new Animated.Value(0)).current;
-  const shimmer = useRef(new Animated.Value(-60)).current;
-  const flash = useRef(new Animated.Value(0)).current;
   const color = colorForTier(gemTier);
+  const lit = lighten(color, 0.25);
   const animate = motionAllowed(useVfxLevel());
-  // The sweep has to leave the track, not stop at a fixed x: it parked at 320 on a ~370-wide
-  // phone track and sat there as a pale block at the bar's end.
-  const [trackWidth, setTrackWidth] = useState(0);
+  const [width, setWidth] = useState(0);
 
   useEffect(() => {
     if (!animate) {
-      // Still: the bar stands at its value; no sweep, no flash (whose resting value is 0).
       anim.setValue(pct);
-      shimmer.setValue(-60);
-      flash.setValue(0);
       return;
     }
-    Animated.timing(anim, { toValue: pct, duration: 900, useNativeDriver: false }).start();
-    shimmer.setValue(-60);
-    if (trackWidth > 0) {
-      Animated.timing(shimmer, { toValue: trackWidth + 60, duration: 700, delay: 300, useNativeDriver: true }).start();
-    }
-  }, [pct, animate, anim, shimmer, flash, trackWidth]);
+    Animated.timing(anim, { toValue: pct, duration: FILL_MS, useNativeDriver: true }).start();
+  }, [pct, animate, anim]);
 
-  // Kept apart from the fill so the drop is measured against the last value actually shown.
-  const lastPct = useRef(pct);
-  useEffect(() => {
-    if (animate && pct < lastPct.current) {
-      flash.setValue(0.8);
-      Animated.timing(flash, { toValue: 0, duration: 900, useNativeDriver: true }).start();
-    }
-    lastPct.current = pct;
-  }, [pct, animate, flash]);
-
-  const fillWidth = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   const pointsToNext = nextTier && nextTierThreshold != null ? Math.max(0, nextTierThreshold - totalScore) : null;
   const [nextBefore, nextAfter] = pointsToNext !== null
     ? i18n.t('next_tier_threshold', { points: SLOT, tier: tierLabel(nextTier) }).split(SLOT)
@@ -71,30 +62,41 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
           <GemTierBadge tier={gemTier} size={BADGE_SIZES.inline} />
           <Text style={[styles.tier, { color }]}>{tierLabel(gemTier)}</Text>
         </View>
-        {nextTier && <Text style={styles.next}>{i18n.t('next_tier_arrow', { tier: tierLabel(nextTier) })}</Text>}
+        {nextTier && (
+          <View style={styles.tierRow}>
+            <Text style={styles.next}>{tierLabel(nextTier)}</Text>
+            {/* Not yet held, so not yet lit: the badge at rest, set back into the rock. */}
+            <View style={styles.unheld}>
+              <GemTierBadge tier={nextTier} size={BADGE_SIZES.inline} />
+            </View>
+          </View>
+        )}
       </View>
-      <View style={styles.track} onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}>
-        <Image source={ORNAMENTS.fretGold} testID="ulzii-track-fret" style={styles.trackFret} />
-        {/* Quarter marks belong to the empty road only. Drawn over the fill, the one at 75%
-            landed where the gradient turns gold and made a full bar read as three-quarters. */}
-        {[0.25, 0.5, 0.75].map((t) => (
-          <View key={t} style={[styles.tick, { left: `${t * 100}%` }]} />
-        ))}
-        <Animated.View style={[styles.fill, { width: fillWidth }]}>
-          {/* One stone, lit toward its end. Running the gem into the gold accent crossed the
-              colour wheel for the cool tiers and went grey in the middle. */}
-          <LinearGradient
-            colors={[color, lighten(color, 0.35)]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <Image source={ORNAMENTS.fretDark} testID="ulzii-fill-fret" style={styles.fillFret} />
-          {/* The only vertical edge on the filled stretch, so where the fill ends is never
-              in doubt — including at 100%, where there is no dark remainder to contrast with. */}
-          <View style={styles.fillCap} />
-        </Animated.View>
-        <Animated.View style={[styles.shimmer, { transform: [{ translateX: shimmer }] }]} />
-        <Animated.View style={[StyleSheet.absoluteFill, styles.flash, { opacity: flash }]} />
+      <View
+        testID="xp-trail"
+        style={styles.trail}
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+        accessibilityRole="progressbar"
+        accessibilityValue={{ min: 0, max: 100, now: Math.round(pct * 100) }}
+      >
+        {width > 0 && (
+          <>
+            <Animated.Image source={BRUSH_TRAIL} resizeMode="stretch" style={[styles.stroke, { width, tintColor: tint(CARVING.stone, 0.3) }]} />
+            {/* The inked part: a window slid in from the left as far as the score, with the
+                stroke inside it slid back the other way so it stays put — both on the native
+                driver, which cannot animate a width. */}
+            <Animated.View
+              testID="xp-trail-lit"
+              style={[styles.lit, { width, transform: [{ translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [-width, 0] }) }] }]}
+            >
+              <Animated.Image
+                source={BRUSH_TRAIL}
+                resizeMode="stretch"
+                style={[styles.stroke, { width, tintColor: lit, transform: [{ translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [width, 0] }) }] }]}
+              />
+            </Animated.View>
+          </>
+        )}
       </View>
       <View style={styles.footer}>
         {pointsToNext !== null && (
@@ -108,36 +110,16 @@ export function XPBar({ gemTier, totalScore, pct, nextTier, nextTierThreshold }:
   );
 }
 
-const FILL_BORDER_RADIUS = RADIUS.sm - 1;
-
 const styles = StyleSheet.create({
   container: { gap: SPACE.sm },
   labels: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   tierRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   tier: { fontFamily: FONTS.display, fontSize: FONT_SIZES.md, letterSpacing: TRACKING.label },
   next: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim },
-  track: {
-    height: 14,
-    backgroundColor: SURFACE.sunken,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: LINE.edge,
-    overflow: 'hidden',
-  },
-  fill: { height: '100%', borderRadius: FILL_BORDER_RADIUS, overflow: 'hidden' },
-  // The walking pattern (алхан хээ): faint on the empty road, engraved into the fill.
-  trackFret: { position: 'absolute', left: 0, top: 0, height: 12, width: 12 * FRET_ASPECT, opacity: 0.15 },
-  fillFret: { position: 'absolute', left: 0, top: 0, height: 12, width: 12 * FRET_ASPECT, opacity: 0.5 },
-  fillCap: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 2, backgroundColor: INK.primary },
-  shimmer: {
-    position: 'absolute',
-    top: 0, bottom: 0,
-    width: 40,
-    backgroundColor: tint(INK.primary, 0.25),
-    transform: [{ skewX: '-20deg' }],
-  },
-  tick: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: tint(LINE.edge, 0.6) },
-  flash: { backgroundColor: ACCENT.bright },
+  unheld: { opacity: 0.35 },
+  trail: { height: TRAIL_HEIGHT, overflow: 'hidden' },
+  stroke: { height: TRAIL_HEIGHT },
+  lit: { position: 'absolute', top: 0, left: 0, height: TRAIL_HEIGHT, overflow: 'hidden' },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   nextThreshold: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.dim, flexShrink: 1 },
   scoreText: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.sm, color: INK.dim, textAlign: 'right', letterSpacing: TRACKING.wide, marginLeft: 'auto' },

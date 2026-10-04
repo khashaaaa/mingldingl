@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 import { CandidateCard } from '../CandidateCard';
 import type { Candidate } from '../../../models/user';
+import { GEM_COLORS } from '../../../lib/theme';
 
 // The card is rendered here without the navigator that mounts `WorldProvider`, so the hold has to
 // be stood up by hand. A real `useWorld()` returning null is also correct — that is the unlit
@@ -72,6 +73,7 @@ const CANDIDATE: Candidate = {
 function renderCard() {
   return render(<CandidateCard candidate={CANDIDATE} onRequest={jest.fn()} onSkip={jest.fn()} />);
 }
+
 
 /**
  * Move 1 of the Sealed Fire: the Fire stopped being a photo browser. A stranger arrives as a
@@ -189,7 +191,7 @@ describe('CandidateCard under the room light', () => {
     }
   });
 
-  it('makes what they wrote the face of the stone, whole rather than cut to two lines', () => {
+  it('makes what they wrote the face of the card, whole rather than cut to two lines', () => {
     const long = 'Vet by day. '.repeat(20).trim();
     const { getByTestId } = render(
       <CandidateCard candidate={{ ...CANDIDATE, bio: long }} onRequest={jest.fn()} onSkip={jest.fn()} />,
@@ -199,13 +201,28 @@ describe('CandidateCard under the room light', () => {
     expect(bio.props.numberOfLines).toBeUndefined();
   });
 
-  it('burns the day\'s summons as candles beside the button, only when a budget is known', () => {
-    const { getAllByTestId, queryByTestId } = render(
+  it('says the day\'s summons once under the button, one candle and the count, only when a budget is known', () => {
+    const { getByText, queryByTestId } = render(
       <CandidateCard candidate={CANDIDATE} onRequest={jest.fn()} onSkip={jest.fn()} budget={{ remaining: 2, budget: 5 }} />,
     );
-    expect(getAllByTestId('candle-lit')).toHaveLength(2);
-    expect(getAllByTestId('candle-spent')).toHaveLength(3);
-    expect(renderCard().queryByTestId('candle-row')).toBeNull();
-    expect(queryByTestId('candle-row')).toBeTruthy();
+    expect(getByText('2 of 5 candles left')).toBeTruthy();
+    expect(queryByTestId('candle-row')).toBeNull();
+    expect(renderCard().queryByTestId('candle-tally')).toBeNull();
+  });
+});
+
+/** A plain card: the gem is a line along its top, and nothing is baked onto it but the seal. */
+describe('CandidateCard, plain', () => {
+  it('says the gem as a brush stroke along the top, once the card has measured', () => {
+    const card = renderCard();
+    expect(card.queryByTestId('ink-edge')).toBeNull();
+    fireEvent(card.getByTestId('candidate-card'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 680 } },
+    });
+    const edge = StyleSheet.flatten(card.getByTestId('ink-edge').props.style);
+    expect(edge.tintColor).toBe(GEM_COLORS.Ruby);
+    expect(edge.width).toBeLessThan(400);
+    expect(card.getByTestId('ink-rule')).toBeTruthy();
+    expect(card.getByTestId('ink-ring')).toBeTruthy();
   });
 });

@@ -2,7 +2,7 @@ import { Text, View, StyleSheet } from 'react-native';
 import { GameButton } from '../ui/GameButton';
 import { i18n } from '../../lib/i18n';
 import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, SPACE } from '../../lib/theme';
-import { DialogCard, DialogScrim } from './DialogSurface';
+import { DIALOG_STYLES, DialogCard, DialogScrim } from './DialogSurface';
 import { Icon } from '../ui/Icon';
 import { AppModal } from './AppModal';
 
@@ -21,7 +21,7 @@ export function AttendanceCheckModal({ visible, activityTitle, onYes, onNo, isSu
       <DialogScrim>
         <DialogCard>
           <Icon name="calendar-check" size={ICON_SIZES.xxl} color={ACCENT.base} />
-          <Text style={styles.title}>{i18n.t('attendance_check_title')}</Text>
+          <Text style={DIALOG_STYLES.title}>{i18n.t('attendance_check_title')}</Text>
           <Text style={styles.question}>
             {i18n.t('attendance_check_question', { activity: activityTitle ?? '' })}
           </Text>
@@ -40,7 +40,6 @@ export function AttendanceCheckModal({ visible, activityTitle, onYes, onNo, isSu
 }
 
 const styles = StyleSheet.create({
-  title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.xl, color: INK.primary, textAlign: 'center' },
   question: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, textAlign: 'center', lineHeight: LEADING.md },
   btnRow: { flexDirection: 'row', gap: SPACE.md, marginTop: SPACE.md, alignSelf: 'stretch' },
 });

@@ -3,8 +3,7 @@ import type { Href } from 'expo-router';
 import { HeaderBar } from '../components/ui/HeaderBar';
 import { SkeletonRows, Skeleton } from '../components/ui/Skeleton';
 import { SatchelRow } from '../components/satchel/SatchelRow';
-import type { Material } from '../components/ui/MaterialMark';
-import type { GlyphName } from '../components/ui/Glyph';
+import type { SatchelObject } from '../components/satchel/satchelImages';
 import { useProfile } from '../hooks/useProfile';
 import { useMatches } from '../hooks/useMatches';
 import { useDailyMatchBudget } from '../hooks/useScore';
@@ -20,6 +19,7 @@ import { useLocaleStore } from '../store/localeStore';
 import { countWord } from '../lib/worldTime';
 import { useScrollTail } from '../hooks/useScrollTail';
 import { FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, RADIUS, SPACE } from '../lib/theme';
+import { ScreenLede } from '../components/ui/ScreenLede';
 
 /**
  * What the Satchel holds: an object per row, in the board's own order. Every field below is read
@@ -27,9 +27,7 @@ import { FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, RADIUS, SPACE } from '../l
  * have not already decided, it only gathers the nine into one place.
  */
 interface Row {
-  key: string;
-  material: Material;
-  glyph: GlyphName;
+  key: SatchelObject;
   name: string;
   line: string;
   to: Href;
@@ -122,16 +120,12 @@ export default function SatchelScreen() {
   const rows: Row[] = [
     {
       key: 'candles',
-      material: 'wax',
-      glyph: 'candle',
       name: i18n.t('satchel_candles'),
       line: i18n.t('satchel_candles_line', { remaining, budget }),
       to: '/(tabs)/discover',
     },
     {
       key: 'arrows',
-      material: 'wood',
-      glyph: 'pledge',
       name: i18n.t('satchel_arrows'),
       line: arrowCount === 0
         ? i18n.t('satchel_arrows_none')
@@ -142,8 +136,6 @@ export default function SatchelScreen() {
     },
     {
       key: 'lantern',
-      material: 'bronze',
-      glyph: 'lantern',
       name: i18n.t('satchel_lantern'),
       line: !gatheringCalled
         ? i18n.t('satchel_lantern_none')
@@ -154,16 +146,12 @@ export default function SatchelScreen() {
     },
     {
       key: 'oath',
-      material: 'bronze',
-      glyph: 'seal',
       name: i18n.t('satchel_oath'),
       line: oathLine(),
       to: '/(tabs)/profile',
     },
     {
       key: 'key',
-      material: 'gold',
-      glyph: 'knot',
       name: i18n.t('satchel_key'),
       // The floor name is data keyed by the same `floor_${level}` family `app/membership.tsx`
       // already builds its own labels from, so the two never drift into naming the same floor
@@ -175,24 +163,18 @@ export default function SatchelScreen() {
     },
     {
       key: 'word',
-      material: 'bronze',
-      glyph: 'letters',
       name: i18n.t('satchel_word'),
       line: profile?.referralCode || i18n.t('satchel_word_none'),
       to: '/(tabs)/profile',
     },
     {
       key: 'honour',
-      material: 'gold',
-      glyph: 'flame',
       name: i18n.t('satchel_honour'),
       line: wornItem ? itemLabel(wornItem.itemId) : i18n.t('satchel_honour_none'),
       to: '/(tabs)/profile',
     },
     {
       key: 'seals',
-      material: 'wax',
-      glyph: 'seals',
       name: i18n.t('satchel_seals'),
       line: threadCount === 0
         ? i18n.t('satchel_seals_none')
@@ -203,8 +185,6 @@ export default function SatchelScreen() {
     },
     {
       key: 'card',
-      material: 'parchment',
-      glyph: 'gem',
       name: i18n.t('satchel_card'),
       line: i18n.t('satchel_card_line'),
       to: '/(tabs)/profile',
@@ -232,7 +212,7 @@ export default function SatchelScreen() {
     <View style={styles.screen}>
       <HeaderBar title={i18n.t('satchel_title')} />
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: tail }]}>
-        <Text style={styles.sub}>{i18n.t('satchel_sub')}</Text>
+        <ScreenLede>{i18n.t('satchel_sub')}</ScreenLede>
         {loading ? (
           <SkeletonRows count={SKELETON_ROW_COUNT} row={() => (
             <View style={styles.skeletonRow}>
@@ -250,8 +230,7 @@ export default function SatchelScreen() {
                 <SatchelRow
                   key={row.key}
                   testID={`satchel-row-${row.key}`}
-                  material={row.material}
-                  glyph={row.glyph}
+                  object={row.key}
                   name={row.name}
                   line={row.line}
                   to={row.to}
@@ -272,7 +251,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: SPACE.gutter, paddingTop: SPACE.sm },
-  sub: { fontFamily: FONTS.bodyItalic, fontSize: FONT_SIZES.md, lineHeight: LEADING.md, color: INK.dim, marginBottom: SPACE.lg },
   skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.md },
   skeletonText: { flex: 1, gap: SPACE.xs },
   summary: {

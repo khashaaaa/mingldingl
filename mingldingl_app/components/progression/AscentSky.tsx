@@ -1,11 +1,16 @@
-import { Fragment, useEffect, useRef } from 'react';
-import { View, Text, Animated, StyleSheet } from 'react-native';
-import Svg, { Defs, LinearGradient, Stop, Rect, Path, Circle, Text as SvgText } from 'react-native-svg';
+import { Fragment } from 'react';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import type { GemTier } from '../../models/user';
 import { TIER_ORDER, tierThresholdsSnapshot, tierLabel } from '../../lib/tiers';
-import { ACCENT, FONTS, FONT_SIZES, GEM_COLORS, INK, NIGHT, SPACE, TRACKING } from '../../lib/theme';
+import { ACCENT, BADGE_SIZES, CARVING, FONTS, FONT_SIZES, INK, SPACE, TRACKING } from '../../lib/theme';
 import { i18n, lineLocale, normalizeLocale } from '../../lib/i18n';
-import { motionAllowed, useVfxLevel } from '../../lib/vfx';
+import { GemTierBadge } from './GemTierBadge';
+import { BrushNumber } from '../ui/BrushNumber';
+import { ASCENT_HEIGHT, ASCENT_STOPS, CLIFF_IMAGE } from './cliffImages';
+
+/** The streak's numerals, painted: the day count is the Ascent's one hero number. */
+const STREAK_INK = 30;
 
 interface Props {
   gemTier: GemTier;
@@ -17,51 +22,26 @@ interface Props {
   width: number;
 }
 
-/** Fixed per the brief: "An `Svg` `width × 420`". */
-const SKY_HEIGHT = 420;
-/** Room at the top for `ascent_beyond` above the last star, and at the bottom for the first. */
-const TOP_Y = 76;
-const BOTTOM_Y = 372;
-/** The climb runs bottom-left to top-right; these are fractions of `width` so the drawing holds
- *  its shape at any card width rather than being authored for one screen size. */
-const LEFT_X_RATIO = 0.16;
-const RIGHT_X_RATIO = 0.58;
-
 const TOP_INDEX = TIER_ORDER.length - 1;
 
-const STAR_RADIUS = 4;
-const DIM_RADIUS = 3;
-const HELD_RADIUS = 7;
-const HALO_RADIUS = 14;
-const HALO_OPACITY_LOW = 0.15;
-const HALO_OPACITY_HIGH = 0.35;
-/** One full breath (dim → bright → dim) reads as "a star burning", not "a star blinking". */
-const PULSE_HALF_MS = 2400;
+const AHEAD_OPACITY = 0.7;
+/** The distance between a label's two lines, baseline to baseline. */
+const LABEL_LEAD = 14;
+/** "The sky beyond" sits in the strip of night over the summit. */
+const BEYOND_Y = 26;
 
 /**
- * The progression screen's hero: the six gem tiers as stars on a climbing path through the night
- * sky. Replaces the `GemTierBadge` hero + `XPBar` pairing — both a person's rank and how close the
- * next rung is are now the same drawing, rather than a badge next to a bar that repeats it.
+ * The progression screen's hero: the six tiers as their own cut stones, set into a cliff along a
+ * path that switchbacks up it (`scripts/gen-cliff.js` draws the rock and the sockets). Stones
+ * already climbed past are polished and lit; the one held burns; the ones above are still rough
+ * in the rock. The path is pecked all the way up and lit in gold as far as the score has walked it.
  *
- * Geometry is fractional against `width` (measured by the caller via `onLayout`) so the sky holds
- * its shape on any device rather than being authored for one card size.
+ * It was the same climb drawn as dots through a night sky; the gems are what the tiers *are*, so
+ * the drawing now shows the gems. Geometry is fractional against `width` (measured by the caller
+ * via `onLayout`) and the sockets' positions come from the bake, so the gems land in them at any
+ * card width.
  */
 export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, width }: Props) {
-  const vfxLevel = useVfxLevel();
-  const pulse = useRef(new Animated.Value(HALO_OPACITY_LOW)).current;
-
-  useEffect(() => {
-    if (!motionAllowed(vfxLevel)) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: HALO_OPACITY_HIGH, duration: PULSE_HALF_MS, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: HALO_OPACITY_LOW, duration: PULSE_HALF_MS, useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [vfxLevel, pulse]);
-
   const heldIndex = TIER_ORDER.indexOf(gemTier);
   const thresholds = tierThresholdsSnapshot();
   const nextTier = heldIndex < TOP_INDEX ? TIER_ORDER[heldIndex + 1] : null;
@@ -69,13 +49,12 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
 
   const points = TIER_ORDER.map((tier, i) => ({
     tier,
-    x: width * (LEFT_X_RATIO + (RIGHT_X_RATIO - LEFT_X_RATIO) * (i / TOP_INDEX)),
-    y: BOTTOM_Y - (BOTTOM_Y - TOP_Y) * (i / TOP_INDEX),
+    x: width * ASCENT_STOPS[i][0],
+    y: ASCENT_HEIGHT * ASCENT_STOPS[i][1],
   }));
 
-  // The climb as a trail rather than a ruler line: each leg bows a little to alternate sides, the
-  // way a path drawn by hand between stars does. The walked part is inked in gold; the rest is a
-  // faint dotted way still to go.
+  // Each leg bows a little to alternate sides, as `gen-cliff.js` bows the ledges under it. The
+  // walked part is lit in gold; the rest is the same pecks, unlit.
   const leg = (a: (typeof points)[number], b: (typeof points)[number], i: number) => {
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
     const dx = b.x - a.x, dy = b.y - a.y;
@@ -88,23 +67,28 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
   const walked = trail(0, Math.max(0, heldIndex));
   const ahead = trail(Math.max(0, heldIndex), TOP_INDEX);
 
-  function labelFor(index: number): string {
+  /** A gem's label as two short lines, its name over its number, so it fits the open side of
+   *  its turn. `detail` is null for the tier that starts at zero. */
+  function labelFor(index: number): { name: string; detail: string | null } {
     const tier = TIER_ORDER[index];
     const name = tierLabel(tier);
-    // The words beside a star are dropped, not switched, while they have no translation: the
-    // stars' gem names are translated, so "Бадмаараг · 135 to go" mixed two languages in a line,
-    // and an English gem there would sit among Mongolian ones. The number alone still reads.
+    // The words beside a gem are dropped, not switched, while they have no translation: the gems'
+    // names are translated, so "Бадмаараг / 135 to go" mixed two languages in one label, and an
+    // English gem there would sit among Mongolian ones. The number alone still reads.
     const here = normalizeLocale(i18n.locale);
     if (index === heldIndex) {
-      return lineLocale('ascent_you') === here
-        ? `${name} · ${i18n.t('ascent_you', { score: totalScore.toLocaleString() })}`
-        : `${name} · ${totalScore.toLocaleString()}`;
+      return {
+        name,
+        detail: lineLocale('ascent_you') === here
+          ? i18n.t('ascent_you', { score: totalScore.toLocaleString() })
+          : totalScore.toLocaleString(),
+      };
     }
     if (nextTier && index === heldIndex + 1 && lineLocale('ascent_to_go') === here) {
-      return `${name} · ${i18n.t('ascent_to_go', { points: pointsToGo!.toLocaleString() })}`;
+      return { name, detail: i18n.t('ascent_to_go', { points: pointsToGo!.toLocaleString() }) };
     }
     const threshold = thresholds[index] ?? 0;
-    return threshold > 0 ? `${name} · ${threshold.toLocaleString()}` : name;
+    return { name, detail: threshold > 0 ? threshold.toLocaleString() : null };
   }
 
   // The whole drawing is one accessible group (the SVG is hidden, and an `accessible` ancestor
@@ -121,82 +105,95 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
     + `${currentStreak} ${i18n.t('ascent_dawns', { count: currentStreak, ...said })}. ${i18n.t('streak_longest', said)} ${longestStreak}.`;
 
   const topPoint = points[TOP_INDEX];
+  // A gem climbed past sits at row size, the one held at hero size, and one still ahead, smaller
+  // and rough in the rock, at chip size.
+  const sizeOf = (i: number) => (i === heldIndex ? BADGE_SIZES.hero : i < heldIndex ? BADGE_SIZES.row : BADGE_SIZES.chip);
 
   return (
     <View accessible accessibilityLabel={a11yLabel}>
-      <Svg width={width} height={SKY_HEIGHT} accessible={false} importantForAccessibility="no">
-        <Defs>
-          <LinearGradient id="ascentSky" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={NIGHT.black} />
-            <Stop offset="1" stopColor={NIGHT.blue} />
-          </LinearGradient>
-        </Defs>
-        <Rect x={0} y={0} width={width} height={SKY_HEIGHT} fill="url(#ascentSky)" />
-        {walked !== '' && (
-          <>
-            {/* The ink's bleed, then the line itself. */}
-            <Path d={walked} stroke={ACCENT.base} strokeWidth={6} strokeLinecap="round" fill="none" opacity={0.12} />
-            <Path testID="ascent-walked" d={walked} stroke={ACCENT.base} strokeWidth={2} strokeLinecap="round" fill="none" opacity={0.85} />
-          </>
-        )}
-        {ahead !== '' && (
-          <Path testID="ascent-ahead" d={ahead} stroke={INK.muted} strokeWidth={2.2} strokeLinecap="round" strokeDasharray="0.1 7" fill="none" opacity={0.6} />
-        )}
-        <SvgText
-          x={topPoint.x}
-          y={topPoint.y - 30}
-          fill={INK.muted}
-          fontFamily={FONTS.bodyItalic}
-          fontSize={FONT_SIZES.sm}
-        >
-          {i18n.t('ascent_beyond')}
-        </SvgText>
+      <View style={{ width, height: ASCENT_HEIGHT }}>
+        <Image source={CLIFF_IMAGE} resizeMode="stretch" style={{ width, height: ASCENT_HEIGHT }} accessible={false} fadeDuration={0} />
+        <Svg width={width} height={ASCENT_HEIGHT} style={StyleSheet.absoluteFill} accessible={false} importantForAccessibility="no">
+          {ahead !== '' && (
+            <Path testID="ascent-ahead" d={ahead} stroke={CARVING.stone} strokeWidth={3.5} strokeLinecap="round" strokeDasharray="0.1 9" fill="none" opacity={0.4} />
+          )}
+          {walked !== '' && (
+            <>
+              {/* The light the lit pecks throw on the ledge, then the pecks themselves. */}
+              <Path d={walked} stroke={ACCENT.base} strokeWidth={10} strokeLinecap="round" fill="none" opacity={0.12} />
+              <Path testID="ascent-walked" d={walked} stroke={ACCENT.base} strokeWidth={4} strokeLinecap="round" strokeDasharray="0.1 9" fill="none" opacity={0.95} />
+            </>
+          )}
+          <SvgText
+            x={topPoint.x}
+            y={BEYOND_Y}
+            textAnchor="middle"
+            fill={INK.muted}
+            fontFamily={FONTS.bodyItalic}
+            fontSize={FONT_SIZES.sm}
+          >
+            {i18n.t('ascent_beyond')}
+          </SvgText>
+          {points.map((p, i) => {
+            const reached = i <= heldIndex;
+            // The label goes on the open side of the turn — outward, toward the card's edge —
+            // since both of a turn's legs leave it toward the middle.
+            const outLeft = ASCENT_STOPS[i][0] < 0.5;
+            const gap = sizeOf(i) / 2 + SPACE.sm;
+            const x = outLeft ? p.x - gap : p.x + gap;
+            const anchor = outLeft ? 'end' : 'start';
+            const { name, detail } = labelFor(i);
+            return (
+              <Fragment key={p.tier}>
+                <SvgText
+                  x={x}
+                  y={detail ? p.y - LABEL_LEAD / 2 + FONT_SIZES.xs / 2 : p.y + FONT_SIZES.xs / 2}
+                  textAnchor={anchor}
+                  fill={reached ? INK.primary : INK.muted}
+                  fontFamily={FONTS.utility}
+                  fontSize={FONT_SIZES.xs}
+                >
+                  {name}
+                </SvgText>
+                {detail && (
+                  <SvgText
+                    x={x}
+                    y={p.y + LABEL_LEAD / 2 + FONT_SIZES.xs / 2}
+                    textAnchor={anchor}
+                    fill={i === heldIndex ? ACCENT.base : INK.muted}
+                    fontFamily={FONTS.body}
+                    fontSize={FONT_SIZES.xs}
+                  >
+                    {detail}
+                  </SvgText>
+                )}
+              </Fragment>
+            );
+          })}
+        </Svg>
         {points.map((p, i) => {
-          const reached = i <= heldIndex;
           const held = i === heldIndex;
-          const color = reached ? GEM_COLORS[p.tier] : INK.muted;
-          const radius = held ? HELD_RADIUS : reached ? STAR_RADIUS : DIM_RADIUS;
+          const reached = i <= heldIndex;
+          const size = sizeOf(i);
           return (
-            <Fragment key={p.tier}>
-              {held && !motionAllowed(vfxLevel) && (
-                <Circle cx={p.x} cy={p.y} r={HALO_RADIUS} fill={color} opacity={0.25} />
-              )}
-              <Circle testID={held ? 'ascent-star-held' : 'ascent-star'} cx={p.x} cy={p.y} r={radius} fill={color} />
-              <SvgText
-                x={p.x + radius + SPACE.sm}
-                y={p.y + FONT_SIZES.xs / 2}
-                fill={reached ? INK.primary : INK.muted}
-                fontFamily={FONTS.utility}
-                fontSize={FONT_SIZES.xs}
-              >
-                {labelFor(i)}
-              </SvgText>
-            </Fragment>
+            <View
+              key={p.tier}
+              testID={held ? 'ascent-gem-held' : 'ascent-gem'}
+              pointerEvents="none"
+              style={[styles.gem, { left: p.x - size / 2, top: p.y - size / 2, width: size, height: size }, !reached && styles.ahead]}
+            >
+              <GemTierBadge
+                tier={p.tier}
+                size={held ? BADGE_SIZES.hero : reached ? BADGE_SIZES.row : BADGE_SIZES.chip}
+                glow={held}
+                dim={!reached}
+              />
+            </View>
           );
         })}
-      </Svg>
-      {/* The breathing halo is a native view over the drawing rather than a circle inside it. As an
-          SVG prop the pulse crossed from JS on every frame and re-rendered the whole sky each time,
-          for as long as the screen was open; this way the opacity runs on the UI thread alone. It
-          is the held star's own colour, so lying over the star rather than under it reads the same. */}
-      {heldIndex >= 0 && motionAllowed(vfxLevel) && (
-        <Animated.View
-          testID="ascent-halo"
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: points[heldIndex].x - HALO_RADIUS,
-            top: points[heldIndex].y - HALO_RADIUS,
-            width: HALO_RADIUS * 2,
-            height: HALO_RADIUS * 2,
-            borderRadius: HALO_RADIUS,
-            backgroundColor: GEM_COLORS[points[heldIndex].tier],
-            opacity: pulse,
-          }}
-        />
-      )}
+      </View>
       <View style={styles.streakBlock}>
-        <Text style={styles.streakNumber}>{currentStreak}</Text>
+        <BrushNumber value={currentStreak} size={STREAK_INK} color={INK.primary} tick={false} testID="ascent-streak" />
         <Text style={styles.streakCaption}>{i18n.t('ascent_dawns', { count: currentStreak })}</Text>
         <Text style={styles.longestLine}>{i18n.t('streak_longest')} · {longestStreak}</Text>
       </View>
@@ -205,8 +202,9 @@ export function AscentSky({ gemTier, totalScore, currentStreak, longestStreak, w
 }
 
 const styles = StyleSheet.create({
-  streakBlock: { alignItems: 'center', paddingBottom: SPACE.lg, gap: SPACE.hair },
-  streakNumber: { fontFamily: FONTS.display, fontSize: FONT_SIZES.display, color: INK.primary },
+  gem: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  ahead: { opacity: AHEAD_OPACITY },
+  streakBlock: { alignItems: 'center', paddingTop: SPACE.lg, paddingBottom: SPACE.lg, gap: SPACE.hair },
   streakCaption: { fontFamily: FONTS.utility, fontSize: FONT_SIZES.xs, color: INK.dim, letterSpacing: TRACKING.wide },
   longestLine: { fontFamily: FONTS.body, fontSize: FONT_SIZES.sm, color: INK.muted, marginTop: SPACE.xs },
 });

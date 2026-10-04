@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { Tap } from './Tap';
 import { type ReactNode } from 'react';
 import { useRouter, usePathname, useRootNavigationState } from 'expo-router';
@@ -9,6 +9,7 @@ import { HEARTH_ENABLED } from '../../lib/world';
 import { SectionDivider } from './SectionDivider';
 import { Icon } from './Icon';
 import { Glyph } from './Glyph';
+import { BRUSH_POOLS, BRUSH_POOL_ASPECT } from './brushImages';
 
 /**
  * How far a title may shrink to stay on one line, as a last resort. Every fixed title fits at full
@@ -40,6 +41,17 @@ interface Props {
  *  arrow and the tail icons. Lifted by a share of its size, so every fit step stays level. */
 const BLACKLETTER_LIFT = 0.07;
 
+/** The ink pool under a room's name: wide enough to sit under the longest title, a little past it. */
+const POOL_WIDTH = 300;
+const POOL_HEIGHT = POOL_WIDTH / BRUSH_POOL_ASPECT;
+
+/** The same room always gets the same pool, and neighbouring rooms usually differ. */
+export function poolFor(title: string): number {
+  let h = 0;
+  for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) >>> 0;
+  return h % BRUSH_POOLS.length;
+}
+
 /**
  * The top of every screen: back, the room's name, the way home, and the screen's own control.
  *
@@ -47,6 +59,8 @@ const BLACKLETTER_LIFT = 0.07;
  * the atlas knot, and a second knot in the rule under it — up to six marks before any content,
  * two of them the same knot. The title already names the room (and the floor's light and carvings
  * say it again), and the atlas now opens from the hearth, the centre of the map, one tap away.
+ * The rule under it got its knot back the same day: it was the only gold rule in the app without
+ * one, and read as a different ornament rather than a quieter one.
  */
 export function HeaderBar({ title, showBack = true, onBack, right, children, chrome = true }: Props) {
   const router = useRouter();
@@ -80,6 +94,8 @@ export function HeaderBar({ title, showBack = true, onBack, right, children, chr
               <Icon name="arrow-left" size={ICON_SIZES.xl} color={ACCENT.base} />
             </Tap>
           )}
+          {/* A wash of ink puddled under the name, darker at its dried rim (`scripts/gen-brush.js`). */}
+          <Image source={BRUSH_POOLS[poolFor(title)]} style={[styles.pool, showBack && styles.poolAfterBack]} resizeMode="stretch" accessible={false} testID="header-pool" />
           <Text
             style={[titleStyle, blackletter && { transform: [{ translateY: -size * BLACKLETTER_LIFT }] }]}
             numberOfLines={1}
@@ -106,7 +122,7 @@ export function HeaderBar({ title, showBack = true, onBack, right, children, chr
           {right}
         </View>
       </View>
-      <SectionDivider tint={ACCENT.base} knot={false} />
+      <SectionDivider tint={ACCENT.base} />
       {children}
     </View>
   );
@@ -118,6 +134,8 @@ const styles = StyleSheet.create({
   // same height as every other screen instead of jumping up when a short title sets the row.
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, flexShrink: 1 },
+  pool: { position: 'absolute', left: -SPACE.xl, top: '50%', marginTop: -POOL_HEIGHT / 2, width: POOL_WIDTH, height: POOL_HEIGHT },
+  poolAfterBack: { left: 34 - SPACE.xl },
   tail: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
   backBtn: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
   // The glyph is 20pt; the target is the platform's 44pt minimum around it.

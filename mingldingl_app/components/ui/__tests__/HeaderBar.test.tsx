@@ -60,13 +60,13 @@ describe('HeaderBar blackletter titles', () => {
     expect(style.letterSpacing).toBeLessThan(1);
   });
 
-  it('keeps to its four marks — no room glyph, no atlas knot, no knot in the rule', () => {
+  it('keeps to its marks — no room glyph, no atlas knot; its rule knotted like every other', () => {
     mockPathname = '/progression';
     const { UNSAFE_getAllByType, queryByTestId } = render(<HeaderBar title="The Fire" showBack={false} />);
     // The hearth tap is the header's only glyph.
     expect(UNSAFE_getAllByType(Glyph).map((g) => g.props.name)).toEqual(['hearth']);
     expect(queryByTestId('atlas-sigil')).toBeNull();
-    expect(queryByTestId('ulzii-divider-knot')).toBeNull();
+    expect(queryByTestId('ulzii-divider-knot')).toBeTruthy();
   });
 });
 

@@ -30,7 +30,7 @@ import { ordinalWord, threadDay } from '../lib/worldTime';
 import { dayPhase } from '../lib/world/light';
 import { ROOMS } from '../lib/world/rooms';
 import { FONTS, FONT_SIZES, ICON_SIZES, INK, LEADING, RADIUS, SPACE } from '../lib/theme';
-import type { Match } from '../models/match';
+import { matchName } from '../lib/reveal';
 import { useGoTo } from '../hooks/useGoTo';
 
 /**
@@ -53,21 +53,6 @@ const FALLBACK_SKY_WIDTH = 320;
 
 /** The three days of Tsagaan Sar, whichever year's window is running. */
 const WHITE_MOON_PREFIX = 'tsagaan-sar';
-
-/**
- * What a thread is allowed to call the other person at its current reveal level. The Quest Log
- * has its own placeholder key (`mystery_match_name`) for the same idea; a sealed thread uses
- * `unknown_name` instead so the two contexts can read differently if either one's copy diverges.
- *
- * The seal is tested **first**, the order `QuestTile` already keeps: "A name struck" is a fact about
- * a person the reveal ladder has not handed over yet, so a sealed thread whose partner has since
- * deleted must still read as sealed rather than announce that someone left.
- */
-function fireName(match: Match): string {
-  if (match.revealLevel < 2) return i18n.t('unknown_name');
-  if (match.otherUser.isDeleted) return i18n.t('deleted_user');
-  return match.otherUser.displayName ?? i18n.t('unknown_name');
-}
 
 export default function HearthScreen() {
   useLocaleStore((s) => s.locale);
@@ -100,7 +85,7 @@ export default function HearthScreen() {
 
   const fires: DawnFire[] = (matches ?? []).map((match) => ({
     id: match.matchId,
-    name: fireName(match),
+    name: matchName(match),
     fire: fireOf(match, myId, now, windows),
   }));
 

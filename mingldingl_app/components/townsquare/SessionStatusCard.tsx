@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, View, StyleSheet, type LayoutChangeEvent } from 'react-native';
+import { Image, Text, View, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { AppCard } from '../ui/AppCard';
 import { GameButton } from '../ui/GameButton';
 import { WorldClock } from '../ui/WorldClock';
@@ -27,6 +27,10 @@ interface Props {
  *  its own `SkyWindow`. */
 const FALLBACK_PLAZA_WIDTH = 320;
 
+/** The square's gate, shut: painted like the Satchel's objects (`scripts/gen-square.js`). */
+const SHUT_GATE = require('../../assets/square/gate.png');
+const GATE_SIZE = 152;
+
 export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter, isRsvping, isCancelling }: Props) {
   const festival = useActiveFestival();
   const [plazaWidth, setPlazaWidth] = useState(FALLBACK_PLAZA_WIDTH);
@@ -39,9 +43,11 @@ export function SessionStatusCard({ session, now, onRsvp, onCancelRsvp, onEnter,
   if (!session?.sessionId) {
     return (
       <View style={styles.emptyWrap}>
+        {/* The door it always was, now the gate itself: planks under a stone arch, the bar
+            dropped across it until the horn sounds. */}
+        <Image source={SHUT_GATE} style={styles.gate} accessible={false} testID="square-gate" />
         <StateBlock
           framed
-          icon="door"
           title={i18n.t('town_square_empty_title')}
           body={i18n.t('town_square_empty_sub')}
         />
@@ -160,4 +166,5 @@ const styles = StyleSheet.create({
   statLabel: { marginBottom: SPACE.xs },
   statValue: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.primary },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACE.gutter },
+  gate: { width: GATE_SIZE, height: GATE_SIZE, marginBottom: -SPACE.md },
 });
