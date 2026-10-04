@@ -8,11 +8,13 @@ import { ChoiceRow } from '../components/ui/ChoiceRow';
 import { GameButton } from '../components/ui/GameButton';
 import { HeaderBar } from '../components/ui/HeaderBar';
 import { Waiting } from '../components/ui/Waiting';
+import { MetalPlate } from '../components/ui/MetalPlate';
+import { grainFor } from '../components/ui/metal';
 import { useMembership } from '../hooks/useMembership';
 import { i18n, lineLocale } from '../lib/i18n';
 import { useLocaleStore } from '../store/localeStore';
 import { formatDate } from '../lib/formatDate';
-import { ACCENT, FONTS, FONT_SIZES, INK, LINE, MEMBERSHIP_METALS, SPACE, TRACKING } from '../lib/theme';
+import { ACCENT, FONTS, FONT_SIZES, INK, LINE, MEMBERSHIP_METALS, RADIUS, SPACE, TRACKING, tint } from '../lib/theme';
 import type { MembershipTier } from '../models/membership';
 import { useScrollTail } from '../hooks/useScrollTail';
 
@@ -119,7 +121,12 @@ export default function MembershipScreen() {
                 styles.floorRow,
                 i > 0 && styles.floorHairline,
                 isSelected && { borderLeftColor: metal.color },
+                isCurrent && styles.floorPlate,
               ]}>
+                {/* The floor you stand on is a riveted plate in its own metal: "you are here". */}
+                {isCurrent && (
+                  <MetalPlate finish="fine" fill={tint(metal.color, 0.12)} grain={grainFor(t.level)} grainOpacity={0.5} style={styles.floorPlateMetal} />
+                )}
                 {isCurrent && <CardEyebrow color={metal.color}>{i18n.t('you_are_here')}</CardEyebrow>}
                 <Text style={[styles.floorName, ink]}>{floorName}</Text>
                 {priceLine && <Text style={[styles.floorPrice, ink]}>{priceLine}</Text>}
@@ -217,6 +224,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: 'transparent',
   },
+  floorPlate: { paddingHorizontal: SPACE.lg },
+  floorPlateMetal: { borderRadius: RADIUS.sm, overflow: 'hidden' },
   floorHairline: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: LINE.hairline,

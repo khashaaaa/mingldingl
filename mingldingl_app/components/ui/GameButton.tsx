@@ -5,6 +5,8 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import { PRESS, ACCENT, BUTTON_METALS, FONTS, FONT_SIZES, ICON_SIZES, INK, LINE, RADIUS, SCRIM, SPACE, TRACKING, overlay } from '../../lib/theme';
 import { Icon } from './Icon';
 import { Waiting } from './Waiting';
+import { MetalPlate } from './MetalPlate';
+import { grainFor } from './metal';
 import { signal } from '../../lib/world/feedback';
 
 interface Props {
@@ -89,6 +91,8 @@ export function GameButton({ children, onPress, variant = 'primary', size = 'def
         {metal && <LinearGradient colors={metal.gradient} style={StyleSheet.absoluteFill} />}
         {metal && <View style={[styles.topHighlight, { backgroundColor: metal.highlight }]} />}
         {isMetal && <View style={styles.bottomShadow} />}
+        {/* Riveted: the forged deed binds. Cold metal is unworked, so a disabled one stays plain. */}
+        {isMetal && !cold && <MetalPlate finish="fine" grain={grainFor(children)} grainOpacity={0.7} />}
         {loading ? (
           <Waiting color={labelColor} />
         ) : (

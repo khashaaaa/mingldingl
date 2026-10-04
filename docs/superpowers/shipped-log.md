@@ -8,6 +8,22 @@ long versions.
 
 ---
 
+## 2026-10-04 — Riveted metal, only where a thing binds
+
+`scripts/gen-metal.js` bakes the light on worn metal — rubbed rims, domed rivets, scratches — as
+black and white at low alpha, so the same wear sits on whatever metal fills the view beneath
+(`components/ui/metal.ts` holds the sizes and the image table). Rivets mean "this binds, locks or
+guards", so they go on five things and nothing else: the forged button (`GameButton`'s metal
+variants, `MetalPlate` fine; cold disabled metal stays plain), the Gate's leaves (hammered grain
+and two riveted iron straps each, replacing the hairline and knots), the plaque the Oath and the
+Flame Rite are struck onto (bronze, sealed in ember wax once proven / once both pledged), the
+Guild House's "you are here" floor (a plate in that floor's metal), and the strongbox a chest
+drop arrives in (`Strongbox`, wood and gold in two halves; the lid tips back when it gives,
+replacing the chest glyph). A strip of lamellar — riveted iron plates laced in a row — stands in
+for a hairline above the Oath, so the metal reads as steppe armour rather than steampunk.
+`MetalPlate` is a nine-slice of clipped views, since `capInsets` is iOS-only. The Gate and the
+strongbox are covered by tests but not yet seen on a device.
+
 ## 2026-10-04 — The Seek card is a carved stone
 
 `CandidateCard` was a blurred photo plate filling ~60% of the card with nothing on it, and the

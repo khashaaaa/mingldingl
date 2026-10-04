@@ -5,11 +5,12 @@ import { AppCard } from './ui/AppCard';
 import { AlertModal } from './modals/AlertModal';
 import { GameButton } from './ui/GameButton';
 import { Glyph } from './ui/Glyph';
+import { MetalPlate } from './ui/MetalPlate';
 import { Waiting } from './ui/Waiting';
 import { apiClient } from '../lib/api/apiClient';
 import { queryKeys } from '../lib/api/queryKeys';
 import { i18n } from '../lib/i18n';
-import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, METAL, RADIUS, SPACE, TRACKING } from '../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, ICON_SIZES, INK, MATERIAL, METAL, RADIUS, SPACE, TRACKING, tint } from '../lib/theme';
 import { useGoTo } from '../hooks/useGoTo';
 
 export interface FlameRiteState {
@@ -57,6 +58,11 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
   // Only the accept deed is forged — propose and step-in are exclusive branches of the same
   // card, but the controller ruling for this task keeps the count to one metal call site so the
   // file needs no BRANCHED entry in forged.test.ts.
+  // The rite is struck onto a plaque; once both have pledged, it is sealed in ember wax.
+  const plaque = (sealed: boolean) => (
+    <MetalPlate fill={tint(MATERIAL.bronze, 0.14)} grain={2} grainOpacity={0.45} seal={sealed ? METAL.ember : undefined} style={styles.plaque} />
+  );
+
   let content: React.ReactNode;
   if (state.completedAt) {
     content = (
@@ -71,6 +77,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
   } else if (state.acceptedAt) {
     content = (
       <AppCard style={styles.card}>
+        {plaque(true)}
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_ready')}</Text>
         <GameButton variant="ink" style={styles.actionBtn} onPress={() => go(`/video/${id}`)}>
@@ -81,6 +88,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
   } else if (proposedByMe) {
     content = (
       <AppCard style={styles.card}>
+        {plaque(false)}
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <View style={styles.waitingRow}>
           <Waiting size={ICON_SIZES.md} color={ACCENT.base} />
@@ -91,6 +99,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
   } else if (proposedByThem) {
     content = (
       <AppCard style={styles.card}>
+        {plaque(false)}
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_incoming')}</Text>
         <View style={styles.actions}>
@@ -106,6 +115,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
   } else {
     content = (
       <AppCard style={styles.card}>
+        {plaque(false)}
         <Text style={styles.title}>{i18n.t('rite_title')}</Text>
         <Text style={styles.body}>{i18n.t('rite_explainer', { minutes: state.durationMinutes })}</Text>
         <GameButton variant="ink" style={styles.actionBtn} loading={propose.isPending} onPress={() => propose.mutate()}>
@@ -130,6 +140,7 @@ export default function FlameRiteCard({ matchId, state, currentUserId }: Props) 
 }
 
 const styles = StyleSheet.create({
+  plaque: { borderRadius: RADIUS.md - 1, overflow: 'hidden' },
   card: { marginHorizontal: SPACE.gutter, marginTop: SPACE.sm, marginBottom: SPACE.sm, padding: SPACE.lg, gap: SPACE.sm },
   title: { fontFamily: FONTS.display, fontSize: FONT_SIZES.lg, color: ACCENT.base, letterSpacing: TRACKING.wide },
   body: { fontFamily: FONTS.body, fontSize: FONT_SIZES.md, color: INK.dim, lineHeight: LEADING.md },

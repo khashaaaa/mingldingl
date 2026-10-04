@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, StyleSheet, Text, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
-import { ORNAMENTS } from '../../lib/ornaments';
+import { METAL_IMAGES, STRAP } from '../ui/metal';
 import { i18n } from '../../lib/i18n';
 import { motionAllowed, useVfxLevel } from '../../lib/vfx';
-import { LEADING, ACCENT, FONTS, FONT_SIZES, HEAT, INK, METAL, RADIUS, SPACE, SURFACE, circle, glow, tint } from '../../lib/theme';
+import { LEADING, ACCENT, FONTS, FONT_SIZES, HEAT, INK, MATERIAL, METAL, RADIUS, SPACE, SURFACE, circle, glow, tint } from '../../lib/theme';
 export type GateState = 'closed' | 'opening' | 'barred';
 
 interface Props {
@@ -13,7 +13,6 @@ interface Props {
 
 const HEIGHT = 140;
 const OPEN_MS = 900;
-const KNOT = 28;
 /** Assumed width until `onLayout` reports the real one, so the first frame is never a half-open gate. */
 const FALLBACK_WIDTH = 320;
 
@@ -86,15 +85,13 @@ export function GateScene({ state }: Props) {
         <View pointerEvents="none" style={styles.seam} />
 
         <Animated.View style={[styles.half, styles.leftHalf, { transform: [{ translateX: leftShift }] }]}>
-          <View style={styles.hairline} pointerEvents="none" />
+          <Leaf />
           <View style={[styles.stud, styles.studLeft]} pointerEvents="none" />
-          <Image source={ORNAMENTS.knotGold} style={[styles.knot, styles.knotLeft]} />
         </Animated.View>
 
         <Animated.View style={[styles.half, styles.rightHalf, { transform: [{ translateX: rightShift }] }]}>
-          <View style={styles.hairline} pointerEvents="none" />
+          <Leaf mirrored />
           <View style={[styles.stud, styles.studRight]} pointerEvents="none" />
-          <Image source={ORNAMENTS.knotGold} style={[styles.knot, styles.knotRight]} />
         </Animated.View>
 
         {state === 'barred' && (
@@ -105,6 +102,24 @@ export function GateScene({ state }: Props) {
       </View>
 
       <Text style={styles.caption}>{i18n.t(CAPTION[state])}</Text>
+    </View>
+  );
+}
+
+/**
+ * One leaf's ironwork: hammered grain over the boards and two riveted iron straps across them,
+ * near the top and the foot, the way a real gate is bound. The right leaf mirrors the left so
+ * the straps' rivets meet the seam the same way on both sides.
+ */
+function Leaf({ mirrored = false }: { mirrored?: boolean }) {
+  return (
+    <View style={[StyleSheet.absoluteFill, styles.leafClip, mirrored && styles.mirrored]} pointerEvents="none">
+      <Image source={METAL_IMAGES.grain[mirrored ? 1 : 0]} style={styles.leafGrain} resizeMode="cover" />
+      {[styles.strapTop, styles.strapFoot].map((at, i) => (
+        <View key={i} style={[styles.strap, at]}>
+          <Image source={METAL_IMAGES.strap} style={styles.strapImg} />
+        </View>
+      ))}
     </View>
   );
 }
@@ -147,13 +162,20 @@ const styles = StyleSheet.create({
   },
   leftHalf: { left: 0, borderRightWidth: 2 },
   rightHalf: { right: 0, borderLeftWidth: 2 },
-  hairline: {
+  leafClip: { overflow: 'hidden' },
+  mirrored: { transform: [{ scaleX: -1 }] },
+  leafGrain: { ...StyleSheet.absoluteFillObject, width: undefined, height: undefined, opacity: 0.6 },
+  strap: {
     position: 'absolute',
-    top: SPACE.sm, bottom: SPACE.sm, left: SPACE.sm, right: SPACE.sm,
-    borderWidth: 1,
-    borderColor: ACCENT.line,
-    borderRadius: RADIUS.sm,
+    left: 0,
+    right: 0,
+    height: STRAP.height,
+    overflow: 'hidden',
+    backgroundColor: MATERIAL.iron,
   },
+  strapTop: { top: SPACE.lg },
+  strapFoot: { bottom: SPACE.lg },
+  strapImg: { position: 'absolute', left: 0, top: 0, width: STRAP.width, height: STRAP.height },
   // The ring-pull, one per leaf, sitting where a hand would reach for it.
   stud: {
     position: 'absolute',
@@ -165,9 +187,6 @@ const styles = StyleSheet.create({
   },
   studLeft: { right: SPACE.lg },
   studRight: { left: SPACE.lg },
-  knot: { position: 'absolute', width: KNOT, height: KNOT, top: SPACE.md, pointerEvents: 'none' },
-  knotLeft: { left: SPACE.md },
-  knotRight: { right: SPACE.md, transform: [{ scaleX: -1 }] },
   crossbar: {
     position: 'absolute',
     top: HEIGHT / 2 - 8,
