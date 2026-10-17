@@ -1,0 +1,9 @@
+
+# Personal assistant memory/session state — not project source.
+.remember/
+.claude/settings.local.json
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+
+# OS
+.DS_Store

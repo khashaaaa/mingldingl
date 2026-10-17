@@ -1,0 +1,59 @@
+name: CI
+
+# The same steps as scripts/check-all.sh, as three parallel jobs so one failure never hides another.
+# The admin's Playwright test is local-only: it needs a database and the engine's development config.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: mingldingl_engine/global.json
+      # The tests initdb their own throwaway Postgres from the runner's preinstalled server binaries.
+      - run: dotnet test
+        working-directory: mingldingl_engine
+      - run: ./mingldingl_engine/scripts/export-swagger.sh --check
+
+  app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mingldingl_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mingldingl_app/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run test:scripts
+      - name: generated API matches swagger.json
+        run: npm run generate:api && test -z "$(git status --porcelain -- src/lib/api/generated)"
+
+  admin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mingldingl_control
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mingldingl_control/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - name: generated API matches swagger.json
+        run: npm run generate:api && test -z "$(git status --porcelain -- src/lib/api/generated)"

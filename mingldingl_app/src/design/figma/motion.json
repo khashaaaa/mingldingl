@@ -1,0 +1,192 @@
+{
+ "durations": {
+  "tap": 120,
+  "shift": 240,
+  "travel": 360,
+  "ceremonyMin": 1200,
+  "ceremonyMax": 3000,
+  "loopMin": 2400,
+  "loopMax": 6000
+ },
+ "exitRatio": 0.75,
+ "easings": {
+  "forgeOut": {
+   "bezier": [
+    0.16,
+    1,
+    0.3,
+    1
+   ]
+  },
+  "emberIn": {
+   "bezier": [
+    0.7,
+    0,
+    0.84,
+    0
+   ]
+  },
+  "anvil": {
+   "spring": {
+    "damping": 14,
+    "stiffness": 180
+   }
+  },
+  "breathe": {
+   "bezier": [
+    0.37,
+    0,
+    0.63,
+    1
+   ]
+  }
+ },
+ "motions": [
+  {
+   "key": "press",
+   "name": "Press",
+   "time": "tap",
+   "easing": "anvil",
+   "haptic": "soft",
+   "sound": "tick"
+  },
+  {
+   "key": "inkBleedIn",
+   "name": "Ink bleed-in",
+   "time": "travel",
+   "easing": "forgeOut",
+   "haptic": null,
+   "sound": null
+  },
+  {
+   "key": "dryBrushDraw",
+   "name": "Dry-brush draw",
+   "time": "travel+120",
+   "easing": "forgeOut",
+   "haptic": null,
+   "sound": null
+  },
+  {
+   "key": "sheetRise",
+   "name": "Sheet rise",
+   "time": "travel",
+   "easing": "forgeOut",
+   "haptic": null,
+   "sound": null
+  },
+  {
+   "key": "roomTravel",
+   "name": "Room travel",
+   "time": "travel",
+   "easing": "forgeOut",
+   "haptic": "soft",
+   "sound": "door"
+  },
+  {
+   "key": "sealStamp",
+   "name": "Seal stamp",
+   "time": "600",
+   "easing": "anvil",
+   "haptic": "heavy",
+   "sound": "seal"
+  },
+  {
+   "key": "sealBreak",
+   "name": "Seal break",
+   "time": "900",
+   "easing": null,
+   "haptic": "heavy",
+   "sound": "seal"
+  },
+  {
+   "key": "emberFlare",
+   "name": "Ember flare",
+   "time": "travel",
+   "easing": "anvil",
+   "haptic": "warning",
+   "sound": "due"
+  },
+  {
+   "key": "candle",
+   "name": "Candle",
+   "time": "2400",
+   "easing": "breathe",
+   "haptic": null,
+   "sound": "candle"
+  },
+  {
+   "key": "emberDrift",
+   "name": "Ember drift",
+   "time": "4000-6000",
+   "easing": "breathe",
+   "haptic": null,
+   "sound": null
+  },
+  {
+   "key": "frostCreep",
+   "name": "Frost creep",
+   "time": "1200",
+   "easing": null,
+   "haptic": "soft",
+   "sound": "dying"
+  },
+  {
+   "key": "rewardBurst",
+   "name": "Reward burst",
+   "time": "240+600+600",
+   "easing": null,
+   "haptic": "success",
+   "sound": "honour"
+  },
+  {
+   "key": "honourDrop",
+   "name": "Honour drop",
+   "time": "900",
+   "easing": "anvil",
+   "haptic": "success",
+   "sound": "honour"
+  },
+  {
+   "key": "chestOpen",
+   "name": "Chest open",
+   "time": "1600",
+   "easing": null,
+   "haptic": "heavy",
+   "sound": "anvil"
+  },
+  {
+   "key": "bell",
+   "name": "Bell",
+   "time": "1200",
+   "easing": null,
+   "haptic": "medium",
+   "sound": "bell"
+  },
+  {
+   "key": "gemIdle",
+   "name": "Gem idle",
+   "time": "loop",
+   "easing": "breathe",
+   "haptic": null,
+   "sound": null
+  },
+  {
+   "key": "tierUp",
+   "name": "Tier-up",
+   "time": "3000",
+   "easing": null,
+   "haptic": "heavy",
+   "sound": "anvil"
+  }
+ ],
+ "rules": [
+  "M1 Still by default",
+  "M2 Five durations, four easings",
+  "M3 Exit = 75% of entrance",
+  "M4 Anticipation before every reward",
+  "M5 Rarity announced by colour+sound first",
+  "M6 Stacked feedback only for ceremonies",
+  "M7 Reduce Motion: loops stop, ceremonies cut to last frame, haptics stay",
+  "M8 At most one ambient loop per screen, never on text"
+ ]
+}

@@ -1,0 +1,6 @@
+# Each device of revoke (run by two-devices.sh): after "sign out everywhere", it is back at the Gate.
+appId: com.mingldingl.app
+---
+- extendedWaitUntil:
+    visible: Enter the Gate
+    timeout: 30000

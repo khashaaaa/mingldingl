@@ -1,0 +1,146 @@
+[
+ {
+  "name": "Title/Room",
+  "family": "Pirata One",
+  "style": "Regular",
+  "size": 40,
+  "lineHeight": 44,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Title/Room MN",
+  "family": "Yeseva One",
+  "style": "Regular",
+  "size": 32,
+  "lineHeight": 38,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Display/XL",
+  "family": "Yeseva One",
+  "style": "Regular",
+  "size": 48,
+  "lineHeight": 54,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Display/L",
+  "family": "Yeseva One",
+  "style": "Regular",
+  "size": 32,
+  "lineHeight": 38,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Display/M",
+  "family": "Yeseva One",
+  "style": "Regular",
+  "size": 24,
+  "lineHeight": 30,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Display/S",
+  "family": "Yeseva One",
+  "style": "Regular",
+  "size": 19,
+  "lineHeight": 24,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Number/L",
+  "family": "Yeseva One",
+  "style": "Regular",
+  "size": 28,
+  "lineHeight": 32,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Number/S",
+  "family": "Yeseva One",
+  "style": "Regular",
+  "size": 17,
+  "lineHeight": 20,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Body/L",
+  "family": "EB Garamond",
+  "style": "Regular",
+  "size": 20,
+  "lineHeight": 28,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Body/M",
+  "family": "EB Garamond",
+  "style": "Regular",
+  "size": 17,
+  "lineHeight": 24,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Body/S",
+  "family": "EB Garamond",
+  "style": "Regular",
+  "size": 15,
+  "lineHeight": 21,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Voice/M",
+  "family": "EB Garamond",
+  "style": "Italic",
+  "size": 17,
+  "lineHeight": 24,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Voice/L",
+  "family": "EB Garamond",
+  "style": "Italic",
+  "size": 20,
+  "lineHeight": 28,
+  "letterSpacingPercent": 0,
+  "textCase": "ORIGINAL"
+ },
+ {
+  "name": "Label/M",
+  "family": "EB Garamond",
+  "style": "SemiBold",
+  "size": 14,
+  "lineHeight": 18,
+  "letterSpacingPercent": 8,
+  "textCase": "UPPER"
+ },
+ {
+  "name": "Label/S",
+  "family": "EB Garamond",
+  "style": "SemiBold",
+  "size": 12,
+  "lineHeight": 16,
+  "letterSpacingPercent": 6,
+  "textCase": "UPPER"
+ },
+ {
+  "name": "Label/Tab",
+  "family": "EB Garamond",
+  "style": "SemiBold",
+  "size": 11,
+  "lineHeight": 14,
+  "letterSpacingPercent": 3,
+  "textCase": "UPPER"
+ }
+]

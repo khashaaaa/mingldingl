@@ -1,0 +1,39 @@
+# Gate → phone → verify → six onboarding steps → the Character tab shows the new character.
+# Needs: scripts/dev.sh running (fake verify.mn), the seed album (.maestro/push-seed-photos.sh).
+#   maestro --device emulator-5554 test .maestro/signup.yaml
+appId: com.mingldingl.app
+env:
+  METRO_URL: http%3A%2F%2F192.168.1.32%3A8081
+---
+- runFlow: _to-portraits.yaml
+- runFlow:
+    file: _pick-portraits.yaml
+    env:
+      COUNT: 3
+- extendedWaitUntil:
+    visible: (?i)3 of 3 needed.*
+    timeout: 60000
+- tapOn: Continue
+- extendedWaitUntil:
+    visible: Your tale
+    timeout: 10000
+- runFlow: { file: _type-tale.yaml, env: { TEXT: I keep my word and walk the steppe at dawn. } }
+- runFlow: { file: _keys-away.yaml, env: { AT: 'Your tale' } }
+- tapOn: Where do you live\?
+- tapOn: Ulaanbaatar      # the capital opens to its districts
+- tapOn: Khan-Uul
+- tapOn: Continue
+- extendedWaitUntil:
+    visible: Swear your oath
+    timeout: 10000
+- tapOn: Bond
+- tapOn: Swear the oath
+- extendedWaitUntil:
+    visible: Your tale is written in full\.
+    timeout: 10000
+- tapOn: Enter the Hearth
+- extendedWaitUntil:
+    visible: Edit your character
+    timeout: 15000
+- assertVisible: Maestro, 28
+- assertVisible: Bond — sworn

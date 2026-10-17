@@ -1,0 +1,57 @@
+.filters {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.filter {
+  padding: var(--space-2) var(--space-3);
+  border: var(--stroke-hairline) solid var(--color-border-strong);
+  background: transparent;
+  cursor: pointer;
+}
+.filter[aria-selected="true"] {
+  border-color: var(--color-border-brass);
+  color: var(--color-accent-gold-bright);
+}
+.report-note {
+  max-width: calc(var(--space-8) * 4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.letters {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.letter {
+  max-width: calc(var(--space-8) * 9);
+  padding: var(--space-3) var(--space-4);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  background: var(--color-bg-raised);
+}
+.letter.target {
+  border-color: var(--color-border-brass);
+}
+.letter p {
+  margin: var(--space-1) 0 0;
+  overflow-wrap: anywhere;
+}
+.resolve-hint {
+  font: var(--font-body-s);
+}
+.resolve-note {
+  display: block;
+  width: 100%;
+  max-width: calc(var(--space-8) * 9);
+  min-height: calc(var(--space-8) * 1.5);
+  margin-bottom: var(--space-3);
+  resize: vertical;
+}
+.resolve-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

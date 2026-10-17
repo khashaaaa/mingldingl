@@ -1,0 +1,6 @@
+# Subflow: put the keyboard away by tapping ${AT}, plain text in the screen's scrolling body (its
+# ScrollView lets an unhandled tap dismiss the keys). Never hideKeyboard: on Android it presses Back,
+# and when the keys are already down — Samsung's number pad closes on its own — that Back leaves the app.
+appId: com.mingldingl.app
+---
+- tapOn: ${AT}

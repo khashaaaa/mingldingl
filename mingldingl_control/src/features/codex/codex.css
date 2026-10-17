@@ -1,0 +1,17 @@
+.codex-form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: calc(var(--space-8) * 9);
+}
+.codex-tabs {
+  display: flex;
+  gap: var(--space-2);
+}
+.codex-body {
+  min-height: calc(var(--space-8) * 4);
+  padding: var(--space-3) var(--space-4);
+  resize: vertical;
+}
+.codex-count {
+  margin: calc(var(--space-2) * -1) 0 0;
+}

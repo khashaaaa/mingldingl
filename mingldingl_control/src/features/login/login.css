@@ -1,0 +1,24 @@
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  background: var(--color-bg-sunken);
+}
+.login-card {
+  display: grid;
+  gap: var(--space-4);
+  width: min(calc(var(--space-8) * 6.5), calc(100vw - var(--space-6)));
+  padding: var(--space-6);
+  border: var(--stroke-hairline) solid var(--color-border-gold);
+  background: var(--color-bg-raised);
+}
+.login-title {
+  margin: 0 0 var(--space-1);
+  text-align: center;
+  font: var(--font-title-room);
+  color: var(--color-accent-gold-bright);
+}
+.login-error {
+  margin: 0;
+  font: var(--font-body-s);
+}

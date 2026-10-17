@@ -1,0 +1,85 @@
+{
+  "expo": {
+    "name": "MingldIngl",
+    "slug": "mingldingl",
+    "scheme": "mingldingl",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#060912",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.mingldingl.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "The Flame Rite shows your face to the person you are bonded with, for five minutes. Nothing is recorded.",
+        "NSMicrophoneUsageDescription": "The Flame Rite carries your voice to the person you are bonded with, for five minutes. Nothing is recorded."
+      }
+    },
+    "android": {
+      "package": "com.mingldingl.app",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png",
+        "backgroundColor": "#060912"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      "expo-localization",
+      "expo-audio",
+      [
+        "expo-notifications",
+        {
+          "color": "#060912"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MingldIngl opens your photos so you can choose your portraits."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MingldIngl reads your location once, only to suggest the place you call home."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "backgroundColor": "#060912"
+        }
+      ],
+      "@sentry/react-native",
+      "./plugins/withNoDevMenuButton",
+      "expo-sharing"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7bff372e-81ab-4e35-b114-503bb9f26e29"
+      }
+    },
+    "owner": "khashaa"
+  }
+}

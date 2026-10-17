@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Fast gate (app typecheck + both Biome checks, seconds) before a commit lands. Tests and builds
+# run in CI (.github/workflows/ci.yml); run scripts/check-all.sh with no
+# flag to get the full set locally. Enabled via `git config core.hooksPath .githooks`.
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+"$ROOT/scripts/check-all.sh" --fast

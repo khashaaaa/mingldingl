@@ -1,0 +1,10 @@
+# Nightly at 03:00 Ulaanbaatar; a night missed while the server was off runs at the next boot.
+[Unit]
+Description=MingldIngl nightly database backup
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Asia/Ulaanbaatar
+Persistent=true
+
+[Install]
+WantedBy=timers.target

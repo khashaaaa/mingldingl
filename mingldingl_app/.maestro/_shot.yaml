@@ -1,0 +1,15 @@
+# Subflow (device-pass.sh): optionally relaunch, wait for ${EXPECT}, screenshot as ${NAME}.
+appId: com.mingldingl.app
+---
+- runFlow:
+    when:
+      true: ${RELAUNCH == 'yes'}
+    commands:
+      - stopApp
+      - launchApp
+      - runFlow: _launch.yaml
+- extendedWaitUntil:
+    visible: ${EXPECT}
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: ${NAME}

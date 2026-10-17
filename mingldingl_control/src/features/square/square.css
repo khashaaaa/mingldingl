@@ -1,0 +1,27 @@
+.square-ring {
+  margin: 0 0 var(--space-5);
+}
+.square-form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: calc(var(--space-8) * 8);
+  margin: 0 0 var(--space-6);
+}
+.square-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+.square-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.square-actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+.square-festivals {
+  margin-top: var(--space-7);
+}

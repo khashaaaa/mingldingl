@@ -1,0 +1,6 @@
+# Sign a fresh install in to ${PHONE} (two-devices.sh runs it on each device).
+appId: com.mingldingl.app
+env:
+  METRO_URL: http%3A%2F%2F192.168.1.32%3A8081
+---
+- runFlow: _sign-in.yaml

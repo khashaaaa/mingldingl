@@ -1,0 +1,18 @@
+# Subflow: a fresh install signs in to an existing account (${PHONE}, e.g. from
+# `dotnet run -- seed Finished --phone 99770101`) and lands on the Character tab.
+appId: com.mingldingl.app
+---
+- launchApp:
+    clearState: true
+    stopApp: true
+- runFlow: _launch.yaml
+- tapOn: I have walked here before
+- extendedWaitUntil:
+    visible: Prove your number
+    timeout: 10000
+- tapOn: Phone number
+- inputText: ${PHONE}
+- tapOn: Continue
+- extendedWaitUntil:
+    visible: Edit your character
+    timeout: 20000

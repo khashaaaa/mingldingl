@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MinglDingl.Engine/MinglDingl.Engine.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MinglDingl.Engine.Tests/MinglDingl.Engine.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,92 @@
+.shell {
+  display: grid;
+  grid-template-columns: calc(var(--space-8) * 3.75) 1fr;
+  min-height: 100vh;
+  background: var(--color-bg-sunken);
+}
+.sidebar {
+  padding: var(--space-6) var(--space-2);
+  border-right: var(--stroke-hairline) solid var(--color-border-hairline);
+  background: var(--color-bg-sunken);
+}
+.brand {
+  padding: 0 var(--space-4) var(--space-6);
+}
+.brand-name {
+  font: var(--font-title-room);
+  color: var(--color-accent-gold-bright);
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-touch);
+  padding: 0 var(--space-4);
+  border-left: var(--stroke-rule) solid transparent;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--duration-tap) var(--ease-forge-out);
+}
+.nav-item .glyph {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+.nav-item:hover {
+  color: var(--color-text-primary);
+}
+.nav-item.active {
+  border-left-color: var(--color-accent-gold);
+  background: var(--color-bg-panel);
+  color: var(--color-text-primary);
+}
+.nav-item.active .glyph {
+  color: var(--color-accent-gold-bright);
+}
+.page {
+  min-width: 0;
+  padding: var(--space-6) var(--space-6) var(--space-8);
+  background: var(--color-bg-base);
+}
+.page-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: calc(-1 * var(--space-5));
+}
+.page-bar .btn .glyph {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.live-dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-round);
+  background: var(--color-text-muted);
+}
+.live[data-state="live"] .live-dot {
+  background: var(--color-status-success);
+}
+.live[data-state="reconnecting"] .live-dot {
+  background: var(--color-status-warning);
+}
+.page-title {
+  margin: 0;
+  font: var(--font-display-l);
+  color: var(--color-text-primary);
+}
+.page-sub {
+  margin: var(--space-1) 0 0;
+}
+.page-head {
+  margin-bottom: var(--space-5);
+}
+.section-title {
+  margin: var(--space-6) 0 var(--space-4);
+  font: var(--font-display-m);
+}

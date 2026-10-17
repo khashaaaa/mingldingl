@@ -1,0 +1,9 @@
+# Subflow: kill the app, relaunch it, and expect ${EXPECT} (the step it was killed on).
+appId: com.mingldingl.app
+---
+- stopApp
+- launchApp
+- runFlow: _launch.yaml
+- extendedWaitUntil:
+    visible: ${EXPECT}
+    timeout: 30000

@@ -1,0 +1,29 @@
+# Subflow: open the development build on the local Metro. `disableOnboarding=1` stops the dev menu's
+# first-launch sheet, which otherwise can appear after the app's first screen and swallow a tap.
+# After a clearState the launcher may show its server list instead of following the link.
+appId: com.mingldingl.app
+---
+- openLink: mingldingl://expo-development-client/?url=${METRO_URL}&disableOnboarding=1
+- extendedWaitUntil:
+    visible: Enter the Gate|DEVELOPMENT SERVERS|Runtime version.*|What does the hold call you\?|You are…|Your portraits|Your tale|Swear your oath|Your tale is written in full\.|Edit your character|Cast Out|Хөөгдсөн|This character is gone|The hold has changed|The gate is shut for repairs
+    timeout: 60000
+- runFlow:
+    when:
+      visible: DEVELOPMENT SERVERS
+    commands:
+      - tapOn:
+          text: http://192\.168\.1\.32:8081
+          optional: true   # the link may win the race and load the app first
+- extendedWaitUntil:
+    visible: Enter the Gate|Runtime version.*|What does the hold call you\?|You are…|Your portraits|Your tale|Swear your oath|Your tale is written in full\.|Edit your character|Cast Out|Хөөгдсөн|This character is gone|The hold has changed|The gate is shut for repairs
+    timeout: 60000
+- runFlow:
+    when:
+      visible: Runtime version.*
+    commands:
+      - tapOn:
+          text: Continue
+          optional: true
+      - tapOn:
+          text: Close
+          optional: true

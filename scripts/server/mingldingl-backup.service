@@ -1,0 +1,9 @@
+[Unit]
+Description=MingldIngl nightly database backup
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=mingldingl
+Group=mingldingl
+ExecStart=/usr/local/lib/mingldingl/backup.sh

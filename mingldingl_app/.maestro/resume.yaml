@@ -1,0 +1,22 @@
+# Kill the app on step 3 after one portrait arrives → relaunch → still step 3 with exactly that one
+# portrait (the relaunch derives the step from the profile; the upload is not repeated).
+appId: com.mingldingl.app
+env:
+  METRO_URL: http%3A%2F%2F192.168.1.32%3A8081
+---
+- runFlow: _to-portraits.yaml
+- runFlow:
+    file: _pick-portraits.yaml
+    env:
+      COUNT: 1
+- extendedWaitUntil:
+    visible: (?i)1 of 3 needed.*
+    timeout: 60000
+- stopApp
+- launchApp
+- runFlow: _launch.yaml
+- extendedWaitUntil:
+    visible: Your portraits
+    timeout: 20000
+- assertVisible: (?i)1 of 3 needed.*
+- assertVisible: 3 OF 6

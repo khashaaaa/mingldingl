@@ -1,0 +1,240 @@
+/* The Guild House web page: the app's night floor and type, a phone-width column (Figma S9). */
+body:has(.guild) {
+  background: linear-gradient(180deg, var(--night-sky-950), var(--night-sky-900) 55%, var(--ember-700));
+  background-attachment: fixed;
+}
+
+.guild {
+  max-width: 430px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 0 var(--size-gutter) var(--space-8);
+  display: flex;
+  flex-direction: column;
+}
+
+.guild-sign {
+  align-self: center;
+  margin-bottom: var(--space-6);
+  padding: var(--space-3) var(--space-6);
+  font: var(--font-title-room);
+  color: var(--color-text-inverse);
+  background: url("../design/art/brass_plate.png") center / 100% 100%;
+  border: var(--stroke-rule) solid var(--color-metal-brass-dark);
+  border-top: none;
+}
+
+.guild-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.guild-center {
+  align-items: center;
+  text-align: center;
+}
+
+.guild-stone {
+  padding-top: var(--space-7);
+}
+
+.guild h1 {
+  margin: 0;
+  font: var(--font-display-l);
+  color: var(--color-text-primary);
+}
+
+.guild p {
+  margin: 0;
+}
+
+.guild .guild-error {
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  border: var(--stroke-hairline) solid var(--color-status-danger);
+  color: var(--color-text-danger);
+}
+
+.guild-phone {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: var(--stroke-hairline) solid var(--color-border-gold);
+  background: var(--color-bg-sunken);
+}
+
+.guild-phone input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font: var(--font-body-l);
+  letter-spacing: 0.1em;
+  outline: none;
+}
+
+.guild-small {
+  font: var(--font-body-s);
+}
+
+.guild-cta {
+  margin-top: auto;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+}
+
+.guild-code {
+  font: var(--font-number-l);
+  color: var(--color-accent-gold-bright);
+  letter-spacing: 0.08em;
+}
+
+.guild-to {
+  font: var(--font-display-m);
+}
+
+.guild-instruction {
+  padding: var(--space-3);
+  border: var(--stroke-hairline) solid var(--color-border-strong);
+  font: var(--font-body-s);
+  color: var(--color-text-secondary);
+}
+
+.guild .guild-listen {
+  margin-bottom: var(--space-6);
+}
+
+.guild-link {
+  border: none;
+  background: none;
+  font: var(--font-voice-m);
+  color: var(--color-accent-gold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.guild-now {
+  color: var(--color-accent-gold-bright);
+}
+
+.guild-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-2) 0;
+}
+
+.guild-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  text-align: left;
+  background: var(--color-bg-panel);
+  border: var(--stroke-hairline) solid var(--color-border-strong);
+  cursor: pointer;
+}
+
+.guild-card > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.guild-card strong {
+  font: var(--font-display-s);
+}
+
+.guild-card small {
+  font: var(--font-body-s);
+  color: var(--color-text-secondary);
+}
+
+.guild-card .glyph {
+  width: var(--space-6);
+  height: var(--space-6);
+  flex: none;
+  color: var(--color-text-secondary);
+}
+
+.guild-card.is-on {
+  border-color: var(--color-border-gold);
+  box-shadow: 0 0 var(--space-4) var(--color-accent-gold);
+}
+
+.guild-card.is-on .glyph {
+  color: var(--color-accent-gold-bright);
+}
+
+.guild-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.guild-chip {
+  padding: var(--space-2) var(--space-3);
+  font: var(--font-label-s);
+  letter-spacing: var(--tracking-label-s);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  background: none;
+  border: var(--stroke-hairline) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.guild-chip.is-on {
+  color: var(--color-accent-gold-bright);
+  border-color: var(--color-border-gold);
+}
+
+.guild-qr {
+  width: 220px;
+  height: 220px;
+  padding: var(--space-3);
+  margin: var(--space-4) 0;
+  background: var(--color-bg-parchment);
+  border-radius: var(--radius-md);
+}
+
+.guild-qr img,
+.guild-qr svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.guild-banks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.guild-bank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 72px;
+  font: var(--font-body-s);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.guild-bank img {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+}
+
+.guild-art {
+  width: 140px;
+  height: 140px;
+}

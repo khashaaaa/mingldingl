@@ -1,0 +1,17 @@
+# The way in from the internet: a Cloudflare tunnel (TUNNEL_TOKEN in engine.env, from the Cloudflare
+# dashboard). Public hostnames there: the API → http://localhost:8080, the panel and /guild/ →
+# http://localhost:8081. Enabled by `scripts/deploy.sh --tunnel`.
+[Unit]
+Description=MingldIngl Cloudflare tunnel
+After=network-online.target mingldingl-engine.service
+Wants=network-online.target
+
+[Service]
+DynamicUser=yes
+EnvironmentFile=/etc/mingldingl/engine.env
+ExecStart=/usr/bin/cloudflared tunnel --no-autoupdate run
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

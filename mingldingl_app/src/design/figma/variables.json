@@ -1,0 +1,254 @@
+{
+ "source": "Figma nLwcONhTplnnOmXu3wroIx, exported 2026-10-05 via use_figma (variables API is Enterprise-only on REST)",
+ "primitives": {
+  "ink/950": "#0d0a08",
+  "ink/900": "#15110d",
+  "ink/850": "#1b1611",
+  "ink/800": "#221b15",
+  "ink/700": "#2e251c",
+  "ink/600": "#3d3226",
+  "stone/500": "#5e5141",
+  "stone/400": "#968670",
+  "stone/300": "#a8997f",
+  "stone/200": "#cbbd9f",
+  "bone/100": "#e9dfca",
+  "bone/50": "#f5eedf",
+  "parchment/300": "#e3d3ae",
+  "parchment/200": "#d4c096",
+  "parchment/500": "#a88e62",
+  "brass/800": "#2e2414",
+  "brass/600": "#5c4522",
+  "brass/400": "#93703c",
+  "brass/200": "#c8a86a",
+  "bronze/700": "#6b4523",
+  "bronze/500": "#9a6a35",
+  "bronze/300": "#c9985c",
+  "verdigris/500": "#4f8070",
+  "verdigris/300": "#7fb09c",
+  "gold/700": "#8f6410",
+  "gold/500": "#d9a21b",
+  "gold/300": "#f5c542",
+  "gold/100": "#fbe6a6",
+  "ember/700": "#8c3016",
+  "ember/500": "#d0643a",
+  "ember/300": "#f0a06a",
+  "wax/600": "#8e1f22",
+  "wax/400": "#b8382f",
+  "ochre/500": "#b5703a",
+  "ochre/300": "#d8a066",
+  "gem/garnet/core": "#7a1c22",
+  "gem/garnet/glow": "#d24a3a",
+  "gem/opal/core": "#4f6f78",
+  "gem/opal/glow": "#9fd3cf",
+  "gem/amethyst/core": "#4a2a78",
+  "gem/amethyst/glow": "#a77de0",
+  "gem/sapphire/core": "#163f86",
+  "gem/sapphire/glow": "#5f9cf0",
+  "gem/ruby/core": "#8a0f2e",
+  "gem/ruby/glow": "#ff4a5e",
+  "gem/emerald/core": "#125c3c",
+  "gem/emerald/glow": "#4fe09a",
+  "night-sky/950": "#030409",
+  "night-sky/900": "#060912",
+  "night-sky/850": "#0a0e1a",
+  "night-sky/800": "#0f1424",
+  "night-sky/700": "#172036",
+  "night-sky/600": "#222c47",
+  "night-sky/text-secondary": "#a0a8bf",
+  "night-sky/text-muted": "#8790a9",
+  "night-sky/line-strong": "#4c577a"
+ },
+ "color": {
+  "bg/sunken": {
+   "alias": "night-sky/950",
+   "value": "#030409"
+  },
+  "bg/base": {
+   "alias": "night-sky/900",
+   "value": "#060912"
+  },
+  "bg/raised": {
+   "alias": "night-sky/850",
+   "value": "#0a0e1a"
+  },
+  "bg/panel": {
+   "alias": "night-sky/800",
+   "value": "#0f1424"
+  },
+  "bg/parchment": {
+   "alias": "parchment/200",
+   "value": "#d4c096"
+  },
+  "bg/scrim": {
+   "alias": "night-sky/950",
+   "value": "#030409"
+  },
+  "text/primary": {
+   "alias": "bone/100",
+   "value": "#e9dfca"
+  },
+  "text/secondary": {
+   "alias": "night-sky/text-secondary",
+   "value": "#a0a8bf"
+  },
+  "text/muted": {
+   "alias": "night-sky/text-muted",
+   "value": "#8790a9"
+  },
+  "text/on-parchment": {
+   "alias": "ink/900",
+   "value": "#15110d"
+  },
+  "text/accent": {
+   "alias": "gold/300",
+   "value": "#f5c542"
+  },
+  "text/danger": {
+   "alias": "ember/300",
+   "value": "#f0a06a"
+  },
+  "text/inverse": {
+   "alias": "ink/900",
+   "value": "#15110d"
+  },
+  "border/hairline": {
+   "alias": "night-sky/600",
+   "value": "#222c47"
+  },
+  "border/strong": {
+   "alias": "night-sky/line-strong",
+   "value": "#4c577a"
+  },
+  "border/brass": {
+   "alias": "brass/400",
+   "value": "#93703c"
+  },
+  "border/gold": {
+   "alias": "gold/500",
+   "value": "#d9a21b"
+  },
+  "accent/gold": {
+   "alias": "gold/500",
+   "value": "#d9a21b"
+  },
+  "accent/gold-bright": {
+   "alias": "gold/300",
+   "value": "#f5c542"
+  },
+  "accent/ember": {
+   "alias": "ember/500",
+   "value": "#d0643a"
+  },
+  "seal/wax": {
+   "alias": "wax/600",
+   "value": "#8e1f22"
+  },
+  "seal/wax-light": {
+   "alias": "wax/400",
+   "value": "#b8382f"
+  },
+  "metal/brass": {
+   "alias": "brass/600",
+   "value": "#5c4522"
+  },
+  "metal/brass-dark": {
+   "alias": "night-sky/800",
+   "value": "#0f1424"
+  },
+  "metal/bronze": {
+   "alias": "bronze/500",
+   "value": "#9a6a35"
+  },
+  "metal/verdigris": {
+   "alias": "verdigris/500",
+   "value": "#4f8070"
+  },
+  "status/success": {
+   "alias": "verdigris/300",
+   "value": "#7fb09c"
+  },
+  "status/warning": {
+   "alias": "ochre/300",
+   "value": "#d8a066"
+  },
+  "status/danger": {
+   "alias": "ember/500",
+   "value": "#d0643a"
+  },
+  "earth/ochre": {
+   "alias": "ochre/500",
+   "value": "#b5703a"
+  },
+  "earth/sand": {
+   "alias": "stone/200",
+   "value": "#cbbd9f"
+  },
+  "gem/garnet/core": {
+   "alias": "gem/garnet/core",
+   "value": "#7a1c22"
+  },
+  "gem/garnet/glow": {
+   "alias": "gem/garnet/glow",
+   "value": "#d24a3a"
+  },
+  "gem/opal/core": {
+   "alias": "gem/opal/core",
+   "value": "#4f6f78"
+  },
+  "gem/opal/glow": {
+   "alias": "gem/opal/glow",
+   "value": "#9fd3cf"
+  },
+  "gem/amethyst/core": {
+   "alias": "gem/amethyst/core",
+   "value": "#4a2a78"
+  },
+  "gem/amethyst/glow": {
+   "alias": "gem/amethyst/glow",
+   "value": "#a77de0"
+  },
+  "gem/sapphire/core": {
+   "alias": "gem/sapphire/core",
+   "value": "#163f86"
+  },
+  "gem/sapphire/glow": {
+   "alias": "gem/sapphire/glow",
+   "value": "#5f9cf0"
+  },
+  "gem/ruby/core": {
+   "alias": "gem/ruby/core",
+   "value": "#8a0f2e"
+  },
+  "gem/ruby/glow": {
+   "alias": "gem/ruby/glow",
+   "value": "#ff4a5e"
+  },
+  "gem/emerald/core": {
+   "alias": "gem/emerald/core",
+   "value": "#125c3c"
+  },
+  "gem/emerald/glow": {
+   "alias": "gem/emerald/glow",
+   "value": "#4fe09a"
+  }
+ },
+ "dimension": {
+  "space/1": 4.0,
+  "space/2": 8.0,
+  "space/3": 12.0,
+  "space/4": 16.0,
+  "space/5": 24.0,
+  "space/6": 32.0,
+  "space/7": 48.0,
+  "space/8": 64.0,
+  "radius/none": 0.0,
+  "radius/sm": 2.0,
+  "radius/md": 4.0,
+  "radius/lg": 8.0,
+  "radius/round": 999.0,
+  "stroke/hairline": 1.0,
+  "stroke/rule": 2.0,
+  "size/touch": 48.0,
+  "size/gutter": 20.0
+ }
+}

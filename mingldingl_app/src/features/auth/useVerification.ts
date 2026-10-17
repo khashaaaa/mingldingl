@@ -1,0 +1,180 @@
+import Constants from 'expo-constants';
+import { useIsFocused } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Platform } from 'react-native';
+import { duration } from '@/design/tokens';
+import { ApiError } from '@/lib/api/client';
+import {
+  completePhone,
+  completeSigil,
+  phoneStatus,
+  startPhone,
+  startSigil,
+} from '@/lib/api/generated/engine';
+import type { StartResponse } from '@/lib/api/generated/model';
+import { allyCall, forgetAllyCall } from '@/lib/links';
+import { signIn } from '@/lib/session';
+
+/** verify.mn has no push to the phone, so this is the one poll the app allows — while Verify is on screen. */
+export const POLL_MS = 3000;
+
+/** The id a number was last given, so a reopened app resumes it instead of costing another 150₮ text. */
+/**
+ * How long "The gate opens" stays before the session is stored. Storing it moves the gate at once,
+ * so without the hold the seal breaks off-screen.
+ */
+export const OPENING_HOLD_MS = duration.ceremonyMin;
+
+/** While the road is broken, how often to try it again — the screen promises to carry on by itself. */
+export const OFFLINE_RETRY_MS = 5000;
+
+export const verifyKey = (phone: string) => `mingl.verify.${phone}`;
+
+export type Verification =
+  | { kind: 'starting' }
+  | { kind: 'waiting'; v: StartResponse }
+  | { kind: 'opening' }
+  | { kind: 'expired' }
+  | { kind: 'failed'; error: ApiError };
+
+/** Completing with a code that is too old or already used needs a fresh code, same as an expiry. */
+const NEEDS_NEW_CODE = new Set(['auth.verification_expired', 'auth.already_claimed']);
+
+const asApiError = (e: unknown) =>
+  e instanceof ApiError ? e : new ApiError('network', 0, 'network', String(e));
+
+/**
+ * What a proven number is for: signing in (a session; the gate moves the person on) or moving a
+ * signed-in character to a new sigil (`onMoved` runs once the engine has moved it).
+ */
+export type VerificationPurpose = { kind: 'signIn' } | { kind: 'sigil'; onMoved: () => void };
+
+const SIGN_IN: VerificationPurpose = { kind: 'signIn' };
+
+/**
+ * Start (or resume) a verification for `phone`, poll it while focused, and complete it into a
+ * session (or a sigil move). It never navigates on its own.
+ */
+export function useVerification(phone: string, purpose: VerificationPurpose = SIGN_IN) {
+  const [state, setState] = useState<Verification>({ kind: 'starting' });
+  const focused = useIsFocused();
+  const alive = useRef(true);
+  const busy = useRef(false);
+
+  const set = useCallback((s: Verification) => {
+    if (alive.current) setState(s);
+  }, []);
+
+  const start = useCallback(
+    async (resume: boolean, quiet = false) => {
+      // A background retry keeps "The road is broken" on screen until it succeeds.
+      if (!quiet) set({ kind: 'starting' });
+      const key = verifyKey(phone);
+      try {
+        const resumeVerificationId = resume ? await SecureStore.getItemAsync(key) : null;
+        const v =
+          purpose.kind === 'sigil'
+            ? await startSigil({ phone, resumeVerificationId })
+            : await startPhone({ phone, resumeVerificationId });
+        await SecureStore.setItemAsync(key, v.verificationId);
+        set({ kind: 'waiting', v });
+      } catch (e) {
+        set({ kind: 'failed', error: asApiError(e) });
+      }
+    },
+    [phone, purpose.kind, set],
+  );
+
+  const complete = useCallback(
+    async (verificationId: string) => {
+      set({ kind: 'opening' });
+      try {
+        if (purpose.kind === 'sigil') {
+          await completeSigil({ verificationId });
+          await SecureStore.deleteItemAsync(verifyKey(phone));
+          await new Promise((r) => setTimeout(r, OPENING_HOLD_MS));
+          purpose.onMoved();
+          return;
+        }
+        const pair = await completePhone({
+          verificationId,
+          deviceName: deviceName(),
+          allyCode: await allyCall(),
+        });
+        await SecureStore.deleteItemAsync(verifyKey(phone));
+        await forgetAllyCall();
+        await new Promise((r) => setTimeout(r, OPENING_HOLD_MS));
+        await signIn(pair);
+      } catch (e) {
+        const err = asApiError(e);
+        set(NEEDS_NEW_CODE.has(err.code) ? { kind: 'expired' } : { kind: 'failed', error: err });
+      }
+    },
+    [phone, purpose, set],
+  );
+
+  const waitingId = state.kind === 'waiting' ? state.v.verificationId : null;
+
+  const check = useCallback(async () => {
+    if (!waitingId || busy.current) return;
+    busy.current = true;
+    try {
+      const { state: s } = await phoneStatus(waitingId);
+      if (s === 'verified') await complete(waitingId);
+      else if (s === 'expired') set({ kind: 'expired' });
+      // pending and superseded keep waiting: a superseded code already texted still verifies.
+    } catch {
+      // A dropped poll is not a failure; the next tick tries again.
+    } finally {
+      busy.current = false;
+    }
+  }, [waitingId, complete, set]);
+
+  useEffect(() => {
+    alive.current = true;
+    start(true);
+    return () => {
+      alive.current = false;
+    };
+  }, [start]);
+
+  useEffect(() => {
+    if (!focused || !waitingId) return;
+    const timer = setInterval(check, POLL_MS);
+    // Back from the messages app: look at once rather than waiting for the next tick.
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') check();
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, [focused, waitingId, check]);
+
+  const offline = state.kind === 'failed' && state.error.kind === 'network';
+  useEffect(() => {
+    if (!focused || !offline) return;
+    let trying = false;
+    const again = async () => {
+      if (trying) return; // an offline request can hang longer than the interval
+      trying = true;
+      await start(true, true);
+      trying = false;
+    };
+    const timer = setInterval(again, OFFLINE_RETRY_MS);
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') again();
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, [focused, offline, start]);
+
+  return { state, newCode: () => start(false), retry: () => start(true) };
+}
+
+function deviceName(): string {
+  return Constants.deviceName ?? Platform.OS;
+}

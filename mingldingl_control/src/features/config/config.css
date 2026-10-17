@@ -1,0 +1,31 @@
+.config-desc {
+  font: var(--font-body-s);
+}
+.config-value {
+  min-width: var(--space-8);
+  padding: var(--space-1) var(--space-2);
+  margin-left: calc(-1 * var(--space-2));
+  border: var(--stroke-hairline) dashed transparent;
+  background: transparent;
+  text-align: left;
+  cursor: text;
+}
+.config-value:hover {
+  border-color: var(--color-border-brass);
+}
+.config-edit {
+  display: grid;
+  gap: var(--space-1);
+  max-width: calc(var(--space-8) * 3.5);
+}
+.config-edit .input {
+  min-height: var(--space-6);
+}
+.config-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+.config-error {
+  margin: 0;
+  font: var(--font-body-s);
+}

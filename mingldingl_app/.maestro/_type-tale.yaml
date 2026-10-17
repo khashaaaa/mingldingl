@@ -1,0 +1,15 @@
+# Subflow: type ${TEXT} into the tale. The field is picked by its own label ("Your tale") below the
+# YOUR TALE caption — position alone also matches the "0 / 300" counter and, on the A51, Samsung's
+# Edge-panel handle at the same height. Keys typed with no field focused reach the activity, where
+# a development build reloads on two quick R presses.
+appId: com.mingldingl.app
+---
+- tapOn: { text: Your tale, below: YOUR TALE }
+- runFlow:
+    when:
+      notVisible: { text: Your tale, below: YOUR TALE, focused: true }
+    commands:
+      - waitForAnimationToEnd: { timeout: 1500 }
+      - tapOn: { text: Your tale, below: YOUR TALE }
+- assertVisible: { text: Your tale, below: YOUR TALE, focused: true }
+- inputText: ${TEXT}

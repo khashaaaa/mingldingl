@@ -1,0 +1,32 @@
+# The engine, natively: the self-contained build that scripts/deploy.sh puts in /opt/mingldingl/engine.
+# Listens on the server only; the internet reaches it through the Cloudflare tunnel.
+[Unit]
+Description=MingldIngl engine
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=mingldingl
+Group=mingldingl
+WorkingDirectory=/opt/mingldingl/engine
+ExecStart=/opt/mingldingl/engine/MinglDingl.Engine
+EnvironmentFile=/etc/mingldingl/engine.env
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:8080
+Environment=DataProtection__KeysPath=/var/lib/mingldingl/keys
+Environment=Ops__BackupDir=/var/lib/mingldingl/backups
+Environment=HOME=/var/lib/mingldingl
+Environment=DOTNET_NOLOGO=1
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+# One socket per SignalR connection: room for many open apps.
+LimitNOFILE=65536
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/mingldingl/keys
+
+[Install]
+WantedBy=multi-user.target

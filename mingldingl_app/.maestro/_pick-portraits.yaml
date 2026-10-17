@@ -1,0 +1,35 @@
+# Subflow: tap an empty portrait slot and choose ${COUNT} seed images in the system photo picker.
+# They come from their own album, never the gallery's newest photos (on a personal phone those are
+# private). Put them there once per device: .maestro/push-seed-photos.sh <device>
+appId: com.mingldingl.app
+---
+- tapOn:
+    text: Add a portrait
+    index: 0
+- extendedWaitUntil:
+    visible: Photo taken on.*
+    timeout: 10000
+# Samsung's picker (the A51) lists device folders under Collections → From this device. The
+# emulator's newer picker shows no folders at all, and its gallery holds nothing but the seed photos.
+- runFlow:
+    when:
+      visible: Collections
+    commands:
+      - tapOn: Collections
+      # The picker opens as a half sheet: the device's albums sit below its fold.
+      - swipe:
+          start: 50%, 85%
+          end: 50%, 10%
+      - tapOn: From this device
+      - tapOn: MingldinglSeed
+- extendedWaitUntil:
+    visible: Photo taken on.*
+    timeout: 10000
+- repeat:
+    times: ${COUNT}
+    commands:
+      - evalScript: ${output.pick = (output.pick ?? -1) + 1}
+      - tapOn:
+          text: Photo taken on.*
+          index: ${output.pick}
+- tapOn: Add.*|Done

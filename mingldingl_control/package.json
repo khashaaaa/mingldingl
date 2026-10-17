@@ -1,0 +1,39 @@
+{
+  "name": "mingldingl_control",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b",
+    "lint": "biome check . && node scripts/check-literals.js",
+    "generate:api": "orval --config orval.config.ts",
+    "sync:art": "node scripts/sync-art.js",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource/eb-garamond": "^5.3.0",
+    "@fontsource/pirata-one": "^5.3.0",
+    "@fontsource/yeseva-one": "^5.3.0",
+    "@microsoft/signalr": "^10.0.11",
+    "@tanstack/react-query": "^5.104.1",
+    "@types/qrcode": "^1.5.5",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^7.18.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "orval": "^8.40.0",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.2"
+  }
+}

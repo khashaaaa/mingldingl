@@ -1,0 +1,100 @@
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font: var(--font-label-s);
+  letter-spacing: var(--tracking-label-s);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-text-secondary);
+  background: none;
+  border: var(--stroke-hairline) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--color-border-strong);
+}
+
+.chip.is-on {
+  color: var(--color-accent-gold-bright);
+  border-color: var(--color-border-gold);
+}
+
+.chip.is-on::before {
+  background: var(--color-border-gold);
+}
+
+.filters .select select,
+.filters input[type="date"] {
+  padding: var(--space-1) var(--space-3);
+  font: var(--font-body-s);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-sunken);
+  border: var(--stroke-hairline) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.filters .btn {
+  margin-left: auto;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin: var(--space-4) 0;
+}
+
+.chart-panel {
+  padding: var(--space-3);
+  background: var(--color-bg-sunken);
+}
+
+.line-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.line-chart-rule {
+  stroke: var(--color-border-hairline);
+  stroke-width: 1;
+}
+
+.line-chart-line {
+  fill: none;
+  stroke: var(--color-accent-gold);
+  stroke-width: 2;
+}
+
+.line-chart-dot {
+  fill: var(--color-accent-gold-bright);
+}
+
+.line-chart-label {
+  font: var(--font-label-s);
+  fill: var(--color-text-muted);
+}

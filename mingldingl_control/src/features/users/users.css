@@ -1,0 +1,56 @@
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  text-decoration: none;
+}
+.back .glyph {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--space-8) * 3.5), 1fr));
+  gap: var(--space-4);
+}
+.stat {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: var(--stroke-hairline) solid var(--color-border-strong);
+  background: var(--color-bg-panel);
+}
+.stat-value {
+  font: var(--font-number-l);
+  color: var(--color-accent-gold-bright);
+}
+.stat-note {
+  font: var(--font-body-s);
+}
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-3) var(--space-6);
+  margin: 0;
+}
+.facts dt {
+  padding-top: var(--space-1);
+}
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.portraits {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--space-8) * 2.5), 1fr));
+  gap: var(--space-3);
+}
+.portraits img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border: var(--stroke-hairline) solid var(--color-border-brass);
+  background: var(--color-bg-panel);
+}

@@ -1,0 +1,6 @@
+# Device B of live-edit (run by two-devices.sh): already on Character; the new name arrives live.
+appId: com.mingldingl.app
+---
+- extendedWaitUntil:
+    visible: ${NEW_NAME}, \d+
+    timeout: 240000   # device A is slow to drive (about 10 s per Maestro step on the A51)

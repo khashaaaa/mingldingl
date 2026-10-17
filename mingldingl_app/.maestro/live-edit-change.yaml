@@ -1,0 +1,11 @@
+# Device A of live-edit (run by two-devices.sh): rename the character to ${NEW_NAME} and save.
+appId: com.mingldingl.app
+---
+- tapOn: Edit your character
+- tapOn: First name
+- eraseText: 30
+- inputText: ${NEW_NAME}
+- tapOn: Save
+- extendedWaitUntil:
+    visible: ${NEW_NAME}, \d+
+    timeout: 10000

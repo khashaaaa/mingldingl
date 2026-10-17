@@ -1,0 +1,86 @@
+{
+ "Glow/Gold": [
+  {
+   "type": "DROP_SHADOW",
+   "radius": 18,
+   "color": "#d9a21b",
+   "opacity": 0.55,
+   "x": 0,
+   "y": 0
+  }
+ ],
+ "Glow/Ember": [
+  {
+   "type": "DROP_SHADOW",
+   "radius": 22,
+   "color": "#d1633b",
+   "opacity": 0.6,
+   "x": 0,
+   "y": 0
+  }
+ ],
+ "Shadow/Raised": [
+  {
+   "type": "DROP_SHADOW",
+   "radius": 12,
+   "color": "#050300",
+   "opacity": 0.6,
+   "x": 0,
+   "y": 4
+  }
+ ],
+ "Shadow/Deep": [
+  {
+   "type": "DROP_SHADOW",
+   "radius": 32,
+   "color": "#050300",
+   "opacity": 0.8,
+   "x": 0,
+   "y": 12
+  }
+ ],
+ "Inset/Carved": [
+  {
+   "type": "INNER_SHADOW",
+   "radius": 4,
+   "color": "#000000",
+   "opacity": 0.7,
+   "x": 0,
+   "y": 2
+  },
+  {
+   "type": "DROP_SHADOW",
+   "radius": 0,
+   "color": "#e8ddc9",
+   "opacity": 0.08,
+   "x": 0,
+   "y": 1
+  }
+ ],
+ "Inset/Engraved Text": [
+  {
+   "type": "INNER_SHADOW",
+   "radius": 1.5,
+   "color": "#000000",
+   "opacity": 0.6,
+   "x": 0,
+   "y": 1.5
+  },
+  {
+   "type": "DROP_SHADOW",
+   "radius": 0,
+   "color": "#ffedcc",
+   "opacity": 0.14,
+   "x": 0,
+   "y": 1
+  },
+  {
+   "type": "DROP_SHADOW",
+   "radius": 6,
+   "color": "#000000",
+   "opacity": 0.55,
+   "x": 0,
+   "y": 2
+  }
+ ]
+}

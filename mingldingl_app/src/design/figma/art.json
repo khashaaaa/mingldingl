@@ -1,0 +1,536 @@
+{
+  "brass_plate": {
+    "hash": "22692b508bc0138ab54f73545ccc366ec71e1c08",
+    "w": 350,
+    "h": 52,
+    "fit": "cover"
+  },
+  "rivet": {
+    "hash": "3aebdd1cefd34d9d498fbc6343bbc03554400dcf",
+    "w": 14,
+    "h": 14,
+    "fit": "cover"
+  },
+  "screw_a": {
+    "hash": "81f995bd938d08a6f79ca74d75a2e2b81d0eefb7",
+    "w": 14,
+    "h": 14,
+    "fit": "cover"
+  },
+  "screw_b": {
+    "hash": "a7ffb7ce",
+    "w": 14,
+    "h": 14,
+    "fit": "cover"
+  },
+  "screw_c": {
+    "hash": "8455d235e6bace17cff8ab80c9d85dc256e15848",
+    "w": 14,
+    "h": 14,
+    "fit": "cover"
+  },
+  "screw_d": {
+    "hash": "3779c513",
+    "w": 14,
+    "h": 14,
+    "fit": "cover"
+  },
+  "brush_underline": {
+    "hash": "4d3d7a9611979de1e4c42977d450f1be4c98801b",
+    "w": 262,
+    "h": 10,
+    "fit": "cover"
+  },
+  "dry_brush_rule": {
+    "hash": "d06e45a66ef24751c8bf6c42c24b271626422331",
+    "w": 350,
+    "h": 4,
+    "fit": "cover"
+  },
+  "drawer_pull": {
+    "hash": "14f7a8e9",
+    "w": 48,
+    "h": 18,
+    "fit": "cover"
+  },
+  "seal_wax": {
+    "hash": "14beba469002bfd346821cc0ac57c391d31f9574",
+    "w": 64,
+    "h": 64,
+    "fit": "contain"
+  },
+  "seal_broken": {
+    "hash": "a2798fb00794f185cf13b2f25f51172f67adcacf",
+    "w": 64,
+    "h": 64,
+    "fit": "contain"
+  },
+  "corner_tl": {
+    "hash": "ebcee361d1793c5c5bf3e24774da4529d771f049",
+    "w": 24,
+    "h": 24,
+    "fit": "cover"
+  },
+  "corner_tr": {
+    "hash": "82a1ac395afa014cd13401cb8d2d98afdf87ddaa",
+    "w": 24,
+    "h": 24,
+    "fit": "cover"
+  },
+  "corner_bl": {
+    "hash": "ebc2630facb41733045ea38caaa10533201e92d5",
+    "w": 24,
+    "h": 24,
+    "fit": "cover"
+  },
+  "corner_br": {
+    "hash": "e5715584ff0be3d370b71d0c0fa3302f508af903",
+    "w": 24,
+    "h": 24,
+    "fit": "cover"
+  },
+  "gem_garnet": {
+    "hash": "635d7e5e",
+    "w": 64,
+    "h": 64,
+    "fit": "contain"
+  },
+  "gem_opal": {
+    "hash": "273ca490",
+    "w": 64,
+    "h": 64,
+    "fit": "contain"
+  },
+  "gem_amethyst": {
+    "hash": "68a045adb1cce93eb118be2459900c9bb2d59219",
+    "w": 64,
+    "h": 64,
+    "fit": "contain"
+  },
+  "gem_sapphire": {
+    "hash": "debd8adc48bdec926365d455242d7664edc3d53c",
+    "w": 64,
+    "h": 64,
+    "fit": "contain"
+  },
+  "gem_ruby": {
+    "hash": "7e441c3e",
+    "w": 64,
+    "h": 64,
+    "fit": "contain"
+  },
+  "gem_emerald": {
+    "hash": "1453bb08",
+    "w": 64,
+    "h": 64,
+    "fit": "contain"
+  },
+  "state_empty": {
+    "hash": "97ba68736ebe374270926bddc248989b8963cf0b",
+    "w": 160,
+    "h": 120,
+    "fit": "cover"
+  },
+  "state_waiting": {
+    "hash": "024218aa",
+    "w": 160,
+    "h": 120,
+    "fit": "cover"
+  },
+  "state_error": {
+    "hash": "e2c2d20a49df7c7c9b2e96c08554315c71fba9a5",
+    "w": 160,
+    "h": 120,
+    "fit": "cover"
+  },
+  "state_offline": {
+    "hash": "813c08c8",
+    "w": 160,
+    "h": 120,
+    "fit": "cover"
+  },
+  "ember_glow_lit": {
+    "hash": "84130fe7dbe75e5852c88336bebcc774de237423",
+    "w": 390,
+    "h": 380,
+    "fit": "cover"
+  },
+  "ember_glow_roaring": {
+    "hash": "42f451fb",
+    "w": 390,
+    "h": 380,
+    "fit": "cover"
+  },
+  "candle_lit": {
+    "hash": "f10acd6e6085666eca186db1f935bdd59ab80555",
+    "w": 24,
+    "h": 72,
+    "fit": "contain"
+  },
+  "candle_spent": {
+    "hash": "6ce86b50928fd0ddeb728cf58a80775adef6bdbc",
+    "w": 24,
+    "h": 72,
+    "fit": "contain"
+  },
+  "clasp": {
+    "hash": "3683249a923ba1679ae92036a217f8b81822807b",
+    "w": 30,
+    "h": 56,
+    "fit": "cover"
+  },
+  "makers_mark": {
+    "hash": "3e21d6db80e48fada014b2c5586c874fcb366b09",
+    "w": 14,
+    "h": 14,
+    "fit": "cover"
+  },
+  "gate_scene": {
+    "hash": "d7b378da8f20bbcfa95410d4a8c640d086ce5b1a",
+    "w": 280,
+    "h": 240,
+    "fit": "cover"
+  },
+  "parchment": {
+    "hash": "a72ade63",
+    "w": 390,
+    "h": 230,
+    "fit": "cover"
+  },
+  "card_night": {
+    "hash": "4ab8a6deff",
+    "w": 350,
+    "h": 384,
+    "fit": "cover"
+  },
+  "cliff_gems": {
+    "hash": "9a8a8ba91e",
+    "w": 350,
+    "h": 120,
+    "fit": "cover"
+  },
+  "frost_full": {
+    "hash": "fdb6c1f7f9",
+    "w": 390,
+    "h": 844,
+    "fit": "cover"
+  },
+  "gate_chain": {
+    "hash": "73f89e245d",
+    "w": 390,
+    "h": 150,
+    "fit": "cover"
+  },
+  "report_casket": {
+    "hash": "a317a39584",
+    "w": 200,
+    "h": 170,
+    "fit": "contain"
+  },
+  "push_bell": {
+    "hash": "136539ef41",
+    "w": 160,
+    "h": 140,
+    "fit": "cover"
+  },
+  "rite_bowl": {
+    "hash": "b2b877252c76",
+    "w": 140,
+    "h": 140,
+    "fit": "contain"
+  },
+  "rite_bowl_low": {
+    "hash": "a71eedc4e4",
+    "w": 140,
+    "h": 140,
+    "fit": "cover"
+  },
+  "meeting_seal": {
+    "hash": "bef8c396eacb",
+    "w": 140,
+    "h": 140,
+    "fit": "contain"
+  },
+  "venue_gone": {
+    "hash": "782b9d79eb30",
+    "w": 220,
+    "h": 180,
+    "fit": "contain"
+  },
+  "lantern_lit": {
+    "hash": "26affa277f31",
+    "w": 150,
+    "h": 190,
+    "fit": "contain"
+  },
+  "honour_oath_keeper": {
+    "hash": "172a56bf73",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_flamekeeper": {
+    "hash": "765b811b53",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_seal_breaker": {
+    "hash": "e1bd8122af",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_thread_weaver": {
+    "hash": "6707d09c32",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_fate_seer": {
+    "hash": "026b4d27d4",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_bond_keeper": {
+    "hash": "1241a1454e",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_ally_caller": {
+    "hash": "151c3f54df",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_true_to_word": {
+    "hash": "d0f95c706d",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_seven_dawns": {
+    "hash": "9cd5563bda",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_mended": {
+    "hash": "a26013d21c",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_cartographer": {
+    "hash": "bbce8a646d",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_hearthbound": {
+    "hash": "8c07de4c7f",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_naadam": {
+    "hash": "4121db50b9",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_tsagaan_sar": {
+    "hash": "55f722beb5",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_first_bond": {
+    "hash": "e9c0ae703b",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_ice_broken": {
+    "hash": "d1612d1eca",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_first_trial": {
+    "hash": "65ef548526",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_ten_words": {
+    "hash": "f02029e1ba",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_first_pledge": {
+    "hash": "25539fe924",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_face_to_flame": {
+    "hash": "1af2c0d2f3",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_oath_fulfilled": {
+    "hash": "cd3a6473eb",
+    "w": 160,
+    "h": 160,
+    "fit": "contain"
+  },
+  "honour_locked": {
+    "hash": "480c52f0b7",
+    "w": 64,
+    "h": 64,
+    "fit": "cover"
+  },
+  "hearth_window": {
+    "hash": "24c8b2dcb4",
+    "w": 350,
+    "h": 220,
+    "fit": "cover"
+  },
+  "hold_atlas": {
+    "hash": "97ee6da64a",
+    "w": 350,
+    "h": 560,
+    "fit": "cover"
+  },
+  "chest_open": {
+    "hash": "d85c7e8338",
+    "w": 200,
+    "h": 170,
+    "fit": "cover"
+  },
+  "naadam_pennants": {
+    "hash": "23f079b49f",
+    "w": 350,
+    "h": 90,
+    "fit": "cover"
+  },
+  "campaign_map": {
+    "hash": "edd6ede3b2",
+    "w": 350,
+    "h": 520,
+    "fit": "cover"
+  },
+  "trial_tokens": {
+    "hash": "36cafe90c8",
+    "w": 140,
+    "h": 140,
+    "fit": "cover"
+  },
+  "fires_joined": {
+    "hash": "951f79ed29",
+    "w": 140,
+    "h": 140,
+    "fit": "cover"
+  },
+  "ger_night": {
+    "hash": "94f2b53e7b",
+    "w": 140,
+    "h": 140,
+    "fit": "cover"
+  },
+  "game_wrestling": {
+    "hash": "22610c464d",
+    "w": 96,
+    "h": 96,
+    "fit": "contain"
+  },
+  "game_archery": {
+    "hash": "9b68007ad1",
+    "w": 96,
+    "h": 96,
+    "fit": "contain"
+  },
+  "game_horse": {
+    "hash": "e3f42e107f",
+    "w": 96,
+    "h": 96,
+    "fit": "contain"
+  },
+  "ally_horn": {
+    "hash": "288d959c87",
+    "w": 140,
+    "h": 140,
+    "fit": "cover"
+  },
+  "square_bell": {
+    "hash": "0819e99c37",
+    "w": 120,
+    "h": 120,
+    "fit": "cover"
+  },
+  "fest_khadag": {
+    "hash": "e332c0e512",
+    "w": 390,
+    "h": 40,
+    "fit": "cover"
+  },
+  "fest_cup": {
+    "hash": "987608a05f",
+    "w": 110,
+    "h": 110,
+    "fit": "contain"
+  },
+  "fest_fireworks": {
+    "hash": "fd08f8ded0",
+    "w": 390,
+    "h": 163,
+    "fit": "cover"
+  },
+  "fest_knot": {
+    "hash": "83ca4b65d5",
+    "w": 110,
+    "h": 110,
+    "fit": "cover"
+  },
+  "fest_blossoms": {
+    "hash": "51c22adbdd",
+    "w": 390,
+    "h": 120,
+    "fit": "cover"
+  },
+  "fest_masks": {
+    "hash": "6b6f87e2e6",
+    "w": 390,
+    "h": 100,
+    "fit": "cover"
+  },
+  "fest_mask": {
+    "hash": "ef404d3fff",
+    "w": 260,
+    "h": 300,
+    "fit": "contain"
+  },
+  "guild_seal": {
+    "hash": "3f8fbb9b0a8799bea1b837ed029f7c375b707025",
+    "w": 140,
+    "h": 140,
+    "fit": "cover"
+  },
+  "sign_plank": {
+    "hash": "cffea7afff1dcb29992dd11e2ceb9001d1100cfe",
+    "w": 300,
+    "h": 64,
+    "fit": "cover"
+  },
+  "sign_chain": {
+    "hash": "399aafcbf6dc073cd90f7e340d92df2109c872c3",
+    "w": 10,
+    "h": 44,
+    "fit": "cover"
+  }
+}

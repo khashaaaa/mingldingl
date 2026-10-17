@@ -1,0 +1,112 @@
+# The device pass (run by device-pass.sh): every foundation screen (sign-in, onboarding, Character,
+# Edit) in the state its Figma frame shows, one screenshot each, named ${LOCALE}-<frame id>. Taps
+# match the English or the Mongolian line, so the same flow runs in both.
+#   Needs scripts/dev.sh (fake verify.mn: 99000000 stays pending, 99000001 expires) and the seed album.
+appId: com.mingldingl.app
+env:
+  METRO_URL: http%3A%2F%2F192.168.1.32%3A8081
+  # LOCALE (en | mn) comes from device-pass.sh: a default here would win over the -e value.
+---
+- launchApp:
+    clearState: true
+    stopApp: true
+    permissions: { location: deny }   # Maestro grants everything otherwise; 23:810 is the refusal
+- runFlow: _launch.yaml
+- runFlow:
+    when:
+      true: ${LOCALE == 'mn'}
+    commands:
+      - tapOn: Монгол хэл
+- waitForAnimationToEnd
+- takeScreenshot: ${LOCALE}-23-6
+
+- tapOn: Enter the Gate
+- extendedWaitUntil: { visible: 'Prove your number|Дугаараа баталгаажуулах', timeout: 10000 }
+- tapOn: Phone number|Утасны дугаар
+- inputText: '8858'
+- takeScreenshot: ${LOCALE}-23-68
+
+- eraseText: 8
+- inputText: '99000000'
+- tapOn: Continue
+- extendedWaitUntil: { visible: Open messages, timeout: 15000 }
+- waitForAnimationToEnd
+- takeScreenshot: ${LOCALE}-23-141
+
+- tapOn: Use another number
+- tapOn: Phone number|Утасны дугаар
+- eraseText: 8
+- inputText: '99000001'
+- tapOn: Continue
+- extendedWaitUntil: { visible: 'That code expired|Кодын хугацаа дууслаа', timeout: 20000 }
+- waitForAnimationToEnd
+- takeScreenshot: ${LOCALE}-23-285
+
+- tapOn: Back|Буцах
+- tapOn: Phone number|Утасны дугаар
+- eraseText: 8
+- inputText: ${PHONE}
+- tapOn: Continue
+- extendedWaitUntil: { visible: 'The gate opens|Хаалга нээгдэж байна', timeout: 15000 }
+- takeScreenshot: ${LOCALE}-23-216
+
+- extendedWaitUntil: { visible: 'What does the hold call you\?', timeout: 15000 }
+- tapOn: First name
+- inputText: Munkhbold
+- pressKey: Enter
+- inputText: '14031995'
+- runFlow: { file: _keys-away.yaml, env: { AT: 'What does the hold call you\?' } }
+- takeScreenshot: ${LOCALE}-23-359
+
+- tapOn: Continue
+- extendedWaitUntil: { visible: You are…, timeout: 10000 }
+- tapOn: A man
+- takeScreenshot: ${LOCALE}-23-442
+- tapOn: { text: Continue, optional: true }
+
+- extendedWaitUntil: { visible: Your portraits, timeout: 10000 }
+- runFlow: { file: _pick-portraits.yaml, env: { COUNT: 2 } }
+- extendedWaitUntil: { visible: '(?i)2 of 3 needed.*', timeout: 60000 }
+- waitForAnimationToEnd
+- takeScreenshot: ${LOCALE}-23-530
+- runFlow: { file: _pick-portraits.yaml, env: { COUNT: 1 } }
+- extendedWaitUntil: { visible: '(?i)3 of 3 needed.*', timeout: 60000 }
+- tapOn: Continue
+
+- extendedWaitUntil: { visible: Your tale, timeout: 10000 }
+- runFlow: { file: _type-tale.yaml, env: { TEXT: 'I keep a falcon and read old maps by candlelight. Looking for someone who knows the valleys.' } }
+- runFlow: { file: _keys-away.yaml, env: { AT: 'Your tale' } }
+- tapOn: Where do you live\?
+- tapOn: Ulaanbaatar
+- tapOn: Bayangol
+- takeScreenshot: ${LOCALE}-23-624
+
+- tapOn: Where do you live\?
+- waitForAnimationToEnd
+- takeScreenshot: ${LOCALE}-23-707
+- tapOn: Use my location
+- tapOn: { text: "Don.t allow|Deny", optional: true }   # 'deny' still lets the app ask once
+- tapOn: Search a city or soum
+- inputText: Erd
+- scroll     # dragging the list puts the keys away, as in the frame
+- takeScreenshot: ${LOCALE}-23-810
+- tapOn: Back|Буцах
+
+- tapOn: Continue
+- extendedWaitUntil: { visible: Swear your oath, timeout: 10000 }
+- tapOn: Bond
+- takeScreenshot: ${LOCALE}-23-881
+- tapOn: Swear the oath
+- extendedWaitUntil: { visible: Your tale is written in full\., timeout: 10000 }
+- waitForAnimationToEnd
+- takeScreenshot: ${LOCALE}-23-973
+
+- tapOn: Enter the Hearth
+- extendedWaitUntil: { visible: Edit your character, timeout: 15000 }
+- waitForAnimationToEnd
+- takeScreenshot: ${LOCALE}-26-1029
+- tapOn: Edit your character
+- extendedWaitUntil: { visible: First name, timeout: 10000 }
+- waitForAnimationToEnd
+- takeScreenshot: ${LOCALE}-35-183
+- tapOn: Back|Буцах
