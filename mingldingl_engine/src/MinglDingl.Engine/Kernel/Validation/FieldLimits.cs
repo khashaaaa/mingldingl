@@ -9,6 +9,7 @@ public static class FieldLimits
     public const int DeviceName = 80;
     public const int Phone = 8;
     public const int Code = 64;
+    public const int SmsCode = 8;
     public const int Letter = 1000;
     public const int ReportNote = 1000;
     public const int PushToken = 200;

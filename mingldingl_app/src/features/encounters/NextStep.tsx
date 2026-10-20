@@ -6,7 +6,7 @@ import { Row } from '@/design/components/Row';
 import type { GlyphName } from '@/design/glyphs';
 import { useGetEncounter, useGetWeeklyTrial } from '@/lib/api/generated/engine';
 import type { EncounterView, MeetingView } from '@/lib/api/generated/model';
-import { getLocale, type StringKey, t, tPlace } from '@/lib/i18n';
+import { getLocale, type StringKey, t, tPlace, tVenue } from '@/lib/i18n';
 
 type Step = { glyph: GlyphName; title: string; body: string; route: string };
 
@@ -21,14 +21,14 @@ export function when(iso: string): string {
   return `${day} · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-const whereWhen = (m: MeetingView) => `${m.venue.name}, ${when(m.at)}`;
+const whereWhen = (m: MeetingView) => `${tVenue(m.venue)}, ${when(m.at)}`;
 
 /** The phone's share sheet with the sworn meeting's plan, for a friend to hold. */
 export const shareMeeting = (m: MeetingView, name: string) =>
   Share.share({
     message: t('meeting.shareText', {
       name,
-      venue: m.venue.name,
+      venue: tVenue(m.venue),
       address: m.venue.address,
       district: tPlace(m.venue.district),
       when: when(m.at),
@@ -95,7 +95,7 @@ export function stepOf(bondId: string, name: string, e: EncounterView | undefine
       return { glyph: 'waypoint', route: `/attendance/${bondId}`, ...line('step.attendance', { name }) };
     case 'rate':
       return m
-        ? { glyph: 'star', route: `/rate/${bondId}`, ...line('step.rate', { venue: m.venue.name }) }
+        ? { glyph: 'star', route: `/rate/${bondId}`, ...line('step.rate', { venue: tVenue(m.venue) }) }
         : null;
     default:
       return null;

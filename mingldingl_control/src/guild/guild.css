@@ -24,6 +24,17 @@ body:has(.guild) {
   border-top: none;
 }
 
+/* Pirata One has no Cyrillic: the Mongolian sign is set in Yeseva One, as the app's room titles are. */
+.guild-mn .guild-sign {
+  font: var(--font-title-room-mn);
+  white-space: nowrap;
+}
+
+.guild .guild-lang {
+  align-self: flex-end;
+  margin: var(--space-3) 0 0;
+}
+
 .guild-body {
   display: flex;
   flex-direction: column;
@@ -87,27 +98,6 @@ body:has(.guild) {
   text-decoration: none;
 }
 
-.guild-code {
-  font: var(--font-number-l);
-  color: var(--color-accent-gold-bright);
-  letter-spacing: 0.08em;
-}
-
-.guild-to {
-  font: var(--font-display-m);
-}
-
-.guild-instruction {
-  padding: var(--space-3);
-  border: var(--stroke-hairline) solid var(--color-border-strong);
-  font: var(--font-body-s);
-  color: var(--color-text-secondary);
-}
-
-.guild .guild-listen {
-  margin-bottom: var(--space-6);
-}
-
 .guild-link {
   border: none;
   background: none;
@@ -115,6 +105,13 @@ body:has(.guild) {
   color: var(--color-accent-gold);
   text-decoration: underline;
   cursor: pointer;
+}
+
+.guild-leave {
+  display: block;
+  margin: var(--space-6) auto 0;
+  font: var(--font-body-s);
+  color: var(--color-text-secondary);
 }
 
 .guild-now {

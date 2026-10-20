@@ -25,8 +25,8 @@ public sealed class PaymentService(
     /// creates accounts.
     public async Task<GuildSession> GuildSignInAsync(Guid verificationId, CancellationToken ct = default)
     {
-        var v = await verifications.RefreshAsync(verificationId, ct);
-        if (v.State != VerificationState.Verified) throw new DomainException(409, "auth.not_verified", "Send the code first");
+        var v = await verifications.LoadAsync(verificationId, ct);
+        if (v.State != VerificationState.Verified) throw new DomainException(409, "auth.not_verified", "Type the code first");
         if (v.ClaimedAt is not null) throw new DomainException(409, "auth.already_claimed", "This code was already used");
         if (clock.UtcNow - v.VerifiedAt > SessionService.ClaimWindow)
             throw new DomainException(409, "auth.verification_expired", "This code is too old — send a new one");

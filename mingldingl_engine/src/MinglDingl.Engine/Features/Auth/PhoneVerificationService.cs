@@ -7,18 +7,22 @@ using MinglDingl.Engine.Kernel.Persistence;
 
 namespace MinglDingl.Engine.Features.Auth;
 
-public sealed class PhoneVerificationService(AppDb db, IVerifyMnClient verify, IClock clock)
+public sealed class PhoneVerificationService(AppDb db, IWeSend wesend, IClock clock)
 {
-    /// Live pending sessions one number may hold. Start is anonymous, so the sixth supersedes the
-    /// oldest rather than refusing: refusing let anyone lock the owner out by keeping five open.
-    public const int MaxPendingPerPhone = 5;
+    /// How soon one number may be sent another code. Start is anonymous and every text costs us 80₮,
+    /// so a stranger can neither drain the credits nor keep cancelling the owner's code.
+    public static readonly TimeSpan ResendAfter = TimeSpan.FromSeconds(60);
+
+    public static readonly string[] Locales = ["mn", "en"];
 
     public static bool IsPhoneValid(string? phone) =>
         phone is { Length: 8 } && phone.All(char.IsAsciiDigit);
 
-    /// A new session, or the caller's own one when they can name it. A pending session is never
-    /// handed to a caller who cannot name it: "the session for this number" leaked the owner's code.
-    public async Task<PhoneVerification> StartAsync(string phone, Guid? resumeId, CancellationToken ct = default)
+    public static DateTimeOffset ResendAt(PhoneVerification v) => v.CreatedAt + ResendAfter;
+
+    /// A new code, or the caller's own pending one when they can name it (no second text). A pending
+    /// session is never handed to a caller who cannot name it.
+    public async Task<PhoneVerification> StartAsync(string phone, Guid? resumeId, string? locale = null, CancellationToken ct = default)
     {
         if (!IsPhoneValid(phone)) throw new DomainException(400, "auth.bad_phone", "Enter an 8-digit Mongolian number");
         var now = clock.UtcNow;
@@ -26,36 +30,41 @@ public sealed class PhoneVerificationService(AppDb db, IVerifyMnClient verify, I
         if (resumeId is Guid id)
         {
             var own = await db.Set<PhoneVerification>().FirstOrDefaultAsync(v => v.Id == id && v.Phone == phone
-                && (v.State == VerificationState.Pending || v.State == VerificationState.Superseded)
-                && v.ExpiresAt > now, ct);
+                && v.State == VerificationState.Pending && v.ExpiresAt > now, ct);
             if (own is not null) return own;
         }
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({LockKey(phone)})", ct);
 
-        var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
-        // The provider call comes first, so a failed start supersedes nothing.
-        var session = await verify.OpenAsync(phone, code, ct)
-            ?? throw new DomainException(502, "auth.provider_unavailable", "Verification is unavailable, try again shortly");
-
         var live = await db.Set<PhoneVerification>()
             .Where(v => v.Phone == phone && v.State == VerificationState.Pending && v.ExpiresAt > now)
-            .OrderBy(v => v.CreatedAt).ThenBy(v => v.Id)
             .ToListAsync(ct);
-        foreach (var oldest in live.Take(Math.Max(0, live.Count - (MaxPendingPerPhone - 1))))
-            oldest.State = VerificationState.Superseded;
+        if (live.Any(v => ResendAt(v) > now))
+            throw new DomainException(429, "auth.code_cooldown", "A code is on its way — wait a minute before asking for another");
+
+        // The provider call comes first, so a failed send supersedes nothing.
+        var sent = await wesend.SendCodeAsync(phone, Locales.Contains(locale) ? locale! : "mn", ct);
+        switch (sent.Outcome)
+        {
+            case CodeSent.TooMany:
+                throw new DomainException(429, "auth.too_many_codes", "Too many codes went to this number — try again later");
+            case CodeSent.BadNumber:
+                throw new DomainException(400, "auth.bad_phone", "Enter an 8-digit Mongolian number");
+            case CodeSent.Unavailable:
+                throw new DomainException(502, "auth.provider_unavailable", "Verification is unavailable, try again shortly");
+        }
+
+        // WeSend cancels a number's last code when it sends a new one.
+        foreach (var old in live) old.State = VerificationState.Superseded;
 
         var v = new PhoneVerification
         {
             Phone = phone,
-            Code = code,
-            ProviderId = session.SessionId,
-            DisplayInstruction = session.DisplayInstruction,
-            SmsUri = session.SmsUri,
+            ProviderId = sent.Id!,
             State = VerificationState.Pending,
             CreatedAt = now,
-            ExpiresAt = new DateTimeOffset(DateTime.SpecifyKind(session.ExpiresAt, DateTimeKind.Utc)),
+            ExpiresAt = sent.ExpiresAt!.Value,
         };
         db.Add(v);
         await db.SaveChangesAsync(ct);
@@ -63,29 +72,47 @@ public sealed class PhoneVerificationService(AppDb db, IVerifyMnClient verify, I
         return v;
     }
 
-    /// Re-reads verify.mn and stores any transition. A superseded session is still read, so a
-    /// code the owner already texted still verifies. The callback (if any) is never trusted.
-    public async Task<PhoneVerification> RefreshAsync(Guid id, CancellationToken ct = default)
+    /// The person typed the code: WeSend says whether it is the one it sent. A wrong code may be typed
+    /// again (WeSend allows five); after that, or once it expires, only a new code helps.
+    public async Task<PhoneVerification> CheckAsync(Guid id, string code, CancellationToken ct = default)
     {
-        var v = await db.Set<PhoneVerification>().FindAsync([id], ct)
-            ?? throw new DomainException(404, "auth.verification_not_found", "That verification does not exist");
-        if (v.State is not (VerificationState.Pending or VerificationState.Superseded)) return v;
+        var v = await LoadAsync(id, ct);
+        if (v.State == VerificationState.Verified) return v;
+        if (v.State != VerificationState.Pending)
+            throw new DomainException(410, "auth.verification_expired", "This code is too old — send a new one");
 
-        var status = await verify.ReadAsync(v.ProviderId, ct);
-        switch (status?.SessionStatus)
+        var result = await wesend.CheckAsync(v.ProviderId, code.Trim(), ct);
+        switch (result)
         {
-            case "VERIFIED":
+            case CodeChecked.Approved:
                 v.State = VerificationState.Verified;
                 v.VerifiedAt = clock.UtcNow;
                 break;
-            case "EXPIRED":
+            case CodeChecked.Expired or CodeChecked.TooManyAttempts:
                 v.State = VerificationState.Expired;
-                break;
-            default:
-                if (v.ExpiresAt <= clock.UtcNow) v.State = VerificationState.Expired;
                 break;
         }
         await db.SaveChangesAsync(ct);
+        return result switch
+        {
+            CodeChecked.Approved => v,
+            CodeChecked.Wrong => throw new DomainException(422, "auth.wrong_code", "That is not the code we sent"),
+            CodeChecked.TooManyAttempts => throw new DomainException(429, "auth.too_many_attempts", "Too many wrong codes — ask for a new one"),
+            CodeChecked.Expired => throw new DomainException(410, "auth.verification_expired", "This code is too old — send a new one"),
+            _ => throw new DomainException(502, "auth.provider_unavailable", "Verification is unavailable, try again shortly"),
+        };
+    }
+
+    /// The stored state, an outlived pending one marked expired. Completing reads this, never WeSend.
+    public async Task<PhoneVerification> LoadAsync(Guid id, CancellationToken ct = default)
+    {
+        var v = await db.Set<PhoneVerification>().FindAsync([id], ct)
+            ?? throw new DomainException(404, "auth.verification_not_found", "That verification does not exist");
+        if (v.State == VerificationState.Pending && v.ExpiresAt <= clock.UtcNow)
+        {
+            v.State = VerificationState.Expired;
+            await db.SaveChangesAsync(ct);
+        }
         return v;
     }
 

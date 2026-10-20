@@ -12,15 +12,16 @@ public sealed class AuthEndpoints : IEndpointModule
 
         g.MapPost("/phone/start", async (StartRequest req, PhoneVerificationService svc, CancellationToken ct) =>
         {
-            var v = await svc.StartAsync(req.Phone, req.ResumeVerificationId, ct);
-            return new StartResponse(v.Id, v.Code, v.DisplayInstruction, v.SmsUri, v.ExpiresAt);
+            var v = await svc.StartAsync(req.Phone, req.ResumeVerificationId, req.Locale, ct);
+            return Started(v);
         }).RequireRateLimiting(RateLimitPolicies.Auth).WithName("StartPhone");
 
-        g.MapGet("/phone/status/{id:guid}", async (Guid id, PhoneVerificationService svc, CancellationToken ct) =>
+        // The one check for every proof: sign-in, a new sigil and the Guild House.
+        g.MapPost("/phone/check", async (CheckRequest req, PhoneVerificationService svc, CancellationToken ct) =>
         {
-            var v = await svc.RefreshAsync(id, ct);
-            return new StatusResponse(v.State.ToString().ToLowerInvariant());
-        }).WithName("PhoneStatus");
+            var v = await svc.CheckAsync(req.VerificationId, req.Code, ct);
+            return new CheckResponse(v.State.ToString().ToLowerInvariant());
+        }).RequireRateLimiting(RateLimitPolicies.Auth).WithName("CheckPhone");
 
         g.MapPost("/phone/complete", (CompleteRequest req, SessionService svc, CancellationToken ct) =>
             svc.CompleteAsync(req.VerificationId, req.DeviceName, ct, req.AllyCode))
@@ -55,8 +56,8 @@ public sealed class AuthEndpoints : IEndpointModule
         }).AsWrite().WithName("KeepCharacter");
         me.MapPost("/sigil/start", async (SigilStartRequest req, System.Security.Claims.ClaimsPrincipal u, AccountService svc, CancellationToken ct) =>
         {
-            var v = await svc.StartSigilAsync(u.AccountId(), req.Phone, req.ResumeVerificationId, ct);
-            return new StartResponse(v.Id, v.Code, v.DisplayInstruction, v.SmsUri, v.ExpiresAt);
+            var v = await svc.StartSigilAsync(u.AccountId(), req.Phone, req.ResumeVerificationId, req.Locale, ct);
+            return Started(v);
         }).AsWrite().RequireRateLimiting(RateLimitPolicies.Auth).WithName("StartSigil");
         me.MapPost("/sigil/complete", async (SigilCompleteRequest req, System.Security.Claims.ClaimsPrincipal u, AccountService svc, CancellationToken ct) =>
         {
@@ -64,4 +65,7 @@ public sealed class AuthEndpoints : IEndpointModule
             return Results.NoContent();
         }).AsWrite().WithName("CompleteSigil");
     }
+
+    private static StartResponse Started(PhoneVerification v) =>
+        new(v.Id, v.ExpiresAt, PhoneVerificationService.ResendAt(v));
 }

@@ -25,10 +25,10 @@ public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 {
     private static async Task<string?> Code(HttpResponseMessage r) => (await r.Content.ReadFromJsonAsync<ErrorBody>())?.Code;
 
-    private static (EngineFactory F, ScriptedVerifyMn Vm, FixedPhotoCount Photos) Engine(PostgresFixture db, int photos = 0)
+    private static (EngineFactory F, ScriptedWeSend Vm, FixedPhotoCount Photos) Engine(PostgresFixture db, int photos = 0)
     {
         var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var count = new FixedPhotoCount(photos);
         f.WithServices(s => { s.RemoveAll<IPhotoCount>(); s.AddSingleton<IPhotoCount>(count); });
         return (f, vm, count);

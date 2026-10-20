@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The Stage 2 device pass: every screen in English and Mongolian, each beside its Figma frame.
 #   .maestro/device-pass.sh <device> [out-dir]           e.g. R58N33NA73Y   (LOCALES="mn" for one language)
-# Needs scripts/dev.sh (fake verify.mn), the seed album (push-seed-photos.sh) and ~/.figma-token.
+# Needs scripts/dev.sh (fake WeSend), the seed album (push-seed-photos.sh) and ~/.figma-token.
 # Writes <out>/<lang>-<frame>.png (device) and <lang>-<frame>-diff.png (Figma | device | diff), and
 # prints each mismatch. The frames hold other names and photos, so the number is a guide and the
 # three-panel image is what gets looked at.
@@ -35,7 +35,7 @@ for LOC in ${LOCALES:-en mn}; do
   echo "== $LOC: closed screens"
   seed Suspended "$PHONE"; shot "$LOC-23-1075" 'Cast Out|Хөөгдсөн' yes
   seed Deleted "$PHONE"; shot "$LOC-23-1138" 'This character is gone|Энэ баатар байхгүй болжээ' yes
-  seed Finished "$PHONE"; shot "$LOC-26-3-reseeded" 'The Tavern|Дэн буудал' yes
+  seed Finished "$PHONE"; shot "$LOC-26-3-reseeded" 'The Tavern|Учралын тойрог' yes
   config app.minVersion 99.0.0; shot "$LOC-23-1191" 'The hold has changed|Цайз өөрчлөгджээ' no; config app.minVersion 1.0.0
   config app.maintenance true; shot "$LOC-maintenance" 'The gate is shut for repairs|Хаалга засварт хаалттай' no; config app.maintenance false
 done

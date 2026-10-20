@@ -13,6 +13,7 @@ appId: com.mingldingl.app
 - tapOn: Phone number
 - inputText: ${PHONE}
 - tapOn: Continue
+- runFlow: _code.yaml
 - extendedWaitUntil:
     visible: Character
     timeout: 20000

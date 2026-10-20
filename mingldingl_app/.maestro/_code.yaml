@@ -1,0 +1,6 @@
+# Subflow: on Verify, type the fake WeSend's code (always 000000; scripts/dev.sh). The field has the
+# focus on arrival, and the sixth digit opens the gate by itself.
+appId: com.mingldingl.app
+---
+- extendedWaitUntil: { visible: 'Speak the code|Кодоо хэл', timeout: 15000 }
+- inputText: '000000'

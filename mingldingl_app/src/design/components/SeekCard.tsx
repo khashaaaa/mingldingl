@@ -10,7 +10,7 @@ import { Txt } from './Txt';
 
 /**
  * A companion in the Tavern (Figma 26:3): a night card warmed from below, their portrait sealed
- * under wax (only its ThumbHash), name and age, gem and place, the oath they swore, their tale.
+ * under wax (only its ThumbHash), name (a stranger in the Tavern has none: "A traveller") and age, gem and place, the oath they swore, their tale.
  */
 export function SeekCard({
   name,
@@ -23,7 +23,8 @@ export function SeekCard({
   sealed = true,
   full,
 }: {
-  name: string;
+  /** null in the Tavern: a stranger is nameless until a bond is made. */
+  name: string | null;
   age: number;
   tier: Tier;
   place: string | null;
@@ -35,17 +36,18 @@ export function SeekCard({
   /** The whole tale, not three lines (their character in a bond). */
   full?: boolean;
 }) {
-  const nameAge = t('seek.nameAge', { name, age });
+  const shown = name ?? t('seek.traveller');
+  const nameAge = t('seek.nameAge', { name: shown, age });
   return (
     <View style={styles.card}>
       <FillArt name="card_night" />
       <AvatarFrame
         state={sealed ? 'sealed' : 'revealed'}
         photo={portrait ? { ...portrait, url: sealed ? null : portrait.url } : null}
-        label={sealed ? t('seek.sealedPortrait', { name }) : nameAge}
+        label={!sealed ? nameAge : name ? t('seek.sealedPortrait', { name }) : t('seek.travellerPortrait')}
         size={150}
       />
-      <NameTitle name={name} text={nameAge} />
+      <NameTitle name={shown} text={nameAge} />
       <View style={styles.line}>
         <Art name={GEM[tier]} style={styles.gem} fit="contain" />
         <Txt variant="labelM" color="textSecondary">

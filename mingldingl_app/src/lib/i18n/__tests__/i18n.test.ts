@@ -16,6 +16,7 @@ const SAME_IN_BOTH: string[] = [
   'chest.points',
   'log.row',
   'square.meta',
+  'trial.comma',
   'filters.age18',
   'filters.age25',
   'filters.age35',
@@ -65,7 +66,7 @@ test('an engine rule shows its own line when the app has one, else the engine te
 test('a composed line takes its pieces in its own language', () => {
   const { setLocale, tLine } = require('../index');
   setLocale('mn');
-  expect(tLine('ceremony.tierTitle', { tier: 'tier.Opal' })).toBe('Солонго зэрэгт өгслөө');
+  expect(tLine('ceremony.tierTitle', { tier: 'tier.Opal' })).toBe('Гэрэлт чимэд зэрэгт өгслөө');
   setLocale('en');
   expect(tLine('ceremony.tierTitle', { tier: 'tier.Opal' })).toBe('Ascended to Opal');
 });

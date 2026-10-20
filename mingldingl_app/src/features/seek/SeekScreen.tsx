@@ -94,7 +94,7 @@ function TavernMenu({ seek, open, onClose }: { seek: SeekView; open: boolean; on
             !member
               ? t('seek.hallOnly')
               : seek.secondLook
-                ? t('seek.secondLookName', { name: seek.secondLook })
+                ? t('seek.secondLookReady')
                 : t('seek.secondLookNone')
           }
           onPress={!member ? () => go('/guild-house') : seek.secondLook ? look : undefined}
@@ -181,7 +181,7 @@ function Body({ seek }: { seek: SeekView }) {
   return (
     <View style={styles.companion}>
       <SeekCard
-        name={c.name}
+        name={null}
         age={c.age}
         tier={asTier(c.tier)}
         place={c.place ?? null}

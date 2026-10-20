@@ -10,7 +10,7 @@ import { isPhone } from '../auth/PhoneScreen';
 import { Verify } from '../auth/VerifyScreen';
 import { Scene } from '../common/Scene';
 
-/** Change your sigil (Figma 35:547): the new number, then the same verify.mn proof as the Gate. */
+/** Change your sigil (Figma 35:547): the new number, then the same WeSend code as the Gate. */
 export default function Sigil() {
   const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);

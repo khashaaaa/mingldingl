@@ -8,7 +8,6 @@ import type { PortraitView } from './portraitView';
 
 export interface CandidateView {
   accountId: string;
-  name: string;
   age: number;
   tier: string;
   /** @nullable */

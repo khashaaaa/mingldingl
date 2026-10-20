@@ -4,6 +4,17 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react()],
   server: { port: 5173, strictPort: true },
-  // Two pages: the keepers' panel (/) and the Guild House web page (/guild/), which bundles none of the panel.
-  build: { rollupOptions: { input: { main: 'index.html', guild: 'guild/index.html' } } },
+  // The keepers' panel (/), the Guild House web page (/guild/), which bundles none of the panel, and
+  // the plain pages the stores link to (/privacy/, /terms/, /delete/).
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        guild: 'guild/index.html',
+        privacy: 'privacy/index.html',
+        terms: 'terms/index.html',
+        delete: 'delete/index.html',
+      },
+    },
+  },
 });

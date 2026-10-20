@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { FillArt } from '@/design/components/Art';
+import { InkLink } from '@/design/components/InkLink';
 import { Cascade } from '@/design/components/Reveal';
 import { RoomHeader } from '@/design/components/RoomHeader';
 import { Row } from '@/design/components/Row';
@@ -8,6 +9,7 @@ import { Txt } from '@/design/components/Txt';
 import { dimension } from '@/design/tokens';
 import { useGetCodex, useGetCodexPage } from '@/lib/api/generated/engine';
 import { t, useLocale } from '@/lib/i18n';
+import { hasLegalPages, openLegal } from '@/lib/links';
 import { Scene } from '../common/Scene';
 
 /** The engine keeps Mongolian only where a native speaker wrote it; anything else reads in English. */
@@ -55,6 +57,12 @@ export function CodexPage() {
           <Txt variant="bodyL" color="textOnParchment">
             {page.body}
           </Txt>
+        </View>
+      ) : null}
+      {legal && hasLegalPages ? (
+        <View>
+          <InkLink label={t('legal.privacy')} onPress={() => openLegal('privacy')} />
+          <InkLink label={t('legal.terms')} onPress={() => openLegal('terms')} />
         </View>
       ) : null}
     </Scene>

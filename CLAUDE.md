@@ -38,21 +38,25 @@ backlog and becomes a log entry.
   seeds, config load, backfills) lives in `Kernel/Persistence/DatabaseBootstrap.cs` — boot and the
   `seed` CLI both call it, so a new seed or backfill goes there. Ids are UUIDv7; times are UTC; "today" comes from
   `IClock` in Asia/Ulaanbaatar.
-- **verify.mn is the only sign-in, and the engine issues its own sessions** (no Supabase Auth).
-  verify.mn is Mobile-Originated: `POST /auth/phone/start` mints a code, the *person* texts it to
-  144773 from the number they claim, the app polls `GET /auth/phone/status/{id}` (the one poll the
-  app allows, only while Verify is on screen), then `POST /auth/phone/complete` returns a session
-  pair. Hardening: a pending session is never handed to a caller who cannot name it
-  (`ResumeVerificationId`), at most 5 live sessions per number with a sixth superseding the oldest
-  (serialised by `pg_advisory_xact_lock`), and a superseded code already texted still verifies.
-  Each text costs the user 150₮.
+- **A WeSend code is the only sign-in, and the engine issues its own sessions** (no Supabase Auth).
+  `POST /auth/phone/start` has WeSend (`api.wesend.mn/v1/verify`, `WeSend:ApiKey`) text a
+  six-digit code to the number (ten minutes, in the app's language); WeSend makes and holds the
+  code, the engine never sees it. The person types it, `POST /auth/phone/check` asks WeSend
+  (`/v1/verify/{id}/check`; five tries a code), then `POST /auth/phone/complete` returns a session
+  pair (sigil and Guild House complete the same checked verification). Hardening: a pending
+  session is never handed to a caller who cannot name it (`ResumeVerificationId`, no second text);
+  one number gets a new code at most once a minute (`auth.code_cooldown`, serialised by
+  `pg_advisory_xact_lock`), and a new code supersedes the last one, as WeSend cancels it. Each
+  text costs us 80 credits (80₮); the person pays nothing. WeSend's own per-number limits (5 per
+  10 min, 20 a day) answer `auth.too_many_codes`.
 - **Sessions:** 15-minute signed access token + one refresh token per device, stored hashed and
   rotated on every use under a row lock. A duplicate refresh within 30 s gets the same new pair
   (a race never signs anyone out); a replay after that revokes the device. `sign-out` revokes the
   device, `sign-out-all` every device.
 - **Three auth schemes, never interchangeable.** The Guild House web page (`/guild/*`) has its own
   half-hour token (`GuildAuth`, key derived from the app's, no refresh, reaches only `/guild`); it
-  signs in an existing finished character by the same verify.mn proof and never creates accounts.
+  signs in an existing finished character by the same WeSend code and never creates accounts
+  (`/guild/?leave` abandons one — the stores' web deletion).
   App users: the engine's own tokens (`Auth:SigningKey`).
   Admin: a separate scheme and key (`Admin:JwtSigningKey`, 12 h, one admin from
   `Admin:Username`/`Admin:PasswordHash`, a PBKDF2 hash made with `dotnet run -- hash-password <pw>`).
@@ -92,8 +96,8 @@ backlog and becomes a log entry.
 - **Validation** via `AddValidation` with limits from one place (field limits per DTO);
   attributes on record DTOs go on the constructor parameter.
 - **Development-only surface**, 404 elsewhere: `/dev/*` (`me/state`, `me/live`, `config/{key}`,
-  `run-sweep`), `VerifyMn:Fake` (every number verifies at once except **99000000**, which stays
-  pending, and **99000001**, which expires — refused outside Development), and the `seed` CLI.
+  `run-sweep`), `WeSend:Fake` (no text; every code is **000000**, and **99000001**'s code expires —
+  refused outside Development), and the `seed` CLI.
 - **CORS:** `Cors:AllowedOrigins` is required outside Development (startup throws without it).
 - **Sentry** runs only when `Sentry:Dsn` is set, with personal data scrubbed (`SentryScrub`).
 
@@ -106,8 +110,9 @@ backlog and becomes a log entry.
   out / closed (suspended, deleted, update, maintenance) / onboarding step N / world. The root
   layout renders exactly that group with `Stack.Protected`; no screen ever navigates between
   groups. Onboarding's step comes from the server profile, so a relaunch resumes in place.
-  Links out of the app (store page, support mail) are in `lib/links.ts`; "Write to the keepers"
-  is hidden until `EXPO_PUBLIC_SUPPORT_EMAIL` is set.
+  Links out of the app (store page, support mail, legal pages) are in `lib/links.ts`; "Write to
+  the keepers" is hidden until `EXPO_PUBLIC_SUPPORT_EMAIL` is set, the legal links until
+  `EXPO_PUBLIC_WEB_URL`. `onApple` there picks App Store wording, product ids and pages on iPhone.
 - **Session (`lib/session`):** access token in memory, refresh token in SecureStore. One
   single-flight refresh is shared by every request; a 401 waits for it and retries once. Only a
   revoked or reused token signs out, and `session.revoked` signs that device out at once.
@@ -137,14 +142,15 @@ backlog and becomes a log entry.
   that must survive stepping back use `useDraft`.
 - **Mongolian:** every string is a key in `lib/i18n/en.json`, and every key has its line in
   `mn.json` — Claude writes the Mongolian (the user's call, 2026-10-16), in the same primal, epic
-  game voice as the English, reusing the established words (Гал голомт, цайз, манаачид, хөрөг,
-  домог, лац, Наймааны өргөө…). A new English key gets its Mongolian in the same change (a jest
+  game voice as the English, reusing the established words (Гал голомт, цайз, манаач, хөрөг,
+  домог, лац, Наймааны өргөө…). "The keepers" is манаач, never манаачид (readers don't take it
+  as plural); the player is always чи/чиний, never та/таны. A new English key gets its Mongolian in the same change (a jest
   test fails on a missing or orphaned key). Never glue a case suffix onto `{{var}}` (Mongolian
   suffixes change with the word) — rephrase ("Хүлээж буй нь: {{name}}", "{{time}} цагт").
   Interpolation is `{{var}}`. The engine's Mongolian (question banks, pushes, Codex) is in
   `QuestionsMn`, `PushCopy` and `CodexSeed`. Pirata One has no Cyrillic, so in Mongolian room
   titles use Yeseva One. The language switch remounts leaf
-  screens (`LocaleScreens.tsx`). verify.mn's own Mongolian instruction is shown verbatim.
+  screens (`LocaleScreens.tsx`). WeSend writes the text's own words (`locale` mn | en).
 - **Developer tools** exist only behind `__DEV__` (`lib/devTools.ts`): the Tools screen (`/dev`,
   from the Expo dev menu) puts your account into any state, fires live/world events, switches
   language and Reduce Motion; `/dev/gallery` shows every component. A release bundle has none of it.
@@ -161,6 +167,11 @@ backlog and becomes a log entry.
 ### Admin
 - The build has two pages: the panel (`index.html`) and the Guild House web page (`guild/index.html`,
   `src/guild/`, its own Orval client from the Guild + Auth tags) — the page bundles none of the panel.
+  It opens in Mongolian (`?lang=en` or its switch for English); its words, and the Mongolian of the
+  engine rules it can meet, are in `src/guild/words.ts`.
+  Plus three script-free legal pages the stores link to (`privacy/`, `terms/`, `delete/`, EN + MN,
+  styled by `src/legal/legal.css`); they print `VITE_SUPPORT_EMAIL`, which deploy reads from
+  `engine.env`'s `SUPPORT_EMAIL`.
 - Same shape: `src/features/<users|payments|stats|…>/`, generated Orval hooks, tokens from the
   app's generator (`src/design/tokens.css`), live via `/admin/live` (a sign-up appears in Users
   without a reload). Art is synced from the app with `npm run sync:art`.
@@ -171,8 +182,8 @@ backlog and becomes a log entry.
 
 ### Everything
 ```bash
-./scripts/dev.sh                 # Postgres check, engine (dotnet watch, :5150, fake verify.mn), Metro (:8081), admin (:5173)
-./scripts/dev.sh --real-sms      # the real verify.mn (each text costs the user 150₮)
+./scripts/dev.sh                 # Postgres check, engine (dotnet watch, :5150, fake WeSend: code 000000), Metro (:8081), admin (:5173)
+./scripts/dev.sh --real-sms      # WeSend with the configured key (ws_test_ sandbox: free, code 000000; live: 80₮ a text)
 ./scripts/check-all.sh           # engine tests + swagger freshness, app typecheck/Biome/jest/literals/Orval, admin Biome/build/Orval/Playwright
 ./scripts/check-all.sh --fast    # app typecheck + both Biome checks
 CHECK_SKIP_ENGINE=1 / CHECK_SKIP_E2E=1   # without Postgres server binaries / without local Postgres
@@ -187,7 +198,7 @@ dotnet test --filter FullyQualifiedName~ProfileTests
 ./scripts/export-swagger.sh [--check]              # rewrite swagger.json (no server, no DB)
 ./scripts/new-migration.sh                         # regenerate the single Initial migration
 dotnet run --project src/MinglDingl.Engine -- seed <Step1..Step6|Finished|Suspended|Deleted> --phone 99xxxxxx
-dotnet run --project src/MinglDingl.Engine -- seed crowd       # the 48-person seed crowd (99100000–99100047)
+dotnet run --project src/MinglDingl.Engine -- seed crowd [--phone 99xxxxxx]  # the 48-person crowd (99100000–99100047) and their world; --phone: that account gets a bond at every stage
 dotnet run --project src/MinglDingl.Engine -- hash-password <pw>
 ```
 Local config: `src/MinglDingl.Engine/appsettings.Development.json` (copy the `.example`).

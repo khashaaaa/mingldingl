@@ -35,11 +35,9 @@ public sealed class SeekService(
         var filter = perks.Paid ? await db.Set<SeekFilter>().AsNoTracking().SingleOrDefaultAsync(f => f.AccountId == me, ct) : null;
         var today = clock.TodayUb;
         var look = perks.Paid ? await db.Set<SecondLook>().AsNoTracking().SingleOrDefaultAsync(l => l.AccountId == me && l.Day == today, ct) : null;
-        string? lookName = null;
-        if (perks.Paid && look is null && await LastPassAsync(me, ct) is { } last)
-            lookName = await db.Set<Profile.Profile>().Where(x => x.AccountId == last).Select(x => x.Name).SingleOrDefaultAsync(ct);
+        var canLook = perks.Paid && look is null && await LastPassAsync(me, ct) is not null;
         SeekView View(string state, CandidateView? c, int l) =>
-            new(state, c, l, perDay, dawn, used, seats, Membership.Floors.Key(floor), lookName, filter is not null && Active(filter));
+            new(state, c, l, perDay, dawn, used, seats, Membership.Floors.Key(floor), canLook, filter is not null && Active(filter));
 
         if (!config.Bool(ConfigKeys.SeekEnabled)) return View("closed", null, left);
         if (used >= seats) return View("full", null, left);
@@ -218,7 +216,7 @@ public sealed class SeekService(
     {
         var p = await db.Set<Profile.Profile>().AsNoTracking().SingleAsync(x => x.AccountId == id, ct);
         var portrait = (await photos.FirstPortraitsAsync(new Dictionary<Guid, bool> { [id] = false }, ct)).GetValueOrDefault(id);
-        return new CandidateView(id, p.Name, ProfileService.AgeOn(p.BirthDate, clock.TodayUb), p.Tier,
+        return new CandidateView(id, ProfileService.AgeOn(p.BirthDate, clock.TodayUb), p.Tier,
             BondService.Place(p.City, district: false), p.Oath, p.Bio, portrait);
     }
 

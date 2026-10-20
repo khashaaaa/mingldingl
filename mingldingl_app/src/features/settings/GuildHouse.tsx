@@ -15,7 +15,7 @@ import { useGetMe, useGetMembership } from '@/lib/api/generated/engine';
 import type { FloorOffer, MembershipView } from '@/lib/api/generated/model';
 import { feedback } from '@/lib/feedback';
 import { getLocale, t, tCount } from '@/lib/i18n';
-import { manageStore } from '@/lib/links';
+import { hasLegalPages, manageStore, onApple, openLegal } from '@/lib/links';
 import {
   buy,
   type Months,
@@ -146,7 +146,10 @@ export default function GuildHouse() {
               <Button label={t('guild.climbHigh')} onPress={() => climb('highTable', 1)} block />
             ) : null}
             {!welcome && m.source === 'store' ? (
-              <InkLink label={t('guild.manageStore')} onPress={manageStore} />
+              <InkLink
+                label={t(onApple ? 'guild.manageAppStore' : 'guild.manageStore')}
+                onPress={manageStore}
+              />
             ) : (
               <InkLink label={t('guild.backToWarRoom')} onPress={() => router.dismissTo('/war-room')} />
             )}
@@ -164,7 +167,10 @@ export default function GuildHouse() {
             {t(on === 'highTable' ? 'guild.highTableGives' : 'guild.hallGives')}
           </Txt>
           <Txt variant="labelS" color="textMuted" align="center">
-            {(m.source === 'store' ? `${t('guild.throughStore')} · ${line}` : line).toUpperCase()}
+            {(m.source === 'store'
+              ? `${t(onApple ? 'guild.throughAppStore' : 'guild.throughStore')} · ${line}`
+              : line
+            ).toUpperCase()}
           </Txt>
         </View>
       </Scene>
@@ -223,6 +229,16 @@ export default function GuildHouse() {
             );
           })}
         </View>
+        {/* What the stores ask a subscription screen to say: it renews, where to cancel, the terms. */}
+        <Txt variant="bodyS" color="textMuted">
+          {t(onApple ? 'guild.renewsAppStore' : 'guild.renewsPlay')}
+        </Txt>
+        {hasLegalPages ? (
+          <View style={styles.legal}>
+            <InkLink label={t('legal.termsShort')} onPress={() => openLegal('terms')} />
+            <InkLink label={t('legal.privacyShort')} onPress={() => openLegal('privacy')} />
+          </View>
+        ) : null}
       </View>
     </Scene>
   );
@@ -235,5 +251,6 @@ const styles = StyleSheet.create({
   choose: { gap: dimension.space2, paddingTop: dimension.space2 },
   cards: { gap: dimension.space2, marginVertical: dimension.space2 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  legal: { flexDirection: 'row', justifyContent: 'center', gap: dimension.space4 },
   footer: { gap: dimension.space3, alignItems: 'stretch', alignSelf: 'stretch' },
 });

@@ -22,7 +22,7 @@ import { color, dimension, easing } from '@/design/tokens';
 import { ApiError } from '@/lib/api/client';
 import { getGetEncounterQueryKey, rateMeeting, useGetEncounter } from '@/lib/api/generated/engine';
 import { feedback } from '@/lib/feedback';
-import { t, tError } from '@/lib/i18n';
+import { t, tError, tVenue } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import { Scene } from '../common/Scene';
 
@@ -78,7 +78,7 @@ export default function RateScreen() {
           </Flicker>
         </View>
         <Txt variant="displayM" engraved align="center" accessibilityRole="header">
-          {t('rate.title', { venue: meeting.venue.name })}
+          {t('rate.title', { venue: tVenue(meeting.venue) })}
         </Txt>
         <View
           style={styles.stars}

@@ -61,7 +61,7 @@ public sealed class CampaignService(AppDb db, IClock clock, IConfig config, ILiv
         return Reached(b, e, kept);
     }
 
-    private static List<string> Reached(Bond b, Encounter? e, bool kept)
+    internal static List<string> Reached(Bond b, Encounter? e, bool kept)
     {
         var reached = new List<string>();
         if (b.Mutual >= 1) reached.Add(Chambers.Letters);

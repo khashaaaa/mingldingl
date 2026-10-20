@@ -7,8 +7,6 @@
 
 export interface StartResponse {
   verificationId: string;
-  code: string;
-  displayInstruction: string;
-  smsUri: string;
   expiresAt: string;
+  resendAt: string;
 }

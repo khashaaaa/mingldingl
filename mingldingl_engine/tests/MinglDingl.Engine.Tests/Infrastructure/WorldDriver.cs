@@ -36,7 +36,7 @@ public sealed class RecordingPushGateway : IPushGateway
     }
 }
 
-/// A test world: its own database, an engine with scripted verify.mn, memory photo storage and a
+/// A test world: its own database, an engine with scripted WeSend, memory photo storage and a
 /// push recorder. Seek sees everyone in the database, so worlds never share one.
 public sealed class World : IAsyncDisposable
 {
@@ -56,13 +56,13 @@ public sealed class World : IAsyncDisposable
     }
 
     public EngineFactory F { get; }
-    public ScriptedVerifyMn Vm { get; }
+    public ScriptedWeSend Vm { get; }
     public RecordingPushGateway Push { get; } = new();
 
     public World(PostgresFixture db, Action<EngineFactory>? configure = null)
     {
         F = new EngineFactory(db);
-        Vm = F.UseScriptedVerifyMn();
+        Vm = F.UseScriptedWeSend();
         F.UseMemoryPhotoStore();
         F.WithServices(s => { s.RemoveAll<IPushGateway>(); s.AddSingleton<IPushGateway>(Push); });
         F.WithServices(s =>

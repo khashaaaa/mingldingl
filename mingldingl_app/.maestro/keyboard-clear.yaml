@@ -15,6 +15,7 @@ env:
 - takeScreenshot: kb-1-phone
 - inputText: ${output.phone}
 - tapOn: Continue
+- runFlow: _code.yaml
 - extendedWaitUntil: { visible: 'What does the hold call you\?', timeout: 15000 }
 - tapOn: First name
 - takeScreenshot: kb-2-name

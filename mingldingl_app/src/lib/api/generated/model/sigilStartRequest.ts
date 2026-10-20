@@ -9,4 +9,6 @@ export interface SigilStartRequest {
   phone: string;
   /** @nullable */
   resumeVerificationId: string | null;
+  /** @nullable */
+  locale?: string | null;
 }

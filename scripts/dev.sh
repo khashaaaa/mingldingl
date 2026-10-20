@@ -2,8 +2,9 @@
 # One command for local development: engine (hot reload, :5150), Metro (:8081), admin (:5173).
 # Every log line is prefixed with its name; Ctrl-C stops all three.
 #
-#   scripts/dev.sh              fake verify.mn — sign-in completes with no SMS
-#   scripts/dev.sh --real-sms   the real provider (each text costs the user 150₮)
+#   scripts/dev.sh              fake WeSend — no SMS, every code is 000000
+#   scripts/dev.sh --real-sms   WeSend with the key in appsettings (a ws_test_ sandbox key: no SMS,
+#                               code 000000; a live key: real texts, 80₮ of credit each)
 #
 # Migrations are applied by the engine itself at boot (Program.cs), so there is no separate step.
 set -uo pipefail
@@ -65,8 +66,8 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
-echo "[engine] verify.mn: $([[ $FAKE == true ]] && echo fake || echo REAL — texts cost 150₮)"
-export VerifyMn__Fake=$FAKE DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER=1
+echo "[engine] WeSend: $([[ $FAKE == true ]] && echo "fake (code 000000)" || echo "REAL key from appsettings — a live key spends 80₮ a text")"
+export WeSend__Fake=$FAKE DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER=1
 run engine 36 "$ROOT/mingldingl_engine" ./scripts/start-engine.sh
 run metro 35 "$ROOT/mingldingl_app" npx expo start --dev-client
 run admin 33 "$ROOT/mingldingl_control" npx vite --strictPort

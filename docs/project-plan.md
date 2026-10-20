@@ -29,6 +29,25 @@ launch, and that waits on the user's accounts and keys.
 
 The server side is scripted; the accounts are the user's.
 
+**Done 2026-10-20:** myserver set up and deployed; domain `mingldingl.com` on Cloudflare with the
+tunnel (`api.` → 8080, `keepers.` → 8081) and Email Routing (`keepers@mingldingl.com` → the
+user's Gmail, the `SUPPORT_EMAIL`); Sentry projects `mingldingl-app`/`-engine` (org `rtl-uz`);
+RevenueCat project MingldIngl (Play app, entitlements `hall`/`high_table`, webhook, V1 secret key —
+products and the Play service account wait on the Play account); Firebase project `mingldingl`
+(`google-services.json` in the app; FCM V1 key on EAS); Agora NCS on events 103–106; EAS
+production and preview env set (API, web, RevenueCat Android, Sentry, support email). The first
+production build failed at Sentry's source-map upload: the plugin now names org `rtl-uz` /
+project `mingldingl-app`, and both preview and production skip the upload
+(`SENTRY_DISABLE_AUTO_UPLOAD` in `eas.json`), so crash traces are minified. To get readable traces
+the user puts a Sentry org token in the EAS secret `SENTRY_AUTH_TOKEN` (it holds a placeholder now)
+and drops the flag from the production profile. Launch values the user keeps: `~/mingldingl-launch.env` on the desktop (chmod 600).
+Agora shows a new NCS secret on every page load until saved — set the engine's to the shown one,
+restart, then Apply. Left: Play account + 14-day test, QPay, WeSend live, EAS env + build, reviewer access.
+**WeSend (sign-in codes, user):** project «mingldingl» exists (200 trial credits, expire 2026-11-19).
+Until it is Active (the owner verified by DAN, any monthly fee paid) it texts only the owner's own
+verified number. Then: a live key (dashboard → API keys) into the server's `engine.env` as
+`WeSend__ApiKey`, credits topped up (80 a code), and per-number limits left at 5 / 10 min, 20 / day.
+
 1. **Server** — myserver (192.168.1.102) on, with its LAN address reserved. No Docker:
    `./scripts/deploy.sh --setup` installs `scripts/server/` (systemd units, nginx, the `mingldingl`
    Postgres role, the backup timer) and `/etc/mingldingl/engine.env` from
@@ -38,18 +57,33 @@ The server side is scripted; the accounts are the user's.
 2. **Domain + tunnel** (user) — a domain on Cloudflare; a tunnel with two public hostnames: the API
    → `http://localhost:8080`, the panel → `http://localhost:8081` (the web page is its `/guild/`).
    Its token goes in `engine.env` as `TUNNEL_TOKEN`, then `./scripts/deploy.sh --tunnel`. Set
-   `PUBLIC_API_URL`, `QPay__CallbackBase` and `Cors__AllowedOrigins` to match.
+   `PUBLIC_API_URL`, `QPay__CallbackBase` and `Cors__AllowedOrigins` to match, and `SUPPORT_EMAIL`
+   (deploy refuses without it: the legal pages print it). The panel host then serves the pages the
+   stores ask for: `/privacy/`, `/terms/`, `/delete/` (EN + MN), and `/guild/?leave` deletes an
+   account on the web.
 3. **Accounts** (user) — QPay merchant (client id/secret, invoice code); Google Play Console app
    `com.mingldingl.app` with subscriptions `hall` and `high_table` (base plans `m1`, `m3`, `m6`,
    priced as config); RevenueCat project (Play service account, entitlements `hall` /
    `high_table`, webhook `POST {API}/payments/revenuecat` with the `engine.env` Authorization
    value); Firebase `google-services.json` + FCM V1 key on EAS; Sentry DSNs; the Agora NCS webhook
-   URL `{API}/video/ncs`.
-4. **EAS production env** — `EXPO_PUBLIC_API_URL` (the API hostname),
-   `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY`, `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_SUPPORT_EMAIL`;
-   then `eas build --profile production --platform android` and a closed-testing track.
-5. **Listing** — the EN draft below, MN by Claude, screenshots from the device pass, the content
-   rating questionnaire (dating, 18+), data safety as below.
+   URL `{API}/video/ncs`. For iOS: Apple Developer Program, App Store Connect app
+   `com.mingldingl.app` with one subscription group of `hall_m1/m3/m6` and `high_table_m1/m3/m6`
+   added to the same RevenueCat entitlements, and push (APNs) credentials through EAS.
+4. **EAS production env** — `EXPO_PUBLIC_API_URL` (the API hostname), `EXPO_PUBLIC_WEB_URL` (the
+   panel host; the Terms · Privacy page and the Guild House link to its legal pages),
+   `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` (and `_IOS_KEY`), `EXPO_PUBLIC_SENTRY_DSN`,
+   `EXPO_PUBLIC_SUPPORT_EMAIL`; then `eas build --profile production --platform android` and a
+   closed-testing track. A new personal Play account must keep **12+ testers opted in for 14 days**
+   before production opens — start this first. iOS: `--platform ios`, TestFlight on an iPhone
+   (the app has never run on iOS), then review.
+4½. **Reviewer access — a sign-in video (user's call, 2026-10-20).** Store reviewers have no
+   Mongolian number to receive the code, so Play's "App access" (and Apple's review notes) link an unlisted video of
+   the A51 signing in on the production server — the text sent for real — and walking the world. No
+   review number is built.
+5. **Listing** — the EN and MN drafts below, screenshots from the device pass, the content
+   rating questionnaire (dating, 18+), data safety as below; privacy policy URL `{panel}/privacy/`,
+   account deletion URL `{panel}/delete/`. The legal pages are drafts, not legal advice — the user
+   names the operator and may have them read by a lawyer.
 6. **Last checks** — the Principles; a load test of Seek and the Square with the seed crowd on the
    server; the admin's Ops page all "Reachable".
 
@@ -63,6 +97,16 @@ The server side is scripted; the accounts are the user's.
   shows. Quests, honours, Fated Threads from friends and the Town Square's live rounds make the
   world. Every floor plays the same game: the Hall and the High Table add reach, never score.
 
+**Play listing, MN draft**
+- *Нэр:* MingldIngl — танилц, үгэндээ хүр
+- *Богино:* Захидлаар лац эвдэж, жинхэнэ уулзалт хийдэг, чимээгүй алга болох нь үнэтэй танилцах тоглоом.
+- *Бүтэн:* MingldIngl бол удаан, хуурмаг бус танилцах тоглоом. Шөнө бүр Учралын тойрог танд нэг нэгээр
+  аянчин авчирна. Хэн нэгнийг урьвал холбоо үүснэ — дараа нь захидал дөрвөн лацыг эвдэж, хөрөг
+  нэг нэгээр нээгдэнэ. Мөс хагалж, Сорилд орж, Галын ёслол асааж, шалгасан газарт уулз. Үгэндээ
+  хүрвэл эрдэнэ чинь Анараас Маргад хүртэл өгсөнө; галаа хөргөвөл харагдана. Даалгавар, гавьяа,
+  найзуудын нэхсэн Заяаны утас, Хотын талбайн шууд үеүд ертөнцийг бүтээнэ. Давхар бүр ижил тоглоом
+  тоглоно: Танхим ба Дээд ширээ хүрээг тэлнэ, харин оноо хэзээ ч нэмдэггүй.
+
 **Data safety (Play form)** — collected: phone number (account, verified by SMS), name, birth
 date, gender, city, photos, messages (letters), in-app interactions; deep-profile answers
 (members); purchase history. Shared: none sold; processors only (Supabase storage, Agora video —
@@ -74,7 +118,8 @@ Encrypted in transit; deletion on request in the app (Abandon, 30 days) and by t
 **Needs the user**
 - Everything in the launch checklist's accounts (QPay, Play, RevenueCat, Firebase, Sentry, domain).
 - `EXPO_PUBLIC_SUPPORT_EMAIL` — until it is set, "Write to the keepers" is hidden and the Cast Out
-  screen has no way to write.
+  screen has no way to write. `EXPO_PUBLIC_WEB_URL` likewise hides the links to the legal pages.
+- The reviewer sign-in video (launch checklist 4½): needs an installable production build and one real text.
 - The Codex guide texts other than "The fire and the cold" were written from the rules, not Figma
   — the user may want to reword them (the admin's Codex pages edit them).
 
@@ -166,8 +211,8 @@ streaks and quests are deliberate, not burnout risks to soften.
 
 ## Identity
 
-- **Sign-in** is verify.mn only: the person texts a code to 144773 from the number they claim
-  (150₮ a text). Onboarding: name & born → gender → 3–6 portraits → tale (bio ≤ 300) and city →
+- **Sign-in** is a WeSend code only: WeSend texts six digits to the number claimed and the
+  person types them (free to them; 80₮ of WeSend credit to us). Onboarding: name & born → gender → 3–6 portraits → tale (bio ≤ 300) and city →
   the Oath → welcome. Finishing pays +50 [`score.finished`] — below Opal, so the first gem takes
   doing. Onboarding resumes from the server at the step it left.
 - **City** — Ulaanbaatar beside the 21 aimags, its districts nested under it; searched in both
@@ -185,9 +230,10 @@ streaks and quests are deliberate, not burnout risks to soften.
 
 ## Seek and bonds
 
-- **Seek** shows one companion at a time: their sealed first portrait (ThumbHash only), name, age,
-  tier, province (or Ulaanbaatar — the district is a seal's reward), oath and tale. *Summon* makes
-  the bond at once, live on both sides with the "A bond is made" ceremony. *Pass for tonight* hides
+- **Seek** shows one companion at a time: their sealed first portrait (ThumbHash only), age,
+  tier, province (or Ulaanbaatar — the district is a seal's reward), oath and tale — but no name
+  ("A traveller, 28"; the engine never sends it): the name comes with the bond. *Summon* makes the
+  bond at once, live on both sides with the "A bond is made" ceremony. *Pass for tonight* hides
   them until the next day.
 - **Who can be seen:** finished, Active, not paused or departing, opposite gender, no cast-out
   either way, never bonded before, not passed today. Order: same district → same aimag (or
@@ -324,8 +370,8 @@ encounters; a bond that ends cancels its open steps.
 
 - **The War Room** (Character's ⋮): edit, pause (hidden from Seek, bonds go on), sound (opt-in) /
   haptics / notifications per device, language, your floor, the Codex and Terms, the Frozen Gate,
-  sign out (asks first, names the 150₮ to come back), Abandon.
-- **Your sigil** — a phone change by the same verify.mn proof; a number another account holds is
+  sign out (asks first, says coming back takes a new code), Abandon.
+- **Your sigil** — a phone change by the same WeSend code; a number another account holds is
   refused; other devices are signed out.
 - **Abandon** schedules deletion in 30 days: hidden from Seek, "fades in N days", undone by "Keep my
   character" or any sign-in. On the day the sweep deletes the photo files and then the account; the
@@ -359,7 +405,7 @@ when the person returns.
 - **In the app:** Google Play through RevenueCat. The webhook and the app only prompt the engine to
   ask RevenueCat and store exactly what is there — a missed webhook loses nothing.
 - **On the web:** the Guild House page `/guild/` (served with the admin build) signs an existing
-  character in by verify.mn and sells floors by QPay QR (or a bank link on a phone). QPay time never
+  character in by a WeSend code and sells floors by QPay QR (or a bank link on a phone). QPay time never
   renews. The app never links to or names the page (store rule).
 - **No one's money is ever locked:** the invoice is written before the QR shows; QPay's callback
   only hints — the one-minute sweep asks `payment/check` for every open invoice and credits late
@@ -376,7 +422,7 @@ encounters, money, needs attention), Statistics (Growth, Engagement, Matching, E
 Money, Cohorts — range, five filters, CSV; rolled up hourly into `stats_daily`, today live), Users
 (live list, detail with score, bonds, encounters, floor, payments), Reports, Venues, Fated Threads,
 Town Square (ring, edit, cancel, festival calendar), Codex pages, Config, Payments, Deletions, Ops
-(health of the engine, sweeps, Agora, QPay, RevenueCat, verify.mn, last backup) and the audit log
+(health of the engine, sweeps, Agora, QPay, RevenueCat, WeSend, last backup) and the audit log
 (every keeper write, in the same transaction).
 
 ---
@@ -422,9 +468,10 @@ library, S1–S8 the app and admin screens, S9 the web page. Code reads it throu
 
 # Hard-won rules
 
-- **Phone ownership is proven by the engine** via verify.mn, never by the client; account creation
-  and phone change need a claimed verification. A pending session is never handed to a caller who
-  cannot name it; one number holds at most 5 live sessions, a sixth supersedes the oldest.
+- **Phone ownership is proven by the engine** via WeSend's check, never by the client, and the
+  code never passes through the engine; account creation and phone change need a claimed
+  verification. A pending session is never handed to a caller who cannot name it; one number gets
+  at most one new code a minute (every text is our money), and a new code supersedes the last.
 - **Auth schemes never mix** — app, admin and the Guild page each have their own, valid nowhere
   else, hubs included.
 - **Realtime goes per user**, never a shared topic; events go out only after the commit.

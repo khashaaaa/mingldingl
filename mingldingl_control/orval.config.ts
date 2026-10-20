@@ -20,7 +20,7 @@ export default defineConfig({
       },
     },
   },
-  // The Guild House web page (/guild): sign-in by verify.mn and QPay invoices, with its own token.
+  // The Guild House web page (/guild): sign-in by a WeSend code and QPay invoices, with its own token.
   guild: {
     input: {
       target: '../mingldingl_engine/swagger.json',

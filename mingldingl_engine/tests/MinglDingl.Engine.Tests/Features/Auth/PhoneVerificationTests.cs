@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MinglDingl.Engine.Features.Auth;
+using MinglDingl.Engine.Kernel.Errors;
 using MinglDingl.Engine.Kernel.Persistence;
 using MinglDingl.Engine.Tests.Infrastructure;
 
@@ -14,153 +15,195 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     private static int _phone = 88000000;
     private static string NewPhone() => Interlocked.Increment(ref _phone).ToString();
 
-    [Fact]
-    public async Task Start_returns_a_new_session_for_an_unknown_caller()
+    private static async Task<string?> ErrorCode(HttpResponseMessage r) =>
+        (await r.Content.ReadFromJsonAsync<ErrorBody>())?.Code;
+
+    private static async Task<VerificationState> StateOf(EngineFactory f, Guid id)
     {
-        await using var f = new EngineFactory(db); f.UseScriptedVerifyMn();
-        var s = await f.Client().StartAsync(NewPhone());
-        s.Code.Should().MatchRegex("^[0-9]{6}$");
-        s.SmsUri.Should().StartWith("sms:144773");
-        s.DisplayInstruction.Should().Contain(s.Code);
+        await using var scope = f.Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<AppDb>().Set<PhoneVerification>()
+            .Where(v => v.Id == id).Select(v => v.State).SingleAsync();
+    }
+
+    [Fact]
+    public async Task Start_texts_a_code_and_never_returns_it()
+    {
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
+        var r = await f.Client().PostAsJsonAsync("/auth/phone/start", new StartRequest(NewPhone(), null));
+        r.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await r.Content.ReadAsStringAsync();
+        body.Should().NotContain(ws.LastCode);
+        var s = (await r.Content.ReadFromJsonAsync<StartResponse>())!;
+        s.ResendAt.Should().Be(f.Clock.UtcNow + PhoneVerificationService.ResendAfter);
+        ws.SendCalls.Should().Be(1);
     }
 
     [Fact]
     public async Task Bad_phone_is_400()
     {
-        await using var f = new EngineFactory(db); f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); f.UseScriptedWeSend();
         var r = await f.Client().PostAsJsonAsync("/auth/phone/start", new StartRequest("12ab", null));
         r.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task Start_never_returns_an_existing_pending_session_to_a_caller_who_cannot_name_it()
+    public async Task Right_code_verifies()
     {
-        await using var f = new EngineFactory(db); f.UseScriptedVerifyMn();
-        var phone = NewPhone();
-        var owner = await f.Client().StartAsync(phone);
-        var attacker = await f.Client().StartAsync(phone);
-        attacker.VerificationId.Should().NotBe(owner.VerificationId);
-        attacker.Code.Should().NotBe(owner.Code);
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
+        var c = f.Client();
+        var s = await c.StartAsync(NewPhone());
+        await c.CheckAsync(ws, s.VerificationId);
+        (await StateOf(f, s.VerificationId)).Should().Be(VerificationState.Verified);
+        // A retry after a lost answer is still verified.
+        await c.CheckAsync(ws, s.VerificationId);
     }
 
     [Fact]
-    public async Task Start_with_resume_id_returns_that_session_when_pending_and_same_number()
+    public async Task Wrong_code_may_be_typed_again_until_five()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
+        var c = f.Client();
+        var s = await c.StartAsync(NewPhone());
+        var wrong = await c.CheckRawAsync(s.VerificationId, "999999");
+        wrong.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await ErrorCode(wrong)).Should().Be("auth.wrong_code");
+        await c.CheckAsync(ws, s.VerificationId);
+
+        var t = await c.StartAsync(NewPhone());
+        for (var i = 0; i < 4; i++) await c.CheckRawAsync(t.VerificationId, "999999");
+        var fifth = await c.CheckRawAsync(t.VerificationId, "999999");
+        (await ErrorCode(fifth)).Should().Be("auth.too_many_attempts");
+        (await ErrorCode(await c.CheckRawAsync(t.VerificationId, ws.LastCode))).Should().Be("auth.verification_expired");
+    }
+
+    [Fact]
+    public async Task Expired_code_needs_a_new_one()
+    {
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
+        var c = f.Client();
+        var s = await c.StartAsync(NewPhone());
+        ws.ExpireLast();
+        var r = await c.CheckRawAsync(s.VerificationId, ws.LastCode);
+        r.StatusCode.Should().Be(HttpStatusCode.Gone);
+        (await ErrorCode(r)).Should().Be("auth.verification_expired");
+    }
+
+    [Fact]
+    public async Task An_outlived_code_expires_without_asking_WeSend()
+    {
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
+        var c = f.Client();
+        var s = await c.StartAsync(NewPhone());
+        f.Clock.Advance(TimeSpan.FromSeconds(WeSendClient.CodeTtl + 1));
+        (await ErrorCode(await c.CheckRawAsync(s.VerificationId, ws.LastCode))).Should().Be("auth.verification_expired");
+    }
+
+    [Fact]
+    public async Task A_second_code_waits_a_minute_and_then_cancels_the_first()
+    {
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
+        var c = f.Client();
+        var phone = NewPhone();
+        var first = await c.StartAsync(phone);
+        var soon = await c.PostAsJsonAsync("/auth/phone/start", new StartRequest(phone, null));
+        soon.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await ErrorCode(soon)).Should().Be("auth.code_cooldown");
+        ws.SendCalls.Should().Be(1);
+
+        f.Clock.Advance(PhoneVerificationService.ResendAfter);
+        var firstCode = ws.LastCode;
+        var second = await c.StartAsync(phone);
+        second.VerificationId.Should().NotBe(first.VerificationId);
+        (await StateOf(f, first.VerificationId)).Should().Be(VerificationState.Superseded);
+        (await ErrorCode(await c.CheckRawAsync(first.VerificationId, firstCode))).Should().Be("auth.verification_expired");
+        await c.CheckAsync(ws, second.VerificationId);
+    }
+
+    [Fact]
+    public async Task Start_never_returns_an_existing_pending_session_to_a_caller_who_cannot_name_it()
+    {
+        await using var f = new EngineFactory(db); f.UseScriptedWeSend();
+        var phone = NewPhone();
+        var owner = await f.Client().StartAsync(phone);
+        f.Clock.Advance(PhoneVerificationService.ResendAfter);
+        var stranger = await f.Client().StartAsync(phone);
+        stranger.VerificationId.Should().NotBe(owner.VerificationId);
+    }
+
+    [Fact]
+    public async Task Start_with_resume_id_returns_that_session_without_a_second_text()
+    {
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
         var phone = NewPhone();
         var first = await f.Client().StartAsync(phone);
         var again = await f.Client().StartAsync(phone, first.VerificationId);
         again.VerificationId.Should().Be(first.VerificationId);
-        again.Code.Should().Be(first.Code);
-        vm.OpenCalls.Should().Be(1);
+        ws.SendCalls.Should().Be(1);
     }
 
     [Fact]
     public async Task Resume_id_for_another_number_is_ignored()
     {
-        await using var f = new EngineFactory(db); f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); f.UseScriptedWeSend();
         var mine = await f.Client().StartAsync(NewPhone());
         var other = await f.Client().StartAsync(NewPhone(), mine.VerificationId);
         other.VerificationId.Should().NotBe(mine.VerificationId);
     }
 
     [Fact]
-    public async Task Sixth_start_supersedes_the_oldest_pending()
+    public async Task Concurrent_starts_for_one_number_send_one_text()
     {
-        await using var f = new EngineFactory(db); f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
         var phone = NewPhone();
-        var starts = new List<StartResponse>();
-        for (var i = 0; i < 6; i++) starts.Add(await f.Client().StartAsync(phone));
-        (await f.Client().StatusAsync(starts[0].VerificationId)).Should().Be("superseded");
-        (await f.Client().StatusAsync(starts[5].VerificationId)).Should().Be("pending");
-    }
-
-    [Fact]
-    public async Task Superseded_session_still_verifies_and_is_resumable_by_id()
-    {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
-        var phone = NewPhone();
-        var first = await f.Client().StartAsync(phone);
-        for (var i = 0; i < 5; i++) await f.Client().StartAsync(phone);
-        (await f.Client().StartAsync(phone, first.VerificationId)).VerificationId.Should().Be(first.VerificationId);
-        vm.VerifyCode(first.Code);
-        (await f.Client().StatusAsync(first.VerificationId)).Should().Be("verified");
-    }
-
-    [Fact]
-    public async Task Concurrent_starts_for_one_number_never_exceed_five_live()
-    {
-        await using var f = new EngineFactory(db); f.UseScriptedVerifyMn();
-        var phone = NewPhone();
-        await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => f.Client().StartAsync(phone)));
+        await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => f.Client().PostAsJsonAsync("/auth/phone/start", new StartRequest(phone, null))));
+        ws.SendCalls.Should().Be(1);
         await using var scope = f.Services.CreateAsyncScope();
-        var pending = await scope.ServiceProvider.GetRequiredService<AppDb>().Set<PhoneVerification>()
-            .CountAsync(v => v.Phone == phone && v.State == VerificationState.Pending);
-        pending.Should().Be(5);
-    }
-
-    [Fact]
-    public async Task Status_rereads_the_provider()
-    {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
-        var s = await f.Client().StartAsync(NewPhone());
-        (await f.Client().StatusAsync(s.VerificationId)).Should().Be("pending");
-        vm.VerifyCode(s.Code);
-        (await f.Client().StatusAsync(s.VerificationId)).Should().Be("verified");
-    }
-
-    [Fact]
-    public async Task Expired_session_reports_expired()
-    {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
-        var s = await f.Client().StartAsync(NewPhone());
-        vm.ExpireCode(s.Code);
-        (await f.Client().StatusAsync(s.VerificationId)).Should().Be("expired");
+        (await scope.ServiceProvider.GetRequiredService<AppDb>().Set<PhoneVerification>()
+            .CountAsync(v => v.Phone == phone && v.State == VerificationState.Pending)).Should().Be(1);
     }
 
     [Fact]
     public async Task Unknown_verification_is_404()
     {
-        await using var f = new EngineFactory(db); f.UseScriptedVerifyMn();
-        var r = await f.Client().GetAsync($"/auth/phone/status/{Guid.NewGuid()}");
+        await using var f = new EngineFactory(db); f.UseScriptedWeSend();
+        var r = await f.Client().CheckRawAsync(Guid.NewGuid(), "000000");
         r.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    [Fact]
-    public async Task Provider_failure_is_502_and_supersedes_nothing()
-    {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
-        var phone = NewPhone();
-        var first = await f.Client().StartAsync(phone);
-        vm.FailOpen = true;
-        var r = await f.Client().PostAsJsonAsync("/auth/phone/start", new StartRequest(phone, null));
-        r.StatusCode.Should().Be(HttpStatusCode.BadGateway);
-        (await f.Client().StatusAsync(first.VerificationId)).Should().Be("pending");
-    }
-
-    [Fact]
-    public void Fake_verify_is_refused_outside_development()
-    {
-        using var f = new EngineFactory(db).WithEnvironment("Production").WithSetting("VerifyMn:Fake", "true");
-        var act = () => f.Client();
-        act.Should().Throw<Exception>().Where(e => e.ToString().Contains("VerifyMn:Fake"));
-    }
-
-    [Fact]
-    public async Task Dev_fake_verifies_on_first_status_read()
-    {
-        var fake = new FakeVerifyMnClient();
-        var s = (await fake.OpenAsync("88112233", "123456"))!;
-        (await fake.ReadAsync(s.SessionId))!.SessionStatus.Should().Be("VERIFIED");
-    }
-
     [Theory]
-    [InlineData(FakeVerifyMnClient.StaysPending, "PENDING")]
-    [InlineData(FakeVerifyMnClient.Expires, "EXPIRED")]
-    public async Task Dev_fake_keeps_two_numbers_for_the_screens_a_real_text_reaches(string phone, string status)
+    [InlineData(CodeSent.Unavailable, HttpStatusCode.BadGateway, "auth.provider_unavailable")]
+    [InlineData(CodeSent.TooMany, HttpStatusCode.TooManyRequests, "auth.too_many_codes")]
+    [InlineData(CodeSent.BadNumber, HttpStatusCode.BadRequest, "auth.bad_phone")]
+    public async Task A_refused_send_supersedes_nothing(CodeSent refusal, HttpStatusCode status, string code)
     {
-        var fake = new FakeVerifyMnClient();
-        var s = (await fake.OpenAsync(phone, "123456"))!;
-        (await fake.ReadAsync(s.SessionId))!.SessionStatus.Should().Be(status);
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
+        var c = f.Client();
+        var phone = NewPhone();
+        var first = await c.StartAsync(phone);
+        f.Clock.Advance(PhoneVerificationService.ResendAfter);
+        ws.FailSend = refusal;
+        var r = await c.PostAsJsonAsync("/auth/phone/start", new StartRequest(phone, null));
+        r.StatusCode.Should().Be(status);
+        (await ErrorCode(r)).Should().Be(code);
+        (await StateOf(f, first.VerificationId)).Should().Be(VerificationState.Pending);
+    }
+
+    [Fact]
+    public void Fake_WeSend_is_refused_outside_development()
+    {
+        using var f = new EngineFactory(db).WithEnvironment("Production").WithSetting("WeSend:Fake", "true");
+        var act = () => f.Client();
+        act.Should().Throw<Exception>().Where(e => e.ToString().Contains("WeSend:Fake"));
+    }
+
+    [Fact]
+    public async Task Dev_fake_takes_000000_and_keeps_one_number_that_expires()
+    {
+        var fake = new FakeWeSend();
+        var s = await fake.SendCodeAsync("88112233", "mn");
+        (await fake.CheckAsync(s.Id!, "123456")).Should().Be(CodeChecked.Wrong);
+        (await fake.CheckAsync(s.Id!, FakeWeSend.Code)).Should().Be(CodeChecked.Approved);
+        var e = await fake.SendCodeAsync(FakeWeSend.Expires, "mn");
+        (await fake.CheckAsync(e.Id!, FakeWeSend.Code)).Should().Be(CodeChecked.Expired);
     }
 }

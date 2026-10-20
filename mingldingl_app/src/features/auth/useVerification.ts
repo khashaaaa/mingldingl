@@ -5,21 +5,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { duration } from '@/design/tokens';
 import { ApiError } from '@/lib/api/client';
-import {
-  completePhone,
-  completeSigil,
-  phoneStatus,
-  startPhone,
-  startSigil,
-} from '@/lib/api/generated/engine';
+import { checkPhone, completePhone, completeSigil, startPhone, startSigil } from '@/lib/api/generated/engine';
 import type { StartResponse } from '@/lib/api/generated/model';
+import { getLocale } from '@/lib/i18n';
 import { allyCall, forgetAllyCall } from '@/lib/links';
 import { signIn } from '@/lib/session';
 
-/** verify.mn has no push to the phone, so this is the one poll the app allows — while Verify is on screen. */
-export const POLL_MS = 3000;
+/** WeSend's codes are six digits. */
+export const CODE_LENGTH = 6;
 
-/** The id a number was last given, so a reopened app resumes it instead of costing another 150₮ text. */
 /**
  * How long "The gate opens" stays before the session is stored. Storing it moves the gate at once,
  * so without the hold the seal breaks off-screen.
@@ -29,17 +23,23 @@ export const OPENING_HOLD_MS = duration.ceremonyMin;
 /** While the road is broken, how often to try it again — the screen promises to carry on by itself. */
 export const OFFLINE_RETRY_MS = 5000;
 
+/** The id a number was last given, so a reopened app resumes it instead of sending another text. */
 export const verifyKey = (phone: string) => `mingl.verify.${phone}`;
 
+/** waiting: the code is texted; `error` once a typed code (or a second one asked too soon) was refused. */
 export type Verification =
   | { kind: 'starting' }
-  | { kind: 'waiting'; v: StartResponse }
+  | { kind: 'waiting'; v: StartResponse; checking?: boolean; error?: ApiError }
   | { kind: 'opening' }
   | { kind: 'expired' }
   | { kind: 'failed'; error: ApiError };
 
-/** Completing with a code that is too old or already used needs a fresh code, same as an expiry. */
-const NEEDS_NEW_CODE = new Set(['auth.verification_expired', 'auth.already_claimed']);
+/** A code that is too old, spent, or tried too often needs a fresh one, same as an expiry. */
+const NEEDS_NEW_CODE = new Set([
+  'auth.verification_expired',
+  'auth.already_claimed',
+  'auth.too_many_attempts',
+]);
 
 const asApiError = (e: unknown) =>
   e instanceof ApiError ? e : new ApiError('network', 0, 'network', String(e));
@@ -53,14 +53,15 @@ export type VerificationPurpose = { kind: 'signIn' } | { kind: 'sigil'; onMoved:
 const SIGN_IN: VerificationPurpose = { kind: 'signIn' };
 
 /**
- * Start (or resume) a verification for `phone`, poll it while focused, and complete it into a
- * session (or a sigil move). It never navigates on its own.
+ * Start (or resume) a verification for `phone` — WeSend texts the code — then check the code the
+ * person types and complete it into a session (or a sigil move). It never navigates on its own.
  */
 export function useVerification(phone: string, purpose: VerificationPurpose = SIGN_IN) {
   const [state, setState] = useState<Verification>({ kind: 'starting' });
   const focused = useIsFocused();
   const alive = useRef(true);
   const busy = useRef(false);
+  const last = useRef<StartResponse | null>(null);
 
   const set = useCallback((s: Verification) => {
     if (alive.current) setState(s);
@@ -73,14 +74,20 @@ export function useVerification(phone: string, purpose: VerificationPurpose = SI
       const key = verifyKey(phone);
       try {
         const resumeVerificationId = resume ? await SecureStore.getItemAsync(key) : null;
+        const locale = getLocale() === 'en' ? 'en' : 'mn';
         const v =
           purpose.kind === 'sigil'
-            ? await startSigil({ phone, resumeVerificationId })
-            : await startPhone({ phone, resumeVerificationId });
+            ? await startSigil({ phone, resumeVerificationId, locale })
+            : await startPhone({ phone, resumeVerificationId, locale });
         await SecureStore.setItemAsync(key, v.verificationId);
+        last.current = v;
         set({ kind: 'waiting', v });
       } catch (e) {
-        set({ kind: 'failed', error: asApiError(e) });
+        const error = asApiError(e);
+        // Asked again too soon: the code already sent still stands.
+        if (error.code === 'auth.code_cooldown' && last.current)
+          set({ kind: 'waiting', v: last.current, error });
+        else set({ kind: 'failed', error });
       }
     },
     [phone, purpose.kind, set],
@@ -114,22 +121,26 @@ export function useVerification(phone: string, purpose: VerificationPurpose = SI
     [phone, purpose, set],
   );
 
-  const waitingId = state.kind === 'waiting' ? state.v.verificationId : null;
+  const v = state.kind === 'waiting' ? state.v : null;
 
-  const check = useCallback(async () => {
-    if (!waitingId || busy.current) return;
-    busy.current = true;
-    try {
-      const { state: s } = await phoneStatus(waitingId);
-      if (s === 'verified') await complete(waitingId);
-      else if (s === 'expired') set({ kind: 'expired' });
-      // pending and superseded keep waiting: a superseded code already texted still verifies.
-    } catch {
-      // A dropped poll is not a failure; the next tick tries again.
-    } finally {
-      busy.current = false;
-    }
-  }, [waitingId, complete, set]);
+  /** The person typed the code. A wrong one stays on screen to be typed again. */
+  const submit = useCallback(
+    async (code: string) => {
+      if (!v || busy.current) return;
+      busy.current = true;
+      set({ kind: 'waiting', v, checking: true });
+      try {
+        await checkPhone({ verificationId: v.verificationId, code });
+        await complete(v.verificationId);
+      } catch (e) {
+        const error = asApiError(e);
+        set(NEEDS_NEW_CODE.has(error.code) ? { kind: 'expired' } : { kind: 'waiting', v, error });
+      } finally {
+        busy.current = false;
+      }
+    },
+    [v, complete, set],
+  );
 
   useEffect(() => {
     alive.current = true;
@@ -138,19 +149,6 @@ export function useVerification(phone: string, purpose: VerificationPurpose = SI
       alive.current = false;
     };
   }, [start]);
-
-  useEffect(() => {
-    if (!focused || !waitingId) return;
-    const timer = setInterval(check, POLL_MS);
-    // Back from the messages app: look at once rather than waiting for the next tick.
-    const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') check();
-    });
-    return () => {
-      clearInterval(timer);
-      sub.remove();
-    };
-  }, [focused, waitingId, check]);
 
   const offline = state.kind === 'failed' && state.error.kind === 'network';
   useEffect(() => {
@@ -172,7 +170,7 @@ export function useVerification(phone: string, purpose: VerificationPurpose = SI
     };
   }, [focused, offline, start]);
 
-  return { state, newCode: () => start(false), retry: () => start(true) };
+  return { state, submit, newCode: () => start(false), retry: () => start(true) };
 }
 
 function deviceName(): string {

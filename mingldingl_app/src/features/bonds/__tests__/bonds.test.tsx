@@ -65,7 +65,6 @@ const companion: SeekView = {
   state: 'companion',
   candidate: {
     accountId: 'saruul',
-    name: 'Saruul',
     age: 28,
     tier: 'Amethyst',
     place: 'Ulaanbaatar',
@@ -79,7 +78,7 @@ const companion: SeekView = {
   seatsUsed: 1,
   seats: 5,
   floor: 'yard',
-  secondLook: null,
+  secondLook: false,
   filtered: false,
 };
 
@@ -203,12 +202,13 @@ beforeEach(() => {
 });
 
 describe('Seek', () => {
-  test('a companion shows sealed, and Summon opens the bond ceremony', async () => {
+  test('a companion shows sealed and nameless, and Summon opens the bond ceremony', async () => {
     const { view } = await show('/seek');
-    expect(screen.getByText('Saruul, 28')).toBeTruthy();
+    expect(screen.getByText('A traveller, 28')).toBeTruthy();
+    expect(screen.queryByText(/Saruul/)).toBeNull();
     expect(screen.getByText('Amethyst  ·  Ulaanbaatar')).toBeTruthy();
     expect(screen.getByLabelText('4 candles left tonight')).toBeTruthy();
-    expect(screen.getByLabelText('Saruul’s sealed portrait'.replace('’', "'"))).toBeTruthy();
+    expect(screen.getByLabelText("A traveller's sealed portrait")).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: 'Summon' }));
     await settle();
     await settle();

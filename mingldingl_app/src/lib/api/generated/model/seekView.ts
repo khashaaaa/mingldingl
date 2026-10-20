@@ -15,7 +15,6 @@ export interface SeekView {
   seatsUsed: number;
   seats: number;
   floor: string;
-  /** @nullable */
-  secondLook: string | null;
+  secondLook: boolean;
   filtered: boolean;
 }

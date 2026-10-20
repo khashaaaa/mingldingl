@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { t } from '@/lib/i18n';
 import { boxShadow, withAlpha } from '../effects';
 import { MOTION } from '../motion';
 import { color, dimension, easing } from '../tokens';
@@ -44,7 +45,7 @@ export function Sheet({
       >
         <Pressable
           testID="scrim"
-          accessibilityLabel="Close"
+          accessibilityLabel={t('common.close')}
           onPress={onClose}
           style={[StyleSheet.absoluteFill, { backgroundColor: scrimColor }]}
         />

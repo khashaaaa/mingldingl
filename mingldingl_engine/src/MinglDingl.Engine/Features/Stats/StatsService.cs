@@ -51,8 +51,6 @@ public sealed class StatsService(AppDb db, IClock clock)
         ["newMembers"] = """SELECT min("StartsAt") AS at, "AccountId" AS account, 1 AS amount FROM membership_grants WHERE "RevokedAt" IS NULL GROUP BY "AccountId" """,
     };
 
-    public static readonly IReadOnlyList<string> AgeBands = ["18-24", "25-34", "35-44", "45+"];
-
     /// The rolled-up dimensions of an event: its person's city, gender and age band then, tier and floor now.
     private const string Dims = """
         COALESCE(p."City", '') AS city, COALESCE(p."Gender", '') AS gender,

@@ -54,6 +54,8 @@ import type {
   BondView,
   CallTicket,
   CampaignView,
+  CheckRequest,
+  CheckResponse,
   ChestOpened,
   ChestView,
   CityView,
@@ -83,6 +85,7 @@ import type {
   GetCodexParams,
   GetDeedsParams,
   GetLettersParams,
+  GuildAbandoned,
   GuildMe,
   GuildSession,
   GuildSessionRequest,
@@ -123,7 +126,6 @@ import type {
   StartResponse,
   StatTable,
   StatsView,
-  StatusResponse,
   ThreadAnswerRequest,
   TierView,
   TrialAnswerRequest,
@@ -7681,6 +7683,74 @@ export function useGuildInvoice<TData = Awaited<ReturnType<typeof guildInvoice>>
 
 
 
+export const getGuildAbandonUrl = () => {
+
+
+
+
+  return `/guild/abandon`
+}
+
+export const guildAbandon = async ( options?: Parameters<typeof apiFetch>[1]): Promise<GuildAbandoned> => {
+
+  return apiFetch<GuildAbandoned>(getGuildAbandonUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getGuildAbandonMutationKey = () => ['guildAbandon'] as const;
+
+export const getGuildAbandonMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof guildAbandon>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof guildAbandon>>, TError,void, TContext> => {
+
+const mutationKey = getGuildAbandonMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof guildAbandon>>, void> = () => {
+
+
+          return  guildAbandon(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GuildAbandonMutationResult = NonNullable<Awaited<ReturnType<typeof guildAbandon>>>
+
+    export type GuildAbandonMutationError = unknown
+
+
+    export const useGuildAbandon = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof guildAbandon>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof guildAbandon>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getGuildAbandonMutationOptions(options), queryClient);
+    }
+
 export const getAdminPaymentsUrl = () => {
 
 
@@ -11069,22 +11139,36 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getStartPhoneMutationOptions(options), queryClient);
     }
 
-export const getPhoneStatusUrl = (id: string,) => {
+export const getCheckPhoneUrl = () => {
 
 
 
 
-  return `/auth/phone/status/${id}`
+  return `/auth/phone/check`
 }
 
-export const phoneStatus = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<StatusResponse> => {
+export const checkPhone = async (checkRequest: CheckRequest, options?: Parameters<typeof apiFetch>[1]): Promise<CheckResponse> => {
 
-  return apiFetch<StatusResponse>(getPhoneStatusUrl(id),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<CheckResponse>(getCheckPhoneUrl(),
   {
     ...options,
-    method: 'GET'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(checkRequest)
   }
 );}
 
@@ -11092,77 +11176,50 @@ export const phoneStatus = async (id: string, options?: Parameters<typeof apiFet
 
 
 
-export const getPhoneStatusQueryKey = (id: string,) => {
-    return [
-    `/auth/phone/status/${id}`
-    ] as const;
+export const getCheckPhoneMutationKey = () => ['checkPhone'] as const;
+
+export const getCheckPhoneMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkPhone>>, TError,CheckPhoneMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof checkPhone>>, TError,CheckPhoneMutationVariables, TContext> => {
+
+const mutationKey = getCheckPhoneMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkPhone>>, CheckPhoneMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  checkPhone(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CheckPhoneMutationResult = NonNullable<Awaited<ReturnType<typeof checkPhone>>>
+    export type CheckPhoneMutationBody = CheckRequest
+    export type CheckPhoneMutationError = unknown
+    export type CheckPhoneMutationVariables = {data: CheckRequest}
+
+    export const useCheckPhone = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkPhone>>, TError,CheckPhoneMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof checkPhone>>,
+        TError,
+        CheckPhoneMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCheckPhoneMutationOptions(options), queryClient);
     }
-
-
-export const getPhoneStatusQueryOptions = <TData = Awaited<ReturnType<typeof phoneStatus>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof phoneStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getPhoneStatusQueryKey(id);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof phoneStatus>>> = ({ signal }) => phoneStatus(id, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof phoneStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type PhoneStatusQueryResult = NonNullable<Awaited<ReturnType<typeof phoneStatus>>>
-export type PhoneStatusQueryError = unknown
-
-
-export function usePhoneStatus<TData = Awaited<ReturnType<typeof phoneStatus>>, TError = unknown>(
- id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof phoneStatus>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof phoneStatus>>,
-          TError,
-          Awaited<ReturnType<typeof phoneStatus>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePhoneStatus<TData = Awaited<ReturnType<typeof phoneStatus>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof phoneStatus>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof phoneStatus>>,
-          TError,
-          Awaited<ReturnType<typeof phoneStatus>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePhoneStatus<TData = Awaited<ReturnType<typeof phoneStatus>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof phoneStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function usePhoneStatus<TData = Awaited<ReturnType<typeof phoneStatus>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof phoneStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getPhoneStatusQueryOptions(id,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
 
 export const getCompletePhoneUrl = () => {
 

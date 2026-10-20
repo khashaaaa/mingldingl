@@ -17,10 +17,6 @@ public sealed class SafetyService(
     public static readonly IReadOnlySet<string> Reasons = new HashSet<string>(StringComparer.Ordinal)
         { "rude", "money", "notWhoTheyClaim", "under18", "other" };
 
-    /// Either side has cast the other out.
-    public IQueryable<Block> Between(Guid x, Guid y) =>
-        db.Set<Block>().Where(b => (b.BlockerId == x && b.BlockedId == y) || (b.BlockerId == y && b.BlockedId == x));
-
     public async Task CastOutAsync(Guid me, Guid other, CancellationToken ct = default)
     {
         if (me == other) throw new DomainException(400, "block.self", "You cannot cast yourself out");

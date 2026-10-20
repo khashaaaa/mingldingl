@@ -3,15 +3,19 @@ using MinglDingl.Engine.Kernel.Validation;
 
 namespace MinglDingl.Engine.Features.Auth;
 
+/// locale: the language the code's text is in (mn | en, default mn).
 public sealed record StartRequest(
     [Required, StringLength(FieldLimits.Phone)] string Phone,
-    Guid? ResumeVerificationId);
+    Guid? ResumeVerificationId,
+    [StringLength(2)] string? Locale = null);
 
-public sealed record StartResponse(
-    Guid VerificationId, string Code, string DisplayInstruction, string SmsUri, DateTimeOffset ExpiresAt);
+/// resendAt: when another code may be asked for this number.
+public sealed record StartResponse(Guid VerificationId, DateTimeOffset ExpiresAt, DateTimeOffset ResendAt);
 
-/// state: pending | verified | expired | superseded
-public sealed record StatusResponse(string State);
+public sealed record CheckRequest(Guid VerificationId, [Required, StringLength(FieldLimits.SmsCode)] string Code);
+
+/// state: verified (a wrong, spent or old code is an error instead)
+public sealed record CheckResponse(string State);
 
 /// allyCode: the call that brought a new traveller (from a shared link), if any.
 public sealed record CompleteRequest(
@@ -25,6 +29,7 @@ public sealed record SessionPair(string AccessToken, DateTimeOffset AccessExpire
 
 public sealed record SigilStartRequest(
     [Required, StringLength(FieldLimits.Phone)] string Phone,
-    Guid? ResumeVerificationId);
+    Guid? ResumeVerificationId,
+    [StringLength(2)] string? Locale = null);
 
 public sealed record SigilCompleteRequest(Guid VerificationId);

@@ -125,10 +125,7 @@ public sealed class CrowdSeeder(AppDb db, PhotoService photos, IClock clock)
     {
         Id = Guid.CreateVersion7(),
         Phone = phone,
-        Code = "123456",
         ProviderId = $"crowd-{phone}",
-        DisplayInstruction = "Seeded verification",
-        SmsUri = "sms:144773?body=123456",
         State = state,
         CreatedAt = at,
         ExpiresAt = expires,

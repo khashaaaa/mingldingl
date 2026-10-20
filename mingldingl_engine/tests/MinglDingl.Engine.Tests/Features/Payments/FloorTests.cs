@@ -46,31 +46,30 @@ public class FloorTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     {
         await using var w = await World.CreateAsync(db);
         var bat = await w.PersonAsync("Bat", "Male", oath: "Bond");
-        await w.PersonAsync("Anu", "Female", oath: "Bond");
-        await w.PersonAsync("Saraa", "Female", oath: "Fate");
+        var anu = await w.PersonAsync("Anu", "Female", oath: "Bond");
+        var saraa = await w.PersonAsync("Saraa", "Female", oath: "Fate");
 
         (await CodeOf(await bat.C.PutAsJsonAsync("/seek/filters", new SeekFilterRequest(null, null, null, "Fate", null, null, null))))
             .Should().Be("membership.hall");
         (await CodeOf(await bat.C.PostAsync("/seek/second-look", null))).Should().Be("membership.hall");
 
         await w.FloorAsync(bat, Floor.Hall, days: 30);
-        (await bat.C.SeekAsync()).Candidate!.Name.Should().Be("Anu", "the same oath comes first for everyone");
+        (await bat.C.SeekAsync()).Candidate!.AccountId.Should().Be(anu.Id, "the same oath comes first for everyone");
         (await bat.C.PutAsJsonAsync("/seek/filters", new SeekFilterRequest(null, null, null, "Fate", null, null, null))).EnsureSuccessStatusCode();
         var filtered = await bat.C.SeekAsync();
         filtered.Filtered.Should().BeTrue();
-        filtered.Candidate!.Name.Should().Be("Saraa");
+        filtered.Candidate!.AccountId.Should().Be(saraa.Id);
 
         (await bat.C.PutAsJsonAsync("/seek/filters", new SeekFilterRequest(null, null, null, null, null, null, null))).EnsureSuccessStatusCode();
-        var anu = (await bat.C.SeekAsync()).Candidate!;
-        anu.Name.Should().Be("Anu");
-        (await bat.C.PostAsync($"/seek/{anu.AccountId}/pass", null)).EnsureSuccessStatusCode();
+        (await bat.C.SeekAsync()).Candidate!.AccountId.Should().Be(anu.Id);
+        (await bat.C.PostAsync($"/seek/{anu.Id}/pass", null)).EnsureSuccessStatusCode();
         var after = await bat.C.SeekAsync();
-        after.Candidate!.Name.Should().Be("Saraa");
-        after.SecondLook.Should().Be("Anu");
+        after.Candidate!.AccountId.Should().Be(saraa.Id);
+        after.SecondLook.Should().BeTrue();
 
         var back = await (await bat.C.PostAsync("/seek/second-look", null)).Read<SeekView>();
-        back.Candidate!.Name.Should().Be("Anu");
-        back.SecondLook.Should().BeNull("one a night");
+        back.Candidate!.AccountId.Should().Be(anu.Id);
+        back.SecondLook.Should().BeFalse("one a night");
         (await CodeOf(await bat.C.PostAsync("/seek/second-look", null))).Should().Be("seek.second_look_used");
     }
 

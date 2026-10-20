@@ -12,6 +12,7 @@ env:
 - tapOn: Phone number
 - inputText: ${output.phone}
 - tapOn: Continue
+- runFlow: _code.yaml
 - extendedWaitUntil: { visible: 'What does the hold call you\?', timeout: 15000 }
 - runFlow: { file: _relaunch.yaml, env: { EXPECT: 'What does the hold call you\?' } }
 - tapOn: First name

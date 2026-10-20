@@ -22,7 +22,7 @@ public sealed class HonourService(AppDb db, IClock clock, ILiveOutbox live, Fest
     private const int ScarClosedBy = 2;
 
     private sealed record Kept(Guid MeetingId, Guid BondId, Guid Other, DateTimeOffset At, DateTimeOffset ClosedAt,
-        string Venue, string District, MeetingOutcome Outcome, Guid? NoShowOf);
+        string Venue, string? VenueMn, string District, MeetingOutcome Outcome, Guid? NoShowOf);
 
     public async Task<IReadOnlyList<HonourView>> ListAsync(Guid me, CancellationToken ct = default)
     {
@@ -108,7 +108,7 @@ public sealed class HonourService(AppDb db, IClock clock, ILiveOutbox live, Fest
                 MeetingOutcome.Excused => "excused",
                 _ => "unanswered",
             };
-            log.Add(new EncounterLogRow(r.MeetingId, r.BondId, names.GetValueOrDefault(r.Other, ""), r.Venue, r.At, outcome, first));
+            log.Add(new EncounterLogRow(r.MeetingId, r.BondId, names.GetValueOrDefault(r.Other, ""), r.Venue, r.VenueMn, r.At, outcome, first));
         }
         log.Reverse();
         return new EncounterLogView(standing, log);
@@ -119,7 +119,7 @@ public sealed class HonourService(AppDb db, IClock clock, ILiveOutbox live, Fest
                join b in db.Set<Bond>() on m.BondId equals b.Id
                join v in db.Set<Venue>() on m.VenueId equals v.Id
                where (b.AId == me || b.BId == me) && m.State == MeetingState.Closed && m.Outcome != null
-               select new Kept(m.Id, b.Id, b.AId == me ? b.BId : b.AId, m.At, m.ClosedAt ?? m.At, v.Name, v.District,
+               select new Kept(m.Id, b.Id, b.AId == me ? b.BId : b.AId, m.At, m.ClosedAt ?? m.At, v.Name, v.NameMn, v.District,
                    m.Outcome!.Value, m.NoShowOf))
             .ToListAsync(ct);
 

@@ -7,8 +7,13 @@ import { E2E_ADMIN, E2E_ENGINE } from '../playwright.config';
 async function signUp(api: APIRequestContext, name: string) {
   const phone = `99${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
   const start = await (await api.post(`${E2E_ENGINE}/auth/phone/start`, { data: { phone } })).json();
-  const status = await (await api.get(`${E2E_ENGINE}/auth/phone/status/${start.verificationId}`)).json();
-  expect(status.state).toBe('verified');
+  // The fake WeSend's code is always 000000.
+  const check = await (
+    await api.post(`${E2E_ENGINE}/auth/phone/check`, {
+      data: { verificationId: start.verificationId, code: '000000' },
+    })
+  ).json();
+  expect(check.state).toBe('verified');
   const pairRes = await api.post(`${E2E_ENGINE}/auth/phone/complete`, {
     data: { verificationId: start.verificationId, deviceName: 'playwright' },
   });
@@ -188,9 +193,10 @@ test('a character pays on the web page, a second payment waits on the keepers, a
   // character is marked finished directly in the throwaway database.
   finishInDb(u.accountId);
 
-  await page.goto('/guild/');
+  await page.goto('/guild/?lang=en');
   await page.getByLabel('Phone number').fill(u.phone);
   await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('The code').fill('000000');
   await expect(page.getByRole('heading', { name: 'Climb the Guild House' })).toBeVisible({ timeout: 10_000 });
 
   const made = page.waitForResponse(
@@ -218,6 +224,41 @@ test('a character pays on the web page, a second payment waits on the keepers, a
   await expect(page.getByRole('cell', { name: 'Refunded through QPay' })).toBeVisible({ timeout: 5_000 });
   await page.getByRole('link', { name: 'The coffers' }).click();
   await expect(page.getByText('Nothing waits on the keepers.')).toBeVisible();
+});
+
+test("the web page opens in Mongolian and keeps the reader's language", async ({ page }) => {
+  await page.goto('/guild/');
+  await expect(page.getByRole('heading', { name: 'Наймааны өргөөнд ор' })).toBeVisible();
+  await expect(page.getByLabel('Утасны дугаар')).toBeVisible();
+  await page.getByRole('button', { name: 'English' }).click();
+  await expect(page.getByRole('heading', { name: 'Enter the Guild House' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Enter the Guild House' })).toBeVisible();
+  await page.getByLabel('Phone number').fill('99000002');
+  await page.getByRole('button', { name: 'Монгол хэл' }).click();
+  await page.getByRole('button', { name: 'Үргэлжлүүлэх' }).click();
+  await page.getByLabel('Код').fill('000000');
+  await expect(page.getByRole('alert')).toHaveText(/Энэ дугаартай баатар алга/, { timeout: 10_000 });
+});
+
+test("the stores' web deletion link signs a character in and abandons it", async ({ page, request }) => {
+  const u = await signUp(request, `Leave ${Date.now() % 100000}`);
+  await createProfile(request, u);
+  finishInDb(u.accountId);
+
+  await page.goto('/guild/?leave&lang=en');
+  await expect(page.getByRole('heading', { name: 'Abandon your character' })).toBeVisible();
+  await page.getByLabel('Phone number').fill(u.phone);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('The code').fill('000000');
+  await expect(page.getByRole('heading', { name: `Abandon ${u.name}?` })).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'Abandon', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'The character is abandoned' })).toBeVisible();
+
+  const me = await (
+    await request.get(`${E2E_ENGINE}/me`, { headers: { Authorization: `Bearer ${u.token}` } })
+  ).json();
+  expect(me.deleteAt).toBeTruthy();
 });
 
 function finishInDb(accountId: string) {

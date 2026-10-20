@@ -5,6 +5,9 @@ import { Linking, Platform } from 'react-native';
 /** Where "Write to the keepers" goes. Unset → the button is not shown rather than mailing nowhere. */
 export const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL || null;
 
+/** The App Store, not Google Play: the store's name, products and subscription page follow it. */
+export const onApple = Platform.OS === 'ios';
+
 const ANDROID_ID = Constants.expoConfig?.android?.package ?? 'com.mingldingl.app';
 /** The App Store listing needs the numeric id Apple assigns at first submission. */
 const IOS_STORE_URL = process.env.EXPO_PUBLIC_APP_STORE_URL || null;
@@ -28,11 +31,20 @@ export async function openStore() {
   }
 }
 
-/** Google Play's page for this app's subscription, where a store floor is cancelled or changed. */
+/** The store's page for this app's subscription, where a store floor is cancelled or changed. */
 export function manageStore() {
-  Linking.openURL(`https://play.google.com/store/account/subscriptions?package=${ANDROID_ID}`).catch(
-    () => {},
-  );
+  const url = onApple
+    ? 'https://apps.apple.com/account/subscriptions'
+    : `https://play.google.com/store/account/subscriptions?package=${ANDROID_ID}`;
+  Linking.openURL(url).catch(() => {});
+}
+
+/** Where the privacy, terms and deletion pages live (the keepers' web host). Unset → no links to them. */
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL?.replace(/\/$/, '') || null;
+export const hasLegalPages = WEB_URL !== null;
+
+export function openLegal(page: 'privacy' | 'terms') {
+  if (WEB_URL) Linking.openURL(`${WEB_URL}/${page}/`).catch(() => {});
 }
 
 export function writeToKeepers() {

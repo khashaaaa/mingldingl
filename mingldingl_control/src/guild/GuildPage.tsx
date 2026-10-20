@@ -1,123 +1,149 @@
 import QRCode from 'qrcode';
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { art } from '../design/art';
 import { Button } from '../design/Button';
 import { GuildError, guildSession } from './api/client';
 import {
+  checkPhone,
+  guildAbandon,
   guildCreateInvoice,
   guildInvoice,
   guildMe,
   guildSignIn,
-  phoneStatus,
   startPhone,
 } from './api/generated/guild';
 import type { GuildMe, InvoiceView, StartResponse } from './api/generated/model';
+import { type Lang, type Say, saveLang, startLang, words } from './words';
 
 type Floor = 'hall' | 'highTable';
 type Step =
   | { at: 'phone' }
-  | { at: 'code'; start: StartResponse }
+  | { at: 'code'; start: StartResponse; phone: string }
   | { at: 'choose'; me: GuildMe }
   | { at: 'qr'; invoice: InvoiceView }
-  | { at: 'done'; invoice: InvoiceView };
+  | { at: 'done'; invoice: InvoiceView }
+  | { at: 'leave'; me: GuildMe }
+  | { at: 'left'; deleteAt: string };
 
-const FLOOR = { hall: 'the Hall', highTable: 'the High Table' } as const;
-const GIVES = {
-  hall: 'More summons each night, two more seats at your fire, the deep profile.',
-  highTable: 'Summons to spare, four more seats, the deep profile, first seat at the bells.',
-} as const;
-const MOONS = [
-  'first',
-  'second',
-  'third',
-  'fourth',
-  'fifth',
-  'sixth',
-  'seventh',
-  'eighth',
-  'ninth',
-  'tenth',
-  'eleventh',
-  'twelfth',
-];
+const SayContext = createContext<Say>(words('mn'));
+/** The page's words in the reader's language. */
+const useSay = () => useContext(SayContext);
 
 const tugrik = (n: number) => `${n.toLocaleString('en-US')}₮`;
 
-function ordinal(n: number) {
-  const s =
-    n % 100 >= 11 && n % 100 <= 13
-      ? 'th'
-      : (({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th');
-  return `${n}${s}`;
-}
-/** "the 5th of the second moon" — the world's calendar, as in the app. */
-export const onMoon = (iso: string) => {
-  const d = new Date(iso);
-  return `the ${ordinal(d.getDate())} of the ${MOONS[d.getMonth()]} moon`;
-};
+/** `/guild/?leave` is the stores' "delete your account on the web": sign in, then Abandon. */
+const leaving = new URLSearchParams(window.location.search).has('leave');
+const signedIn = (me: GuildMe): Step => (leaving ? { at: 'leave', me } : { at: 'choose', me });
 
-const said = (e: unknown) => (e instanceof GuildError ? e.message : 'Something went wrong — try again.');
+const said = (w: Say, e: unknown) =>
+  e instanceof GuildError ? w.error(e.code, e.message) : w.error(null, null);
 
 /** A fresh key per "Pay" press: a double tap or a retry of the same press makes one invoice. */
 const newKey = () => crypto.randomUUID().replaceAll('-', '');
 
 /**
  * The Guild House on the web (Figma page S9, 216:4980–216:12458). Pay here with QPay; the floor
- * opens in the app at once. The page asks the engine while its code or QR is on screen — the only
- * waiting it does — and every answer is the engine's.
+ * opens in the app at once. The page asks the engine while its QR is on screen — the only waiting
+ * it does — and every answer is the engine's.
  */
 export function GuildPage() {
   const [step, setStep] = useState<Step>({ at: 'phone' });
   const [error, setError] = useState<string | null>(null);
+  const [lang, setLang] = useState<Lang>(startLang);
+  const w = useMemo(() => words(lang), [lang]);
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.title = `${w.say('sign')} · MingldIngl`;
+  }, [lang, w]);
 
   // Back from a reload inside the half hour: straight to the floors.
   useEffect(() => {
     if (guildSession.get())
       guildMe().then(
-        (me) => setStep({ at: 'choose', me }),
+        (me) => setStep(signedIn(me)),
         () => guildSession.clear(),
       );
   }, []);
 
   return (
-    <main className="guild">
-      <header className="guild-sign">
-        <span>The Guild House</span>
-      </header>
-      {error && (
-        <p className="guild-error" role="alert">
-          {error}
-        </p>
-      )}
-      {step.at === 'phone' && (
-        <Phone onStarted={(start) => setStep({ at: 'code', start })} onError={setError} />
-      )}
-      {step.at === 'code' && (
-        <Code
-          start={step.start}
-          onIn={(me) => setStep({ at: 'choose', me })}
-          onBack={() => setStep({ at: 'phone' })}
-          onError={setError}
-        />
-      )}
-      {step.at === 'choose' && (
-        <Choose me={step.me} onInvoice={(invoice) => setStep({ at: 'qr', invoice })} onError={setError} />
-      )}
-      {step.at === 'qr' && (
-        <Qr invoice={step.invoice} onSettled={(invoice) => setStep({ at: 'done', invoice })} />
-      )}
-      {step.at === 'done' && (
-        <Done
-          invoice={step.invoice}
-          onAgain={() =>
-            guildMe().then(
-              (me) => setStep({ at: 'choose', me }),
-              (e) => setError(said(e)),
-            )
-          }
-        />
-      )}
-    </main>
+    <SayContext.Provider value={w}>
+      <main className={`guild guild-${lang}`}>
+        <button
+          type="button"
+          className="guild-link guild-lang"
+          onClick={() => {
+            const next = lang === 'mn' ? 'en' : 'mn';
+            saveLang(next);
+            setLang(next);
+            setError(null);
+          }}
+        >
+          {w.say('switchTo')}
+        </button>
+        <header className="guild-sign">
+          <span>{w.say('sign')}</span>
+        </header>
+        {error && (
+          <p className="guild-error" role="alert">
+            {error}
+          </p>
+        )}
+        {step.at === 'phone' && (
+          <Phone onStarted={(start, phone) => setStep({ at: 'code', start, phone })} onError={setError} />
+        )}
+        {step.at === 'code' && (
+          <Code
+            start={step.start}
+            phone={step.phone}
+            onIn={(me) => setStep(signedIn(me))}
+            onBack={() => setStep({ at: 'phone' })}
+            onError={setError}
+          />
+        )}
+        {step.at === 'choose' && (
+          <>
+            <Choose me={step.me} onInvoice={(invoice) => setStep({ at: 'qr', invoice })} onError={setError} />
+            <button
+              type="button"
+              className="guild-link guild-leave"
+              onClick={() => setStep({ at: 'leave', me: step.me })}
+            >
+              {w.say('abandonLink')}
+            </button>
+          </>
+        )}
+        {step.at === 'leave' && (
+          <Leave
+            me={step.me}
+            onLeft={(deleteAt) => setStep({ at: 'left', deleteAt })}
+            onKeep={() => setStep({ at: 'choose', me: step.me })}
+            onError={setError}
+          />
+        )}
+        {step.at === 'left' && (
+          <Stone
+            art={art.guildSeal}
+            title={w.say('abandonedTitle')}
+            body={w.say('abandonedBody', { date: w.onMoon(step.deleteAt) })}
+          />
+        )}
+        {step.at === 'qr' && (
+          <Qr invoice={step.invoice} onSettled={(invoice) => setStep({ at: 'done', invoice })} />
+        )}
+        {step.at === 'done' && (
+          <Done
+            invoice={step.invoice}
+            onAgain={() =>
+              guildMe().then(
+                (me) => setStep({ at: 'choose', me }),
+                (e) => setError(said(w, e)),
+              )
+            }
+          />
+        )}
+      </main>
+    </SayContext.Provider>
   );
 }
 
@@ -125,20 +151,19 @@ function Phone({
   onStarted,
   onError,
 }: {
-  onStarted: (s: StartResponse) => void;
+  onStarted: (s: StartResponse, phone: string) => void;
   onError: (m: string | null) => void;
 }) {
+  const w = useSay();
   const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
   const valid = /^[0-9]{8}$/.test(phone);
   return (
     <section className="guild-body">
-      <h1>Enter the Guild House</h1>
-      <p className="voice">
-        Sign in with the number your character carries. Pay here, and your floor opens in the app at once.
-      </p>
+      <h1>{w.say(leaving ? 'leaveTitle' : 'enterTitle')}</h1>
+      <p className="voice">{w.say(leaving ? 'leaveBody' : 'enterBody')}</p>
       <label className="label" htmlFor="phone">
-        Phone number
+        {w.say('phone')}
       </label>
       <div className="guild-phone">
         <span>+976</span>
@@ -151,9 +176,7 @@ function Phone({
           onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
         />
       </div>
-      <p className="muted guild-small">
-        You will text a short code from this number to 144773. Your carrier charges 150₮ for that one message.
-      </p>
+      <p className="muted guild-small">{w.say('cost')}</p>
       <Button
         kind="brass"
         className="guild-cta"
@@ -162,79 +185,93 @@ function Phone({
           setBusy(true);
           onError(null);
           try {
-            onStarted(await startPhone({ phone, resumeVerificationId: null }));
+            onStarted(await startPhone({ phone, resumeVerificationId: null, locale: w.lang }), phone);
           } catch (e) {
-            onError(said(e));
+            onError(said(w, e));
           } finally {
             setBusy(false);
           }
         }}
       >
-        Continue
+        {w.say('continue')}
       </Button>
     </section>
   );
 }
 
+/** WeSend texts the code; the person types it here. A wrong one may be typed again. */
 function Code({
   start,
+  phone,
   onIn,
   onBack,
   onError,
 }: {
   start: StartResponse;
+  phone: string;
   onIn: (me: GuildMe) => void;
   onBack: () => void;
   onError: (m: string | null) => void;
 }) {
-  // The app's pace (3 s): verify.mn tells the engine when the text arrives.
-  useEffect(() => {
-    let live = true;
-    const tick = async () => {
-      try {
-        const s = await phoneStatus(start.verificationId);
-        if (!live) return;
-        if (s.state === 'verified') {
-          const session = await guildSignIn({ verificationId: start.verificationId });
-          guildSession.set(session);
-          onIn(await guildMe());
-          return;
-        }
-        if (s.state === 'expired') {
-          onError('The code went cold. Ask for a new one.');
-          onBack();
-          return;
-        }
-      } catch (e) {
-        if (!live) return;
-        onError(said(e));
-        if (e instanceof GuildError && e.status !== 0) return onBack();
+  const w = useSay();
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const full = /^[0-9]{6}$/.test(code);
+
+  const open = async (typed: string) => {
+    setBusy(true);
+    onError(null);
+    try {
+      await checkPhone({ verificationId: start.verificationId, code: typed });
+      guildSession.set(await guildSignIn({ verificationId: start.verificationId }));
+      onIn(await guildMe());
+    } catch (e) {
+      setCode('');
+      if (e instanceof GuildError && e.code === 'auth.wrong_code') onError(said(w, e));
+      else if (
+        e instanceof GuildError &&
+        ['auth.verification_expired', 'auth.too_many_attempts'].includes(e.code)
+      ) {
+        onError(w.say('codeCold'));
+        onBack();
+      } else {
+        onError(said(w, e));
+        if (e instanceof GuildError && e.status !== 0) onBack();
       }
-      if (live) timer = window.setTimeout(tick, 3000);
-    };
-    let timer = window.setTimeout(tick, 3000);
-    return () => {
-      live = false;
-      window.clearTimeout(timer);
-    };
-  }, [start, onIn, onBack, onError]);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <section className="guild-body guild-center">
-      <h1>Send this code</h1>
-      <p className="guild-code">{start.code.replace(/(\d{3})(\d{3})/, '$1 $2')}</p>
-      <p className="guild-to">to 144773</p>
-      <p className="guild-instruction">{start.displayInstruction}</p>
-      <p className="voice guild-listen">The gatekeeper listens for your word</p>
-      <a
-        className="btn btn-brass guild-cta"
-        style={{ '--brass': `url(${art.brass})` } as React.CSSProperties}
-        href={start.smsUri}
-      >
-        Open messages
-      </a>
+    <section className="guild-body">
+      <h1>{w.say('codeTitle')}</h1>
+      <p className="voice">{w.say('sentTo', { phone: phone.replace(/^(\d{4})(\d+)$/, '$1 $2') })}</p>
+      <label className="label" htmlFor="code">
+        {w.say('codeLabel')}
+      </label>
+      <div className="guild-phone">
+        <input
+          id="code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          // biome-ignore lint/a11y/noAutofocus: the code is the step's only ask
+          autoFocus
+          maxLength={6}
+          value={code}
+          disabled={busy}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
+            setCode(digits);
+            if (digits.length === 6 && !busy) open(digits);
+          }}
+        />
+      </div>
+      <Button kind="brass" className="guild-cta" disabled={!full || busy} onClick={() => open(code)}>
+        {w.say('open')}
+      </Button>
       <button type="button" className="guild-link" onClick={onBack}>
-        Use another number
+        {w.say('otherNumber')}
       </button>
     </section>
   );
@@ -249,6 +286,7 @@ function Choose({
   onInvoice: (i: InvoiceView) => void;
   onError: (m: string | null) => void;
 }) {
+  const w = useSay();
   const [floor, setFloor] = useState<Floor>('hall');
   const [months, setMonths] = useState(3);
   const [busy, setBusy] = useState(false);
@@ -256,24 +294,17 @@ function Choose({
   const offer = (f: Floor, n: number) => me.offers.find((o) => o.floor === f && o.months === n);
   const chosen = offer(floor, months);
   if (!me.membership.open)
-    return (
-      <Stone
-        art={art.guildSeal}
-        title="The coffers are sealed"
-        body="Payment is not open yet. Every floor will open soon; the game is the same until then."
-      />
-    );
+    return <Stone art={art.guildSeal} title={w.say('sealedTitle')} body={w.say('sealedBody')} />;
   return (
     <section className="guild-body">
-      <h1>Climb the Guild House</h1>
-      <p className="voice">
-        {me.name}, every floor plays the same game and keeps the same word. Higher floors hold more bonds at
-        once and see deeper.
-      </p>
+      <h1>{w.say('climbTitle')}</h1>
+      <p className="voice">{w.say('climbBody', { name: me.name })}</p>
       {me.membership.floor !== 'yard' && me.membership.until && (
         <p className="label guild-now">
-          You sit in {me.membership.floor === 'highTable' ? FLOOR.highTable : FLOOR.hall} until{' '}
-          {onMoon(me.membership.until)}. Time bought now follows on.
+          {w.say('youSit', {
+            floor: w.say(me.membership.floor === 'highTable' ? 'highTable' : 'hall'),
+            date: w.onMoon(me.membership.until),
+          })}
         </p>
       )}
       <div className="guild-cards">
@@ -294,14 +325,14 @@ function Choose({
             />
             <span>
               <strong>
-                {f === 'hall' ? 'The Hall' : 'The High Table'} · {tugrik(offer(f, 1)?.amount ?? 0)}
+                {w.say(f === 'hall' ? 'Hall' : 'HighTable')} · {tugrik(offer(f, 1)?.amount ?? 0)}
               </strong>
-              <small>{GIVES[f]}</small>
+              <small>{w.say(f === 'hall' ? 'hallGives' : 'highTableGives')}</small>
             </span>
           </button>
         ))}
       </div>
-      <p className="label">How long</p>
+      <p className="label">{w.say('howLong')}</p>
       <div className="guild-chips">
         {[1, 3, 6].map((n) => {
           const o = offer(floor, n);
@@ -316,7 +347,7 @@ function Choose({
                 key.current = newKey();
               }}
             >
-              {n} {n === 1 ? 'moon' : 'moons'} · {tugrik(o?.amount ?? 0)}
+              {w.chip(n)} · {tugrik(o?.amount ?? 0)}
               {o?.discountPercent ? ` · −${o.discountPercent}%` : ''}
             </button>
           );
@@ -332,19 +363,73 @@ function Choose({
           try {
             onInvoice(await guildCreateInvoice({ floor, months, key: key.current }));
           } catch (e) {
-            onError(said(e));
+            onError(said(w, e));
           } finally {
             setBusy(false);
           }
         }}
       >
-        Pay {tugrik(chosen?.amount ?? 0)} with QPay
+        {w.say('pay', { amount: tugrik(chosen?.amount ?? 0) })}
       </Button>
     </section>
   );
 }
 
+function Leave({
+  me,
+  onLeft,
+  onKeep,
+  onError,
+}: {
+  me: GuildMe;
+  onLeft: (deleteAt: string) => void;
+  onKeep: () => void;
+  onError: (m: string | null) => void;
+}) {
+  const w = useSay();
+  const [busy, setBusy] = useState(false);
+  const store = me.membership.source === 'store';
+  return (
+    <section className="guild-body">
+      <h1>{w.say('leaveQuestion', { name: me.name })}</h1>
+      <p className="voice">{w.say('leaveWarn')}</p>
+      {me.membership.floor !== 'yard' && (
+        <p className="label guild-now">
+          {w.say(store ? 'floorGoesStore' : 'floorGoes', {
+            floor: w.say(me.membership.floor === 'highTable' ? 'HighTable' : 'Hall'),
+          })}
+        </p>
+      )}
+      <Button
+        kind="brass"
+        className="guild-cta"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          onError(null);
+          try {
+            const { deleteAt } = await guildAbandon();
+            guildSession.clear();
+            onLeft(deleteAt);
+          } catch (e) {
+            onError(said(w, e));
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {w.say('abandon')}
+      </Button>
+      <button type="button" className="guild-link" onClick={onKeep}>
+        {w.say('keep')}
+      </button>
+    </section>
+  );
+}
+
 function Qr({ invoice, onSettled }: { invoice: InvoiceView; onSettled: (i: InvoiceView) => void }) {
+  const w = useSay();
+  const floor = w.say(invoice.floor === 'highTable' ? 'highTable' : 'hall');
   const [svg, setSvg] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
 
@@ -376,21 +461,15 @@ function Qr({ invoice, onSettled }: { invoice: InvoiceView; onSettled: (i: Invoi
 
   if (waiting)
     return (
-      <Stone
-        art={art.stateWaiting}
-        title="Waiting for the payment"
-        body={`Finish in your bank app. We will open ${FLOOR[invoice.floor as Floor]} the moment it lands.`}
-      />
+      <Stone art={art.stateWaiting} title={w.say('waitingTitle')} body={w.say('waitingBody', { floor })} />
     );
   return (
     <section className="guild-body guild-center">
-      <h1>Scan to pay</h1>
+      <h1>{w.say('scanTitle')}</h1>
       <p className="voice">
-        {tugrik(invoice.amount)} · {FLOOR[invoice.floor as Floor]} for{' '}
-        {invoice.months === 1 ? 'one moon' : `${invoice.months} moons`}. Scan with any bank app. This code
-        holds for fifteen minutes.
+        {w.say('scanBody', { amount: tugrik(invoice.amount), floor, months: w.months(invoice.months) })}
       </p>
-      <div className="guild-qr" role="img" aria-label="QPay code">
+      <div className="guild-qr" role="img" aria-label={w.say('qrLabel')}>
         {invoice.qrImage ? (
           <img alt="" src={`data:image/png;base64,${invoice.qrImage}`} />
         ) : (
@@ -411,37 +490,31 @@ function Qr({ invoice, onSettled }: { invoice: InvoiceView; onSettled: (i: Invoi
 }
 
 function Done({ invoice, onAgain }: { invoice: InvoiceView; onAgain: () => void }) {
-  const floor = FLOOR[invoice.floor as Floor];
+  const w = useSay();
+  const high = invoice.floor === 'highTable';
+  const floor = w.say(high ? 'highTable' : 'hall');
   if (invoice.state === 'paid')
     return (
       <Stone
         art={art.honourLocked}
-        title={`Welcome to ${floor}`}
-        body={`Open MingldIngl. ${floor[0].toUpperCase()}${floor.slice(1)} is already yours.`}
-        line={
-          invoice.paidUntil
-            ? `Paid until ${onMoon(invoice.paidUntil)} · it will not renew on its own`
-            : undefined
-        }
+        title={w.say('welcomeTitle', { floor })}
+        body={w.say('welcomeBody', { Floor: w.say(high ? 'HighTable' : 'Hall') })}
+        line={invoice.paidUntil ? w.say('paidUntil', { date: w.onMoon(invoice.paidUntil) }) : undefined}
       />
     );
   if (invoice.state === 'cold')
     return (
-      <Stone
-        art={art.guildSeal}
-        title="The code went cold"
-        body="Fifteen minutes passed and nothing was paid. Nothing was taken."
-      >
+      <Stone art={art.guildSeal} title={w.say('coldTitle')} body={w.say('coldBody')}>
         <Button kind="brass" className="guild-cta" onClick={onAgain}>
-          New code
+          {w.say('newCode')}
         </Button>
       </Stone>
     );
   return (
     <Stone
       art={art.guildSeal}
-      title="Your payment is coming back"
-      body={`We could not open the floor, so ${tugrik(invoice.amount)} is on its way back to your bank. It lands within three days.`}
+      title={w.say('refundTitle')}
+      body={w.say('refundBody', { amount: tugrik(invoice.amount) })}
     />
   );
 }

@@ -14,10 +14,10 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 {
     private static async Task<string?> Code(HttpResponseMessage r) => (await r.Content.ReadFromJsonAsync<ErrorBody>())?.Code;
 
-    private static async Task<(EngineFactory F, MemoryPhotoStore Store, HttpClient C, ScriptedVerifyMn Vm)> Ready(PostgresFixture db)
+    private static async Task<(EngineFactory F, MemoryPhotoStore Store, HttpClient C, ScriptedWeSend Vm)> Ready(PostgresFixture db)
     {
         var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var store = f.UseMemoryPhotoStore();
         var s = await f.SignInAsync(vm);
         var c = f.As(s);
@@ -172,7 +172,7 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     {
         var f = new EngineFactory(db);
         await using var _f = f;
-        var vm = f.UseScriptedVerifyMn(); f.UseMemoryPhotoStore();
+        var vm = f.UseScriptedWeSend(); f.UseMemoryPhotoStore();
         var s = await f.SignInAsync(vm);
         var c = f.As(s);
         await c.CreateAsync();

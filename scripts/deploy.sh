@@ -16,6 +16,8 @@ fi
 
 api=$(ssh server "sed -n 's/^PUBLIC_API_URL=//p' /etc/mingldingl/engine.env")
 [[ -n "$api" ]] || { echo "PUBLIC_API_URL is not set in the server's /etc/mingldingl/engine.env"; exit 1; }
+mail=$(ssh server "sed -n 's/^SUPPORT_EMAIL=//p' /etc/mingldingl/engine.env")
+[[ -n "$mail" ]] || { echo "SUPPORT_EMAIL is not set in the server's /etc/mingldingl/engine.env (the legal pages print it)"; exit 1; }
 
 echo "▶ engine: publish (linux-x64, self-contained, ReadyToRun)"
 dotnet publish mingldingl_engine/src/MinglDingl.Engine -c Release -r linux-x64 --self-contained \
@@ -23,7 +25,7 @@ dotnet publish mingldingl_engine/src/MinglDingl.Engine -c Release -r linux-x64 -
 rm -f "$OUT"/engine/appsettings.Development.json*
 
 echo "▶ web: build against $api"
-(cd mingldingl_control && VITE_API_URL="$api" npx vite build --outDir "$OUT/web" --emptyOutDir --logLevel warn)
+(cd mingldingl_control && VITE_API_URL="$api" VITE_SUPPORT_EMAIL="$mail" npx vite build --outDir "$OUT/web" --emptyOutDir --logLevel warn)
 
 echo "▶ ship"
 rsync -az --delete "$OUT/engine/" server:/opt/mingldingl/engine/

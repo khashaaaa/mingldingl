@@ -1,0 +1,75 @@
+/* The public pages the stores link to (privacy, terms, deletion): plain HTML, the night floor and
+   the app's type, Mongolian first. Pirata One has no Cyrillic, so Mongolian titles use Yeseva One. */
+@import "@fontsource/eb-garamond/400.css";
+@import "@fontsource/eb-garamond/600.css";
+@import "@fontsource/pirata-one/400.css";
+@import "@fontsource/yeseva-one/400.css";
+@import "../design/tokens.css";
+@import "../design/base.css";
+
+body {
+  background: linear-gradient(180deg, var(--night-sky-950), var(--night-sky-900) 55%, var(--ember-700));
+  background-attachment: fixed;
+}
+
+.legal {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--size-gutter) var(--space-8);
+}
+
+.legal nav {
+  display: flex;
+  gap: var(--space-4);
+  font: var(--font-label-m);
+  color: var(--color-text-secondary);
+}
+
+.legal nav a {
+  color: var(--color-accent-gold);
+}
+
+.legal article {
+  padding-top: var(--space-7);
+}
+
+.legal article + article {
+  margin-top: var(--space-7);
+  border-top: var(--stroke-hairline) solid var(--color-border-strong);
+}
+
+.legal h1 {
+  margin: 0 0 var(--space-2);
+  font: var(--font-display-l);
+  color: var(--color-text-primary);
+}
+
+.legal [lang="mn"] h1 {
+  font: var(--font-title-room-mn);
+}
+
+.legal h2 {
+  margin: var(--space-6) 0 var(--space-2);
+  font: var(--font-label-m);
+  letter-spacing: 0.04em;
+  color: var(--color-accent-gold-bright);
+}
+
+.legal p,
+.legal li {
+  color: var(--color-text-secondary);
+}
+
+.legal ul,
+.legal ol {
+  padding-left: var(--space-5);
+}
+
+.legal .stamp {
+  font: var(--font-body-s);
+  color: var(--color-text-muted);
+}
+
+.legal a {
+  color: var(--color-accent-gold);
+}

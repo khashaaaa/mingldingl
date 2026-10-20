@@ -4,7 +4,6 @@ using MinglDingl.Engine.Features.Admin;
 using MinglDingl.Engine.Features.Membership;
 using MinglDingl.Engine.Kernel;
 using MinglDingl.Engine.Kernel.Auth;
-using MinglDingl.Engine.Kernel.Errors;
 
 namespace MinglDingl.Engine.Features.Payments;
 
@@ -32,6 +31,10 @@ public sealed class PaymentEndpoints : IEndpointModule
             .RequireRateLimiting(Kernel.RateLimits.RateLimitPolicies.Writes).WithName("GuildCreateInvoice");
         guild.MapGet("/invoices/{id:guid}", (Guid id, ClaimsPrincipal u, PaymentService p, CancellationToken ct) =>
             p.GuildInvoiceAsync(u.AccountId(), id, ct)).RequireAuthorization(GuildAuth.Policy).WithName("GuildInvoice");
+        // The stores' "delete your account on the web": the same Abandon as the War Room's.
+        guild.MapPost("/abandon", async (ClaimsPrincipal u, Auth.AccountService accounts, CancellationToken ct) =>
+            new GuildAbandoned(await accounts.AbandonAsync(u.AccountId(), ct))).RequireAuthorization(GuildAuth.Policy)
+            .RequireRateLimiting(Kernel.RateLimits.RateLimitPolicies.Writes).WithName("GuildAbandon");
 
         // Providers. QPay's callback only prompts a check; RevenueCat's webhook only prompts a sync.
         var hooks = app.MapGroup("/payments").WithTags("Payments").ExcludeFromDescription();

@@ -77,6 +77,11 @@ export function tPlace(name: string): string {
   return key in en ? t(key as StringKey) : name.replace(/ \(UB\)$/, '');
 }
 
+/** A partner place's name: its Mongolian name for a Mongolian reader once the keepers wrote one. */
+export function tVenue(v: { name: string; nameMn?: string | null }): string {
+  return current === 'mn' && v.nameMn ? v.nameMn : v.name;
+}
+
 /** An engine rule in the person's language when the app has its line (`error.<code>`); else as sent. */
 export function tError(code: string, message: string): string {
   const key = `error.${code}`;

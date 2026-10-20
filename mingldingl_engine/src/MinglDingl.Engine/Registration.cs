@@ -38,18 +38,18 @@ public static class Registration
         s.AddRateLimits(config);
 
         // Auth
-        if (config.GetValue<bool>("VerifyMn:Fake"))
+        if (config.GetValue<bool>("WeSend:Fake"))
         {
             if (!env.IsDevelopment())
-                throw new InvalidOperationException("VerifyMn:Fake is only allowed in Development");
-            s.AddSingleton<IVerifyMnClient, FakeVerifyMnClient>();
+                throw new InvalidOperationException("WeSend:Fake is only allowed in Development");
+            s.AddSingleton<IWeSend, FakeWeSend>();
         }
         else
         {
-            s.AddHttpClient<IVerifyMnClient, VerifyMnClient>(c =>
+            s.AddHttpClient<IWeSend, WeSendClient>(c =>
             {
-                c.BaseAddress = new Uri((config["VerifyMn:BaseUrl"] ?? "https://api.verify.mn").TrimEnd('/') + "/");
-                c.DefaultRequestHeaders.Authorization = new("Bearer", config["VerifyMn:ApiKey"]);
+                c.BaseAddress = new Uri((config["WeSend:BaseUrl"] ?? "https://api.wesend.mn").TrimEnd('/') + "/");
+                c.DefaultRequestHeaders.Authorization = new("Bearer", config["WeSend:ApiKey"]);
                 c.Timeout = TimeSpan.FromSeconds(10);
             });
         }
@@ -220,6 +220,7 @@ public static class Registration
         {
             s.AddScoped<DevSeeder>();
             s.AddScoped<CrowdSeeder>();
+            s.AddScoped<WorldSeeder>();
             s.AddSingleton<IEndpointModule, DevEndpoints>();
         }
 

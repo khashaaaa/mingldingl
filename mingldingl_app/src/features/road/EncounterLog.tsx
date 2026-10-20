@@ -10,7 +10,7 @@ import { Txt } from '@/design/components/Txt';
 import { dimension } from '@/design/tokens';
 import { useGetEncounterLog, useGetSeason } from '@/lib/api/generated/engine';
 import type { EncounterLogRow, SeasonView, StandingView } from '@/lib/api/generated/model';
-import { getLocale, type StringKey, t, tCount, tLine, tPlace } from '@/lib/i18n';
+import { getLocale, type StringKey, t, tCount, tLine, tPlace, tVenue } from '@/lib/i18n';
 import { Scene } from '../common/Scene';
 
 const CARTOGRAPHER = 3;
@@ -41,7 +41,7 @@ export default function EncounterLog() {
             {log.encounters.map((e) => (
               <Row
                 key={e.meetingId}
-                title={t('log.row', { name: e.name, venue: e.venue })}
+                title={t('log.row', { name: e.name, venue: tVenue({ name: e.venue, nameMn: e.venueMn }) })}
                 subtitle={outcome(e)}
                 meta={new Date(e.at)
                   .toLocaleDateString(getLocale() === 'mn' ? 'mn-MN' : 'en-GB', {

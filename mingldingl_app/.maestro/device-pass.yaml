@@ -1,7 +1,7 @@
 # The device pass (run by device-pass.sh): every foundation screen (sign-in, onboarding, Character,
 # Edit) in the state its Figma frame shows, one screenshot each, named ${LOCALE}-<frame id>. Taps
 # match the English or the Mongolian line, so the same flow runs in both.
-#   Needs scripts/dev.sh (fake verify.mn: 99000000 stays pending, 99000001 expires) and the seed album.
+#   Needs scripts/dev.sh (fake WeSend: every code is 000000, 99000001's expires) and the seed album.
 appId: com.mingldingl.app
 env:
   METRO_URL: http%3A%2F%2F192.168.1.32%3A8081
@@ -29,7 +29,7 @@ env:
 - eraseText: 8
 - inputText: '99000000'
 - tapOn: Continue
-- extendedWaitUntil: { visible: Open messages, timeout: 15000 }
+- extendedWaitUntil: { visible: 'Speak the code|Кодоо хэл', timeout: 15000 }
 - waitForAnimationToEnd
 - takeScreenshot: ${LOCALE}-23-141
 
@@ -38,6 +38,7 @@ env:
 - eraseText: 8
 - inputText: '99000001'
 - tapOn: Continue
+- runFlow: _code.yaml
 - extendedWaitUntil: { visible: 'That code expired|Кодын хугацаа дууслаа', timeout: 20000 }
 - waitForAnimationToEnd
 - takeScreenshot: ${LOCALE}-23-285
@@ -47,6 +48,7 @@ env:
 - eraseText: 8
 - inputText: ${PHONE}
 - tapOn: Continue
+- runFlow: _code.yaml
 - extendedWaitUntil: { visible: 'The gate opens|Хаалга нээгдэж байна', timeout: 15000 }
 - takeScreenshot: ${LOCALE}-23-216
 

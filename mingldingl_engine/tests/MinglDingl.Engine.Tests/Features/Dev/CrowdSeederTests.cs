@@ -2,9 +2,15 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MinglDingl.Engine.Features.Auth;
+using MinglDingl.Engine.Features.Bonds;
 using MinglDingl.Engine.Features.Dev;
+using MinglDingl.Engine.Features.Encounters;
+using MinglDingl.Engine.Features.Honours;
 using MinglDingl.Engine.Features.Photos;
 using MinglDingl.Engine.Features.Profile;
+using MinglDingl.Engine.Features.Score;
+using MinglDingl.Engine.Features.Venues;
+using MinglDingl.Engine.Kernel.Config;
 using MinglDingl.Engine.Kernel.Persistence;
 using MinglDingl.Engine.Tests.Infrastructure;
 
@@ -29,38 +35,6 @@ public class CrowdSeederTests(PostgresFixture db) : IClassFixture<PostgresFixtur
         foreach (var c in crowd)
             for (var i = 0; i < c.Photos; i++)
                 File.Exists(Path.Combine(AppContext.BaseDirectory, "Seed", "crowd", $"{c.Id}_{i}.jpg")).Should().BeTrue(c.Id);
-    }
-
-    /// crowd-world.json is read by the stage 3–6 seeders; until then it must already be consistent.
-    [Fact]
-    public void Crowd_world_refers_only_to_crowd_people_and_never_contradicts_itself()
-    {
-        var crowd = CrowdSeeder.Load().ToDictionary(c => c.Phone);
-        using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Seed", "crowd", "crowd-world.json")));
-        var w = doc.RootElement;
-        string P(System.Text.Json.JsonElement e, string k) => e.GetProperty(k).GetString()!;
-
-        foreach (var s in w.GetProperty("standing").EnumerateArray())
-            crowd[P(s, "phone")].State.Should().NotBe("Onboarding");
-        var tiers = w.GetProperty("standing").EnumerateArray().Select(s => P(s, "tier")).Distinct();
-        tiers.Should().BeEquivalentTo(["Garnet", "Opal", "Amethyst", "Sapphire", "Ruby", "Emerald"]);
-
-        var blocked = w.GetProperty("blocks").EnumerateArray()
-            .Select(b => (P(b, "by"), P(b, "blocked"))).ToList();
-        blocked.Should().OnlyContain(b => crowd.ContainsKey(b.Item1) && crowd.ContainsKey(b.Item2) && b.Item1 != b.Item2);
-
-        var pairs = new HashSet<(string, string)>();
-        foreach (var m in w.GetProperty("matches").EnumerateArray())
-        {
-            var (a, b) = (P(m, "a"), P(m, "b"));
-            crowd.Should().ContainKey(a).And.ContainKey(b);
-            crowd[a].Gender.Should().NotBe(crowd[b].Gender, $"{a}–{b}");
-            pairs.Add((a, b)).Should().BeTrue($"{a}–{b} matched twice");
-            if (P(m, "status") == "Active")
-                blocked.Should().NotContain(x => (x.Item1 == a && x.Item2 == b) || (x.Item1 == b && x.Item2 == a));
-        }
-        foreach (var r in w.GetProperty("reports").EnumerateArray())
-            crowd.Should().ContainKey(P(r, "by")).And.ContainKey(P(r, "against"));
     }
 
     [Fact]
@@ -88,6 +62,60 @@ public class CrowdSeederTests(PostgresFixture db) : IClassFixture<PostgresFixtur
             (await store.Set<DeviceSession>().CountAsync(d => d.AccountId == account.Id)).Should().Be(c.Devices.Count, c.Id);
             if (c.Edge == "turns18today") me.Profile!.Age.Should().Be(18);
             else if (me.Profile is not null) me.Profile.Age.Should().Be(c.Age, c.Id);
+        }
+    }
+
+    /// The world, read back through the services the app uses: every hero bond renders, the seals
+    /// match the letters, points match the deeds, nobody holds more live bonds than their seats,
+    /// and a second run lands the same world.
+    [Fact]
+    public async Task World_gives_the_hero_every_stage_and_stays_inside_the_rules()
+    {
+        await using var f = new EngineFactory(db);
+        f.UseMemoryPhotoStore();
+        await using var scope = f.Services.CreateAsyncScope();
+        var sp = scope.ServiceProvider;
+        var crowd = await sp.GetRequiredService<CrowdSeeder>().ApplyAsync();
+        var dev = sp.GetRequiredService<DevSeeder>();
+        var hero = await dev.EnsureAccountAsync("99123456");
+        await dev.ApplyAsync(hero, SeedState.Finished);
+        var store = sp.GetRequiredService<AppDb>();
+        var world = sp.GetRequiredService<WorldSeeder>();
+
+        await world.ApplyAsync(crowd, hero);
+        var counts = (await store.Set<Bond>().CountAsync(), await store.Set<Letter>().CountAsync(), await store.Set<Venue>().CountAsync());
+        store.ChangeTracker.Clear();
+        await world.ApplyAsync(crowd, hero);
+        (await store.Set<Bond>().CountAsync(), await store.Set<Letter>().CountAsync(), await store.Set<Venue>().CountAsync())
+            .Should().Be(counts);
+
+        var rows = await sp.GetRequiredService<BondService>().ListAsync(hero);
+        rows.Should().HaveCount(13);
+        rows.Count(r => r.State == "Live").Should().Be(7);
+        rows.Select(r => r.State).Distinct().Should().BeEquivalentTo(["Live", "Cold", "Severed", "Faded"]);
+        rows.Should().Contain(r => r.Embers).And.Contain(r => r.MyTurn).And.Contain(r => r.State == "Live" && r.LastLetter == null);
+        foreach (var r in rows.Where(r => r.State == "Live"))
+            await sp.GetRequiredService<EncounterService>().GetAsync(hero, r.Id);
+        var log = await sp.GetRequiredService<HonourService>().LogAsync(hero);
+        log.Standing.Kept.Should().Be(2);
+        log.Standing.OpenScars.Should().Be(0);
+        log.Encounters.Should().Contain(e => e.Outcome == "noShow");
+
+        var config = sp.GetRequiredService<IConfig>();
+        var seals = new[] { ConfigKeys.Seal1, ConfigKeys.Seal2, ConfigKeys.Seal3, ConfigKeys.Seal4 }.Select(config.Int).ToArray();
+        foreach (var b in await store.Set<Bond>().AsNoTracking().ToListAsync())
+        {
+            b.Seals.Should().Be(seals.Count(t => b.Mutual >= t), b.Id.ToString());
+            (await store.Set<Letter>().CountAsync(l => l.BondId == b.Id && l.AuthorId == b.AId)).Should().Be(b.LettersA);
+            (await store.Set<Letter>().CountAsync(l => l.BondId == b.Id && l.AuthorId == b.BId)).Should().Be(b.LettersB);
+        }
+        foreach (var p in await store.Set<MinglDingl.Engine.Features.Profile.Profile>().AsNoTracking().Where(p => p.WelcomedAt != null).ToListAsync())
+        {
+            var sum = await store.Set<ScoreEvent>().Where(e => e.AccountId == p.AccountId).SumAsync(e => e.Amount);
+            p.Points.Should().Be(Math.Max(0, sum), p.Name);
+            p.Tier.Should().Be(Tiers.For(p.Points, config), p.Name);
+            (await store.Set<Bond>().CountAsync(b => b.State == BondState.Live && (b.AId == p.AccountId || b.BId == p.AccountId)))
+                .Should().BeLessThanOrEqualTo(config.Int(ConfigKeys.SeatsBase) + Tiers.Index(p.Tier), p.Name);
         }
     }
 }

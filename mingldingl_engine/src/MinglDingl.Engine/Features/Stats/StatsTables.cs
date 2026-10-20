@@ -243,7 +243,7 @@ public sealed class StatsTables(AppDb db, IClock clock, IConfig config, IConfigu
             await ReachAsync("QPay", settings["QPay:Fake"] == "True" || settings["QPay:Fake"] == "true" ? null : (settings["QPay:BaseUrl"] ?? "https://merchant.qpay.mn/v2"), ct),
             await ReachAsync("RevenueCat", settings["RevenueCat:Fake"] == "True" || settings["RevenueCat:Fake"] == "true" ? null : "https://api.revenuecat.com", ct),
             await ReachAsync("Agora", "https://api.agora.io", ct),
-            await ReachAsync("verify.mn", settings["VerifyMn:Fake"] == "True" || settings["VerifyMn:Fake"] == "true" ? null : (settings["VerifyMn:BaseUrl"] ?? "https://api.verify.mn"), ct),
+            await ReachAsync("WeSend", settings["WeSend:Fake"] == "True" || settings["WeSend:Fake"] == "true" ? null : (settings["WeSend:BaseUrl"] ?? "https://api.wesend.mn"), ct),
         };
         return new HealthView(version, ops.StartedAt, size, backup, pushQueue.Reader.Count, ops.DailySweepAt, ops.PaymentSweepAt, watched,
             ops.StatsRolledAt, checks);

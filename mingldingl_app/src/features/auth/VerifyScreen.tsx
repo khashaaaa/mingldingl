@@ -1,25 +1,41 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { StyleSheet, type TextInput } from 'react-native';
 import { Art } from '@/design/components/Art';
 import { Button } from '@/design/components/Button';
 import { InkLink } from '@/design/components/InkLink';
+import { Input } from '@/design/components/Input';
 import { RoomHeader } from '@/design/components/RoomHeader';
 import { StateBlock } from '@/design/components/StateBlock';
 import { Txt } from '@/design/components/Txt';
-import { boxShadow } from '@/design/effects';
-import { color, dimension } from '@/design/tokens';
 import { feedback } from '@/lib/feedback';
 import { t, tError } from '@/lib/i18n';
 import { Scene } from '../common/Scene';
-import { useVerification, type VerificationPurpose } from './useVerification';
+import { CODE_LENGTH, useVerification, type VerificationPurpose } from './useVerification';
 
-/** "482913" → "482 913": two groups read and type more easily. */
-const grouped = (code: string) => code.replace(/^(\d{3})(\d+)$/, '$1 $2');
+/** "88581234" → "8858 1234", as the person wrote it. */
+const spaced = (phone: string) => phone.replace(/^(\d{4})(\d+)$/, '$1 $2');
+
+const secondsUntil = (at: string) => Math.max(0, Math.ceil((Date.parse(at) - Date.now()) / 1000));
+
+/** Seconds until `at`, never below zero, ticking once a second while there are any. */
+function useSecondsUntil(at: string) {
+  const [secs, setSecs] = useState(() => secondsUntil(at));
+  useEffect(() => {
+    setSecs(secondsUntil(at));
+    const timer = setInterval(() => {
+      const s = secondsUntil(at);
+      setSecs(s);
+      if (s === 0) clearInterval(timer);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [at]);
+  return secs;
+}
 
 /**
- * The person texts our code to 144773 from the number they claim; verify.mn tells the engine.
- * Nothing is typed here. Once the number is proven the session is stored and the gate takes over.
+ * WeSend texts a six-digit code to the number claimed; the person types it here. Once the number
+ * is proven the session is stored and the gate takes over.
  */
 export default function VerifyScreen() {
   const { phone = '' } = useLocalSearchParams<{ phone: string }>();
@@ -36,8 +52,7 @@ export function Verify({
   room: string;
   purpose?: VerificationPurpose;
 }) {
-  const { state, newCode, retry } = useVerification(phone, purpose);
-  const [openFailed, setOpenFailed] = useState(false);
+  const { state, submit, newCode, retry } = useVerification(phone, purpose);
   const header = <RoomHeader title={room} onBack={router.back} />;
 
   useEffect(() => {
@@ -97,73 +112,106 @@ export function Verify({
         </Scene>
       );
     }
-    case 'waiting': {
-      const { v } = state;
+    case 'waiting':
       return (
-        <Scene
+        <CodeEntry
           header={header}
-          footer={
-            <>
-              {openFailed && (
-                <Txt variant="bodyS" color="textDanger" align="center" accessibilityLiveRegion="polite">
-                  {t('verify.openFailed')}
-                </Txt>
-              )}
-              <Button
-                block
-                label={t('verify.openMessages')}
-                onPress={() => Linking.openURL(v.smsUri).catch(() => setOpenFailed(true))}
-              />
-              <InkLink label={t('verify.otherNumber')} onPress={router.back} />
-            </>
-          }
-        >
-          <View style={styles.code}>
-            <Txt variant="displayM" engraved align="center">
-              {t('verify.title')}
-            </Txt>
-            <Txt
-              variant="displayXL"
-              color="textAccent"
-              align="center"
-              selectable
-              accessibilityLabel={v.code.split('').join(' ')}
-            >
-              {grouped(v.code)}
-            </Txt>
-            <Txt variant="numberL" align="center">
-              {t('verify.to')}
-            </Txt>
-          </View>
-          {/* verify.mn's own words, verbatim: they are the provider's instruction, not ours to rewrite. */}
-          <View style={styles.instruction}>
-            <Txt variant="bodyS" color="textSecondary" align="center">
-              {v.displayInstruction}
-            </Txt>
-          </View>
-          <View style={styles.waiting} accessibilityLiveRegion="polite">
-            <View style={[styles.ember, { boxShadow: boxShadow('glowEmber') }]} />
-            <Txt variant="voiceM" color="textSecondary">
-              {t('verify.waiting')}
-            </Txt>
-          </View>
-        </Scene>
+          phone={phone}
+          resendAt={state.v.resendAt}
+          checking={!!state.checking}
+          error={state.error ? tError(state.error.code, state.error.message) : null}
+          onSubmit={submit}
+          onNewCode={newCode}
+        />
       );
-    }
   }
+}
+
+function CodeEntry({
+  header,
+  phone,
+  resendAt,
+  checking,
+  error,
+  onSubmit,
+  onNewCode,
+}: {
+  header: ReactNode;
+  phone: string;
+  resendAt: string;
+  checking: boolean;
+  error: string | null;
+  onSubmit: (code: string) => void;
+  onNewCode: () => void;
+}) {
+  const [code, setCode] = useState('');
+  const field = useRef<TextInput>(null);
+  const wait = useSecondsUntil(resendAt);
+  const full = code.length === CODE_LENGTH;
+
+  // A refused code is cleared for the next try, the keypad kept up.
+  useEffect(() => {
+    if (!error) return;
+    setCode('');
+    field.current?.focus();
+  }, [error]);
+
+  return (
+    <Scene
+      header={header}
+      footer={
+        <>
+          <Button
+            block
+            label={t('verify.open')}
+            onPress={() => onSubmit(code)}
+            disabled={!full}
+            loading={checking}
+          />
+          <InkLink
+            label={wait > 0 ? t('verify.newCodeIn', { secs: wait }) : t('verify.newCode')}
+            onPress={() => {
+              setCode('');
+              onNewCode();
+            }}
+            disabled={wait > 0 || checking}
+          />
+          <InkLink label={t('verify.otherNumber')} onPress={router.back} />
+        </>
+      }
+    >
+      <Txt variant="displayL" engraved accessibilityRole="header">
+        {t('verify.title')}
+      </Txt>
+      <Txt variant="voiceM" color="textSecondary">
+        {t('verify.sentTo', { phone: spaced(phone) })}
+      </Txt>
+      <Input
+        label={t('verify.codeLabel')}
+        value={code}
+        onChangeText={(s) => {
+          const digits = s.replace(/\D/g, '').slice(0, CODE_LENGTH);
+          setCode(digits);
+          // The sixth digit (or a pasted or autofilled code) opens the gate at once.
+          if (digits.length === CODE_LENGTH && !checking) onSubmit(digits);
+        }}
+        placeholder="······"
+        keyboardType="number-pad"
+        textContentType="oneTimeCode"
+        autoComplete="sms-otp"
+        autoFocus
+        ref={field}
+        maxLength={CODE_LENGTH}
+        returnKeyType="done"
+        onSubmitEditing={() => full && onSubmit(code)}
+        disabled={checking}
+        error={error}
+      />
+    </Scene>
+  );
 }
 
 const styles = StyleSheet.create({
   candle: { width: 24, height: 72 },
   seal: { width: 64, height: 64 },
-  code: { alignItems: 'center', gap: dimension.space2 },
-  instruction: {
-    padding: dimension.space4,
-    backgroundColor: color.bgPanel,
-    borderWidth: dimension.strokeHairline,
-    borderColor: color.borderHairline,
-    borderRadius: dimension.radiusSm,
-  },
-  waiting: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  ember: { width: 8, height: 12, borderRadius: 6, backgroundColor: color.accentEmber },
 });

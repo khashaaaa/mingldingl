@@ -72,7 +72,7 @@ public static class TestSettings
         ["Admin:JwtSigningKey"] = "test-admin-signing-key-0123456789-abcdefgh",
         ["Admin:Username"] = "admin",
         ["Admin:PasswordHash"] = MinglDingl.Engine.Features.Admin.AdminPasswordHasher.Hash(AdminDriver.Password),
-        ["VerifyMn:Fake"] = "false",
+        ["WeSend:Fake"] = "false",
         ["RateLimits:AuthPerMinute"] = "1000",
         ["RateLimits:AdminLoginPer15Min"] = "5",
         // Outside Development the engine will not start with video on and Agora unset.

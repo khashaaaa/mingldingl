@@ -30,7 +30,7 @@ import {
 } from '@/lib/api/generated/engine';
 import type { EncounterView, MeetingView, VenueView } from '@/lib/api/generated/model';
 import { feedback } from '@/lib/feedback';
-import { type StringKey, t, tError, tPlace } from '@/lib/i18n';
+import { type StringKey, t, tError, tPlace, tVenue } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import { Scene } from '../common/Scene';
 import { shareMeeting, when } from './NextStep';
@@ -138,7 +138,7 @@ function Choose({ bondId, header }: { bondId: string; header: React.ReactNode })
             key={v.id}
             photo={v.photos[0] ?? null}
             eyebrow={eyebrow(v)}
-            name={v.name}
+            name={tVenue(v)}
             meta={`${ratingLine(v)} · ${t('meeting.verified')}`}
             onPress={() => router.push(`/venue/${v.id}?bond=${bondId}`)}
           />
@@ -191,7 +191,7 @@ function Propose({ bondId, venueId, header, apply, fail }: Act & { bondId: strin
       <VenueCard
         photo={venue.photos[0] ?? null}
         eyebrow={eyebrow(venue)}
-        name={venue.name}
+        name={tVenue(venue)}
         meta={at ? when(at.toISOString()) : t('meeting.choose')}
       />
       <View style={styles.rows}>
@@ -284,7 +284,7 @@ function Pledge({
       <VenueCard
         photo={v.photos[0] ?? null}
         eyebrow={eyebrow(v)}
-        name={v.name}
+        name={tVenue(v)}
         meta={when(meeting.at)}
         onPress={() => router.push(`/venue/${v.id}`)}
       />
@@ -352,7 +352,7 @@ function Sworn({
         </Reveal>
         <Reveal delay={first ? 700 : 0} order={1}>
           <Txt variant="voiceM" color="textSecondary" align="center">
-            {t('meeting.swornBody', { when: when(meeting.at), venue: v.name })}
+            {t('meeting.swornBody', { when: when(meeting.at), venue: tVenue(v) })}
           </Txt>
         </Reveal>
         <Reveal delay={first ? 700 : 0} order={2}>

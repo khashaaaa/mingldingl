@@ -110,6 +110,9 @@ public sealed record GuildSession(string Token, DateTimeOffset ExpiresAt, string
 
 public sealed record GuildMe(string Name, MembershipView Membership, IReadOnlyList<FloorOffer> Offers);
 
+/// The web page's Abandon: the day the character burns unless its owner signs in to the app.
+public sealed record GuildAbandoned(DateTimeOffset DeleteAt);
+
 public sealed record InvoiceRequest(
     [System.ComponentModel.DataAnnotations.Required] string Floor,
     [System.ComponentModel.DataAnnotations.Range(1, 6)] int Months,

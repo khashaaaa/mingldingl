@@ -134,19 +134,6 @@ function honour() {
   return render(dur, (t) => strike(t, 659, 0) * 0.9 + strike(t, 988, 0.14) * 0.8);
 }
 
-/** A pledge kept: two soft taps, wood not metal. */
-function pledge() {
-  const dur = 0.42;
-  const n = noiseSource(0x9e0d, 3200);
-  const tap = (t, at) => {
-    const dt = t - at;
-    if (dt < 0) return 0;
-    // 300 Hz is the block; the 2.3x partial is the knock of it, the part a phone actually plays.
-    return (sine(dt, 300) * 0.4 + sine(dt, 690) * 0.3 + n() * 0.5) * decay(dt, 0.16, 16);
-  };
-  return render(dur, (t) => (tap(t, 0) + tap(t, 0.13) * 0.75) * 0.7);
-}
-
 /**
  * A button pressed: a dry metallic click. ~40 ms of a high sine with a fast decay plus a tiny
  * bright-noise transient. Deliberately quiet (peak 0.5) — it fires on every press, so it must
@@ -159,29 +146,6 @@ function tick() {
     const ping = sine(t, 2400) * decay(t, dur, 9);
     const transient = n() * decay(t, dur, 60) * 0.6;
     return ping * 0.7 + transient;
-  });
-}
-
-/**
- * A horn call: fundamental near 220 Hz with three harmonics, a slight upward bend through the
- * first 80 ms as the note finds its pitch, gentle vibrato, and a decaying tail.
- */
-function horn() {
-  const dur = 0.7;
-  const BEND_S = 0.08;
-  return render(dur, (t) => {
-    const bend = t < BEND_S ? 1 - 0.04 * (1 - t / BEND_S) : 1;
-    const vibrato = 1 + 0.006 * Math.sin(2 * Math.PI * 5.5 * t);
-    const f = 220 * bend * vibrato;
-    const attack = Math.min(1, t / 0.02);
-    const tail = t < 0.25 ? 1 : decay(t - 0.25, dur - 0.25, 4);
-    const v =
-      sine(t, f) * 1.0 +
-      sine(t, f * 2) * 0.55 +
-      sine(t, f * 3) * 0.4 +
-      sine(t, f * 4) * 0.25 +
-      sine(t, f * 5) * 0.12;
-    return v * attack * tail;
   });
 }
 
@@ -231,29 +195,6 @@ function bell() {
     let v = 0;
     for (const [f, amp] of partials) v += sine(t, f) * amp * decay(t, dur, 3);
     return v;
-  });
-}
-
-/**
- * A match made: a hearth catching. A breath of air drawn in, then two warm notes a fourth apart
- * swelling up out of it — the one sound in the set that grows rather than decays at the start,
- * because it is the one moment that is the beginning of something rather than the end of it.
- */
-function kindle() {
-  const dur = 1.1;
-  const air = noiseSource(0x4ea27, 2800);
-  const SWELL_S = 0.18;
-  const note = (t, f, at) => {
-    const dt = t - at;
-    if (dt < 0) return 0;
-    const swell = Math.min(1, dt / SWELL_S);
-    return (
-      (sine(dt, f) * 0.7 + sine(dt, f * 2) * 0.3 + sine(dt, f * 3) * 0.12) * swell * decay(dt, dur - at, 4)
-    );
-  };
-  return render(dur, (t) => {
-    const breath = air() * Math.min(1, t / 0.12) * decay(t, dur, 9);
-    return breath * 0.7 + note(t, 392, 0.06) * 0.8 + note(t, 523, 0.2) * 0.75;
   });
 }
 
@@ -366,9 +307,9 @@ const SUB_HZ = 110;
 const RMS_TARGET = 0.08;
 const RMS = { tick: 0.04, candle: 0.04, dying: 0.04, rise: 0.057 };
 
-const DRIVE = { door: 3, seal: 2.5, dying: 2.5, candle: 2, pledge: 2, due: 1.5 };
+const DRIVE = { door: 3, seal: 2.5, dying: 2.5, candle: 2, due: 1.5 };
 
-const SOUNDS = { door, rise, anvil, seal, honour, pledge, tick, horn, dying, candle, bell, kindle, due };
+const SOUNDS = { door, rise, anvil, seal, honour, tick, dying, candle, bell, due };
 
 const outDir = path.join(__dirname, '..', 'assets', 'sounds');
 fs.mkdirSync(outDir, { recursive: true });

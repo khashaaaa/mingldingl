@@ -45,7 +45,7 @@ public class DevTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Dev_state_moves_onboarding_step(SeedState state, int step)
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn(); f.UseMemoryPhotoStore();
+        var vm = f.UseScriptedWeSend(); f.UseMemoryPhotoStore();
         var s = await f.SignInAsync(vm);
         var c = f.As(s);
         (await c.PostAsJsonAsync("/dev/me/state", new DevStateRequest(state))).StatusCode.Should().Be(HttpStatusCode.OK);
@@ -60,7 +60,7 @@ public class DevTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Dev_state_publishes_profile_and_photos_updated()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn(); f.UseMemoryPhotoStore();
+        var vm = f.UseScriptedWeSend(); f.UseMemoryPhotoStore();
         var s = await f.SignInAsync(vm);
         await using var l = await f.ListenAsync(s);
         await f.As(s).PostAsJsonAsync("/dev/me/state", new DevStateRequest(SeedState.Finished));
@@ -72,7 +72,7 @@ public class DevTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Dev_state_suspended_shows_in_me()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn(); f.UseMemoryPhotoStore();
+        var vm = f.UseScriptedWeSend(); f.UseMemoryPhotoStore();
         var c = f.As(await f.SignInAsync(vm));
         await c.PostAsJsonAsync("/dev/me/state", new DevStateRequest(SeedState.Suspended));
         (await c.MeAsync()).Status.Should().Be("Suspended");
@@ -84,7 +84,7 @@ public class DevTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Dev_live_publishes_any_kind_to_me()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
         await using var l = await f.ListenAsync(s);
         await f.As(s).PostAsJsonAsync("/dev/me/live", new DevLiveRequest(LiveKinds.ConfigUpdated));
@@ -95,7 +95,7 @@ public class DevTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Sweep_clears_old_grace_payloads_and_expires_old_verifications()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
         await f.Client().RefreshRawAsync(s.RefreshToken);
         var pending = await f.Client().StartAsync(SessionDriver.NewPhone());
@@ -111,7 +111,7 @@ public class DevTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Sweep_deletes_devices_revoked_over_30_days_ago()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
         await f.As(s).PostAsync("/auth/sign-out", null);
         f.Clock.Advance(TimeSpan.FromDays(31));

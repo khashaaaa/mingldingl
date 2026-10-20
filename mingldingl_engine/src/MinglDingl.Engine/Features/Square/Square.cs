@@ -61,7 +61,6 @@ public sealed class SquarePair
     /// match / apart, once settled.
     public string? Outcome { get; set; }
 
-    public bool Has(Guid id) => ManId == id || WomanId == id;
     public Guid Other(Guid me) => ManId == me ? WomanId : ManId;
 }
 

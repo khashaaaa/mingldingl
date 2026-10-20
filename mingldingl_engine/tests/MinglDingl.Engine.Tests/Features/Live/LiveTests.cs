@@ -16,7 +16,7 @@ public class LiveTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Event_reaches_only_its_account()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         Guid target = Guid.Empty;
         f.WithEndpoint("/__send", async (AppDb store, ILiveOutbox live) =>
         {
@@ -38,7 +38,7 @@ public class LiveTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Event_is_not_sent_when_transaction_rolls_back()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         Guid target = Guid.Empty;
         f.WithEndpoint("/__rollback", async (AppDb store, ILiveOutbox live) =>
         {
@@ -59,7 +59,7 @@ public class LiveTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Event_is_sent_after_commit_not_before()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         Guid target = Guid.Empty;
         DateTimeOffset committedAt = default;
         f.WithEndpoint("/__slow", async (AppDb store, ILiveOutbox live) =>
@@ -84,7 +84,7 @@ public class LiveTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Hub_rejects_missing_or_revoked_token()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var act = () => f.ListenAsync((string?)null);
         await act.Should().ThrowAsync<Exception>();
 
@@ -98,7 +98,7 @@ public class LiveTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Revoking_a_device_sends_session_revoked_to_that_device_only()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var phone = SessionDriver.NewPhone();
         var a = await f.SignInAsync(vm, phone, "a");
         var b = await f.SignInAsync(vm, phone, "b");
@@ -113,7 +113,7 @@ public class LiveTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Config_change_reaches_every_signed_in_client()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var a = await f.SignInAsync(vm);
         await using var la = await f.ListenAsync(a);
         await using (var scope = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.CreateAsyncScope(f.Services))

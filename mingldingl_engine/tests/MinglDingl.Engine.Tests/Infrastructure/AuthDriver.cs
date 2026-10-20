@@ -8,10 +8,10 @@ namespace MinglDingl.Engine.Tests.Infrastructure;
 
 public static class AuthDriver
 {
-    public static ScriptedVerifyMn UseScriptedVerifyMn(this EngineFactory f)
+    public static ScriptedWeSend UseScriptedWeSend(this EngineFactory f)
     {
-        var fake = new ScriptedVerifyMn(f.Clock);
-        f.WithServices(s => { s.RemoveAll<IVerifyMnClient>(); s.AddSingleton<IVerifyMnClient>(fake); });
+        var fake = new ScriptedWeSend(f.Clock);
+        f.WithServices(s => { s.RemoveAll<IWeSend>(); s.AddSingleton<IWeSend>(fake); });
         return fake;
     }
 
@@ -22,10 +22,15 @@ public static class AuthDriver
         return (await r.Content.ReadFromJsonAsync<StartResponse>())!;
     }
 
-    public static async Task<string> StatusAsync(this HttpClient c, Guid id)
+    public static async Task<HttpResponseMessage> CheckRawAsync(this HttpClient c, Guid id, string code) =>
+        await c.PostAsJsonAsync("/auth/phone/check", new CheckRequest(id, code));
+
+    /// Types the code the last text carried.
+    public static async Task CheckAsync(this HttpClient c, ScriptedWeSend ws, Guid id)
     {
-        var r = await c.GetFromJsonAsync<StatusResponse>($"/auth/phone/status/{id}");
-        return r!.State;
+        var r = await c.CheckRawAsync(id, ws.LastCode);
+        r.EnsureSuccessStatusCode();
+        (await r.Content.ReadFromJsonAsync<CheckResponse>())!.State.Should().Be("verified");
     }
 }
 
@@ -38,14 +43,13 @@ public static class SessionDriver
         string? allyCode = null) =>
         await c.PostAsJsonAsync("/auth/phone/complete", new CompleteRequest(verificationId, device, allyCode));
 
-    /// Full sign-in through the scripted verify.mn: start → text the code → status → complete.
-    public static async Task<SessionPair> SignInAsync(this EngineFactory f, ScriptedVerifyMn vm, string? phone = null, string device = "test-phone",
+    /// Full sign-in through the scripted WeSend: start → type the texted code → complete.
+    public static async Task<SessionPair> SignInAsync(this EngineFactory f, ScriptedWeSend vm, string? phone = null, string device = "test-phone",
         string? allyCode = null)
     {
         var c = f.Client();
         var s = await c.StartAsync(phone ?? NewPhone());
-        vm.VerifyCode(s.Code);
-        (await c.StatusAsync(s.VerificationId)).Should().Be("verified");
+        await c.CheckAsync(vm, s.VerificationId);
         var r = await c.CompleteRawAsync(s.VerificationId, device, allyCode);
         r.EnsureSuccessStatusCode();
         return (await r.Content.ReadFromJsonAsync<SessionPair>())!;

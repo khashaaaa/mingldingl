@@ -21,6 +21,7 @@ import type { MembershipView } from '@/lib/api/generated/model';
 import { deviceFeel, saveHapticsSetting, saveSoundSetting } from '@/lib/feedback';
 import { type StringKey, t, tError, useLocale } from '@/lib/i18n';
 import { chooseLocale } from '@/lib/i18n/device';
+import { onApple } from '@/lib/links';
 import { pushIsOn, setPushOn } from '@/lib/push';
 import { queryClient } from '@/lib/query';
 import { signOutLocally } from '@/lib/session';
@@ -44,7 +45,8 @@ const FLOOR_LINE: Record<string, StringKey> = {
 function paidNote(m: MembershipView | undefined): string | null {
   if (!m || m.floor === 'yard') return null;
   const floor = t(m.floor === 'highTable' ? 'guild.highTable' : 'guild.hall');
-  return t(m.source === 'store' ? 'abandon.paidFloor' : 'abandon.paidFloorWeb', { floor });
+  const store = onApple ? 'abandon.paidFloorAppStore' : 'abandon.paidFloor';
+  return t(m.source === 'store' ? store : 'abandon.paidFloorWeb', { floor });
 }
 
 const failed = (e: unknown) =>

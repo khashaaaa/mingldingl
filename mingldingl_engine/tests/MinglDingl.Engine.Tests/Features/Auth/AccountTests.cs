@@ -118,7 +118,7 @@ public class AccountTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var s = (await start.Content.ReadFromJsonAsync<StartResponse>())!;
         (await CodeOf(await bat.C.PostAsJsonAsync("/me/sigil/complete", new SigilCompleteRequest(s.VerificationId))))
             .Should().Be("auth.not_verified");
-        w.Vm.VerifyCode(s.Code);
+        await bat.C.CheckAsync(w.Vm, s.VerificationId);
         (await bat.C.PostAsJsonAsync("/me/sigil/complete", new SigilCompleteRequest(s.VerificationId)))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 

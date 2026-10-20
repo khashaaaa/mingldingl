@@ -1,23 +1,29 @@
 import { Platform } from 'react-native';
 import Purchases, { PRODUCT_CATEGORY, type PurchasesStoreProduct } from 'react-native-purchases';
 import { devStorePurchase, syncStoreMembership } from './api/generated/engine';
+import { onApple } from './links';
 import { onSignedOut } from './session';
 
 /**
- * The store (Google Play through RevenueCat). The engine never takes the app's word: after a
+ * The store (Google Play or the App Store, through RevenueCat). The engine never takes the app's word: after a
  * purchase the app asks it to look (`/me/membership/sync`), and the engine asks RevenueCat.
  *
- * Play Console: subscriptions `hall` and `high_table`, each with base plans `m1`, `m3`, `m6`;
- * RevenueCat entitlements `hall` and `high_table`. Without a key (development) a pretend purchase
+ * Play Console: subscriptions `hall` and `high_table`, each with base plans `m1`, `m3`, `m6`.
+ * App Store Connect: one subscription group, products `hall_m1` … `high_table_m6` (Apple ids have
+ * no base plans). RevenueCat entitlements `hall` and `high_table` hold both stores' products. Without a key (development) a pretend purchase
  * goes through the engine's dev route instead, so the flow can be walked on a phone.
  */
-const KEY = Platform.OS === 'android' ? process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY : undefined;
+const KEY = onApple
+  ? process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY
+  : Platform.OS === 'android'
+    ? process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY
+    : undefined;
 
 export type PaidFloor = 'hall' | 'highTable';
 export type Months = 1 | 3 | 6;
 
 export const productId = (floor: PaidFloor, months: Months) =>
-  `${floor === 'highTable' ? 'high_table' : 'hall'}:m${months}`;
+  `${floor === 'highTable' ? 'high_table' : 'hall'}${onApple ? '_' : ':'}m${months}`;
 
 let configured = false;
 let configuredFor: string | null = null;

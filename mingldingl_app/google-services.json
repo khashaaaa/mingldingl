@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "715633134303",
+    "project_id": "mingldingl",
+    "storage_bucket": "mingldingl.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:715633134303:android:d47f8d3d1ea0510774f76a",
+        "android_client_info": {
+          "package_name": "com.mingldingl.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABQbEHVZ0CuPogZPoXnVsU-GiaXylv484"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

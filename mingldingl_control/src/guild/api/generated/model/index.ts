@@ -6,8 +6,11 @@
  */
 
 export * from './bankLink';
+export * from './checkRequest';
+export * from './checkResponse';
 export * from './completeRequest';
 export * from './floorOffer';
+export * from './guildAbandoned';
 export * from './guildMe';
 export * from './guildSession';
 export * from './guildSessionRequest';
@@ -18,4 +21,3 @@ export * from './refreshRequest';
 export * from './sessionPair';
 export * from './startRequest';
 export * from './startResponse';
-export * from './statusResponse';

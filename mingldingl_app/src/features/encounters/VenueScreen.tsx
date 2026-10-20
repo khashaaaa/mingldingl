@@ -7,7 +7,7 @@ import { RoomHeader } from '@/design/components/RoomHeader';
 import { Txt } from '@/design/components/Txt';
 import { color, dimension } from '@/design/tokens';
 import { useGetVenue } from '@/lib/api/generated/engine';
-import { t, tCount } from '@/lib/i18n';
+import { t, tCount, tVenue } from '@/lib/i18n';
 import { Scene } from '../common/Scene';
 import { eyebrow } from './MeetingScreen';
 
@@ -78,7 +78,7 @@ export default function VenueScreen() {
           {eyebrow(v).toUpperCase()}
         </Txt>
         <Txt variant="displayL" accessibilityRole="header">
-          {v.name}
+          {tVenue(v)}
         </Txt>
         <Txt variant="bodyS" color="textAccent">
           {rating}

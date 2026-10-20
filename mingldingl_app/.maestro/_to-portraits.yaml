@@ -1,4 +1,4 @@
-# Subflow: a fresh install signs up a new number (fake verify.mn proves it at once) and walks
+# Subflow: a fresh install signs up a new number (the fake WeSend's code 000000) and walks
 # onboarding steps 1–2, stopping on step 3 (portraits). Leaves the number in ${output.phone}.
 appId: com.mingldingl.app
 ---
@@ -14,6 +14,7 @@ appId: com.mingldingl.app
 - tapOn: Phone number
 - inputText: ${output.phone}
 - tapOn: Continue
+- runFlow: _code.yaml
 - extendedWaitUntil:
     visible: What does the hold call you\?
     timeout: 15000

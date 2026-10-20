@@ -131,10 +131,7 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Phone = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
-                    Code = table.Column<string>(type: "character varying(6)", maxLength: 6, nullable: false),
                     ProviderId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    DisplayInstruction = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    SmsUri = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     State = table.Column<string>(type: "character varying(12)", maxLength: 12, nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     ExpiresAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),

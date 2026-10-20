@@ -19,7 +19,7 @@ public static class PushCopy
         [PushKinds.MeetingSworn] = new("The meeting is sworn", "You and {{name}}: {{text}}.", "Уулзалт тангараглагдлаа", "Чи ба {{name}}: {{text}}."),
         [PushKinds.MeetingCalledOff] = new("The meeting is called off", "{{name}} called off {{text}}.", "Уулзалт цуцлагдлаа", "{{name}} цуцаллаа: {{text}}."),
         [PushKinds.Attendance] = new("Did {{name}} come?", "Tell the hold how the meeting went. Your answer is private.", "{{name}} ирсэн үү?", "Уулзалт хэрхэн болсныг цайзад хэл. Хариулт чинь зөвхөн чамд."),
-        [PushKinds.ThreadWoven] = new("A thread from {{name}}", "{{name}} thinks you should meet someone. Neither learns who the other is until both say yes.", "{{name}} нэхсэн утас", "{{name}} чамайг нэг хүнтэй уулзах ёстой гэж бодож байна. Хоёулаа тийм гэтэл хэн нь хэн бэ гэдгийг мэдэхгүй."),
+        [PushKinds.ThreadWoven] = new("A thread from {{name}}", "{{name}} thinks you should meet someone. Neither learns who the other is until both say yes.", "{{name}} нэхсэн утас", "{{name}} чамайг нэг хүнтэй уулзах ёстой гэж бодож байна. Хоёулаа тийм гэх хүртэл хэн нь хэн бэ гэдгийг мэдэхгүй."),
         [PushKinds.ThreadSparked] = new("Your thread sparked", "Both said yes. The thread-weaver's due is yours.", "Утас чинь оч хаялаа", "Хоёулаа тийм гэлээ. Утас-Нэхэгчийн хувь чинийх."),
         [PushKinds.SquareSoon] = new("{{name}} rings soon", "Town Square opens in one minute.", "{{name}} удахгүй хангинана", "Талбай нэг минутын дараа нээгдэнэ."),
         [PushKinds.FloorEnding] = new("Your floor ends soon", "{{name}} ends on {{text}}. The game stays the same on every floor.", "Давхрын хугацаа дуусах гэж байна", "{{name}} {{text}} дуусна. Тоглоом бүх давхарт адилхан."),

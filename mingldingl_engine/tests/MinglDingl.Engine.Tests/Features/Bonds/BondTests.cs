@@ -27,6 +27,7 @@ public class BondTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         seek.Candidate.Place.Should().Be("Ulaanbaatar", "the district is a seal's reward");
         seek.Candidate.Portrait!.Url.Should().BeNull("a candidate's portrait is only its ThumbHash");
         seek.Candidate.Portrait.ThumbHash.Should().NotBeEmpty();
+        (await me.C.GetStringAsync("/seek")).Should().NotContain("\"name\"", "a stranger is nameless until a bond is made");
 
         (await me.C.PostAsync($"/seek/{near.Id}/pass", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await me.C.SeekAsync()).Candidate!.AccountId.Should().Be(far.Id);

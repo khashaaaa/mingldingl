@@ -26,9 +26,9 @@ public sealed class SessionService(
     public async Task<SessionPair> CompleteAsync(Guid verificationId, string deviceName, CancellationToken ct = default,
         string? allyCode = null)
     {
-        var v = await verifications.RefreshAsync(verificationId, ct);
+        var v = await verifications.LoadAsync(verificationId, ct);
         if (v.State != VerificationState.Verified)
-            throw new DomainException(409, "auth.not_verified", "Send the code first");
+            throw new DomainException(409, "auth.not_verified", "Type the code first");
         if (v.ClaimedAt is not null)
             throw new DomainException(409, "auth.already_claimed", "This code was already used");
         if (clock.UtcNow - v.VerifiedAt > ClaimWindow)

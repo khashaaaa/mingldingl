@@ -2629,6 +2629,26 @@
         }
       }
     },
+    "/guild/abandon": {
+      "post": {
+        "tags": [
+          "Guild"
+        ],
+        "operationId": "GuildAbandon",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuildAbandoned"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/payments": {
       "get": {
         "tags": [
@@ -3842,30 +3862,29 @@
         }
       }
     },
-    "/auth/phone/status/{id}": {
-      "get": {
+    "/auth/phone/check": {
+      "post": {
         "tags": [
           "Auth"
         ],
-        "operationId": "PhoneStatus",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
+        "operationId": "CheckPhone",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckRequest"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StatusResponse"
+                  "$ref": "#/components/schemas/CheckResponse"
                 }
               }
             }
@@ -5551,7 +5570,6 @@
       "CandidateView": {
         "required": [
           "accountId",
-          "name",
           "age",
           "tier",
           "place",
@@ -5564,9 +5582,6 @@
           "accountId": {
             "type": "string",
             "format": "uuid"
-          },
-          "name": {
-            "type": "string"
           },
           "age": {
             "type": "integer",
@@ -5625,6 +5640,33 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "CheckRequest": {
+        "required": [
+          "verificationId",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "verificationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "CheckResponse": {
+        "required": [
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
           }
         }
       },
@@ -6201,6 +6243,7 @@
           "bondId",
           "name",
           "venue",
+          "venueMn",
           "at",
           "outcome",
           "charted"
@@ -6220,6 +6263,12 @@
           },
           "venue": {
             "type": "string"
+          },
+          "venueMn": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "at": {
             "type": "string",
@@ -6698,6 +6747,18 @@
               "string"
             ],
             "format": "date"
+          }
+        }
+      },
+      "GuildAbandoned": {
+        "required": [
+          "deleteAt"
+        ],
+        "type": "object",
+        "properties": {
+          "deleteAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -8138,10 +8199,7 @@
             "type": "string"
           },
           "secondLook": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "boolean"
           },
           "filtered": {
             "type": "boolean"
@@ -8201,6 +8259,12 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "locale": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -8272,16 +8336,20 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "locale": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
       "StartResponse": {
         "required": [
           "verificationId",
-          "code",
-          "displayInstruction",
-          "smsUri",
-          "expiresAt"
+          "expiresAt",
+          "resendAt"
         ],
         "type": "object",
         "properties": {
@@ -8289,16 +8357,11 @@
             "type": "string",
             "format": "uuid"
           },
-          "code": {
-            "type": "string"
-          },
-          "displayInstruction": {
-            "type": "string"
-          },
-          "smsUri": {
-            "type": "string"
-          },
           "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resendAt": {
             "type": "string",
             "format": "date-time"
           }
@@ -8399,17 +8462,6 @@
                 "type": "string"
               }
             }
-          }
-        }
-      },
-      "StatusResponse": {
-        "required": [
-          "state"
-        ],
-        "type": "object",
-        "properties": {
-          "state": {
-            "type": "string"
           }
         }
       },

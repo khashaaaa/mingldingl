@@ -10,6 +10,8 @@ export interface EncounterLogRow {
   bondId: string;
   name: string;
   venue: string;
+  /** @nullable */
+  venueMn: string | null;
   at: string;
   outcome: string;
   /** @nullable */

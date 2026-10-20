@@ -29,7 +29,13 @@ jest.mock('@/lib/push', () => ({
   setPushOn: jest.fn(async () => true),
 }));
 jest.mock('@/lib/i18n/device', () => ({ chooseLocale: jest.fn() }));
-jest.mock('@/lib/links', () => ({ ...jest.requireActual('@/lib/links'), manageStore: jest.fn() }));
+jest.mock('@/lib/links', () => ({
+  ...jest.requireActual('@/lib/links'),
+  manageStore: jest.fn(),
+  hasLegalPages: true,
+  onApple: false,
+  openLegal: jest.fn(),
+}));
 // RevenueCat's SDK is ESM jest cannot load; the store here is open and has no prices of its own.
 jest.mock('@/lib/store', () => ({
   productId: (floor: string, months: number) => `${floor}:m${months}`,
@@ -54,7 +60,10 @@ const { apiFetch } = jest.requireMock('@/lib/api/client') as { apiFetch: jest.Mo
 const { saveSoundSetting } = jest.requireMock('@/lib/feedback') as { saveSoundSetting: jest.Mock };
 const { setPushOn } = jest.requireMock('@/lib/push') as { setPushOn: jest.Mock };
 const { chooseLocale } = jest.requireMock('@/lib/i18n/device') as { chooseLocale: jest.Mock };
-const { manageStore } = jest.requireMock('@/lib/links') as { manageStore: jest.Mock };
+const { manageStore, openLegal } = jest.requireMock('@/lib/links') as {
+  manageStore: jest.Mock;
+  openLegal: jest.Mock;
+};
 
 const PAGES: CodexPageView[] = [
   {
@@ -281,7 +290,7 @@ describe('The War Room', () => {
     await show();
     await press(/^Sign out/);
     expect(screen.getByText('Sign out of this phone?')).toBeTruthy();
-    expect(screen.getByText(/150₮/)).toBeTruthy();
+    expect(screen.getByText(/new code to this number/)).toBeTruthy();
     await press('Stay', 'link');
     expect(engine.writes).toEqual([]);
     await press(/^Sign out/);
@@ -358,6 +367,10 @@ describe('The Codex', () => {
     await show('/codex/terms');
     expect(await screen.findByRole('header', { name: 'Help & Legal' })).toBeTruthy();
     expect(screen.getByText('Your number proves you are one person.')).toBeTruthy();
+    await press('Read the privacy policy', 'link');
+    expect(openLegal).toHaveBeenCalledWith('privacy');
+    await press('Read the full terms', 'link');
+    expect(openLegal).toHaveBeenCalledWith('terms');
   });
 });
 

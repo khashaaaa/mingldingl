@@ -3,6 +3,76 @@
 Newest first. One short entry per finished piece of work: what a person can now do, what was
 decided, what was fixed on a device. Open items live in the plan's Backlog, not here.
 
+## 2026-10-20 — Sign-in by a texted code (WeSend replaces verify.mn)
+
+The person no longer texts 144773 and pays 150₮: WeSend texts a six-digit code to the number, in the
+app's language, and they type it (the sixth digit opens the gate; Android offers it from the SMS).
+The engine never sees the code: `/auth/phone/check` asks WeSend, five tries a code, ten minutes; a
+new code at most once a minute per number, and it cancels the last. The app, the sigil change and the
+Guild House web page use the same check; the poll is gone. Each code costs us 80₮ of credit. The fake
+(Development, Maestro `_code.yaml`, Playwright) takes 000000. An existing database keeps verify.mn's
+old columns, loosened at boot so nothing is dropped.
+
+## 2026-10-20 — A stranger in Seek is nameless
+
+The onboarding hint promised a first name is seen only after a match, but every Seek card showed it.
+Seek now sends no name (the card reads "A traveller, 28" / "Аянчин, 28"; a second look says "the one
+you passed tonight"), so the name comes with the bond; the hint now says so, and names the Square,
+where partners do see it. Also: the gate says what this is not ("Зураг гүйлгэх биш"), the SMS cost
+says it is one message's price, the Mongolian "you" is always чи and "the keepers" always манаач,
+and Seek is "Хайх хэсэг" everywhere (Codex, Terms).
+
+## 2026-10-20 — Drift sweep: the web page speaks Mongolian
+
+The Guild House web page was English only; it now opens in Mongolian (`?lang=en`, a switch, the
+reader's choice remembered), with the engine's rules in the reader's language and the app's own words
+(`src/guild/words.ts`; the sign in Yeseva One). Its abandon screen named only Google Play; it now
+names both stores. Eight rules a dater can meet had no app line and showed the engine's English; they
+have lines now, and `ErrorLinesTests` fails when a new code has none (admin/internal codes are listed
+there). Mongolian drift: Campaign chambers are "тасалгаа" (they shared "танхим" with the Hall floor),
+"Climb" is "Өгсөх" everywhere, the Fate oath is "Хувь заяа", and the MN store listing uses the app's
+words. The crowd's bios: Mongolian for the Mongolian-speaking, no bio names another city, no
+copies, and Сарангэрэл is a herder's daughter.
+
+## 2026-10-20 — A living dev world, and Mongolian corrections
+
+`seed crowd` now seeds what the crowd does together (`WorldSeeder`): 15 fictional partner venues
+with two FLUX photos each (`Seed/crowd/venues.json`, `venue-<id>_<n>.jpg`,
+`~/ComfyUI-models/venues.sh`), about 30 bonds at every stage with letters that read as one
+conversation (EN/MN), icebreakers, Trials, Flame Rites, meetings proposed/sworn/waiting for "Did
+they come?"/kept/missed, cold, severed, faded and one retired pair, Fated Threads, an ally, reports
+for the admin queue, blocks, and the points, honours, oaths proven and Campaign chambers that
+history earns. `seed crowd --phone 99xxxxxx` makes that finished account the hero: 13 bonds, one at
+each stage, seven of them live. The unread `crowd-world.json` is gone. The app now shows a venue's
+Mongolian name to a Mongolian reader (`tVenue`, including the Encounter Log, which gained
+`venueMn`). Mongolian fixes: "хором" is a moment, not a minute (Rite, codes, rounds); "until both
+say yes" is "гэх хүртэл"; one person is "тэр/түүн", not "тэд"; list joiners had lost their spaces;
+"Эрэгтэй/Эмэгтэй"; "гулсуулах" dropped from the invite. Renamed in Mongolian (user's call): the
+Tavern is "Учралын тойрог", the Opal tier "Гэрэлт чимэд", the Amethyst tier "Ягаан болор".
+
+## 2026-10-20 — App icon: the bond medallion
+
+The icon is now the First Bond honour medallion with its twin flames relit as glowing gold, on the
+World Floor night (user's pick over the ruby crest, forged/molten/ruby M monograms and a coat of
+arms; raw FLUX icon renders were rejected). One source feeds `icon.png`, the Android adaptive
+foreground/background/monochrome, the splash and favicon, plus `assets/store/` (Play 512 icon,
+1024×500 feature graphic with the gold Pirata One title). Sources and scripts:
+`assets/atelier/icon/` (`medal.py` relights the Figma art, `feature.py` paints the graphic). A
+new build is needed for devices to show it.
+
+## 2026-10-20 — Store readiness
+
+The public pages both stores require, in Mongolian and English, served by nginx from the panel host
+with no script: `/privacy/`, `/terms/` (zero tolerance for abusive content, reports acted on within
+a day, auto-renewal, no cash value) and `/delete/`. The Guild House web page deletes an account:
+`/guild/?leave` signs a character in and abandons it exactly as the War Room does
+(`POST /guild/abandon`, same 30-day grace). The app's Terms · Privacy page and the Guild House
+link to the full pages (`EXPO_PUBLIC_WEB_URL`); the Guild House states the renewal and where to
+cancel. iOS is ready for its first build: RevenueCat's iOS key, Apple product ids
+(`hall_m1` …), "App Store" in place of "Google Play" on iPhone, Apple's subscriptions page, and
+the export-compliance flag. Checked: the app never points to the QPay web page (both stores forbid
+steering away from in-app purchase). `deploy.sh` now needs `SUPPORT_EMAIL` in `engine.env`.
+
 ## 2026-10-17 — Test and code cleanup
 
 A Square test failed about one run in three: the engine's real 2-second square clock ticked during

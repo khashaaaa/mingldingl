@@ -16,12 +16,14 @@ public sealed class AccountService(
     AppDb db, PhoneVerificationService verifications, SessionService sessions, IClock clock, IConfig config,
     ILiveOutbox live, IPhotoStore store, ILogger<AccountService> log)
 {
-    public async Task AbandonAsync(Guid accountId, CancellationToken ct = default)
+    /// Returns the day the character burns. The app's War Room and the web page both come here.
+    public async Task<DateTimeOffset> AbandonAsync(Guid accountId, CancellationToken ct = default)
     {
         var a = await db.Set<Account>().SingleAsync(x => x.Id == accountId, ct);
         a.DeleteAt ??= clock.UtcNow.AddDays(config.Int(ConfigKeys.AccountDeleteDays));
         Announce(accountId);
         await db.SaveChangesAsync(ct);
+        return a.DeleteAt.Value;
     }
 
     public async Task KeepAsync(Guid accountId, CancellationToken ct = default)
@@ -33,20 +35,21 @@ public sealed class AccountService(
         await db.SaveChangesAsync(ct);
     }
 
-    /// Opens a verify.mn proof for the new number. A number another character holds is refused
-    /// before anyone texts (each text costs the person 150₮).
-    public async Task<PhoneVerification> StartSigilAsync(Guid accountId, string phone, Guid? resumeId, CancellationToken ct = default)
+    /// Sends a code to the new number. A number another character holds is refused before any
+    /// text goes (each costs us 80₮).
+    public async Task<PhoneVerification> StartSigilAsync(Guid accountId, string phone, Guid? resumeId, string? locale,
+        CancellationToken ct = default)
     {
         await RefuseTakenAsync(accountId, phone, ct);
-        return await verifications.StartAsync(phone, resumeId, ct);
+        return await verifications.StartAsync(phone, resumeId, locale, ct);
     }
 
     /// The new number is proven: the account moves to it and every other device is signed out.
     public async Task CompleteSigilAsync(Guid accountId, Guid sessionId, Guid verificationId, CancellationToken ct = default)
     {
-        var v = await verifications.RefreshAsync(verificationId, ct);
+        var v = await verifications.LoadAsync(verificationId, ct);
         if (v.State != VerificationState.Verified)
-            throw new DomainException(409, "auth.not_verified", "Send the code first");
+            throw new DomainException(409, "auth.not_verified", "Type the code first");
         if (v.ClaimedAt is not null)
             throw new DomainException(409, "auth.already_claimed", "This code was already used");
         if (clock.UtcNow - v.VerifiedAt > SessionService.ClaimWindow)

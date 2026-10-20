@@ -5,7 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  CheckRequest,
+  CheckResponse,
   CompleteRequest,
+  GuildAbandoned,
   GuildMe,
   GuildSession,
   GuildSessionRequest,
@@ -14,8 +17,7 @@ import type {
   RefreshRequest,
   SessionPair,
   StartRequest,
-  StartResponse,
-  StatusResponse
+  StartResponse
 } from './model';
 
 import { guildFetch } from '../client';
@@ -132,6 +134,27 @@ export const guildInvoice = async (id: string, options?: Parameters<typeof guild
 
 
 
+export const getGuildAbandonUrl = () => {
+
+
+
+
+  return `/guild/abandon`
+}
+
+export const guildAbandon = async ( options?: Parameters<typeof guildFetch>[1]): Promise<GuildAbandoned> => {
+
+  return guildFetch<GuildAbandoned>(getGuildAbandonUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
 export const getStartPhoneUrl = () => {
 
 
@@ -167,22 +190,36 @@ return guildFetch<StartResponse>(getStartPhoneUrl(),
 
 
 
-export const getPhoneStatusUrl = (id: string,) => {
+export const getCheckPhoneUrl = () => {
 
 
 
 
-  return `/auth/phone/status/${id}`
+  return `/auth/phone/check`
 }
 
-export const phoneStatus = async (id: string, options?: Parameters<typeof guildFetch>[1]): Promise<StatusResponse> => {
+export const checkPhone = async (checkRequest: CheckRequest, options?: Parameters<typeof guildFetch>[1]): Promise<CheckResponse> => {
 
-  return guildFetch<StatusResponse>(getPhoneStatusUrl(id),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return guildFetch<CheckResponse>(getCheckPhoneUrl(),
   {
     ...options,
-    method: 'GET'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(checkRequest)
   }
 );}
 

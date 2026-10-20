@@ -1,6 +1,5 @@
 using System.Data.Common;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using MinglDingl.Engine.Features.Live;
 

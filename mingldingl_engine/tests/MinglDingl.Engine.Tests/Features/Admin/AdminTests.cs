@@ -33,7 +33,7 @@ public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task App_token_is_rejected_on_admin_endpoints()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var app = f.As(await f.SignInAsync(vm));
         (await app.GetAsync("/admin/users")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await f.Client().GetAsync("/admin/users")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -74,7 +74,7 @@ public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Users_list_pages_by_cursor_without_gaps_and_searches()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var made = new List<Guid>();
         for (var i = 0; i < 7; i++)
         {
@@ -116,7 +116,7 @@ public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task User_detail_shows_account_profile_photos_and_devices()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn(); f.UseMemoryPhotoStore();
+        var vm = f.UseScriptedWeSend(); f.UseMemoryPhotoStore();
         var s = await f.SignInAsync(vm, device: "Galaxy A51");
         var c = f.As(s);
         await c.CreateAsync("Saruul");
@@ -133,7 +133,7 @@ public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task New_signup_reaches_admin_hub_as_user_created()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var admin = await f.AdminAsync();
         await using var l = await f.ListenAsync(admin.AdminToken(), "/admin/live");
         var s = await f.SignInAsync(vm);
@@ -146,7 +146,7 @@ public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task App_token_cannot_join_admin_hub()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
         var act = () => f.ListenAsync(s.AccessToken, "/admin/live");
         await act.Should().ThrowAsync<Exception>();
@@ -170,7 +170,7 @@ public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Config_write_publishes_config_updated_to_app_clients()
     {
         await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedVerifyMn();
+        var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
         await using var l = await f.ListenAsync(s);
         var admin = await f.AdminAsync();

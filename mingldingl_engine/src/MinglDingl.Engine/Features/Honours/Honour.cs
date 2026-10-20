@@ -74,7 +74,7 @@ public sealed record StandingView(int Kept, int Counted, int OpenScars, int Clos
 
 /// One closed meeting in the Encounter Log. outcome: kept / noShow (theirs) / missed (yours) /
 /// disputed / excused / unanswered. charted: the district it charted for the first time, if any.
-public sealed record EncounterLogRow(Guid MeetingId, Guid BondId, string Name, string Venue, DateTimeOffset At,
+public sealed record EncounterLogRow(Guid MeetingId, Guid BondId, string Name, string Venue, string? VenueMn, DateTimeOffset At,
     string Outcome, string? Charted);
 
 public sealed record EncounterLogView(StandingView Standing, IReadOnlyList<EncounterLogRow> Encounters);

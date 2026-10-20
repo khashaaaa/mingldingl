@@ -1,23 +1,24 @@
 ---
 name: verify
-description: How to run + drive MingldIngl end-to-end (scripts/dev.sh with fake verify.mn, seed CLI, Maestro on the A51/emulator, adb screenshots, the device pass against Figma)
+description: How to run + drive MingldIngl end-to-end (scripts/dev.sh with fake WeSend, seed CLI, Maestro on the A51/emulator, adb screenshots, the device pass against Figma)
 ---
 
 # MingldIngl end-to-end verification recipe
 
 ## Start the stack
 - `./scripts/dev.sh` — checks Postgres, runs the engine under `dotnet watch` on `0.0.0.0:5150`
-  with **fake verify.mn**, Metro on 8081, the admin on 5173.
-  `--real-sms` uses the real provider (each text costs the user 150₮ — only for the one real
-  device check).
+  with **fake WeSend** (no text; every code is 000000), Metro on 8081, the admin on 5173.
+  `--real-sms` uses WeSend with `WeSend:ApiKey` from appsettings: a `ws_test_` sandbox key sends
+  nothing and its code is 000000; a live key texts for real at 80₮ of credit each (the project
+  account sends only to its owner's own number until it is Active).
 - Health: `curl localhost:5150/health`. Swagger/OpenAPI only in Development.
 - `dotnet watch` sometimes keeps old code after a new class/endpoint: kill the child
   (`pgrep -f DOTNET_WATCH_ITERATION`), `touch` a source file, wait for `/health`.
 - Don't `pkill -f <pattern>` inside a command whose own text matches the pattern — it kills the shell.
 
 ## Accounts in any state, no SMS
-- With fake verify.mn every number verifies at once — except **99000000** (stays pending: the
-  "Send this code" screen) and **99000001** (expires: "That code expired").
+- With fake WeSend every number takes the code **000000** (Maestro: `_code.yaml`) — except
+  **99000001**, whose code expires ("That code expired"). Any other code is "not the code we sent".
 - `cd mingldingl_engine && ASPNETCORE_ENVIRONMENT=Development ~/.dotnet/dotnet run --project src/MinglDingl.Engine --no-launch-profile -- seed <Step1..Step6|Finished|Suspended|Deleted> --phone 99xxxxxx`
   puts that number's account in that exact state; signing in with it lands there. A signed-in app
   picks the change up on relaunch. `seed crowd` restores the 48-person crowd (99100000–99100047).

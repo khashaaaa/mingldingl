@@ -42,6 +42,24 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
+    public async Task The_web_page_abandons_a_character_as_the_War_Room_does_and_it_leaves_Seek()
+    {
+        await using var w = await World.CreateAsync(db);
+        var phone = SessionDriver.NewPhone();
+        var bat = await w.PersonAsync("Bat", "Male");
+        var saruul = await w.PersonAsync("Saruul", "Female", phone: phone);
+        var web = await w.GuildAsync(phone);
+
+        var r = await web.PostAsync("/guild/abandon", null);
+        r.EnsureSuccessStatusCode();
+        var gone = (await r.Content.ReadFromJsonAsync<GuildAbandoned>())!;
+        gone.DeleteAt.Should().BeCloseTo(w.F.Clock.UtcNow.AddDays(30), TimeSpan.FromSeconds(1));
+        (await saruul.C.MeAsync()).DeleteAt.Should().Be(gone.DeleteAt);
+        (await bat.C.SeekAsync()).Candidate.Should().BeNull();
+        (await saruul.C.PostAsync("/guild/abandon", null)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task A_guild_token_and_an_app_token_are_never_accepted_for_each_other_and_the_web_never_makes_accounts()
     {
         await using var w = await World.CreateAsync(db);
@@ -222,8 +240,7 @@ public static class PaymentDriver
     {
         var c = w.F.Client();
         var s = await c.StartAsync(phone);
-        w.Vm.VerifyCode(s.Code);
-        (await c.StatusAsync(s.VerificationId)).Should().Be("verified");
+        await c.CheckAsync(w.Vm, s.VerificationId);
         return await c.PostAsJsonAsync("/guild/session", new GuildSessionRequest(s.VerificationId));
     }
 

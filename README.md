@@ -22,7 +22,7 @@ or component.
 ## Quick start
 
 ```bash
-./scripts/dev.sh          # engine :5150 (fake verify.mn), Metro :8081, admin :5173 — needs local Postgres
+./scripts/dev.sh          # engine :5150 (fake WeSend, code 000000), Metro :8081, admin :5173 — needs local Postgres
 ./scripts/check-all.sh    # every test, typecheck, lint and build — the same set CI runs
 ```
 

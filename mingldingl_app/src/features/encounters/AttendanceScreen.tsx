@@ -16,7 +16,7 @@ import {
   useGetEncounter,
 } from '@/lib/api/generated/engine';
 import { feedback } from '@/lib/feedback';
-import { t, tError } from '@/lib/i18n';
+import { t, tError, tVenue } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import { Scene } from '../common/Scene';
 import { when } from './NextStep';
@@ -72,7 +72,7 @@ export default function AttendanceScreen() {
         {t('step.attendance.title', { name })}
       </Txt>
       <Txt variant="voiceM" color="textSecondary">
-        {t('attendance.body', { when: when(meeting.at), venue: meeting.venue.name })}
+        {t('attendance.body', { when: when(meeting.at), venue: tVenue(meeting.venue) })}
       </Txt>
       <View style={styles.choices}>
         {ANSWERS.map((a, i) => (

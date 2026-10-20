@@ -20,6 +20,7 @@ public static class DatabaseBootstrap
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDb>();
             await db.Database.MigrateAsync(ct);
+            await LooseVerifyMnColumnsAsync(db, ct);
             await Questions.SeedAsync(db, ct);
             await CodexService.SeedAsync(db, DateTimeOffset.UtcNow, ct);
             await FestivalService.SeedAsync(db, scope.ServiceProvider.GetRequiredService<IClock>().TodayUb, ct);
@@ -28,4 +29,20 @@ public static class DatabaseBootstrap
         await HonourService.BackfillAsync(services, ct);
         await CampaignService.BackfillAsync(services, ct);
     }
+
+    /// A database made before WeSend still has verify.mn's code columns, NOT NULL, which the model no
+    /// longer writes; they are loosened (never dropped) so new rows insert. A no-op on a fresh one.
+    private static Task LooseVerifyMnColumnsAsync(AppDb db, CancellationToken ct) =>
+        db.Database.ExecuteSqlRawAsync("""
+            DO $$
+            DECLARE c text;
+            BEGIN
+              FOREACH c IN ARRAY ARRAY['Code', 'DisplayInstruction', 'SmsUri'] LOOP
+                IF EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name = 'phone_verifications' AND column_name = c AND is_nullable = 'NO') THEN
+                  EXECUTE format('ALTER TABLE phone_verifications ALTER COLUMN %I DROP NOT NULL', c);
+                END IF;
+              END LOOP;
+            END $$;
+            """, ct);
 }

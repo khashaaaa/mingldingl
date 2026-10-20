@@ -6,15 +6,14 @@ import { LOCALE_KEY } from '@/lib/i18n/device';
 import { REFRESH_KEY, signOutLocally } from '@/lib/session';
 import GateScene from '../GateScene';
 import PhoneScreen, { isPhone } from '../PhoneScreen';
-import { OFFLINE_RETRY_MS, OPENING_HOLD_MS, POLL_MS, verifyKey } from '../useVerification';
+import { OFFLINE_RETRY_MS, OPENING_HOLD_MS, verifyKey } from '../useVerification';
 import VerifyScreen from '../VerifyScreen';
 
 jest.mock('@/lib/feedback', () => ({ feedback: jest.fn() }));
 
-let mockFocused = true;
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), navigate: jest.fn() },
-  useIsFocused: () => mockFocused,
+  useIsFocused: () => true,
   useFocusEffect: () => {},
   useLocalSearchParams: () => ({ phone: '88581234' }),
 }));
@@ -22,21 +21,19 @@ const { router } = jest.requireMock('expo-router') as { router: Record<string, j
 
 jest.mock('@/lib/api/generated/engine', () => ({
   startPhone: jest.fn(),
-  phoneStatus: jest.fn(),
+  checkPhone: jest.fn(),
   completePhone: jest.fn(),
 }));
 const api = jest.requireMock('@/lib/api/generated/engine') as Record<
-  'startPhone' | 'phoneStatus' | 'completePhone',
+  'startPhone' | 'checkPhone' | 'completePhone',
   jest.Mock
 >;
 
 const PHONE = '88581234';
-const started = (id: string) => ({
+const started = (id: string, resendIn = 60_000) => ({
   verificationId: id,
-  code: '482913',
-  displayInstruction: 'Энэ кодыг 144773 руу илгээнэ үү',
-  smsUri: 'sms:144773?body=482913',
   expiresAt: new Date(Date.now() + 600_000).toISOString(),
+  resendAt: new Date(Date.now() + resendIn).toISOString(),
 });
 const pair = {
   accessToken: 'access-1',
@@ -45,21 +42,24 @@ const pair = {
   accountId: 'acc-1',
 };
 
-/** Lets the hook's awaited calls settle without moving the poll clock. */
+/** Lets the hook's awaited calls settle without moving the clock. */
 const settle = () => act(async () => {});
-const tick = (ms = POLL_MS) =>
+const tick = (ms: number) =>
   act(async () => {
     jest.advanceTimersByTime(ms);
   });
+const type = async (code: string) => {
+  await fireEvent.changeText(screen.getByLabelText('The code'), code);
+  await settle();
+};
 
 beforeEach(async () => {
   jest.useFakeTimers();
-  mockFocused = true;
   for (const m of [...Object.values(api), ...Object.values(router)]) m.mockReset();
   api.startPhone.mockImplementation(async (req: { resumeVerificationId: string | null }) =>
     started(req.resumeVerificationId ?? 'v-new'),
   );
-  api.phoneStatus.mockResolvedValue({ state: 'pending' });
+  api.checkPhone.mockResolvedValue({ state: 'verified' });
   await signOutLocally();
   await SecureStore.deleteItemAsync(verifyKey(PHONE));
 });
@@ -69,53 +69,35 @@ afterEach(() => {
 });
 
 describe('Verify', () => {
-  test('resumes the id this number was last given, so no second text is paid for', async () => {
+  test('resumes the id this number was last given, so no second text is sent', async () => {
     await SecureStore.setItemAsync(verifyKey(PHONE), 'v-old');
     await render(<VerifyScreen />);
     await settle();
-    expect(api.startPhone).toHaveBeenCalledWith({ phone: PHONE, resumeVerificationId: 'v-old' });
-    expect(screen.getByText('482 913')).toBeTruthy();
-    expect(screen.getByText('Энэ кодыг 144773 руу илгээнэ үү')).toBeTruthy();
+    expect(api.startPhone).toHaveBeenCalledWith({
+      phone: PHONE,
+      resumeVerificationId: 'v-old',
+      locale: 'en',
+    });
+    expect(screen.getByText(/on its way to 8858 1234/)).toBeTruthy();
   });
 
-  test('a first visit starts fresh and remembers the id', async () => {
+  test('a first visit starts fresh, in the language on screen, and remembers the id', async () => {
+    setLocale('mn');
     await render(<VerifyScreen />);
     await settle();
-    expect(api.startPhone).toHaveBeenCalledWith({ phone: PHONE, resumeVerificationId: null });
+    expect(api.startPhone).toHaveBeenCalledWith({ phone: PHONE, resumeVerificationId: null, locale: 'mn' });
     expect(await SecureStore.getItemAsync(verifyKey(PHONE))).toBe('v-new');
   });
 
-  test('expired shows the new-code action, which starts over without resuming', async () => {
-    await SecureStore.setItemAsync(verifyKey(PHONE), 'v-old');
-    api.phoneStatus.mockResolvedValue({ state: 'expired' });
-    await render(<VerifyScreen />);
-    await settle();
-    await tick();
-    expect(screen.getByText('That code expired')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: 'Get a new code' }));
-    await settle();
-    expect(api.startPhone).toHaveBeenLastCalledWith({ phone: PHONE, resumeVerificationId: null });
-  });
-
-  test('polls every 3 s while focused and stops when it is not', async () => {
-    const { rerender } = await render(<VerifyScreen />);
-    await settle();
-    await tick();
-    await tick();
-    expect(api.phoneStatus).toHaveBeenCalledTimes(2);
-    mockFocused = false;
-    await rerender(<VerifyScreen />);
-    await tick(POLL_MS * 5);
-    expect(api.phoneStatus).toHaveBeenCalledTimes(2);
-  });
-
-  test('verified completes, stores the refresh token and never navigates by itself', async () => {
-    api.phoneStatus.mockResolvedValue({ state: 'verified' });
+  test('the sixth digit checks the code, completes, and never navigates by itself', async () => {
     api.completePhone.mockResolvedValue(pair);
     await render(<VerifyScreen />);
     await settle();
-    await tick();
+    await type('48 29');
+    expect(api.checkPhone).not.toHaveBeenCalled();
+    await type('482913');
     await settle();
+    expect(api.checkPhone).toHaveBeenCalledWith({ verificationId: 'v-new', code: '482913' });
     expect(api.completePhone).toHaveBeenCalledWith(expect.objectContaining({ verificationId: 'v-new' }));
     // The seal breaks on screen first; only then is the session stored and the gate moves.
     expect(screen.getByText('The gate opens')).toBeTruthy();
@@ -124,18 +106,59 @@ describe('Verify', () => {
     await settle();
     expect(await SecureStore.getItemAsync(REFRESH_KEY)).toBe('refresh-1');
     expect(await SecureStore.getItemAsync(verifyKey(PHONE))).toBeNull();
-    expect(screen.getByText('The gate opens')).toBeTruthy();
     for (const m of [router.push, router.replace, router.navigate]) expect(m).not.toHaveBeenCalled();
   });
 
+  test('a wrong code says so and may be typed again', async () => {
+    api.checkPhone.mockRejectedValueOnce(new ApiError('rule', 422, 'auth.wrong_code', 'wrong'));
+    api.completePhone.mockResolvedValue(pair);
+    await render(<VerifyScreen />);
+    await settle();
+    await type('111111');
+    expect(screen.getByText(/not the code we sent/)).toBeTruthy();
+    expect(api.completePhone).not.toHaveBeenCalled();
+    await type('482913');
+    expect(api.completePhone).toHaveBeenCalled();
+  });
+
+  test.each(['auth.verification_expired', 'auth.too_many_attempts'])(
+    '%s asks for a new code, which starts over without resuming',
+    async (code) => {
+      api.checkPhone.mockRejectedValueOnce(new ApiError('rule', 410, code, 'gone'));
+      await render(<VerifyScreen />);
+      await settle();
+      await type('482913');
+      expect(screen.getByText('That code expired')).toBeTruthy();
+      await fireEvent.press(screen.getByRole('button', { name: 'Get a new code' }));
+      await settle();
+      expect(api.startPhone).toHaveBeenLastCalledWith({
+        phone: PHONE,
+        resumeVerificationId: null,
+        locale: 'en',
+      });
+    },
+  );
+
   test('a code used or too old at completion asks for a new one', async () => {
-    api.phoneStatus.mockResolvedValue({ state: 'verified' });
     api.completePhone.mockRejectedValue(new ApiError('rule', 409, 'auth.already_claimed', 'used'));
     await render(<VerifyScreen />);
     await settle();
-    await tick();
-    await settle();
+    await type('482913');
     expect(screen.getByRole('button', { name: 'Get a new code' })).toBeTruthy();
+  });
+
+  test('a new code waits out its minute', async () => {
+    await render(<VerifyScreen />);
+    await settle();
+    expect(screen.getByText('A new code in 60 s')).toBeTruthy();
+    await tick(60_000);
+    await fireEvent.press(screen.getByRole('link', { name: 'Get a new code' }));
+    await settle();
+    expect(api.startPhone).toHaveBeenLastCalledWith({
+      phone: PHONE,
+      resumeVerificationId: null,
+      locale: 'en',
+    });
   });
 
   test('a lost connection at start offers to try again', async () => {
@@ -145,7 +168,7 @@ describe('Verify', () => {
     expect(screen.getByText('The road is broken')).toBeTruthy();
     await fireEvent.press(screen.getByRole('link', { name: 'Try again' }));
     await settle();
-    expect(screen.getByText('482 913')).toBeTruthy();
+    expect(screen.getByLabelText('The code')).toBeTruthy();
   });
 
   test('a broken road carries on by itself once the connection returns', async () => {
@@ -160,12 +183,12 @@ describe('Verify', () => {
     expect(screen.getByText('The road is broken')).toBeTruthy();
     await tick(OFFLINE_RETRY_MS);
     await settle();
-    expect(screen.getByText('482 913')).toBeTruthy();
+    expect(screen.getByLabelText('The code')).toBeTruthy();
     expect(api.startPhone).toHaveBeenCalledTimes(3);
   });
 
   test('a rule failure does not retry by itself', async () => {
-    api.startPhone.mockRejectedValueOnce(new ApiError('rule', 429, 'auth.too_many', 'slow down'));
+    api.startPhone.mockRejectedValueOnce(new ApiError('rule', 429, 'auth.too_many_codes', 'slow down'));
     await render(<VerifyScreen />);
     await settle();
     await tick(OFFLINE_RETRY_MS * 3);

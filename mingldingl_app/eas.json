@@ -22,11 +22,17 @@
       "android": {
         "buildType": "apk"
       },
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
       "channel": "preview"
     },
     "production": {
       "environment": "production",
       "autoIncrement": true,
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      },
       "channel": "production"
     }
   },

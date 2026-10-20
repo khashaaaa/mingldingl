@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Brings up its own engine (port 5151, Development, fake verify.mn) with a throwaway admin password,
+ * Brings up its own engine (port 5151, Development, fake WeSend, code 000000) with a throwaway admin password,
  * and its own admin dev server pointed at it, so a running dev engine on 5150 is left alone.
  * The engine gets its own database too, made fresh each run (the engine migrates and seeds it at
  * boot): pointed at the dev database it left bells, venues and stand-in Mongolian there, and a
@@ -48,7 +48,7 @@ export default defineConfig({
         ASPNETCORE_ENVIRONMENT: 'Development',
         Admin__Username: E2E_ADMIN.username,
         Admin__PasswordHash: passwordHash,
-        VerifyMn__Fake: 'true',
+        WeSend__Fake: 'true',
         // Every test signs people up from one address; the per-IP auth limit is not what is tested here.
         RateLimits__AuthPerMinute: '1000',
         ConnectionStrings__Default: e2eConnection,

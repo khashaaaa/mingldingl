@@ -1,5 +1,5 @@
 # Gate → phone → verify → six onboarding steps → the Character tab shows the new character.
-# Needs: scripts/dev.sh running (fake verify.mn), the seed album (.maestro/push-seed-photos.sh).
+# Needs: scripts/dev.sh running (fake WeSend), the seed album (.maestro/push-seed-photos.sh).
 #   maestro --device emulator-5554 test .maestro/signup.yaml
 appId: com.mingldingl.app
 env:

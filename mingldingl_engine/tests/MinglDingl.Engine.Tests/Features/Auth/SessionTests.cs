@@ -25,7 +25,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Complete_creates_account_and_returns_pair()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var phone = SessionDriver.NewPhone();
         var s = await f.SignInAsync(vm, phone);
         s.AccessToken.Should().NotBeNullOrEmpty();
@@ -36,7 +36,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Complete_signs_in_existing_account_for_same_number()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var phone = SessionDriver.NewPhone();
         var a = await f.SignInAsync(vm, phone, "phone-a");
         var b = await f.SignInAsync(vm, phone, "phone-b");
@@ -47,10 +47,10 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Complete_is_single_use()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var c = f.Client();
         var s = await c.StartAsync(SessionDriver.NewPhone());
-        vm.VerifyCode(s.Code);
+        await c.CheckAsync(vm, s.VerificationId);
         (await c.CompleteRawAsync(s.VerificationId)).StatusCode.Should().Be(HttpStatusCode.OK);
         var again = await c.CompleteRawAsync(s.VerificationId);
         again.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -60,10 +60,10 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Concurrent_completes_with_one_verification_yield_one_session()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var c = f.Client();
         var s = await c.StartAsync(SessionDriver.NewPhone());
-        vm.VerifyCode(s.Code);
+        await c.CheckAsync(vm, s.VerificationId);
         var results = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => f.Client().CompleteRawAsync(s.VerificationId)));
         results.Count(r => r.StatusCode == HttpStatusCode.OK).Should().Be(1);
     }
@@ -71,7 +71,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Complete_refused_when_not_verified()
     {
-        await using var f = new EngineFactory(db); f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); f.UseScriptedWeSend();
         var c = f.Client();
         var s = await c.StartAsync(SessionDriver.NewPhone());
         var r = await c.CompleteRawAsync(s.VerificationId);
@@ -82,11 +82,10 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Complete_refused_after_claim_window()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var c = f.Client();
         var s = await c.StartAsync(SessionDriver.NewPhone());
-        vm.VerifyCode(s.Code);
-        await c.StatusAsync(s.VerificationId);
+        await c.CheckAsync(vm, s.VerificationId);
         f.Clock.Advance(TimeSpan.FromMinutes(31));
         var r = await c.CompleteRawAsync(s.VerificationId);
         (await ErrorCode(r)).Should().Be("auth.verification_expired");
@@ -95,7 +94,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Signups_closed_refuses_new_number_but_not_existing()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var existing = SessionDriver.NewPhone();
         await f.SignInAsync(vm, existing);
         await using (var scope = f.Services.CreateAsyncScope())
@@ -104,7 +103,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         {
             var c = f.Client();
             var s = await c.StartAsync(SessionDriver.NewPhone());
-            vm.VerifyCode(s.Code);
+            await c.CheckAsync(vm, s.VerificationId);
             var r = await c.CompleteRawAsync(s.VerificationId);
             r.StatusCode.Should().Be(HttpStatusCode.Forbidden);
             (await ErrorCode(r)).Should().Be("signups.closed");
@@ -120,7 +119,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Refresh_rotates_and_new_access_token_works()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
         var r = await f.Client().RefreshRawAsync(s.RefreshToken);
         r.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -132,7 +131,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Refresh_twice_within_grace_returns_same_pair()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
         var a = await (await f.Client().RefreshRawAsync(s.RefreshToken)).Content.ReadFromJsonAsync<SessionPair>();
         f.Clock.Advance(TimeSpan.FromSeconds(20));
@@ -144,7 +143,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Refresh_with_old_token_after_grace_revokes_device()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
         var next = (await (await f.Client().RefreshRawAsync(s.RefreshToken)).Content.ReadFromJsonAsync<SessionPair>())!;
         f.Clock.Advance(TimeSpan.FromSeconds(31));
@@ -158,7 +157,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Concurrent_refreshes_with_one_token_all_succeed_with_one_pair()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
         var results = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => f.Client().RefreshRawAsync(s.RefreshToken)));
         results.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.OK);
@@ -169,7 +168,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Unknown_refresh_token_is_401()
     {
-        await using var f = new EngineFactory(db); f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); f.UseScriptedWeSend();
         var r = await f.Client().RefreshRawAsync("not-a-token");
         r.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await ErrorCode(r)).Should().Be("auth.invalid_refresh");
@@ -178,7 +177,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Access_token_of_revoked_device_is_rejected()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
         (await f.As(s).PostAsync("/auth/sign-out", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await f.As(s).PostAsync("/auth/sign-out", null)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -187,7 +186,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Sign_out_revokes_only_this_device()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var phone = SessionDriver.NewPhone();
         var a = await f.SignInAsync(vm, phone, "a");
         var b = await f.SignInAsync(vm, phone, "b");
@@ -199,7 +198,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Sign_out_all_revokes_every_device()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var phone = SessionDriver.NewPhone();
         var a = await f.SignInAsync(vm, phone, "a");
         var b = await f.SignInAsync(vm, phone, "b");
@@ -212,7 +211,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Expired_access_token_is_401()
     {
-        await using var f = new EngineFactory(db); var vm = f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
         f.Clock.Advance(TimeSpan.FromMinutes(16)); // access tokens live 15 minutes
         (await f.As(s).PostAsync("/auth/sign-out", null)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -221,7 +220,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Garbage_bearer_is_401()
     {
-        await using var f = new EngineFactory(db); f.UseScriptedVerifyMn();
+        await using var f = new EngineFactory(db); f.UseScriptedWeSend();
         var c = f.Client();
         c.DefaultRequestHeaders.Authorization = new("Bearer", "abc.def.ghi");
         (await c.PostAsync("/auth/sign-out", null)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);

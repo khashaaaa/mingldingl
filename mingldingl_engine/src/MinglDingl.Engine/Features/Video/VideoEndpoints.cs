@@ -35,13 +35,16 @@ public sealed class VideoEndpoints : IEndpointModule
             using var reader = new StreamReader(http.Body, Encoding.UTF8);
             var body = await reader.ReadToEndAsync(ct);
             if (string.IsNullOrEmpty(agora.NcsSecret) || !Signed(body, http.Headers["Agora-Signature-V2"].ToString(), agora.NcsSecret))
+            {
+                log.LogWarning("Agora notice with a bad signature ({Length} bytes)", body.Length);
                 return Results.Unauthorized();
+            }
             try
             {
                 using var doc = JsonDocument.Parse(body);
                 var root = doc.RootElement;
                 var type = root.GetProperty("eventType").GetInt32();
-                if (type is not (103 or 104 or 105 or 106)) return Results.Ok();
+                if (type is not (103 or 104 or 105 or 106)) return Received;
                 var p = root.GetProperty("payload");
                 var at = DateTimeOffset.FromUnixTimeSeconds(p.GetProperty("ts").GetInt64());
                 await svc.PresenceAsync(p.GetProperty("channelName").GetString() ?? "", p.GetProperty("uid").GetUInt32(),
@@ -51,9 +54,12 @@ public sealed class VideoEndpoints : IEndpointModule
             {
                 log.LogWarning(e, "Unreadable Agora notice");
             }
-            return Results.Ok();
+            return Received;
         }).WithTags("Video").AllowAnonymous().ExcludeFromDescription();
     }
+
+    // Agora's Notification Center counts only a 200 with a JSON body as delivered.
+    static readonly IResult Received = Results.Json(new { ok = true });
 
     public static bool Signed(string body, string header, string secret)
     {

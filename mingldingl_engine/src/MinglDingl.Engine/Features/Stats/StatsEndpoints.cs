@@ -1,6 +1,5 @@
 using MinglDingl.Engine.Features.Admin;
 using MinglDingl.Engine.Kernel;
-using MinglDingl.Engine.Kernel.Errors;
 
 namespace MinglDingl.Engine.Features.Stats;
 
