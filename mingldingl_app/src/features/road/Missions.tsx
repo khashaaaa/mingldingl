@@ -19,7 +19,7 @@ import { QUEST } from './quests';
 
 /** Missions (Figma 26:570): the seven dawns, today's three quests and the week's one, live. */
 /** A ger rest is worth a word for a week after it kept a dawn. */
-export const keptLately = (keptOn: string | null | undefined, today: string) =>
+const keptLately = (keptOn: string | null | undefined, today: string) =>
   keptOn != null && Date.parse(today) - Date.parse(keptOn) <= 7 * 86_400_000;
 
 export default function Missions() {

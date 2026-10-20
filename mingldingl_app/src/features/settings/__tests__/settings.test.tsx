@@ -3,7 +3,7 @@ import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-librar
 import type { ReactNode } from 'react';
 import WorldLayout from '@/app/(world)/_layout';
 import { getAppStatus, getGetAppStatusQueryKey, getGetMeQueryKey, getMe } from '@/lib/api/generated/engine';
-import type { CodexPageView, MeView, ProfileView } from '@/lib/api/generated/model';
+import type { CodexPageView, MembershipView, MeView, ProfileView } from '@/lib/api/generated/model';
 import { setLocale } from '@/lib/i18n';
 import { applyLiveEvent } from '@/lib/live/events';
 import QuestLog from '../../bonds/QuestLog';
@@ -14,6 +14,7 @@ import SquareTab from '../../square/SquareTab';
 import WorldTabs from '../../world/WorldTabs';
 import Codex, { CodexPage } from '../Codex';
 import Departing, { daysLeft, moonDate } from '../Departing';
+import GuildHouse from '../GuildHouse';
 import WarRoom from '../WarRoom';
 
 jest.mock('@/lib/feedback', () => ({
@@ -28,6 +29,15 @@ jest.mock('@/lib/push', () => ({
   setPushOn: jest.fn(async () => true),
 }));
 jest.mock('@/lib/i18n/device', () => ({ chooseLocale: jest.fn() }));
+jest.mock('@/lib/links', () => ({ ...jest.requireActual('@/lib/links'), manageStore: jest.fn() }));
+// RevenueCat's SDK is ESM jest cannot load; the store here is open and has no prices of its own.
+jest.mock('@/lib/store', () => ({
+  productId: (floor: string, months: number) => `${floor}:m${months}`,
+  storeOpen: () => true,
+  storeSignIn: async () => {},
+  storePrices: async () => ({}),
+  buy: jest.fn(),
+}));
 jest.mock('@/lib/session', () => ({ ...jest.requireActual('@/lib/session'), signOutLocally: jest.fn() }));
 jest.mock('@/lib/api/client', () => ({ ...jest.requireActual('@/lib/api/client'), apiFetch: jest.fn() }));
 
@@ -44,6 +54,7 @@ const { apiFetch } = jest.requireMock('@/lib/api/client') as { apiFetch: jest.Mo
 const { saveSoundSetting } = jest.requireMock('@/lib/feedback') as { saveSoundSetting: jest.Mock };
 const { setPushOn } = jest.requireMock('@/lib/push') as { setPushOn: jest.Mock };
 const { chooseLocale } = jest.requireMock('@/lib/i18n/device') as { chooseLocale: jest.Mock };
+const { manageStore } = jest.requireMock('@/lib/links') as { manageStore: jest.Mock };
 
 const PAGES: CodexPageView[] = [
   {
@@ -85,6 +96,7 @@ function fakeEngine() {
       createdAt: '2026-10-06T00:00:00Z',
     } as ProfileView,
     deleteAt: null as string | null,
+    membership: { floor: 'yard', until: null, source: null, renews: false, open: true } as MembershipView,
     writes: [] as string[],
     puts: [] as Record<string, unknown>[],
   };
@@ -115,6 +127,8 @@ function fakeEngine() {
       case 'POST /me/keep':
         e.deleteAt = null;
         return undefined;
+      case 'GET /me/membership':
+        return { membership: e.membership, offers: [] };
       case 'GET /me/photos':
         return [];
       case 'GET /app/status':
@@ -187,6 +201,7 @@ const ROUTES = {
   '(world)/(tabs)/character': CharacterScreen,
   '(world)/war-room': WarRoom,
   '(world)/departing': Departing,
+  '(world)/guild-house': GuildHouse,
   '(world)/codex/index': Codex,
   '(world)/codex/[slug]': CodexPage,
 };
@@ -300,6 +315,32 @@ describe('The War Room', () => {
     expect(screen.getByText('This character fades in 23 days. Keep it?')).toBeTruthy();
     await press('Keep my character', 'link');
     expect(engine.writes).toEqual(['POST /me/keep']);
+  });
+});
+
+describe('The Guild House', () => {
+  const sitting = (source: 'store' | 'qpay'): MembershipView => ({
+    floor: 'hall',
+    until: '2026-11-20T00:00:00Z',
+    source,
+    renews: source === 'store',
+    open: true,
+  });
+
+  test('a store floor is changed or cancelled in Google Play', async () => {
+    engine.membership = sitting('store');
+    await show('/guild-house');
+    expect(screen.getByText(/RENEWS ON/)).toBeTruthy();
+    await press('Manage in Google Play', 'link');
+    expect(manageStore).toHaveBeenCalled();
+  });
+
+  test('a floor paid on the web page has nothing to manage, only the way back', async () => {
+    engine.membership = sitting('qpay');
+    await show('/guild-house');
+    expect(screen.getByText(/PAID UNTIL/)).toBeTruthy();
+    expect(screen.queryByText('Manage in Google Play')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Back to the War Room' })).toBeTruthy();
   });
 });
 

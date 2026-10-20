@@ -16,7 +16,7 @@ import { toast } from '@/lib/toast';
 import { Scene } from '../common/Scene';
 
 /** The age bands the chips offer; "any" is no bound. */
-export const AGES: { key: StringKey; min: number | null; max: number | null }[] = [
+const AGES: { key: StringKey; min: number | null; max: number | null }[] = [
   { key: 'filters.ageAny', min: null, max: null },
   { key: 'filters.age18', min: 18, max: 24 },
   { key: 'filters.age25', min: 25, max: 34 },

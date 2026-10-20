@@ -28,6 +28,13 @@ export async function openStore() {
   }
 }
 
+/** Google Play's page for this app's subscription, where a store floor is cancelled or changed. */
+export function manageStore() {
+  Linking.openURL(`https://play.google.com/store/account/subscriptions?package=${ANDROID_ID}`).catch(
+    () => {},
+  );
+}
+
 export function writeToKeepers() {
   if (SUPPORT_EMAIL) Linking.openURL(`mailto:${SUPPORT_EMAIL}`).catch(() => {});
 }

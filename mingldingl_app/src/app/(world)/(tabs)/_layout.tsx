@@ -1,1 +1,1 @@
-export { default } from '@/features/world/WorldTabs';
+export { default, unstable_settings } from '@/features/world/WorldTabs';

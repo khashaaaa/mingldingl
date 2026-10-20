@@ -18,9 +18,9 @@ import { t } from '@/lib/i18n';
 import { Scene } from '../common/Scene';
 
 /** The floor dims over this last stretch before the fire burns low. */
-export const DIM_MS = 60_000;
+const DIM_MS = 60_000;
 /** Away this long and the sitting starts again. */
-export const AWAY_RESETS_MS = 5 * 60_000;
+const AWAY_RESETS_MS = 5 * 60_000;
 const DIM_TO = 0.55;
 /** Never over a call or a ceremony: wait for it to end and look again a minute later. */
 const BUSY = /^\/(call|rite|ceremony|rest)\b/;

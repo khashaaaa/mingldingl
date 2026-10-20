@@ -19,7 +19,7 @@ export type Pending = { key: string; base64: string; status: 'uploading' | 'fail
  * SDK 57's global fetch is expo/fetch, which sends a form part only if it is a Blob or has `bytes()`
  * — React Native's `{ uri }` part is refused ("Unsupported FormDataPart implementation").
  */
-export const jpegPart = (base64: string) =>
+const jpegPart = (base64: string) =>
   ({
     name: 'portrait.jpg',
     type: 'image/jpeg',
@@ -27,7 +27,7 @@ export const jpegPart = (base64: string) =>
   }) as unknown as Blob;
 
 /** Unique per upload, not secret: the engine only uses it to recognise a retry of the same file. */
-export const newUploadKey = () =>
+const newUploadKey = () =>
   'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);

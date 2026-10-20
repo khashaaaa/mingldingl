@@ -1,6 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { Stack, useSegments } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useSyncExternalStore } from 'react';
 import { View } from 'react-native';
@@ -38,16 +38,21 @@ loadLocale();
 registerDevTools();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+/** The World Floor shows through every navigator; iOS would otherwise paint the theme's grey behind screens. */
+const NAV_THEME = { ...DarkTheme, colors: { ...DarkTheme.colors, background: 'transparent' } };
+
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <OverlayHost>
-            <Gate />
-            <ToastHost />
-          </OverlayHost>
-        </QueryClientProvider>
+        <ThemeProvider value={NAV_THEME}>
+          <QueryClientProvider client={queryClient}>
+            <OverlayHost>
+              <Gate />
+              <ToastHost />
+            </OverlayHost>
+          </QueryClientProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

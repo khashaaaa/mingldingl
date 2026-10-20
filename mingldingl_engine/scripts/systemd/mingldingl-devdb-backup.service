@@ -1,0 +1,9 @@
+[Unit]
+Description=MinglDingl dev DB dump to Supabase Storage
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/khashaa/Desktop/mingldingl/mingldingl_engine/scripts/backup-to-supabase.sh
+Nice=10
+IOSchedulingClass=idle

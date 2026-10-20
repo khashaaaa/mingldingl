@@ -32,8 +32,13 @@ env:
     visible: Your tale is written in full\.
     timeout: 10000
 - tapOn: Enter the Hearth
+# Finishing lands in the world; Character is its own tab.
 - extendedWaitUntil:
-    visible: Edit your character
+    visible: Character
     timeout: 15000
+- tapOn: Character
+- extendedWaitUntil:
+    visible: Your Oath
+    timeout: 10000
 - assertVisible: Maestro, 28
 - assertVisible: Bond — sworn

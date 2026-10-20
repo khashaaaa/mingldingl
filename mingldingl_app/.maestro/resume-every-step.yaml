@@ -45,6 +45,6 @@ env:
 - extendedWaitUntil: { visible: 'Your tale is written in full\.', timeout: 10000 }
 - runFlow: { file: _relaunch.yaml, env: { EXPECT: 'Your tale is written in full\.' } }
 - tapOn: Enter the Hearth
-- extendedWaitUntil: { visible: 'Edit your character', timeout: 15000 }
-- runFlow: { file: _relaunch.yaml, env: { EXPECT: 'Edit your character' } }
+- extendedWaitUntil: { visible: 'Character', timeout: 15000 }
+- runFlow: { file: _relaunch.yaml, env: { EXPECT: 'Character' } }
 - assertVisible: Maestro, 28

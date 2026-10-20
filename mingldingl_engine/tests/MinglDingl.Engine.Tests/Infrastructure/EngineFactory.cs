@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using MinglDingl.Engine.Features.Square;
 using MinglDingl.Engine.Kernel;
 using MinglDingl.Engine.Kernel.Clock;
 
@@ -38,12 +40,23 @@ public sealed class EngineFactory(PostgresFixture db) : WebApplicationFactory<Pr
         {
             s.RemoveAll<IClock>();
             s.AddSingleton<IClock>(Clock);
+            // The square's clock ticks every 2 s of real time; a tick racing the test's own (which then
+            // skips the locked gathering) made Square tests flaky. Tests tick it themselves.
+            for (var i = 0; i < s.Count; i++)
+                if (s[i].ServiceType == typeof(IHostedService) && s[i].ImplementationFactory is { } make)
+                    s[i] = ServiceDescriptor.Singleton<IHostedService>(sp => make(sp) switch { SquareClock => new Idle(), var h => (IHostedService)h });
             foreach (var e in _extraEndpoints) s.AddSingleton<IEndpointModule>(new DelegateModule(e));
             foreach (var c in _services) c(s);
         });
     }
 
     public HttpClient Client() => CreateClient();
+
+    private sealed class Idle : IHostedService
+    {
+        public Task StartAsync(CancellationToken ct) => Task.CompletedTask;
+        public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
+    }
 
     private sealed class DelegateModule(Action<IEndpointRouteBuilder> map) : IEndpointModule
     {

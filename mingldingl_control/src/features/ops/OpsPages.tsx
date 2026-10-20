@@ -9,10 +9,9 @@ import {
   useAdminHealth,
   useAdminRunSweep,
 } from '../../lib/api/generated/engine';
-import { formatAge, formatDate, formatDateTime } from '../../lib/format';
+import { formatAge, formatDate, formatDateTime, tugrik } from '../../lib/format';
 import '../users/users.css';
 
-const tugrik = (v: number) => `${v.toLocaleString('en-US')}₮`;
 const KIND: Record<string, string> = { report: 'Report', payment: 'Payment', deletion: 'Deletion' };
 
 function Stat({ label, value, note }: { label: string; value: string; note: string }) {
@@ -140,6 +139,12 @@ export function DeletionsPage() {
 const STATE: Record<string, string> = { ok: 'Reachable', down: 'Down', unknown: 'Unknown' };
 
 /** The engine room (Figma S8 226:13443): what the engine is, what it holds, and who it can reach. */
+/** "1.0.0+817ef910d2…" → "1.0.0 · 817ef91": the build's commit, short enough for its tile. */
+const shortVersion = (v: string) => {
+  const [base, commit] = v.split('+');
+  return commit ? `${base} · ${commit.slice(0, 7)}` : v;
+};
+
 export function OpsPage() {
   const health = useAdminHealth();
   const client = useQueryClient();
@@ -160,7 +165,11 @@ export function OpsPage() {
       {h && (
         <>
           <div className="stats">
-            <Stat label="Engine" value="Healthy" note={`${h.version} · up ${formatAge(h.startedAt)}`} />
+            <Stat
+              label="Engine"
+              value="Healthy"
+              note={`${shortVersion(h.version)} · up ${formatAge(h.startedAt)}`}
+            />
             <Stat label="Database" value={`${(h.databaseBytes / 1024 / 1024).toFixed(1)} MB`} note="" />
             <Stat
               label="Last backup"

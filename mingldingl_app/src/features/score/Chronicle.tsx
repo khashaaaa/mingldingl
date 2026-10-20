@@ -28,7 +28,7 @@ const GLYPH: Record<string, GlyphName> = {
 type Item = { kind: 'day'; key: string; text: string } | { kind: 'deed'; key: string; deed: DeedView };
 
 /** "Today", "Yesterday" or the date, over each day's deeds (days are Ulaanbaatar days). */
-export function deedItems(deeds: DeedView[], today: string, yesterday: string): Item[] {
+function deedItems(deeds: DeedView[], today: string, yesterday: string): Item[] {
   const out: Item[] = [];
   let day = '';
   for (const d of deeds) {

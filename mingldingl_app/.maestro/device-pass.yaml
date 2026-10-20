@@ -51,7 +51,7 @@ env:
 - takeScreenshot: ${LOCALE}-23-216
 
 - extendedWaitUntil: { visible: 'What does the hold call you\?', timeout: 15000 }
-- tapOn: First name
+- tapOn: First name|Нэр
 - inputText: Munkhbold
 - pressKey: Enter
 - inputText: '14031995'
@@ -102,11 +102,16 @@ env:
 - takeScreenshot: ${LOCALE}-23-973
 
 - tapOn: Enter the Hearth
-- extendedWaitUntil: { visible: Edit your character, timeout: 15000 }
+# Finishing lands in Seek; Character is its own tab, and Edit sits in its War Room (⋮).
+- extendedWaitUntil: { visible: Character|Баатар, timeout: 15000 }
+- tapOn: Character|Баатар
+- extendedWaitUntil: { visible: Your Oath|Тангараг, timeout: 10000 }
 - waitForAnimationToEnd
 - takeScreenshot: ${LOCALE}-26-1029
-- tapOn: Edit your character
-- extendedWaitUntil: { visible: First name, timeout: 10000 }
+- tapOn: The War Room|Дайны танхим
+- extendedWaitUntil: { visible: Edit your character|Баатраа засах, timeout: 10000 }
+- tapOn: Edit your character|Баатраа засах
+- extendedWaitUntil: { visible: First name|Нэр, timeout: 10000 }
 - waitForAnimationToEnd
 - takeScreenshot: ${LOCALE}-35-183
 - tapOn: Back|Буцах

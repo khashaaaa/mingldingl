@@ -24,7 +24,7 @@ import { RetiredTogether } from '../campaign/RetireScreen';
 import { CampaignRow } from '../campaign/RoadRows';
 import { Scene } from '../common/Scene';
 import { clock, dayOf, hoursBetween, useMinute } from '../common/time';
-import { NextStep } from '../encounters/NextStep';
+import { NextStep, SafetyRow } from '../encounters/NextStep';
 import { BondHeader } from './BondHeader';
 import { sendLetter, type Unsent, useUnsent } from './outbox';
 import { RoadNotice } from './RoadNotice';
@@ -288,6 +288,7 @@ export default function BondScreen() {
               setConfirm('seals');
             }}
           />
+          <SafetyRow bondId={id} name={other.name} done={() => setOptions(false)} />
           <Row
             title={t('bond.optReport')}
             subtitle={t('bond.optReportHint')}

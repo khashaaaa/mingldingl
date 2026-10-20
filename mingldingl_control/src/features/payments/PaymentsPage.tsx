@@ -14,11 +14,10 @@ import {
   useAdminRefundPayment,
 } from '../../lib/api/generated/engine';
 import type { AdminPaymentRow } from '../../lib/api/generated/model';
-import { formatDateTime } from '../../lib/format';
+import { formatDateTime, tugrik } from '../../lib/format';
 import '../users/users.css';
 import './payments.css';
 
-export const tugrik = (n: number) => `${n.toLocaleString('en-US')}₮`;
 const FLOOR: Record<string, string> = { hall: 'The Hall', highTable: 'High Table', yard: 'The Yard' };
 const STATE: Record<string, string> = {
   credited: 'Credited',

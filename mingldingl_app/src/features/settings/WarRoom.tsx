@@ -162,6 +162,7 @@ export default function WarRoom() {
             glyph="crown"
             title={t('war.floor')}
             subtitle={t(FLOOR_LINE[membership?.floor ?? 'yard'] ?? 'war.floorYard')}
+            value={(membership?.floor ?? 'yard') === 'yard' ? t('war.floorClimb') : undefined}
             onPress={() => router.push('/guild-house')}
           />
 

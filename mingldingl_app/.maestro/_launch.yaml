@@ -5,7 +5,7 @@ appId: com.mingldingl.app
 ---
 - openLink: mingldingl://expo-development-client/?url=${METRO_URL}&disableOnboarding=1
 - extendedWaitUntil:
-    visible: Enter the Gate|DEVELOPMENT SERVERS|Runtime version.*|What does the hold call you\?|You are…|Your portraits|Your tale|Swear your oath|Your tale is written in full\.|Edit your character|Cast Out|Хөөгдсөн|This character is gone|The hold has changed|The gate is shut for repairs
+    visible: Enter the Gate|DEVELOPMENT SERVERS|Runtime version.*|What does the hold call you\?|You are…|Your portraits|Your tale|Swear your oath|Your tale is written in full\.|Edit your character|The Tavern|Дэн буудал|Your Oath|Тангараг|Cast Out|Хөөгдсөн|This character is gone|The hold has changed|The gate is shut for repairs
     timeout: 60000
 - runFlow:
     when:
@@ -15,7 +15,7 @@ appId: com.mingldingl.app
           text: http://192\.168\.1\.32:8081
           optional: true   # the link may win the race and load the app first
 - extendedWaitUntil:
-    visible: Enter the Gate|Runtime version.*|What does the hold call you\?|You are…|Your portraits|Your tale|Swear your oath|Your tale is written in full\.|Edit your character|Cast Out|Хөөгдсөн|This character is gone|The hold has changed|The gate is shut for repairs
+    visible: Enter the Gate|Runtime version.*|What does the hold call you\?|You are…|Your portraits|Your tale|Swear your oath|Your tale is written in full\.|Edit your character|The Tavern|Дэн буудал|Your Oath|Тангараг|Cast Out|Хөөгдсөн|This character is gone|The hold has changed|The gate is shut for repairs
     timeout: 60000
 - runFlow:
     when:

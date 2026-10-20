@@ -14,5 +14,9 @@ appId: com.mingldingl.app
 - inputText: ${PHONE}
 - tapOn: Continue
 - extendedWaitUntil:
-    visible: Edit your character
+    visible: Character
     timeout: 20000
+- tapOn: Character
+- extendedWaitUntil:
+    visible: Your Oath
+    timeout: 10000

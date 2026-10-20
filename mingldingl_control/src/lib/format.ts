@@ -20,3 +20,6 @@ export function formatAge(iso: string, now = Date.now()) {
 
 /** The list shows only the first four digits; the full number is on the person's page. */
 export const maskPhone = (phone: string) => `${phone.slice(0, 4)} ····`;
+
+/** Tögrög, grouped: "12,000₮". */
+export const tugrik = (n: number) => `${n.toLocaleString('en-US')}₮`;

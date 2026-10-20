@@ -19,7 +19,7 @@ import Oath from './steps/Oath';
 import Photos from './steps/Photos';
 import Welcome from './steps/Welcome';
 
-export const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 6;
 const STEPS = [NameAge, Gender, Photos, About, Oath, Welcome] as const;
 
 type Onboarding = {

@@ -4875,7 +4875,10 @@
           "name",
           "status",
           "photoCount",
-          "createdAt"
+          "createdAt",
+          "tier",
+          "points",
+          "reputation"
         ],
         "type": "object",
         "properties": {
@@ -4902,6 +4905,26 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "tier": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "points": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "reputation": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },

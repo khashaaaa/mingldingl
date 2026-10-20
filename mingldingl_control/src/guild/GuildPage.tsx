@@ -41,7 +41,7 @@ const MOONS = [
   'twelfth',
 ];
 
-export const tugrik = (n: number) => `${n.toLocaleString('en-US')}₮`;
+const tugrik = (n: number) => `${n.toLocaleString('en-US')}₮`;
 
 function ordinal(n: number) {
   const s =

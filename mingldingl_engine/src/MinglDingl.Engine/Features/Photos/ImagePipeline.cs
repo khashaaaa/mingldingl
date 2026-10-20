@@ -68,7 +68,8 @@ public static class ImagePipeline
             case SKEncodedOrigin.RightBottom: canvas.Translate(w, h); canvas.Scale(-1, 1); canvas.Translate(w, 0); canvas.RotateDegrees(90); canvas.Translate(-w, -h); break;
             case SKEncodedOrigin.LeftBottom: canvas.Translate(0, h); canvas.RotateDegrees(270); break;
         }
-        canvas.DrawBitmap(src, 0, 0);
+        using var image = SKImage.FromBitmap(src);
+        canvas.DrawImage(image, 0, 0, SKSamplingOptions.Default);
         return dst;
     }
 }

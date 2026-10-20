@@ -18,7 +18,7 @@ function LocaleKeyed({ children }: { children: ReactElement }) {
  * through untouched (expo-router does not put the nested state on the route to tell by). A group
  * without a layout shows up as `(closed)/index`, a screen.
  */
-export const isNavigatorRoute = (name: string) => /^\([^/]+\)$/.test(name);
+const isNavigatorRoute = (name: string) => /^\([^/]+\)$/.test(name);
 
 /** Every navigator's `screenLayout`. */
 export const localeScreenLayout = ({

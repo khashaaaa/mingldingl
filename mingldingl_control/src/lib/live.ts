@@ -49,7 +49,7 @@ const touchesToday = (q: { queryKey: readonly unknown[] }) =>
   typeof q.queryKey[0] === 'string' &&
   (q.queryKey[0].startsWith('/admin/dashboard') || q.queryKey[0].startsWith('/admin/deletions'));
 
-export function applyLiveEvent(client: QueryClient, e: LiveEvent) {
+function applyLiveEvent(client: QueryClient, e: LiveEvent) {
   // The dashboard's today and the fading list move with sign-ups, reports, payments and bonds.
   if (['user.created', 'user.updated', 'report.created', 'payment.updated'].includes(e.kind))
     client.invalidateQueries({ predicate: touchesToday });
@@ -145,7 +145,7 @@ export async function startLive() {
   }
 }
 
-export async function stopLive() {
+async function stopLive() {
   const c = connection;
   connection = null;
   setState('off');

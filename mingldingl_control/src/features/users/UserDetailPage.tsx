@@ -8,7 +8,7 @@ import {
   useAdminGetUser,
   useAdminUserPayments,
 } from '../../lib/api/generated/engine';
-import { formatDate, formatDateTime } from '../../lib/format';
+import { formatDate, formatDateTime, tugrik } from '../../lib/format';
 import './users.css';
 
 export function UserDetailPage() {
@@ -271,7 +271,7 @@ function UserPayments({ id }: { id: string }) {
                 <td>
                   {FLOOR[r.floor] ?? r.floor} · {r.months} moon{r.months === 1 ? '' : 's'}
                 </td>
-                <td>{r.amount.toLocaleString('en-US')}₮</td>
+                <td>{tugrik(r.amount)}</td>
                 <td>
                   <Link to={`/payments/${r.invoiceId}`}>{r.state}</Link>
                 </td>

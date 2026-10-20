@@ -49,7 +49,7 @@ export async function startLive() {
   }
 }
 
-export async function stopLive() {
+async function stopLive() {
   const c = connection;
   connection = null;
   roadUp();

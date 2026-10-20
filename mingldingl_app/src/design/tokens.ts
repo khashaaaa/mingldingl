@@ -383,7 +383,7 @@ export const effect = {
     {
       "type": "DROP_SHADOW",
       "radius": 0,
-      "color": "#e8ddc9",
+      "color": "#e8dec9",
       "opacity": 0.08,
       "x": 0,
       "y": 1

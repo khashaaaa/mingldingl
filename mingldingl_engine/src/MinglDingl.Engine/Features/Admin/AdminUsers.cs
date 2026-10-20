@@ -22,12 +22,15 @@ public sealed class AdminUsers(AppDb db, ProfileService profiles, PhotoService p
         var q = from a in db.Set<Account>().AsNoTracking()
                 join p in db.Set<Profile.Profile>().AsNoTracking() on a.Id equals p.AccountId into ps
                 from p in ps.DefaultIfEmpty()
-                select new { a, Name = p == null ? null : p.Name };
+                select new { a, Name = p == null ? null : p.Name, Tier = p == null ? null : p.Tier,
+                    Points = p == null ? (int?)null : p.Points, Reputation = p == null ? (int?)null : p.Reputation };
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim();
-            q = q.Where(x => x.a.Phone.StartsWith(s) || (x.Name != null && EF.Functions.ILike(x.Name, "%" + s + "%")));
+            q = Guid.TryParse(s, out var byId)
+                ? q.Where(x => x.a.Id == byId)
+                : q.Where(x => x.a.Phone.StartsWith(s) || (x.Name != null && EF.Functions.ILike(x.Name, "%" + s + "%")));
         }
         if (Decode(cursor) is var (at, id) && id != Guid.Empty)
             q = q.Where(x => x.a.CreatedAt < at || (x.a.CreatedAt == at && x.a.Id.CompareTo(id) < 0));
@@ -35,7 +38,7 @@ public sealed class AdminUsers(AppDb db, ProfileService profiles, PhotoService p
         var rows = await q.OrderByDescending(x => x.a.CreatedAt).ThenByDescending(x => x.a.Id)
             .Take(limit + 1)
             .Select(x => new AdminUserRow(x.a.Id, x.a.Phone, x.Name, x.a.Status.ToString(),
-                db.Set<Photo>().Count(ph => ph.AccountId == x.a.Id), x.a.CreatedAt))
+                db.Set<Photo>().Count(ph => ph.AccountId == x.a.Id), x.a.CreatedAt, x.Tier, x.Points, x.Reputation))
             .ToListAsync(ct);
 
         var next = rows.Count > limit ? Encode(rows[limit - 1]) : null;

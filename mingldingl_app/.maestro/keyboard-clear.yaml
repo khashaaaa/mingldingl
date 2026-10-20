@@ -51,7 +51,12 @@ env:
 - tapOn: Swear the oath
 - extendedWaitUntil: { visible: 'Your tale is written in full\.', timeout: 10000 }
 - tapOn: Enter the Hearth
-- extendedWaitUntil: { visible: 'Edit your character', timeout: 15000 }
+# Character is its own tab, and Edit sits in its War Room (⋮).
+- extendedWaitUntil: { visible: 'Character', timeout: 15000 }
+- tapOn: Character
+- extendedWaitUntil: { visible: 'Your Oath', timeout: 10000 }
+- tapOn: The War Room
+- extendedWaitUntil: { visible: 'Edit your character', timeout: 10000 }
 - tapOn: Edit your character
 - tapOn: First name
 - takeScreenshot: kb-8-edit-name

@@ -9,7 +9,9 @@ namespace MinglDingl.Engine.Features.Admin;
 public sealed record AdminLoginRequest([Required, StringLength(100)] string Username, [Required, StringLength(200)] string Password);
 public sealed record AdminLoginResponse(string Token, DateTimeOffset ExpiresAt);
 
-public sealed record AdminUserRow(Guid AccountId, string Phone, string? Name, string Status, int PhotoCount, DateTimeOffset CreatedAt);
+/// Tier, Points and Reputation are null until the person has a profile.
+public sealed record AdminUserRow(Guid AccountId, string Phone, string? Name, string Status, int PhotoCount, DateTimeOffset CreatedAt,
+    string? Tier, int? Points, int? Reputation);
 public sealed record AdminUserPage(IReadOnlyList<AdminUserRow> Items, string? NextCursor);
 
 public sealed record AdminDevice(Guid Id, string DeviceName, DateTimeOffset CreatedAt, DateTimeOffset LastSeenAt, DateTimeOffset? RevokedAt);

@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Share, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Art } from '@/design/components/Art';
 import { Banner } from '@/design/components/Banner';
 import { Button } from '@/design/components/Button';
@@ -33,11 +33,11 @@ import { feedback } from '@/lib/feedback';
 import { type StringKey, t, tError, tPlace } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import { Scene } from '../common/Scene';
-import { when } from './NextStep';
+import { shareMeeting, when } from './NextStep';
 
 /** "CAFE · SÜKHBAATAR" */
 export const eyebrow = (v: VenueView) => `${t(`kind.${v.kind}` as StringKey)} · ${tPlace(v.district)}`;
-export const ratingLine = (v: VenueView) =>
+const ratingLine = (v: VenueView) =>
   v.rating == null ? t('venue.noRatings') : `★ ${v.rating.toFixed(1)} (${v.ratings})`;
 
 /** The next fortnight, from today; and the hours a first meeting suits (10:00 – 21:30). */
@@ -319,16 +319,7 @@ function Sworn({
   const [first] = useState(() => !SEEN.has(meeting.id));
   SEEN.add(meeting.id);
   const v = meeting.venue;
-  const share = () =>
-    Share.share({
-      message: t('meeting.shareText', {
-        name,
-        venue: v.name,
-        address: v.address,
-        district: tPlace(v.district),
-        when: when(meeting.at),
-      }),
-    }).catch(() => {});
+  const share = () => shareMeeting(meeting, name);
   const callOff = async () => {
     setConfirm(false);
     try {

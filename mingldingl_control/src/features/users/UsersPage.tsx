@@ -5,9 +5,12 @@ import { Button } from '../../design/Button';
 import { SearchField } from '../../design/SearchField';
 import { errorText } from '../../lib/api/client';
 import { adminListUsers } from '../../lib/api/generated/engine';
-import { formatDate, maskPhone } from '../../lib/format';
+import { maskPhone } from '../../lib/format';
 import { usersListKey } from '../../lib/live';
 import { useDebounced } from './useDebounced';
+
+/** Reputation starts at 100 and only falls; the keepers read it as Good or by how far it fell. */
+const reputation = (r: number | null | undefined) => (r == null ? '—' : r >= 100 ? 'Good' : `${r} of 100`);
 
 export function UsersPage() {
   const [search, setSearch] = useState('');
@@ -34,14 +37,15 @@ export function UsersPage() {
       <div className="page-head">
         <h1 className="page-title">Travellers</h1>
       </div>
-      <SearchField value={search} onChange={setSearch} placeholder="Search by name or number" />
+      <SearchField value={search} onChange={setSearch} placeholder="Search by name, number or id" />
       <table className="table">
         <thead>
           <tr>
             <th>Name</th>
             <th>Number</th>
-            <th>Portraits</th>
-            <th>Joined</th>
+            <th>Tier</th>
+            <th>Score</th>
+            <th>Reputation</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -59,8 +63,9 @@ export function UsersPage() {
                 </Link>
               </td>
               <td>{maskPhone(r.phone)}</td>
-              <td>{r.photoCount}</td>
-              <td>{formatDate(r.createdAt)}</td>
+              <td>{r.tier ?? '—'}</td>
+              <td>{r.points ?? '—'}</td>
+              <td>{reputation(r.reputation)}</td>
               <td className={r.status === 'Active' ? undefined : 'danger'}>{r.status}</td>
             </tr>
           ))}

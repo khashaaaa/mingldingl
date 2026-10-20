@@ -15,6 +15,7 @@ import { useGetMe, useGetMembership } from '@/lib/api/generated/engine';
 import type { FloorOffer, MembershipView } from '@/lib/api/generated/model';
 import { feedback } from '@/lib/feedback';
 import { getLocale, t, tCount } from '@/lib/i18n';
+import { manageStore } from '@/lib/links';
 import {
   buy,
   type Months,
@@ -144,7 +145,11 @@ export default function GuildHouse() {
             ) : on === 'hall' ? (
               <Button label={t('guild.climbHigh')} onPress={() => climb('highTable', 1)} block />
             ) : null}
-            <InkLink label={t('guild.backToWarRoom')} onPress={() => router.dismissTo('/war-room')} />
+            {!welcome && m.source === 'store' ? (
+              <InkLink label={t('guild.manageStore')} onPress={manageStore} />
+            ) : (
+              <InkLink label={t('guild.backToWarRoom')} onPress={() => router.dismissTo('/war-room')} />
+            )}
           </View>
         }
       >

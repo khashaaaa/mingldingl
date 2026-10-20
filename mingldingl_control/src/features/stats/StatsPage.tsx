@@ -7,6 +7,7 @@ import { errorText } from '../../lib/api/client';
 import { API_URL } from '../../lib/api/config';
 import { useAdminStats, useAdminStatsTable } from '../../lib/api/generated/engine';
 import type { StatSeries, StatTable } from '../../lib/api/generated/model';
+import { tugrik } from '../../lib/format';
 import '../users/users.css';
 import './stats.css';
 
@@ -17,10 +18,9 @@ type Tile = { label: string; value: (t: Totals) => string; note: (t: Totals) => 
 const n = (t: Totals, m: string) => t[m]?.count ?? 0;
 const s = (t: Totals, m: string) => t[m]?.sum ?? 0;
 const pct = (part: number, whole: number) => (whole ? `${Math.round((100 * part) / whole)}%` : '—');
-export const tugrik = (v: number) => `${v.toLocaleString('en-US')}₮`;
 
 /** Each group: its three charts, its four tiles (from the same totals) and the engine's table. */
-export const GROUPS: Record<
+const GROUPS: Record<
   string,
   { title: string; sub: string; charts: Chart[]; tiles: Tile[]; extra?: string[] }
 > = {
@@ -185,7 +185,7 @@ const short = (day: string) =>
 type Filters = { city?: string; gender?: string; age?: string; tier?: string; floor?: string };
 
 /** The comma-separated text a spreadsheet opens: the days and every metric, then the group's table. */
-export function toCsv(series: StatSeries[], table: StatTable | undefined): string {
+function toCsv(series: StatSeries[], table: StatTable | undefined): string {
   const cell = (v: string | number) =>
     /[",\n]/.test(String(v)) ? `"${String(v).replaceAll('"', '""')}"` : String(v);
   const lines = [['day', ...series.map((x) => x.metric)].join(',')];

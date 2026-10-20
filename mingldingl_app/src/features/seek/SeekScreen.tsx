@@ -152,7 +152,7 @@ function Body({ seek }: { seek: SeekView }) {
             body={t(seek.filtered ? 'seek.emptyFiltered' : 'seek.emptyBody')}
             action={
               seek.filtered
-                ? { label: t('seek.filters'), onPress: () => router.push('/seek-filters') }
+                ? { label: t('seek.widen'), onPress: () => router.push('/seek-filters') }
                 : undefined
             }
           />

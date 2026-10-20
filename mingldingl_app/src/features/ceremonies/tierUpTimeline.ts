@@ -28,13 +28,13 @@ export function easeOutCubic(p: number): number {
   return 1 - (1 - p) ** 3;
 }
 
-export function easeInCubic(p: number): number {
+function easeInCubic(p: number): number {
   'worklet';
   return p * p * p;
 }
 
 /** Overshoots a little past 1 and settles — the gem landing on its setting. */
-export function easeOutBack(p: number): number {
+function easeOutBack(p: number): number {
   'worklet';
   const c = 1.70158;
   return 1 + (c + 1) * (p - 1) ** 3 + c * (p - 1) ** 2;

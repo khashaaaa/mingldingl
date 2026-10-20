@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Nightly: pg_dump the local database, gzip it, upload it to Supabase Storage bucket "backups"; keep 7 days locally.
+# Nightly (mingldingl-devdb-backup.timer, 02:00; units in scripts/systemd/): pg_dump the local database, gzip it, upload it to Supabase Storage bucket "backups"; keep 7 days locally.
 set -euo pipefail
 ENGINE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CFG="$ENGINE_ROOT/src/MinglDingl.Engine/appsettings.Development.json"
@@ -15,6 +15,9 @@ PGPASSWORD="$(printf '%s' "$CONN" | tr ';' '\n' | sed -n 's/^Password=//p')" pg_
 echo "dumped $(du -h "$DUMP" | cut -f1)"
 code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 120 -X POST -H "Authorization: Bearer $KEY" -H "apikey: $KEY" \
   -H "Content-Type: application/gzip" --data-binary "@$DUMP" "${URL%/}/storage/v1/object/backups/$(basename "$DUMP")")
-[[ "$code" -ge 200 && "$code" -lt 300 ]] && echo "uploaded (HTTP $code)" || echo "upload FAILED (HTTP $code)"
+uploaded=0; [[ "$code" -ge 200 && "$code" -lt 300 ]] && uploaded=1
+(( uploaded )) && echo "uploaded (HTTP $code)" || echo "upload FAILED (HTTP $code)"
 find "$BACKUP_DIR" -name 'mingldingl-*.sql.gz' -mtime +7 -delete
 echo "=== done ==="
+# A failed upload fails the unit, so `hub timers` shows it.
+(( uploaded ))

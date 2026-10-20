@@ -13,4 +13,10 @@ export interface AdminUserRow {
   status: string;
   photoCount: number;
   createdAt: string;
+  /** @nullable */
+  tier: string | null;
+  /** @nullable */
+  points: number | null;
+  /** @nullable */
+  reputation: number | null;
 }

@@ -6,12 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 MingldIngl is a gamified dating app for the Mongolian market — a score-based economy, gemstone tier identity, and progressive profile reveal, built to replace disposable swipe-loop dating apps. Solo-developer project.
 
-This is the initial version, built design-first. Stages 0–5
-are shipped (the whole game: sign-in, Seek, bonds and letters, score and tiers, encounters, the
-world) and stage 6 is built (membership and payments, the Guild House web page, statistics) —
-what is left is the launch on the home server, which waits on the user's accounts and keys (the
-plan's "6d — launch checklist"). The product's rules are in the plan's "Domain Model" and
-"Hard-won rules".
+The whole game is built (sign-in, Seek, bonds and letters, score and tiers, encounters, the
+world, membership and payments, the Guild House web page, statistics). What is left is the launch
+on the home server, which waits on the user's accounts and keys (the plan's "Launch checklist").
 
 | Dir | Purpose | Stack |
 |---|---|---|
@@ -20,11 +17,11 @@ plan's "6d — launch checklist"). The product's rules are in the plan's "Domain
 | `mingldingl_control/` | Internal admin panel | React 19 + Vite, TanStack Query, Playwright |
 
 Design source of truth is the Figma file "MinglDingl — Visual System"
-(`nLwcONhTplnnOmXu3wroIx`; pages S1–S8 hold the app and admin screens, S9 the web page). The
-spec, the per-stage plans, the domain model and the live backlog are in
-`docs/superpowers/project-plan.md`; finished stages are recorded as short outcome entries in
-`docs/superpowers/shipped-log.md`. New work is appended to
-those two files, never spun into new ones.
+(`nLwcONhTplnnOmXu3wroIx`; pages S1–S8 hold the app and admin screens, S9 the web page).
+Two docs, never more: `docs/project-plan.md` (status, launch checklist, backlog, the game's rules
+as built, principles, visual system, hard-won rules) and `docs/shipped-log.md` (one short entry
+per finished piece of work, newest first). New work updates those two; a finished item leaves the
+backlog and becomes a log entry.
 
 ---
 
@@ -74,8 +71,8 @@ those two files, never spun into new ones.
   SkiaSharp (metadata stripped) and computes a ThumbHash, which is what a viewer gets for a photo
   they may not see yet. 3–6 portraits (`photos.min`/`photos.max`); removing below the minimum is
   `409 photos.min`. Deleting a photo or a person deletes the files. The bucket `photos` is public
-  and not this app's — leave it alone. Supabase's only other job is the desktop's 02:00 cron
-  (`scripts/backup-to-supabase.sh`), which pushes the dev DB dump to its `backups` bucket;
+  and not this app's — leave it alone. Supabase's only other job is the desktop's 02:00 `mingldingl-devdb-backup.timer`
+  (`scripts/backup-to-supabase.sh`, units in `scripts/systemd/`), which pushes the dev DB dump to its `backups` bucket;
   production backs up on the server.
 - **Membership & payments (stage 6):** `Membership/` holds the floor (Yard / Hall / High Table) as
   grants; every feature asks `MembershipService` (`FloorAsync`, `Perks`), none reads payments.

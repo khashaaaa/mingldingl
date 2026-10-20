@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
+import { Share } from 'react-native';
 import { NextAction } from '@/design/components/NextAction';
 import { Reveal } from '@/design/components/Reveal';
+import { Row } from '@/design/components/Row';
 import type { GlyphName } from '@/design/glyphs';
 import { useGetEncounter, useGetWeeklyTrial } from '@/lib/api/generated/engine';
 import type { EncounterView, MeetingView } from '@/lib/api/generated/model';
-import { getLocale, type StringKey, t } from '@/lib/i18n';
+import { getLocale, type StringKey, t, tPlace } from '@/lib/i18n';
 
 type Step = { glyph: GlyphName; title: string; body: string; route: string };
 
@@ -19,7 +21,35 @@ export function when(iso: string): string {
   return `${day} · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export const whereWhen = (m: MeetingView) => `${m.venue.name}, ${when(m.at)}`;
+const whereWhen = (m: MeetingView) => `${m.venue.name}, ${when(m.at)}`;
+
+/** The phone's share sheet with the sworn meeting's plan, for a friend to hold. */
+export const shareMeeting = (m: MeetingView, name: string) =>
+  Share.share({
+    message: t('meeting.shareText', {
+      name,
+      venue: m.venue.name,
+      address: m.venue.address,
+      district: tPlace(m.venue.district),
+      when: when(m.at),
+    }),
+  }).catch(() => {});
+
+/** "Share safety info" in the bond's options (31:492) — only while a meeting is sworn, the one plan there is to send. */
+export function SafetyRow({ bondId, name, done }: { bondId: string; name: string; done: () => void }) {
+  const m = useGetEncounter(bondId).data?.meeting?.current;
+  if (m?.state !== 'Sworn') return null;
+  return (
+    <Row
+      title={t('meeting.share')}
+      subtitle={t('bond.optShareHint')}
+      onPress={() => {
+        done();
+        shareMeeting(m, name);
+      }}
+    />
+  );
+}
 
 const line = (key: string, vars?: Record<string, string>) => ({
   title: t(`${key}.title` as StringKey, vars),

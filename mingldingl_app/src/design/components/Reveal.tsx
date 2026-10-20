@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } fro
 import { curve, MOTION, useReduceMotion } from '../motion';
 
 /** Gap between siblings revealed in turn. */
-export const STAGGER = 90;
+const STAGGER = 90;
 
 /**
  * Ink bleed-in (Figma motion "Ink bleed-in"): what it holds rises a few points and bleeds in from

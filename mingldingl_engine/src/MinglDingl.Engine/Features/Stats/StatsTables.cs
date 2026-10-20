@@ -60,7 +60,8 @@ public sealed class StatsTables(AppDb db, IClock clock, IConfig config, IConfigu
         var min = config.Int(ConfigKeys.PhotosMin);
         // The person's dimensions only exist once they have a profile; a filter keeps only those.
         var filtered = f.City ?? f.Gender ?? f.AgeBand ?? f.Tier ?? f.Floor;
-        var steps = await db.Database.SqlQueryRaw<int>($"""
+        // Only our own SQL is spliced in (PeopleFilter); every value is a parameter.
+        var sql = $"""
             SELECT CASE WHEN p."AccountId" IS NULL THEN 1 WHEN p."Gender" IS NULL THEN 2
                         WHEN (SELECT count(*) FROM photos ph WHERE ph."AccountId" = a."Id") < @min THEN 3
                         WHEN p."Bio" IS NULL OR p."City" IS NULL THEN 4 WHEN p."Oath" IS NULL THEN 5
@@ -68,7 +69,8 @@ public sealed class StatsTables(AppDb db, IClock clock, IConfig config, IConfigu
             FROM accounts a LEFT JOIN profiles p ON p."AccountId" = a."Id"
             WHERE a."CreatedAt" >= @start AND a."CreatedAt" < @end
               AND ({(filtered is null ? "true" : $"p.\"AccountId\" IS NOT NULL AND {PeopleFilter}")})
-            """, Params(f, new NpgsqlParameter("min", min), new NpgsqlParameter("start", start), new NpgsqlParameter("end", end))).ToListAsync(ct);
+            """;
+        var steps = await db.Database.SqlQueryRaw<int>(sql, Params(f, new NpgsqlParameter("min", min), new NpgsqlParameter("start", start), new NpgsqlParameter("end", end))).ToListAsync(ct);
         string[] names = ["1 · Name & age", "2 · Gender", "3 · Portraits", "4 · About", "5 · The Oath", "6 · Your tale is written", "In the world"];
         var total = steps.Count;
         return new StatTable(["Onboarding step", "Reached", "Left here", "Share"],

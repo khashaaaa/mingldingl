@@ -34,10 +34,10 @@ for LOC in ${LOCALES:-en mn}; do
   run -e LOCALE="$LOC" -e PHONE="$PHONE" "$APP/.maestro/device-pass.yaml"
   echo "== $LOC: closed screens"
   seed Suspended "$PHONE"; shot "$LOC-23-1075" 'Cast Out|Хөөгдсөн' yes
-  seed Deleted "$PHONE"; shot "$LOC-23-1138" 'This character is gone' yes
-  seed Finished "$PHONE"; shot "$LOC-26-1029-reseeded" 'Edit your character' yes
-  config app.minVersion 99.0.0; shot "$LOC-23-1191" 'The hold has changed' no; config app.minVersion 1.0.0
-  config app.maintenance true; shot "$LOC-maintenance" 'The gate is shut for repairs' no; config app.maintenance false
+  seed Deleted "$PHONE"; shot "$LOC-23-1138" 'This character is gone|Энэ баатар байхгүй болжээ' yes
+  seed Finished "$PHONE"; shot "$LOC-26-3-reseeded" 'The Tavern|Дэн буудал' yes
+  config app.minVersion 99.0.0; shot "$LOC-23-1191" 'The hold has changed|Цайз өөрчлөгджээ' no; config app.minVersion 1.0.0
+  config app.maintenance true; shot "$LOC-maintenance" 'The gate is shut for repairs|Хаалга засварт хаалттай' no; config app.maintenance false
 done
 
 echo "== diff against Figma"

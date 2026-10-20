@@ -77,7 +77,7 @@ export async function signOutLocally() {
   if (wasSignedIn) for (const fn of signedOutListeners) fn();
 }
 
-export class NetworkError extends Error {
+class NetworkError extends Error {
   readonly kind = 'network';
 }
 

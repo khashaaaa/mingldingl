@@ -67,9 +67,17 @@ export function SeekCard({
           {t('quests.quote', { text: tale })}
         </Txt>
       ) : null}
+      <View style={styles.rim} pointerEvents="none" />
     </View>
   );
 }
+
+const ARCH = {
+  borderTopLeftRadius: 120,
+  borderTopRightRadius: 120,
+  borderBottomLeftRadius: dimension.radiusMd,
+  borderBottomRightRadius: dimension.radiusMd,
+} as const;
 
 const styles = StyleSheet.create({
   // Figma 26:3: the stele spans the gutter (350 of 390), whatever its contents.
@@ -79,13 +87,15 @@ const styles = StyleSheet.create({
     gap: dimension.space3,
     paddingVertical: dimension.space6,
     paddingHorizontal: dimension.space5,
+    ...ARCH,
+    overflow: 'hidden',
+  },
+  // The brass edge is drawn over the art: on iOS the art would otherwise hide the arch's curve.
+  rim: {
+    ...StyleSheet.absoluteFill,
+    ...ARCH,
     borderWidth: dimension.strokeHairline,
     borderColor: color.borderBrass,
-    borderTopLeftRadius: 120,
-    borderTopRightRadius: 120,
-    borderBottomLeftRadius: dimension.radiusMd,
-    borderBottomRightRadius: dimension.radiusMd,
-    overflow: 'hidden',
   },
   line: { flexDirection: 'row', alignItems: 'center', gap: dimension.space2 },
   gem: { width: 33, height: 33 }, // Figma 26:3 "Gem art"

@@ -99,6 +99,17 @@ public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 
         var found = (await admin.GetFromJsonAsync<AdminUserPage>("/admin/users?search=name3"))!;
         found.Items.Should().ContainSingle().Which.AccountId.Should().Be(made[3]);
+
+        // An id finds exactly that person, with their standing; one with no profile yet has none.
+        var byId = (await admin.GetFromJsonAsync<AdminUserPage>($"/admin/users?search={made[5]}"))!;
+        var row = byId.Items.Should().ContainSingle().Which;
+        row.AccountId.Should().Be(made[5]);
+        row.Tier.Should().NotBeNull();
+        row.Points.Should().NotBeNull();
+        row.Reputation.Should().Be(100);
+        var bare = await f.SignInAsync(vm);
+        var none = (await admin.GetFromJsonAsync<AdminUserPage>($"/admin/users?search={bare.AccountId}"))!;
+        none.Items.Should().ContainSingle().Which.Should().Match<AdminUserRow>(r => r.Tier == null && r.Points == null && r.Reputation == null);
     }
 
     [Fact]

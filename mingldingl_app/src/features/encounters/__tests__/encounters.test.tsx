@@ -20,7 +20,7 @@ import AttendanceScreen from '../AttendanceScreen';
 import CallScreen from '../CallScreen';
 import IcebreakerScreen from '../IcebreakerScreen';
 import MeetingScreen from '../MeetingScreen';
-import { encounterNudge, stepOf } from '../NextStep';
+import { encounterNudge, SafetyRow, stepOf } from '../NextStep';
 import RateScreen from '../RateScreen';
 import RiteScreen from '../RiteScreen';
 import TrialScreen, { trialLine } from '../TrialScreen';
@@ -178,7 +178,9 @@ const ROUTES = {
   '(world)/venue/[id]': () => null,
   '(world)/attendance/[id]': AttendanceScreen,
   '(world)/rate/[id]': RateScreen,
+  '(world)/options': () => <SafetyRow bondId="b1" name="Saruul" done={closeOptions} />,
 };
+const closeOptions = jest.fn();
 
 const settle = () => act(() => new Promise((r) => setTimeout(r, 0)));
 
@@ -433,6 +435,24 @@ describe('Meeting', () => {
     expect(message).toContain('Nomad Tea House');
     expect(message).toContain('Peace Avenue 12');
     expect(message).toContain('Sükhbaatar');
+  });
+
+  test('the bond’s options offer the safety share only while a meeting is sworn', async () => {
+    w.e = encounter({ next: 'meeting', meeting: { open: true, blocked: null, current: meeting() } });
+    await show('/options');
+    expect(screen.queryByText('Share safety info')).toBeNull();
+
+    w.e = encounter({
+      next: 'meeting',
+      meeting: { open: true, blocked: null, current: meeting({ myPledge: true, state: 'Sworn' }) },
+    });
+    await show('/options');
+    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
+    await fireEvent.press(screen.getByText('Share safety info'));
+    expect(closeOptions).toHaveBeenCalled();
+    expect((share.mock.calls[0]?.[0] as { message: string } | undefined)?.message).toContain(
+      'Nomad Tea House',
+    );
   });
 
   test('suggest another time opens the picker at the same place', async () => {

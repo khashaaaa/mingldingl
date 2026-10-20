@@ -81,11 +81,15 @@ public sealed class StatsService(AppDb db, IClock clock)
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.Set<StatDay>().Where(s => s.Day == day).ExecuteDeleteAsync(ct);
         foreach (var metric in Sources.Keys)
-            await db.Database.ExecuteSqlRawAsync($"""
+        {
+            // Only our own SQL is spliced in (Sources); every value is a parameter.
+            var sql = $"""
                 INSERT INTO stats_daily ("Day", "Metric", "City", "Gender", "AgeBand", "Tier", "Floor", "Count", "Sum")
                 SELECT @day, @metric, city, gender, band, tier, floor, n, s FROM ({Grouped(metric)}) x
-                """, [new NpgsqlParameter("day", day), new NpgsqlParameter("metric", metric),
+                """;
+            await db.Database.ExecuteSqlRawAsync(sql, [new NpgsqlParameter("day", day), new NpgsqlParameter("metric", metric),
                     new NpgsqlParameter("from", from), new NpgsqlParameter("to", to)], ct);
+        }
         await tx.CommitAsync(ct);
     }
 
@@ -133,11 +137,13 @@ public sealed class StatsService(AppDb db, IClock clock)
     /// Today, counted from the source with the same dimensions and filters.
     private async Task<(long Count, long Sum)> LiveAsync(string metric, DateOnly day, StatFilter f, CancellationToken ct)
     {
-        var rows = await db.Database.SqlQueryRaw<LiveRow>($"""
+        // Only our own SQL is spliced in (Sources); every value is a parameter.
+        var sql = $"""
             SELECT COALESCE(sum(n), 0)::bigint AS "Count", COALESCE(sum(s), 0)::bigint AS "Sum" FROM ({Grouped(metric)}) x
             WHERE (@city::text IS NULL OR city = @city) AND (@gender::text IS NULL OR gender = @gender)
               AND (@band::text IS NULL OR band = @band) AND (@tier::text IS NULL OR tier = @tier) AND (@floor::text IS NULL OR floor = @floor)
-            """,
+            """;
+        var rows = await db.Database.SqlQueryRaw<LiveRow>(sql,
             new NpgsqlParameter("from", UbDays.Start(day)), new NpgsqlParameter("to", UbDays.Start(day.AddDays(1))),
             Text("city", f.City), Text("gender", f.Gender), Text("band", f.AgeBand), Text("tier", f.Tier), Text("floor", f.Floor))
             .ToListAsync(ct);
