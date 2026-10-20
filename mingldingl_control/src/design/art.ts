@@ -1,4 +1,4 @@
-import brass from './art/brass_plate.png';
+import brass from './art/brass_plate.webp';
 import back from './art/glyph-back.png';
 import book from './art/glyph-book.png';
 import chest from './art/glyph-chest.png';
@@ -16,9 +16,9 @@ import scroll from './art/glyph-scroll.png';
 import shield from './art/glyph-shield.png';
 import stage from './art/glyph-stage.png';
 import thread from './art/glyph-thread.png';
-import guildSeal from './art/guild_seal.png';
-import honourLocked from './art/honour_locked.png';
-import stateWaiting from './art/state_waiting.png';
+import guildSeal from './art/guild_seal.webp';
+import honourLocked from './art/honour_locked.webp';
+import stateWaiting from './art/state_waiting.webp';
 
 /** Copied from the app by scripts/sync-art.js; never edited here. */
 export const art = {

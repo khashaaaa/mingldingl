@@ -77,6 +77,7 @@ export const LIVE: Record<LiveKind, (ids: string[]) => LiveAction> = {
       getGetCitiesQueryKey(),
       getGetTiersQueryKey(),
       getGetSeekQueryKey(),
+      getGetSeasonQueryKey(),
     ],
   }),
   'session.revoked': () => ({ signOut: true }),

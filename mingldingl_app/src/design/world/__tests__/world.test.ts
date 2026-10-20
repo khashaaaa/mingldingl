@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ROOMS, roomFor } from '../rooms';
+import { flakeAt, flakeField } from '../snow';
 import { SPARKS_FOR, sparkAt, sparkField } from '../sparks';
 
 const appDir = path.join(__dirname, '..', '..', '..', 'app');
@@ -53,4 +54,17 @@ test('a spark rises, sways and fades over its life', () => {
   expect(mid.y).toBeLessThan(start.y);
   expect(end.opacity).toBeLessThan(mid.opacity);
   expect(start.opacity).toBeLessThan(mid.opacity);
+});
+
+test('snow falls from above the top to the floor and melts away over its last stretch', () => {
+  const [f] = flakeField(5, { count: 1, r: [2, 2], speed: [0.05, 0.05], opacity: 1 }, 390, 700);
+  if (!f) throw new Error('no flake');
+  const life = (700 + f.r * 2) / f.speed;
+  const at = (p: number) => flakeAt(f, life * p - f.offset + life, 700, 0.4);
+  expect(at(0).y).toBeLessThan(0);
+  expect(at(0.5).y).toBeGreaterThan(at(0.1).y);
+  expect(at(0.5).r).toBe(2);
+  expect(at(0.8).r).toBeCloseTo(1);
+  expect(at(0.999).r).toBeLessThan(0.05);
+  expect(flakeAt(f, life * 0.999 - f.offset + life, 700, 0).r).toBe(2);
 });

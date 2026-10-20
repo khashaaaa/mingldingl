@@ -94,3 +94,21 @@ export function subscribeSky(cb: () => void) {
 }
 
 export const getSkyOverride = () => sky;
+
+let snow: boolean | null = null;
+const snowSubs = new Set<() => void>();
+
+/** The Tools screen's snow switch: null follows the engine's calendar. */
+export function setSnowOverride(next: boolean | null) {
+  snow = next;
+  for (const s of snowSubs) s();
+}
+
+export function subscribeSnow(cb: () => void) {
+  snowSubs.add(cb);
+  return () => {
+    snowSubs.delete(cb);
+  };
+}
+
+export const getSnowOverride = () => snow;

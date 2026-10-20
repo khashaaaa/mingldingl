@@ -19,7 +19,7 @@ body:has(.guild) {
   padding: var(--space-3) var(--space-6);
   font: var(--font-title-room);
   color: var(--color-text-inverse);
-  background: url("../design/art/brass_plate.png") center / 100% 100%;
+  background: url("../design/art/brass_plate.webp") center / 100% 100%;
   border: var(--stroke-rule) solid var(--color-metal-brass-dark);
   border-top: none;
 }

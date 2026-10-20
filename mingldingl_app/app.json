@@ -78,6 +78,7 @@
         }
       ],
       "./plugins/withNoDevMenuButton",
+      "./plugins/withLeanAndroid",
       "expo-sharing"
     ],
     "experiments": {

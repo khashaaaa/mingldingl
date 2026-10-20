@@ -366,6 +366,10 @@ encounters; a bond that ends cancels its open steps.
   | **March 8** | a warm world tint, a gathering |
   | Masked round | faces hidden until the bell |
 
+  **Winter** is not a festival but weather over any sky: from the winter solstice (the first of
+  the Nine Nines, Есөн ес; computed, Ulaanbaatar day) to January 20, snow falls on the World Floor
+  and melts into the ember's glow. `/season` carries `snow`; `world.snow` switches it off.
+
 ## Account & system
 
 - **The War Room** (Character's ⋮): edit, pause (hidden from Seek, bonds go on), sound (opt-in) /
@@ -449,6 +453,9 @@ library, S1–S8 the app and admin screens, S9 the web page. Code reads it throu
 - **The ember** — a hidden fire's light rises from below every in-world screen (Lit / Roaring for
   the Hearth and the Rite / Out when gone cold). Animated in the app: each spark a live Skia
   particle with its own speed and delay, the glow breathing ±10 % on a 4–6 s loop.
+- **Snow** (World Floor Season=Winter) — `#d9e0ff` flakes in three depth layers (far small and
+  sharp, near larger and soft), each layer one Skia path; they shrink to nothing as they fall into
+  the glow, and fall past the foot when the fire is out. Off under Reduce Motion.
 - **Rich gold** — 500 `#D9A21B`, 300 `#F5C542`, 700 `#8F6410`, 100 `#FBE6A6`: a struck coin.
 - **Brass hardware** only where two things join or something opens, two to four pieces a plate:
   Fastener (rivets), Corner Cap (Dialog, a selected Choice Card), Drawer Pull (Sheet grip), Clasp

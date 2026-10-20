@@ -9,7 +9,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const app = path.join(here, '..', '..', 'mingldingl_app', 'src', 'design');
 const out = path.join(here, '..', 'src', 'design', 'art');
 const files = [
-  ['art/brass_plate@2x.png', 'brass_plate.png'],
+  ['art/brass_plate@2x.webp', 'brass_plate.webp'],
   ['glyphs/person@2x.png', 'glyph-person.png'],
   ['glyphs/scales@2x.png', 'glyph-scales.png'],
   ['glyphs/eye@2x.png', 'glyph-eye.png'],
@@ -22,9 +22,9 @@ const files = [
   ['glyphs/book@2x.png', 'glyph-book.png'],
   ['glyphs/scroll@2x.png', 'glyph-scroll.png'],
   // The Guild House web page (/guild)
-  ['art/guild_seal@2x.png', 'guild_seal.png'],
-  ['art/honour_locked@2x.png', 'honour_locked.png'],
-  ['art/state_waiting@2x.png', 'state_waiting.png'],
+  ['art/guild_seal@2x.webp', 'guild_seal.webp'],
+  ['art/honour_locked@2x.webp', 'honour_locked.webp'],
+  ['art/state_waiting@2x.webp', 'state_waiting.webp'],
   ['glyphs/knot@2x.png', 'glyph-knot.png'],
   // Dashboard, statistics, deletions, payments, the engine room
   ['glyphs/hearth@2x.png', 'glyph-hearth.png'],

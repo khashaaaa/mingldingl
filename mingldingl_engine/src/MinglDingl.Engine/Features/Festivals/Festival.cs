@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MinglDingl.Engine.Kernel.Clock;
+using MinglDingl.Engine.Kernel.Config;
 using MinglDingl.Engine.Kernel.Persistence;
 
 namespace MinglDingl.Engine.Features.Festivals;
@@ -40,10 +41,11 @@ internal sealed class FestivalMap : IEntityTypeConfiguration<Festival>
 public sealed record FestivalView(string Key, DateOnly Starts, DateOnly Ends);
 
 /// now: the festival running today, if any; next: the next one to start; nextHonour: the next one
-/// that carries an honour (the Encounter Log's Season line).
-public sealed record SeasonView(FestivalView? Now, FestivalView? Next, FestivalView? NextHonour);
+/// that carries an honour (the Encounter Log's Season line); snow: the World Floor snows today
+/// (solstice to January 20, unless the admin has switched it off).
+public sealed record SeasonView(FestivalView? Now, FestivalView? Next, FestivalView? NextHonour, bool Snow);
 
-public sealed class FestivalService(AppDb db, IClock clock)
+public sealed class FestivalService(AppDb db, IClock clock, IConfig config)
 {
     public async Task<SeasonView> SeasonAsync(CancellationToken ct = default)
     {
@@ -54,7 +56,7 @@ public sealed class FestivalService(AppDb db, IClock clock)
         var next = rows.FirstOrDefault(f => f.Starts > today);
         var honour = rows.FirstOrDefault(f => f.Starts > today && FestivalKeys.WithHonour.Contains(f.Key));
         return new SeasonView(now is null ? null : View(now), next is null ? null : View(next),
-            honour is null ? null : View(honour));
+            honour is null ? null : View(honour), config.Bool(ConfigKeys.WorldSnow) && Winter.Snows(today));
     }
 
     /// Every festival run that has started, oldest first (the honours read it).

@@ -7988,7 +7988,8 @@
         "required": [
           "now",
           "next",
-          "nextHonour"
+          "nextHonour",
+          "snow"
         ],
         "type": "object",
         "properties": {
@@ -8021,6 +8022,9 @@
                 "$ref": "#/components/schemas/FestivalView"
               }
             ]
+          },
+          "snow": {
+            "type": "boolean"
           }
         }
       },

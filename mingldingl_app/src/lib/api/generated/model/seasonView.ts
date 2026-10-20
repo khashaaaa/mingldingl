@@ -10,4 +10,5 @@ export interface SeasonView {
   now: null | FestivalView;
   next: null | FestivalView;
   nextHonour: null | FestivalView;
+  snow: boolean;
 }

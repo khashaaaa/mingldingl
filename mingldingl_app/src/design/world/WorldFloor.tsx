@@ -5,8 +5,10 @@ import {
   Group,
   Image,
   LinearGradient,
+  Path,
   Rect,
   useImage,
+  usePathValue,
   vec,
 } from '@shopify/react-native-skia';
 import { useEffect, useMemo, useState } from 'react';
@@ -25,6 +27,7 @@ import floor from '../figma/world-floor.json';
 import { useReduceMotion } from '../motion';
 import { duration, easing } from '../tokens';
 import type { Fire, Sky } from './rooms';
+import { type Flake, flakeAt, flakeField, type SnowLayer } from './snow';
 import { SPARKS_FOR, type Spark, sparkAt, sparkField } from './sparks';
 
 const FRAME_W = floor.frame[0] as number;
@@ -43,9 +46,10 @@ const GLOW_OPACITY = { min: 0.81, max: 0.99 }; // breathing ±10% around 0.9
 /**
  * The one floor under every screen (screens are transparent): night sky, stars, and the ember —
  * a hidden fire's glow breathing at the foot, its sparks each a live particle on the UI thread.
+ * In winter (solstice to January 20) snow falls through it and melts into the glow.
  * Stops when the app is in the background or Reduce Motion is on (the glow then holds still).
  */
-export function WorldFloor({ fire, sky }: { fire: Fire; sky?: Sky | null }) {
+export function WorldFloor({ fire, sky, snow }: { fire: Fire; sky?: Sky | null; snow?: boolean }) {
   const gradient = (sky && (floor.seasons as Record<string, typeof floor.gradient>)[sky]) || floor.gradient;
   const { width, height } = useWindowDimensions();
   const reduced = useReduceMotion();
@@ -68,8 +72,8 @@ export function WorldFloor({ fire, sky }: { fire: Fire; sky?: Sky | null }) {
     clock.value = f.timeSinceFirstFrame;
   }, false);
   useEffect(() => {
-    frame.setActive(animate && fire !== 'Out');
-  }, [animate, fire, frame]);
+    frame.setActive(animate && (fire !== 'Out' || !!snow));
+  }, [animate, fire, snow, frame]);
 
   const breath = useSharedValue(GLOW_OPACITY.max);
   useEffect(() => {
@@ -151,7 +155,54 @@ export function WorldFloor({ fire, sky }: { fire: Fire; sky?: Sky | null }) {
           <SparkDot key={s.x0} spark={s} clock={clock} band={bandH} />
         ))}
       </Group>
+      {snow &&
+        !reduced &&
+        (floor.snow.layers as SnowLayer[]).map((layer, i) => (
+          <SnowFall
+            // biome-ignore lint/suspicious/noArrayIndexKey: the layers are a fixed list from Figma
+            key={i}
+            layer={layer}
+            seed={23 + i}
+            width={width}
+            // Into the glow, melting as they go; with the fire out they fall past the foot.
+            fall={fire === 'Out' ? height : height - glowH * 0.25}
+            melt={fire === 'Out' ? 0 : floor.snow.melt}
+            clock={clock}
+          />
+        ))}
     </Canvas>
+  );
+}
+
+/** One depth layer of flakes, drawn as a single path so a frame is one draw, not one per flake. */
+function SnowFall({
+  layer,
+  seed,
+  width,
+  fall,
+  melt,
+  clock,
+}: {
+  layer: SnowLayer;
+  seed: number;
+  width: number;
+  fall: number;
+  melt: number;
+  clock: SharedValue<number>;
+}) {
+  const flakes: Flake[] = useMemo(() => flakeField(seed, layer, width, fall), [seed, layer, width, fall]);
+  const path = usePathValue((b) => {
+    'worklet';
+    for (const f of flakes) {
+      const p = flakeAt(f, clock.value, fall, melt);
+      if (p.r > 0.05) b.addCircle(p.x, p.y, p.r);
+    }
+  });
+  // The nearer layers are soft, so a flake never reads as a star.
+  return (
+    <Path path={path} color={floor.snow.color} opacity={layer.opacity}>
+      {layer.blur ? <BlurMask blur={layer.blur} style="normal" /> : null}
+    </Path>
   );
 }
 

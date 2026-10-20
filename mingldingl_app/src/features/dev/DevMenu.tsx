@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import Animated, { useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { PickRow } from '@/design/components/PickRow';
@@ -15,6 +15,7 @@ import {
   useReduceMotionOverride,
 } from '@/design/motion';
 import { color, dimension, duration } from '@/design/tokens';
+import { getSnowOverride, setSnowOverride, subscribeSnow } from '@/design/world/rooms';
 import { API_URL } from '@/lib/api/config';
 import { devSendLive, devSetMyState, signOut } from '@/lib/api/generated/engine';
 import { useBelongs } from '@/lib/belongs';
@@ -44,7 +45,7 @@ const motionOf = (e: WorldEvent): MotionName => (e === 'roomDeeper' || e === 'ro
 
 /**
  * Development only (reached from the Expo dev menu → "MingldIngl tools"). Puts this account into any
- * state, fires any live kind or world event, switches language and Reduce Motion, signs out.
+ * state, fires any live kind or world event, switches language, Reduce Motion and snow, signs out.
  * Developer-facing, so its labels are English and not in the string tables.
  */
 export default function DevMenu() {
@@ -52,6 +53,7 @@ export default function DevMenu() {
   const locale = useLocale();
   const reduceOverride = useReduceMotionOverride();
   const reduced = useReduceMotion();
+  const snow = useSyncExternalStore(subscribeSnow, getSnowOverride);
   const [note, setNote] = useState<string | null>(null);
   const pulse = useSharedValue(0);
   const { group } = useBelongs();
@@ -155,6 +157,12 @@ export default function DevMenu() {
           selected={reduceOverride === false}
           onPress={() => setReduceMotionOverride(false)}
         />
+      </Section>
+
+      <Section title="Snow">
+        <PickRow label="Follow the calendar" selected={snow === null} onPress={() => setSnowOverride(null)} />
+        <PickRow label="Falling" selected={snow === true} onPress={() => setSnowOverride(true)} />
+        <PickRow label="None" selected={snow === false} onPress={() => setSnowOverride(false)} />
       </Section>
 
       <Section title="More">

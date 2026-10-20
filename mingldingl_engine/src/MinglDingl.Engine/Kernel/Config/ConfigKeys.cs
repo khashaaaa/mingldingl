@@ -85,6 +85,7 @@ public static class ConfigKeys
     public const string ThreadsExpireDays = "threads.expireDays";
     public const string ScoreThreadSparked = "score.threadSparked";
     public const string SquareEnabled = "square.enabled";
+    public const string WorldSnow = "world.snow";
     public const string SquareDecideSeconds = "square.decideSeconds";
     public const string SquareBreakSeconds = "square.breakSeconds";
     public const string SquareDoorsMinutes = "square.doorsMinutes";
@@ -191,6 +192,7 @@ public static class ConfigKeys
         new(ThreadsExpireDays, "Threads", "Days a thread waits for both answers before it is cut", ConfigType.Int, "14", 1, 365),
         new(ScoreThreadSparked, "Points", "A thread you wove sparked (to the weaver)", ConfigType.Int, "40", 0, 1000),
         new(SquareEnabled, "Kill switches", "The Town Square shows its gatherings", ConfigType.Bool, "true"),
+        new(WorldSnow, "Kill switches", "Snow falls on the world from the winter solstice to January 20", ConfigType.Bool, "true"),
         new(SquareDecideSeconds, "Town Square", "Seconds to answer at the bell", ConfigType.Int, "30", 10, 300),
         new(SquareBreakSeconds, "Town Square", "Seconds between one bell and the next round", ConfigType.Int, "20", 5, 300),
         new(SquareDoorsMinutes, "Town Square", "Minutes before the first bell the square opens", ConfigType.Int, "10", 1, 120),

@@ -3,6 +3,30 @@
 Newest first. One short entry per finished piece of work: what a person can now do, what was
 decided, what was fixed on a device. Open items live in the plan's Backlog, not here.
 
+## 2026-10-20 — A lighter download
+
+The painted art is lossy WebP now (quality 90): 42 MB of PNGs became 9.5 MB, and the six images
+whose source is too small for 3x no longer ship an identical @3x copy (`export-art.py` writes it
+this way; the admin syncs the WebPs). Agora's optional extensions (lip sync, face capture,
+spatial audio, segmentation, screen capture and the rest; ≈30 MB a CPU type) are left out of the
+APK by `plugins/withLeanAndroid.js`, which also builds preview and production for ARM only. Calls
+keep echo cancellation, noise suppression and the hardware video encoder.
+
+## 2026-10-20 — Fated Threads are Заяаны холбоос
+
+"Заяаны утаснууд" read wrong (утас is first a phone), so in Mongolian a Fated Thread is now a
+холбоос that a friend ties (зангидах) between two people: it is cut (тасарлаа), it sparks, and the
+honour is Заяа холбогч. The app's lines and the two pushes changed; English is unchanged.
+
+## 2026-10-20 — Snow from the solstice to January 20
+
+From the winter solstice (the first of the Nine Nines) to January 20, snow falls through the night
+sky over every screen and melts into the ember's glow. The engine works out the solstice's
+Ulaanbaatar day itself (it moves between Dec 21 and 22) and says `snow` on `/season`; the admin can
+switch it off (`world.snow`). About thirty flakes in three depth layers, the near ones soft so they
+never read as stars; off under Reduce Motion. Figma: World Floor Season=Winter. Tools → Snow
+previews it any day. Seen on the A51.
+
 ## 2026-10-20 — Sign-in by a texted code (WeSend replaces verify.mn)
 
 The person no longer texts 144773 and pays 150₮: WeSend texts a six-digit code to the number, in the

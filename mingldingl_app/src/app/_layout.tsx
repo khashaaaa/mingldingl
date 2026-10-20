@@ -15,11 +15,13 @@ import { color } from '@/design/tokens';
 import {
   getFireOverride,
   getSkyOverride,
+  getSnowOverride,
   ROOMS,
   roomFor,
   type Sky,
   subscribeFire,
   subscribeSky,
+  subscribeSnow,
 } from '@/design/world/rooms';
 import { WorldFloor } from '@/design/world/WorldFloor';
 import { useGetSeason } from '@/lib/api/generated/engine';
@@ -73,8 +75,10 @@ function Gate() {
   const reduce = useReduceMotionOverride();
   const fireOverride = useSyncExternalStore(subscribeFire, getFireOverride);
   const skyOverride = useSyncExternalStore(subscribeSky, getSkyOverride);
-  // The festival running today tints the night (Figma World Floor, Season).
-  const festival = useGetSeason({ query: { enabled: ready } }).data?.now?.key as Sky | undefined;
+  const snowOverride = useSyncExternalStore(subscribeSnow, getSnowOverride);
+  // The festival running today tints the night (Figma World Floor, Season); in winter it snows.
+  const season = useGetSeason({ query: { enabled: ready } }).data;
+  const festival = season?.now?.key as Sky | undefined;
   if (!ready) return null;
   const g = belongs.group;
   return (
@@ -86,6 +90,7 @@ function Gate() {
         <WorldFloor
           fire={fireOverride ?? ROOMS[roomFor(segments)].fire}
           sky={skyOverride ?? festival ?? null}
+          snow={snowOverride ?? season?.snow ?? false}
         />
         <Stack
           screenLayout={localeScreenLayout}
