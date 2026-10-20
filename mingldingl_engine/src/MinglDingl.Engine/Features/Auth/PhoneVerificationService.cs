@@ -25,6 +25,9 @@ public sealed class PhoneVerificationService(AppDb db, IWeSend wesend, IClock cl
     public async Task<PhoneVerification> StartAsync(string phone, Guid? resumeId, string? locale = null, CancellationToken ct = default)
     {
         if (!IsPhoneValid(phone)) throw new DomainException(400, "auth.bad_phone", "Enter an 8-digit Mongolian number");
+        // Before any text goes: a removed character's number never gets a code (each costs us 80₮).
+        if (await db.Set<BarredNumber>().AnyAsync(b => b.Phone == phone, ct))
+            throw new DomainException(403, "auth.barred", "This number cannot make a character");
         var now = clock.UtcNow;
 
         if (resumeId is Guid id)

@@ -168,6 +168,7 @@ export default function Gallery() {
           <PhotoTile state="empty" onPress={() => {}} />
           <PhotoTile state="filled" photo={SAMPLE_PHOTO} onLongPress={() => {}} />
           <PhotoTile state="uploading" progress={0.6} />
+          <PhotoTile state="uploading" uri={SAMPLE_PHOTO.url} />
           <PhotoTile state="failed" onRetry={() => {}} />
         </View>
       </Section>

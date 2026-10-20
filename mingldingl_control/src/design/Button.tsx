@@ -1,10 +1,13 @@
 import type { ButtonHTMLAttributes, CSSProperties } from 'react';
 import { art } from './art';
 
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & { kind?: 'brass' | 'outline' | 'quiet' };
+type Props = ButtonHTMLAttributes<HTMLButtonElement> & { kind?: 'brass' | 'outline' | 'quiet' | 'danger' };
 
 export function Button({ kind = 'outline', className, style, ...rest }: Props) {
-  const brass = kind === 'brass' ? ({ '--brass': `url(${art.brass})`, ...style } as CSSProperties) : style;
+  const brass =
+    kind === 'brass' || kind === 'danger'
+      ? ({ '--brass': `url(${art.brass})`, ...style } as CSSProperties)
+      : style;
   return (
     <button
       type="button"

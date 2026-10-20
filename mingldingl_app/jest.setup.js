@@ -1,3 +1,7 @@
+jest.mock('expo-application', () => ({
+  getAndroidId: () => 'test-android-id',
+  getIosIdForVendorAsync: async () => 'test-ios-id',
+}));
 jest.mock('expo-secure-store', () => {
   const store = new Map();
   return {

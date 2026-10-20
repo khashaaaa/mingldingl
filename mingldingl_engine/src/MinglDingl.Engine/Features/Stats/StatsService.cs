@@ -29,7 +29,9 @@ public sealed class StatsService(AppDb db, IClock clock)
         ["bondsSquare"] = """SELECT "CreatedAt" AS at, "AId" AS account, 1 AS amount FROM bonds WHERE "Origin" = 'square'""",
         ["answered"] = """SELECT b."CreatedAt" AS at, b."SummonerId" AS account, 1 AS amount FROM bonds b WHERE b."Origin" = 'seek' AND (b."LettersA" > 0 AND b."LettersB" > 0)""",
         ["goneCold"] = """SELECT "ClosedAt" AS at, "AId" AS account, 1 AS amount FROM bonds WHERE "State" = 'Cold' AND "ClosedAt" IS NOT NULL""",
-        ["severed"] = """SELECT "ClosedAt" AS at, "AId" AS account, 1 AS amount FROM bonds WHERE "State" = 'Severed' AND "ClosedAt" IS NOT NULL""",
+        // Counted against the side that was severed, so the filters show who is let go.
+        ["severed"] = """SELECT "ClosedAt" AS at, CASE WHEN "ClosedBy" = "AId" THEN "BId" ELSE "AId" END AS account, 1 AS amount FROM bonds WHERE "State" = 'Severed' AND "ClosedAt" IS NOT NULL""",
+        ["wanderings"] = """SELECT t."KeptAt" AS at, b."AId" AS account, 1 AS amount FROM wanderings_taken t JOIN bonds b ON b."Id" = t."BondId" WHERE t."KeptAt" IS NOT NULL""",
         ["letters"] = """SELECT "CreatedAt" AS at, "AuthorId" AS account, 1 AS amount FROM letters""",
         ["seal1"] = """SELECT "CreatedAt" AS at, "AuthorId" AS account, 1 AS amount FROM letters WHERE "SealBroken" = 1""",
         ["seal4"] = """SELECT "CreatedAt" AS at, "AuthorId" AS account, 1 AS amount FROM letters WHERE "SealBroken" = 4""",

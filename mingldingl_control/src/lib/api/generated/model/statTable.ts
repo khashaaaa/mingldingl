@@ -8,4 +8,6 @@
 export interface StatTable {
   head: string[];
   rows: string[][];
+  /** @nullable */
+  people?: string[] | null;
 }

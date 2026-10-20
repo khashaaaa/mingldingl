@@ -12,6 +12,7 @@ import Missions from '../../road/Missions';
 import SeekScreen from '../../seek/SeekScreen';
 import SquareTab from '../../square/SquareTab';
 import WorldTabs from '../../world/WorldTabs';
+import Away from '../Away';
 import Codex, { CodexPage } from '../Codex';
 import Departing, { daysLeft, moonDate } from '../Departing';
 import GuildHouse from '../GuildHouse';
@@ -102,6 +103,8 @@ function fakeEngine() {
       tier: 'Garnet',
       tierUpPending: null,
       paused: false,
+      awayUntil: null as string | null,
+      awayNextAt: null as string | null,
       createdAt: '2026-10-06T00:00:00Z',
     } as ProfileView,
     deleteAt: null as string | null,
@@ -123,6 +126,13 @@ function fakeEngine() {
     if (init.method !== 'GET' && key !== 'POST /me/dawn') e.writes.push(key);
     switch (key) {
       case 'GET /me':
+        return me();
+      case 'POST /me/away':
+        e.profile.awayUntil = new Date(Date.now() + body.days * DAY).toISOString();
+        e.profile.awayNextAt = new Date(Date.now() + 30 * DAY).toISOString();
+        return me();
+      case 'DELETE /me/away':
+        e.profile.awayUntil = null;
         return me();
       case 'PUT /me':
         e.puts.push(body);
@@ -209,6 +219,7 @@ const ROUTES = {
   '(world)/(tabs)/square': SquareTab,
   '(world)/(tabs)/character': CharacterScreen,
   '(world)/war-room': WarRoom,
+  '(world)/away': Away,
   '(world)/departing': Departing,
   '(world)/guild-house': GuildHouse,
   '(world)/codex/index': Codex,
@@ -266,6 +277,21 @@ describe('The War Room', () => {
     await act(() => applyLiveEvent(client, { kind: 'profile.updated', ids: ['acc'] }, jest.fn()));
     await settle();
     expect(screen.getByRole('switch', { name: 'Pause profile' }).props.accessibilityState.checked).toBe(true);
+  });
+
+  test('away by the fire: three lengths, the day it ends, and coming back early', async () => {
+    await show();
+    expect(screen.getByText('Off')).toBeTruthy();
+    await press(/^Away by the fire/);
+    expect(screen.getByText(/Once in thirty days/)).toBeTruthy();
+    await press('For three days');
+    expect(engine.writes).toContain('POST /me/away');
+    const day = new Date(Date.now() + 3 * DAY).toLocaleDateString('en-GB', { weekday: 'long' });
+    expect(screen.getByText(`Until ${day}`)).toBeTruthy();
+    await press(/^Away by the fire/);
+    await press('Come back now');
+    expect(engine.writes).toContain('DELETE /me/away');
+    expect(screen.getByText('Off')).toBeTruthy();
   });
 
   test('sound and notifications switch on this device only', async () => {

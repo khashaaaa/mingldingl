@@ -6,6 +6,7 @@ import {
   getAdminAuditQueryKey,
   getAdminGetConfigQueryKey,
   getAdminGetUserQueryKey,
+  getAdminListBarredQueryKey,
   getAdminListGatheringsQueryKey,
   getAdminListThreadsQueryKey,
   getAdminUserPaymentsQueryKey,
@@ -87,6 +88,8 @@ function applyLiveEvent(client: QueryClient, e: LiveEvent) {
       });
     case 'config.updated':
       return client.invalidateQueries({ queryKey: getAdminGetConfigQueryKey() });
+    case 'barred.changed':
+      return client.invalidateQueries({ queryKey: getAdminListBarredQueryKey() });
   }
 }
 

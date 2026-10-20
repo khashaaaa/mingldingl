@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using MinglDingl.Engine.Features.Photos;
 using MinglDingl.Engine.Kernel.Errors;
 using MinglDingl.Engine.Kernel.Live;
@@ -25,10 +26,18 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         return (f, store, c, vm);
     }
 
+    private static async Task SetAsync(EngineFactory f, string key, string value)
+    {
+        await using var scope = f.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<MinglDingl.Engine.Kernel.Config.ConfigWrites>().SetAsync(key, value);
+    }
+
     [Fact]
     public async Task Upload_strips_metadata_and_caps_size()
     {
         var (f, store, c, _) = await Ready(db); await using var _f = f;
+        // These two fixtures are ink figures, not faces.
+        await SetAsync(f, MinglDingl.Engine.Kernel.Config.ConfigKeys.PhotosRequireFace, "false");
         var big = await c.UploadAsync("photo-1.jpg");
         Math.Max(big.Width, big.Height).Should().Be(1600);
         var withGps = await c.UploadAsync("photo-2.jpg");
@@ -37,6 +46,65 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         using var decoded = SKBitmap.Decode(bytes);
         decoded.Width.Should().Be(withGps.Width);
         withGps.ThumbHash.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task A_portrait_with_no_human_face_is_refused_and_nothing_is_stored()
+    {
+        var (f, store, c, _) = await Ready(db); await using var _f = f;
+        var r = await c.UploadRawAsync(await File.ReadAllBytesAsync(PhotoDriver.Fixture("photo-2.jpg")));
+        r.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Code(r)).Should().Be("photos.no_face");
+        store.Files.Should().BeEmpty();
+        (await c.PhotosAsync()).Should().BeEmpty();
+
+        await SetAsync(f, MinglDingl.Engine.Kernel.Config.ConfigKeys.PhotosRequireFace, "false");
+        (await c.UploadRawAsync(await File.ReadAllBytesAsync(PhotoDriver.Fixture("photo-2.jpg")))).EnsureSuccessStatusCode();
+    }
+
+    [Theory]
+    [InlineData("Seed/crowd/p00_0.jpg", true)]
+    [InlineData("Seed/crowd/p01_1.jpg", true)]
+    [InlineData("Seed/crowd/p02_2.jpg", true)]
+    [InlineData("Seed/photos/seed-5.jpg", true)]
+    [InlineData("Seed/photos/seed-1.jpg", false)]
+    [InlineData("Seed/photos/seed-3.jpg", false)]
+    [InlineData("Seed/photos/seed-4.jpg", false)]
+    public void Faces_are_found_in_photos_of_people_and_not_in_drawings(string file, bool face)
+    {
+        var image = ImagePipeline.Process(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, file)), findFace: true);
+        image.Face.Should().Be(face);
+    }
+
+    [Theory]
+    [InlineData(0.25f)] // half body
+    [InlineData(0.12f)] // full body, a few metres off
+    [InlineData(0.09f)] // far off: the face ~2.5% of the photo
+    public void A_person_standing_further_off_is_still_found(float scale)
+    {
+        using var src = SKBitmap.Decode(Path.Combine(AppContext.BaseDirectory, "Seed/crowd/p05_0.jpg"));
+        using var bmp = new SKBitmap(src.Width, src.Height);
+        using (var canvas = new SKCanvas(bmp))
+        using (var image = SKImage.FromBitmap(src))
+        {
+            canvas.Clear(new SKColor(120, 130, 120));
+            var (w, h) = (src.Width * scale, src.Height * scale);
+            canvas.DrawImage(image, SKRect.Create((src.Width - w) / 2, src.Height * 0.1f, w, h), new SKSamplingOptions(SKFilterMode.Linear));
+        }
+        using var jpeg = SKImage.FromBitmap(bmp).Encode(SKEncodedImageFormat.Jpeg, 90);
+        ImagePipeline.Process(jpeg.ToArray(), findFace: true).Face.Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_plain_field_has_no_face()
+    {
+        using var bmp = new SKBitmap(900, 1200);
+        using (var canvas = new SKCanvas(bmp))
+        using (var paint = new SKPaint { Shader = SKShader.CreateLinearGradient(new SKPoint(0, 0), new SKPoint(0, 1200),
+                   [new SKColor(90, 140, 210), new SKColor(80, 150, 70)], SKShaderTileMode.Clamp) })
+            canvas.DrawRect(0, 0, 900, 1200, paint);
+        using var jpeg = SKImage.FromBitmap(bmp).Encode(SKEncodedImageFormat.Jpeg, 90);
+        ImagePipeline.Process(jpeg.ToArray(), findFace: true).Face.Should().BeFalse();
     }
 
     [Fact]

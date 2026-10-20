@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { type StringKey, showsMn, t, tLine } from '@/lib/i18n';
+import { getLocale, type StringKey, showsMn, t, tLine } from '@/lib/i18n';
 
 /** "12m", "5h", "3d" — how long ago, for list rows. */
 export function ago(iso: string, now = Date.now()): string {
@@ -32,6 +32,10 @@ export const clock = (iso: string) => {
   const d = new Date(iso);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
+
+/** "Thursday" — the day of the week a moment falls on, in the app's language. */
+export const weekday = (iso: string) =>
+  new Date(iso).toLocaleDateString(getLocale() === 'mn' ? 'mn-MN' : 'en-GB', { weekday: 'long' });
 
 /** The calendar day of a moment on the person's clock, as yyyy-mm-dd. */
 export const dayOf = (iso: string) => {

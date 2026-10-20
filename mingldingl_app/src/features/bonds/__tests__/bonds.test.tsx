@@ -57,6 +57,8 @@ const ME: MeView = {
     tier: 'Opal',
     tierUpPending: null,
     paused: false,
+    awayUntil: null,
+    awayNextAt: null,
     createdAt: '2026-10-06T00:00:00Z',
   },
 };
@@ -71,6 +73,7 @@ const companion: SeekView = {
     oath: 'Bond',
     bio: 'Walks out onto Khövsgöl’s ice every winter to hear it sing.',
     portrait: portrait('p1'),
+    hasChildren: false,
   },
   candlesLeft: 4,
   candlesPerDay: 5,
@@ -94,6 +97,8 @@ const bond = (over: Partial<BondView> = {}): BondView => ({
     bio: 'falcon',
     place: 'Ulaanbaatar',
     portraits: [portrait('p1'), portrait('p2'), portrait('p3')],
+    hasChildren: false,
+    awayUntil: null,
     deep: null,
   },
   seals: 0,
@@ -110,6 +115,7 @@ const bond = (over: Partial<BondView> = {}): BondView => ({
   closedByMe: false,
   summonedByMe: true,
   closedWhy: null,
+  candleBack: false,
   ...over,
 });
 
@@ -172,6 +178,7 @@ const ROUTES = {
   '(world)/ceremony/bond/[id]': BondMade,
   '(world)/ceremony/seal/[id]': SealBroken,
   '(world)/ring': RingScreen,
+  '(world)/codex/[slug]': () => null,
 };
 
 async function show(url: string) {
@@ -215,6 +222,16 @@ describe('Seek', () => {
     expect(w.posts).toContain('/seek/saruul/summon');
     expect(view.getPathname()).toBe('/ceremony/bond/b1');
     expect(screen.getByText('A bond is made')).toBeTruthy();
+  });
+
+  test('has children shows on the card only when they chose to show it', async () => {
+    await show('/seek');
+    expect(screen.queryByText('Has children')).toBeNull();
+    const candidate = companion.candidate;
+    if (!candidate) throw new Error('the fixture has a companion');
+    w.seek = { ...companion, candidate: { ...candidate, hasChildren: true } };
+    await show('/seek');
+    expect(screen.getByText('Has children')).toBeTruthy();
   });
 
   test('the first bond asks to ring once, then goes where the person chose', async () => {
@@ -406,11 +423,50 @@ describe('Bond', () => {
     expect(screen.getByLabelText('The fire is out')).toBeTruthy();
   });
 
-  test('severed: the closed page', async () => {
-    w.bond = bond({ state: 'Severed' });
+  test('they are away by the fire: the header and the notice say until when', async () => {
+    const until = new Date(Date.now() + 3 * 86_400_000).toISOString();
+    w.letters = [letter('l1', true, new Date().toISOString())];
+    w.bond = bond({ other: { ...bond().other, awayUntil: until } });
     await show('/bond/b1');
-    expect(screen.getByText('This bond has been severed')).toBeTruthy();
+    const day = new Date(until).toLocaleDateString('en-GB', { weekday: 'long' });
+    expect(screen.getByText(`AWAY UNTIL ${day.toUpperCase()}`)).toBeTruthy();
+    expect(
+      screen.getByText(`Saruul is away by the fire until ${day}. Nothing goes cold while they are gone.`),
+    ).toBeTruthy();
+  });
+
+  test('a new bond links the first-letter guide', async () => {
+    const { view } = await show('/bond/b1');
+    await fireEvent.press(screen.getByRole('link', { name: 'How to write a first letter' }));
+    await settle();
+    expect(view.getPathname()).toBe('/codex/first-letter');
+  });
+
+  test('severed by you: the closed page, and the paths may cross again', async () => {
+    w.bond = bond({ state: 'Severed', closedByMe: true });
+    await show('/bond/b1');
+    expect(screen.getByText('You let this bond go')).toBeTruthy();
+    expect(screen.getByText(/after ninety days/)).toBeTruthy();
     expect(screen.queryByLabelText('Write a letter…')).toBeNull();
+  });
+
+  test('severed by them: the paths parted, with the candle given back tonight', async () => {
+    w.bond = bond({ state: 'Severed', closedByMe: false, candleBack: true });
+    const { view } = await show('/bond/b1');
+    expect(screen.getByText('PATHS PARTED')).toBeTruthy();
+    expect(screen.getByText('The paths parted')).toBeTruthy();
+    expect(screen.getByText('A candle is lit again for tonight.')).toBeTruthy();
+    expect(screen.queryByLabelText('Write a letter…')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the Tavern' }));
+    await settle();
+    expect(view.getPathname()).toBe('/seek');
+  });
+
+  test('severed by them with no candle spent tonight: no candle line', async () => {
+    w.bond = bond({ state: 'Severed', closedByMe: false, candleBack: false });
+    await show('/bond/b1');
+    expect(screen.getByText('The paths parted')).toBeTruthy();
+    expect(screen.queryByText('A candle is lit again for tonight.')).toBeNull();
   });
 
   test('letters read newest first with seal lines under their letter and days over their first', () => {

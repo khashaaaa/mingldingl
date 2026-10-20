@@ -23,6 +23,6 @@ public sealed record AdminReportLetter(bool ByTarget, string Text, DateTimeOffse
 public sealed record AdminReportDetail(
     Guid Id, Guid ReporterId, string ReporterName, Guid TargetId, string TargetName, string TargetStatus, Guid? BondId,
     string Reason, string? Note, string Status, string? Resolution, DateTimeOffset CreatedAt, DateTimeOffset? ResolvedAt,
-    int TargetReports, IReadOnlyList<AdminReportLetter> LastLetters);
+    int TargetReports, IReadOnlyList<AdminReportLetter> LastLetters, bool TargetUnderReview);
 
 public sealed record AdminReportPage(IReadOnlyList<AdminReportRow> Items, DateTimeOffset? NextBefore);

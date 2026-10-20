@@ -328,6 +328,25 @@ public sealed class SquareService(
         return (await AdminListAsync(ct)).Single(r => r.Id == g.Id);
     }
 
+    /// Changes a gathering not yet begun; seats already taken keep their place.
+    public async Task<AdminGatheringRow> EditAsync(Guid id, GatheringWriteRequest req, CancellationToken ct = default)
+    {
+        var g = await db.Set<Gathering>().SingleOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw new DomainException(404, "square.not_found", "No such gathering");
+        if (g.CancelledAt is not null || g.StartsAt <= clock.UtcNow)
+            throw new DomainException(409, "square.started", "A gathering that began or was cancelled cannot change");
+        if (req.StartsAt <= clock.UtcNow) throw new DomainException(400, "square.past", "Ring the bell for a time still ahead");
+        var seats = req.Seats - req.Seats % 2;
+        if (await db.Set<Seat>().CountAsync(s => s.GatheringId == id, ct) > seats)
+            throw new DomainException(409, "square.seats_taken", "More seats are taken than that");
+        (g.Name, g.StartsAt, g.Rounds, g.RoundMinutes, g.Seats, g.Festival, g.Masked) =
+            (req.Name.Trim(), req.StartsAt, req.Rounds, req.RoundMinutes, seats, req.Festival, req.Masked);
+        live.ToAll(LiveKinds.SquareUpdated);
+        live.ToAdmins(LiveKinds.SquareUpdated, g.Id);
+        await db.SaveChangesAsync(ct);
+        return (await AdminListAsync(ct)).Single(r => r.Id == g.Id);
+    }
+
     public async Task CancelAsync(Guid id, CancellationToken ct = default)
     {
         var g = await db.Set<Gathering>().SingleOrDefaultAsync(x => x.Id == id, ct)

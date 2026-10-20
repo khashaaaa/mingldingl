@@ -24,7 +24,7 @@ public sealed class SessionService(
 
     /// Proven number → session. Finds the number's account or creates it.
     public async Task<SessionPair> CompleteAsync(Guid verificationId, string deviceName, CancellationToken ct = default,
-        string? allyCode = null)
+        string? allyCode = null, string? deviceKey = null)
     {
         var v = await verifications.LoadAsync(verificationId, ct);
         if (v.State != VerificationState.Verified)
@@ -65,9 +65,18 @@ public sealed class SessionService(
             live.ToAdmins(LiveKinds.UserUpdated, account.Id);
         }
 
-        var device = new DeviceSession { AccountId = account.Id, DeviceName = deviceName.Trim(), CreatedAt = now, LastSeenAt = now };
+        var key = DeviceKeys.Hash(deviceKey);
+        var device = new DeviceSession
+        {
+            AccountId = account.Id, DeviceName = deviceName.Trim(), DeviceKey = key, CreatedAt = now, LastSeenAt = now,
+        };
         db.Add(device);
         await db.SaveChangesAsync(ct);
+        if (key is not null && account.FlaggedAt is null && await DeviceFlagAsync(key, account.Id, ct) is { } why)
+        {
+            (account.FlaggedAt, account.FlaggedWhy) = (now, why);
+            live.ToAdmins(LiveKinds.UserUpdated, account.Id);
+        }
         await db.Database.ExecuteSqlInterpolatedAsync(
             $"""UPDATE phone_verifications SET "ClaimedByAccountId" = {account.Id} WHERE "Id" = {verificationId}""", ct);
 
@@ -77,6 +86,19 @@ public sealed class SessionService(
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         return pair;
+    }
+
+    /// Why a sign-in on this device is worth a keeper's look: it carried a removed character, or
+    /// carries a suspended one. Never a refusal — phones are shared and sold.
+    private async Task<string?> DeviceFlagAsync(string key, Guid accountId, CancellationToken ct)
+    {
+        if (await db.Set<BarredDevice>().AnyAsync(d => d.Key == key, ct))
+            return "Signed in on a device a removed character used";
+        var suspended = await (from d in db.Set<DeviceSession>()
+                               join a in db.Set<Account>() on d.AccountId equals a.Id
+                               where d.DeviceKey == key && a.Id != accountId && a.Status == AccountStatus.Suspended
+                               select a.Id).AnyAsync(ct);
+        return suspended ? "Signed in on a device a suspended character uses" : null;
     }
 
     /// Rotates a refresh token. A duplicate within 30 s gets the same pair (a race never signs

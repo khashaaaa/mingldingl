@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { t, tLine, tPlace } from '@/lib/i18n';
 import { color, dimension } from '../tokens';
-import { Art, FillArt } from './Art';
+import { Art, FillArt, Glyph } from './Art';
 import { AvatarFrame } from './AvatarFrame';
 import { GEM, type Tier } from './GemBadge';
 import { NameTitle } from './NameTitle';
@@ -11,6 +11,7 @@ import { Txt } from './Txt';
 /**
  * A companion in the Tavern (Figma 26:3): a night card warmed from below, their portrait sealed
  * under wax (only its ThumbHash), name (a stranger in the Tavern has none: "A traveller") and age, gem and place, the oath they swore, their tale.
+ * "Has children" sits under the place when they chose to show it (Figma 254:13347).
  */
 export function SeekCard({
   name,
@@ -22,6 +23,7 @@ export function SeekCard({
   portrait,
   sealed = true,
   full,
+  hasChildren = false,
 }: {
   /** null in the Tavern: a stranger is nameless until a bond is made. */
   name: string | null;
@@ -35,6 +37,8 @@ export function SeekCard({
   sealed?: boolean;
   /** The whole tale, not three lines (their character in a bond). */
   full?: boolean;
+  /** They have children and chose to show it. */
+  hasChildren?: boolean;
 }) {
   const shown = name ?? t('seek.traveller');
   const nameAge = t('seek.nameAge', { name: shown, age });
@@ -56,6 +60,14 @@ export function SeekCard({
             : t(`tier.${tier}`)}
         </Txt>
       </View>
+      {hasChildren ? (
+        <View style={styles.line}>
+          <Glyph name="person" size={16} tint="textSecondary" />
+          <Txt variant="labelM" color="textSecondary">
+            {t('seek.hasChildren')}
+          </Txt>
+        </View>
+      ) : null}
       {oath ? (
         <View style={styles.chip}>
           <View style={styles.dot} />

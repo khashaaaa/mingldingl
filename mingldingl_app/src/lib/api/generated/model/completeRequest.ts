@@ -10,4 +10,6 @@ export interface CompleteRequest {
   deviceName: string;
   /** @nullable */
   allyCode?: string | null;
+  /** @nullable */
+  deviceKey?: string | null;
 }

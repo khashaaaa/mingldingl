@@ -89,7 +89,7 @@ public class RoadTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await ExchangeAsync(bond, bat.C, saruul.C, 5);
 
         var hs = await Honours(bat.C);
-        hs.Should().HaveCount(21);
+        hs.Should().HaveCount(22);
         hs.Where(h => h.Earned).Select(h => h.Key).Should().BeEquivalentTo(HonourKeys.FirstBond, HonourKeys.SealBreaker);
         hs.Where(h => h.Earned).Should().OnlyContain(h => h.Unseen);
 

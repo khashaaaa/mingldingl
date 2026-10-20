@@ -26,4 +26,13 @@ export interface AdminUserDetail {
   bonds: AdminBondRow[];
   deeds: DeedView[];
   encounters: AdminEncounters;
+  /** @nullable */
+  suspendedAt: string | null;
+  /** @nullable */
+  suspendedWhy: string | null;
+  /** @nullable */
+  flaggedAt: string | null;
+  /** @nullable */
+  flaggedWhy: string | null;
+  underReview: boolean;
 }

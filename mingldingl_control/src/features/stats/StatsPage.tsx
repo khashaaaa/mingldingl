@@ -60,7 +60,7 @@ const GROUPS: Record<
       { metric: 'quests', label: 'Quests claimed' },
       { metric: 'letters', label: 'Letters' },
     ],
-    extra: ['seventhDawn', 'chests'],
+    extra: ['seventhDawn', 'chests', 'wanderings'],
     tiles: [
       {
         label: 'Seven-dawn streaks',
@@ -229,6 +229,8 @@ export function StatsPage() {
     { query: { enabled: metrics.length > 0 } },
   );
   const table = useAdminStatsTable(group, params);
+  // Matching also lists who keeps being let go (three Severs or more in the range).
+  const severed = useAdminStatsTable('severed', params, { query: { enabled: group === 'matching' } });
   const cities = useQuery({
     queryKey: ['/geo/cities'],
     queryFn: async () => (await (await fetch(`${API_URL}/geo/cities`)).json()) as { name: string }[],
@@ -377,29 +379,39 @@ export function StatsPage() {
           </div>
         ))}
       </div>
-      {table.data && (
-        <table className="table">
-          <thead>
-            <tr>
-              {table.data.head.map((h) => (
-                <th key={h}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {table.data.rows.map((r) => (
-              <tr key={r.join('|')}>
-                {r.map((c, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: cells are positional
-                  <td key={i}>{c}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      {table.data && <TableView table={table.data} />}
       {table.data && table.data.rows.length === 0 && <p className="state">Nothing in this range.</p>}
+      {group === 'matching' && severed.data && severed.data.rows.length > 0 && (
+        <TableView table={severed.data} />
+      )}
     </section>
+  );
+}
+
+function TableView({ table }: { table: StatTable }) {
+  return (
+    <table className="table">
+      <thead>
+        <tr>
+          {table.head.map((h) => (
+            <th key={h}>{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {table.rows.map((r, row) => (
+          <tr key={r.join('|')}>
+            {r.map((c, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: cells are positional
+              <td key={i}>
+                {/* A row that is a person opens their record. */}
+                {i === 0 && table.people?.[row] ? <Link to={`/users/${table.people[row]}`}>{c}</Link> : c}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 

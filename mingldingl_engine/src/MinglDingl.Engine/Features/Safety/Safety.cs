@@ -29,6 +29,16 @@ public sealed class Report
     public DateTimeOffset? ResolvedAt { get; set; }
 }
 
+/// Someone open reports from enough different people (`safety.hideAfterReporters`) have named:
+/// out of Seek and every other path that makes a bond until a keeper decides. Nothing else
+/// happens to them — points and reputation move only on a keeper's word.
+public static class UnderReview
+{
+    public static IQueryable<Guid> Ids(DbContext db, int reporters) =>
+        db.Set<Report>().Where(r => r.Status == ReportStatus.Open).GroupBy(r => r.TargetId)
+            .Where(g => reporters > 0 && g.Select(r => r.ReporterId).Distinct().Count() >= reporters).Select(g => g.Key);
+}
+
 internal sealed class BlockMap : IEntityTypeConfiguration<Block>
 {
     public void Configure(EntityTypeBuilder<Block> e)

@@ -16,6 +16,7 @@ import { UserDetailPage } from './features/users/UserDetailPage';
 import { UsersPage } from './features/users/UsersPage';
 import { VenueFormPage } from './features/venues/VenueFormPage';
 import { VenuesPage } from './features/venues/VenuesPage';
+import { WanderingEditPage, WanderingsPage } from './features/wanderings/WanderingPages';
 import { session } from './lib/session';
 
 /** The one place that decides: no session → login, whatever the URL; the URL survives signing in. */
@@ -47,6 +48,8 @@ export const router = createBrowserRouter([
       { path: 'square', element: <GatheringsPage /> },
       { path: 'codex', element: <CodexPagesPage /> },
       { path: 'codex/:slug', element: <CodexEditPage /> },
+      { path: 'wanderings', element: <WanderingsPage /> },
+      { path: 'wanderings/:key', element: <WanderingEditPage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'config', element: <ConfigPage /> },
       { path: '*', element: <p className="state">Nothing is kept here.</p> },

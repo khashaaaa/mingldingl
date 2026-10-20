@@ -45,6 +45,9 @@ public static class ConfigKeys
     public const string ColdHours = "bonds.coldHours";
     public const string UnspokenDays = "bonds.unspokenDays";
     public const string SeekEnabled = "seek.enabled";
+    public const string SeekRemeetDays = "seek.remeetDays";
+    public const string AwayMaxDays = "away.maxDays";
+    public const string AwayEveryDays = "away.everyDays";
 
     public const string IcebreakerSeal = "encounters.icebreakerSeal";
     public const string TrialSeal = "encounters.trialSeal";
@@ -106,6 +109,10 @@ public static class ConfigKeys
     public const string GerRestsHall = "streak.gerRests.hall";
     public const string GerRestsHighTable = "streak.gerRests.highTable";
     public const string SquareHighTableLeadMinutes = "square.highTableLeadMinutes";
+    public const string PhotosRequireFace = "photos.requireFace";
+    public const string SafetyHideAfterReporters = "safety.hideAfterReporters";
+    public const string SafetyNewDays = "safety.newDays";
+    public const string SafetyNewCandles = "safety.newCandles";
 
     public static readonly IReadOnlyList<string> TierLadder = [TierOpal, TierAmethyst, TierSapphire, TierRuby, TierEmerald];
     public static readonly IReadOnlyList<string> SealLadder = [Seal1, Seal2, Seal3, Seal4];
@@ -143,6 +150,9 @@ public static class ConfigKeys
         new(CandlesPerPoints, "Seek", "One more summons a day per this many points", ConfigType.Int, "50", 1, 100000),
         new(CandlesCap, "Seek", "Most summons a day (plus the tier index)", ConfigType.Int, "12", 1, 100),
         new(SeekEnabled, "Kill switches", "Seek offers new companions", ConfigType.Bool, "true"),
+        new(SeekRemeetDays, "Seek", "Days before a severed or faded pair may meet again in Seek", ConfigType.Int, "90", 1, 3650),
+        new(AwayMaxDays, "Bonds", "Longest \"away by the fire\", in days (nothing goes cold meanwhile)", ConfigType.Int, "7", 1, 30),
+        new(AwayEveryDays, "Bonds", "Days between one \"away by the fire\" and the next", ConfigType.Int, "30", 1, 365),
 
         new(SeatsBase, "Bonds", "Live bonds a person may hold (plus the tier index)", ConfigType.Int, "4", 1, 50),
         new(Seal1, "Bonds", "Letters each that break the 1st seal (first portrait, age)", ConfigType.Int, "5", 1, 1000),
@@ -213,6 +223,10 @@ public static class ConfigKeys
         new(GerRestsHall, "Membership", "The Hall: missed dawns a ger rest keeps, per moon", ConfigType.Int, "1", 0, 31),
         new(GerRestsHighTable, "Membership", "The High Table: missed dawns a ger rest keeps, per moon", ConfigType.Int, "2", 0, 31),
         new(SquareHighTableLeadMinutes, "Town Square", "Minutes after a bell is rung that only the High Table may sit", ConfigType.Int, "10", 0, 1440),
+        new(PhotosRequireFace, "Safety", "A portrait must show a human face (checked on the engine at upload)", ConfigType.Bool, "true"),
+        new(SafetyHideAfterReporters, "Safety", "Open reports from this many different people hide someone from Seek until a keeper decides (0: never)", ConfigType.Int, "3", 0, 100),
+        new(SafetyNewDays, "Safety", "Days after finishing a character that its summons are held low", ConfigType.Int, "2", 0, 30),
+        new(SafetyNewCandles, "Safety", "Most summons a night while a character is new", ConfigType.Int, "3", 1, 100),
     ];
 
     public static ConfigKeyDefinition? Find(string key) => All.FirstOrDefault(d => d.Key == key);

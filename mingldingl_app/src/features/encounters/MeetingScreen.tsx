@@ -360,6 +360,8 @@ function Sworn({
             {t('meeting.reward', { points: `+${reward}` }).toUpperCase()}
           </Txt>
         </Reveal>
+        {/* Figma 258:2700: the guide for the meeting ahead */}
+        <InkLink label={t('meeting.beforeGuide')} onPress={() => router.push('/codex/before-you-meet')} />
         {Date.parse(meeting.at) > Date.now() && (
           <InkLink label={t('meeting.callOff')} onPress={() => setConfirm(true)} />
         )}

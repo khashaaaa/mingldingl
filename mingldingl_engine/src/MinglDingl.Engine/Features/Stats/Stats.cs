@@ -47,7 +47,8 @@ public sealed record StatSeries(string Metric, IReadOnlyList<StatPoint> Days, lo
 public sealed record StatsView(DateOnly From, DateOnly To, IReadOnlyList<StatSeries> Series);
 
 /// A group's own table: its heading row and rows of text cells.
-public sealed record StatTable(IReadOnlyList<string> Head, IReadOnlyList<IReadOnlyList<string>> Rows);
+/// people: when a row is a person, their account (the keepers open them from the table).
+public sealed record StatTable(IReadOnlyList<string> Head, IReadOnlyList<IReadOnlyList<string>> Rows, IReadOnlyList<Guid>? People = null);
 
 /// The dashboard's "today", live: who came back, bonds made, money in and what waits on a keeper.
 public sealed record DashboardView(long ActiveToday, long ActiveDelta, long BondsToday, long MoneyToday, int StorePurchasesToday,

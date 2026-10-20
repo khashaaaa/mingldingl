@@ -4,6 +4,7 @@ import { Button } from '../../design/Button';
 import { errorText } from '../../lib/api/client';
 import {
   adminCancelGathering,
+  adminEditGathering,
   adminRingBell,
   getAdminListGatheringsQueryKey,
   useAdminListGatherings,
@@ -35,22 +36,28 @@ const status = (r: AdminGatheringRow) =>
     ? `Closed · ${r.bonds} bond${r.bonds === 1 ? '' : 's'}`
     : r.state[0]?.toUpperCase() + r.state.slice(1);
 
-/** Town Square (Figma S8 39:831): every gathering, live; ring a new bell; cancel one not yet rung. */
+/**
+ * Town Square (Figma S8 39:831, edit 266:15296): every gathering, live; ring a new bell; edit or
+ * cancel one not yet rung.
+ */
 export function GatheringsPage() {
   const client = useQueryClient();
   const list = useAdminListGatherings();
   const rows = list.data ?? [];
   const [ringing, setRinging] = useState(false);
+  const [editing, setEditing] = useState<AdminGatheringRow | null>(null);
   const refresh = () => client.invalidateQueries({ queryKey: getAdminListGatheringsQueryKey() });
   return (
     <section>
       <div className="page-head">
         <h1 className="page-title">Gatherings</h1>
       </div>
-      {ringing ? (
+      {ringing || editing ? (
         <RingForm
+          edit={editing}
           onDone={() => {
             setRinging(false);
+            setEditing(null);
             refresh();
           }}
         />
@@ -86,9 +93,14 @@ export function GatheringsPage() {
               <td>{status(r)}</td>
               <td>
                 {r.state === 'open' && (
-                  <Button kind="quiet" onClick={() => adminCancelGathering(r.id).then(refresh)}>
-                    Cancel
-                  </Button>
+                  <>
+                    <Button kind="quiet" onClick={() => setEditing(r)}>
+                      Edit
+                    </Button>
+                    <Button kind="quiet" onClick={() => adminCancelGathering(r.id).then(refresh)}>
+                      Cancel
+                    </Button>
+                  </>
                 )}
               </td>
             </tr>
@@ -107,16 +119,26 @@ export function GatheringsPage() {
   );
 }
 
-function RingForm({ onDone }: { onDone: () => void }) {
-  const [form, setForm] = useState({
-    name: '',
-    at: '',
-    rounds: 6,
-    minutes: 5,
-    seats: 16,
-    festival: '',
-    masked: false,
-  });
+/** A datetime-local value (the keeper's own clock) for an ISO moment. */
+const localInput = (iso: string) => {
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+};
+
+function RingForm({ onDone, edit }: { onDone: () => void; edit?: AdminGatheringRow | null }) {
+  const [form, setForm] = useState(
+    edit
+      ? {
+          name: edit.name,
+          at: localInput(edit.startsAt),
+          rounds: edit.rounds,
+          minutes: edit.roundMinutes,
+          seats: edit.seats,
+          festival: edit.festival ?? '',
+          masked: edit.masked,
+        }
+      : { name: '', at: '', rounds: 6, minutes: 5, seats: 16, festival: '', masked: false },
+  );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const submit = async (e: FormEvent) => {
@@ -133,7 +155,8 @@ function RingForm({ onDone }: { onDone: () => void }) {
       masked: form.masked,
     };
     try {
-      await adminRingBell(req);
+      if (edit) await adminEditGathering(edit.id, req);
+      else await adminRingBell(req);
       onDone();
     } catch (err) {
       setError(errorText(err));
@@ -222,7 +245,7 @@ function RingForm({ onDone }: { onDone: () => void }) {
       )}
       <div className="square-actions">
         <Button kind="brass" type="submit" disabled={busy}>
-          Ring the bell
+          {edit ? 'Save' : 'Ring the bell'}
         </Button>
         <Button kind="quiet" onClick={onDone}>
           Not now

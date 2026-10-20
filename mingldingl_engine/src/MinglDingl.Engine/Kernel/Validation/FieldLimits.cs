@@ -7,6 +7,7 @@ public static class FieldLimits
     public const int Name = 40;
     public const int Bio = 300;
     public const int DeviceName = 80;
+    public const int DeviceKey = 128;
     public const int Phone = 8;
     public const int Code = 64;
     public const int SmsCode = 8;
@@ -18,6 +19,9 @@ public static class FieldLimits
     public const int CodexTitle = 80;
     public const int CodexSummary = 120;
     public const int CodexBody = 8000;
+    public const int WanderingText = 1000;
+    public const int WanderingLine = 300;
+    public const int KeeperReason = 300;
     public const int VenueDescription = 400;
     public const int VenueHours = 60;
     public const int Icebreaker = 300;

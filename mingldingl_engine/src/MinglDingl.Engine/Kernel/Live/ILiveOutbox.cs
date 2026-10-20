@@ -44,6 +44,7 @@ public static class LiveKinds
     public const string QuestsUpdated = "quests.updated";
     public const string CampaignUpdated = "campaign.updated";
     public const string TrialUpdated = "trial.updated";
+    public const string WanderingUpdated = "wandering.updated";
     public const string ThreadUpdated = "thread.updated";
     public const string SquareUpdated = "square.updated";
     public const string CodexUpdated = "codex.updated";
@@ -51,4 +52,5 @@ public static class LiveKinds
     public const string AuditCreated = "audit.created";
     public const string MembershipUpdated = "membership.updated";
     public const string PaymentUpdated = "payment.updated";
+    public const string BarredChanged = "barred.changed";
 }

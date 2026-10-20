@@ -9,18 +9,22 @@ public sealed record WriteLetterRequest([Required(AllowEmptyStrings = true), Str
 /// The other person as this bond lets you see them. place: their province (or Ulaanbaatar) until
 /// the third seal, then the district. portraits: sealed ones carry only a ThumbHash. deep: their deep
 /// profile, only after the fourth seal and only to a member (null otherwise, or when they left it empty).
+/// hasChildren: they have children and chose to show it, at every seal and to everyone. awayUntil: they
+/// are away by the fire until then (nothing goes cold on their turn).
 public sealed record BondPersonView(
     Guid AccountId, string Name, int Age, string Tier, string? Oath, string? Bio, string? Place,
-    IReadOnlyList<PortraitView> Portraits, Profile.DeepView? Deep);
+    IReadOnlyList<PortraitView> Portraits, bool HasChildren, DateTimeOffset? AwayUntil, Profile.DeepView? Deep);
 
 /// state: Live | Cold | Severed | Faded. myTurn: the last letter is theirs. coldAt: when the bond
 /// goes cold if the side whose turn it is stays silent (null with no letters). embers: the warning
 /// is showing. nextSealAt: letters each that break the next seal (null when all four are broken).
-/// sealLadder: letters each for each of the four seals.
+/// sealLadder: letters each for each of the four seals. candleBack: the other side severed it today and
+/// gave back a candle spent tonight.
 public sealed record BondView(
     Guid Id, string State, BondPersonView Other, int Seals, int Mutual, int? NextSealAt, IReadOnlyList<int> SealLadder,
     int MyLetters, int TheirLetters, bool MyTurn, bool Embers, DateTimeOffset? ColdAt,
-    DateTimeOffset CreatedAt, DateTimeOffset? ClosedAt, bool ClosedByMe, bool SummonedByMe, string? ClosedWhy);
+    DateTimeOffset CreatedAt, DateTimeOffset? ClosedAt, bool ClosedByMe, bool SummonedByMe, string? ClosedWhy,
+    bool CandleBack);
 
 /// A Quest Log row.
 public sealed record BondRow(

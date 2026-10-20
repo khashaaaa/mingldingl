@@ -14,6 +14,7 @@ public static class PushKinds
     public const string MeetingCalledOff = "meetingCalledOff";
     public const string Attendance = "attendance";
     public const string RetireAsked = "retireAsked";
+    public const string WanderingAsked = "wanderingAsked";
     public const string ThreadWoven = "threadWoven";
     public const string ThreadSparked = "threadSparked";
     public const string SquareSoon = "squareSoon";

@@ -20,6 +20,7 @@ const NAV: { to: string; label: string; glyph: GlyphName }[] = [
   { to: '/square', label: 'Town Square', glyph: 'stage' },
   { to: '/config', label: 'Config', glyph: 'scales' },
   { to: '/codex', label: 'Codex pages', glyph: 'book' },
+  { to: '/wanderings', label: 'Wanderings', glyph: 'map' },
   { to: '/audit', label: 'Audit log', glyph: 'scroll' },
   { to: '/ops', label: 'Ops', glyph: 'forge' },
 ];

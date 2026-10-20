@@ -110,4 +110,21 @@ public class SquareTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await Night(anu.C, g.Id)).Phase.Should().Be("left");
         (await CodeOf(await anu.C.PostAsync($"/square/{g.Id}/join", null))).Should().Be("square.no_seat");
     }
+
+    [Fact]
+    public async Task A_keeper_edits_a_gathering_before_it_begins_but_not_after()
+    {
+        await using var w = await World.CreateAsync(db);
+        var admin = await w.F.AdminAsync();
+        var g = await Ring(w, admin, inMinutes: 60);
+        var later = w.F.Clock.UtcNow.AddHours(2);
+        var edited = await (await admin.PutAsJsonAsync($"/admin/gatherings/{g.Id}",
+            new GatheringWriteRequest("The Fifth Bell", later, 3, 5, 8, null, true))).Read<AdminGatheringRow>();
+        edited.Name.Should().Be("The Fifth Bell");
+        (await admin.GetFromJsonAsync<List<MinglDingl.Engine.Features.Admin.AuditRow>>("/admin/audit"))!.First().Action
+            .Should().Be("A gathering was edited");
+        await w.AdvanceAsync(TimeSpan.FromHours(3));
+        (await CodeOf(await admin.PutAsJsonAsync($"/admin/gatherings/{g.Id}",
+            new GatheringWriteRequest("Late", w.F.Clock.UtcNow.AddHours(1), 3, 5, 8, null, true)))).Should().Be("square.started");
+    }
 }

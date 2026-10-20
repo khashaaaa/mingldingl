@@ -26,6 +26,23 @@ public static class CodexSeed
             + "Rite first: five minutes face to face before you share a table. Use \"Share safety info\" to "
             + "send the place and time to a friend. If anyone asks for money, report them — the keepers read "
             + "every report."),
+        new("first-letter", CodexKind.Guide, "Your first letter", "Begin with their tale, not their face",
+            "Their face is sealed for a reason: start with what they wrote. Answer one thing from their tale "
+            + "and ask one real question, one you would want answered yourself. Three or four lines is enough; "
+            + "a long first letter is a weight to carry. Don't open with \"hi\" alone, and don't ask for photos "
+            + "or a number. The seals will show you their face, if you both keep talking."),
+        new("before-you-meet", CodexKind.Guide, "Before you meet", "A short first meeting, in the open",
+            "Meet at the venue you swore to, in daylight if you can, and keep it to an hour or two. Tell a "
+            + "friend where you will be and when; Share safety info does it in one tap. Come with two or three "
+            + "things to ask about the life in their letters. Pay your own way or take turns; no one owes "
+            + "anyone. If something feels wrong, leave. You need no reason, and the keepers will listen if you "
+            + "report it."),
+        new("letting-go", CodexKind.Guide, "When to let go", "Ending kindly, and early",
+            "Some fires don't catch. If the letters feel like work, if they never ask about you, or if your "
+            + "answer to \"do I want to meet them?\" stays no, it is time. Sever costs nothing; silence costs "
+            + "you points and leaves them waiting. A Sever tells them only that the paths parted, with no "
+            + "blame, and gives back the candle they spent on you that night. Letting go early is a kindness "
+            + "to both of you."),
         new("guild", CodexKind.Guide, "The Guild House", "What each floor changes",
             "Everyone stands in the Yard, free. The Hall and the High Table give more candles each night "
             + "and open the deep pages of a character. A floor never buys points, a gem, or a place in "
@@ -61,6 +78,23 @@ public static class CodexSeed
                 + "нэг ширээнд суухаас өмнө таван минут нүүр тулан. \"Аюулгүй байдлын мэдээлэл хуваалцах\" товчоор "
                 + "газар, цагаа найздаа илгээ. Хэн нэгэн мөнгө гуйвал гомдол гарга — манаач гомдол бүрийг "
                 + "уншдаг."),
+            ["first-letter"] = ("Анхны захидал", "Царайнаас биш, домгоос нь эхэл",
+                "Царай нь учиртай лацтай: бичсэн зүйлээс нь эхэл. Домгоос нь нэг зүйлд хариулж, хариултыг нь "
+                + "өөрөө мэдмээр байгаа нэг жинхэнэ асуулт асуу. Гурав, дөрвөн мөр хангалттай; урт анхны захидал "
+                + "үүрэхэд хүнд ачаа. Зөвхөн \"сайн уу\" гэж бүү эхэл, зураг эсвэл утасны дугаар бүү гуй. Хоёулаа "
+                + "ярьсаар байвал лац царайг нь харуулна."),
+            ["before-you-meet"] = ("Уулзахаасаа өмнө", "Богинохон анхны уулзалт, ил газар",
+                "Тангарагласан газраа, боломжтой бол өдрийн цагаар уулз, нэг хоёр цагаар хязгаарла. Хаана, хэзээ "
+                + "байхаа найздаа хэл; \"Аюулгүй байдлын мэдээлэл хуваалцах\" нэг товшилтоор үүнийг хийнэ. "
+                + "Захидлаас нь мэдсэн амьдралынх нь талаар асуух хоёр гурван зүйл бэлдээд оч. Өөрийнхөө "
+                + "төлбөрийг төл эсвэл ээлжлэ; хэн ч хэнд өргүй. Ямар нэг зүйл буруу санагдвал яв. Шалтгаан "
+                + "хэрэггүй, гомдол гаргавал манаач сонсоно."),
+            ["letting-go"] = ("Хэзээ тавьж явуулах вэ", "Эелдгээр, эрт салах нь",
+                "Зарим гал асдаггүй. Захидал хөдөлмөр мэт санагдаж, чамаас юу ч асуудаггүй, эсвэл \"түүнтэй "
+                + "уулзмаар байна уу?\" гэхэд хариулт чинь үгүй хэвээр байвал цаг нь болжээ. Холбоог таслах "
+                + "үнэгүй; чимээгүй байдал чамаас оноо авч, нөгөөг нь хүлээлгэнэ. Тасалбал зөвхөн зам салсныг "
+                + "буруутгалгүйгээр хэлж, тэр шөнө чамд зарцуулсан лааг нь буцааж өгнө. Эрт тавьж явуулах нь "
+                + "хоёуланд чинь өгөх энэрэл."),
             ["guild"] = ("Наймааны өргөө", "Давхар бүр юуг өөрчилдөг вэ",
                 "Хүн бүр Хашаанд үнэгүй зогсоно. Танхим ба Дээд ширээ шөнө бүр илүү лаа өгч, баатрын гүн "
                 + "хуудсыг нээнэ. Давхар хэзээ ч оноо, эрдэнэ, эсвэл хэний ч Хайх хэсэг дэх байрыг худалдаж авдаггүй."),

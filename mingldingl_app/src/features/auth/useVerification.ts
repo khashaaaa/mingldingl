@@ -1,3 +1,4 @@
+import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import { useIsFocused } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -108,6 +109,7 @@ export function useVerification(phone: string, purpose: VerificationPurpose = SI
           verificationId,
           deviceName: deviceName(),
           allyCode: await allyCall(),
+          deviceKey: await deviceKey(),
         });
         await SecureStore.deleteItemAsync(verifyKey(phone));
         await forgetAllyCall();
@@ -175,4 +177,18 @@ export function useVerification(phone: string, purpose: VerificationPurpose = SI
 
 function deviceName(): string {
   return Constants.deviceName ?? Platform.OS;
+}
+
+/**
+ * The install's own id — Android ID (it survives a reinstall), the iOS vendor id — so the keepers
+ * notice a removed character's phone signing in again. The engine keeps only its hash.
+ */
+async function deviceKey(): Promise<string | undefined> {
+  try {
+    const id =
+      Platform.OS === 'android' ? Application.getAndroidId() : await Application.getIosIdForVendorAsync();
+    return id ?? undefined;
+  } catch {
+    return undefined;
+  }
 }

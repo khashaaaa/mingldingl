@@ -144,6 +144,9 @@ public sealed class HonourService(AppDb db, IClock clock, ILiveOutbox live, Fest
         return new StandingView(kept.Count, kept.Count + missed, scars.Count - closed, closed, districts);
     }
 
+    /// Wanderings kept, with anyone, to be a Fellow Traveller.
+    public const int FellowTravellerWanderings = 3;
+
     private async Task<HashSet<(string Key, int Year)>> EarnedAsync(Guid me, CancellationToken ct)
     {
         var got = new HashSet<(string, int)>();
@@ -178,6 +181,8 @@ public sealed class HonourService(AppDb db, IClock clock, ILiveOutbox live, Fest
         Earn(HonourKeys.Cartographer, standing.Districts.Count >= CartographerDistricts);
         Earn(HonourKeys.Hearthbound, bonds.Any(b => b.State == BondState.Retired));
         Earn(HonourKeys.FateSeer, bonds.Any(b => b.Origin == BondOrigins.Square));
+        Earn(HonourKeys.FellowTraveller, await db.Set<Wanderings.WanderingTaken>().AsNoTracking().CountAsync(t => t.KeptAt != null
+            && db.Set<Bond>().Any(b => b.Id == t.BondId && (b.AId == me || b.BId == me)), ct) >= FellowTravellerWanderings);
         Earn(HonourKeys.FirstBond, bonds.Count > 0);
         Earn(HonourKeys.IceBroken, Deeds(DeedKinds.Icebreaker) > 0);
         Earn(HonourKeys.FirstTrial, Deeds(DeedKinds.Trial) > 0);

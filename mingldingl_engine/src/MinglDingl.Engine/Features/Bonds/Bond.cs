@@ -6,7 +6,8 @@ namespace MinglDingl.Engine.Features.Bonds;
 
 public enum BondState { Live, Cold, Severed, Faded, Retired }
 
-/// Two people, at most once ever (A < B by id). Letter counts are per side so the seals can use
+/// Two people (A < B by id), at most one live bond at a time; a severed or faded pair may bond again
+/// after seek.remeetDays. Letter counts are per side so the seals can use
 /// min(A, B): a monologue never breaks one.
 public sealed class Bond
 {
@@ -37,6 +38,9 @@ public sealed class Bond
     public Guid? ClosedBy { get; set; }
     /// Why a bond closed when it was not the two of them: "retired" (one of them retired with someone else).
     public string? ClosedWhy { get; set; }
+    /// A Sever gives the severed side back a candle spent that Ulaanbaatar day (never a cast-out).
+    public Guid? CandleBackTo { get; set; }
+    public DateOnly? CandleBackDay { get; set; }
     /// Retire together: who asked and when; a "not now" (the asker may ask again later).
     public Guid? RetireBy { get; set; }
     public DateTimeOffset? RetireAt { get; set; }
@@ -77,7 +81,8 @@ internal sealed class BondMap : IEntityTypeConfiguration<Bond>
         e.Property(x => x.Origin).HasMaxLength(8).HasDefaultValue(BondOrigins.Seek);
         e.HasOne<Account>().WithMany().HasForeignKey(x => x.AId).OnDelete(DeleteBehavior.Cascade);
         e.HasOne<Account>().WithMany().HasForeignKey(x => x.BId).OnDelete(DeleteBehavior.Cascade);
-        e.HasIndex(x => new { x.AId, x.BId }).IsUnique();
+        e.HasIndex(x => new { x.AId, x.BId }).IsUnique().HasFilter("\"State\" = 'Live'");
+        e.HasIndex(x => new { x.CandleBackTo, x.CandleBackDay });
         e.HasIndex(x => new { x.BId, x.State });
         e.HasIndex(x => new { x.AId, x.State });
         e.HasIndex(x => new { x.SummonerId, x.SummonDay });

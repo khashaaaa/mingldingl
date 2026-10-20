@@ -90,13 +90,21 @@ a {
   background: var(--color-metal-brass) var(--brass) center / cover no-repeat;
 }
 .btn-brass::before,
-.btn-brass::after {
+.btn-brass::after,
+.btn-danger::before,
+.btn-danger::after {
   content: "";
   width: var(--space-2);
   height: var(--space-2);
   border-radius: var(--radius-round);
   background: var(--color-metal-brass);
   box-shadow: inset 0 0 0 var(--stroke-hairline) var(--color-border-brass);
+}
+/* Figma S8 266:2439: the brass plate, its ink and rivets; only the ember edge says danger. */
+.btn-danger {
+  border-color: var(--color-status-danger);
+  color: var(--color-text-inverse);
+  background: var(--color-metal-brass) var(--brass) center / cover no-repeat;
 }
 .btn-quiet {
   min-height: auto;

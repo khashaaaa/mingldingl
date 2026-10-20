@@ -8,7 +8,8 @@ namespace MinglDingl.Engine.Features.Membership;
 public enum Floor { Yard, Hall, HighTable }
 
 /// Where a stretch of membership came from: the store (Google Play through RevenueCat) or QPay on the web.
-public enum GrantSource { Store, QPay }
+/// Keeper: a gift from the keepers (never renews).
+public enum GrantSource { Store, QPay, Keeper }
 
 /// One stretch of a floor: from, until, and what paid for it. A person's floor at any moment is the
 /// highest floor among the stretches that cover it. Store stretches mirror RevenueCat; a QPay stretch

@@ -26,4 +26,5 @@ export interface AdminReportDetail {
   resolvedAt: string | null;
   targetReports: number;
   lastLetters: AdminReportLetter[];
+  targetUnderReview: boolean;
 }

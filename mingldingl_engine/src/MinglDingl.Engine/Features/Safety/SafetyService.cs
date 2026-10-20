@@ -117,7 +117,8 @@ public sealed class SafetyService(
         var count = await db.Set<Report>().CountAsync(x => x.TargetId == r.TargetId, ct);
         return new AdminReportDetail(r.Id, r.ReporterId, names.GetValueOrDefault(r.ReporterId, ""), r.TargetId,
             names.GetValueOrDefault(r.TargetId, ""), status.ToString(), r.BondId, r.Reason, r.Note, r.Status.ToString(), r.Resolution,
-            r.CreatedAt, r.ResolvedAt, count, letters);
+            r.CreatedAt, r.ResolvedAt, count, letters,
+            await UnderReview.Ids(db, config.Int(ConfigKeys.SafetyHideAfterReporters)).AnyAsync(x => x == r.TargetId, ct));
     }
 
     /// Nothing happens to anyone's points until an admin decides.
@@ -141,6 +142,7 @@ public sealed class SafetyService(
                 r.Status = ReportStatus.CastOut;
                 var account = await db.Set<Account>().SingleAsync(a => a.Id == r.TargetId, ct);
                 account.Status = AccountStatus.Suspended;
+                (account.SuspendedAt, account.SuspendedWhy) = (clock.UtcNow, "Cast out from a report");
                 await bonds.SeverAllAsync(r.TargetId, ct);
                 live.ToAccount(r.TargetId, LiveKinds.ProfileUpdated, r.TargetId);
                 break;

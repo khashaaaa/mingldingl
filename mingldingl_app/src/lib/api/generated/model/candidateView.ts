@@ -17,4 +17,5 @@ export interface CandidateView {
   /** @nullable */
   bio: string | null;
   portrait: null | PortraitView;
+  hasChildren: boolean;
 }

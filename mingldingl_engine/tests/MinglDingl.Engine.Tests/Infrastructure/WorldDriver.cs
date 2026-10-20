@@ -99,13 +99,13 @@ public sealed class World : IAsyncDisposable
 
     /// A finished character with three portraits.
     public async Task<Person> PersonAsync(string name, string gender, string city = "Bayangol", string oath = "Bond", int photos = 3,
-        string? phone = null, string? allyCode = null)
+        string? phone = null, string? allyCode = null, string? deviceKey = null)
     {
-        var s = await F.SignInAsync(Vm, phone, allyCode: allyCode);
+        var s = await F.SignInAsync(Vm, phone, allyCode: allyCode, deviceKey: deviceKey);
         var c = F.As(s);
         (await c.CreateAsync(name)).EnsureSuccessStatusCode();
         (await c.UpdateAsync(Upd(gender: gender, bio: $"{name}'s tale", city: city))).EnsureSuccessStatusCode();
-        for (var i = 0; i < photos; i++) await c.UploadAsync($"photo-{i % 3 + 1}.jpg");
+        for (var i = 0; i < photos; i++) await c.UploadAsync(); // photo-3, the fixture that shows a face
         (await c.UpdateAsync(Upd(oath: oath))).EnsureSuccessStatusCode();
         (await c.UpdateAsync(Upd(welcomed: true))).EnsureSuccessStatusCode();
         var me = await c.MeAsync();

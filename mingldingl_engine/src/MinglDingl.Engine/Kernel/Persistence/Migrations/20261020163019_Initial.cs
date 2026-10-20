@@ -20,8 +20,12 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     Status = table.Column<string>(type: "character varying(12)", maxLength: 12, nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DeleteAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    SuspendedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    SuspendedWhy = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
                     AllyCode = table.Column<string>(type: "character varying(9)", maxLength: 9, nullable: true),
-                    CalledBy = table.Column<Guid>(type: "uuid", nullable: true)
+                    CalledBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    FlaggedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    FlaggedWhy = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -36,11 +40,38 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     At = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     Keeper = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
                     Action = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    Target = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true)
+                    Target = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    Note = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_audit_log", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "barred_devices",
+                columns: table => new
+                {
+                    Key = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    Why = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_barred_devices", x => x.Key);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "barred_numbers",
+                columns: table => new
+                {
+                    Phone = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
+                    Why = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_barred_numbers", x => x.Phone);
                 });
 
             migrationBuilder.CreateTable(
@@ -200,6 +231,30 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "wanderings",
+                columns: table => new
+                {
+                    Key = table.Column<string>(type: "character varying(24)", maxLength: 24, nullable: false),
+                    Position = table.Column<int>(type: "integer", nullable: false),
+                    Road = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
+                    Season = table.Column<string>(type: "character varying(12)", maxLength: 12, nullable: false),
+                    VenueKinds = table.Column<string[]>(type: "text[]", nullable: false),
+                    TitleEn = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    LineEn = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    BodyEn = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    WhereEn = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    TitleMn = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    LineMn = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    BodyMn = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    WhereMn = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_wanderings", x => x.Key);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "blocks",
                 columns: table => new
                 {
@@ -248,6 +303,8 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     ClosedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     ClosedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     ClosedWhy = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
+                    CandleBackTo = table.Column<Guid>(type: "uuid", nullable: true),
+                    CandleBackDay = table.Column<DateOnly>(type: "date", nullable: true),
                     RetireBy = table.Column<Guid>(type: "uuid", nullable: true),
                     RetireAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     RetireDeclinedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
@@ -298,6 +355,7 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     AccountId = table.Column<Guid>(type: "uuid", nullable: false),
                     DeviceName = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    DeviceKey = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     LastSeenAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     RevokedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
@@ -450,12 +508,17 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     Locale = table.Column<string>(type: "character varying(2)", maxLength: 2, nullable: false),
                     WelcomedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     PausedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    AwayFrom = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    AwayUntil = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     RetiredAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     Points = table.Column<int>(type: "integer", nullable: false),
                     Tier = table.Column<string>(type: "character varying(12)", maxLength: 12, nullable: false),
                     TierUpPending = table.Column<string>(type: "character varying(12)", maxLength: 12, nullable: true),
                     Reputation = table.Column<int>(type: "integer", nullable: false, defaultValue: 100),
-                    Children = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
+                    HasChildren = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
+                    ShowChildren = table.Column<bool>(type: "boolean", nullable: false),
+                    WantsChildren = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
+                    PartnerChildren = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
                     Smoking = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
                     Drinking = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
                     Faith = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
@@ -936,6 +999,38 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "wanderings_taken",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    BondId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Key = table.Column<string>(type: "character varying(24)", maxLength: 24, nullable: false),
+                    AskedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    AskedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    AgreedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    DeclinedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    LineA = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    LineB = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    KeptAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_wanderings_taken", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_wanderings_taken_bonds_BondId",
+                        column: x => x.BondId,
+                        principalTable: "bonds",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_wanderings_taken_wanderings_Key",
+                        column: x => x.Key,
+                        principalTable: "wanderings",
+                        principalColumn: "Key",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "weekly_trials",
                 columns: table => new
                 {
@@ -1082,6 +1177,12 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                 filter: "\"DeleteAt\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_accounts_FlaggedAt",
+                table: "accounts",
+                column: "FlaggedAt",
+                filter: "\"FlaggedAt\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_accounts_Phone",
                 table: "accounts",
                 column: "Phone",
@@ -1101,7 +1202,8 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                 name: "IX_bonds_AId_BId",
                 table: "bonds",
                 columns: new[] { "AId", "BId" },
-                unique: true);
+                unique: true,
+                filter: "\"State\" = 'Live'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_bonds_AId_State",
@@ -1112,6 +1214,11 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                 name: "IX_bonds_BId_State",
                 table: "bonds",
                 columns: new[] { "BId", "State" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_bonds_CandleBackTo_CandleBackDay",
+                table: "bonds",
+                columns: new[] { "CandleBackTo", "CandleBackDay" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_bonds_State_LastLetterAt",
@@ -1150,6 +1257,12 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                 name: "IX_device_sessions_AccountId",
                 table: "device_sessions",
                 column: "AccountId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_device_sessions_DeviceKey",
+                table: "device_sessions",
+                column: "DeviceKey",
+                filter: "\"DeviceKey\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_festivals_Starts_Ends",
@@ -1387,6 +1500,18 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                 columns: new[] { "Verified", "RemovedAt" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_wanderings_taken_BondId_Key",
+                table: "wanderings_taken",
+                columns: new[] { "BondId", "Key" },
+                unique: true,
+                filter: "\"DeclinedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_wanderings_taken_Key",
+                table: "wanderings_taken",
+                column: "Key");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_weekly_trials_BondId_Week",
                 table: "weekly_trials",
                 columns: new[] { "BondId", "Week" },
@@ -1398,6 +1523,12 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "audit_log");
+
+            migrationBuilder.DropTable(
+                name: "barred_devices");
+
+            migrationBuilder.DropTable(
+                name: "barred_numbers");
 
             migrationBuilder.DropTable(
                 name: "blocks");
@@ -1505,6 +1636,9 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                 name: "venue_ratings");
 
             migrationBuilder.DropTable(
+                name: "wanderings_taken");
+
+            migrationBuilder.DropTable(
                 name: "weekly_answers");
 
             migrationBuilder.DropTable(
@@ -1518,6 +1652,9 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "venues");
+
+            migrationBuilder.DropTable(
+                name: "wanderings");
 
             migrationBuilder.DropTable(
                 name: "weekly_trials");

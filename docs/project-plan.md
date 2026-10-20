@@ -137,6 +137,7 @@ Encrypted in transit; deletion on request in the app (Abandon, 30 days) and by t
 - Naadam's pennant art (a hard-edged rectangle in Figma too).
 - Photos for the seeded venues.
 - A Figma frame for Companion, if wanted.
+- The Fellow Traveller emblem (it borrows the Cartographer's until painted).
 
 **Known, watch**
 - A fast burst into the tale logs React's dev-only "Maximum update depth" warning (RN 0.86
@@ -225,18 +226,23 @@ streaks and quests are deliberate, not burnout risks to soften.
 - **Reputation** 0–100, starts at 100, never shown; it only orders Seek. Docked by going cold (5),
   a third no-show in 90 days (10) and an admin penalty (10).
 - **Character** — own profile: card, gem, XP bar, oath, honours, Satchel, Encounter Log rows,
-  deletion-pending banner. **Deep profile** (children, smoking, drinking, faith, lifestyle) is a
-  members' thing: they fill it and read another's after the 4th seal; the Yard sees it sealed.
+  deletion-pending banner. **Deep profile** (has children, wants children, a partner's children,
+  smoking, drinking, faith, lifestyle) is a members' thing: they fill it and read another's after
+  the 4th seal; the Yard sees it sealed — except *has children*, which anyone answers and may show
+  at once in Seek and every bond (`showChildren`) instead of keeping it for the 4th seal.
 
 ## Seek and bonds
 
 - **Seek** shows one companion at a time: their sealed first portrait (ThumbHash only), age,
-  tier, province (or Ulaanbaatar — the district is a seal's reward), oath and tale — but no name
+  tier, province (or Ulaanbaatar — the district is a seal's reward), oath, tale and "has children"
+  when they chose to show it — but no name
   ("A traveller, 28"; the engine never sends it): the name comes with the bond. *Summon* makes the
   bond at once, live on both sides with the "A bond is made" ceremony. *Pass for tonight* hides
   them until the next day.
-- **Who can be seen:** finished, Active, not paused or departing, opposite gender, no cast-out
-  either way, never bonded before, not passed today. Order: same district → same aimag (or
+- **Who can be seen:** finished, Active, not paused or departing, opposite gender, no cast-out or
+  report either way, not bonded — a severed or faded bond older than 90 days
+  [`seek.remeetDays`] does not count, so that pair may meet again; one gone cold never — not passed
+  today. Order: same district → same aimag (or
   Ulaanbaatar) → elsewhere; inside each the same oath first, then nearest tier, then most recently
   seen, then reputation. One indexed SQL query paged by a cursor; the same eligibility rule guards
   every path that makes a bond (summons, threads, the square).
@@ -255,10 +261,34 @@ streaks and quests are deliberate, not burnout risks to soften.
   — the silent side loses 15 points and 5 reputation, both are told, the letters freeze, the seat
   frees, and a scar is left. A bond nobody wrote in fades after 7 days with no one at fault. A sweep
   every 5 minutes finds them (`FOR UPDATE SKIP LOCKED`).
-- **Safety:** *Sever* closes the letters for both, no penalty. *Cast out* (block) severs and hides
+- **Away by the fire** (War Room): 1, 3 or 7 days [`away.maxDays` 7], once in 30
+  [`away.everyDays`]. No embers or cold on their turn, and the silence counts again from their
+  return; out of Seek and of others' threads; their bonds' headers read "Away until …". A letter
+  or a summons brings them back early.
+- **Safety:** *Sever* closes the letters for both, no penalty; the side let go reads "the paths
+  parted" and gets back a candle spent that night, if one was. *Cast out* (block) severs and hides
   both everywhere; the Frozen Gate lists them and can let them in (they never re-bond). *Report*
   (Rude / Asked for money / Not who they claim / Under 18 / Something else, note ≤ 1000) goes to
   the admin, who dismisses, penalises (−30 points, −10 reputation) or casts out the account.
+- **Against trolls on fresh accounts:** a portrait must show a human face — the engine checks
+  each upload with a 1.2 MB face detector (UltraFace RFB-320, ONNX, CPU) and refuses one without
+  (`photos.no_face`; nothing about the face is kept) [`photos.requireFace`]. The whole photo first
+  (~30 ms on one core); finding none, overlapping pieces at 3× (~180 ms in all), so a full-body
+  photo from well off passes (a face down to ~2% of the photo's height). One core a check and at
+  most two at once, so uploads never take more than 2 of the server's 8 threads (i3-10105F). A 5×
+  pass was measured and left out: faces to ~1.2% (unseeable in a tile), ~590 ms, more scenery let
+  through. Drawings, animals and empty places are
+  refused; a place with people in the background passes — at that size a bystander and a distant
+  person look the same. Open reports from 3 different people [`safety.hideAfterReporters`]
+  hide someone from Seek, threads and the square until a keeper decides. A character finished
+  under 2 days ago [`safety.newDays`] has at most 3 summons a night [`safety.newCandles`] —
+  except on a paid floor. When a suspended account, or one with reports still open, is burned
+  (delete now, or the 30-day abandon), its number is barred: no code goes to it (`auth.barred`,
+  before any text is paid for) until a keeper lifts it (Reports → Barred numbers). The app sends
+  the install id (Android ID / iOS vendor id; stored as a SHA-256) at sign-in; a removed account's
+  ids are kept, and a sign-in on one of them — or on a device a suspended account uses — flags the
+  new account for the keepers ("shared device"), never refuses it. A selfie check against the
+  portraits waits on the user's call (talked about 2026-10-21, not decided).
 
 ## Score
 
@@ -313,10 +343,10 @@ encounters; a bond that ends cancels its open steps.
   app; claiming pays. The day's third claim leaves a **bounty chest** in the Satchel — contents
   shown before opening, never a gamble, never expiring.
 - **Seven dawns:** the return streak; the seventh dawn has its ceremony. Extra opens earn nothing.
-- **Honours** — 14 honours and 7 feats, each with its emblem, earned once (festival honours once a
+- **Honours** — 15 honours and 7 feats, each with its emblem, earned once (festival honours once a
   year), never lost, no points: Seal-Breaker, Bond-Keeper, Flamekeeper, True to Word, Oath-Keeper,
   Seven Dawns, Ally-Caller, Thread-Weaver, Fate-Seer, Mended, Cartographer, Hearthbound, Of the
-  Naadam, Of Tsagaan Sar; feats First Bond Forged, Ice Broken, First Trial Taken, Ten Words
+  Naadam, Of Tsagaan Sar, Fellow Traveller; feats First Bond Forged, Ice Broken, First Trial Taken, Ten Words
   Exchanged, First Encounter Pledged, Face to Flame, Oath Fulfilled. Earning one is a ceremony; the
   case shows "???" for the rest and the date in the world's calendar.
 - **Encounter Log:** *Word* = kept of (kept + no-shows against you); *Scars* from going cold, closed
@@ -332,6 +362,11 @@ encounters; a bond that ends cancels its open steps.
 - **The Campaign** (per Live bond): seven chambers opened by deeds done together — letters, the
   first seal, the icebreaker, the Trial, the Rite, the third seal, and the boss: a kept encounter.
   Clearing all earns Oath-Keeper; the bond goes on.
+- **The Wanderings** (Тэнүүл): 13 side roads for two off the Campaign — 6 first roads after the
+  pair's first kept meeting, 7 trusted roads after the second. Offrail: no points, never required,
+  nothing lost. One asks, the other answers; each writes one sealed line, opened together. Three
+  kept → Fellow Traveller. Each suggests its real places and the verified venue kinds that suit it;
+  "Swear it as a meeting" uses the meeting flow. Keepers edit them in the admin.
 - **Weekly trial:** each Live bond past the first seal gets one prompt a week, answered like the
   icebreaker. During Naadam it is the **Three Games**: strength, aim and speed (answer within an
   hour of opening).
@@ -421,7 +456,10 @@ Rejected: Reputation Repair (sells forgiveness), score boosters (pay-to-win), "s
 
 ## Admin (the keepers)
 
-Login (one admin, throttled), Dashboard (today live: sign-ups, active, bonds, letters, kept
+Login (one admin, throttled), the keeper's hand on a person's record (suspend / lift, sign out
+everywhere, delete now, clear a name or tale, remove a portrait, give a floor, adjust points and
+reputation, clear a shared-device flag — each with a reason in the audit log), barred numbers
+(under Reports, lifted with a reason), Dashboard (today live: sign-ups, active, bonds, letters, kept
 encounters, money, needs attention), Statistics (Growth, Engagement, Matching, Encounters, Square,
 Money, Cohorts — range, five filters, CSV; rolled up hourly into `stats_daily`, today live), Users
 (live list, detail with score, bonds, encounters, floor, payments), Reports, Venues, Fated Threads,

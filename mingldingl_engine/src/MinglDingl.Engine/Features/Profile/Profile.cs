@@ -22,6 +22,9 @@ public sealed class Profile
     public DateTimeOffset? WelcomedAt { get; set; }
     /// Hidden from Seek while set; bonds go on.
     public DateTimeOffset? PausedAt { get; set; }
+    /// Away by the fire: from when, and until when (moved to the return when they come back early).
+    public DateTimeOffset? AwayFrom { get; set; }
+    public DateTimeOffset? AwayUntil { get; set; }
     /// Retired together with someone (the hall no longer lists them; Pause can bring them back to Seek).
     public DateTimeOffset? RetiredAt { get; set; }
     public int Points { get; set; }
@@ -30,8 +33,12 @@ public sealed class Profile
     public string? TierUpPending { get; set; }
     /// 0–100. Never shown; it orders Seek.
     public int Reputation { get; set; } = 100;
-    // The deep profile (members fill it; members read another's after the fourth seal).
-    public string? Children { get; set; }
+    // The deep profile (members fill it; members read another's after the fourth seal) — except
+    // HasChildren, which anyone sets, and ShowChildren, which shows it in Seek and every bond at once.
+    public string? HasChildren { get; set; }
+    public bool ShowChildren { get; set; }
+    public string? WantsChildren { get; set; }
+    public string? PartnerChildren { get; set; }
     public string? Smoking { get; set; }
     public string? Drinking { get; set; }
     public string? Faith { get; set; }
@@ -59,7 +66,7 @@ internal sealed class ProfileMap : IEntityTypeConfiguration<Profile>
         e.Property(x => x.Tier).HasMaxLength(12);
         e.Property(x => x.TierUpPending).HasMaxLength(12);
         e.Property(x => x.Reputation).HasDefaultValue(100);
-        foreach (var deep in new[] { nameof(Profile.Children), nameof(Profile.Smoking), nameof(Profile.Drinking), nameof(Profile.Faith), nameof(Profile.Lifestyle) })
+        foreach (var deep in new[] { nameof(Profile.HasChildren), nameof(Profile.WantsChildren), nameof(Profile.PartnerChildren), nameof(Profile.Smoking), nameof(Profile.Drinking), nameof(Profile.Faith), nameof(Profile.Lifestyle) })
             e.Property(deep).HasMaxLength(16);
         e.Property(x => x.Streak).HasDefaultValue(0);
         e.Property(x => x.LastSeenAt).HasDefaultValueSql("now()");

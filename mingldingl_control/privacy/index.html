@@ -27,12 +27,12 @@
         <h2>Бидний цуглуулдаг мэдээлэл</h2>
         <ul>
           <li><b>Утасны дугаар</b> — нэвтрэх, бүртгэлээ хамгаалахад. Та 144773 руу код илгээж дугаараа баталгаажуулна (verify.mn).</li>
-          <li><b>Хөрөг ба профайл</b> — нэр, төрсөн огноо, хүйс, хот, хөрөг зургууд, өөрийн тухай бичсэн зүйл, гүн профайлын хариултууд.</li>
+          <li><b>Хөрөг ба профайл</b> — нэр, төрсөн огноо, хүйс, хот, хөрөг зургууд, өөрийн тухай бичсэн зүйл, гүн профайлын хариултууд. Хөрөг оруулахад манай сервер тухайн зурагт хүний царай байгаа эсэхийг автоматаар шалгана; царайн талаарх ямар ч мэдээлэл хадгалагдахгүй.</li>
           <li><b>Захидал ба тоглоомын үйлдэл</b> — холбоонуудын захидал, лац, оноо, даалгавар, уулзалт, ирц, гомдол ба хориг.</li>
           <li><b>Байршил</b> — зөвхөн та «Миний байршил»-ыг дарвал, ойролцоо хотыг санал болгохын тулд нэг удаа утсан дээрээ уншина. Бид байршлыг хадгалахгүй, сервер рүү илгээхгүй.</li>
           <li><b>Дүрс бичлэгийн дуудлага (Галын ёслол)</b> — дуу, дүрс шууд дамжина. Бид хэзээ ч бичиж хадгалахгүй.</li>
           <li><b>Төлбөр</b> — ямар давхар, хэдэн сар, хэзээ, хэдийг төлсөн. Картын мэдээллийг Google Play, Apple эсвэл банк хадгална; бидэнд ирэхгүй.</li>
-          <li><b>Төхөөрөмж</b> — төхөөрөмжийн нэр, мэдэгдлийн токен, апп-ын хувилбар, алдааны тайлан (хувийн мэдээллийг арилгасан).</li>
+          <li><b>Төхөөрөмж</b> — төхөөрөмжийн нэр, суулгалтын дугаар (Android ID эсвэл iOS-ийн vendor id, зөвхөн нэг талын hash хэлбэрээр), мэдэгдлийн токен, апп-ын хувилбар, алдааны тайлан (хувийн мэдээллийг арилгасан).</li>
         </ul>
 
         <h2>Юунд ашигладаг вэ</h2>
@@ -69,7 +69,7 @@
           <li>Та апп-ын Дайны танхим → «Баатраа орхих», эсвэл <a href="/delete/">вэбээр</a> бүртгэлээ устгаж болно. Хөнгөлөлтийн хугацаа (30 хоног) дуусахад хөрөг, захидал, холбоо, профайл бүрмөсөн устна. Тэр хугацаанд апп-д нэвтэрвэл баатар тань хадгалагдана.</li>
           <li>Нөөц хуулбар 14 хоног хадгалагдаад автоматаар устна.</li>
           <li>Төлбөрийн бүртгэлийг (таны нэргүйгээр) нягтлан бодох бүртгэлийн хуулийн дагуу хадгална.</li>
-          <li>Хориг тавьсан бүртгэлийн утасны дугаарыг дахин бүртгүүлэхээс сэргийлэх зорилгоор хадгалж болно.</li>
+          <li>Хориг тавьсан, эсвэл шийдэгдээгүй гомдолтойгоор устсан бүртгэлийн утасны дугаарыг дахин бүртгүүлэхээс сэргийлэх зорилгоор хадгална. Түүний төхөөрөмжүүдийн суулгалтын дугаарын hash-ыг мөн хадгалж, тэр төхөөрөмжөөс шинэ бүртгэл орж ирвэл манаач анзаарна.</li>
         </ul>
 
         <h2>Таны эрх</h2>
@@ -103,12 +103,12 @@
         <h2>What we collect</h2>
         <ul>
           <li><b>Phone number</b> — to sign you in and protect your account. You prove it by texting a code to 144773 (verify.mn).</li>
-          <li><b>Portraits and profile</b> — name, birth date, gender, city, photos, what you write about yourself, deep-profile answers.</li>
+          <li><b>Portraits and profile</b> — name, birth date, gender, city, photos, what you write about yourself, deep-profile answers. When you upload a portrait, our server checks automatically that it shows a human face; nothing about the face is stored.</li>
           <li><b>Letters and play</b> — letters in your bonds, seals, score, quests, encounters, attendance, reports and blocks.</li>
           <li><b>Location</b> — only if you tap "Use my location", read once on your phone to suggest the nearest city. It is not stored or sent to us.</li>
           <li><b>Video calls (the Flame Rite)</b> — sound and picture travel live. We never record them.</li>
           <li><b>Payments</b> — which floor, for how long, when and how much. Card details stay with Google Play, Apple or your bank; they never reach us.</li>
-          <li><b>Device</b> — device name, push token, app version, crash reports (with personal data removed).</li>
+          <li><b>Device</b> — device name, an install id (Android ID or iOS vendor id, kept only as a one-way hash), push token, app version, crash reports (with personal data removed).</li>
         </ul>
 
         <h2>Why we use it</h2>
@@ -145,7 +145,7 @@
           <li>Delete your account in the app (The War Room → Abandon this character) or <a href="/delete/">on the web</a>. When the 30-day grace period ends, your portraits, letters, bonds and profile are deleted for good. Signing in to the app before then keeps your character.</li>
           <li>Backups are kept for 14 days and then deleted automatically.</li>
           <li>Payment records are kept (without your name) as accounting law requires.</li>
-          <li>The phone number of a banned account may be kept to stop it signing up again.</li>
+          <li>The phone number of a banned account, or of one deleted while reports against it were still open, is kept to stop it signing up again. The hashed install ids of its devices are kept too, so the keepers notice a new account on the same phone.</li>
         </ul>
 
         <h2>Your rights</h2>

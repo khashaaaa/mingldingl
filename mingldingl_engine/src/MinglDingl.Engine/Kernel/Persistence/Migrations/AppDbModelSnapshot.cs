@@ -41,6 +41,10 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<string>("Note")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("Target")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
@@ -71,6 +75,13 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.Property<DateTimeOffset?>("DeleteAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("FlaggedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FlaggedWhy")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasMaxLength(8)
@@ -81,6 +92,13 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                         .HasMaxLength(12)
                         .HasColumnType("character varying(12)");
 
+                    b.Property<DateTimeOffset?>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SuspendedWhy")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AllyCode")
@@ -89,10 +107,51 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.HasIndex("DeleteAt")
                         .HasFilter("\"DeleteAt\" IS NOT NULL");
 
+                    b.HasIndex("FlaggedAt")
+                        .HasFilter("\"FlaggedAt\" IS NOT NULL");
+
                     b.HasIndex("Phone")
                         .IsUnique();
 
                     b.ToTable("accounts", (string)null);
+                });
+
+            modelBuilder.Entity("MinglDingl.Engine.Features.Auth.BarredDevice", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Why")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("barred_devices", (string)null);
+                });
+
+            modelBuilder.Entity("MinglDingl.Engine.Features.Auth.BarredNumber", b =>
+                {
+                    b.Property<string>("Phone")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Why")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Phone");
+
+                    b.ToTable("barred_numbers", (string)null);
                 });
 
             modelBuilder.Entity("MinglDingl.Engine.Features.Auth.DeviceSession", b =>
@@ -106,6 +165,10 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("DeviceName")
                         .IsRequired()
@@ -121,6 +184,9 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AccountId");
+
+                    b.HasIndex("DeviceKey")
+                        .HasFilter("\"DeviceKey\" IS NOT NULL");
 
                     b.ToTable("device_sessions", (string)null);
                 });
@@ -216,6 +282,12 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.Property<Guid>("BId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateOnly?>("CandleBackDay")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("CandleBackTo")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset?>("ClosedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -287,11 +359,14 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AId", "BId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"State\" = 'Live'");
 
                     b.HasIndex("AId", "State");
 
                     b.HasIndex("BId", "State");
+
+                    b.HasIndex("CandleBackTo", "CandleBackDay");
 
                     b.HasIndex("State", "LastLetterAt");
 
@@ -929,16 +1004,18 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.Property<Guid>("AccountId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("AwayFrom")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("AwayUntil")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Bio")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
                     b.Property<DateOnly>("BirthDate")
                         .HasColumnType("date");
-
-                    b.Property<string>("Children")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
 
                     b.Property<string>("City")
                         .HasMaxLength(40)
@@ -958,6 +1035,10 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.Property<string>("Gender")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<string>("HasChildren")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
 
                     b.Property<DateOnly?>("LastDawn")
                         .HasColumnType("date");
@@ -991,6 +1072,10 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.Property<DateTimeOffset?>("OathSwornAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("PartnerChildren")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.Property<DateTimeOffset?>("PausedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1004,6 +1089,9 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("RetiredAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("ShowChildren")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Smoking")
                         .HasMaxLength(16)
@@ -1025,6 +1113,10 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WantsChildren")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
 
                     b.Property<DateTimeOffset?>("WelcomedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1734,6 +1826,125 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.ToTable("calls", (string)null);
                 });
 
+            modelBuilder.Entity("MinglDingl.Engine.Features.Wanderings.Wandering", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("BodyEn")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("BodyMn")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("LineEn")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("LineMn")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Road")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("Season")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.Property<string>("TitleEn")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("TitleMn")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.PrimitiveCollection<string[]>("VenueKinds")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("WhereEn")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("WhereMn")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("wanderings", (string)null);
+                });
+
+            modelBuilder.Entity("MinglDingl.Engine.Features.Wanderings.WanderingTaken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AgreedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("AskedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("AskedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BondId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeclinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("KeptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("LineA")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("LineB")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key");
+
+                    b.HasIndex("BondId", "Key")
+                        .IsUnique()
+                        .HasFilter("\"DeclinedAt\" IS NULL");
+
+                    b.ToTable("wanderings_taken", (string)null);
+                });
+
             modelBuilder.Entity("MinglDingl.Engine.Kernel.Config.ConfigEntry", b =>
                 {
                     b.Property<string>("Key")
@@ -2120,6 +2331,21 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.HasOne("MinglDingl.Engine.Features.Bonds.Bond", null)
                         .WithMany()
                         .HasForeignKey("BondId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MinglDingl.Engine.Features.Wanderings.WanderingTaken", b =>
+                {
+                    b.HasOne("MinglDingl.Engine.Features.Bonds.Bond", null)
+                        .WithMany()
+                        .HasForeignKey("BondId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MinglDingl.Engine.Features.Wanderings.Wandering", null)
+                        .WithMany()
+                        .HasForeignKey("Key")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

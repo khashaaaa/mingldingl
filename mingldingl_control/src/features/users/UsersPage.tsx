@@ -66,7 +66,10 @@ export function UsersPage() {
               <td>{r.tier ?? '—'}</td>
               <td>{r.points ?? '—'}</td>
               <td>{reputation(r.reputation)}</td>
-              <td className={r.status === 'Active' ? undefined : 'danger'}>{r.status}</td>
+              <td className={r.status === 'Active' && !r.flagged ? undefined : 'danger'}>
+                {r.status}
+                {r.flagged && ' · shared device'}
+              </td>
             </tr>
           ))}
         </tbody>

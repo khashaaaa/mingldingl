@@ -19,5 +19,8 @@ export interface BondPersonView {
   /** @nullable */
   place: string | null;
   portraits: PortraitView[];
+  hasChildren: boolean;
+  /** @nullable */
+  awayUntil: string | null;
   deep: null | DeepView;
 }

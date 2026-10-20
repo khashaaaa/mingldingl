@@ -86,7 +86,7 @@ public sealed class DevSeeder(AppDb db, PhotoService photos, ProfileService prof
                 : config.Int(ConfigKeys.PhotosMin);
             var files = Directory.GetFiles(PhotoDir, "*.jpg").Order().ToArray();
             for (var i = 0; i < count; i++)
-                await photos.UploadAsync(accountId, await File.ReadAllBytesAsync(files[i % files.Length], ct), $"seed-{state}-{i}-{Guid.NewGuid():N}", ct);
+                await photos.UploadAsync(accountId, await File.ReadAllBytesAsync(files[i % files.Length], ct), $"seed-{state}-{i}-{Guid.NewGuid():N}", ct, checkFace: false);
         }
     }
 }

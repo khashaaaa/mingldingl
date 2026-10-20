@@ -41,6 +41,7 @@ export function PortraitGrid({
             <PhotoTile
               state="filled"
               photo={photo}
+              local={p.local[photo.id]}
               label={t('photo.portraitAt', { n: i + 1, total: p.photos.length })}
               onPress={() => tapPhoto(photo.id, i)}
               onLongPress={() => setLifted(photo.id)}
@@ -50,9 +51,9 @@ export function PortraitGrid({
         {p.pending.map((x) => (
           <View key={x.key} style={styles.slot}>
             {x.status === 'failed' ? (
-              <PhotoTile state="failed" onRetry={() => p.retry(x.key)} />
+              <PhotoTile state="failed" uri={x.uri} onRetry={() => p.retry(x.key)} />
             ) : (
-              <PhotoTile state="uploading" progress={0} />
+              <PhotoTile state="uploading" uri={x.uri} />
             )}
           </View>
         ))}

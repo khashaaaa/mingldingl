@@ -3,6 +3,104 @@
 Newest first. One short entry per finished piece of work: what a person can now do, what was
 decided, what was fixed on a device. Open items live in the plan's Backlog, not here.
 
+## 2026-10-21 — The seeded world has its occasions
+
+`seed crowd` now also seeds the world's occasions. The Town Square has seven gatherings: last
+Naadam's (three rounds, a match that became a bond), a masked night, a cancelled one, tonight's
+open bell (the tester seated), one rung minutes ago that only the High Table may sit at yet, and the
+coming Last Bell and Day of the Bond. A meeting kept on Naadam earns its honour, followed by three
+Wanderings (kept, half-written, just asked). The Guild House has five floors: two on the store
+(one renewing, one ending in two days), one lapsed, one bought by QPay with its payment, and a
+keeper's gift. One late QPay payment waits on the Payments page to be refunded. Someone is away by
+the fire, someone is leaving in 12 days, and someone has paused. Seven people have deep profiles.
+The troll cases: Мөнхбат hidden after three reports, a barred number (99108801), Temuujin on a
+removed troll's phone, and Цогтбаяр on a suspended character's phone. Номин is a newcomer (3
+candles), and the tester's own account never is. Fixed on the way: the world seeder shares the
+crowd seeder's database context, so an unchanged value set after a bulk reset was never written.
+It now starts with a clean context.
+
+## 2026-10-21 — Fresh accounts can't troll for free
+
+A portrait with no human face in it is refused at upload ("We could not find a face in this
+portrait"). The engine runs a 1.2 MB face detector on the CPU and keeps nothing about the face.
+It found a face in all 183 crowd portraits and in none of the ink figures. Half-body and
+full-body photos pass: when the whole photo shows no face, it looks again in zoomed pieces, which
+finds a face down to about 2% of the photo's height. Each check runs on one core, and at most
+two run at once, so uploads never take more than 2 of the home server's 8 threads. That also lets through a café photo with
+diners in the background. Open
+reports from three different people hide someone from Seek, threads and the square until a keeper
+decides. A character in its first two days has three summons a night, unless it is on a paid floor.
+A suspended character's number, or that of one that left with reports still open, is barred once
+it burns: no code goes to it until a keeper lifts the bar (Reports → Barred numbers). The app now
+sends its install id (hashed on the engine), and a new character on a removed or suspended
+character's phone is flagged "shared device" on its record for a keeper to clear. Privacy page
+updated in both languages. The app needs a new development build for `expo-application`. The selfie
+check is still to be decided. Found on the A51: a refused portrait first showed as a lost upload
+("did not arrive, tap to try again"). Now any photo the engine refuses (no face, not a photo, too
+large) leaves the grid with its reason, and only a lost upload offers a retry.
+
+## 2026-10-21 — Portraits come up out of the dark
+
+A portrait being uploaded now shows the picked photo itself under a breathing dark veil, with a
+flickering candle and an ember running along its foot (there is no byte count to show, so it runs
+rather than lying at 0%). When it lands, the tile keeps the device's own copy until the stored one
+loads, so it no longer drops to a ThumbHash blur for a moment. A lost upload shows the photo dimmed
+behind "Lost — tap". Reduce Motion holds all of it still.
+
+## 2026-10-21 — The keeper's hand
+
+A keeper can act on one person directly from their record, each action with a reason the audit
+log keeps beside it (a new Reason column): suspend (signs out every device, severs their bonds)
+and **lift** it, which no one could before; sign out everywhere; delete now (the 30-day burn at
+once, for a legal request); clear a name (it becomes Аянчин) or a tale (they are sent back to write
+one); remove one portrait (below the minimum they are asked for another); give the Hall or the High
+Table for some days (a gift that never renews; the app reads "A gift from the keepers"); and
+adjust points and reputation by hand (the ledger reads "The keepers set your points right"). The
+record says when and why someone was suspended. Names in the report list and the "Often severed"
+table open the person; a gathering not yet begun can be edited. Figma S8 266:2253–266:15296; S8's
+dashboard and health frames no longer overlap the Cohorts frame. The single migration was
+regenerated again.
+
+## 2026-10-20 — The Wanderings
+
+Thirteen side roads for two, off a bond's Campaign (Тэнүүл in Mongolian): six first roads open
+after the pair's first kept meeting, seven trusted roads after the second. Offrail: never required,
+never expiring, no points, nothing lost. One asks, the other answers *Let's go* or *Not this one*;
+after it, each writes what they will remember, sealed until both have written. Three kept make the
+honour **Fellow Traveller** (Замын нөхөр; it wears the Cartographer's emblem until its own is
+painted). Each names its real places (checked 2026-10-20: the Chinggis Khaan National Museum, Tumen
+Ekh, Zaisan, the Tuul's ice, Terelj, Lucky Paws…) and the venue kinds that suit it; the keepers'
+verified venues of those kinds are offered, and *Swear it as a meeting* opens the usual meeting.
+Boot seeds missing Wanderings; the keepers edit words and kinds in the admin's Wanderings page.
+Statistics counts `wanderings` kept. Figma 260:2809–262:3214 (S4). The single migration was
+regenerated again.
+
+## 2026-10-20 — Three guides, and away by the fire
+
+The Codex has three new guides, in English and Mongolian, linked where they are needed: *Your
+first letter* (under a new bond's "No words spoken yet"), *Before you meet* (on the sworn meeting)
+and *When to let go* (in a bond's options, above Sever). Boot now writes any first page that is
+missing in either language, so a release can add guides to a running Codex. *Away by the fire*
+(War Room): for one, three or seven days nothing goes cold on your turn and the 48 hours count again
+from your return; you are out of Seek and of others' threads, everyone at your fire sees "Away
+until Thursday", and a letter or a summons brings you back early. Once in 30 days
+(`away.maxDays` 7, `away.everyDays` 30). Figma: 258:2489–258:2774 (S4), 259:2042, 259:2231 (S6).
+The single migration was regenerated again.
+
+## 2026-10-20 — Fairness: children, a soft Sever, meeting again
+
+Anyone, free or paid, says whether they have children and may show it in the Tavern at once (a
+"Has children" line on the Seek card and in every bond) or keep it for the fourth seal. The deep
+profile's children question became three: has children (everyone's), wants children and a
+partner's children (welcome / open / prefer none), the last two the Hall's; the Hall's children
+filter can now find those who welcome a partner's children. Severing is softer for the side let go:
+"The paths parted", no blame, and the candle spent on them that night is lit again; the one who
+severed reads that the paths may cross again. A severed or faded pair may meet again in Seek after
+`seek.remeetDays` (90); a pair gone cold or reported never does. Statistics counts a Sever against
+the side let go, and Matching lists the often severed (three or more in the range). Figma:
+254:6663–254:7018 (S6), 254:13347 (S2), 254:13475–254:13550 (S4). The single migration was
+regenerated, so the dev and server databases need making again.
+
 ## 2026-10-20 — A lighter download
 
 The painted art is lossy WebP now (quality 90): 42 MB of PNGs became 9.5 MB, and the six images

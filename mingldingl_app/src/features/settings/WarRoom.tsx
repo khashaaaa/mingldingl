@@ -27,6 +27,7 @@ import { queryClient } from '@/lib/query';
 import { signOutLocally } from '@/lib/session';
 import { toast } from '@/lib/toast';
 import { Scene } from '../common/Scene';
+import { weekday } from '../common/time';
 import { patchMe } from '../onboarding/Onboarding';
 
 /** Each language under its own name: never translated. */
@@ -43,7 +44,8 @@ const FLOOR_LINE: Record<string, StringKey> = {
 
 /** A paid floor ends with the character: said plainly before anyone confirms (Figma 216:4654). */
 function paidNote(m: MembershipView | undefined): string | null {
-  if (!m || m.floor === 'yard') return null;
+  // A gift from the keepers was never paid for.
+  if (!m || m.floor === 'yard' || m.source === 'keeper') return null;
   const floor = t(m.floor === 'highTable' ? 'guild.highTable' : 'guild.hall');
   const store = onApple ? 'abandon.paidFloorAppStore' : 'abandon.paidFloor';
   return t(m.source === 'store' ? store : 'abandon.paidFloorWeb', { floor });
@@ -97,6 +99,15 @@ export default function WarRoom() {
                 onChange={(paused) => patchMe({ paused }).catch(failed)}
               />
             }
+          />
+          <SettingRow
+            glyph="night"
+            title={t('war.away')}
+            subtitle={t('war.awayHint')}
+            value={
+              profile.awayUntil ? t('war.awayUntil', { day: weekday(profile.awayUntil) }) : t('war.awayOff')
+            }
+            onPress={() => router.push('/away' as never)}
           />
           <SettingRow
             glyph="seal"

@@ -27,13 +27,16 @@ public sealed class CodexService(AppDb db)
     /// The first pages, in English and Mongolian, written at boot where they are missing.
     public static async Task SeedAsync(AppDb db, DateTimeOffset now, CancellationToken ct = default)
     {
-        if (!await db.Set<CodexPage>().AnyAsync(ct))
-            db.AddRange(CodexSeed.Pages.Select((p, i) => new CodexPage
+        // a first page wherever none is written yet (a later release adds its new guides) — a keeper's
+        // own is never replaced
+        var english = await db.Set<CodexPage>().Where(p => p.Locale == "en").Select(p => p.Slug).ToListAsync(ct);
+        db.AddRange(CodexSeed.Pages.Select((p, i) => (Page: p, Position: i))
+            .Where(x => !english.Contains(x.Page.Slug))
+            .Select(x => new CodexPage
             {
-                Slug = p.Slug, Locale = "en", Kind = p.Kind, Position = i, Title = p.Title, Summary = p.Summary,
-                Body = p.Body, UpdatedAt = now,
+                Slug = x.Page.Slug, Locale = "en", Kind = x.Page.Kind, Position = x.Position, Title = x.Page.Title,
+                Summary = x.Page.Summary, Body = x.Page.Body, UpdatedAt = now,
             }));
-        // a first page's Mongolian wherever none is written yet — a keeper's own is never replaced
         var written = await db.Set<CodexPage>().Where(p => p.Locale == "mn").Select(p => p.Slug).ToListAsync(ct);
         db.AddRange(CodexSeed.Pages.Select((p, i) => (Page: p, Position: i))
             .Where(x => !written.Contains(x.Page.Slug) && CodexSeed.Mn.ContainsKey(x.Page.Slug))

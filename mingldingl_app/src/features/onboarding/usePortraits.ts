@@ -13,7 +13,7 @@ import {
 import type { PhotoView } from '@/lib/api/generated/model';
 
 /** A portrait on its way up. Its key is the upload's Idempotency-Key and lives until the upload settles. */
-export type Pending = { key: string; base64: string; status: 'uploading' | 'failed' };
+export type Pending = { key: string; base64: string; uri: string; status: 'uploading' | 'failed' };
 
 /**
  * SDK 57's global fetch is expo/fetch, which sends a form part only if it is a Blob or has `bytes()`
@@ -41,6 +41,8 @@ export function usePortraits(max: number) {
   const client = useQueryClient();
   const photos = useListMyPhotos();
   const [pending, setPending] = useState<Pending[]>([]);
+  /** Photo id → the device's own file, for portraits uploaded on this screen (see PhotoTile `local`). */
+  const [local, setLocal] = useState<Record<string, string>>({});
   const [denied, setDenied] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const live = useRef(pending);
@@ -60,17 +62,27 @@ export function usePortraits(max: number) {
     async (p: Pending) => {
       setPending((all) => all.map((x) => (x.key === p.key ? { ...x, status: 'uploading' } : x)));
       try {
-        await uploadPhoto({ file: jpegPart(p.base64) }, { headers: { 'Idempotency-Key': p.key } });
+        const photo = await uploadPhoto(
+          { file: jpegPart(p.base64) },
+          { headers: { 'Idempotency-Key': p.key } },
+        );
+        if (photo?.id) setLocal((all) => ({ ...all, [photo.id]: p.uri }));
         setPending((all) => all.filter((x) => x.key !== p.key));
         settle(undefined);
-      } catch {
-        setPending((all) => all.map((x) => (x.key === p.key ? { ...x, status: 'failed' } : x)));
+      } catch (e) {
+        // The engine refused this photo (no face, not a photo, too large): a retry cannot help, so it
+        // leaves the grid and the reason is shown. Only a lost upload stays to be tried again.
+        if (e instanceof ApiError && e.kind === 'rule') {
+          setPending((all) => all.filter((x) => x.key !== p.key));
+          setError(e);
+        } else setPending((all) => all.map((x) => (x.key === p.key ? { ...x, status: 'failed' } : x)));
       }
     },
     [settle],
   );
 
   const add = useCallback(async () => {
+    setError(null);
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return setDenied(true);
     setDenied(false);
@@ -88,7 +100,7 @@ export function usePortraits(max: number) {
     const fresh = picked.assets
       .slice(0, room)
       .flatMap((a): Pending[] =>
-        a.base64 ? [{ key: newUploadKey(), base64: a.base64, status: 'uploading' }] : [],
+        a.base64 ? [{ key: newUploadKey(), base64: a.base64, uri: a.uri, status: 'uploading' }] : [],
       );
     setPending((all) => [...all, ...fresh]);
     for (const p of fresh) await send(p);
@@ -137,6 +149,7 @@ export function usePortraits(max: number) {
     photos: photos.data ?? [],
     loading: photos.isPending,
     pending,
+    local,
     denied,
     error,
     add,

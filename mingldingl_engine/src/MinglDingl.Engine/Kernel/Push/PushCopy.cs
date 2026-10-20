@@ -25,6 +25,7 @@ public static class PushCopy
         [PushKinds.FloorEnding] = new("Your floor ends soon", "{{name}} ends on {{text}}. The game stays the same on every floor.", "Давхрын хугацаа дуусах гэж байна", "{{name}} {{text}} дуусна. Тоглоом бүх давхарт адилхан."),
         [PushKinds.RefundSent] = new("Your payment is coming back", "We could not open the floor, so {{text}} is on its way back to your bank.", "Төлбөр чинь буцаж байна", "Давхрыг нээж чадсангүй, тиймээс {{text}} банк руу чинь буцаж байна."),
         [PushKinds.RetireAsked] = new("{{name}} asks to retire together", "If you agree, you both leave the search and keep this bond as complete.", "{{name}} хамтдаа замаас буухыг хүсэж байна", "Зөвшөөрвөл хоёулаа эрлээс гарч, энэ холбоог бүрэн гэж хадгална."),
+        [PushKinds.WanderingAsked] = new("{{name}} asks you to wander", "A side road for two is waiting in your bond.", "{{name}} чамайг хамт тэнүүлэхийг урьж байна", "Холбоонд чинь хоёрын тэнүүл хүлээж байна."),
     };
 
     public static (string Title, string Body) Render(PushItem item, string locale)

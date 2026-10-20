@@ -653,6 +653,351 @@
         }
       }
     },
+    "/bonds/{id}/wanderings": {
+      "get": {
+        "tags": [
+          "Wanderings"
+        ],
+        "operationId": "GetWanderings",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WanderingsView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bonds/{id}/wanderings/{key}": {
+      "get": {
+        "tags": [
+          "Wanderings"
+        ],
+        "operationId": "GetWandering",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WanderingView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bonds/{id}/wanderings/{key}/ask": {
+      "post": {
+        "tags": [
+          "Wanderings"
+        ],
+        "operationId": "AskWandering",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WanderingView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bonds/{id}/wanderings/{key}/{answer}": {
+      "post": {
+        "tags": [
+          "Wanderings"
+        ],
+        "operationId": "AnswerWandering",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "answer",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^(yes|no)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WanderingView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bonds/{id}/wanderings/{key}/line": {
+      "post": {
+        "tags": [
+          "Wanderings"
+        ],
+        "operationId": "WriteWanderingLine",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WanderingLineRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WanderingView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/wanderings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminListWanderings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminWanderingRow"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/wanderings/{key}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminGetWandering",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminWandering"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminSaveWandering",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WanderingWriteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminWandering"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/away": {
+      "post": {
+        "tags": [
+          "Profile"
+        ],
+        "operationId": "GoAway",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwayRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Profile"
+        ],
+        "operationId": "ComeBack",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/seek": {
       "get": {
         "tags": [
@@ -3309,6 +3654,62 @@
         }
       }
     },
+    "/admin/barred": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminListBarred",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminBarredRow"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/barred/{phone}/lift": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminUnbarNumber",
+        "parameters": [
+          {
+            "name": "phone",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeeperReason"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/admin/config": {
       "get": {
         "tags": [
@@ -3422,6 +3823,47 @@
           "Admin"
         ],
         "operationId": "AdminRingBell",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GatheringWriteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGatheringRow"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/gatherings/{id}": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminEditGathering",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3679,6 +4121,377 @@
                   "items": {
                     "$ref": "#/components/schemas/AuditRow"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/suspend": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminSuspendUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeeperReason"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/lift": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminLiftSuspension",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeeperReason"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/sign-out": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminSignOutUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeeperReason"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/delete": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminDeleteUserNow",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeeperReason"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/clear": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminClearUserText",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeeperClearRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/photos/{photoId}/remove": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminRemoveUserPhoto",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeeperReason"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/floor": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminGiveFloor",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeeperFloorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/adjust": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminAdjustScore",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeeperAdjustRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/clear-flag": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminClearUserFlag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeeperReason"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetail"
                 }
               }
             }
@@ -4060,6 +4873,26 @@
   },
   "components": {
     "schemas": {
+      "AdminBarredRow": {
+        "required": [
+          "phone",
+          "why",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "AdminBondRow": {
         "required": [
           "id",
@@ -4559,7 +5392,8 @@
           "createdAt",
           "resolvedAt",
           "targetReports",
-          "lastLetters"
+          "lastLetters",
+          "targetUnderReview"
         ],
         "type": "object",
         "properties": {
@@ -4629,6 +5463,9 @@
             "items": {
               "$ref": "#/components/schemas/AdminReportLetter"
             }
+          },
+          "targetUnderReview": {
+            "type": "boolean"
           }
         }
       },
@@ -4776,7 +5613,12 @@
           "reportsAgainst",
           "bonds",
           "deeds",
-          "encounters"
+          "encounters",
+          "suspendedAt",
+          "suspendedWhy",
+          "flaggedAt",
+          "flaggedWhy",
+          "underReview"
         ],
         "type": "object",
         "properties": {
@@ -4845,6 +5687,35 @@
           },
           "encounters": {
             "$ref": "#/components/schemas/AdminEncounters"
+          },
+          "suspendedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "suspendedWhy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "flaggedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "flaggedWhy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "underReview": {
+            "type": "boolean"
           }
         }
       },
@@ -4897,7 +5768,8 @@
           "createdAt",
           "tier",
           "points",
-          "reputation"
+          "reputation",
+          "flagged"
         ],
         "type": "object",
         "properties": {
@@ -4944,6 +5816,9 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "flagged": {
+            "type": "boolean"
           }
         }
       },
@@ -5024,6 +5899,118 @@
             }
           },
           "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AdminWandering": {
+        "required": [
+          "key",
+          "position",
+          "road",
+          "season",
+          "venueKinds",
+          "titleEn",
+          "lineEn",
+          "bodyEn",
+          "whereEn",
+          "titleMn",
+          "lineMn",
+          "bodyMn",
+          "whereMn"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "road": {
+            "type": "string"
+          },
+          "season": {
+            "type": "string"
+          },
+          "venueKinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "titleEn": {
+            "type": "string"
+          },
+          "lineEn": {
+            "type": "string"
+          },
+          "bodyEn": {
+            "type": "string"
+          },
+          "whereEn": {
+            "type": "string"
+          },
+          "titleMn": {
+            "type": "string"
+          },
+          "lineMn": {
+            "type": "string"
+          },
+          "bodyMn": {
+            "type": "string"
+          },
+          "whereMn": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminWanderingRow": {
+        "required": [
+          "key",
+          "position",
+          "road",
+          "season",
+          "titleEn",
+          "titleMn",
+          "venueKinds",
+          "kept",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "road": {
+            "type": "string"
+          },
+          "season": {
+            "type": "string"
+          },
+          "titleEn": {
+            "type": "string"
+          },
+          "titleMn": {
+            "type": "string"
+          },
+          "venueKinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kept": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updatedAt": {
             "type": "string",
             "format": "date-time"
           }
@@ -5135,7 +6122,8 @@
           "at",
           "keeper",
           "action",
-          "target"
+          "target",
+          "note"
         ],
         "type": "object",
         "properties": {
@@ -5158,6 +6146,24 @@
               "null",
               "string"
             ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AwayRequest": {
+        "required": [
+          "days"
+        ],
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -5225,6 +6231,8 @@
           "bio",
           "place",
           "portraits",
+          "hasChildren",
+          "awayUntil",
           "deep"
         ],
         "type": "object",
@@ -5266,6 +6274,16 @@
             "items": {
               "$ref": "#/components/schemas/PortraitView"
             }
+          },
+          "hasChildren": {
+            "type": "boolean"
+          },
+          "awayUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           },
           "deep": {
             "oneOf": [
@@ -5390,7 +6408,8 @@
           "closedAt",
           "closedByMe",
           "summonedByMe",
-          "closedWhy"
+          "closedWhy",
+          "candleBack"
         ],
         "type": "object",
         "properties": {
@@ -5469,6 +6488,9 @@
               "null",
               "string"
             ]
+          },
+          "candleBack": {
+            "type": "boolean"
           }
         }
       },
@@ -5575,7 +6597,8 @@
           "place",
           "oath",
           "bio",
-          "portrait"
+          "portrait",
+          "hasChildren"
         ],
         "type": "object",
         "properties": {
@@ -5617,6 +6640,9 @@
                 "$ref": "#/components/schemas/PortraitView"
               }
             ]
+          },
+          "hasChildren": {
+            "type": "boolean"
           }
         }
       },
@@ -5847,6 +6873,12 @@
             "type": "string"
           },
           "allyCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "deviceKey": {
             "type": [
               "null",
               "string"
@@ -6086,7 +7118,10 @@
       },
       "DeepUpdateRequest": {
         "required": [
-          "children",
+          "hasChildren",
+          "showChildren",
+          "wantsChildren",
+          "partnerChildren",
           "smoking",
           "drinking",
           "faith",
@@ -6094,7 +7129,25 @@
         ],
         "type": "object",
         "properties": {
-          "children": {
+          "hasChildren": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "showChildren": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "wantsChildren": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partnerChildren": {
             "type": [
               "null",
               "string"
@@ -6128,7 +7181,9 @@
       },
       "DeepView": {
         "required": [
-          "children",
+          "hasChildren",
+          "wantsChildren",
+          "partnerChildren",
           "smoking",
           "drinking",
           "faith",
@@ -6136,7 +7191,19 @@
         ],
         "type": "object",
         "properties": {
-          "children": {
+          "hasChildren": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "wantsChildren": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "partnerChildren": {
             "type": [
               "null",
               "string"
@@ -7153,6 +8220,73 @@
           }
         }
       },
+      "KeeperAdjustRequest": {
+        "required": [
+          "points",
+          "reputation",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "points": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reputation": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "KeeperClearRequest": {
+        "required": [
+          "field",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "KeeperFloorRequest": {
+        "required": [
+          "floor",
+          "days",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "floor": {
+            "type": "string"
+          },
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "KeeperReason": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "LetterPage": {
         "required": [
           "items",
@@ -7398,11 +8532,15 @@
       "MyDeepView": {
         "required": [
           "open",
+          "showChildren",
           "answers"
         ],
         "type": "object",
         "properties": {
           "open": {
+            "type": "boolean"
+          },
+          "showChildren": {
             "type": "boolean"
           },
           "answers": {
@@ -7675,7 +8813,9 @@
           "tier",
           "tierUpPending",
           "createdAt",
-          "paused"
+          "paused",
+          "awayUntil",
+          "awayNextAt"
         ],
         "type": "object",
         "properties": {
@@ -7750,6 +8890,20 @@
           },
           "paused": {
             "type": "boolean"
+          },
+          "awayUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "awayNextAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -8466,6 +9620,16 @@
                 "type": "string"
               }
             }
+          },
+          "people": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -8837,6 +10001,200 @@
           }
         }
       },
+      "WanderingLineRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "WanderingRowView": {
+        "required": [
+          "key",
+          "title",
+          "line",
+          "road",
+          "season",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "line": {
+            "type": "string"
+          },
+          "road": {
+            "type": "string"
+          },
+          "season": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        }
+      },
+      "WanderingsView": {
+        "required": [
+          "keptMeetings",
+          "firstOpen",
+          "trustedOpen",
+          "taken",
+          "fellow",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "keptMeetings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstOpen": {
+            "type": "boolean"
+          },
+          "trustedOpen": {
+            "type": "boolean"
+          },
+          "taken": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fellow": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WanderingRowView"
+            }
+          }
+        }
+      },
+      "WanderingView": {
+        "required": [
+          "key",
+          "title",
+          "line",
+          "body",
+          "where",
+          "road",
+          "season",
+          "state",
+          "venues",
+          "myLine",
+          "theirLineWritten",
+          "theirLine",
+          "fellow"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "line": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "where": {
+            "type": "string"
+          },
+          "road": {
+            "type": "string"
+          },
+          "season": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "venues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VenueView"
+            }
+          },
+          "myLine": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "theirLineWritten": {
+            "type": "boolean"
+          },
+          "theirLine": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fellow": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "WanderingWriteRequest": {
+        "required": [
+          "titleEn",
+          "lineEn",
+          "bodyEn",
+          "whereEn",
+          "titleMn",
+          "lineMn",
+          "bodyMn",
+          "whereMn",
+          "venueKinds"
+        ],
+        "type": "object",
+        "properties": {
+          "titleEn": {
+            "type": "string"
+          },
+          "lineEn": {
+            "type": "string"
+          },
+          "bodyEn": {
+            "type": "string"
+          },
+          "whereEn": {
+            "type": "string"
+          },
+          "titleMn": {
+            "type": "string"
+          },
+          "lineMn": {
+            "type": "string"
+          },
+          "bodyMn": {
+            "type": "string"
+          },
+          "whereMn": {
+            "type": "string"
+          },
+          "venueKinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "WeaveRequest": {
         "required": [
           "first",
@@ -9007,6 +10365,9 @@
     },
     {
       "name": "Bonds"
+    },
+    {
+      "name": "Wanderings"
     },
     {
       "name": "Seek"

@@ -54,7 +54,7 @@ public class StatsTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var admin = await w.F.AdminAsync();
         var today = w.F.Clock.TodayUb;
 
-        foreach (var group in new[] { "growth", "engagement", "matching", "encounters", "square", "money", "cohorts" })
+        foreach (var group in new[] { "growth", "engagement", "matching", "severed", "encounters", "square", "money", "cohorts" })
         {
             var r = await admin.GetAsync($"/admin/stats/tables/{group}?from={today.AddDays(-30):yyyy-MM-dd}&to={today:yyyy-MM-dd}");
             r.EnsureSuccessStatusCode();
@@ -73,5 +73,26 @@ public class StatsTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var health = (await admin.GetFromJsonAsync<HealthView>("/admin/health"))!;
         health.DatabaseBytes.Should().BePositive();
         health.Checks.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public async Task The_often_severed_are_listed_by_the_side_let_go()
+    {
+        await using var w = await World.CreateAsync(db);
+        var bat = await w.PersonAsync("Bat", "Male");
+        for (var i = 0; i < 3; i++)
+        {
+            var her = await w.PersonAsync($"W{i}", "Female");
+            var bond = await bat.C.SummonAsync(her.Id);
+            (await her.C.PostAsync($"/bonds/{bond.Id}/sever", null)).EnsureSuccessStatusCode();
+        }
+        var admin = await w.F.AdminAsync();
+        var today = w.F.Clock.TodayUb;
+        var t = (await admin.GetFromJsonAsync<StatTable>($"/admin/stats/tables/severed?from={today:yyyy-MM-dd}&to={today:yyyy-MM-dd}"))!;
+        t.Rows.Should().ContainSingle();
+        t.Rows[0][0].Should().Be("Bat");
+        t.Rows[0][3].Should().Be("3");
+        var men = (await admin.GetFromJsonAsync<StatsView>($"/admin/stats?metrics=severed&from={today:yyyy-MM-dd}&to={today:yyyy-MM-dd}&gender=Male"))!;
+        men.Series.Single().Count.Should().Be(3, "a sever counts against the one let go");
     }
 }

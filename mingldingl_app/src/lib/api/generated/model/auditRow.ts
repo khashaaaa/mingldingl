@@ -12,4 +12,6 @@ export interface AuditRow {
   action: string;
   /** @nullable */
   target: string | null;
+  /** @nullable */
+  note: string | null;
 }

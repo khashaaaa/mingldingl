@@ -66,6 +66,8 @@ const ME: MeView = {
     tier: 'Opal',
     tierUpPending: null,
     paused: false,
+    awayUntil: null,
+    awayNextAt: null,
     createdAt: '2026-10-06T00:00:00Z',
   },
 };

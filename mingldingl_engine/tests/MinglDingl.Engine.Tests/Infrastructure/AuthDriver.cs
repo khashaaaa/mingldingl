@@ -40,17 +40,17 @@ public static class SessionDriver
     public static string NewPhone() => Interlocked.Increment(ref _phone).ToString();
 
     public static async Task<HttpResponseMessage> CompleteRawAsync(this HttpClient c, Guid verificationId, string device = "test-phone",
-        string? allyCode = null) =>
-        await c.PostAsJsonAsync("/auth/phone/complete", new CompleteRequest(verificationId, device, allyCode));
+        string? allyCode = null, string? deviceKey = null) =>
+        await c.PostAsJsonAsync("/auth/phone/complete", new CompleteRequest(verificationId, device, allyCode, deviceKey));
 
     /// Full sign-in through the scripted WeSend: start → type the texted code → complete.
     public static async Task<SessionPair> SignInAsync(this EngineFactory f, ScriptedWeSend vm, string? phone = null, string device = "test-phone",
-        string? allyCode = null)
+        string? allyCode = null, string? deviceKey = null)
     {
         var c = f.Client();
         var s = await c.StartAsync(phone ?? NewPhone());
         await c.CheckAsync(vm, s.VerificationId);
-        var r = await c.CompleteRawAsync(s.VerificationId, device, allyCode);
+        var r = await c.CompleteRawAsync(s.VerificationId, device, allyCode, deviceKey);
         r.EnsureSuccessStatusCode();
         return (await r.Content.ReadFromJsonAsync<SessionPair>())!;
     }

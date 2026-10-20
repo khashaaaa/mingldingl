@@ -18,10 +18,12 @@ public sealed record CheckRequest(Guid VerificationId, [Required, StringLength(F
 public sealed record CheckResponse(string State);
 
 /// allyCode: the call that brought a new traveller (from a shared link), if any.
+/// deviceKey: the app's install id (Android ID / iOS vendor id); stored only as a hash.
 public sealed record CompleteRequest(
     Guid VerificationId,
     [Required, StringLength(FieldLimits.DeviceName)] string DeviceName,
-    [StringLength(FieldLimits.AllyCode)] string? AllyCode = null);
+    [StringLength(FieldLimits.AllyCode)] string? AllyCode = null,
+    [StringLength(FieldLimits.DeviceKey)] string? DeviceKey = null);
 
 public sealed record RefreshRequest([Required, StringLength(FieldLimits.Code)] string RefreshToken);
 

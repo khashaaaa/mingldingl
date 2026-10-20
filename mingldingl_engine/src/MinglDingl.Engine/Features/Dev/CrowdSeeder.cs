@@ -105,7 +105,7 @@ public sealed class CrowdSeeder(AppDb db, PhotoService photos, IClock clock)
         for (var i = 0; i < keys.Count; i++)
         {
             var file = Path.Combine(Dir, $"{c.Id}_{i}.jpg");
-            await photos.UploadAsync(accountId, await File.ReadAllBytesAsync(file, ct), keys[i], ct);
+            await photos.UploadAsync(accountId, await File.ReadAllBytesAsync(file, ct), keys[i], ct, checkFace: false);
         }
     }
 

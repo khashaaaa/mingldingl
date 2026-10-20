@@ -18,6 +18,7 @@ public class FloorTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task A_paid_floor_widens_the_fire_and_losing_it_breaks_no_bond()
     {
         await using var w = await World.CreateAsync(db);
+        await w.SetAsync(MinglDingl.Engine.Kernel.Config.ConfigKeys.SafetyNewDays, "0"); // Bat is no newcomer here
         var bat = await w.PersonAsync("Bat", "Male");
         var yard = await bat.C.SeekAsync();
         yard.Floor.Should().Be("yard");
@@ -84,13 +85,18 @@ public class FloorTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 
         var sealedDeep = (await anu.C.GetFromJsonAsync<MyDeepView>("/me/deep"))!;
         sealedDeep.Open.Should().BeFalse();
-        (await CodeOf(await anu.C.PutAsJsonAsync("/me/deep", new DeepUpdateRequest("wants", null, null, null, null))))
+        (await CodeOf(await anu.C.PutAsJsonAsync("/me/deep", new DeepUpdateRequest(null, null, "yes", null, null, null, null, null))))
             .Should().Be("membership.hall");
+        (await anu.C.PutAsJsonAsync("/me/deep", new DeepUpdateRequest("yes", null, null, null, null, null, null, null)))
+            .EnsureSuccessStatusCode(); // whether she has children is everyone's to say
 
         await w.FloorAsync(anu, Floor.Hall, days: 30);
-        (await CodeOf(await anu.C.PutAsJsonAsync("/me/deep", new DeepUpdateRequest("lots", null, null, null, null)))).Should().Be("profile.deep");
-        var mine = await (await anu.C.PutAsJsonAsync("/me/deep", new DeepUpdateRequest("wants", "never", null, "buddhist", null))).Read<MyDeepView>();
-        mine.Answers.Should().Be(new DeepView("wants", "never", null, "buddhist", null));
+        (await CodeOf(await anu.C.PutAsJsonAsync("/me/deep", new DeepUpdateRequest(null, null, "lots", null, null, null, null, null))))
+            .Should().Be("profile.deep");
+        var mine = await (await anu.C.PutAsJsonAsync("/me/deep",
+            new DeepUpdateRequest(null, null, "yes", "welcome", "never", null, "buddhist", null))).Read<MyDeepView>();
+        mine.Answers.Should().Be(new DeepView("yes", "yes", "welcome", "never", null, "buddhist", null));
+        mine.ShowChildren.Should().BeFalse();
 
         var bond = await bat.C.SummonAsync(anu.Id);
         await ExchangeAsync(bond.Id, bat.C, anu.C, 3);
@@ -98,8 +104,9 @@ public class FloorTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await ExchangeAsync(bond.Id, bat.C, anu.C, 1);
         (await bat.C.BondAsync(bond.Id)).Seals.Should().Be(4);
         (await bat.C.BondAsync(bond.Id)).Other.Deep.Should().BeNull("Bat stands in the Yard");
+        (await bat.C.BondAsync(bond.Id)).Other.HasChildren.Should().BeFalse("she keeps it for the fourth seal");
         await w.FloorAsync(bat, Floor.Hall, days: 30);
-        (await bat.C.BondAsync(bond.Id)).Other.Deep!.Children.Should().Be("wants");
+        (await bat.C.BondAsync(bond.Id)).Other.Deep!.PartnerChildren.Should().Be("welcome");
     }
 
     [Fact]

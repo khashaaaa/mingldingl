@@ -24,7 +24,7 @@ public sealed class AuthEndpoints : IEndpointModule
         }).RequireRateLimiting(RateLimitPolicies.Auth).WithName("CheckPhone");
 
         g.MapPost("/phone/complete", (CompleteRequest req, SessionService svc, CancellationToken ct) =>
-            svc.CompleteAsync(req.VerificationId, req.DeviceName, ct, req.AllyCode))
+            svc.CompleteAsync(req.VerificationId, req.DeviceName, ct, req.AllyCode, req.DeviceKey))
             .RequireRateLimiting(RateLimitPolicies.Auth).WithName("CompletePhone");
 
         g.MapPost("/refresh", (RefreshRequest req, SessionService svc, CancellationToken ct) =>

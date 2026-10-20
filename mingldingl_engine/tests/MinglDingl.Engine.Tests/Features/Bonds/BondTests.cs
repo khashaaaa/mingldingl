@@ -54,7 +54,7 @@ public class BondTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var after = await bat.C.SeekAsync();
         after.CandlesLeft.Should().Be(before - 1);
         after.State.Should().Be("empty");
-        (await CodeOf(await bat.C.SummonRawAsync(saruul.Id))).Should().Be("seek.gone", "a pair bonds once, ever");
+        (await CodeOf(await bat.C.SummonRawAsync(saruul.Id))).Should().Be("seek.gone", "a pair bonds once while it lives");
     }
 
     [Fact]
@@ -287,5 +287,93 @@ public class BondTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await other.C.GetAsync($"/bonds/{bond.Id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await other.C.GetAsync($"/bonds/{bond.Id}/letters")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await other.C.WriteRawAsync(bond.Id, "hi")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task A_sever_gives_the_severed_side_back_the_candle_spent_tonight()
+    {
+        await using var w = await World.CreateAsync(db);
+        var bat = await w.PersonAsync("Bat", "Male");
+        var saruul = await w.PersonAsync("Saruul", "Female");
+        var before = (await bat.C.SeekAsync()).CandlesLeft;
+        var bond = await bat.C.SummonAsync(saruul.Id);
+        (await bat.C.SeekAsync()).CandlesLeft.Should().Be(before - 1);
+
+        (await saruul.C.PostAsync($"/bonds/{bond.Id}/sever", null)).EnsureSuccessStatusCode();
+        (await bat.C.SeekAsync()).CandlesLeft.Should().Be(before, "the paths parted: the candle is lit again");
+        (await bat.C.BondAsync(bond.Id)).CandleBack.Should().BeTrue();
+        (await saruul.C.BondAsync(bond.Id)).CandleBack.Should().BeFalse("the one who severed gets nothing for it");
+
+        await w.AdvanceAsync(TimeSpan.FromDays(1));
+        (await bat.C.BondAsync(bond.Id)).CandleBack.Should().BeFalse("it was for that night");
+    }
+
+    [Fact]
+    public async Task A_sever_with_no_candle_spent_today_gives_none_back()
+    {
+        await using var w = await World.CreateAsync(db);
+        var bat = await w.PersonAsync("Bat", "Male");
+        var saruul = await w.PersonAsync("Saruul", "Female");
+        var bond = await bat.C.SummonAsync(saruul.Id);
+        await w.AdvanceAsync(TimeSpan.FromDays(1));
+        var full = (await bat.C.SeekAsync()).CandlesLeft;
+        (await saruul.C.PostAsync($"/bonds/{bond.Id}/sever", null)).EnsureSuccessStatusCode();
+        (await bat.C.SeekAsync()).CandlesLeft.Should().Be(full);
+        (await bat.C.BondAsync(bond.Id)).CandleBack.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_severed_pair_may_meet_again_after_the_remeet_days_but_a_cold_or_reported_pair_never()
+    {
+        await using var w = await World.CreateAsync(db);
+        await w.SetAsync(ConfigKeys.SeekRemeetDays, "10");
+        var bat = await w.PersonAsync("Bat", "Male");
+        var saruul = await w.PersonAsync("Saruul", "Female");
+        var bond = await bat.C.SummonAsync(saruul.Id);
+        (await saruul.C.PostAsync($"/bonds/{bond.Id}/sever", null)).EnsureSuccessStatusCode();
+        (await bat.C.SeekAsync()).State.Should().Be("empty", "not before the days have passed");
+
+        await w.AdvanceAsync(TimeSpan.FromDays(11));
+        (await bat.C.SeekAsync()).Candidate!.AccountId.Should().Be(saruul.Id);
+        var again = await bat.C.SummonAsync(saruul.Id);
+        again.Id.Should().NotBe(bond.Id);
+        again.Seals.Should().Be(0, "a new bond starts sealed");
+
+        // A bond gone cold leaves a scar: that pair never meets again.
+        var oyun = await w.PersonAsync("Oyun", "Female");
+        var cold = await bat.C.SummonAsync(oyun.Id);
+        await bat.C.WriteAsync(cold.Id, "hello");
+        await w.AdvanceAsync(TimeSpan.FromHours(49));
+        await w.SweepAsync();
+        (await bat.C.BondAsync(cold.Id)).State.Should().Be("Cold");
+        await w.AdvanceAsync(TimeSpan.FromDays(30));
+        (await bat.C.SeekAsync()).Candidate?.AccountId.Should().NotBe(oyun.Id);
+
+        // A report keeps them apart for good, even once the days pass.
+        var anu = await w.PersonAsync("Anu", "Female");
+        var told = await bat.C.SummonAsync(anu.Id);
+        (await anu.C.PostAsJsonAsync("/reports", new MinglDingl.Engine.Features.Safety.ReportRequest(bat.Id, told.Id, "rude", null)))
+            .EnsureSuccessStatusCode();
+        if ((await anu.C.BondAsync(told.Id)).State == "Live") (await anu.C.PostAsync($"/bonds/{told.Id}/sever", null)).EnsureSuccessStatusCode();
+        await w.AdvanceAsync(TimeSpan.FromDays(30));
+        (await bat.C.SeekAsync()).Candidate?.AccountId.Should().NotBe(anu.Id);
+    }
+
+    [Fact]
+    public async Task Has_children_is_anyones_to_set_and_shows_in_Seek_only_when_chosen()
+    {
+        await using var w = await World.CreateAsync(db);
+        var bat = await w.PersonAsync("Bat", "Male");
+        var saruul = await w.PersonAsync("Saruul", "Female");
+        (await saruul.C.PutAsJsonAsync("/me/deep", new MinglDingl.Engine.Features.Profile.DeepUpdateRequest("yes", null, null, null, null, null, null, null)))
+            .EnsureSuccessStatusCode();
+        (await bat.C.SeekAsync()).Candidate!.HasChildren.Should().BeFalse("kept for the fourth seal");
+
+        (await saruul.C.PutAsJsonAsync("/me/deep", new MinglDingl.Engine.Features.Profile.DeepUpdateRequest(null, true, null, null, null, null, null, null)))
+            .EnsureSuccessStatusCode();
+        (await bat.C.SeekAsync()).Candidate!.HasChildren.Should().BeTrue();
+        var bond = await bat.C.SummonAsync(saruul.Id);
+        bond.Other.HasChildren.Should().BeTrue("shown in every bond at once");
+        bond.Other.Deep.Should().BeNull("the rest still waits for the fourth seal");
     }
 }

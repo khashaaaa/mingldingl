@@ -25,7 +25,9 @@ public sealed class PhotoService(
         return views;
     }
 
-    public async Task<PhotoView> UploadAsync(Guid accountId, byte[] bytes, string? clientKey, CancellationToken ct = default)
+    /// checkFace: false only for the dev seeders, whose stand-in portraits are drawings.
+    public async Task<PhotoView> UploadAsync(Guid accountId, byte[] bytes, string? clientKey, CancellationToken ct = default,
+        bool checkFace = true)
     {
         if (string.IsNullOrWhiteSpace(clientKey) || clientKey.Length > 64)
             throw new DomainException(400, "photos.key", "Idempotency-Key header is required");
@@ -33,7 +35,9 @@ public sealed class PhotoService(
         if (bytes.Length == 0 || bytes.Length > MaxUploadBytes)
             throw new DomainException(400, "photos.too_large", "That photo is too large");
 
-        var image = ImagePipeline.Process(bytes);
+        var image = ImagePipeline.Process(bytes, findFace: checkFace && config.Bool(ConfigKeys.PhotosRequireFace));
+        if (image.Face == false)
+            throw new DomainException(400, "photos.no_face", "We could not find a face in this portrait");
         var photo = new Photo
         {
             Id = Guid.CreateVersion7(),

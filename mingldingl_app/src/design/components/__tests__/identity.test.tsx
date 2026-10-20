@@ -102,6 +102,14 @@ describe('PhotoTile', () => {
     expect(screen.getByRole('progressbar').props.accessibilityValue).toMatchObject({ now: 40 });
     expect(screen.getByTestId('upload-progress')).toHaveStyle({ width: '40%' });
   });
+  test('an upload with no count shows the picked portrait and a running ember, then keeps it until the stored one loads', async () => {
+    const { rerender } = await render(<PhotoTile state="uploading" uri="file:///a.jpg" />);
+    expect(images()[0]?.props.source).toMatchObject({ uri: 'file:///a.jpg' });
+    expect(screen.getByTestId('upload-sweep')).toBeTruthy();
+    expect(screen.queryByTestId('upload-progress')).toBeNull();
+    await rerender(<PhotoTile state="filled" photo={photo} local="file:///a.jpg" />);
+    expect(images()[0]?.props.placeholder).toEqual({ uri: 'file:///a.jpg' });
+  });
   test('a portrait is named by its place, not just "Your portrait"', async () => {
     await render(<PhotoTile state="filled" photo={photo} label="Portrait 2 of 4" />);
     expect(screen.getByRole('imagebutton', { name: 'Portrait 2 of 4' })).toBeTruthy();

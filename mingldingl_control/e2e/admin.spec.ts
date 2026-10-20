@@ -4,7 +4,7 @@ import { type APIRequestContext, expect, test } from '@playwright/test';
 import { E2E_ADMIN, E2E_ENGINE } from '../playwright.config';
 
 /** Signs up a brand-new number the way the app does: start → status → complete → POST /me. */
-async function signUp(api: APIRequestContext, name: string) {
+async function signUp(api: APIRequestContext, name: string, deviceKey?: string) {
   const phone = `99${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
   const start = await (await api.post(`${E2E_ENGINE}/auth/phone/start`, { data: { phone } })).json();
   // The fake WeSend's code is always 000000.
@@ -15,7 +15,7 @@ async function signUp(api: APIRequestContext, name: string) {
   ).json();
   expect(check.state).toBe('verified');
   const pairRes = await api.post(`${E2E_ENGINE}/auth/phone/complete`, {
-    data: { verificationId: start.verificationId, deviceName: 'playwright' },
+    data: { verificationId: start.verificationId, deviceName: 'playwright', deviceKey },
   });
   expect(pairRes.ok()).toBe(true);
   const pair = await pairRes.json();
@@ -324,4 +324,91 @@ test('the keeper reads the dashboard, every statistics group with its CSV, delet
   await expect(page.getByRole('heading', { name: 'The engine room' })).toBeVisible();
   await expect(page.getByText('Healthy')).toBeVisible();
   await page.screenshot({ path: 'test-results/shots/ops.png' });
+});
+
+test('the keeper gives a floor, suspends with a reason, lifts it, and the audit log keeps the reasons', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/');
+  await page.getByLabel('Name').fill(E2E_ADMIN.username);
+  await page.getByLabel('Word').fill(E2E_ADMIN.password);
+  await page.getByRole('button', { name: 'Enter' }).click();
+  const name = `Ариунаа ${Date.now() % 100000}`;
+  const u = await signUp(request, name);
+  await createProfile(request, u);
+  // The sign-in lives in memory, so the record is opened from the list, not by its address.
+  await page.getByRole('link', { name: 'Users' }).click();
+  await page.locator(`tr[data-account-id="${u.accountId}"]`).click();
+  await expect(page.getByRole('heading', { name })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Give a floor' }).click();
+  const floor = page.getByRole('dialog', { name: 'Give a floor' });
+  await floor.getByLabel('Days').fill('14');
+  await floor.getByLabel('Reason (written in the audit log)').fill('Play closed-test tester');
+  await floor.getByRole('button', { name: 'Give a floor' }).click();
+  await expect(page.getByText(/a gift from the keepers/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Suspend' }).click();
+  const suspend = page.getByRole('dialog', { name: `Suspend ${name}?` });
+  await suspend.getByLabel('Reason (written in the audit log)').fill('Asked for money');
+  await suspend.getByRole('button', { name: 'Suspend' }).click();
+  await expect(page.getByText(/Suspended on .* · Asked for money/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Lift suspension' }).click();
+  const lift = page.getByRole('dialog', { name: 'Lift the suspension' });
+  await lift.getByLabel('Reason (written in the audit log)').fill('Appeal heard');
+  await lift.getByRole('button', { name: 'Lift the suspension' }).click();
+  await expect(page.getByRole('button', { name: 'Suspend' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Audit log' }).click();
+  await expect(page.getByRole('row').filter({ hasText: 'Appeal heard' })).toContainText('Suspension lifted');
+  await expect(page.getByRole('row').filter({ hasText: 'Asked for money' })).toContainText('Suspended');
+});
+
+test("a removed troll's number is barred, their phone flags the next character, and the keeper lifts the bar", async ({
+  page,
+  request,
+}) => {
+  await page.goto('/');
+  await page.getByLabel('Name').fill(E2E_ADMIN.username);
+  await page.getByLabel('Word').fill(E2E_ADMIN.password);
+  await page.getByRole('button', { name: 'Enter' }).click();
+  const device = `pw-${Date.now()}`;
+  const name = `Тролль ${Date.now() % 100000}`;
+  const troll = await signUp(request, name, device);
+  await createProfile(request, troll);
+
+  await page.getByRole('link', { name: 'Users' }).click();
+  await page.locator(`tr[data-account-id="${troll.accountId}"]`).click();
+  await page.getByRole('button', { name: 'Suspend' }).click();
+  const suspend = page.getByRole('dialog', { name: `Suspend ${name}?` });
+  await suspend.getByLabel('Reason (written in the audit log)').fill('Trolled three women');
+  await suspend.getByRole('button', { name: 'Suspend' }).click();
+  await expect(page.getByText(/Suspended on .* · Trolled three women/)).toBeVisible();
+  await page.getByRole('button', { name: 'Delete now' }).click();
+  const del = page.getByRole('dialog', { name: `Delete ${name} now?` });
+  await del.getByLabel('Reason (written in the audit log)').fill('Removed');
+  await del.getByRole('button', { name: 'Delete now' }).click();
+  await expect(page).toHaveURL(/\/users$/);
+
+  // The same number gets no code; the same phone on a new number is flagged, not refused.
+  const start = () => request.post(`${E2E_ENGINE}/auth/phone/start`, { data: { phone: troll.phone } });
+  await expect.poll(async () => (await start()).status()).toBe(403);
+  expect((await (await start()).json()).code).toBe('auth.barred');
+  const next = await signUp(request, `${name} II`, device);
+  await expect(page.locator(`tr[data-account-id="${next.accountId}"]`)).toContainText('shared device');
+
+  await page.getByRole('link', { name: 'Reports' }).click();
+  await page.getByRole('tab', { name: 'Barred numbers' }).click();
+  const row = page.locator(`tr[data-barred="${troll.phone}"]`);
+  await expect(row).toContainText('Trolled three women');
+  await row.getByRole('button', { name: 'Lift' }).click();
+  const lift = page.getByRole('dialog', { name: 'Lift the bar' });
+  await lift.getByLabel('Reason (written in the audit log)').fill('Appeal heard');
+  await lift.getByRole('button', { name: 'Lift' }).click();
+  await expect(row).toHaveCount(0);
+  expect((await request.post(`${E2E_ENGINE}/auth/phone/start`, { data: { phone: troll.phone } })).ok()).toBe(
+    true,
+  );
 });

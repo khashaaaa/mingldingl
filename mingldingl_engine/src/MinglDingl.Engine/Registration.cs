@@ -89,6 +89,10 @@ public static class Registration
         // Bonds, Seek, Safety
         s.AddScoped<BondService>();
         s.AddSingleton<IEndpointModule, BondEndpoints>();
+        s.AddScoped<AwayService>();
+        s.AddScoped<Features.Wanderings.WanderingService>();
+        s.AddSingleton<IEndpointModule, Features.Wanderings.WanderingEndpoints>();
+        s.AddSingleton<IEndpointModule, AwayEndpoints>();
         s.AddSingleton<BondSweep>();
         s.AddHostedService(sp => sp.GetRequiredService<BondSweep>());
         s.AddScoped<SeekService>();
@@ -209,6 +213,7 @@ public static class Registration
         // Admin
         s.AddSingleton<AdminAuth>();
         s.AddScoped<AdminUsers>();
+        s.AddScoped<AdminHand>();
         s.AddSingleton<IEndpointModule, AdminEndpoints>();
 
         // Maintenance

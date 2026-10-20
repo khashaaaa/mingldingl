@@ -54,3 +54,46 @@
   border: var(--stroke-hairline) solid var(--color-border-brass);
   background: var(--color-bg-panel);
 }
+.hand-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: var(--space-2) 0;
+}
+.hand-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.portrait {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--color-bg-scrim) 70%, transparent);
+}
+.dialog {
+  display: grid;
+  gap: var(--space-4);
+  width: min(calc(var(--space-8) * 9), 92vw);
+  padding: var(--space-6);
+  border: var(--stroke-hairline) solid var(--color-border-strong);
+  background: var(--color-bg-panel);
+}
+
+.flags {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border: var(--stroke-hairline) solid var(--color-status-danger);
+  border-radius: var(--radius-sm);
+}
+.flags p {
+  margin: var(--space-1) 0;
+}

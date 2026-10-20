@@ -36,7 +36,7 @@ public sealed class MembershipService(AppDb db, IClock clock, IConfig config, IL
         var until = current.EndsAt;
         foreach (var g in grants.Where(g => g.Floor >= current.Floor).OrderBy(g => g.StartsAt))
             if (g.StartsAt <= until && g.EndsAt > until) until = g.EndsAt;
-        return new MembershipView(Floors.Key(current.Floor), until, current.Source == GrantSource.Store ? "store" : "qpay",
+        return new MembershipView(Floors.Key(current.Floor), until, current.Source switch { GrantSource.Store => "store", GrantSource.Keeper => "keeper", _ => "qpay" },
             current.Source == GrantSource.Store && current.Renews, open);
     }
 

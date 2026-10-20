@@ -27,7 +27,8 @@ export function roomFor(segments: readonly string[]): Room {
       return 'gate';
     case '(world)':
       if (a === 'character-edit' || a === 'ascent' || a === 'deeds') return 'forge';
-      if (a === 'war-room' || a === 'sigil' || a === 'sigil-verify' || a === 'departing') return 'forge';
+      if (a === 'war-room' || a === 'away' || a === 'sigil' || a === 'sigil-verify' || a === 'departing')
+        return 'forge';
       if (a === 'codex') return 'hall';
       if (a === 'bond' || a === 'ceremony' || a === 'report') return 'tavern';
       if (a === 'frozen-gate') return 'deep';

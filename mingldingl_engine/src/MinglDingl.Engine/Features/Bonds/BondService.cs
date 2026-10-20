@@ -15,7 +15,8 @@ namespace MinglDingl.Engine.Features.Bonds;
 
 public sealed class BondService(
     AppDb db, IClock clock, IConfig config, ILiveOutbox live, IPushOutbox push, ScoreService score, PhotoService photos,
-    Encounters.EncounterService encounters, Campaign.CampaignService campaign, Membership.MembershipService membership)
+    Encounters.EncounterService encounters, Campaign.CampaignService campaign, Membership.MembershipService membership,
+    AwayService away)
 {
     /// Seats at a fire: base + the tier index + the floor's bonus. Losing a floor never breaks a bond;
     /// it only stops new ones until the fire is back under its seats.
@@ -74,6 +75,7 @@ public sealed class BondService(
         var others = bonds.Select(b => b.Other(me)).ToList();
         var names = await db.Set<Profile.Profile>().AsNoTracking().Where(p => others.Contains(p.AccountId))
             .ToDictionaryAsync(p => p.AccountId, p => p.Name, ct);
+        var aways = await AwaysAsync([.. others, me], ct);
         var portraits = await photos.FirstPortraitsAsync(
             bonds.GroupBy(b => b.Other(me)).ToDictionary(g => g.Key, g => g.Max(b => b.Seals) >= 1), ct);
 
@@ -84,7 +86,7 @@ public sealed class BondService(
             var unread = b.LastLetterBy is { } by && by != me && (read is null || read < b.LastLetterAt);
             return new BondRow(b.Id, b.State.ToString(), other, names.GetValueOrDefault(other, ""), portraits.GetValueOrDefault(other),
                 b.Seals, b.LastLetterText, b.LastLetterBy == me, b.LastLetterAt, MyTurn(b, me), unread,
-                b.State == BondState.Live && b.EmbersAt is not null, ColdAt(b), b.CreatedAt, b.ClosedAt);
+                b.State == BondState.Live && b.EmbersAt is not null, ColdAt(b, aways), b.CreatedAt, b.ClosedAt);
         }).ToList();
     }
 
@@ -136,6 +138,7 @@ public sealed class BondService(
         if (b.State != BondState.Live) throw new DomainException(409, "bond.closed", "The letters are closed");
 
         var now = clock.UtcNow;
+        await away.EndAsync(me, ct); // a letter brings them back by the fire
         var first = b.LettersA + b.LettersB == 0;
         var reply = b.LastLetterBy is { } lastBy && lastBy != me;
         if (b.AId == me) { b.LettersA++; b.ReadA = now; } else { b.LettersB++; b.ReadB = now; }
@@ -195,6 +198,9 @@ public sealed class BondService(
         if (b is null || !b.Has(me)) throw new DomainException(404, "bond.not_found", "That bond does not exist");
         if (b.State != BondState.Live) throw new DomainException(409, "bond.closed", "The letters are closed");
         Close(b, BondState.Severed, me);
+        // The paths parted with no blame: the other side gets back a candle spent tonight, if any was.
+        var other = b.Other(me);
+        if (await CandlesSpentTodayAsync(other, ct) > 0) (b.CandleBackTo, b.CandleBackDay) = (other, clock.TodayUb);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
     }
@@ -205,7 +211,7 @@ public sealed class BondService(
     {
         var (a, b2) = Bond.Pair(by, other);
         var b = await db.Set<Bond>().FromSqlInterpolated(
-                $"SELECT * FROM bonds WHERE \"AId\" = {a} AND \"BId\" = {b2} FOR UPDATE").SingleOrDefaultAsync(ct);
+                $"SELECT * FROM bonds WHERE \"AId\" = {a} AND \"BId\" = {b2} AND \"State\" = 'Live' FOR UPDATE").SingleOrDefaultAsync(ct);
         if (b is { State: BondState.Live }) Close(b, BondState.Severed, by);
     }
 
@@ -215,6 +221,15 @@ public sealed class BondService(
             .FromSqlInterpolated($"SELECT * FROM bonds WHERE (\"AId\" = {accountId} OR \"BId\" = {accountId}) AND \"State\" = 'Live' FOR UPDATE")
             .ToListAsync(ct);
         foreach (var b in bonds) Close(b, BondState.Severed, accountId);
+    }
+
+    /// Seek summonses made today, less the candles Severs gave back today.
+    public async Task<int> CandlesSpentTodayAsync(Guid me, CancellationToken ct = default)
+    {
+        var today = clock.TodayUb;
+        var summoned = await db.Set<Bond>().CountAsync(b => b.SummonerId == me && b.SummonDay == today && b.Origin == BondOrigins.Seek, ct);
+        var back = await db.Set<Bond>().CountAsync(b => b.CandleBackTo == me && b.CandleBackDay == today, ct);
+        return Math.Max(0, summoned - back);
     }
 
     /// Marks the bond closed and tells both sides; their seats free up.
@@ -237,8 +252,19 @@ public sealed class BondService(
     /// Portraits a seal count reveals: one per seal up to three, all at four.
     public static int Revealed(int seals, int total) => seals >= 4 ? total : Math.Min(seals, total);
 
-    private DateTimeOffset? ColdAt(Bond b) =>
-        b.State == BondState.Live && b.LastLetterAt is { } at ? at.AddHours(config.Int(ConfigKeys.ColdHours)) : null;
+    /// When the fire goes cold if the side whose turn it is stays silent: from the last letter, or from
+    /// their return when they were away by the fire since.
+    private DateTimeOffset? ColdAt(Bond b, IReadOnlyDictionary<Guid, DateTimeOffset> aways)
+    {
+        if (b.State != BondState.Live || b.LastLetterAt is not { } at || b.LastLetterBy is not { } by) return null;
+        var from = aways.TryGetValue(b.Other(by), out var back) && back > at ? back : at;
+        return from.AddHours(config.Int(ConfigKeys.ColdHours));
+    }
+
+    /// Whose away by the fire still matters to a fire (it ended after the last letter, or goes on).
+    private async Task<IReadOnlyDictionary<Guid, DateTimeOffset>> AwaysAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+        await db.Set<Profile.Profile>().AsNoTracking().Where(p => ids.Contains(p.AccountId) && p.AwayUntil != null)
+            .ToDictionaryAsync(p => p.AccountId, p => p.AwayUntil!.Value, ct);
 
     private static bool MyTurn(Bond b, Guid me) => b.State == BondState.Live && b.LastLetterBy is { } by && by != me;
 
@@ -257,15 +283,16 @@ public sealed class BondService(
         var total = await db.Set<Photo>().CountAsync(x => x.AccountId == otherId, ct);
         var portraits = await photos.PortraitsAsync(otherId, Revealed(b.Seals, total), ct);
         var person = new BondPersonView(otherId, p.Name, ProfileService.AgeOn(p.BirthDate, clock.TodayUb), p.Tier, p.Oath, p.Bio,
-            Place(p.City, b.Seals >= 3), portraits,
+            Place(p.City, b.Seals >= 3), portraits, Profile.DeepProfile.ShowsChildren(p), p.AwayUntil > clock.UtcNow ? p.AwayUntil : null,
             b.Seals >= 4 && (await membership.PerksAsync(me, ct)).Paid ? Profile.DeepProfile.Of(p) : null);
         var mine = b.AId == me ? b.LettersA : b.LettersB;
         var theirs = b.AId == me ? b.LettersB : b.LettersA;
         int? next = b.Seals < 4 ? config.Int(ConfigKeys.SealLadder[b.Seals]) : null;
         return new BondView(b.Id, b.State.ToString(), person, b.Seals, b.Mutual, next,
             ConfigKeys.SealLadder.Select(config.Int).ToList(), mine, theirs, MyTurn(b, me),
-            b.State == BondState.Live && b.EmbersAt is not null, ColdAt(b), b.CreatedAt, b.ClosedAt, b.ClosedBy == me,
-            b.SummonerId == me, b.ClosedWhy);
+            b.State == BondState.Live && b.EmbersAt is not null, ColdAt(b, await AwaysAsync([me, otherId], ct)), b.CreatedAt, b.ClosedAt,
+            b.ClosedBy == me,
+            b.SummonerId == me, b.ClosedWhy, b.CandleBackTo == me && b.CandleBackDay == clock.TodayUb);
     }
 
     /// The district is a seal's reward; before it, the province (or the capital).

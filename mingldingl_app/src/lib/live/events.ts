@@ -49,6 +49,7 @@ export const LIVE_KINDS = [
   'quests.updated',
   'campaign.updated',
   'trial.updated',
+  'wandering.updated',
   'thread.updated',
   'square.updated',
   'codex.updated',
@@ -115,6 +116,11 @@ export const LIVE: Record<LiveKind, (ids: string[]) => LiveAction> = {
     invalidate: bond ? [getGetCampaignQueryKey(bond), getGetBondQueryKey(bond), getGetBondsQueryKey()] : [],
   }),
   'trial.updated': ([bond]) => ({ invalidate: bond ? [getGetWeeklyTrialQueryKey(bond)] : [] }),
+  // An ask, an answer, a line; with no bond, the keepers changed a Wandering's words.
+  'wandering.updated': ([bond]) => ({
+    under: [bond ? `/bonds/${bond}/wanderings` : '/bonds/'],
+    invalidate: [],
+  }),
   'thread.updated': () => ({ invalidate: [getGetThreadInvitationsQueryKey(), getGetWovenThreadsQueryKey()] }),
   // A seat, a bell, a pairing, a result: the tab and the night read again.
   'square.updated': () => ({ under: ['/square'], invalidate: [] }),

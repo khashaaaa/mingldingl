@@ -25,6 +25,7 @@ export function AuditPage() {
             <th>Keeper</th>
             <th>Action</th>
             <th>Target</th>
+            <th>Reason</th>
           </tr>
         </thead>
         <tbody>
@@ -34,6 +35,7 @@ export function AuditPage() {
               <td>{r.keeper}</td>
               <td>{r.action}</td>
               <td>{r.target ?? '—'}</td>
+              <td className="muted">{r.note ?? '—'}</td>
             </tr>
           ))}
         </tbody>

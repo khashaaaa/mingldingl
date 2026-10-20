@@ -13,7 +13,7 @@ using MinglDingl.Engine.Kernel.Persistence;
 namespace MinglDingl.Engine.Features.Admin;
 
 public sealed class AdminUsers(AppDb db, ProfileService profiles, PhotoService photos, BondService bonds, ScoreService score, SafetyService safety,
-    Encounters.MeetingService meetings)
+    Encounters.MeetingService meetings, Kernel.Config.IConfig config)
 {
     /// Newest first, keyset-paged on (CreatedAt, Id) so a sign-up arriving mid-scroll never shifts a page.
     public async Task<AdminUserPage> ListAsync(string? search, string? cursor, int limit, CancellationToken ct = default)
@@ -38,7 +38,7 @@ public sealed class AdminUsers(AppDb db, ProfileService profiles, PhotoService p
         var rows = await q.OrderByDescending(x => x.a.CreatedAt).ThenByDescending(x => x.a.Id)
             .Take(limit + 1)
             .Select(x => new AdminUserRow(x.a.Id, x.a.Phone, x.Name, x.a.Status.ToString(),
-                db.Set<Photo>().Count(ph => ph.AccountId == x.a.Id), x.a.CreatedAt, x.Tier, x.Points, x.Reputation))
+                db.Set<Photo>().Count(ph => ph.AccountId == x.a.Id), x.a.CreatedAt, x.Tier, x.Points, x.Reputation, x.a.FlaggedAt != null))
             .ToListAsync(ct);
 
         var next = rows.Count > limit ? Encode(rows[limit - 1]) : null;
@@ -61,7 +61,8 @@ public sealed class AdminUsers(AppDb db, ProfileService profiles, PhotoService p
         return new AdminUserDetail(a.Id, a.Phone, a.Status.ToString(), a.CreatedAt, me.OnboardingStep, me.Profile,
             await photos.ListAsync(accountId, ct), devices, reputation,
             await safety.ReportsAgainstAsync(accountId, ct), await bonds.AdminListAsync(accountId, ct), deeds.Items,
-            await meetings.AdminStatsAsync(accountId, ct));
+            await meetings.AdminStatsAsync(accountId, ct), a.SuspendedAt, a.SuspendedWhy, a.FlaggedAt, a.FlaggedWhy,
+            await UnderReview.Ids(db, config.Int(Kernel.Config.ConfigKeys.SafetyHideAfterReporters)).AnyAsync(id => id == accountId, ct));
     }
 
     private static string Encode(AdminUserRow r) =>

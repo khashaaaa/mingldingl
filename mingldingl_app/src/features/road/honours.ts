@@ -15,6 +15,8 @@ const EMBLEM: Record<string, ArtName> = {
   oathKeeper: 'honour_oath_keeper',
   fateSeer: 'honour_fate_seer',
   hearthbound: 'honour_hearthbound',
+  // Until its own emblem is painted, it carries the Cartographer's map.
+  fellowTraveller: 'honour_cartographer',
   naadam: 'honour_naadam',
   tsagaanSar: 'honour_tsagaan_sar',
   firstBond: 'honour_first_bond',

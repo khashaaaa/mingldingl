@@ -28,4 +28,8 @@ export interface ProfileView {
   tierUpPending: string | null;
   createdAt: string;
   paused: boolean;
+  /** @nullable */
+  awayUntil: string | null;
+  /** @nullable */
+  awayNextAt: string | null;
 }

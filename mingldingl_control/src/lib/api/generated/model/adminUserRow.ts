@@ -19,4 +19,5 @@ export interface AdminUserRow {
   points: number | null;
   /** @nullable */
   reputation: number | null;
+  flagged: boolean;
 }

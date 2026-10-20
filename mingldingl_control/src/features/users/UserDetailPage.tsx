@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { Button } from '../../design/Button';
 import { Glyph } from '../../design/Glyph';
 import { errorText } from '../../lib/api/client';
 import {
@@ -9,12 +10,14 @@ import {
   useAdminUserPayments,
 } from '../../lib/api/generated/engine';
 import { formatDate, formatDateTime, tugrik } from '../../lib/format';
+import { type HandAction, KeeperDialog } from './KeeperHand';
 import './users.css';
 
 export function UserDetailPage() {
   const { id = '' } = useParams();
   const user = useAdminGetUser(id);
   const client = useQueryClient();
+  const [hand, setHand] = useState<HandAction | null>(null);
 
   // Portrait links are signed and expire: read the record again a minute before the first one does.
   const firstExpiry = user.data?.photos.reduce<number | null>((min, ph) => {
@@ -52,9 +55,29 @@ export function UserDetailPage() {
       <div className="page-head">
         <h1 className="page-title">{p?.name ?? u.phone}</h1>
         <p className="voice page-sub">
-          {p ? `${p.tier} · ${p.points} · ` : ''}joined {formatDate(u.createdAt)}
+          {u.status === 'Suspended'
+            ? `Suspended${u.suspendedAt ? ` on ${formatDate(u.suspendedAt)}` : ''} · ${u.suspendedWhy ?? 'by the keepers'}`
+            : `${p ? `${p.tier} · ${p.points} · ` : ''}joined ${formatDate(u.createdAt)}`}
         </p>
       </div>
+
+      {(u.flaggedAt || u.underReview) && (
+        <div className="flags" role="status">
+          {u.flaggedAt && (
+            <p className="hand-line">
+              <span className="danger">
+                {u.flaggedWhy} · {formatDate(u.flaggedAt)}
+              </span>
+              <Button onClick={() => setHand({ kind: 'clearFlag' })}>Clear flag</Button>
+            </p>
+          )}
+          {u.underReview && (
+            <p className="danger">
+              Hidden from Seek: open reports from several people wait for a keeper to decide.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="stats">
         <Stat label="Status" value={u.status} note={u.status === 'Active' ? '' : 'cannot sign in'} />
@@ -83,6 +106,48 @@ export function UserDetailPage() {
           note={`recent · ${u.encounters.noShows} ever`}
         />
       </div>
+
+      {/* Figma S8 266:2253: the name and tale a keeper may clear, and the hand */}
+      {p && (
+        <>
+          <h2 className="section-title">Character</h2>
+          <dl className="facts">
+            <dt className="label">Name</dt>
+            <dd className="hand-line">
+              <span>{p.name}</span>
+              <Button onClick={() => setHand({ kind: 'clear', field: 'name' })}>Clear name</Button>
+            </dd>
+            <dt className="label">Tale</dt>
+            <dd className="hand-line">
+              <span>{p.bio ?? <span className="muted">—</span>}</span>
+              {p.bio && <Button onClick={() => setHand({ kind: 'clear', field: 'tale' })}>Clear tale</Button>}
+            </dd>
+          </dl>
+        </>
+      )}
+
+      <h2 className="section-title">The keeper's hand</h2>
+      <div className="hand-row">
+        {u.status === 'Suspended' ? (
+          <Button kind="brass" onClick={() => setHand({ kind: 'lift' })}>
+            Lift suspension
+          </Button>
+        ) : (
+          <>
+            <Button onClick={() => setHand({ kind: 'floor' })}>Give a floor</Button>
+            <Button onClick={() => setHand({ kind: 'adjust' })}>Adjust score</Button>
+            <Button onClick={() => setHand({ kind: 'signOut' })}>Sign out everywhere</Button>
+            <Button kind="danger" onClick={() => setHand({ kind: 'suspend' })}>
+              Suspend
+            </Button>
+          </>
+        )}
+        <Button kind="danger" onClick={() => setHand({ kind: 'delete' })}>
+          Delete now
+        </Button>
+      </div>
+      <p className="voice muted">Every action asks for a reason and is written in the audit log.</p>
+      {hand && <KeeperDialog user={u} action={hand} onClose={() => setHand(null)} />}
 
       <h2 className="section-title">Score history</h2>
       {u.deeds.length === 0 ? (
@@ -166,14 +231,16 @@ export function UserDetailPage() {
       ) : (
         <div className="portraits">
           {u.photos.map((ph) => (
-            <img
-              key={ph.id}
-              src={ph.url}
-              alt={`Portrait ${ph.position + 1}`}
-              width={ph.width}
-              height={ph.height}
-              loading="lazy"
-            />
+            <figure key={ph.id} className="portrait">
+              <img
+                src={ph.url}
+                alt={`Portrait ${ph.position + 1}`}
+                width={ph.width}
+                height={ph.height}
+                loading="lazy"
+              />
+              <Button onClick={() => setHand({ kind: 'photo', photoId: ph.id })}>Remove</Button>
+            </figure>
           ))}
         </div>
       )}
@@ -217,6 +284,7 @@ const DEED: Record<string, string> = {
   seventhDawn: 'Seventh dawn',
   goneCold: 'Let a bond go cold',
   penalised: 'Penalised by a keeper',
+  keeperAdjusted: 'Set right by a keeper',
 };
 
 function Stat({ label, value, note }: { label: string; value: string; note: string }) {
@@ -251,7 +319,7 @@ function UserPayments({ id }: { id: string }) {
       <p className="voice">
         {FLOOR[m.floor] ?? m.floor}
         {m.until
-          ? ` until ${formatDate(m.until)} · ${m.source === 'store' ? 'Google Play' : 'QPay'}${m.renews ? ', renews' : ''}`
+          ? ` until ${formatDate(m.until)} · ${m.source === 'store' ? 'Google Play' : m.source === 'keeper' ? 'a gift from the keepers' : 'QPay'}${m.renews ? ', renews' : ''}`
           : ' · free'}
       </p>
       {data.payments.length > 0 && (

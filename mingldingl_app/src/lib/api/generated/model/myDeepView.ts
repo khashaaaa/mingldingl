@@ -8,5 +8,6 @@ import type { DeepView } from './deepView';
 
 export interface MyDeepView {
   open: boolean;
+  showChildren: boolean;
   answers: DeepView;
 }

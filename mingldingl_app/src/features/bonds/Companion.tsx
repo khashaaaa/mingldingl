@@ -38,6 +38,7 @@ export default function Companion() {
           portrait={first ? { id: first.id, url: first.url, thumbHash: first.thumbHash } : null}
           sealed={bond.seals < 1}
           full
+          hasChildren={other.hasChildren}
         />
         {rest.length > 0 ? (
           <View style={styles.grid}>

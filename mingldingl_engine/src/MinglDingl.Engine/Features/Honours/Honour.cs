@@ -4,7 +4,7 @@ using MinglDingl.Engine.Features.Auth;
 
 namespace MinglDingl.Engine.Features.Honours;
 
-/// The 21 marks of the honour case, in the case's order: 14 honours (hammered gold) and 7 feats
+/// The 22 marks of the honour case, in the case's order: 15 honours (hammered gold) and 7 feats
 /// (verdigris bronze). A yearly one is earned once per year (the festival honours).
 public sealed record HonourDefinition(string Key, string Kind, bool Yearly = false);
 
@@ -22,6 +22,7 @@ public static class HonourKeys
     public const string OathKeeper = "oathKeeper";
     public const string FateSeer = "fateSeer";
     public const string Hearthbound = "hearthbound";
+    public const string FellowTraveller = "fellowTraveller";
     public const string Naadam = "naadam";
     public const string TsagaanSar = "tsagaanSar";
     public const string FirstBond = "firstBond";
@@ -37,7 +38,7 @@ public static class HonourKeys
         new(SealBreaker, "honour"), new(Flamekeeper, "honour"), new(SevenDawns, "honour"),
         new(AllyCaller, "honour"), new(TrueToWord, "honour"), new(ThreadWeaver, "honour"),
         new(Mended, "honour"), new(Cartographer, "honour"), new(BondKeeper, "honour"),
-        new(OathKeeper, "honour"), new(FateSeer, "honour"), new(Hearthbound, "honour"),
+        new(OathKeeper, "honour"), new(FateSeer, "honour"), new(Hearthbound, "honour"), new(FellowTraveller, "honour"),
         new(Naadam, "honour", Yearly: true), new(TsagaanSar, "honour", Yearly: true),
         new(FirstBond, "feat"), new(IceBroken, "feat"), new(FirstTrial, "feat"), new(TenWords, "feat"),
         new(FirstPledge, "feat"), new(FaceToFlame, "feat"), new(OathFulfilled, "feat"),

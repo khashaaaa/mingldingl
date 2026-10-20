@@ -13,6 +13,8 @@ public static class DeedKinds
     public const string SeventhDawn = "seventhDawn";
     public const string GoneCold = "goneCold";
     public const string Penalised = "penalised";
+    /// A keeper set points right by hand (a mistaken penalty, a bug).
+    public const string KeeperAdjusted = "keeperAdjusted";
     public const string Icebreaker = "icebreaker";
     public const string Trial = "trial";
     public const string Rite = "rite";

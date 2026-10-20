@@ -5,6 +5,7 @@ using MinglDingl.Engine.Features.Bonds;
 using MinglDingl.Engine.Features.Campaign;
 using MinglDingl.Engine.Features.Encounters;
 using MinglDingl.Engine.Features.Honours;
+using MinglDingl.Engine.Features.Membership;
 using MinglDingl.Engine.Features.Quests;
 using MinglDingl.Engine.Features.Safety;
 using MinglDingl.Engine.Features.Score;
@@ -25,8 +26,9 @@ public sealed record SeedVenue(string Id, string Name, string NameMn, string Kin
 /// closed ones (cold, severed, faded, retired), Fated Threads, allies, reports and blocks, and the
 /// points, honours and Campaign chambers that history earns. With a hero (`seed crowd --phone`), that
 /// account gets one bond at each stage with the opposite sex of the crowd, so a tester's own screens
-/// are full. Absolute like the crowd: rerunning wipes everything these accounts did and writes it again.
-public sealed class WorldSeeder(AppDb db, IClock clock, IConfig config, VenueService venues, HonourService honours)
+/// are full. The occasions (the Square, festivals, floors, trolls) are in WorldSeeder.Occasions.cs.
+/// Absolute like the crowd: rerunning wipes everything these accounts did and writes it again.
+public sealed partial class WorldSeeder(AppDb db, IClock clock, IConfig config, VenueService venues, HonourService honours)
 {
     private static readonly string Dir = Path.Combine(AppContext.BaseDirectory, "Seed", "crowd");
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -43,6 +45,9 @@ public sealed class WorldSeeder(AppDb db, IClock clock, IConfig config, VenueSer
 
     public async Task<string> ApplyAsync(IReadOnlyList<CrowdPerson> crowd, Guid? hero, CancellationToken ct = default)
     {
+        // The crowd seeder shares this context and has saved everything; what it still tracks would
+        // hide the resets below (a bulk update bypasses the tracker, so an unchanged value is never written).
+        db.ChangeTracker.Clear();
         now = clock.UtcNow;
         (heroId, pendingAlly, heroThreadFor, retired) = (null, null, null, null);
         pairs.Clear();
@@ -53,6 +58,9 @@ public sealed class WorldSeeder(AppDb db, IClock clock, IConfig config, VenueSer
         var ids = await db.Set<Account>().Where(a => phones.Contains(a.Phone)).ToDictionaryAsync(a => a.Phone, a => a.Id, ct);
         var everyone = ids.Values.Concat(hero is { } h ? [h] : Array.Empty<Guid>()).ToList();
         await ResetAsync(everyone, ct);
+        await ResetOccasionsAsync(everyone, ct);
+        await OccasionsBeforeAsync(ct);
+        leaving = null;
 
         var profiles = await db.Set<Profile.Profile>().Where(p => everyone.Contains(p.AccountId)).ToDictionaryAsync(p => p.AccountId, ct);
         foreach (var p in profiles.Values) locales[p.AccountId] = p.Locale;
@@ -69,6 +77,8 @@ public sealed class WorldSeeder(AppDb db, IClock clock, IConfig config, VenueSer
         if (hero is { } me && profiles.TryGetValue(me, out var heroProfile) && heroProfile.WelcomedAt is not null)
         {
             heroId = me;
+            // A tester's account is no newcomer (safety.newDays): it gets the full candles.
+            if (heroProfile.WelcomedAt > now.AddDays(-config.Int(ConfigKeys.SafetyNewDays))) heroProfile.WelcomedAt = D(7);
             var others = (heroProfile.Gender == "Male" ? women : men).ToList();
             Hero(me, others);
             HeroExtras(me, crowd, ids, others);
@@ -78,12 +88,15 @@ public sealed class WorldSeeder(AppDb db, IClock clock, IConfig config, VenueSer
         Crowd(women.Where(w => w != P("p46")).ToList(), men.Where(m => m != P("p47")).ToList());
         Retired(P("p46"), P("p47"));
         Safety(P);
+        await OccasionsAsync(P, hero, profiles, ct);
 
         await db.SaveChangesAsync(ct);
         await FinishAsync(everyone, profiles, ct);
+        await OccasionsAfterAsync(ct);
         summary.Add($"{await db.Set<Bond>().CountAsync(b => everyone.Contains(b.AId), ct)} bonds, " +
             $"{await db.Set<Letter>().CountAsync(ct)} letters, {await db.Set<Meeting>().CountAsync(ct)} meetings, " +
-            $"{venueIds.Count} venues");
+            $"{venueIds.Count} venues, {GatheringIds.Length - 1} gatherings, " +
+            $"{await db.Set<MembershipGrant>().CountAsync(g => everyone.Contains(g.AccountId), ct)} floors");
         return string.Join("; ", summary);
     }
 

@@ -3,7 +3,8 @@ using SkiaSharp;
 
 namespace MinglDingl.Engine.Features.Photos;
 
-public sealed record ProcessedImage(byte[] Jpeg, int Width, int Height, byte[] ThumbHash);
+/// face: whether a human face was found (null when the caller did not ask).
+public sealed record ProcessedImage(byte[] Jpeg, int Width, int Height, byte[] ThumbHash, bool? Face = null);
 
 /// Every upload is re-encoded: turned upright, capped at 1600 px, JPEG q82. Re-encoding drops
 /// every metadata block (EXIF, GPS, ICC, XMP) — nothing about where or how it was taken survives.
@@ -12,7 +13,7 @@ public static class ImagePipeline
     public const int MaxSide = 1600;
     public const long MaxPixels = 50_000_000;
 
-    public static ProcessedImage Process(byte[] input)
+    public static ProcessedImage Process(byte[] input, bool findFace = false)
     {
         using var data = SKData.CreateCopy(input);
         using var codec = SKCodec.Create(data)
@@ -31,7 +32,7 @@ public static class ImagePipeline
 
         using var image = SKImage.FromBitmap(sized);
         using var jpeg = image.Encode(SKEncodedImageFormat.Jpeg, 82);
-        return new ProcessedImage(jpeg.ToArray(), sized.Width, sized.Height, Hash(sized));
+        return new ProcessedImage(jpeg.ToArray(), sized.Width, sized.Height, Hash(sized), findFace ? FaceFinder.HasFace(sized) : null);
     }
 
     private static byte[] Hash(SKBitmap source)

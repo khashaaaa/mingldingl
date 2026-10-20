@@ -81,6 +81,12 @@ public sealed class BondSweep(IServiceScopeFactory scopes, IClock clock, IConfig
         if (judge is Judge.Embers or Judge.Cold && await db.Set<Encounters.Meeting>().AnyAsync(m => m.BondId == b.Id
                 && (m.State == Encounters.MeetingState.Sworn || m.State == Encounters.MeetingState.Checking || m.ClosedAt > before), ct))
             return false;
+        // Away by the fire holds the fire the same way for the side whose turn it is.
+        if (judge is Judge.Embers or Judge.Cold && b.LastLetterBy is { } wrote)
+        {
+            var turn = b.Other(wrote);
+            if (await db.Set<Profile.Profile>().AnyAsync(p => p.AccountId == turn && p.AwayUntil > before, ct)) return false;
+        }
         var live = sp.GetRequiredService<ILiveOutbox>();
         var push = sp.GetRequiredService<IPushOutbox>();
         var bonds = sp.GetRequiredService<BondService>();

@@ -2,7 +2,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import type { ReactNode } from 'react';
 import WorldLayout from '@/app/(world)/_layout';
-import { getAppStatus, getGetAppStatusQueryKey, getGetMeQueryKey, getMe } from '@/lib/api/generated/engine';
+import {
+  getAppStatus,
+  getDeepProfile,
+  getGetAppStatusQueryKey,
+  getGetDeepProfileQueryKey,
+  getGetMeQueryKey,
+  getMe,
+} from '@/lib/api/generated/engine';
 import type { CityView, MeView, PhotoView, ProfileView } from '@/lib/api/generated/model';
 import { setLocale } from '@/lib/i18n';
 import { applyLiveEvent } from '@/lib/live/events';
@@ -13,6 +20,7 @@ import WarRoom from '../../settings/WarRoom';
 import SquareTab from '../../square/SquareTab';
 import WorldTabs from '../../world/WorldTabs';
 import CharacterScreen from '../CharacterScreen';
+import DeepProfile, { DeepPicker } from '../DeepProfile';
 import EditCharacter from '../EditCharacter';
 
 jest.mock('@/lib/feedback', () => ({
@@ -82,6 +90,20 @@ function fakeEngine() {
     } as ProfileView,
     photos: [photo('a', 0), photo('b', 1), photo('c', 2)],
     puts: [] as Record<string, unknown>[],
+    deep: {
+      open: false,
+      showChildren: false,
+      answers: {
+        hasChildren: null,
+        wantsChildren: null,
+        partnerChildren: null,
+        smoking: null,
+        drinking: null,
+        faith: null,
+        lifestyle: null,
+      } as Record<string, string | null>,
+    },
+    deepPuts: [] as Record<string, unknown>[],
   };
   // Copies, like JSON off the wire: a shared object mutated in place would look unchanged to the cache.
   const me = (): MeView => ({
@@ -103,6 +125,16 @@ function fakeEngine() {
         return me();
       case 'GET /me/photos':
         return [...e.photos];
+      case 'GET /me/deep':
+        return { ...e.deep, answers: { ...e.deep.answers } };
+      case 'PUT /me/deep':
+        e.deepPuts.push(body);
+        for (const [k, v] of Object.entries(body))
+          if (v !== null) {
+            if (k === 'showChildren') e.deep.showChildren = v as boolean;
+            else e.deep.answers[k] = v as string;
+          }
+        return { ...e.deep, answers: { ...e.deep.answers } };
       case 'GET /geo/cities':
         return CITIES;
       case 'GET /app/status':
@@ -171,6 +203,8 @@ const ROUTES = {
   '(world)/(tabs)/character': CharacterScreen,
   '(world)/character-edit': EditCharacter,
   '(world)/war-room': WarRoom,
+  '(world)/deep/index': DeepProfile,
+  '(world)/deep/[field]': DeepPicker,
 };
 
 async function show(url = '/character') {
@@ -183,6 +217,9 @@ async function show(url = '/character') {
   // The gate only opens the world once /me and /app/status are in the cache.
   await client.prefetchQuery({ queryKey: getGetMeQueryKey(), queryFn: () => getMe() });
   await client.prefetchQuery({ queryKey: getGetAppStatusQueryKey(), queryFn: () => getAppStatus() });
+  // Data that arrives after the first render waits on renderRouter's fake timers: have it first.
+  if (url.startsWith('/deep'))
+    await client.prefetchQuery({ queryKey: getGetDeepProfileQueryKey(), queryFn: () => getDeepProfile() });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
@@ -341,5 +378,37 @@ describe('Edit your character', () => {
     await press('Back');
     expect(screen.queryByText('Leave without saving?')).toBeNull();
     expect(view.getPathname()).toBe('/war-room');
+  });
+});
+
+describe('Deep profile', () => {
+  test('the Yard answers whether they have children; the rest is sealed for the Hall', async () => {
+    await show('/deep');
+    expect(screen.getByText('Has children')).toBeTruthy();
+    expect(screen.queryByText('Wants children')).toBeNull();
+    expect(screen.getByText(/are the Hall's/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Visit the Guild House' })).toBeTruthy();
+  });
+
+  test('choosing "I have children" then showing it in the Tavern saves both', async () => {
+    await show('/deep');
+    await press(/^Has children/);
+    const sw = screen.getByRole('switch', { name: 'Show it in the Tavern' });
+    expect(sw.props.accessibilityState?.disabled).toBe(true);
+    await press('I have children');
+    expect(engine.deepPuts[0]).toMatchObject({ hasChildren: 'yes', showChildren: null, wantsChildren: null });
+    await press(/^Has children/);
+    await fireEvent.press(screen.getByRole('switch', { name: 'Show it in the Tavern' }));
+    await settle();
+    expect(engine.deepPuts.at(-1)).toMatchObject({ showChildren: true, hasChildren: null });
+    await show('/deep');
+    expect(screen.getByText('Yes · shown in the Tavern')).toBeTruthy();
+  });
+
+  test('a member sees all three children questions', async () => {
+    engine.deep.open = true;
+    await show('/deep');
+    for (const q of ['Has children', 'Wants children', "A partner's children", 'Smoking'])
+      expect(screen.getByText(q)).toBeTruthy();
   });
 });

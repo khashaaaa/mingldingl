@@ -23,6 +23,7 @@ public static class DatabaseBootstrap
             await LooseVerifyMnColumnsAsync(db, ct);
             await Questions.SeedAsync(db, ct);
             await CodexService.SeedAsync(db, DateTimeOffset.UtcNow, ct);
+            await Features.Wanderings.WanderingSeed.SeedAsync(db, DateTimeOffset.UtcNow, ct);
             await FestivalService.SeedAsync(db, scope.ServiceProvider.GetRequiredService<IClock>().TodayUb, ct);
         }
         await ConfigService.SeedAndLoadAsync(services);

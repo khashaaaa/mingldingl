@@ -3,9 +3,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Art } from '@/design/components/Art';
 import { Banner } from '@/design/components/Banner';
+import { Button } from '@/design/components/Button';
 import { Composer } from '@/design/components/Composer';
 import { Dialog } from '@/design/components/Dialog';
 import { Frost } from '@/design/components/Frost';
+import { InkLink } from '@/design/components/InkLink';
 import { DayHeading, Letter, SealLine } from '@/design/components/Letter';
 import { Row } from '@/design/components/Row';
 import { Sheet } from '@/design/components/Sheet';
@@ -23,8 +25,9 @@ import { toast } from '@/lib/toast';
 import { RetiredTogether } from '../campaign/RetireScreen';
 import { CampaignRow } from '../campaign/RoadRows';
 import { Scene } from '../common/Scene';
-import { clock, dayOf, hoursBetween, useMinute } from '../common/time';
+import { clock, dayOf, hoursBetween, useMinute, weekday } from '../common/time';
 import { NextStep, SafetyRow } from '../encounters/NextStep';
+import { WanderingAsk } from '../wanderings/WanderingEntry';
 import { BondHeader } from './BondHeader';
 import { sendLetter, type Unsent, useUnsent } from './outbox';
 import { RoadNotice } from './RoadNotice';
@@ -135,18 +138,24 @@ export default function BondScreen() {
 
   const other = bond.other;
   const first = other.portraits[0] ?? null;
+  // Severed by the other side (not by retiring elsewhere): the paths parted, with no blame.
+  const parted = bond.state === 'Severed' && !bond.closedByMe && bond.closedWhy !== 'retired';
   const status =
     bond.state === 'Cold'
       ? t('bond.goneCold')
       : bond.state === 'Severed'
-        ? t('bond.severed')
+        ? parted
+          ? t('bond.parted')
+          : t('bond.severed')
         : bond.state === 'Faded'
           ? t('bond.faded')
           : bond.state === 'Retired'
             ? t('quests.retired')
-            : bond.seals > 0
-              ? t('bond.sealsBroken', { n: bond.seals })
-              : t('bond.sealedMatched');
+            : other.awayUntil
+              ? t('bond.awayUntil', { day: weekday(other.awayUntil) })
+              : bond.seals > 0
+                ? t('bond.sealsBroken', { n: bond.seals })
+                : t('bond.sealedMatched');
   const header = (
     <BondHeader
       name={other.name}
@@ -165,22 +174,49 @@ export default function BondScreen() {
       </Scene>
     );
 
+  if (parted)
+    return (
+      <Scene
+        header={header}
+        footer={<Button label={t('bond.partedBack')} onPress={() => router.navigate('/seek')} block />}
+      >
+        {/* Figma 254:13475: the paths parted — no blame, and the candle spent tonight is lit again */}
+        <View style={styles.closedTop} />
+        <Art name="candle_lit" style={styles.candle} fit="contain" />
+        <Txt variant="displayM" engraved align="center" accessibilityRole="header">
+          {t('bond.partedTitle')}
+        </Txt>
+        <Txt variant="voiceM" color="textSecondary" align="center">
+          {t('bond.partedBody')}
+        </Txt>
+        {bond.candleBack ? (
+          <Txt variant="voiceM" color="textMuted" align="center">
+            {t('bond.partedCandle')}
+          </Txt>
+        ) : null}
+      </Scene>
+    );
+
   if (bond.state === 'Severed' || bond.state === 'Faded') {
     const severed = bond.state === 'Severed';
     const elsewhere = bond.closedWhy === 'retired' && !bond.closedByMe;
     return (
       <Scene header={header}>
-        {/* Figma 31:421: the broken seal, high in the room */}
+        {/* Figma 254:13550: the broken seal, high in the room */}
         <View style={styles.closedTop} />
         <Art name={severed ? 'seal_broken' : 'seal_wax'} style={styles.seal} fit="contain" />
         <Txt variant="displayM" engraved align="center" accessibilityRole="header">
-          {severed ? t('bond.severedTitle') : t('bond.fadedTitle')}
+          {!severed
+            ? t('bond.fadedTitle')
+            : bond.closedByMe
+              ? t('bond.severedMineTitle')
+              : t('bond.severedTitle')}
         </Txt>
         <Txt variant="voiceM" color="textSecondary" align="center">
           {elsewhere
             ? t('bond.retiredElsewhere', { name: other.name })
             : severed
-              ? t('bond.severedBody')
+              ? t('bond.severedMineBody')
               : t('bond.fadedBody')}
         </Txt>
       </Scene>
@@ -199,6 +235,15 @@ export default function BondScreen() {
     }
   };
 
+  // Figma 258:2774: they are away by the fire, and nothing goes cold meanwhile.
+  const away =
+    bond.state === 'Live' && other.awayUntil ? (
+      <Banner
+        glyph="night"
+        tint="textSecondary"
+        text={t('bond.awayNotice', { name: other.name, day: weekday(other.awayUntil) })}
+      />
+    ) : null;
   const heading =
     bond.embers && bond.myTurn && bond.coldAt && newest ? (
       <Banner
@@ -237,7 +282,9 @@ export default function BondScreen() {
               <View style={styles.heading}>
                 <RoadNotice />
                 {heading}
+                {away}
                 {bond.state === 'Live' && <NextStep bondId={id} name={other.name} />}
+                {bond.state === 'Live' && <WanderingAsk bondId={id} name={other.name} />}
               </View>
             )}
             <FlatList
@@ -306,6 +353,14 @@ export default function BondScreen() {
             }}
           />
           <Row
+            title={t('bond.optLetGo')}
+            subtitle={t('bond.optLetGoHint')}
+            onPress={() => {
+              setOptions(false);
+              router.push('/codex/letting-go');
+            }}
+          />
+          <Row
             title={t('bond.optSever')}
             subtitle={t('bond.optSeverHint')}
             onPress={() => {
@@ -371,6 +426,8 @@ function NoWords({ bond, myGender }: { bond: BondView; myGender: string | null }
           <NextStep bondId={bond.id} name={bond.other.name} />
         </View>
       )}
+      {/* Figma 258:2489: the guide to a first letter */}
+      <InkLink label={t('bond.firstLetterGuide')} onPress={() => router.push('/codex/first-letter')} />
     </View>
   );
 }
@@ -403,4 +460,5 @@ const styles = StyleSheet.create({
     paddingTop: dimension.space7,
   },
   seal: { width: 64, height: 64, alignSelf: 'center' },
+  candle: { width: 27, height: 80, alignSelf: 'center' }, // Figma 254:13475: Seek's candle at 1.6×
 });

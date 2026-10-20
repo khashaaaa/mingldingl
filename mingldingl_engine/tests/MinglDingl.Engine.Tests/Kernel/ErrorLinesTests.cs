@@ -12,7 +12,8 @@ public class ErrorLinesTests
     private static readonly HashSet<string> NeverShownToADater =
     [
         "admin.bad_action", "admin.bad_cursor", "admin.bad_login", "admin.bad_status", "admin.login_throttled",
-        "admin.report_not_found", "admin.report_resolved", "admin.user_not_found",
+        "admin.report_not_found", "admin.report_resolved", "admin.user_not_found", "admin.already_suspended", "admin.not_suspended",
+        "admin.busy", "admin.bad_field", "admin.bad_floor", "admin.not_barred", "square.started", "square.seats_taken",
         "auth.invalid_refresh", "auth.reused", "auth.revoked", // the session layer signs out instead
         "block.self", "report.not_found", "report.self", "push.token", "photos.key", "profile.locale",
         "codex.locale", "codex.not_found", "config.bad_value", "config.out_of_bounds", "config.unknown",

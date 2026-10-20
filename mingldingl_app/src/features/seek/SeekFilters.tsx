@@ -24,7 +24,7 @@ const AGES: { key: StringKey; min: number | null; max: number | null }[] = [
   { key: 'filters.age45', min: 45, max: null },
 ];
 const OATHS = ['Bond', 'Fate', 'Kinship'] as const;
-const CHILDREN = ['has', 'wants', 'doesNotWant'] as const;
+const CHILDREN = ['has', 'wants', 'doesNotWant', 'welcomes'] as const;
 
 const EMPTY: SeekFilterRequest = {
   ageMin: null,

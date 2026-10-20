@@ -3,9 +3,9 @@ using MinglDingl.Engine.Features.Photos;
 namespace MinglDingl.Engine.Features.Seek;
 
 /// place: province, or "Ulaanbaatar". portrait: sealed (ThumbHash only). No name: a stranger in Seek is
-/// nameless until a bond is made.
+/// nameless until a bond is made. hasChildren: they have children and chose to show it.
 public sealed record CandidateView(
-    Guid AccountId, int Age, string Tier, string? Place, string? Oath, string? Bio, PortraitView? Portrait);
+    Guid AccountId, int Age, string Tier, string? Place, string? Oath, string? Bio, PortraitView? Portrait, bool HasChildren);
 
 /// state: companion | rests (no candles left) | full (no free seat) | empty (no one tonight) | closed (Seek is off).
 /// nextDawnAt: when the candles come back (the next Ulaanbaatar day). floor: yard / hall / highTable.
@@ -15,7 +15,8 @@ public sealed record SeekView(
     string State, CandidateView? Candidate, int CandlesLeft, int CandlesPerDay, DateTimeOffset NextDawnAt, int SeatsUsed, int Seats,
     string Floor, bool SecondLook, bool Filtered);
 
-/// open: the person may set filters (a member). Every field null means no filter.
+/// open: the person may set filters (a member). Every field null means no filter. children: has | wants |
+/// doesNotWant | welcomes (a partner's children) — it reads the stored answer, shown or not.
 public sealed record SeekFilterView(bool Open, int? AgeMin, int? AgeMax, string? City, string? Oath, string? Children, string? Smoking,
     string? Drinking);
 

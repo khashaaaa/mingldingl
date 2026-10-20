@@ -69,6 +69,7 @@ export function ReportDetailPage() {
             {' '}
             · {r.targetStatus} · {r.targetReports} {r.targetReports === 1 ? 'report' : 'reports'} in all
           </span>
+          {r.targetUnderReview && <span className="danger"> · hidden from Seek until decided</span>}
         </dd>
         <dt className="label">Note</dt>
         <dd>{r.note ?? <span className="muted">—</span>}</dd>

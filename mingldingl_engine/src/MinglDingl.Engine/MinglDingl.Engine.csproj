@@ -15,6 +15,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.31.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Sentry.AspNetCore" Version="6.12.0" />
     <PackageReference Include="SkiaSharp" Version="4.153.1" />
@@ -24,6 +25,7 @@
   <ItemGroup>
     <None Include="Seed/photos/*.jpg" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Seed/crowd/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Models/*.onnx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

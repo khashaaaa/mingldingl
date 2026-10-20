@@ -102,6 +102,9 @@ public sealed class AccountService(
             .Select(b => new { b.Id, Other = b.AId == accountId ? b.BId : b.AId }).ToListAsync(ct);
         foreach (var b in bonds) live.ToAccount(b.Other, LiveKinds.BondUpdated, b.Id);
         live.ToAdmins(LiveKinds.UserUpdated, accountId);
+        var reported = await db.Set<Safety.Report>().AnyAsync(r => r.TargetId == accountId && r.Status == Safety.ReportStatus.Open, ct);
+        if (a.Status == AccountStatus.Suspended || reported)
+            await BarAsync(a, a.Status == AccountStatus.Suspended ? a.SuspendedWhy ?? "Suspended" : "Left with reports still open", ct);
         db.Remove(a);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
@@ -112,6 +115,19 @@ public sealed class AccountService(
             catch (Exception e) { log.LogWarning(e, "Burned account {Account}: portrait file {Path} not deleted", accountId, path); }
         }
         return true;
+    }
+
+    /// A removed character's number and devices outlive it (see BarredNumber).
+    private async Task BarAsync(Account a, string why, CancellationToken ct)
+    {
+        var now = clock.UtcNow;
+        if (!await db.Set<BarredNumber>().AnyAsync(b => b.Phone == a.Phone, ct))
+            db.Add(new BarredNumber { Phone = a.Phone, Why = why, CreatedAt = now });
+        var keys = await db.Set<DeviceSession>().Where(d => d.AccountId == a.Id && d.DeviceKey != null)
+            .Select(d => d.DeviceKey!).Distinct().ToListAsync(ct);
+        var known = await db.Set<BarredDevice>().Where(d => keys.Contains(d.Key)).Select(d => d.Key).ToListAsync(ct);
+        foreach (var k in keys.Except(known)) db.Add(new BarredDevice { Key = k, Why = why, CreatedAt = now });
+        live.ToAdmins(LiveKinds.BarredChanged);
     }
 
     private async Task RefuseTakenAsync(Guid accountId, string phone, CancellationToken ct)

@@ -28,4 +28,5 @@ export interface BondView {
   summonedByMe: boolean;
   /** @nullable */
   closedWhy: string | null;
+  candleBack: boolean;
 }

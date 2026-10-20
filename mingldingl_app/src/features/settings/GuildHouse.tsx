@@ -134,7 +134,11 @@ export default function GuildHouse() {
     const on = m.floor === 'highTable' ? 'highTable' : 'hall';
     const welcome = stage === 'welcome';
     const until = m.until ? onMoon(m.until) : '';
-    const line = m.renews ? t('guild.renewsOn', { date: until }) : t('guild.paidUntil', { date: until });
+    const line = m.renews
+      ? t('guild.renewsOn', { date: until })
+      : m.source === 'keeper'
+        ? t('guild.giftUntil', { date: until })
+        : t('guild.paidUntil', { date: until });
     return (
       <Scene
         header={header}

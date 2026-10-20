@@ -7,7 +7,13 @@
 
 export interface DeepUpdateRequest {
   /** @nullable */
-  children: string | null;
+  hasChildren: string | null;
+  /** @nullable */
+  showChildren: boolean | null;
+  /** @nullable */
+  wantsChildren: string | null;
+  /** @nullable */
+  partnerChildren: string | null;
   /** @nullable */
   smoking: string | null;
   /** @nullable */

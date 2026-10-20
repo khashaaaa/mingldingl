@@ -24,6 +24,7 @@ public sealed class StatsTables(AppDb db, IClock clock, IConfig config, IConfigu
             "growth" => await FunnelAsync(start, end, f, ct),
             "engagement" => await StreaksAsync(f, ct),
             "matching" => await SourcesAsync(start, end, f, ct),
+            "severed" => await OftenSeveredAsync(start, end, f, ct),
             "encounters" => await VenuesAsync(start, end, ct),
             "square" => await BellsAsync(start, end, ct),
             "money" => await MoneyAsync(start, end, ct),
@@ -110,6 +111,28 @@ public sealed class StatsTables(AppDb db, IClock clock, IConfig config, IConfigu
         var names = new Dictionary<string, string> { ["seek"] = "Seek", ["thread"] = "Fated Thread", ["square"] = "Town Square" };
         return new StatTable(["Bonds by source", "Made", "Reached the 4th seal", "Gone cold"],
             [.. rows.Select(r => (IReadOnlyList<string>)[names.GetValueOrDefault(r.Origin, r.Origin), r.Made.ToString(), r.Fourth.ToString(), r.Cold.ToString()])]);
+    }
+
+    private sealed record SeveredRow(Guid Id, string Name, string? Gender, DateOnly BirthDate, long Severed, long Bonds);
+
+    /// The people let go most in the range (three Severs or more, by the other side): who keeps being
+    /// left, for the keepers to look at. Seek's order never changes for it.
+    private async Task<StatTable> OftenSeveredAsync(DateTimeOffset start, DateTimeOffset end, StatFilter f, CancellationToken ct)
+    {
+        var rows = await db.Database.SqlQueryRaw<SeveredRow>($"""
+            SELECT p."AccountId" AS "Id", p."Name" AS "Name", p."Gender" AS "Gender", p."BirthDate" AS "BirthDate",
+                   count(*)::bigint AS "Severed",
+                   (SELECT count(*) FROM bonds o WHERE (o."AId" = p."AccountId" OR o."BId" = p."AccountId")
+                      AND o."CreatedAt" >= @start AND o."CreatedAt" < @end)::bigint AS "Bonds"
+            FROM bonds b JOIN profiles p ON p."AccountId" = CASE WHEN b."ClosedBy" = b."AId" THEN b."BId" ELSE b."AId" END
+            WHERE b."State" = 'Severed' AND b."ClosedAt" >= @start AND b."ClosedAt" < @end AND {PeopleFilter}
+            GROUP BY p."AccountId", p."Name", p."Gender", p."BirthDate"
+            HAVING count(*) >= 3 ORDER BY 5 DESC, 2 LIMIT 50
+            """, Params(f, new NpgsqlParameter("start", start), new NpgsqlParameter("end", end))).ToListAsync(ct);
+        var today = clock.TodayUb;
+        return new StatTable(["Often severed", "Gender", "Age", "Severed", "Bonds in the range"],
+            [.. rows.Select(r => (IReadOnlyList<string>)[r.Name, r.Gender ?? "—", Profile.ProfileService.AgeOn(r.BirthDate, today).ToString(),
+                r.Severed.ToString(), r.Bonds.ToString()])], [.. rows.Select(r => r.Id)]);
     }
 
     private sealed record VenueRow(string Name, string District, long Kept, double? Rating);

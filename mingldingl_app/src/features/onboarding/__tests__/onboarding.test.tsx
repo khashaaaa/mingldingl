@@ -46,6 +46,8 @@ function fakeEngine() {
     creates: 0,
     uploads: [] as string[],
     failUploads: 0,
+    /** An engine rule code every upload is refused with (e.g. photos.no_face). */
+    refuseUploads: null as string | null,
     min: 3,
   };
   const step = () => {
@@ -88,6 +90,8 @@ function fakeEngine() {
           tier: 'Garnet',
           tierUpPending: null,
           paused: false,
+          awayUntil: null,
+          awayNextAt: null,
           createdAt: '2026-10-06T00:00:00Z',
         };
         return me();
@@ -107,6 +111,7 @@ function fakeEngine() {
           e.failUploads--;
           throw new ApiError('network', 0, 'network', 'dropped');
         }
+        if (e.refuseUploads) throw new ApiError('rule', 400, e.refuseUploads, 'refused');
         const photo = {
           id: `p-${idem}`,
           url: 'u',
@@ -285,6 +290,25 @@ describe('Onboarding', () => {
     await press('Lost — tap');
     expect(engine.e.uploads.filter((k) => k === first)).toHaveLength(2);
     expect(engine.e.photos.map((p) => p.id)).toContain(`p-${first}`);
+  });
+
+  test('a photo the engine refuses leaves the grid with its reason, not a retry', async () => {
+    engine.e.profile = { ...base(), gender: 'Female' };
+    engine.e.refuseUploads = 'photos.no_face';
+    picker.requestMediaLibraryPermissionsAsync.mockResolvedValue({ granted: true } as never);
+    picker.launchImageLibraryAsync.mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: 'file:///drawing.jpg', base64: '/9j/' }],
+    } as never);
+    await show();
+
+    await addPortrait();
+    expect(
+      screen.getByText('We could not find a face in this portrait. Choose one that shows you.'),
+    ).toBeTruthy();
+    expect(screen.queryByText('Lost — tap')).toBeNull();
+    expect(screen.queryByText('The portrait did not arrive. Tap to try again.')).toBeNull();
+    expect(screen.queryByLabelText('Uploading the portrait')).toBeNull();
   });
 
   test('photo access refused shows how to allow it', async () => {
@@ -486,6 +510,8 @@ function base(): ProfileView {
     tier: 'Garnet',
     tierUpPending: null,
     paused: false,
+    awayUntil: null,
+    awayNextAt: null,
     createdAt: '2026-10-06T00:00:00Z',
   };
 }

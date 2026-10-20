@@ -22,6 +22,8 @@ public sealed class AuditEntry
     public string Keeper { get; set; } = "";
     public string Action { get; set; } = "";
     public string? Target { get; set; }
+    /// The keeper's reason, for the actions that ask for one.
+    public string? Note { get; set; }
 }
 
 internal sealed class AuditEntryMap : IEntityTypeConfiguration<AuditEntry>
@@ -31,12 +33,13 @@ internal sealed class AuditEntryMap : IEntityTypeConfiguration<AuditEntry>
         e.ToTable("audit_log");
         e.Property(x => x.Keeper).HasMaxLength(40);
         e.Property(x => x.Action).HasMaxLength(200);
+        e.Property(x => x.Note).HasMaxLength(Kernel.Validation.FieldLimits.KeeperReason);
         e.Property(x => x.Target).HasMaxLength(80);
         e.HasIndex(x => x.At);
     }
 }
 
-public sealed record AuditRow(Guid Id, DateTimeOffset At, string Keeper, string Action, string? Target);
+public sealed record AuditRow(Guid Id, DateTimeOffset At, string Keeper, string Action, string? Target, string? Note);
 
 /// status: published (both languages) / needsMn (English only).
 public sealed record AdminCodexRow(string Slug, string Kind, int Position, string Title, IReadOnlyList<string> Locales,
@@ -125,7 +128,7 @@ public sealed class AdminWorld(AppDb db, IClock clock, ILiveOutbox live)
     {
         var q = db.Set<AuditEntry>().AsNoTracking();
         if (before is { } b) q = q.Where(a => a.At < b);
-        return await q.OrderByDescending(a => a.At).ThenByDescending(a => a.Id).Take(100).Select(a => new AuditRow(a.Id, a.At, a.Keeper, a.Action, a.Target)).ToListAsync(ct);
+        return await q.OrderByDescending(a => a.At).ThenByDescending(a => a.Id).Take(100).Select(a => new AuditRow(a.Id, a.At, a.Keeper, a.Action, a.Target, a.Note)).ToListAsync(ct);
     }
 }
 
@@ -148,6 +151,7 @@ public sealed class AuditMiddleware(RequestDelegate next)
         var name = http.GetEndpoint()?.Metadata.GetMetadata<EndpointNameMetadata>()?.EndpointName;
         var route = http.Request.RouteValues;
         string? Value(string k) => route.TryGetValue(k, out var v) ? v?.ToString() : null;
+        string? Item(string k) => http.Items.TryGetValue(k, out var v) ? v as string : null;
         var oldConfig = name == "AdminSetConfig" && Value("key") is { } key && ConfigKeys.Find(key) is not null ? config.Str(key) : null;
 
         await next(http);
@@ -168,12 +172,23 @@ public sealed class AuditMiddleware(RequestDelegate next)
             "AdminRefundedByHand" => ("Payment returned by bank transfer", await PayerAsync(db, Value("id"))),
             "AdminPaymentHandled" => ("Payment marked as handled", await PayerAsync(db, Value("id"))),
             "AdminRunSweep" => ("Maintenance sweep run by hand", null),
+            "AdminEditGathering" => ("A gathering was edited", Value("id")),
+            "AdminSuspendUser" => ("Suspended", Item("audit.target")),
+            "AdminLiftSuspension" => ("Suspension lifted", Item("audit.target")),
+            "AdminSignOutUser" => ("Signed out everywhere", Item("audit.target")),
+            "AdminDeleteUserNow" => ("Deleted at once", Item("audit.target")),
+            "AdminClearUserText" => ($"Cleared the {Item("audit.what")}", Item("audit.target")),
+            "AdminRemoveUserPhoto" => ("Removed a portrait", Item("audit.target")),
+            "AdminGiveFloor" => ($"Gave {Item("audit.what")}", Item("audit.target")),
+            "AdminAdjustScore" => ($"Adjusted {Item("audit.what")}", Item("audit.target")),
+            "AdminClearUserFlag" => ("Cleared the shared-device flag", Item("audit.target")),
+            "AdminUnbarNumber" => ("Lifted the bar on a number", Item("audit.target")),
             _ => (name ?? $"{http.Request.Method} {path}", null),
         };
         db.Add(new AuditEntry
         {
             Id = Guid.CreateVersion7(), At = clock.UtcNow, Keeper = settings["Admin:Username"] ?? "keeper",
-            Action = action.Length > 200 ? action[..200] : action, Target = target,
+            Action = action.Length > 200 ? action[..200] : action, Target = target, Note = Item("audit.note"),
         });
         live.ToAdmins(LiveKinds.AuditCreated);
         await db.SaveChangesAsync();

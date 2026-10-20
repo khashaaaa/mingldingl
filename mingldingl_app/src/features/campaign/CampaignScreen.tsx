@@ -7,6 +7,7 @@ import { dimension } from '@/design/tokens';
 import { useGetBond, useGetCampaign } from '@/lib/api/generated/engine';
 import { t } from '@/lib/i18n';
 import { Scene } from '../common/Scene';
+import { WanderingEntry } from '../wanderings/WanderingEntry';
 import { RoadRows } from './RoadRows';
 
 /** The Campaign (Figma 33:1929): the bond's map of the Deep and how many chambers the pair has cleared. */
@@ -29,6 +30,7 @@ export default function CampaignScreen() {
           </Txt>
         </View>
       ) : null}
+      <WanderingEntry bondId={id} />
       <View style={styles.rows}>
         <RoadRows bondId={id} name={bond?.other.name ?? ''} />
       </View>

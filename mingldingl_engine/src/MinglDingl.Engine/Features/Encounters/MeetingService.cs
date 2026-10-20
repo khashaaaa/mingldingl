@@ -228,6 +228,10 @@ public sealed class MeetingService(
         }
     }
 
+    /// A bond's kept meetings (the Wanderings open by them).
+    public Task<int> KeptCountAsync(Guid bondId, CancellationToken ct = default) =>
+        db.Set<Meeting>().CountAsync(m => m.BondId == bondId && m.Outcome == MeetingOutcome.Kept, ct);
+
     private async Task ProveOathAsync(Guid who, CancellationToken ct)
     {
         var p = await db.Set<Profile.Profile>().SingleAsync(x => x.AccountId == who, ct);

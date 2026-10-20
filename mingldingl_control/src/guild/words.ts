@@ -138,6 +138,7 @@ const mn: Words = {
 /** The engine's rules this page can meet, in Mongolian (the app's `error.<code>` lines). */
 const errorsMn: Record<string, string> = {
   'auth.bad_phone': '8 оронтой Монгол дугаар оруул.',
+  'auth.barred': 'Энэ дугаараар баатар үүсгэх боломжгүй. Алдаа гэж бодож байвал манаачтай холбогд.',
   'auth.not_verified': 'Эхлээд кодоо бич.',
   'auth.already_claimed': 'Энэ код хэдийн ашиглагдсан.',
   'auth.verification_expired': 'Код хуучирсан — шинийг илгээ.',
