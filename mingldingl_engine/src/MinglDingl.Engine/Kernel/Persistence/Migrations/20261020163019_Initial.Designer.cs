@@ -1031,6 +1031,17 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
+                    b.Property<DateTimeOffset?>("FaceProvenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FaceTries")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateOnly?>("FaceTriesDay")
+                        .HasColumnType("date");
+
                     b.Property<string>("Faith")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
@@ -1377,6 +1388,9 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.Property<string>("Drinking")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
+
+                    b.Property<bool?>("FaceProven")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Oath")
                         .HasMaxLength(10)

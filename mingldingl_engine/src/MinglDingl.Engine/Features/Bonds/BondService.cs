@@ -286,7 +286,7 @@ public sealed class BondService(
         var portraits = await photos.PortraitsAsync(otherId, Revealed(b.Seals, total), ct);
         var person = new BondPersonView(otherId, p.Name, ProfileService.AgeOn(p.BirthDate, clock.TodayUb), p.Tier, p.Oath, p.Bio,
             Place(p.City, b.Seals >= 3), portraits, Profile.DeepProfile.ShowsChildren(p), p.AwayUntil > clock.UtcNow ? p.AwayUntil : null,
-            b.Seals >= 4 && (await membership.PerksAsync(me, ct)).Paid ? Profile.DeepProfile.Of(p) : null);
+            b.Seals >= 4 && (await membership.PerksAsync(me, ct)).Paid ? Profile.DeepProfile.Of(p) : null, p.FaceProvenAt is not null);
         var mine = b.AId == me ? b.LettersA : b.LettersB;
         var theirs = b.AId == me ? b.LettersB : b.LettersA;
         int? next = b.Seals < 4 ? config.Int(ConfigKeys.SealLadder[b.Seals]) : null;

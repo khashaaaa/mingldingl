@@ -22,7 +22,7 @@ public sealed record UpdateProfileRequest(
 public sealed record ProfileView(
     string Name, DateOnly BirthDate, int Age, string? Gender, string? Bio, string? City, string? Oath,
     DateTimeOffset? OathSwornAt, DateTimeOffset? OathProvenAt, string Locale, int Points, string Tier, string? TierUpPending, DateTimeOffset CreatedAt,
-    bool Paused, DateTimeOffset? AwayUntil, DateTimeOffset? AwayNextAt);
+    bool Paused, DateTimeOffset? AwayUntil, DateTimeOffset? AwayNextAt, DateTimeOffset? FaceProvenAt);
 
 /// onboardingStep: 1 name & age · 2 gender · 3 portraits · 4 about + city · 5 oath · 6 welcome · 7 in the world.
 /// phoneHint: the first four digits of your sigil (the War Room shows "+976 8858 ····").

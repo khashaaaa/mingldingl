@@ -23,6 +23,7 @@ public static class DatabaseBootstrap
             await db.Database.MigrateAsync(ct);
             await LooseVerifyMnColumnsAsync(db, ct);
             await AddVenueMnColumnsAsync(db, ct);
+            await AddFaceColumnsAsync(db, ct);
             await Questions.SeedAsync(db, ct);
             await CodexService.SeedAsync(db, DateTimeOffset.UtcNow, ct);
             await Features.Wanderings.WanderingSeed.SeedAsync(db, DateTimeOffset.UtcNow, ct);
@@ -40,6 +41,16 @@ public static class DatabaseBootstrap
             ALTER TABLE venues ADD COLUMN IF NOT EXISTS "AddressMn" character varying({{FieldLimits.VenueAddress}});
             ALTER TABLE venues ADD COLUMN IF NOT EXISTS "HoursMn" character varying({{FieldLimits.VenueHours}});
             ALTER TABLE venues ADD COLUMN IF NOT EXISTS "DescriptionMn" character varying({{FieldLimits.VenueDescription}});
+            """, ct);
+
+    /// A database made before the face check (the server's and the dev one) gains its profile columns
+    /// and the Seek filter's; a no-op on a fresh one.
+    private static Task AddFaceColumnsAsync(AppDb db, CancellationToken ct) =>
+        db.Database.ExecuteSqlRawAsync("""
+            ALTER TABLE profiles ADD COLUMN IF NOT EXISTS "FaceProvenAt" timestamp with time zone;
+            ALTER TABLE profiles ADD COLUMN IF NOT EXISTS "FaceTries" integer NOT NULL DEFAULT 0;
+            ALTER TABLE profiles ADD COLUMN IF NOT EXISTS "FaceTriesDay" date;
+            ALTER TABLE seek_filters ADD COLUMN IF NOT EXISTS "FaceProven" boolean;
             """, ct);
 
     /// A database made before WeSend still has verify.mn's code columns, NOT NULL, which the model no

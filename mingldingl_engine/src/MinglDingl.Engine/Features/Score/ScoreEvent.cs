@@ -20,6 +20,8 @@ public static class DeedKinds
     public const string Rite = "rite";
     public const string Meeting = "meeting";
     public const string OathProven = "oathProven";
+    /// The face check matched (once a lifetime, even if the mark is lost and won back).
+    public const string FaceProven = "faceProven";
     public const string Quest = "quest";
     public const string Chest = "chest";
     public const string CampaignRoom = "campaignRoom";

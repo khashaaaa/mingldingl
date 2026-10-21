@@ -21,4 +21,5 @@ export interface SeekFilterView {
   smoking: string | null;
   /** @nullable */
   drinking: string | null;
+  faceProven: boolean;
 }

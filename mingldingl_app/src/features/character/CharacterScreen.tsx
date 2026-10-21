@@ -12,6 +12,7 @@ import { dimension } from '@/design/tokens';
 import {
   useGetChests,
   useGetEncounterLog,
+  useGetFaceProof,
   useGetHonours,
   useGetMe,
   useGetTiers,
@@ -34,6 +35,7 @@ export default function CharacterScreen() {
   const ladder = useGetTiers().data;
   const honours = useGetHonours().data;
   const chests = useGetChests().data?.length ?? 0;
+  const face = useGetFaceProof().data;
   const charted = useGetEncounterLog().data?.standing.districts.length ?? 0;
   const earned = honours?.filter((h) => h.earned).length ?? 0;
   const profile = me?.profile;
@@ -78,6 +80,15 @@ export default function CharacterScreen() {
               oath: tValue('oath', profile.oath),
             })}
             meta={t(profile.oathProvenAt ? 'satchel.proven' : 'satchel.swornMeta').toUpperCase()}
+          />
+        ) : null}
+        {face?.open || profile.faceProvenAt ? (
+          <Row
+            glyph="shield"
+            title={t('character.face')}
+            subtitle={t(profile.faceProvenAt ? 'character.faceProven' : 'character.faceHint')}
+            meta={profile.faceProvenAt ? t('satchel.proven').toUpperCase() : undefined}
+            onPress={() => router.push('/face-proof' as never)}
           />
         ) : null}
         <Row

@@ -67,6 +67,7 @@ public sealed class PhotoService(
                 throw new DomainException(409, "photos.full", "You already have the most portraits allowed");
             photo.Position = count;
             db.Add(photo);
+            await ForgetFaceAsync(accountId, ct);
             Announce(accountId);
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
@@ -104,6 +105,7 @@ public sealed class PhotoService(
         db.Remove(target);
         var i = 0;
         foreach (var p in photos.Where(p => p.Id != photoId)) p.Position = i++;
+        await ForgetFaceAsync(accountId, ct);
         Announce(accountId);
         await db.SaveChangesAsync(ct);
         urls.Forget(photoId);
@@ -148,6 +150,22 @@ public sealed class PhotoService(
             else result[p.AccountId] = new PortraitView(p.Id, 0, hash, p.Width, p.Height, null, null);
         }
         return result;
+    }
+
+    /// The stored portraits' bytes, in order — only for the face check, which keeps nothing of them.
+    public async Task<IReadOnlyList<byte[]>> PortraitFilesAsync(Guid accountId, CancellationToken ct = default)
+    {
+        var paths = await db.Set<Photo>().AsNoTracking().Where(p => p.AccountId == accountId)
+            .OrderBy(p => p.Position).Select(p => p.Path).ToListAsync(ct);
+        return await Task.WhenAll(paths.Select(path => store.GetAsync(path, ct)));
+    }
+
+    /// A proven face was proven against the portraits as they were: any change takes the mark off.
+    private async Task ForgetFaceAsync(Guid accountId, CancellationToken ct)
+    {
+        if (await db.Set<Profile.Profile>().Where(p => p.AccountId == accountId && p.FaceProvenAt != null)
+                .ExecuteUpdateAsync(u => u.SetProperty(p => p.FaceProvenAt, (DateTimeOffset?)null), ct) > 0)
+            live.ToAccount(accountId, LiveKinds.ProfileUpdated, accountId);
     }
 
     private void Announce(Guid accountId)

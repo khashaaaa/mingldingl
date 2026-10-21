@@ -32,4 +32,6 @@ export interface ProfileView {
   awayUntil: string | null;
   /** @nullable */
   awayNextAt: string | null;
+  /** @nullable */
+  faceProvenAt: string | null;
 }

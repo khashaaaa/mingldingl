@@ -3,6 +3,20 @@
 Newest first. One short entry per finished piece of work: what a person can now do, what was
 decided, what was fixed on a device. Open items live in the plan's Backlog, not here.
 
+## 2026-10-22 — The face check; launch accounts
+
+Optional face check: Character → Your face takes two front-camera selfies (straight, then turned),
+the engine matches them against the portraits with YuNet + SFace on ONNX Runtime (scores checked
+against OpenCV's) and keeps only the answer; a match puts "Face proven" on the card in the Tavern
+and in bonds, a portrait change takes it off, 3 tries a day. Admin shows it; the privacy page says
+so (EN + MN). Decided: two genders, each sees the other; the art stays for launch. Done: QPay's
+live keys accepted on the server; the Sentry org token on EAS (production uploads source maps);
+the server redeployed to `0dda253`; WeSend Active (a real code went to the user's number through
+the server). Figma: "Your face" row on Character — own, "Seek — a companion · face proven" (S2), four
+Prove your face frames (S6, y 5760). Play build 6 built locally (EAS's queue held build 5 for 25 minutes;
+cancelled). A proven face also earns 20 points once, skips the newcomer's summons limit, comes first
+among equal companions in Seek, and members can filter the Tavern to proven faces.
+
 ## 2026-10-21 — First live run on the server; Play billing set up
 
 On the A51 against `api.mingldingl.com`: a real WeSend code signed in, a character was made through

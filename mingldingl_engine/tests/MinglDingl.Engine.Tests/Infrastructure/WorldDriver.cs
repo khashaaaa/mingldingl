@@ -100,15 +100,19 @@ public sealed class World : IAsyncDisposable
         }
     }
 
-    /// A finished character with three portraits.
+    /// A finished character with three portraits (or these photos: paths under the engine's output).
     public async Task<Person> PersonAsync(string name, string gender, string city = "Bayangol", string oath = "Bond", int photos = 3,
-        string? phone = null, string? allyCode = null, string? deviceKey = null)
+        string? phone = null, string? allyCode = null, string? deviceKey = null, IReadOnlyList<string>? portraits = null)
     {
         var s = await F.SignInAsync(Vm, phone, allyCode: allyCode, deviceKey: deviceKey);
         var c = F.As(s);
         (await c.CreateAsync(name)).EnsureSuccessStatusCode();
         (await c.UpdateAsync(Upd(gender: gender, bio: $"{name}'s tale", city: city))).EnsureSuccessStatusCode();
-        for (var i = 0; i < photos; i++) await c.UploadAsync(); // photo-3, the fixture that shows a face
+        if (portraits is null)
+            for (var i = 0; i < photos; i++) await c.UploadAsync(); // photo-3, the fixture that shows a face
+        else
+            foreach (var file in portraits)
+                (await c.UploadRawAsync(await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, file)))).EnsureSuccessStatusCode();
         (await c.UpdateAsync(Upd(oath: oath))).EnsureSuccessStatusCode();
         (await c.UpdateAsync(Upd(welcomed: true))).EnsureSuccessStatusCode();
         var me = await c.MeAsync();

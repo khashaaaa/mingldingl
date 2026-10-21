@@ -15,15 +15,7 @@ public static class ImagePipeline
 
     public static ProcessedImage Process(byte[] input, bool findFace = false)
     {
-        using var data = SKData.CreateCopy(input);
-        using var codec = SKCodec.Create(data)
-            ?? throw new DomainException(400, "photos.not_image", "That file is not a photo");
-        if ((long)codec.Info.Width * codec.Info.Height > MaxPixels)
-            throw new DomainException(400, "photos.too_large", "That photo is too large");
-
-        using var decoded = SKBitmap.Decode(codec)
-            ?? throw new DomainException(400, "photos.not_image", "That file is not a photo");
-        using var upright = Orient(decoded, codec.EncodedOrigin);
+        using var upright = DecodeUpright(input);
 
         var scale = Math.Min(1.0, MaxSide / (double)Math.Max(upright.Width, upright.Height));
         var w = Math.Max(1, (int)Math.Round(upright.Width * scale));
@@ -33,6 +25,20 @@ public static class ImagePipeline
         using var image = SKImage.FromBitmap(sized);
         using var jpeg = image.Encode(SKEncodedImageFormat.Jpeg, 82);
         return new ProcessedImage(jpeg.ToArray(), sized.Width, sized.Height, Hash(sized), findFace ? FaceFinder.HasFace(sized) : null);
+    }
+
+    /// The photo's pixels, turned upright by its EXIF orientation.
+    public static SKBitmap DecodeUpright(byte[] input)
+    {
+        using var data = SKData.CreateCopy(input);
+        using var codec = SKCodec.Create(data)
+            ?? throw new DomainException(400, "photos.not_image", "That file is not a photo");
+        if ((long)codec.Info.Width * codec.Info.Height > MaxPixels)
+            throw new DomainException(400, "photos.too_large", "That photo is too large");
+
+        using var decoded = SKBitmap.Decode(codec)
+            ?? throw new DomainException(400, "photos.not_image", "That file is not a photo");
+        return Orient(decoded, codec.EncodedOrigin);
     }
 
     private static byte[] Hash(SKBitmap source)

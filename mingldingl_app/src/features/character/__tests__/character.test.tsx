@@ -19,6 +19,7 @@ import WorldTabs from '../../world/WorldTabs';
 import CharacterScreen from '../CharacterScreen';
 import DeepProfile, { DeepPicker } from '../DeepProfile';
 import EditCharacter from '../EditCharacter';
+import FaceProof from '../FaceProof';
 
 jest.mock('@/lib/feedback', () => ({
   feedback: jest.fn(),
@@ -35,9 +36,16 @@ jest.mock('@/lib/api/client', () => ({ ...jest.requireActual('@/lib/api/client')
 jest.mock('expo-image-picker', () => ({
   requestMediaLibraryPermissionsAsync: jest.fn(),
   launchImageLibraryAsync: jest.fn(),
+  requestCameraPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  launchCameraAsync: jest.fn(async () => ({
+    canceled: false,
+    assets: [{ base64: 'AAAA', uri: 'file://s.jpg' }],
+  })),
+  CameraType: { front: 'front' },
 }));
 
 const { apiFetch } = jest.requireMock('@/lib/api/client') as { apiFetch: jest.Mock };
+const { launchCameraAsync } = jest.requireMock('expo-image-picker') as { launchCameraAsync: jest.Mock };
 
 const CITIES: CityView[] = [
   { name: 'Ulaanbaatar', kind: 'capital', region: 'Ulaanbaatar', lat: 47.9184, lng: 106.9177 },
@@ -98,6 +106,10 @@ function fakeEngine() {
       } as Record<string, string | null>,
     },
     deepPuts: [] as Record<string, unknown>[],
+    face: { open: true, proven: false, turn: 'left', triesLeft: 3, triesPerDay: 3 },
+    /** What the engine answers the next face check. */
+    faceOutcome: 'proven',
+    faceChecks: 0,
   };
   // Copies, like JSON off the wire: a shared object mutated in place would look unchanged to the cache.
   const me = (): MeView => ({
@@ -129,6 +141,13 @@ function fakeEngine() {
             else e.deep.answers[k] = v as string;
           }
         return { ...e.deep, answers: { ...e.deep.answers } };
+      case 'GET /me/face':
+        return { ...e.face };
+      case 'POST /me/face':
+        e.faceChecks++;
+        e.face = { ...e.face, triesLeft: e.face.triesLeft - 1, proven: e.faceOutcome === 'proven' };
+        if (e.face.proven) e.profile.faceProvenAt = '2026-10-22T00:00:00Z';
+        return { outcome: e.faceOutcome, status: { ...e.face } };
       case 'GET /geo/cities':
         return CITIES;
       case 'GET /app/status':
@@ -196,6 +215,7 @@ const ROUTES = {
   '(world)/(tabs)/square': SquareTab,
   '(world)/(tabs)/character': CharacterScreen,
   '(world)/character-edit': EditCharacter,
+  '(world)/face-proof': FaceProof,
   '(world)/war-room': WarRoom,
   '(world)/deep/index': DeepProfile,
   '(world)/deep/[field]': DeepPicker,
@@ -297,6 +317,40 @@ describe('Character', () => {
     expect(view.getPathname()).toBe('/war-room');
     await press(/^Edit your character/);
     expect(view.getPathname()).toBe('/character-edit');
+  });
+});
+
+describe('Prove your face', () => {
+  test('two camera selfies from the front camera prove it', async () => {
+    const { view } = await show();
+    await press(/^Your face/);
+    expect(view.getPathname()).toBe('/face-proof');
+    expect(screen.getByText(/turned a little to your left/)).toBeTruthy();
+    await press('Take the first selfie');
+    expect(screen.getByText(/Now turn your head a little to your left/)).toBeTruthy();
+    await press('Take the turned selfie');
+    expect(launchCameraAsync).toHaveBeenCalledTimes(2);
+    expect(launchCameraAsync.mock.calls[0][0]).toMatchObject({ cameraType: 'front' });
+    expect(engine.faceChecks).toBe(1);
+    expect(screen.getByText('Your face is proven')).toBeTruthy();
+  });
+
+  test('a miss says why and how many tries are left', async () => {
+    engine.faceOutcome = 'notYou';
+    await show('/face-proof');
+    await press('Take the first selfie');
+    await press('Take the turned selfie');
+    expect(screen.getByText(/do not match your portraits/)).toBeTruthy();
+    expect(screen.getByText('2 tries left today')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+  });
+
+  test('a cancelled camera leaves the first step as it was', async () => {
+    launchCameraAsync.mockResolvedValueOnce({ canceled: true, assets: [] });
+    await show('/face-proof');
+    await press('Take the first selfie');
+    expect(screen.getByRole('button', { name: 'Take the first selfie' })).toBeTruthy();
+    expect(engine.faceChecks).toBe(0);
   });
 });
 

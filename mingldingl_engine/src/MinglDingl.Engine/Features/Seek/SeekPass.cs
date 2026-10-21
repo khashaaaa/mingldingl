@@ -27,6 +27,8 @@ public sealed class SeekFilter
     public string? Children { get; set; }
     public string? Smoking { get; set; }
     public string? Drinking { get; set; }
+    /// Only companions whose face is proven (true), or anyone (null).
+    public bool? FaceProven { get; set; }
 }
 
 /// A member's one second look a night: whom it brought back.

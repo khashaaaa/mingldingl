@@ -19,6 +19,15 @@ api=$(ssh server "sed -n 's/^PUBLIC_API_URL=//p' /etc/mingldingl/engine.env")
 mail=$(ssh server "sed -n 's/^SUPPORT_EMAIL=//p' /etc/mingldingl/engine.env")
 [[ -n "$mail" ]] || { echo "SUPPORT_EMAIL is not set in the server's /etc/mingldingl/engine.env (the legal pages print it)"; exit 1; }
 
+# The server's database has applied the running engine's migration; a different id would make the
+# new engine try to create every table again and never come up (2026-10-22). Refuse before shipping.
+local_id=$(ls mingldingl_engine/src/MinglDingl.Engine/Kernel/Persistence/Migrations | sed -n 's/^\([0-9]*_Initial\)\.cs$/\1/p')
+live_id=$(ssh server "grep -ao '[0-9]\{14\}_Initial' /opt/mingldingl/engine/MinglDingl.Engine.dll 2>/dev/null | sort -u" || true)
+if [[ -n "$live_id" && "$live_id" != "$local_id" ]]; then
+  echo "The migration id changed ($live_id on the server, $local_id here): rename it back (scripts/new-migration.sh keeps it)."
+  exit 1
+fi
+
 echo "▶ engine: publish (linux-x64, self-contained, ReadyToRun)"
 dotnet publish mingldingl_engine/src/MinglDingl.Engine -c Release -r linux-x64 --self-contained \
   -p:PublishReadyToRun=true -p:TieredPGO=true -o "$OUT/engine" --nologo -v quiet

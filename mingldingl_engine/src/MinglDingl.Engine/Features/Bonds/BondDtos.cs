@@ -10,10 +10,11 @@ public sealed record WriteLetterRequest([Required(AllowEmptyStrings = true), Str
 /// the third seal, then the district. portraits: sealed ones carry only a ThumbHash. deep: their deep
 /// profile, only after the fourth seal and only to a member (null otherwise, or when they left it empty).
 /// hasChildren: they have children and chose to show it, at every seal and to everyone. awayUntil: they
-/// are away by the fire until then (nothing goes cold on their turn).
+/// are away by the fire until then (nothing goes cold on their turn). faceProven: a selfie of theirs
+/// matched their portraits.
 public sealed record BondPersonView(
     Guid AccountId, string Name, int Age, string Tier, string? Oath, string? Bio, string? Place,
-    IReadOnlyList<PortraitView> Portraits, bool HasChildren, DateTimeOffset? AwayUntil, Profile.DeepView? Deep);
+    IReadOnlyList<PortraitView> Portraits, bool HasChildren, DateTimeOffset? AwayUntil, Profile.DeepView? Deep, bool FaceProven);
 
 /// state: Live | Cold | Severed | Faded. myTurn: the last letter is theirs. coldAt: when the bond
 /// goes cold if the side whose turn it is stays silent (null with no letters). embers: the warning

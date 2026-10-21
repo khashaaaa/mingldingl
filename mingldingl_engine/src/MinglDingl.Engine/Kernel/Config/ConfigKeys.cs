@@ -111,6 +111,12 @@ public static class ConfigKeys
     public const string GerRestsHighTable = "streak.gerRests.highTable";
     public const string SquareHighTableLeadMinutes = "square.highTableLeadMinutes";
     public const string PhotosRequireFace = "photos.requireFace";
+    public const string FaceCheck = "safety.faceCheck";
+    public const string FaceTriesPerDay = "safety.faceTriesPerDay";
+    public const string FaceMatch = "safety.faceMatch";
+    public const string ScoreFaceProven = "score.faceProven";
+    public const string FaceLiftsNewcomer = "safety.faceLiftsNewcomer";
+    public const string SeekFaceFirst = "seek.faceProvenFirst";
     public const string SafetyHideAfterReporters = "safety.hideAfterReporters";
     public const string SafetyNewDays = "safety.newDays";
     public const string SafetyNewCandles = "safety.newCandles";
@@ -226,6 +232,12 @@ public static class ConfigKeys
         new(GerRestsHighTable, "Membership", "The High Table: missed dawns a ger rest keeps, per moon", ConfigType.Int, "2", 0, 31),
         new(SquareHighTableLeadMinutes, "Town Square", "Minutes after a bell is rung that only the High Table may sit", ConfigType.Int, "10", 0, 1440),
         new(PhotosRequireFace, "Safety", "A portrait must show a human face (checked on the engine at upload)", ConfigType.Bool, "true"),
+        new(FaceCheck, "Safety", "A character may prove their face with a selfie (the mark on their card)", ConfigType.Bool, "true"),
+        new(FaceTriesPerDay, "Safety", "Face checks one person may try a day", ConfigType.Int, "3", 1, 20),
+        new(ScoreFaceProven, "Points", "The face was proven (once)", ConfigType.Int, "20", 0, 1000),
+        new(FaceLiftsNewcomer, "Safety", "A proven face is not held to the newcomer's summons", ConfigType.Bool, "true"),
+        new(SeekFaceFirst, "Seek", "Among otherwise equal companions, a proven face comes first", ConfigType.Bool, "true"),
+        new(FaceMatch, "Safety", "How alike the selfie and the portraits must be, in hundredths (OpenCV's same-person line is 36)", ConfigType.Int, "40", 20, 90),
         new(SafetyHideAfterReporters, "Safety", "Open reports from this many different people hide someone from Seek until a keeper decides (0: never)", ConfigType.Int, "3", 0, 100),
         new(SafetyNewDays, "Safety", "Days after finishing a character that its summons are held low", ConfigType.Int, "2", 0, 30),
         new(SafetyNewCandles, "Safety", "Most summons a night while a character is new", ConfigType.Int, "3", 1, 100),

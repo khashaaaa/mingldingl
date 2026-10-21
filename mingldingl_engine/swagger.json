@@ -465,6 +465,72 @@
         }
       }
     },
+    "/me/face": {
+      "get": {
+        "tags": [
+          "Photos"
+        ],
+        "operationId": "GetFaceProof",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FaceProofView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Photos"
+        ],
+        "operationId": "ProveFace",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "straight": {
+                        "$ref": "#/components/schemas/IFormFile"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "turned": {
+                        "$ref": "#/components/schemas/IFormFile"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FaceProofResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bonds": {
       "get": {
         "tags": [
@@ -6254,7 +6320,8 @@
           "portraits",
           "hasChildren",
           "awayUntil",
-          "deep"
+          "deep",
+          "faceProven"
         ],
         "type": "object",
         "properties": {
@@ -6315,6 +6382,9 @@
                 "$ref": "#/components/schemas/DeepView"
               }
             ]
+          },
+          "faceProven": {
+            "type": "boolean"
           }
         }
       },
@@ -6619,7 +6689,8 @@
           "oath",
           "bio",
           "portrait",
-          "hasChildren"
+          "hasChildren",
+          "faceProven"
         ],
         "type": "object",
         "properties": {
@@ -6663,6 +6734,9 @@
             ]
           },
           "hasChildren": {
+            "type": "boolean"
+          },
+          "faceProven": {
             "type": "boolean"
           }
         }
@@ -7482,6 +7556,50 @@
           },
           "rewards": {
             "$ref": "#/components/schemas/EncounterRewards"
+          }
+        }
+      },
+      "FaceProofResult": {
+        "required": [
+          "outcome",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FaceProofView"
+          }
+        }
+      },
+      "FaceProofView": {
+        "required": [
+          "open",
+          "proven",
+          "turn",
+          "triesLeft",
+          "triesPerDay"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "boolean"
+          },
+          "proven": {
+            "type": "boolean"
+          },
+          "turn": {
+            "type": "string"
+          },
+          "triesLeft": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "triesPerDay": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -8836,7 +8954,8 @@
           "createdAt",
           "paused",
           "awayUntil",
-          "awayNextAt"
+          "awayNextAt",
+          "faceProvenAt"
         ],
         "type": "object",
         "properties": {
@@ -8920,6 +9039,13 @@
             "format": "date-time"
           },
           "awayNextAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "faceProvenAt": {
             "type": [
               "null",
               "string"
@@ -9261,6 +9387,12 @@
               "null",
               "string"
             ]
+          },
+          "faceProven": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -9273,7 +9405,8 @@
           "oath",
           "children",
           "smoking",
-          "drinking"
+          "drinking",
+          "faceProven"
         ],
         "type": "object",
         "properties": {
@@ -9323,6 +9456,9 @@
               "null",
               "string"
             ]
+          },
+          "faceProven": {
+            "type": "boolean"
           }
         }
       },

@@ -8,6 +8,7 @@ public interface IPhotoStore
 {
     Task PutAsync(string path, Stream jpeg, CancellationToken ct = default);
     Task DeleteAsync(string path, CancellationToken ct = default);
+    Task<byte[]> GetAsync(string path, CancellationToken ct = default);
     Task<string> SignAsync(string path, TimeSpan ttl, CancellationToken ct = default);
 }
 
@@ -52,6 +53,13 @@ public sealed class SupabasePhotoStore(HttpClient http, IConfiguration config) :
     {
         using var res = await http.DeleteAsync($"object/{Bucket}/{path}", ct);
         if (res.StatusCode != System.Net.HttpStatusCode.NotFound) res.EnsureSuccessStatusCode();
+    }
+
+    public async Task<byte[]> GetAsync(string path, CancellationToken ct = default)
+    {
+        using var res = await http.GetAsync($"object/authenticated/{Bucket}/{path}", ct);
+        res.EnsureSuccessStatusCode();
+        return await res.Content.ReadAsByteArrayAsync(ct);
     }
 
     public async Task<string> SignAsync(string path, TimeSpan ttl, CancellationToken ct = default)

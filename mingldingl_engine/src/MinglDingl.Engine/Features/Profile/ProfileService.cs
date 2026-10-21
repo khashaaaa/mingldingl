@@ -128,7 +128,8 @@ public sealed class ProfileService(AppDb db, IClock clock, IConfig config, ILive
         p.Name, p.BirthDate, AgeOn(p.BirthDate, clock.TodayUb), p.Gender, p.Bio, p.City, p.Oath, p.OathSwornAt, p.OathProvenAt,
         p.Locale, p.Points, p.Tier, p.TierUpPending, p.CreatedAt, p.PausedAt is not null,
         p.AwayUntil > clock.UtcNow ? p.AwayUntil : null,
-        p.AwayFrom?.AddDays(config.Int(ConfigKeys.AwayEveryDays)) is { } next && next > clock.UtcNow ? next : null);
+        p.AwayFrom?.AddDays(config.Int(ConfigKeys.AwayEveryDays)) is { } next && next > clock.UtcNow ? next : null,
+        p.FaceProvenAt);
 
     public static int AgeOn(DateOnly birth, DateOnly today)
     {

@@ -508,6 +508,9 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     Oath = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
                     OathSwornAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     OathProvenAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    FaceProvenAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    FaceTries = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    FaceTriesDay = table.Column<DateOnly>(type: "date", nullable: true),
                     Locale = table.Column<string>(type: "character varying(2)", maxLength: 2, nullable: false),
                     WelcomedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     PausedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
@@ -630,7 +633,8 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     Oath = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
                     Children = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
                     Smoking = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
-                    Drinking = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true)
+                    Drinking = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: true),
+                    FaceProven = table.Column<bool>(type: "boolean", nullable: true)
                 },
                 constraints: table =>
                 {

@@ -18,6 +18,11 @@ public sealed class Profile
     public DateTimeOffset? OathSwornAt { get; set; }
     /// When kept meetings proved the oath (oath.provenEncounters of them).
     public DateTimeOffset? OathProvenAt { get; set; }
+    /// When a selfie matched the portraits (the face check). Cleared when a portrait is added or removed.
+    public DateTimeOffset? FaceProvenAt { get; set; }
+    /// Face checks tried on FaceTriesDay (an Ulaanbaatar day); a new day starts the count again.
+    public int FaceTries { get; set; }
+    public DateOnly? FaceTriesDay { get; set; }
     public string Locale { get; set; } = "en";
     public DateTimeOffset? WelcomedAt { get; set; }
     /// Hidden from Seek while set; bonds go on.
@@ -69,6 +74,7 @@ internal sealed class ProfileMap : IEntityTypeConfiguration<Profile>
         foreach (var deep in new[] { nameof(Profile.HasChildren), nameof(Profile.WantsChildren), nameof(Profile.PartnerChildren), nameof(Profile.Smoking), nameof(Profile.Drinking), nameof(Profile.Faith), nameof(Profile.Lifestyle) })
             e.Property(deep).HasMaxLength(16);
         e.Property(x => x.Streak).HasDefaultValue(0);
+        e.Property(x => x.FaceTries).HasDefaultValue(0);
         e.Property(x => x.LastSeenAt).HasDefaultValueSql("now()");
         // Seek's filter: finished characters by gender, then place.
         e.HasIndex(x => new { x.Gender, x.City });

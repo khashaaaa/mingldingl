@@ -10,6 +10,7 @@ import {
   getGetDeepProfileQueryKey,
   getGetEncounterLogQueryKey,
   getGetEncounterQueryKey,
+  getGetFaceProofQueryKey,
   getGetHallQueryKey,
   getGetHonoursQueryKey,
   getGetMembershipQueryKey,
@@ -70,7 +71,9 @@ type LiveAction = { invalidate?: QueryKey[]; under?: string[]; signOut?: true };
 
 /** The one table from event kind to the data it makes stale — the live twin of the feedback table. */
 export const LIVE: Record<LiveKind, (ids: string[]) => LiveAction> = {
-  'profile.updated': () => ({ invalidate: [getGetMeQueryKey(), getGetDeepProfileQueryKey()] }),
+  'profile.updated': () => ({
+    invalidate: [getGetMeQueryKey(), getGetDeepProfileQueryKey(), getGetFaceProofQueryKey()],
+  }),
   'photos.updated': () => ({ invalidate: [getGetMeQueryKey(), getListMyPhotosQueryKey()] }),
   'config.updated': () => ({
     invalidate: [

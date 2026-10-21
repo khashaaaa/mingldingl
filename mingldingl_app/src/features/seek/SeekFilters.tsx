@@ -34,6 +34,7 @@ const EMPTY: SeekFilterRequest = {
   children: null,
   smoking: null,
   drinking: null,
+  faceProven: null,
 };
 
 /**
@@ -140,6 +141,11 @@ export default function SeekFilters() {
           label={t('filters.noDrink')}
           lit={f.drinking === 'never'}
           onPress={() => set({ drinking: f.drinking === 'never' ? null : 'never' })}
+        />
+        <Chip
+          label={t('filters.faceProven')}
+          lit={f.faceProven === true}
+          onPress={() => set({ faceProven: f.faceProven ? null : true })}
         />
       </View>
     </Scene>

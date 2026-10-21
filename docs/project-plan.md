@@ -35,13 +35,15 @@ the `SUPPORT_EMAIL`); Sentry projects `mingldingl-app`/`-engine` (org `rtl-uz`);
 (Play app, entitlements `hall`/`high_table`, webhook — products wait on the Play account); Firebase
 `mingldingl` (`google-services.json`, FCM V1 key on EAS); Agora NCS on events 103–106; EAS
 production and preview env. Launch values: `~/mingldingl-launch.env` on the desktop (chmod 600).
-- *Sentry source maps:* both EAS profiles skip the upload (`SENTRY_DISABLE_AUTO_UPLOAD`), so traces
-  are minified until the user puts an org token in the EAS secret `SENTRY_AUTH_TOKEN` (a
-  placeholder now) and drops the flag from production.
+- *Sentry source maps:* production uploads them (org token `eas` in the EAS secret
+  `SENTRY_AUTH_TOKEN`, 2026-10-22); preview still skips the upload (`SENTRY_DISABLE_AUTO_UPLOAD`).
 - *Agora* shows a new NCS secret on every page load until saved — set the engine's to the shown
   one, restart, then Apply.
 
-**Left:** Play account + 14-day test, QPay, WeSend live, the production build, reviewer access.
+**Left:** the Play 14-day closed test (12 testers) and payout bank, reviewer access (the video).
+Done 2026-10-22: QPay's live keys accepted by QPay on the server; WeSend reported Active by the user
+(a code reached the owner's own number — which texts even before Active, so a second number's first
+sign-in is the real proof); production builds 4–5 on EAS.
 
 **WeSend (sign-in codes, user):** project «mingldingl» exists (200 trial credits, expire 2026-11-19).
 Until it is Active (the owner verified by DAN, any monthly fee paid) it texts only the owner's own
@@ -63,7 +65,7 @@ verified number. Then: a live key (dashboard → API keys) into the server's `en
    account on the web.
 3. **Accounts** (user) — QPay merchant: client id and secret received 2026-10-21 (they go only in
    `engine.env`); invoice code `MINGLDINGL_INVOICE` (QPay confirmed, 2026-10-21); Google Play Console app
-   `com.mingldingl.app` (payments profile done 2026-10-21; payout bank not yet added) with
+   `com.mingldingl.app` (payments profile done 2026-10-21; payout bank not yet added — it needs a USD account at a Mongolian bank, the user's to open) with
    subscriptions `hall` and `high_table` (base plans `m1`, `m3`, `m6`, auto-renewing, priced in MNT —
    all six active 2026-10-21; Play rounds 52,320 to 52,300; build 4 on internal testing); RevenueCat project (products, entitlements,
    webhook and Play service account done 2026-10-21; a tester purchase opened the Hall; Google developer
@@ -111,16 +113,21 @@ verified number. Then: a live key (dashboard → API keys) into the server's `en
 
 **Data safety (Play form)** — collected: phone number (account, verified by SMS), name, birth
 date, gender, city, photos, messages (letters), in-app interactions; deep-profile answers
-(members); purchase history. Shared: none sold; processors only (Supabase storage, Agora video —
+(members); purchase history; the face check's two selfies (optional, processed on our server
+for one comparison and deleted at once — declare photos as collected, "processed ephemerally"). Shared: none sold; processors only (Supabase storage, Agora video —
 never recorded, RevenueCat, QPay, Expo push, Sentry crash reports with personal data scrubbed).
 Encrypted in transit; deletion on request in the app (Abandon, 30 days) and by the keepers.
 
 ## Backlog
 
 **Needs the user**
-- What the launch checklist leaves: Play, QPay, WeSend live, the Sentry token.
-- Decisions: a third gender's matching (Seek and the square pair opposite genders); the selfie
-  check against the portraits; a 30 fps ambient clock (measured 2026-10-17: the floor alone 168 % → 130 % CPU on the A51).
+- What the launch checklist leaves: Play (payout bank, 12 testers). WeSend is live: a real code from
+  the server reached the A51 (95655369) on 2026-10-22.
+  QPay's live keys are on the server and accepted (2026-10-22).
+- Decided 2026-10-22: two genders only, each sees the other (as built); the art stays as it is for
+  launch; the face check is optional (built, Safety rules). It needs a new store build (camera
+  permission text) and a first real try on the A51 to set `safety.faceMatch`.
+- Decision: a 30 fps ambient clock (measured 2026-10-17: the floor alone 168 % → 130 % CPU on the A51).
 - The reviewer sign-in video (launch checklist 4½): needs an installable production build and one real text.
 - The Codex guide texts other than "The fire and the cold" were written from the rules, not Figma
   — the user may want to reword them (the admin's Codex pages edit them).
@@ -161,7 +168,7 @@ time-in-app statistics (the engine does not track session minutes).
 | Tool | When | Why |
 |---|---|---|
 | Photo moderation (Rekognition / Vision / Sightengine) | before a wide launch | Nudity check on every upload; a face in the first photo. |
-| Selfie liveness + face match | before a wide launch | A "verified" mark against scam profiles. |
+| Real liveness (depth or motion) | if photo-of-a-screen fraud shows up | The face check's turn only stops one old photo. |
 | Redis | more than one engine instance | SignalR backplane; shared rate limits and throttles (in-memory ones are per instance). |
 | PostGIS | if a distance band is wanted | No coordinates are stored today (district → aimag → elsewhere). |
 | LiveKit | before the Town Square scales | Open-source video; compare cost and quality with Agora. |
@@ -291,8 +298,23 @@ streaks and quests are deliberate, not burnout risks to soften.
   before any text is paid for) until a keeper lifts it (Reports → Barred numbers). The app sends
   the install id (Android ID / iOS vendor id; stored as a SHA-256) at sign-in; a removed account's
   ids are kept, and a sign-in on one of them — or on a device a suspended account uses — flags the
-  new account for the keepers ("shared device"), never refuses it. A selfie check against the
-  portraits waits on the user's call (talked about 2026-10-21, not decided).
+  new account for the keepers ("shared device"), never refuses it.
+- **The face check (optional, 2026-10-22):** Character → Your face. Two front-camera selfies (the
+  camera only, never the gallery): straight on, then the head turned the way the app asks (it varies
+  each try; either side passes, as some phones save selfies mirrored — the nose must move ≥ 0.15
+  eye spans). YuNet (MIT, 230 KB) finds each face's five points, SFace (Apache 2.0, 37 MB) reads
+  128 numbers from the aligned face, OpenCV's pipeline rebuilt on ONNX Runtime. The two selfies
+  must be one face (≥ 0.30) and the selfie's middle score against the portraits must clear
+  [`safety.faceMatch`] 40 hundredths (OpenCV's same-person line is 36; the seed crowd is AI-made
+  and too alike to tune on — set it from real selfies). On a match `FaceProvenAt` is set and the
+  card shows "Face proven" in the Tavern and every bond; adding or removing a portrait clears it.
+  Nothing else is kept: not the selfies, not the numbers. 3 tries a day [`safety.faceTriesPerDay`];
+  off with [`safety.faceCheck`]. Outcomes: proven · noFace · turn · notYou. A photo of a screen
+  can still pass — this is a mark, not a gate. What it gives (the user, 2026-10-22): points once a
+  lifetime [`score.faceProven`] 20 (deed `faceProven`; a mark lost and won back pays nothing); no
+  newcomer's summons limit [`safety.faceLiftsNewcomer`]; first among otherwise equal companions in
+  Seek — after place, oath and tier, before last seen [`seek.faceProvenFirst`]; and a members' filter,
+  "Face proven" only. An honour for it waits on art.
 
 ## Score
 
@@ -518,6 +540,10 @@ library, S1–S8 the app and admin screens, S9 the web page. Code reads it throu
 
 # Hard-won rules
 
+- **The one migration keeps its id** (`20261020163019_Initial`): the server's database has applied
+  it, and a regenerated id made the engine try to create every table again — it would not boot
+  (2026-10-22, production down for minutes). `new-migration.sh` now keeps the id; a new column
+  also goes into `DatabaseBootstrap` as `ADD COLUMN IF NOT EXISTS`.
 - **Phone ownership is proven by the engine** via WeSend's check, never by the client, and the
   code never passes through the engine; account creation and phone change need a claimed
   verification. A pending session is never handed to a caller who cannot name it; one number gets

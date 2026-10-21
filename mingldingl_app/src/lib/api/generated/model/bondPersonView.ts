@@ -23,4 +23,5 @@ export interface BondPersonView {
   /** @nullable */
   awayUntil: string | null;
   deep: null | DeepView;
+  faceProven: boolean;
 }

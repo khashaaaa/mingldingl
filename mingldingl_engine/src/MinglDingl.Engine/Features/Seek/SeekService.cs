@@ -22,10 +22,13 @@ public sealed class SeekService(
     /// A character finished less than `safety.newDays` ago is held to `safety.newCandles`, so a
     /// throwaway account gets few summons before a report can land. A paid floor is never held: a
     /// troll paying for each throwaway is deterred enough, and a new member must get what they bought.
+    /// A proven face is a real person's, so it is not held either [`safety.faceLiftsNewcomer`].
     public static int CandlesPerDay(Profile.Profile p, Membership.FloorPerks perks, IConfig config, DateTimeOffset now)
     {
         var n = Tiers.Candles(p.Points, Tiers.Index(p.Tier), config, perks.CandlesBase, perks.CandlesCap);
-        return !perks.Paid && p.WelcomedAt > now.AddDays(-config.Int(ConfigKeys.SafetyNewDays)) ? Math.Min(n, config.Int(ConfigKeys.SafetyNewCandles)) : n;
+        var held = !perks.Paid && p.WelcomedAt > now.AddDays(-config.Int(ConfigKeys.SafetyNewDays))
+            && !(p.FaceProvenAt is not null && config.Bool(ConfigKeys.FaceLiftsNewcomer));
+        return held ? Math.Min(n, config.Int(ConfigKeys.SafetyNewCandles)) : n;
     }
 
     public async Task<SeekView> GetAsync(Guid me, CancellationToken ct = default)
@@ -78,7 +81,8 @@ public sealed class SeekService(
     {
         var open = (await membership.PerksAsync(me, ct)).Paid;
         var f = await db.Set<SeekFilter>().AsNoTracking().SingleOrDefaultAsync(x => x.AccountId == me, ct);
-        return new SeekFilterView(open, f?.AgeMin, f?.AgeMax, f?.City, f?.Oath, f?.Children, f?.Smoking, f?.Drinking);
+        return new SeekFilterView(open, f?.AgeMin, f?.AgeMax, f?.City, f?.Oath, f?.Children, f?.Smoking, f?.Drinking,
+            f?.FaceProven == true);
     }
 
     /// Replaces the filters (all nulls clears them). Members only.
@@ -101,6 +105,7 @@ public sealed class SeekService(
         if (f is null) db.Add(f = new SeekFilter { AccountId = me });
         (f.AgeMin, f.AgeMax, f.City, f.Oath, f.Children, f.Smoking, f.Drinking) =
             (req.AgeMin, req.AgeMax, req.City, req.Oath, req.Children, req.Smoking, req.Drinking);
+        f.FaceProven = req.FaceProven == true ? true : null;
         live.ToAccount(me, LiveKinds.SeekChanged, me);
         await db.SaveChangesAsync(ct);
         return await FiltersAsync(me, ct);
@@ -110,7 +115,7 @@ public sealed class SeekService(
 
     private static bool Active(SeekFilter f) =>
         f.AgeMin is not null || f.AgeMax is not null || f.City is not null || f.Oath is not null || f.Children is not null
-        || f.Smoking is not null || f.Drinking is not null;
+        || f.Smoking is not null || f.Drinking is not null || f.FaceProven == true;
 
     private Task<Guid?> LastPassAsync(Guid me, CancellationToken ct)
     {
@@ -172,6 +177,7 @@ public sealed class SeekService(
         var seatsBase = config.Int(ConfigKeys.SeatsBase);
         var remeetBefore = now.AddDays(-config.Int(ConfigKeys.SeekRemeetDays));
         var hide = config.Int(ConfigKeys.SafetyHideAfterReporters);
+        var faceFirst = config.Bool(ConfigKeys.SeekFaceFirst);
         return await db.Database.SqlQuery<Guid>($"""
             SELECT p."AccountId" AS "Value"
             FROM profiles p
@@ -206,10 +212,12 @@ public sealed class SeekService(
                    OR ({f.Children} = 'welcomes' AND p."PartnerChildren" = 'welcome'))
               AND (CAST({f.Smoking} AS text) IS NULL OR p."Smoking" = {f.Smoking})
               AND (CAST({f.Drinking} AS text) IS NULL OR p."Drinking" = {f.Drinking})
+              AND (CAST({f.FaceProven} AS boolean) IS NULL OR NOT {f.FaceProven} OR p."FaceProvenAt" IS NOT NULL)
             ORDER BY COALESCE(p."City" = {me.City}, false) DESC,
                      COALESCE(p."City" = ANY({sameRegion}), false) DESC,
                      COALESCE(p."Oath" = {me.Oath}, false) DESC,
                      abs(CASE p."Tier" WHEN 'Opal' THEN 1 WHEN 'Amethyst' THEN 2 WHEN 'Sapphire' THEN 3 WHEN 'Ruby' THEN 4 WHEN 'Emerald' THEN 5 ELSE 0 END - {myTier}),
+                     ({faceFirst} AND p."FaceProvenAt" IS NOT NULL) DESC,
                      p."LastSeenAt" DESC,
                      p."Reputation" DESC,
                      p."AccountId"
@@ -247,7 +255,8 @@ public sealed class SeekService(
         var p = await db.Set<Profile.Profile>().AsNoTracking().SingleAsync(x => x.AccountId == id, ct);
         var portrait = (await photos.FirstPortraitsAsync(new Dictionary<Guid, bool> { [id] = false }, ct)).GetValueOrDefault(id);
         return new CandidateView(id, ProfileService.AgeOn(p.BirthDate, clock.TodayUb), p.Tier,
-            BondService.Place(p.City, district: false), p.Oath, p.Bio, portrait, DeepProfile.ShowsChildren(p));
+            BondService.Place(p.City, district: false), p.Oath, p.Bio, portrait, DeepProfile.ShowsChildren(p),
+            p.FaceProvenAt is not null);
     }
 
     private Task<int> UsedTodayAsync(Guid me, CancellationToken ct) => bonds.CandlesSpentTodayAsync(me, ct);

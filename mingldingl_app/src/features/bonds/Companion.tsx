@@ -39,6 +39,7 @@ export default function Companion() {
           sealed={bond.seals < 1}
           full
           hasChildren={other.hasChildren}
+          faceProven={other.faceProven}
         />
         {rest.length > 0 ? (
           <View style={styles.grid}>

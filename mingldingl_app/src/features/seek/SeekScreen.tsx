@@ -191,6 +191,7 @@ function Body({ seek }: { seek: SeekView }) {
         tale={c.bio ?? null}
         portrait={c.portrait ? { id: c.portrait.id, thumbHash: c.portrait.thumbHash } : null}
         hasChildren={c.hasChildren}
+        faceProven={c.faceProven}
       />
       <Button
         label={t('seek.summon')}

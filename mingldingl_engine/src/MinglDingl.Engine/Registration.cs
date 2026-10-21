@@ -84,6 +84,7 @@ public static class Registration
         s.AddSingleton<SignedUrlCache>();
         s.AddScoped<PhotoService>();
         s.AddScoped<IPhotoCount, PhotoCount>();
+        s.AddScoped<FaceProofService>();
         s.AddSingleton<IEndpointModule, PhotoEndpoints>();
 
         // Bonds, Seek, Safety

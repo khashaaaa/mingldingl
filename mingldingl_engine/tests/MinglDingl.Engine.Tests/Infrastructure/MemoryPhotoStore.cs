@@ -21,6 +21,8 @@ public sealed class MemoryPhotoStore : IPhotoStore
         return Task.CompletedTask;
     }
 
+    public Task<byte[]> GetAsync(string path, CancellationToken ct = default) => Task.FromResult(Files[path]);
+
     public Task<string> SignAsync(string path, TimeSpan ttl, CancellationToken ct = default) =>
         Task.FromResult($"https://storage.test/{path}?sig={Interlocked.Increment(ref _signs)}");
 }

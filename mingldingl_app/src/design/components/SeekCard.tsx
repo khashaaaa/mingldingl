@@ -25,6 +25,7 @@ export function SeekCard({
   sealed = true,
   full,
   hasChildren = false,
+  faceProven = false,
 }: {
   /** null in the Tavern: a stranger is nameless until a bond is made. */
   name: string | null;
@@ -40,6 +41,8 @@ export function SeekCard({
   full?: boolean;
   /** They have children and chose to show it. */
   hasChildren?: boolean;
+  /** A selfie of theirs matched their portraits. */
+  faceProven?: boolean;
 }) {
   const shown = name ?? t('seek.traveller');
   const nameAge = t('seek.nameAge', { name: shown, age });
@@ -61,6 +64,14 @@ export function SeekCard({
             : t(`tier.${tier}`)}
         </Txt>
       </View>
+      {faceProven ? (
+        <View style={styles.line}>
+          <Glyph name="shield" size={16} tint="textAccent" />
+          <Txt variant="labelM" color="textAccent">
+            {t('seek.faceProven')}
+          </Txt>
+        </View>
+      ) : null}
       {hasChildren ? (
         <View style={styles.line}>
           <Glyph name="person" size={16} tint="textSecondary" />

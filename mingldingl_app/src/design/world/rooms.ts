@@ -26,7 +26,7 @@ export function roomFor(segments: readonly string[]): Room {
     case '(onboarding)':
       return 'gate';
     case '(world)':
-      if (a === 'character-edit' || a === 'ascent' || a === 'deeds') return 'forge';
+      if (a === 'character-edit' || a === 'ascent' || a === 'deeds' || a === 'face-proof') return 'forge';
       if (a === 'war-room' || a === 'away' || a === 'sigil' || a === 'sigil-verify' || a === 'departing')
         return 'forge';
       if (a === 'codex') return 'hall';

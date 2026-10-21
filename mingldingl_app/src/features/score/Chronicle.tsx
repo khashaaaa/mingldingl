@@ -29,6 +29,7 @@ const GLYPH: Record<string, GlyphName> = {
   rite: 'flame',
   meeting: 'pledge',
   oathProven: 'pledge',
+  faceProven: 'shield',
   quest: 'scroll',
   chest: 'chest',
   campaignRoom: 'road',

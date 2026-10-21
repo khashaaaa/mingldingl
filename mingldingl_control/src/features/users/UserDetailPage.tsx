@@ -221,6 +221,10 @@ export function UserDetailPage() {
             <Fact term="Gender" value={p.gender} />
             <Fact term="City" value={p.city} />
             <Fact term="Oath" value={p.oath ? `${p.oath} — ${p.oathProvenAt ? 'proven' : 'sworn'}` : null} />
+            <Fact
+              term="Face"
+              value={p.faceProvenAt ? `proven ${formatDate(p.faceProvenAt)}` : 'not proven'}
+            />
             <Fact term="Language" value={p.locale} />
             <Fact term="Tale" value={p.bio} />
           </>

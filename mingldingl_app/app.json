@@ -16,7 +16,7 @@
       "bundleIdentifier": "com.mingldingl.app",
       "supportsTablet": false,
       "infoPlist": {
-        "NSCameraUsageDescription": "The Flame Rite shows your face to the person you are bonded with, for five minutes. Nothing is recorded.",
+        "NSCameraUsageDescription": "The Flame Rite shows your face to the person you are bonded with, for five minutes, and two selfies can prove your face against your portraits. Nothing is recorded, and the selfies are deleted at once.",
         "NSMicrophoneUsageDescription": "The Flame Rite carries your voice to the person you are bonded with, for five minutes. Nothing is recorded.",
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -52,7 +52,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "MingldIngl opens your photos so you can choose your portraits."
+          "photosPermission": "MingldIngl opens your photos so you can choose your portraits.",
+          "cameraPermission": "MingldIngl opens the camera for the Flame Rite and for the selfies that prove your face. Selfies are compared with your portraits and deleted at once."
         }
       ],
       [

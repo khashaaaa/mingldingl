@@ -20,4 +20,6 @@ export interface SeekFilterRequest {
   smoking: string | null;
   /** @nullable */
   drinking: string | null;
+  /** @nullable */
+  faceProven?: boolean | null;
 }

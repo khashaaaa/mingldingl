@@ -92,6 +92,7 @@ function fakeEngine() {
           paused: false,
           awayUntil: null,
           awayNextAt: null,
+          faceProvenAt: null,
           createdAt: '2026-10-06T00:00:00Z',
         };
         return me();
@@ -512,6 +513,7 @@ function base(): ProfileView {
     paused: false,
     awayUntil: null,
     awayNextAt: null,
+    faceProvenAt: null,
     createdAt: '2026-10-06T00:00:00Z',
   };
 }

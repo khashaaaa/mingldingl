@@ -81,6 +81,8 @@ import type {
   DevStoreRequest,
   EncounterLogView,
   EncounterView,
+  FaceProofResult,
+  FaceProofView,
   FestivalRow,
   FestivalWriteRequest,
   GatheringView,
@@ -114,6 +116,7 @@ import type {
   NightView,
   PhotoView,
   PresenceRequest,
+  ProveFaceBody,
   PushTokenRequest,
   QuestBoard,
   RatingRequest,
@@ -1709,6 +1712,177 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDeletePhotoMutationOptions(options), queryClient);
+    }
+
+export const getGetFaceProofUrl = () => {
+
+
+
+
+  return `/me/face`
+}
+
+export const getFaceProof = async ( options?: Parameters<typeof apiFetch>[1]): Promise<FaceProofView> => {
+
+  return apiFetch<FaceProofView>(getGetFaceProofUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFaceProofQueryKey = () => {
+    return [
+    `/me/face`
+    ] as const;
+    }
+
+
+export const getGetFaceProofQueryOptions = <TData = Awaited<ReturnType<typeof getFaceProof>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFaceProof>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFaceProofQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFaceProof>>> = ({ signal }) => getFaceProof({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFaceProof>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetFaceProofQueryResult = NonNullable<Awaited<ReturnType<typeof getFaceProof>>>
+export type GetFaceProofQueryError = unknown
+
+
+export function useGetFaceProof<TData = Awaited<ReturnType<typeof getFaceProof>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFaceProof>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFaceProof>>,
+          TError,
+          Awaited<ReturnType<typeof getFaceProof>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFaceProof<TData = Awaited<ReturnType<typeof getFaceProof>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFaceProof>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFaceProof>>,
+          TError,
+          Awaited<ReturnType<typeof getFaceProof>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFaceProof<TData = Awaited<ReturnType<typeof getFaceProof>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFaceProof>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetFaceProof<TData = Awaited<ReturnType<typeof getFaceProof>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFaceProof>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetFaceProofQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getProveFaceUrl = () => {
+
+
+
+
+  return `/me/face`
+}
+
+export const proveFace = async (proveFaceBody: ProveFaceBody, options?: Parameters<typeof apiFetch>[1]): Promise<FaceProofResult> => {
+    const formData = new FormData();
+if(proveFaceBody.straight !== undefined) {
+ formData.append(`straight`, proveFaceBody.straight);
+ }
+
+if(proveFaceBody.turned !== undefined) {
+ formData.append(`turned`, proveFaceBody.turned);
+ }
+
+  return apiFetch<FaceProofResult>(getProveFaceUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+
+
+export const getProveFaceMutationKey = () => ['proveFace'] as const;
+
+export const getProveFaceMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof proveFace>>, TError,ProveFaceMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof proveFace>>, TError,ProveFaceMutationVariables, TContext> => {
+
+const mutationKey = getProveFaceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof proveFace>>, ProveFaceMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  proveFace(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProveFaceMutationResult = NonNullable<Awaited<ReturnType<typeof proveFace>>>
+    export type ProveFaceMutationBody = ProveFaceBody
+    export type ProveFaceMutationError = unknown
+    export type ProveFaceMutationVariables = {data: ProveFaceBody}
+
+    export const useProveFace = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof proveFace>>, TError,ProveFaceMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof proveFace>>,
+        TError,
+        ProveFaceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getProveFaceMutationOptions(options), queryClient);
     }
 
 export const getGetBondsUrl = () => {
