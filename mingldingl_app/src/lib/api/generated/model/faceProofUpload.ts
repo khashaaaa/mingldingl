@@ -6,8 +6,7 @@
  */
 import type { IFormFile } from './iFormFile';
 
-export type ProveFaceBody = {
-  straight?: IFormFile;
-} & {
-  turned?: IFormFile;
-};
+export interface FaceProofUpload {
+  straight: IFormFile;
+  turned: IFormFile[];
+}

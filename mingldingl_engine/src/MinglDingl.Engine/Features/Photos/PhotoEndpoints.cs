@@ -33,15 +33,21 @@ public sealed class PhotoEndpoints : IEndpointModule
         face.MapGet("", (ClaimsPrincipal u, FaceProofService svc, CancellationToken ct) => svc.StatusAsync(u.AccountId(), ct))
             .RequireAuthorization().WithName("GetFaceProof");
 
-        face.MapPost("", async (IFormFile? straight, IFormFile? turned, ClaimsPrincipal u, FaceProofService svc, CancellationToken ct) =>
+        face.MapPost("", async (HttpRequest req, ClaimsPrincipal u, FaceProofService svc, CancellationToken ct) =>
             {
-                if (straight is null || turned is null) throw new DomainException(400, "photos.not_image", "Attach both selfies");
-                if (straight.Length > PhotoService.MaxUploadBytes || turned.Length > PhotoService.MaxUploadBytes)
+                var form = await req.ReadFormAsync(ct);
+                var straight = form.Files.GetFile("straight");
+                var turned = form.Files.GetFiles("turned");
+                if (straight is null || turned.Count == 0) throw new DomainException(400, "photos.not_image", "Attach both selfies");
+                if (turned.Count > FaceProofService.MaxTurned) throw new DomainException(400, "photos.too_many", "Too many selfies");
+                if (straight.Length > PhotoService.MaxUploadBytes || turned.Any(t => t.Length > PhotoService.MaxUploadBytes))
                     throw new DomainException(400, "photos.too_large", "That photo is too large");
-                return await svc.CheckAsync(u.AccountId(), await Bytes(straight, ct), await Bytes(turned, ct), ct);
+                var turnedBytes = new List<byte[]>();
+                foreach (var t in turned) turnedBytes.Add(await Bytes(t, ct));
+                return await svc.CheckAsync(u.AccountId(), await Bytes(straight, ct), turnedBytes, ct);
             })
             .AsWrite().DisableAntiforgery()
-            .WithMetadata(new RequestSizeLimitAttribute(2 * PhotoService.MaxUploadBytes + 64 * 1024))
+            .WithMetadata(new RequestSizeLimitAttribute((1 + FaceProofService.MaxTurned) * PhotoService.MaxUploadBytes + 64 * 1024))
             .Accepts<FaceProofUpload>("multipart/form-data").WithName("ProveFace");
 
         g.MapPut("/order", (ReorderRequest req, ClaimsPrincipal u, PhotoService svc, CancellationToken ct) =>
@@ -62,5 +68,6 @@ public sealed class PhotoEndpoints : IEndpointModule
     }
 }
 
-/// The two selfies of a face check, as form parts.
-public sealed record FaceProofUpload(IFormFile Straight, IFormFile Turned);
+/// The selfies of a face check, as form parts: one straight, and one to four taken while the head
+/// turns (the app shoots through the turn, since a person turns at their own pace).
+public sealed record FaceProofUpload(IFormFile Straight, IFormFile[] Turned);

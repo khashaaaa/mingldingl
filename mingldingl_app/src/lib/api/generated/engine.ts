@@ -82,6 +82,7 @@ import type {
   EncounterLogView,
   EncounterView,
   FaceProofResult,
+  FaceProofUpload,
   FaceProofView,
   FestivalRow,
   FestivalWriteRequest,
@@ -116,7 +117,6 @@ import type {
   NightView,
   PhotoView,
   PresenceRequest,
-  ProveFaceBody,
   PushTokenRequest,
   QuestBoard,
   RatingRequest,
@@ -1817,15 +1817,10 @@ export const getProveFaceUrl = () => {
   return `/me/face`
 }
 
-export const proveFace = async (proveFaceBody: ProveFaceBody, options?: Parameters<typeof apiFetch>[1]): Promise<FaceProofResult> => {
+export const proveFace = async (faceProofUpload: FaceProofUpload, options?: Parameters<typeof apiFetch>[1]): Promise<FaceProofResult> => {
     const formData = new FormData();
-if(proveFaceBody.straight !== undefined) {
- formData.append(`straight`, proveFaceBody.straight);
- }
-
-if(proveFaceBody.turned !== undefined) {
- formData.append(`turned`, proveFaceBody.turned);
- }
+formData.append(`straight`, faceProofUpload.straight);
+faceProofUpload.turned.forEach(value => formData.append(`turned`, value));
 
   return apiFetch<FaceProofResult>(getProveFaceUrl(),
   {
@@ -1870,9 +1865,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type ProveFaceMutationResult = NonNullable<Awaited<ReturnType<typeof proveFace>>>
-    export type ProveFaceMutationBody = ProveFaceBody
+    export type ProveFaceMutationBody = FaceProofUpload
     export type ProveFaceMutationError = unknown
-    export type ProveFaceMutationVariables = {data: ProveFaceBody}
+    export type ProveFaceMutationVariables = {data: FaceProofUpload}
 
     export const useProveFace = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof proveFace>>, TError,ProveFaceMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}

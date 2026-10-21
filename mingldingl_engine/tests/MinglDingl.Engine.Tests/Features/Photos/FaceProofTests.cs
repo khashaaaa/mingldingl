@@ -64,19 +64,34 @@ public class FaceProofTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
-    public async Task A_second_selfie_that_is_not_turned_is_refused_and_each_try_asks_afresh()
+    public async Task A_second_selfie_that_is_not_turned_is_refused_costs_no_try_and_each_try_asks_afresh()
     {
         await using var w = await World.CreateAsync(db);
-        await w.SetAsync(ConfigKeys.FaceTriesPerDay, "20");
         var her = await w.PersonAsync("Anujin", "Female", portraits: Hers);
         var (straight, _) = HerSelfies();
         var asked = new HashSet<string>();
         for (var i = 0; i < 12; i++)
         {
             asked.Add((await her.C.FaceAsync()).Turn);
-            (await her.C.ProveFaceAsync(straight, Photo("p02_3.jpg"))).Outcome.Should().Be("turn");
+            var r = await her.C.ProveFaceAsync(straight, Photo("p02_3.jpg"));
+            r.Outcome.Should().Be("turn");
+            r.Status.TriesLeft.Should().Be(3);
+            await w.AdvanceAsync(TimeSpan.FromSeconds(1));
         }
         asked.Should().BeEquivalentTo(["left", "right"]);
+    }
+
+    [Fact]
+    public async Task Of_the_shots_taken_through_the_turn_the_most_turned_one_counts()
+    {
+        await using var w = await World.CreateAsync(db);
+        var her = await w.PersonAsync("Anujin", "Female", portraits: Hers);
+        var (straight, turned) = HerSelfies();
+        // Shot before her head moved, while it was turned, and after it came back.
+        (await her.C.ProveFaceAsync(straight, Photo("p02_3.jpg"), turned, straight)).Outcome.Should().Be("proven");
+
+        var five = Enumerable.Repeat(turned, FaceProofService.MaxTurned + 1).ToArray();
+        (await CodeOf(await her.C.ProveFaceRawAsync(straight, five))).Should().Be("photos.too_many");
     }
 
     [Fact]
@@ -94,10 +109,11 @@ public class FaceProofTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task Three_tries_a_day_then_a_new_day_brings_them_back()
     {
         await using var w = await World.CreateAsync(db);
-        var her = await w.PersonAsync("Anujin", "Female", portraits: Hers);
-        var straight = Photo("p02_2.jpg");
-        for (var i = 0; i < 3; i++) (await her.C.ProveFaceAsync(straight, straight)).Status.TriesLeft.Should().Be(2 - i);
-        var r = await her.C.ProveFaceRawAsync(straight, straight);
+        // Her selfies against his portraits: a real comparison that misses, so each one spends a try.
+        var her = await w.PersonAsync("Anujin", "Female", portraits: His);
+        var (straight, turned) = HerSelfies();
+        for (var i = 0; i < 3; i++) (await her.C.ProveFaceAsync(straight, turned)).Status.TriesLeft.Should().Be(2 - i);
+        var r = await her.C.ProveFaceRawAsync(straight, turned);
         r.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await CodeOf(r)).Should().Be("face.tries");
 
@@ -175,10 +191,10 @@ public static class FaceDriver
 {
     public static async Task<FaceProofView> FaceAsync(this HttpClient c) => (await c.GetFromJsonAsync<FaceProofView>("/me/face"))!;
 
-    public static Task<HttpResponseMessage> ProveFaceRawAsync(this HttpClient c, byte[] straight, byte[] turned)
+    public static Task<HttpResponseMessage> ProveFaceRawAsync(this HttpClient c, byte[] straight, params byte[][] turned)
     {
         var form = new MultipartFormDataContent();
-        foreach (var (name, bytes) in new[] { ("straight", straight), ("turned", turned) })
+        foreach (var (name, bytes) in turned.Select(t => ("turned", t)).Prepend(("straight", straight)))
         {
             var part = new ByteArrayContent(bytes);
             part.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
@@ -187,7 +203,7 @@ public static class FaceDriver
         return c.PostAsync("/me/face", form);
     }
 
-    public static async Task<FaceProofResult> ProveFaceAsync(this HttpClient c, byte[] straight, byte[] turned)
+    public static async Task<FaceProofResult> ProveFaceAsync(this HttpClient c, byte[] straight, params byte[][] turned)
     {
         var r = await c.ProveFaceRawAsync(straight, turned);
         r.EnsureSuccessStatusCode();

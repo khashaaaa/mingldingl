@@ -8,10 +8,12 @@ config, key in brackets where it helps).
 
 ---
 
-# Where it stands (2026-10-21)
+# Where it stands (2026-10-22)
 
-The whole game is built and checked on devices in English and Mongolian, and `49a16ef` runs on the
-home server. What is left is the launch, and that waits on the user's accounts and keys.
+The whole game is built and checked on devices in English and Mongolian. The home server runs the
+latest engine (`api.mingldingl.com`), sign-in texts real WeSend codes, QPay's live keys are in, and
+store builds go to Play internal testing (build 8 on the A51). What is left is the launch, and that
+waits on the user: the Play payout bank, 12 testers for the 14-day closed test, and the reviewer video.
 
 | Stage | What | State |
 |---|---|---|
@@ -40,15 +42,13 @@ production and preview env. Launch values: `~/mingldingl-launch.env` on the desk
 - *Agora* shows a new NCS secret on every page load until saved — set the engine's to the shown
   one, restart, then Apply.
 
-**Left:** the Play 14-day closed test (12 testers) and payout bank, reviewer access (the video).
-Done 2026-10-22: QPay's live keys accepted by QPay on the server; WeSend reported Active by the user
-(a code reached the owner's own number — which texts even before Active, so a second number's first
-sign-in is the real proof); production builds 4–5 on EAS.
+**Done 2026-10-22:** QPay's live keys accepted by QPay on the server; WeSend Active (project
+«mingldingl», key in `engine.env` as `WeSend__ApiKey`, 80 credits a code, per-number limits 5 / 10
+min and 20 / day). The owner's own number texts even before Active, so a second number's first
+sign-in is the real proof. Store builds are made locally and uploaded to Play internal testing by
+`mingldingl_app/scripts/play-upload.py` (EAS's free queue and `eas submit` stalled).
 
-**WeSend (sign-in codes, user):** project «mingldingl» exists (200 trial credits, expire 2026-11-19).
-Until it is Active (the owner verified by DAN, any monthly fee paid) it texts only the owner's own
-verified number. Then: a live key (dashboard → API keys) into the server's `engine.env` as
-`WeSend__ApiKey`, credits topped up (80 a code), and per-number limits left at 5 / 10 min, 20 / day.
+**Left:** the Play 14-day closed test (12 testers) and payout bank, reviewer access (the video).
 
 1. **Server** — myserver (192.168.1.102) on, with its LAN address reserved. No Docker:
    `./scripts/deploy.sh --setup` installs `scripts/server/` (systemd units, nginx, the `mingldingl`
@@ -67,7 +67,7 @@ verified number. Then: a live key (dashboard → API keys) into the server's `en
    `engine.env`); invoice code `MINGLDINGL_INVOICE` (QPay confirmed, 2026-10-21); Google Play Console app
    `com.mingldingl.app` (payments profile done 2026-10-21; payout bank not yet added — it needs a USD account at a Mongolian bank, the user's to open) with
    subscriptions `hall` and `high_table` (base plans `m1`, `m3`, `m6`, auto-renewing, priced in MNT —
-   all six active 2026-10-21; Play rounds 52,320 to 52,300; build 4 on internal testing); RevenueCat project (products, entitlements,
+   all six active 2026-10-21; Play rounds 52,320 to 52,300); RevenueCat project (products, entitlements,
    webhook and Play service account done 2026-10-21; a tester purchase opened the Hall; Google developer
    notifications on topic `Play-Store-Notifications`, Play's publisher granted, test received); Firebase `google-services.json` + FCM V1 key on EAS; Sentry DSNs; the Agora NCS webhook
    URL `{API}/video/ncs`. For iOS: Apple Developer Program, App Store Connect app
@@ -76,8 +76,8 @@ verified number. Then: a live key (dashboard → API keys) into the server's `en
 4. **EAS production env** — `EXPO_PUBLIC_API_URL` (the API hostname), `EXPO_PUBLIC_WEB_URL` (the
    panel host; the Terms · Privacy page and the Guild House link to its legal pages),
    `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` (and `_IOS_KEY`), `EXPO_PUBLIC_SENTRY_DSN`,
-   `EXPO_PUBLIC_SUPPORT_EMAIL`; then `eas build --profile production --platform android` and a
-   closed-testing track. A new personal Play account must keep **12+ testers opted in for 14 days**
+   `EXPO_PUBLIC_SUPPORT_EMAIL` (all set); then a local production build (the commands in
+   `CLAUDE.md`) and a closed-testing track. A new personal Play account must keep **12+ testers opted in for 14 days**
    before production opens — start this first. iOS: `--platform ios`, TestFlight on an iPhone
    (the app has never run on iOS), then review.
 4½. **Reviewer access — a sign-in video (user's call, 2026-10-20).** Store reviewers have no
@@ -121,14 +121,12 @@ Encrypted in transit; deletion on request in the app (Abandon, 30 days) and by t
 ## Backlog
 
 **Needs the user**
-- What the launch checklist leaves: Play (payout bank, 12 testers). WeSend is live: a real code from
-  the server reached the A51 (95655369) on 2026-10-22.
-  QPay's live keys are on the server and accepted (2026-10-22).
+- What the launch checklist leaves: Play (payout bank, 12 testers) and the reviewer sign-in video
+  (4½) — the production build and real texts it needs are now there.
 - Decided 2026-10-22: two genders only, each sees the other (as built); the art stays as it is for
-  launch; the face check is optional (built, Safety rules). It needs a new store build (camera
-  permission text) and a first real try on the A51 to set `safety.faceMatch`.
+  launch; the face check is optional (built, Safety rules; proven on the A51 2026-10-22, the bar
+  stays 40).
 - Decision: a 30 fps ambient clock (measured 2026-10-17: the floor alone 168 % → 130 % CPU on the A51).
-- The reviewer sign-in video (launch checklist 4½): needs an installable production build and one real text.
 - The Codex guide texts other than "The fire and the cold" were written from the rules, not Figma
   — the user may want to reword them (the admin's Codex pages edit them).
 - Figma parity follow-up (2026-10-21): decide the unspecified header menus/back controls shown
@@ -299,14 +297,17 @@ streaks and quests are deliberate, not burnout risks to soften.
   the install id (Android ID / iOS vendor id; stored as a SHA-256) at sign-in; a removed account's
   ids are kept, and a sign-in on one of them — or on a device a suspended account uses — flags the
   new account for the keepers ("shared device"), never refuses it.
-- **The face check (optional, 2026-10-22):** Character → Your face. Two front-camera selfies (the
-  camera only, never the gallery): straight on, then the head turned the way the app asks (it varies
-  each try; either side passes, as some phones save selfies mirrored — the nose must move ≥ 0.15
-  eye spans). YuNet (MIT, 230 KB) finds each face's five points, SFace (Apache 2.0, 37 MB) reads
+- **The face check (optional, 2026-10-22):** Character → Your face. One tap opens the front camera
+  in the app (never the gallery) and counts down: one shot straight on, then up to four through the
+  turn the app asks for; the engine judges the most-turned (either side passes, as some phones save
+  selfies mirrored — the nose must move ≥ 0.10 eye spans). A miss for no face or no turn hands the
+  try back. YuNet (MIT, 230 KB) finds each face's five points, SFace (Apache 2.0, 37 MB) reads
   128 numbers from the aligned face, OpenCV's pipeline rebuilt on ONNX Runtime. The two selfies
   must be one face (≥ 0.30) and the selfie's middle score against the portraits must clear
   [`safety.faceMatch`] 40 hundredths (OpenCV's same-person line is 36; the seed crowd is AI-made
-  and too alike to tune on — set it from real selfies). On a match `FaceProvenAt` is set and the
+  and too alike to tune on; the first real check, 2026-10-22 on the A51, scored 0.86–0.89 against the
+  person's own portraits and about −0.1 against strangers', so 40 stands). The engine logs these
+  numbers (never the faces) for tuning. On a match `FaceProvenAt` is set and the
   card shows "Face proven" in the Tavern and every bond; adding or removing a portrait clears it.
   Nothing else is kept: not the selfies, not the numbers. 3 tries a day [`safety.faceTriesPerDay`];
   off with [`safety.faceCheck`]. Outcomes: proven · noFace · turn · notYou. A photo of a screen

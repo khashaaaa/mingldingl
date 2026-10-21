@@ -57,11 +57,14 @@ export default function WorldTabs() {
  * invisible view), untouchable and out of TalkBack's reach.
  */
 const tabLayout = (props: {
-  route: { name: string };
-  navigation: { isFocused: () => boolean };
+  route: { key: string; name: string };
+  navigation: { getState: () => { index: number; routes: { key: string }[] } };
   children: ReactElement;
 }) => {
-  const open = props.navigation.isFocused();
+  // The bar's own choice, not isFocused(): that is false under any room stacked on the tabs, and a
+  // redraw there (a link opening a room) hid every tab, leaving a bare floor on Back.
+  const tabs = props.navigation.getState();
+  const open = tabs.routes[tabs.index]?.key === props.route.key;
   return (
     <View
       style={[styles.tab, !open && styles.hidden]}

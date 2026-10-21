@@ -13,9 +13,22 @@ import { ageOn, formatBorn, parseBorn } from '../steps/NameAge';
 jest.mock('@/lib/feedback', () => ({ feedback: jest.fn() }));
 jest.mock('@/lib/api/client', () => ({ ...jest.requireActual('@/lib/api/client'), apiFetch: jest.fn() }));
 jest.mock('expo-image-picker', () => ({
+  CameraType: { front: 'front', back: 'back' },
   requestMediaLibraryPermissionsAsync: jest.fn(),
   launchImageLibraryAsync: jest.fn(),
 }));
+const mockTakePicture = jest.fn(async (_o?: unknown) => ({ uri: 'file:///now.jpg', base64: '/9j/' }));
+jest.mock('expo-camera', () => {
+  const { forwardRef, useEffect, useImperativeHandle } = jest.requireActual('react');
+  return {
+    useCameraPermissions: () => [{ granted: true, canAskAgain: true }, jest.fn()],
+    CameraView: forwardRef((props: { onCameraReady?: () => void }, ref: unknown) => {
+      useImperativeHandle(ref, () => ({ takePictureAsync: (o: unknown) => mockTakePicture(o) }));
+      useEffect(() => props.onCameraReady?.(), []);
+      return null;
+    }),
+  };
+});
 jest.mock('expo-location', () => ({
   Accuracy: { Low: 2 },
   requestForegroundPermissionsAsync: jest.fn(),
@@ -181,6 +194,7 @@ const addPortrait = async () => {
   const [first] = screen.getAllByRole('button', { name: 'Add a portrait' });
   await fireEvent.press(first as never);
   await settle();
+  await press('Choose from your photos');
 };
 const header = (name: string) => screen.getByRole('header', { name });
 
@@ -271,6 +285,20 @@ describe('Onboarding', () => {
     await press('Continue');
     expect(engine.e.creates).toBe(0);
     expect(screen.getByText('Enter the day, month and year you were born.')).toBeTruthy();
+  });
+
+  test('an empty frame offers the camera as well as the photos, and a photo taken goes up', async () => {
+    engine.e.profile = { ...base(), gender: 'Female' };
+    await show();
+
+    const [first] = screen.getAllByRole('button', { name: 'Add a portrait' });
+    await fireEvent.press(first as never);
+    await settle();
+    await press('Take a photo');
+    await press('Take the photo');
+    expect(mockTakePicture).toHaveBeenCalledTimes(1);
+    expect(picker.launchImageLibraryAsync).not.toHaveBeenCalled();
+    expect(engine.e.uploads).toHaveLength(1);
   });
 
   test('a failed upload retries with the same Idempotency-Key', async () => {

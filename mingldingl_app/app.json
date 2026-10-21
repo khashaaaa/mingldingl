@@ -57,6 +57,13 @@
         }
       ],
       [
+        "expo-camera",
+        {
+          "cameraPermission": "MingldIngl opens the camera for the Flame Rite and for the selfies that prove your face. Selfies are compared with your portraits and deleted at once.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "MingldIngl reads your location once, only to suggest the place you call home."
@@ -91,6 +98,13 @@
         "projectId": "7bff372e-81ab-4e35-b114-503bb9f26e29"
       }
     },
-    "owner": "khashaa"
+    "owner": "khashaa",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7bff372e-81ab-4e35-b114-503bb9f26e29",
+      "fallbackToCacheTimeout": 5000
+    }
   }
 }

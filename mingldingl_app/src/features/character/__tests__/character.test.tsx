@@ -34,18 +34,25 @@ jest.mock('@/lib/push', () => ({
 }));
 jest.mock('@/lib/api/client', () => ({ ...jest.requireActual('@/lib/api/client'), apiFetch: jest.fn() }));
 jest.mock('expo-image-picker', () => ({
+  CameraType: { front: 'front', back: 'back' },
   requestMediaLibraryPermissionsAsync: jest.fn(),
   launchImageLibraryAsync: jest.fn(),
-  requestCameraPermissionsAsync: jest.fn(async () => ({ granted: true })),
-  launchCameraAsync: jest.fn(async () => ({
-    canceled: false,
-    assets: [{ base64: 'AAAA', uri: 'file://s.jpg' }],
-  })),
-  CameraType: { front: 'front' },
 }));
+/** The live front camera: ready at once, every picture the same tiny JPEG. */
+const mockTakePicture = jest.fn(async (_options?: unknown) => ({ base64: 'AAAA', uri: 'file://s.jpg' }));
+jest.mock('expo-camera', () => {
+  const { forwardRef, useEffect, useImperativeHandle } = jest.requireActual('react');
+  return {
+    useCameraPermissions: () => [{ granted: true, canAskAgain: true }, jest.fn()],
+    CameraView: forwardRef((props: { onCameraReady?: () => void }, ref: unknown) => {
+      useImperativeHandle(ref, () => ({ takePictureAsync: (o: unknown) => mockTakePicture(o) }));
+      useEffect(() => props.onCameraReady?.(), []);
+      return null;
+    }),
+  };
+});
 
 const { apiFetch } = jest.requireMock('@/lib/api/client') as { apiFetch: jest.Mock };
-const { launchCameraAsync } = jest.requireMock('expo-image-picker') as { launchCameraAsync: jest.Mock };
 
 const CITIES: CityView[] = [
   { name: 'Ulaanbaatar', kind: 'capital', region: 'Ulaanbaatar', lat: 47.9184, lng: 106.9177 },
@@ -321,16 +328,16 @@ describe('Character', () => {
 });
 
 describe('Prove your face', () => {
-  test('two camera selfies from the front camera prove it', async () => {
+  // A press waits for its handler, so it returns once the turn count has run out and the check is in.
+  test('one tap on the live camera takes both selfies and proves it', async () => {
     const { view } = await show();
     await press(/^Your face/);
     expect(view.getPathname()).toBe('/face-proof');
-    expect(screen.getByText(/turned a little to your left/)).toBeTruthy();
-    await press('Take the first selfie');
-    expect(screen.getByText(/Now turn your head a little to your left/)).toBeTruthy();
-    await press('Take the turned selfie');
-    expect(launchCameraAsync).toHaveBeenCalledTimes(2);
-    expect(launchCameraAsync.mock.calls[0][0]).toMatchObject({ cameraType: 'front' });
+    expect(screen.getByText(/turn your head to the left, so the camera sees your cheek/)).toBeTruthy();
+    await press('Begin');
+    // The straight selfie, then one at each tick of the turn count.
+    expect(mockTakePicture).toHaveBeenCalledTimes(4);
+    expect(mockTakePicture.mock.calls[0]?.[0]).toMatchObject({ shutterSound: false });
     expect(engine.faceChecks).toBe(1);
     expect(screen.getByText('Your face is proven')).toBeTruthy();
   });
@@ -338,18 +345,17 @@ describe('Prove your face', () => {
   test('a miss says why and how many tries are left', async () => {
     engine.faceOutcome = 'notYou';
     await show('/face-proof');
-    await press('Take the first selfie');
-    await press('Take the turned selfie');
+    await press('Begin');
     expect(screen.getByText(/do not match your portraits/)).toBeTruthy();
     expect(screen.getByText('2 tries left today')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
   });
 
-  test('a cancelled camera leaves the first step as it was', async () => {
-    launchCameraAsync.mockResolvedValueOnce({ canceled: true, assets: [] });
+  test('a picture that fails leaves the first step as it was', async () => {
+    mockTakePicture.mockRejectedValueOnce(new Error('camera busy'));
     await show('/face-proof');
-    await press('Take the first selfie');
-    expect(screen.getByRole('button', { name: 'Take the first selfie' })).toBeTruthy();
+    await press('Begin');
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
     expect(engine.faceChecks).toBe(0);
   });
 });

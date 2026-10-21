@@ -493,25 +493,7 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "type": "object",
-                "allOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "straight": {
-                        "$ref": "#/components/schemas/IFormFile"
-                      }
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "turned": {
-                        "$ref": "#/components/schemas/IFormFile"
-                      }
-                    }
-                  }
-                ]
+                "$ref": "#/components/schemas/FaceProofUpload"
               }
             }
           },
@@ -7571,6 +7553,24 @@
           },
           "status": {
             "$ref": "#/components/schemas/FaceProofView"
+          }
+        }
+      },
+      "FaceProofUpload": {
+        "required": [
+          "straight",
+          "turned"
+        ],
+        "type": "object",
+        "properties": {
+          "straight": {
+            "$ref": "#/components/schemas/IFormFile"
+          },
+          "turned": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IFormFile"
+            }
           }
         }
       },

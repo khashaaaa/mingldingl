@@ -3,10 +3,13 @@ import { Linking, StyleSheet, View } from 'react-native';
 import { Dialog } from '@/design/components/Dialog';
 import { InkLink } from '@/design/components/InkLink';
 import { PhotoTile } from '@/design/components/PhotoTile';
+import { Row } from '@/design/components/Row';
+import { Sheet } from '@/design/components/Sheet';
 import { Txt } from '@/design/components/Txt';
 import { color, dimension } from '@/design/tokens';
 import { t } from '@/lib/i18n';
 import { errorText } from './Onboarding';
+import { PortraitCamera } from './PortraitCamera';
 import type { usePortraits } from './usePortraits';
 
 /**
@@ -25,6 +28,8 @@ export function PortraitGrid({
 }) {
   const [lifted, setLifted] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [choosing, setChoosing] = useState(false);
+  const [shooting, setShooting] = useState(false);
   const empty = Math.max(0, max - p.photos.length - p.pending.length);
 
   const tapPhoto = (id: string, index: number) => {
@@ -60,7 +65,7 @@ export function PortraitGrid({
         {Array.from({ length: empty }, (_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: empty frames have no identity
           <View key={i} style={styles.slot}>
-            <PhotoTile state="empty" onPress={p.add} />
+            <PhotoTile state="empty" onPress={() => setChoosing(true)} />
           </View>
         ))}
       </View>
@@ -91,6 +96,27 @@ export function PortraitGrid({
         </Txt>
       ) : null}
 
+      <Sheet kind="menu" open={choosing} title={t('photo.add')} onClose={() => setChoosing(false)}>
+        <View style={styles.menu}>
+          <Row
+            glyph="eye"
+            title={t('photos.fromCamera')}
+            onPress={() => {
+              setChoosing(false);
+              setShooting(true);
+            }}
+          />
+          <Row
+            glyph="frame"
+            title={t('photos.fromLibrary')}
+            onPress={() => {
+              setChoosing(false);
+              p.add();
+            }}
+          />
+        </View>
+      </Sheet>
+      <PortraitCamera open={shooting} onClose={() => setShooting(false)} onTaken={p.addTaken} />
       <Dialog
         open={open !== null}
         title={t('photos.removeTitle')}
@@ -119,4 +145,5 @@ const styles = StyleSheet.create({
   },
   lifted: { borderColor: color.borderGold, transform: [{ scale: 1.04 }] },
   denied: { gap: dimension.space2, alignItems: 'flex-start' },
+  menu: { alignSelf: 'stretch' },
 });

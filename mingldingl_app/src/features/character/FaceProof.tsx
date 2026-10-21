@@ -1,13 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query';
-import * as ImagePicker from 'expo-image-picker';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Linking, StyleSheet, View } from 'react-native';
 import { Banner } from '@/design/components/Banner';
 import { Button } from '@/design/components/Button';
 import { RoomHeader } from '@/design/components/RoomHeader';
 import { Txt } from '@/design/components/Txt';
-import { dimension } from '@/design/tokens';
+import { color, dimension } from '@/design/tokens';
 import { ApiError } from '@/lib/api/client';
 import {
   getGetFaceProofQueryKey,
@@ -34,51 +34,49 @@ const selfiePart = (base64: string, name: string) =>
     bytes: async () => Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)),
   }) as unknown as Blob;
 
-/** The front camera, never the gallery: a selfie has to be taken now. */
-async function takeSelfie(): Promise<string | null> {
-  const picked = await ImagePicker.launchCameraAsync({
-    cameraType: ImagePicker.CameraType.front,
-    mediaTypes: ['images'],
-    quality: 0.85,
-    base64: true,
-  });
-  return picked.canceled ? null : (picked.assets[0]?.base64 ?? null);
-}
+/** Seconds the person has to turn their head before the second selfie takes itself. */
+export const TURN_SECONDS = 3;
 
-type Step = { kind: 'intro' } | { kind: 'turn'; straight: string } | { kind: 'sending' };
+type Step = { kind: 'ready' } | { kind: 'turn'; left: number } | { kind: 'sending' };
 
 /**
- * Prove your face: one selfie looking straight on, one with the head turned the way the engine asks,
- * both from the camera. The engine compares them with the portraits and keeps only the answer; on a
- * match the mark shows on the card. Optional, a few tries a day.
+ * Prove your face: the front camera is live as the room opens. One tap takes the selfie looking
+ * straight on; then the engine's side is asked and a shot is taken at each tick of a short count
+ * while the head turns, so the whole check is one tap. The engine compares them with the portraits and keeps only
+ * the answer; on a match the mark shows on the card. Optional, a few tries a day.
  */
 export default function FaceProof() {
   const client = useQueryClient();
   const status = useGetFaceProof().data;
-  const [step, setStep] = useState<Step>({ kind: 'intro' });
+  const [perm, askPerm] = useCameraPermissions();
+  const lens = useRef<CameraView>(null);
+  const [ready, setReady] = useState(false);
+  const [step, setStep] = useState<Step>({ kind: 'ready' });
   const [missed, setMissed] = useState<string | null>(null);
-  const [denied, setDenied] = useState(false);
+  const gone = useRef(false);
+  useEffect(
+    () => () => {
+      gone.current = true;
+    },
+    [],
+  );
 
-  const camera = async () => {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    setDenied(!perm.granted);
-    return perm.granted ? takeSelfie() : null;
+  // Ask for the camera once, as the room opens, so the preview is there at once.
+  useEffect(() => {
+    if (perm && !perm.granted && perm.canAskAgain) askPerm();
+  }, [perm, askPerm]);
+
+  const snap = async () => {
+    const shot = await lens.current?.takePictureAsync({ base64: true, quality: 0.85, shutterSound: false });
+    return shot?.base64 ?? null;
   };
 
-  const first = async () => {
-    setMissed(null);
-    const straight = await camera();
-    if (straight) setStep({ kind: 'turn', straight });
-  };
-
-  const second = async (straight: string) => {
-    const turned = await camera();
-    if (!turned) return;
+  const send = async (straight: string, turned: string[]) => {
     setStep({ kind: 'sending' });
     try {
       const r = await proveFace({
         straight: selfiePart(straight, 'straight.jpg'),
-        turned: selfiePart(turned, 'turned.jpg'),
+        turned: turned.map((t, i) => selfiePart(t, `turned${i}.jpg`)),
       });
       client.setQueryData<FaceProofView>(getGetFaceProofQueryKey(), r.status);
       if (r.outcome === 'proven') client.invalidateQueries({ queryKey: getGetMeQueryKey(), exact: true });
@@ -88,8 +86,28 @@ export default function FaceProof() {
       setMissed(e instanceof ApiError && e.kind === 'rule' ? `code:${e.code}` : 'lost');
       client.invalidateQueries({ queryKey: getGetFaceProofQueryKey(), exact: true });
     }
-    setStep({ kind: 'intro' });
+    setStep({ kind: 'ready' });
   };
+
+  const begin = async () => {
+    setMissed(null);
+    const straight = await snap().catch(() => null);
+    if (!straight) return setMissed('lost');
+    // The count while the head turns, a shot at every tick: a person turns at their own pace, so the
+    // engine judges the most turned of them.
+    const turned: string[] = [];
+    for (let left = TURN_SECONDS; left > 0; left--) {
+      setStep({ kind: 'turn', left });
+      await new Promise((r) => setTimeout(r, 1000));
+      if (gone.current) return;
+      const shot = await snap().catch(() => null);
+      if (shot) turned.push(shot);
+    }
+    if (turned.length) return send(straight, turned);
+    setMissed('lost');
+    setStep({ kind: 'ready' });
+  };
+  const turning = step.kind === 'turn' ? step : null;
 
   const header = <RoomHeader title={t('room.character')} onBack={router.back} />;
   if (!status) return <Scene header={header}>{null}</Scene>;
@@ -109,6 +127,7 @@ export default function FaceProof() {
 
   const side = t(status.turn === 'left' ? 'face.left' : 'face.right');
   const out = status.triesLeft <= 0;
+  const seeing = perm?.granted === true;
   const missedLine = missed?.startsWith('code:')
     ? tError(missed.slice(5), t('error.generic'))
     : missed && MISSED[missed]
@@ -117,32 +136,57 @@ export default function FaceProof() {
         ? t('error.generic')
         : null;
 
+  const footer = !seeing ? (
+    <Button
+      block
+      label={t('face.allowCamera')}
+      onPress={() => (perm?.canAskAgain === false ? Linking.openSettings() : askPerm())}
+    />
+  ) : (
+    <Button
+      block
+      label={t(missed ? 'face.again' : 'face.begin')}
+      loading={step.kind !== 'ready'}
+      disabled={out || !ready}
+      onPress={begin}
+    />
+  );
+
   return (
-    <Scene
-      header={header}
-      footer={
-        step.kind === 'turn' ? (
-          <Button block label={t('face.takeTurned', { side })} onPress={() => second(step.straight)} />
-        ) : (
-          <Button
-            block
-            label={t(missed ? 'face.again' : 'face.takeStraight')}
-            loading={step.kind === 'sending'}
-            disabled={out}
-            onPress={first}
-          />
-        )
-      }
-    >
+    <Scene header={header} footer={out ? undefined : footer}>
       <Txt variant="displayL" engraved accessibilityRole="header" style={styles.title}>
         {t('face.title')}
       </Txt>
-      <Txt variant="bodyL" color="textSecondary">
-        {step.kind === 'turn' ? t('face.turnNow', { side }) : t('face.body', { side })}
+      {seeing && !out ? (
+        <View style={styles.lens}>
+          <CameraView
+            ref={lens}
+            style={StyleSheet.absoluteFill}
+            facing="front"
+            animateShutter={false}
+            onCameraReady={() => setReady(true)}
+          />
+          {turning ? (
+            <View style={styles.count} pointerEvents="none">
+              <View style={styles.dim} />
+              <Txt variant="displayL" engraved align="center">
+                {t(status.turn === 'left' ? 'face.turnLeftShort' : 'face.turnRightShort')}
+              </Txt>
+              <Txt variant="displayXL" engraved align="center" accessibilityLiveRegion="polite">
+                {String(turning.left)}
+              </Txt>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+      <Txt variant="bodyL" color={turning ? 'textAccent' : 'textSecondary'} accessibilityLiveRegion="polite">
+        {turning ? t('face.turnNow', { side }) : t('face.body', { side })}
       </Txt>
       <View style={styles.notes}>
         {missedLine ? <Banner text={missedLine} /> : null}
-        {denied ? <Banner glyph="shield" tint="textSecondary" text={t('face.cameraDenied')} /> : null}
+        {perm && !seeing ? (
+          <Banner glyph="shield" tint="textSecondary" text={t('face.cameraDenied')} />
+        ) : null}
         <Banner
           glyph="candle"
           tint="textSecondary"
@@ -157,5 +201,23 @@ export default function FaceProof() {
 
 const styles = StyleSheet.create({
   title: { paddingTop: dimension.space2, marginBottom: dimension.space3 },
+  lens: {
+    width: '72%',
+    aspectRatio: 3 / 4,
+    alignSelf: 'center',
+    marginBottom: dimension.space4,
+    borderRadius: dimension.radiusLg,
+    borderWidth: 1,
+    borderColor: color.borderBrass,
+    overflow: 'hidden',
+    backgroundColor: color.bgSunken,
+  },
+  count: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: 'center',
+    gap: dimension.space2,
+  },
+  // Dims the preview under the words so they read on a bright wall.
+  dim: { ...StyleSheet.absoluteFill, backgroundColor: color.bgScrim, opacity: 0.45 },
   notes: { marginTop: dimension.space4, gap: dimension.space3 },
 });

@@ -3,19 +3,26 @@
 Newest first. One short entry per finished piece of work: what a person can now do, what was
 decided, what was fixed on a device. Open items live in the plan's Backlog, not here.
 
-## 2026-10-22 — The face check; launch accounts
+## 2026-10-22 — The face check; launch accounts; local store builds
 
-Optional face check: Character → Your face takes two front-camera selfies (straight, then turned),
-the engine matches them against the portraits with YuNet + SFace on ONNX Runtime (scores checked
-against OpenCV's) and keeps only the answer; a match puts "Face proven" on the card in the Tavern
-and in bonds, a portrait change takes it off, 3 tries a day. Admin shows it; the privacy page says
-so (EN + MN). Decided: two genders, each sees the other; the art stays for launch. Done: QPay's
-live keys accepted on the server; the Sentry org token on EAS (production uploads source maps);
-the server redeployed to `0dda253`; WeSend Active (a real code went to the user's number through
-the server). Figma: "Your face" row on Character — own, "Seek — a companion · face proven" (S2), four
-Prove your face frames (S6, y 5760). Play build 6 built locally (EAS's queue held build 5 for 25 minutes;
-cancelled). A proven face also earns 20 points once, skips the newcomer's summons limit, comes first
-among equal companions in Seek, and members can filter the Tavern to proven faces.
+Optional face check: Character → Your face. One tap opens the front camera inside the app and
+counts down 3-2-1: a straight shot, then three through the turn. The engine judges the most-turned
+against the portraits with YuNet + SFace on ONNX Runtime (scores checked against OpenCV's) and
+keeps only the answer; a miss for no face or no turn gives the try back. A match puts "Face proven"
+on the card in the Tavern and in bonds (a portrait change takes it off), earns 20 points once,
+skips the newcomer's summons limit, comes first among equal companions in Seek, and members can
+filter the Tavern to proven faces. 3 tries a day. Admin shows it; the privacy page says so (EN +
+MN). The turn bar dropped from 0.15 to 0.10 eye spans after the first real tries on the A51 missed.
+Figma: "Your face" row on Character, "Seek — a companion · face proven" (S2), four Prove your face
+frames (S6).
+
+Decided: two genders, each sees the other; the art stays for launch. Done: QPay's live keys
+accepted on the server; WeSend Active (a real code went to the A51 through the server); the Sentry
+org token on EAS. Production went down for minutes when a regenerated migration id made the engine
+recreate every table; the id is restored and `new-migration.sh` and `deploy.sh` now guard it (plan,
+Hard-won rules). Store builds now run locally (EAS's queue held build 5 for 25 minutes) and
+`scripts/play-upload.py` puts them straight on Play internal testing; builds 6–8 went up, and the
+A51 runs build 8.
 
 ## 2026-10-21 — First live run on the server; Play billing set up
 
@@ -125,7 +132,7 @@ Tavern card, the fixed bell cards, Choice Card's glyph property (the app's marks
 knot), the Guild page's floor picker without the Yard; page 07 is five current screens, and the
 art and components pages are clean. Checked on the A51.
 
-## 2026-10-21 — Tidier tests
+## 2026-10-21 — Tidier tests; the device pass runs again
 
 The test suites lost about 370 lines of copied setup and three duplicate tests (engine 260, app 346,
 admin 10). Engine helpers moved into `Infrastructure/` (`MeetingWorld`, `PaymentDriver`, one
@@ -134,9 +141,7 @@ and its run prints no React warnings; the admin spec shares its login and dialog
 the way: `two-devices.sh` and `live-latency.py` still signed in through the pre-WeSend
 `/auth/phone/status` step.
 
-## 2026-10-21 — The device pass runs again
-
-The pass had broken in three places since the face check and the WeSend code:
+The device pass had broken in three places since the portrait face check and the WeSend code:
 - The seed album was ink figures, which the face check now refuses. `push-seed-photos.sh` now
   pushes one crowd traveller's six photos.
 - "The gate opens" holds for only 1.2 s, and Maestro often types the code too slowly to see it.
@@ -243,7 +248,7 @@ regenerated again.
 
 ## 2026-10-20 — The Wanderings
 
-Thirteen side roads for two, off a bond's Campaign (Тэнүүл in Mongolian): six first roads open
+Thirteen side roads for two, off a bond's Campaign (Хэсүүл in Mongolian; first named Тэнүүл): six first roads open
 after the pair's first kept meeting, seven trusted roads after the second. Offrail: never required,
 never expiring, no points, nothing lost. One asks, the other answers *Let's go* or *Not this one*;
 after it, each writes what they will remember, sealed until both have written. Three kept make the

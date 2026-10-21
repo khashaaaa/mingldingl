@@ -106,6 +106,18 @@ export function usePortraits(max: number) {
     for (const p of fresh) await send(p);
   }, [max, photos.data?.length, send]);
 
+  /** One taken now with the app's own camera (PortraitCamera). */
+  const addTaken = useCallback(
+    async (shot: { base64: string; uri: string }) => {
+      setError(null);
+      if (max - (photos.data?.length ?? 0) - live.current.length <= 0) return;
+      const p: Pending = { key: newUploadKey(), base64: shot.base64, uri: shot.uri, status: 'uploading' };
+      setPending((all) => [...all, p]);
+      await send(p);
+    },
+    [max, photos.data?.length, send],
+  );
+
   const retry = useCallback(
     (key: string) => {
       const p = live.current.find((x) => x.key === key);
@@ -153,6 +165,7 @@ export function usePortraits(max: number) {
     denied,
     error,
     add,
+    addTaken,
     retry,
     remove,
     move,

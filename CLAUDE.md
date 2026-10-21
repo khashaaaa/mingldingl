@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 MingldIngl is a gamified dating app for the Mongolian market — a score-based economy, gemstone tier identity, and progressive profile reveal, built to replace disposable swipe-loop dating apps. Solo-developer project.
 
 The whole game is built (sign-in, Seek, bonds and letters, score and tiers, encounters, the
-world, membership and payments, the Guild House web page, statistics). What is left is the launch
-on the home server, which waits on the user's accounts and keys (the plan's "Launch checklist").
+world, membership and payments, the Guild House web page, statistics). It runs on the home server; what
+is left is the Play launch, which waits on the user (the plan's "Launch checklist").
 
 | Dir | Purpose | Stack |
 |---|---|---|
@@ -233,6 +233,9 @@ npm run lint        # Biome
 npm test            # jest --forceExit (plain `npx jest` hangs on exit; pass --forceExit)
 npm run generate:api / generate:tokens
 npx expo run:android                                # local dev build onto a device or the emulator (AVD mingl_pixel)
+SENTRY_DISABLE_AUTO_UPLOAD=true npx eas-cli build --profile production --platform android --local --output ~/builds/mingldingl/x.aab
+~/.venvs/play/bin/python scripts/play-upload.py ~/builds/mingldingl/x.aab   # straight to Play internal testing (service account key in ~/.config/mingldingl)
+npx eas-cli update --branch production --environment production --message "…" --non-interactive   # JS/words/art only: reaches installed store builds over the air in ~1 min (next launch); anything native (a new or upgraded native package, a plugin, app.json native config) needs a store build **and a bump of `version` in app.json first** — runtimeVersion is the app version, so an update reaches only store builds of the same version, and a JS bundle on mismatched native code crashes
 ```
 Maestro flows (`.maestro/`, need `scripts/dev.sh`): `signup.yaml`, `resume.yaml`,
 `resume-every-step.yaml`, `keyboard-clear.yaml`; `two-devices.sh <A> <B>` runs live-edit and
