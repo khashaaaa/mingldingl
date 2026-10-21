@@ -19,6 +19,12 @@ export interface VenueView {
   /** @nullable */
   description: string | null;
   /** @nullable */
+  addressMn: string | null;
+  /** @nullable */
+  hoursMn: string | null;
+  /** @nullable */
+  descriptionMn: string | null;
+  /** @nullable */
   rating: number | null;
   ratings: number;
   photos: VenuePhotoView[];

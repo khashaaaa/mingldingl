@@ -82,7 +82,7 @@ export function GuildPage() {
         >
           {w.say('switchTo')}
         </button>
-        <header className="guild-sign">
+        <header className={step.at === 'phone' || step.at === 'code' ? 'guild-heading' : 'guild-sign'}>
           <span>{w.say('sign')}</span>
         </header>
         {error && (
@@ -159,6 +159,18 @@ function Phone({
   const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
   const valid = /^[0-9]{8}$/.test(phone);
+  const send = async () => {
+    if (!valid || busy) return;
+    setBusy(true);
+    onError(null);
+    try {
+      onStarted(await startPhone({ phone, resumeVerificationId: null, locale: w.lang }), phone);
+    } catch (e) {
+      onError(said(w, e));
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <section className="guild-body">
       <h1>{w.say(leaving ? 'leaveTitle' : 'enterTitle')}</h1>
@@ -174,26 +186,13 @@ function Phone({
           autoComplete="tel-national"
           maxLength={8}
           value={phone}
+          enterKeyHint="send"
           onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+          onKeyDown={(e) => e.key === 'Enter' && send()}
         />
       </div>
       <p className="muted guild-small">{w.say('cost')}</p>
-      <Button
-        kind="brass"
-        className="guild-cta"
-        disabled={!valid || busy}
-        onClick={async () => {
-          setBusy(true);
-          onError(null);
-          try {
-            onStarted(await startPhone({ phone, resumeVerificationId: null, locale: w.lang }), phone);
-          } catch (e) {
-            onError(said(w, e));
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
+      <Button kind="brass" className="guild-cta" disabled={!valid || busy} onClick={send}>
         {w.say('continue')}
       </Button>
     </section>
@@ -436,7 +435,7 @@ function Qr({ invoice, onSettled }: { invoice: InvoiceView; onSettled: (i: Invoi
     QRCode.toString(invoice.qrText, { type: 'svg', margin: 1 }).then(setSvg, () => setSvg(null));
   }, [invoice]);
 
-  // While the QR is up, ask how it stands; the engine checks with QPay itself each time.
+  // While the QR is up, ask how it stands. Only the engine's own record: QPay's callback settles it.
   useEffect(() => {
     let live = true;
     let timer = 0;

@@ -50,13 +50,16 @@ public sealed class DevEndpoints : IEndpointModule
             return Results.Ok(await pay.SyncStoreAsync(me, ct));
         }).RequireAuthorization().WithName("DevStorePurchase");
 
-        // The bank app, for the web page on a local engine: pays a QPay invoice in full.
-        g.MapPost("/qpay/pay/{invoice:guid}", async (Guid invoice, IServiceProvider sp, AppDb db, CancellationToken ct) =>
+        // The bank app, for the web page on a local engine: pays a QPay invoice in full, and QPay calls back.
+        g.MapPost("/qpay/pay/{invoice:guid}", async (Guid invoice, IServiceProvider sp, AppDb db, Payments.PaymentService payments,
+            CancellationToken ct) =>
         {
             if (sp.GetService<Payments.FakeQPay>() is not { } fake) return Results.NotFound();
             var qid = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.SingleOrDefaultAsync(
                 db.Set<Payments.Invoice>().Where(i => i.Id == invoice).Select(i => i.QPayInvoiceId), ct);
-            return qid is not null && fake.Pay(qid) ? Results.Ok() : Results.NotFound();
+            if (qid is null || !fake.Pay(qid)) return Results.NotFound();
+            await payments.CallbackAsync(invoice, ct);
+            return Results.Ok();
         }).WithName("DevQPayPay");
 
         // The admin's write path (bounds, live config.updated) without the admin's password, so a

@@ -218,7 +218,7 @@ export default function GuildHouse() {
             />
           ))}
         </View>
-        <SectionLabel text={t('guild.howLong')} />
+        <SectionLabel text={t('guild.howLong')} flush />
         <View accessibilityRole="radiogroup" style={styles.chips}>
           {([1, 3, 6] as const).map((n) => {
             const o = offer(floor, n);

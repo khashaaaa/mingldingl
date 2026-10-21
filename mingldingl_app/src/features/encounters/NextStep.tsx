@@ -6,7 +6,7 @@ import { Row } from '@/design/components/Row';
 import type { GlyphName } from '@/design/glyphs';
 import { useGetEncounter, useGetWeeklyTrial } from '@/lib/api/generated/engine';
 import type { EncounterView, MeetingView } from '@/lib/api/generated/model';
-import { getLocale, type StringKey, t, tPlace, tVenue } from '@/lib/i18n';
+import { getLocale, type StringKey, t, tPlace, tVenue, tVenueText } from '@/lib/i18n';
 
 type Step = { glyph: GlyphName; title: string; body: string; route: string };
 
@@ -29,7 +29,7 @@ export const shareMeeting = (m: MeetingView, name: string) =>
     message: t('meeting.shareText', {
       name,
       venue: tVenue(m.venue),
-      address: m.venue.address,
+      address: tVenueText(m.venue, 'address') ?? '',
       district: tPlace(m.venue.district),
       when: when(m.at),
     }),

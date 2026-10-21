@@ -171,7 +171,7 @@ async function show() {
   return client;
 }
 
-const settle = () => act(async () => {});
+const settle = () => act(() => new Promise((r) => setTimeout(r, 0)));
 const press = async (name: string | RegExp) => {
   await fireEvent.press(screen.getByRole('button', { name }));
   await settle();

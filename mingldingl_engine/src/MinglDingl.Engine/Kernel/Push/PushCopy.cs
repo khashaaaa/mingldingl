@@ -11,21 +11,21 @@ public static class PushCopy
     public static readonly IReadOnlyDictionary<string, Line> Table = new Dictionary<string, Line>
     {
         [PushKinds.Letter] = new("A letter from {{name}}", "“{{text}}”", "{{name}} захидал илгээлээ", "“{{text}}”"),
-        [PushKinds.BondMade] = new("A bond is made", "{{name}} summoned you. Speak first, and the first seal starts to crack.", "Холбоо тогтлоо", "{{name}} чамайг урилаа. Эхэлж үг хэл — анхны лац цуурч эхэлнэ."),
+        [PushKinds.BondMade] = new("A bond is made", "{{name}} summoned you. Speak first, and the first seal starts to crack.", "Холбоо тогтлоо", "{{name}} чамайг урилаа. Түрүүлж үгээ хэл — анхны лац цуурч эхэлнэ."),
         [PushKinds.Embers] = new("Your fire is going cold", "{{name}} waits for your word — {{text}} hours left.", "Гал чинь хөрч байна", "{{name}} чиний үгийг хүлээж байна — {{text}} цаг үлдлээ."),
-        [PushKinds.GoneCold] = new("The fire went out", "Your bond with {{name}} has gone cold.", "Гал унтарлаа", "{{name}} гэдэг хүнтэй холбоо чинь хөрлөө."),
-        [PushKinds.RiteProposed] = new("The Flame Rite", "{{name}} asks for the Flame Rite — five minutes, face to face.", "Галын ёслол", "{{name}} Галын ёслол хүсэж байна — таван минут нүүр тулан."),
-        [PushKinds.MeetingProposed] = new("A meeting is offered", "{{name}} pledged to meet: {{text}}.", "Уулзалтын санал", "{{name}} уулзахаа амлалаа: {{text}}."),
-        [PushKinds.MeetingSworn] = new("The meeting is sworn", "You and {{name}}: {{text}}.", "Уулзалт тангараглагдлаа", "Чи ба {{name}}: {{text}}."),
-        [PushKinds.MeetingCalledOff] = new("The meeting is called off", "{{name}} called off {{text}}.", "Уулзалт цуцлагдлаа", "{{name}} цуцаллаа: {{text}}."),
-        [PushKinds.Attendance] = new("Did {{name}} come?", "Tell the hold how the meeting went. Your answer is private.", "{{name}} ирсэн үү?", "Уулзалт хэрхэн болсныг цайзад хэл. Хариулт чинь зөвхөн чамд."),
-        [PushKinds.ThreadWoven] = new("A thread from {{name}}", "{{name}} thinks you should meet someone. Neither learns who the other is until both say yes.", "Заяаны холбоос · {{name}}", "{{name}} чамайг нэг хүнтэй уулзах ёстой гэж бодож байна. Хоёулаа тийм гэх хүртэл хэн нь хэн бэ гэдгийг мэдэхгүй."),
-        [PushKinds.ThreadSparked] = new("Your thread sparked", "Both said yes. The thread-weaver's due is yours.", "Холбоос чинь оч хаялаа", "Хоёулаа тийм гэлээ. Заяа холбогчийн хувь чинийх."),
-        [PushKinds.SquareSoon] = new("{{name}} rings soon", "Town Square opens in one minute.", "{{name}} удахгүй хангинана", "Талбай нэг минутын дараа нээгдэнэ."),
-        [PushKinds.FloorEnding] = new("Your floor ends soon", "{{name}} ends on {{text}}. The game stays the same on every floor.", "Давхрын хугацаа дуусах гэж байна", "{{name}} {{text}} дуусна. Тоглоом бүх давхарт адилхан."),
+        [PushKinds.GoneCold] = new("The fire went out", "Your bond with {{name}} has gone cold.", "Гал унтарлаа", "Чи, {{name}} хоёрын холбооны гал унтарлаа."),
+        [PushKinds.RiteProposed] = new("The Flame Rite", "{{name}} asks for the Flame Rite — five minutes, face to face.", "Галын ёслол", "{{name}} чамайг Галын ёслолд урьж байна — таван минут, нүүр нүүрээрээ."),
+        [PushKinds.MeetingProposed] = new("A meeting is offered", "{{name}} pledged to meet: {{text}}.", "Болзооны санал", "{{name}} болзоо санал болголоо: {{text}}."),
+        [PushKinds.MeetingSworn] = new("The meeting is sworn", "You and {{name}}: {{text}}.", "Болзохоор тогтлоо", "Чи, {{name}} хоёр: {{text}}."),
+        [PushKinds.MeetingCalledOff] = new("The meeting is called off", "{{name}} called off {{text}}.", "Болзоо цуцлагдлаа", "{{name}} цуцаллаа: {{text}}."),
+        [PushKinds.Attendance] = new("Did {{name}} come?", "Tell the hold how the meeting went. Your answer is private.", "{{name}} ирсэн үү?", "Болзоо ямар байсныг цайзад хэл. Хариултыг чинь өөр хэн ч харахгүй."),
+        [PushKinds.ThreadWoven] = new("A thread from {{name}}", "{{name}} thinks you should meet someone. Neither learns who the other is until both say yes.", "Заяаны холбоос · {{name}}", "{{name}} чамайг нэг хүнтэй танилцуулахыг хүсэж байна. Хоёул «тийм» гэх хүртэл хэн нь хэн бэ гэдгийг мэдэхгүй."),
+        [PushKinds.ThreadSparked] = new("Your thread sparked", "Both said yes. The thread-weaver's due is yours.", "Холбоос чинь оч хаялаа", "Хоёул тийм гэлээ. Заяа зангидагчийн шагналыг хүртлээ."),
+        [PushKinds.SquareSoon] = new("{{name}} rings soon", "Town Square opens in one minute.", "{{name}} удахгүй хангинана", "Чуулган нэг минутын дараа нээгдэнэ."),
+        [PushKinds.FloorEnding] = new("Your floor ends soon", "{{name}} ends on {{text}}. The game stays the same on every floor.", "Давхрын хугацаа дуусах гэж байна", "{{name}}: дуусах өдөр {{text}}. Тоглоом бүх давхарт адилхан."),
         [PushKinds.RefundSent] = new("Your payment is coming back", "We could not open the floor, so {{text}} is on its way back to your bank.", "Төлбөр чинь буцаж байна", "Давхрыг нээж чадсангүй, тиймээс {{text}} банк руу чинь буцаж байна."),
-        [PushKinds.RetireAsked] = new("{{name}} asks to retire together", "If you agree, you both leave the search and keep this bond as complete.", "{{name}} хамтдаа замаас буухыг хүсэж байна", "Зөвшөөрвөл хоёулаа эрлээс гарч, энэ холбоог бүрэн гэж хадгална."),
-        [PushKinds.WanderingAsked] = new("{{name}} asks you to wander", "A side road for two is waiting in your bond.", "{{name}} чамайг хамт тэнүүлэхийг урьж байна", "Холбоонд чинь хоёрын тэнүүл хүлээж байна."),
+        [PushKinds.RetireAsked] = new("{{name}} asks to retire together", "If you agree, you both leave the search and keep this bond as complete.", "{{name}} хамтдаа хэрмээс гарахыг хүсэж байна", "Зөвшөөрвөл хоёул эрлээс гарч, энэ холбоо бүрэн биелсэнд тооцогдоно."),
+        [PushKinds.WanderingAsked] = new("{{name}} asks you to wander", "A side road for two is waiting in your bond.", "{{name}} чамайг хамт хэсүүл явахаар урьж байна", "Холбоонд чинь хоёр хүний хэсүүл хүлээж байна."),
     };
 
     public static (string Title, string Body) Render(PushItem item, string locale)
@@ -45,7 +45,7 @@ public static class PushCopy
     {
         ["Mon"] = "Да", ["Tue"] = "Мя", ["Wed"] = "Лх", ["Thu"] = "Пү", ["Fri"] = "Ба", ["Sat"] = "Бя", ["Sun"] = "Ня",
     };
-    private static readonly Dictionary<string, string> Floors = new() { ["The High Table"] = "Дээд ширээ", ["The Hall"] = "Танхим" };
+    private static readonly Dictionary<string, string> Floors = new() { ["The High Table"] = "Дээд танхим", ["The Hall"] = "Танхим" };
 
     /// The English values a push carries (a floor's name, "Fri 17 Oct, 19:00", "16 October") as a
     /// Mongolian reader reads them: "Ба, 10-р сарын 17, 19:00", "10-р сарын 16".

@@ -36,7 +36,8 @@ for d in "$B" "$A"; do python3 .maestro/live-latency.py "$d" "$PHONE" --max 2; d
 
 echo "== revoke: a third sign-in to $PHONE signs out everywhere"
 vid=$(curl -sf "$ENGINE/auth/phone/start" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\"}" | sed -E 's/.*"verificationId":"([^"]+)".*/\1/')
-curl -sf "$ENGINE/auth/phone/status/$vid" >/dev/null
+curl -sf "$ENGINE/auth/phone/check" -H 'Content-Type: application/json' \
+  -d "{\"verificationId\":\"$vid\",\"code\":\"000000\"}" >/dev/null   # the fake WeSend's code
 token=$(curl -sf "$ENGINE/auth/phone/complete" -H 'Content-Type: application/json' \
   -d "{\"verificationId\":\"$vid\",\"deviceName\":\"two-devices.sh\"}" | sed -E 's/.*"accessToken":"([^"]+)".*/\1/')
 curl -sf -X POST "$ENGINE/auth/sign-out-all" -H "Authorization: Bearer $token" -o /dev/null -w "sign-out-all: %{http_code}\n"

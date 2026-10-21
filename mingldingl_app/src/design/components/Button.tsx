@@ -18,13 +18,18 @@ type Props = {
   block?: boolean;
 };
 
-/** The forged button: worn brass plate, two rivets, caps label. Press sinks 2 px on the anvil spring. */
+/**
+ * The forged button: worn brass plate, two rivets, caps label. Press sinks 2 px on the anvil spring.
+ * Disabled it is unlit iron — a hairline outline and faint words, no brass — never dimmed brass,
+ * which reads as a brown stain on the night.
+ */
 export function Button({ label, onPress, kind = 'forged', disabled, loading, block }: Props) {
   const sink = useSharedValue(0);
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: sink.value }] }));
   const inert = disabled || loading;
   const spring = { damping: easing.anvil.damping, stiffness: easing.anvil.stiffness };
-  const plain = kind === 'plain';
+  const unlit = !!disabled;
+  const plain = kind === 'plain' || unlit;
 
   return (
     <Pressable
@@ -40,15 +45,20 @@ export function Button({ label, onPress, kind = 'forged', disabled, loading, blo
         sink.value = withSpring(0, spring);
       }}
       onPress={onPress}
-      style={[block && { alignSelf: 'stretch' }, disabled && { opacity: 0.4 }]}
+      style={block && { alignSelf: 'stretch' }}
     >
       {({ pressed }) => (
         <Animated.View
           style={[
             styles.plate,
             {
-              borderColor:
-                kind === 'danger' ? color.statusDanger : plain ? color.borderStrong : color.borderGold,
+              borderColor: unlit
+                ? color.borderHairline
+                : kind === 'danger'
+                  ? color.statusDanger
+                  : plain
+                    ? color.borderStrong
+                    : color.borderGold,
             },
             plain && { borderTopWidth: dimension.strokeHairline },
             !pressed && !plain && { boxShadow: boxShadow('shadowRaised') },
@@ -68,7 +78,11 @@ export function Button({ label, onPress, kind = 'forged', disabled, loading, blo
                 ]}
               />
             )}
-            <Txt variant="labelM" color={plain ? 'textPrimary' : 'bgBase'} numberOfLines={1}>
+            <Txt
+              variant="labelM"
+              color={unlit ? 'textMuted' : plain ? 'textPrimary' : 'bgBase'}
+              numberOfLines={1}
+            >
               {label}
             </Txt>
             {!plain && <Fastener kind="rivet" size={10} />}

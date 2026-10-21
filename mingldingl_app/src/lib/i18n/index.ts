@@ -82,6 +82,22 @@ export function tVenue(v: { name: string; nameMn?: string | null }): string {
   return current === 'mn' && v.nameMn ? v.nameMn : v.name;
 }
 
+/** A partner place's address, hours or description, in Mongolian for a Mongolian reader once written. */
+export function tVenueText(
+  v: {
+    address: string;
+    addressMn?: string | null;
+    hours?: string | null;
+    hoursMn?: string | null;
+    description?: string | null;
+    descriptionMn?: string | null;
+  },
+  field: 'address' | 'hours' | 'description',
+): string | null {
+  const mn = v[`${field}Mn`];
+  return (current === 'mn' && mn ? mn : v[field]) ?? null;
+}
+
 /** An engine rule in the person's language when the app has its line (`error.<code>`); else as sent. */
 export function tError(code: string, message: string): string {
   const key = `error.${code}`;

@@ -21,25 +21,25 @@ const hall: MembershipView = {
 describe('the Guild House', () => {
   beforeAll(() => setLocale('en'));
 
-  it('is sealed while the engine or the build cannot sell', () => {
+  test('is sealed while the engine or the build cannot sell', () => {
     expect(guildStage(undefined, true, 'idle')).toBe('sealed');
     expect(guildStage({ ...yard, open: false }, true, 'idle')).toBe('sealed');
     expect(guildStage(yard, false, 'idle')).toBe('sealed');
   });
 
-  it('waits after a purchase until the engine says the floor is open, then welcomes', () => {
+  test('waits after a purchase until the engine says the floor is open, then welcomes', () => {
     expect(guildStage(yard, true, 'idle')).toBe('choose');
     expect(guildStage(yard, true, 'paying')).toBe('paying');
     expect(guildStage(yard, true, 'bought')).toBe('paying');
     expect(guildStage(hall, true, 'bought')).toBe('welcome');
   });
 
-  it('shows a member their floor, and a failure without a floor change', () => {
+  test('shows a member their floor, and a failure without a floor change', () => {
     expect(guildStage(hall, true, 'idle')).toBe('member');
     expect(guildStage(yard, true, 'failed')).toBe('failed');
   });
 
-  it('writes tögrög the Guild House way', () => {
+  test('writes tögrög the Guild House way', () => {
     expect(tugrik(29430)).toBe('29,430₮');
   });
 });

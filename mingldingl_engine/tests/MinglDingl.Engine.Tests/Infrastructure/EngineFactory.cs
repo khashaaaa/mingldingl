@@ -3,9 +3,12 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using MinglDingl.Engine.Features.Admin;
 using MinglDingl.Engine.Features.Square;
 using MinglDingl.Engine.Kernel;
 using MinglDingl.Engine.Kernel.Clock;
+using MinglDingl.Engine.Kernel.Config;
+using MinglDingl.Engine.Kernel.Maintenance;
 
 namespace MinglDingl.Engine.Tests.Infrastructure;
 
@@ -52,6 +55,14 @@ public sealed class EngineFactory(PostgresFixture db) : WebApplicationFactory<Pr
 
     public HttpClient Client() => CreateClient();
 
+    public async Task SetConfigAsync(string key, string value)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<ConfigWrites>().SetAsync(key, value);
+    }
+
+    public Task DailySweepAsync() => Services.GetRequiredService<DailySweep>().RunAsync();
+
     private sealed class Idle : IHostedService
     {
         public Task StartAsync(CancellationToken ct) => Task.CompletedTask;
@@ -71,7 +82,7 @@ public static class TestSettings
         ["Auth:SigningKey"] = "test-app-signing-key-0123456789-abcdefghij",
         ["Admin:JwtSigningKey"] = "test-admin-signing-key-0123456789-abcdefgh",
         ["Admin:Username"] = "admin",
-        ["Admin:PasswordHash"] = MinglDingl.Engine.Features.Admin.AdminPasswordHasher.Hash(AdminDriver.Password),
+        ["Admin:PasswordHash"] = AdminPasswordHasher.Hash(AdminDriver.Password),
         ["WeSend:Fake"] = "false",
         ["RateLimits:AuthPerMinute"] = "1000",
         ["RateLimits:AdminLoginPer15Min"] = "5",

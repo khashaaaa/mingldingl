@@ -5,8 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MinglDingl.Engine.Features.Auth;
 using MinglDingl.Engine.Features.Bonds;
+using MinglDingl.Engine.Features.Honours;
+using MinglDingl.Engine.Features.Payments;
 using MinglDingl.Engine.Features.Push;
 using MinglDingl.Engine.Features.Seek;
+using MinglDingl.Engine.Kernel.Config;
 using MinglDingl.Engine.Kernel.Errors;
 using static MinglDingl.Engine.Tests.Infrastructure.ProfileDriver;
 
@@ -47,11 +50,11 @@ public sealed class World : IAsyncDisposable
         var w = new World(db, f => { f.WithSetting("ConnectionStrings:Default", cs); configure?.Invoke(f); });
         if (!campaign)
         {
-            await w.SetAsync(MinglDingl.Engine.Kernel.Config.ConfigKeys.ScoreCampaignRoom, "0");
-            await w.SetAsync(MinglDingl.Engine.Kernel.Config.ConfigKeys.ScoreCampaignBoss, "0");
+            await w.SetAsync(ConfigKeys.ScoreCampaignRoom, "0");
+            await w.SetAsync(ConfigKeys.ScoreCampaignBoss, "0");
         }
         // Earlier stages ring a bell and sit at once; the High Table's lead is tested on its own.
-        await w.SetAsync(MinglDingl.Engine.Kernel.Config.ConfigKeys.SquareHighTableLeadMinutes, "0");
+        await w.SetAsync(ConfigKeys.SquareHighTableLeadMinutes, "0");
         return w;
     }
 
@@ -67,12 +70,12 @@ public sealed class World : IAsyncDisposable
         F.WithServices(s => { s.RemoveAll<IPushGateway>(); s.AddSingleton<IPushGateway>(Push); });
         F.WithServices(s =>
         {
-            s.RemoveAll<MinglDingl.Engine.Features.Payments.IQPay>();
-            s.AddSingleton<MinglDingl.Engine.Features.Payments.FakeQPay>();
-            s.AddSingleton<MinglDingl.Engine.Features.Payments.IQPay>(sp => sp.GetRequiredService<MinglDingl.Engine.Features.Payments.FakeQPay>());
-            s.RemoveAll<MinglDingl.Engine.Features.Payments.IRevenueCat>();
-            s.AddSingleton<MinglDingl.Engine.Features.Payments.FakeRevenueCat>();
-            s.AddSingleton<MinglDingl.Engine.Features.Payments.IRevenueCat>(sp => sp.GetRequiredService<MinglDingl.Engine.Features.Payments.FakeRevenueCat>());
+            s.RemoveAll<IQPay>();
+            s.AddSingleton<FakeQPay>();
+            s.AddSingleton<IQPay>(sp => sp.GetRequiredService<FakeQPay>());
+            s.RemoveAll<IRevenueCat>();
+            s.AddSingleton<FakeRevenueCat>();
+            s.AddSingleton<IRevenueCat>(sp => sp.GetRequiredService<FakeRevenueCat>());
         });
         F.WithSetting("RateLimits:WritesPerMinuteOverride", "100000");
         configure?.Invoke(F);
@@ -115,16 +118,9 @@ public sealed class World : IAsyncDisposable
         return person;
     }
 
-    public async Task SetAsync(string key, string value)
-    {
-        await using var scope = F.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<MinglDingl.Engine.Kernel.Config.ConfigWrites>().SetAsync(key, value);
-    }
+    public Task SetAsync(string key, string value) => F.SetConfigAsync(key, value);
 
-    public async Task SweepAsync()
-    {
-        await F.Services.GetRequiredService<BondSweep>().RunAsync();
-    }
+    public Task SweepAsync() => F.Services.GetRequiredService<BondSweep>().RunAsync();
 
     public ValueTask DisposeAsync() => F.DisposeAsync();
 }
@@ -168,4 +164,6 @@ public static class WorldDriver
     }
 
     public static async Task<int> PointsAsync(this HttpClient c) => (await c.MeAsync()).Profile!.Points;
+
+    public static async Task<List<HonourView>> HonoursAsync(this HttpClient c) => (await c.GetFromJsonAsync<List<HonourView>>("/me/honours"))!;
 }

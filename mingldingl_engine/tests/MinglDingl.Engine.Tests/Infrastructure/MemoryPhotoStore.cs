@@ -7,7 +7,6 @@ public sealed class MemoryPhotoStore : IPhotoStore
 {
     public ConcurrentDictionary<string, byte[]> Files { get; } = new();
     private int _signs;
-    public int SignCalls => _signs;
 
     public async Task PutAsync(string path, Stream jpeg, CancellationToken ct = default)
     {

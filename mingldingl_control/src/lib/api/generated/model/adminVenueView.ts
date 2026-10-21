@@ -18,6 +18,12 @@ export interface AdminVenueView {
   hours: string | null;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  addressMn: string | null;
+  /** @nullable */
+  hoursMn: string | null;
+  /** @nullable */
+  descriptionMn: string | null;
   verified: boolean;
   removed: boolean;
   /** @nullable */

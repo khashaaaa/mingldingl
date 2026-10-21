@@ -18,6 +18,10 @@ public sealed class Venue
     public string Address { get; set; } = "";
     public string? Hours { get; set; }
     public string? Description { get; set; }
+    /// The address, hours and description in Mongolian, beside NameMn; null until the keepers write them.
+    public string? AddressMn { get; set; }
+    public string? HoursMn { get; set; }
+    public string? DescriptionMn { get; set; }
     public bool Verified { get; set; }
     public DateTimeOffset? RemovedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
@@ -63,6 +67,9 @@ internal sealed class VenueMap : IEntityTypeConfiguration<Venue>
         e.Property(x => x.Address).HasMaxLength(Kernel.Validation.FieldLimits.VenueAddress);
         e.Property(x => x.Hours).HasMaxLength(Kernel.Validation.FieldLimits.VenueHours);
         e.Property(x => x.Description).HasMaxLength(Kernel.Validation.FieldLimits.VenueDescription);
+        e.Property(x => x.AddressMn).HasMaxLength(Kernel.Validation.FieldLimits.VenueAddress);
+        e.Property(x => x.HoursMn).HasMaxLength(Kernel.Validation.FieldLimits.VenueHours);
+        e.Property(x => x.DescriptionMn).HasMaxLength(Kernel.Validation.FieldLimits.VenueDescription);
         e.HasIndex(x => new { x.Verified, x.RemovedAt });
     }
 }

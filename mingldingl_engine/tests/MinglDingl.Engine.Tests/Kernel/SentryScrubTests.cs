@@ -1,6 +1,5 @@
 using FluentAssertions;
 using MinglDingl.Engine.Kernel.Errors;
-using Sentry;
 
 namespace MinglDingl.Engine.Tests.Kernel;
 

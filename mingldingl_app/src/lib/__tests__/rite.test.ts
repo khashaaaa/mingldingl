@@ -40,7 +40,7 @@ describe('a call that drops', () => {
     return { onLost, handle };
   }
 
-  it('is lost when it cannot come back in time (Agora never says "failed" for a dropped network)', () => {
+  test('is lost when it cannot come back in time (Agora never says "failed" for a dropped network)', () => {
     const { onLost } = call();
     handler.onConnectionStateChanged(null, S.Reconnecting);
     jest.advanceTimersByTime(LOST_AFTER_MS - 1);
@@ -49,7 +49,7 @@ describe('a call that drops', () => {
     expect(onLost).toHaveBeenCalledTimes(1);
   });
 
-  it('is not lost when it comes back first', () => {
+  test('is not lost when it comes back first', () => {
     const { onLost } = call();
     handler.onConnectionStateChanged(null, S.Reconnecting);
     jest.advanceTimersByTime(LOST_AFTER_MS / 2);
@@ -58,13 +58,13 @@ describe('a call that drops', () => {
     expect(onLost).not.toHaveBeenCalled();
   });
 
-  it('is lost at once when the join is refused', () => {
+  test('is lost at once when the join is refused', () => {
     const { onLost } = call();
     handler.onConnectionStateChanged(null, S.Failed);
     expect(onLost).toHaveBeenCalledTimes(1);
   });
 
-  it('leaving is never "lost"', () => {
+  test('leaving is never "lost"', () => {
     const { onLost, handle } = call();
     handler.onConnectionStateChanged(null, S.Reconnecting);
     handle.leave();

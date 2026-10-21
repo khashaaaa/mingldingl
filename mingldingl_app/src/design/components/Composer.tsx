@@ -57,11 +57,12 @@ export function Composer({
         disabled={disabled || empty || busy}
         onPressIn={() => feedback('press')}
         onPress={send}
-        style={[styles.boss, (disabled || empty) && styles.dim]}
+        style={[styles.boss, (disabled || empty) && styles.unlit]}
       >
-        <FillArt name="brass_plate" />
+        {/* nothing to send: unlit iron, as a disabled Button — not dimmed brass */}
+        {disabled || empty ? null : <FillArt name="brass_plate" />}
         <View style={styles.arrow}>
-          <Glyph name="back" size={22} tint="textOnParchment" />
+          <Glyph name="back" size={22} tint={disabled || empty ? 'textMuted' : 'textOnParchment'} />
         </View>
       </Pressable>
     </View>
@@ -78,8 +79,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: dimension.space3,
     paddingVertical: dimension.space3,
     borderWidth: dimension.strokeHairline,
-    borderColor: color.borderStrong,
-    backgroundColor: color.bgSunken,
+    borderColor: color.borderHairline,
+    borderBottomWidth: dimension.strokeRule,
+    borderBottomColor: color.borderStrong,
+    backgroundColor: color.bgPanel,
   },
   off: { opacity: 0.5 },
   boss: {
@@ -92,6 +95,6 @@ const styles = StyleSheet.create({
     borderWidth: dimension.strokeHairline,
     borderColor: color.borderGold,
   },
-  dim: { opacity: 0.55 },
+  unlit: { borderColor: color.borderHairline },
   arrow: { transform: [{ rotate: '180deg' }] },
 });

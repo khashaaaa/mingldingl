@@ -23,6 +23,13 @@ as built, principles, visual system, hard-won rules) and `docs/shipped-log.md` (
 per finished piece of work, newest first). New work updates those two; a finished item leaves the
 backlog and becomes a log entry.
 
+## Claude and Codex share this tree
+
+Both agents work here with full permission (Codex: `.codex/config.toml`, never asks). `AGENTS.md`
+is this file for Codex — keep the two identical apart from the title line (edit one, copy it over).
+Either may find the other's uncommitted work in the tree: build on it, never revert or reformat
+it unasked. The `.remember/` notes are shared, so read `now.md` before starting. Neither commits.
+
 ---
 
 ## Architecture / cross-file facts
@@ -81,8 +88,10 @@ backlog and becomes a log entry.
 - **Membership & payments (stage 6):** `Membership/` holds the floor (Yard / Hall / High Table) as
   grants; every feature asks `MembershipService` (`FloorAsync`, `Perks`), none reads payments.
   Store floors mirror RevenueCat — the webhook and the app's `/me/membership/sync` only prompt the
-  engine to ask RevenueCat. QPay (web page only) is believed only from `payment/check`; the
-  one-minute `PaymentSweep` checks open invoices, cancels cold ones and finds late money; anything
+  engine to ask RevenueCat. QPay (web page only) is believed only from `payment/check`, which
+  QPay forbids polling: it is asked after QPay's POST callback, and once when the one-minute
+  `PaymentSweep` cancels a code gone cold (finding money whose callback was lost). One shared
+  token (`QPayTokens`; `expires_in` is a timestamp, renewed by `auth/refresh`); anything
   paid that cannot be credited waits on the admin's Payments page to be refunded. In Development
   `QPay:Fake`/`RevenueCat:Fake` and `/dev/me/store`, `/dev/qpay/pay/{invoice}` walk it locally.
 - **Statistics (stage 6c):** `Stats/` rolls each finished day into `stats_daily` (hourly
@@ -142,9 +151,9 @@ backlog and becomes a log entry.
   that must survive stepping back use `useDraft`.
 - **Mongolian:** every string is a key in `lib/i18n/en.json`, and every key has its line in
   `mn.json` — Claude writes the Mongolian (the user's call, 2026-10-16), in the same primal, epic
-  game voice as the English, reusing the established words (Гал голомт, цайз, манаач, хөрөг,
+  game voice as the English, reusing the established words (Гал голомт, хэрэм, цайз, Дааман хаалга, манаач, хөрөг,
   домог, лац, Наймааны өргөө…). "The keepers" is манаач, never манаачид (readers don't take it
-  as plural); Fated Threads are Заяаны холбоос, tied (зангидах), never утас (it reads as
+  as plural); the Square is Чуулган, never Талбай (it is a gathering); the world is a хэрэм (walled town: Хотын чуулган, Наймааны өргөө inside), entered by the Дааман хаалга (the Gate as a place; a generic door stays хаалга), with the цайз (the keep: seven rooms, the keepers' voice) on the mountain; the whole world is хэрэм ("Хэрэм нойрсож байна"), and retiring together is хэрмээс гарах, never замаас буух; the floors are Хашаа / Танхим / Дээд танхим (never Дээд өргөө or Дээд ширээ), so the Hall of Names room is always Алдрын танхим, never bare Танхим; the Wanderings are Хэсүүл (хэсүүл явах), never тэнүүл (a homeless wanderer, a person); "both/the two" is хоёул (firm), never хоёулаа (casual, loose); a meeting between two players is болзоо / болзох, never уулзалт; a date is товлох (proposed: санал болгох; both agreed: болзохоор тогтох), never амлах or тангараглах — тангараг is only the onboarding oath; what the player did is -сан ("Чи санал болгосон"), not narrative -в ("Чи санал болгов"); Fated Threads are Заяаны холбоос, tied (зангидах), never утас (it reads as
   a phone); sealed is лацадсан / лацтай, never лацлагдсан; the player is always чи/чиний, never та/таны. A new English key gets its Mongolian in the same change (a jest
   test fails on a missing or orphaned key). Never glue a case suffix onto `{{var}}` (Mongolian
   suffixes change with the word) — rephrase ("Хүлээж буй нь: {{name}}", "{{time}} цагт").

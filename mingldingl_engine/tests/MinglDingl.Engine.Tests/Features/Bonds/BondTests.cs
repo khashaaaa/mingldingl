@@ -2,7 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using MinglDingl.Engine.Features.Bonds;
+using MinglDingl.Engine.Features.Profile;
 using MinglDingl.Engine.Features.Push;
+using MinglDingl.Engine.Features.Safety;
 using MinglDingl.Engine.Kernel.Config;
 using MinglDingl.Engine.Kernel.Live;
 using MinglDingl.Engine.Tests.Infrastructure;
@@ -366,7 +368,7 @@ public class BondTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         // A report keeps them apart for good, even once the days pass.
         var anu = await w.PersonAsync("Anu", "Female");
         var told = await bat.C.SummonAsync(anu.Id);
-        (await anu.C.PostAsJsonAsync("/reports", new MinglDingl.Engine.Features.Safety.ReportRequest(bat.Id, told.Id, "rude", null)))
+        (await anu.C.PostAsJsonAsync("/reports", new ReportRequest(bat.Id, told.Id, "rude", null)))
             .EnsureSuccessStatusCode();
         if ((await anu.C.BondAsync(told.Id)).State == "Live") (await anu.C.PostAsync($"/bonds/{told.Id}/sever", null)).EnsureSuccessStatusCode();
         await w.AdvanceAsync(TimeSpan.FromDays(30));
@@ -379,11 +381,11 @@ public class BondTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await using var w = await World.CreateAsync(db);
         var bat = await w.PersonAsync("Bat", "Male");
         var saruul = await w.PersonAsync("Saruul", "Female");
-        (await saruul.C.PutAsJsonAsync("/me/deep", new MinglDingl.Engine.Features.Profile.DeepUpdateRequest("yes", null, null, null, null, null, null, null)))
+        (await saruul.C.PutAsJsonAsync("/me/deep", new DeepUpdateRequest("yes", null, null, null, null, null, null, null)))
             .EnsureSuccessStatusCode();
         (await bat.C.SeekAsync()).Candidate!.HasChildren.Should().BeFalse("kept for the fourth seal");
 
-        (await saruul.C.PutAsJsonAsync("/me/deep", new MinglDingl.Engine.Features.Profile.DeepUpdateRequest(null, true, null, null, null, null, null, null)))
+        (await saruul.C.PutAsJsonAsync("/me/deep", new DeepUpdateRequest(null, true, null, null, null, null, null, null)))
             .EnsureSuccessStatusCode();
         (await bat.C.SeekAsync()).Candidate!.HasChildren.Should().BeTrue();
         var bond = await bat.C.SummonAsync(saruul.Id);

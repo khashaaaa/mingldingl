@@ -1,5 +1,5 @@
 import en from '../en.json';
-import { pseudo, setLocale, t, tError } from '../index';
+import { pseudo, setLocale, t, tError, tVenueText } from '../index';
 import mn from '../mn.json';
 
 // names, numbers, bare placeholders: lines that are legitimately identical
@@ -69,4 +69,21 @@ test('a composed line takes its pieces in its own language', () => {
   expect(tLine('ceremony.tierTitle', { tier: 'tier.Opal' })).toBe('Гэрэлт чимэд зэрэгт өгслөө');
   setLocale('en');
   expect(tLine('ceremony.tierTitle', { tier: 'tier.Opal' })).toBe('Ascended to Opal');
+});
+
+test("a venue's address, hours and description read in Mongolian once the keepers wrote them", () => {
+  const v = {
+    address: 'Seoul Street 21',
+    addressMn: 'Сөүлийн гудамж 21',
+    hours: '08:00–22:00',
+    hoursMn: null,
+    description: 'Quiet.',
+    descriptionMn: 'Нам гүм.',
+  };
+  setLocale('mn');
+  expect(tVenueText(v, 'address')).toBe('Сөүлийн гудамж 21');
+  expect(tVenueText(v, 'hours')).toBe('08:00–22:00'); // not written yet: the English stands
+  expect(tVenueText(v, 'description')).toBe('Нам гүм.');
+  setLocale('en');
+  expect(tVenueText(v, 'address')).toBe('Seoul Street 21');
 });

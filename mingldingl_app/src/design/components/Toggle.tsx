@@ -7,14 +7,19 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { feedback } from '@/lib/feedback';
+import { boxShadow } from '../effects';
 import { curve, MOTION, useReduceMotion } from '../motion';
-import { color } from '../tokens';
+import { color, dimension } from '../tokens';
 
 const TRACK_W = 52;
-const KNOB = 22;
-const INSET = 4;
+const KNOB = 14; // the lozenge's side; turned 45° it spans ~20
+const INSET = 8;
 
-/** Figma's Toggle (22:143): a forged lever — bronze track and gold knob when on, a sunken slot when off. */
+/**
+ * Figma's Toggle (22:143): a lozenge riding a cut slot — the name rule's gold lozenge, lit and glowing
+ * at the right when on, an unlit iron one at the left when off. No pill, no round knob: it is the
+ * screen's own mark, not a phone's switch.
+ */
 export function Toggle({
   value,
   onChange,
@@ -37,13 +42,13 @@ export function Toggle({
   }, [value, reduce, on]);
 
   const track = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(on.value, [0, 1], [color.bgSunken, color.metalBronze]),
-    borderColor: interpolateColor(on.value, [0, 1], [color.borderHairline, color.borderGold]),
+    borderColor: interpolateColor(on.value, [0, 1], [color.borderStrong, color.borderGold]),
   }));
   const knob = useAnimatedStyle(() => ({
-    transform: [{ translateX: on.value * (TRACK_W - KNOB - INSET * 2) }],
+    transform: [{ translateX: on.value * (TRACK_W - KNOB - INSET * 2) }, { rotate: '45deg' }],
     backgroundColor: interpolateColor(on.value, [0, 1], [color.textMuted, color.accentGoldBright]),
   }));
+  const lit = useAnimatedStyle(() => ({ opacity: on.value }));
 
   return (
     <Pressable
@@ -56,7 +61,9 @@ export function Toggle({
       onPress={() => onChange(!value)}
     >
       <Animated.View style={[styles.track, track, disabled && styles.disabled]}>
-        <Animated.View style={[styles.knob, knob]} />
+        <Animated.View style={[styles.knob, knob]}>
+          <Animated.View style={[StyleSheet.absoluteFill, styles.glow, lit]} />
+        </Animated.View>
       </Animated.View>
     </Pressable>
   );
@@ -66,11 +73,13 @@ const styles = StyleSheet.create({
   track: {
     width: TRACK_W,
     height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    padding: INSET - 1,
+    borderRadius: dimension.radiusSm,
+    borderWidth: dimension.strokeHairline,
+    backgroundColor: color.bgPanel,
+    paddingHorizontal: INSET - 1,
     justifyContent: 'center',
   },
-  knob: { width: KNOB, height: KNOB, borderRadius: KNOB / 2 },
+  knob: { width: KNOB, height: KNOB },
+  glow: { boxShadow: boxShadow('glowGold') },
   disabled: { opacity: 0.5 },
 });

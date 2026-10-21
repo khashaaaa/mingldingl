@@ -31,7 +31,7 @@ public sealed class Invoice
     public InvoiceState State { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
-    /// Checked with QPay until this (a day past expiry), so late money is still found.
+    /// QPay's callbacks are honoured until this (a day past expiry), so late money is still found.
     public DateTimeOffset WatchUntil { get; set; }
 }
 

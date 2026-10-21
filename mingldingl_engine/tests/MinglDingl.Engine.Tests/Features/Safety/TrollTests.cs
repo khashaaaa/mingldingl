@@ -1,11 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using MinglDingl.Engine.Features.Admin;
 using MinglDingl.Engine.Features.Auth;
 using MinglDingl.Engine.Features.Safety;
-using MinglDingl.Engine.Kernel.Maintenance;
 using MinglDingl.Engine.Tests.Infrastructure;
 using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 
@@ -17,12 +15,6 @@ public class TrollTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 {
     private static Task<HttpResponseMessage> Start(World w, string phone) =>
         w.F.Client().PostAsJsonAsync("/auth/phone/start", new StartRequest(phone, null));
-
-    private static async Task BurnDue(World w)
-    {
-        await using var scope = w.F.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<DailySweep>().RunAsync();
-    }
 
     [Fact]
     public async Task A_removed_characters_number_gets_no_code_until_a_keeper_lifts_the_bar()
@@ -62,7 +54,7 @@ public class TrollTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var admin = await w.F.AdminAsync();
         (await admin.PostAsJsonAsync($"/admin/users/{temuujin.Id}/delete", new KeeperReason("Legal request"))).EnsureSuccessStatusCode();
         w.F.Clock.Advance(TimeSpan.FromDays(31));
-        await BurnDue(w);
+        await w.F.DailySweepAsync();
 
         (await CodeOf(await Start(w, troll))).Should().Be("auth.barred");
         (await Start(w, honest)).EnsureSuccessStatusCode();

@@ -1,11 +1,10 @@
-import { notifyManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
-import type { ReactNode } from 'react';
+import { act, fireEvent, screen } from 'expo-router/testing-library';
 import WorldLayout from '@/app/(world)/_layout';
-import { getAppStatus, getGetAppStatusQueryKey, getGetMeQueryKey, getMe } from '@/lib/api/generated/engine';
+import { getAppStatus, getGetAppStatusQueryKey } from '@/lib/api/generated/engine';
 import type { CodexPageView, MembershipView, MeView, ProfileView } from '@/lib/api/generated/model';
 import { setLocale } from '@/lib/i18n';
 import { applyLiveEvent } from '@/lib/live/events';
+import { settle, showWorld } from '@/lib/testing/world';
 import QuestLog from '../../bonds/QuestLog';
 import CharacterScreen from '../../character/CharacterScreen';
 import Missions from '../../road/Missions';
@@ -47,15 +46,6 @@ jest.mock('@/lib/store', () => ({
 }));
 jest.mock('@/lib/session', () => ({ ...jest.requireActual('@/lib/session'), signOutLocally: jest.fn() }));
 jest.mock('@/lib/api/client', () => ({ ...jest.requireActual('@/lib/api/client'), apiFetch: jest.fn() }));
-
-// expo-router's test mocks swap in Reanimated's bare mock, which lacks the hook jest.setup.js adds.
-Object.assign(require('react-native-reanimated'), { useReducedMotion: () => false });
-
-// renderRouter starts on fake timers and the harness drops them after the first render; a query
-// that lands later would tell its screen on a fake setTimeout that never fires.
-notifyManager.setScheduler((cb) => {
-  Promise.resolve().then(cb);
-});
 
 const { apiFetch } = jest.requireMock('@/lib/api/client') as { apiFetch: jest.Mock };
 const { saveSoundSetting } = jest.requireMock('@/lib/feedback') as { saveSoundSetting: jest.Mock };
@@ -226,26 +216,10 @@ const ROUTES = {
   '(world)/codex/[slug]': CodexPage,
 };
 
-async function show(url = '/war-room') {
-  const client = new QueryClient({
-    defaultOptions: {
-      queries: { staleTime: Number.POSITIVE_INFINITY, retry: false },
-      mutations: { retry: false },
-    },
-  });
-  await client.prefetchQuery({ queryKey: getGetMeQueryKey(), queryFn: () => getMe() });
-  await client.prefetchQuery({ queryKey: getGetAppStatusQueryKey(), queryFn: () => getAppStatus() });
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
-  );
-  const view = renderRouter(ROUTES, { initialUrl: url, wrapper });
-  await view;
-  jest.useRealTimers();
-  await settle();
-  return { client, view };
-}
+// The gate only opens the world once /app/status is in the cache too.
+const STATUS = { queryKey: getGetAppStatusQueryKey(), queryFn: () => getAppStatus() };
+const show = (url = '/war-room') => showWorld(ROUTES, url, { prefetch: [STATUS] });
 
-const settle = () => act(() => new Promise((r) => setTimeout(r, 0)));
 const press = async (name: string | RegExp, role: 'button' | 'switch' | 'link' = 'button') => {
   await fireEvent.press(screen.getByRole(role, { name }));
   await settle();

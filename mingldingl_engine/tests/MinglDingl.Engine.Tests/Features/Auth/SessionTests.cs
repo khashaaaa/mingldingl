@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MinglDingl.Engine.Features.Auth;
 using MinglDingl.Engine.Kernel.Config;
-using MinglDingl.Engine.Kernel.Errors;
 using MinglDingl.Engine.Kernel.Persistence;
 using MinglDingl.Engine.Tests.Infrastructure;
+using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 
 namespace MinglDingl.Engine.Tests.Features.Auth;
 
@@ -18,9 +18,6 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await using var scope = f.Services.CreateAsyncScope();
         return await scope.ServiceProvider.GetRequiredService<AppDb>().Set<Account>().CountAsync(a => a.Phone == phone);
     }
-
-    private static async Task<string?> ErrorCode(HttpResponseMessage r) =>
-        (await r.Content.ReadFromJsonAsync<ErrorBody>())?.Code;
 
     [Fact]
     public async Task Complete_creates_account_and_returns_pair()
@@ -54,7 +51,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await c.CompleteRawAsync(s.VerificationId)).StatusCode.Should().Be(HttpStatusCode.OK);
         var again = await c.CompleteRawAsync(s.VerificationId);
         again.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ErrorCode(again)).Should().Be("auth.already_claimed");
+        (await CodeOf(again)).Should().Be("auth.already_claimed");
     }
 
     [Fact]
@@ -76,7 +73,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var s = await c.StartAsync(SessionDriver.NewPhone());
         var r = await c.CompleteRawAsync(s.VerificationId);
         r.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ErrorCode(r)).Should().Be("auth.not_verified");
+        (await CodeOf(r)).Should().Be("auth.not_verified");
     }
 
     [Fact]
@@ -88,7 +85,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await c.CheckAsync(vm, s.VerificationId);
         f.Clock.Advance(TimeSpan.FromMinutes(31));
         var r = await c.CompleteRawAsync(s.VerificationId);
-        (await ErrorCode(r)).Should().Be("auth.verification_expired");
+        (await CodeOf(r)).Should().Be("auth.verification_expired");
     }
 
     [Fact]
@@ -97,8 +94,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var existing = SessionDriver.NewPhone();
         await f.SignInAsync(vm, existing);
-        await using (var scope = f.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<ConfigWrites>().SetAsync(ConfigKeys.SignupsEnabled, "false");
+        await f.SetConfigAsync(ConfigKeys.SignupsEnabled, "false");
         try
         {
             var c = f.Client();
@@ -106,13 +102,12 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
             await c.CheckAsync(vm, s.VerificationId);
             var r = await c.CompleteRawAsync(s.VerificationId);
             r.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-            (await ErrorCode(r)).Should().Be("signups.closed");
+            (await CodeOf(r)).Should().Be("signups.closed");
             await f.SignInAsync(vm, existing);
         }
         finally
         {
-            await using var scope = f.Services.CreateAsyncScope();
-            await scope.ServiceProvider.GetRequiredService<ConfigWrites>().SetAsync(ConfigKeys.SignupsEnabled, "true");
+            await f.SetConfigAsync(ConfigKeys.SignupsEnabled, "true");
         }
     }
 
@@ -149,9 +144,9 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         f.Clock.Advance(TimeSpan.FromSeconds(31));
         var replay = await f.Client().RefreshRawAsync(s.RefreshToken);
         replay.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        (await ErrorCode(replay)).Should().Be("auth.reused");
+        (await CodeOf(replay)).Should().Be("auth.reused");
         var afterTheft = await f.Client().RefreshRawAsync(next.RefreshToken);
-        (await ErrorCode(afterTheft)).Should().Be("auth.revoked");
+        (await CodeOf(afterTheft)).Should().Be("auth.revoked");
     }
 
     [Fact]
@@ -171,7 +166,7 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await using var f = new EngineFactory(db); f.UseScriptedWeSend();
         var r = await f.Client().RefreshRawAsync("not-a-token");
         r.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        (await ErrorCode(r)).Should().Be("auth.invalid_refresh");
+        (await CodeOf(r)).Should().Be("auth.invalid_refresh");
     }
 
     [Fact]

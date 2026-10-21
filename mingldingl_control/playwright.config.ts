@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { pbkdf2Sync, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
@@ -27,6 +28,24 @@ const dev: string = JSON.parse(
 const part = (k: string) => new RegExp(`(?:^|;)\\s*${k}=([^;]*)`, 'i').exec(dev)?.[1] ?? '';
 const E2E_DB = 'mingldingl_e2e';
 const e2eConnection = `${dev.replace(/(^|;)\s*Database=[^;]*/i, '$1')};Database=${E2E_DB}`;
+/** Runs one SQL statement on the e2e database (tests use it for what no endpoint does). */
+export const e2eSql = (sql: string) =>
+  execFileSync(
+    'psql',
+    [
+      '-h',
+      part('Host') || '127.0.0.1',
+      '-p',
+      part('Port') || '5432',
+      '-U',
+      part('Username'),
+      '-d',
+      E2E_DB,
+      '-qc',
+      sql,
+    ],
+    { env: { ...process.env, PGPASSWORD: part('Password') } },
+  );
 const dropDb = `psql -h ${part('Host') || '127.0.0.1'} -p ${part('Port') || '5432'} -U ${part('Username')} -d postgres -qc "DROP DATABASE IF EXISTS ${E2E_DB} WITH (FORCE)"`;
 
 export default defineConfig({

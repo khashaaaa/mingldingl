@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FluentAssertions;
+using MinglDingl.Engine.Features.Encounters;
 using MinglDingl.Engine.Features.Venues;
 
 namespace MinglDingl.Engine.Tests.Infrastructure;
@@ -39,14 +40,14 @@ public static class EncounterDriver
 
 public static class EncounterSteps
 {
-    public static async Task<MinglDingl.Engine.Features.Encounters.EncounterView> EncounterAsync(this HttpClient c, Guid bond) =>
-        (await c.GetFromJsonAsync<MinglDingl.Engine.Features.Encounters.EncounterView>($"/bonds/{bond}/encounter"))!;
+    public static async Task<EncounterView> EncounterAsync(this HttpClient c, Guid bond) =>
+        (await c.GetFromJsonAsync<EncounterView>($"/bonds/{bond}/encounter"))!;
 
     public static Task<HttpResponseMessage> IcebreakerRawAsync(this HttpClient c, Guid bond, string text) =>
-        c.PostAsJsonAsync($"/bonds/{bond}/encounter/icebreaker", new MinglDingl.Engine.Features.Encounters.IcebreakerAnswerRequest(text));
+        c.PostAsJsonAsync($"/bonds/{bond}/encounter/icebreaker", new IcebreakerAnswerRequest(text));
 
     public static Task<HttpResponseMessage> TrialRawAsync(this HttpClient c, Guid bond, int index, int choice) =>
-        c.PostAsJsonAsync($"/bonds/{bond}/encounter/trial", new MinglDingl.Engine.Features.Encounters.TrialAnswerRequest(index, choice));
+        c.PostAsJsonAsync($"/bonds/{bond}/encounter/trial", new TrialAnswerRequest(index, choice));
 
     public static async Task TrialAllAsync(this HttpClient c, Guid bond, params int[] choices)
     {
@@ -57,17 +58,17 @@ public static class EncounterSteps
 public static class MeetingSteps
 {
     public static Task<HttpResponseMessage> ProposeRawAsync(this HttpClient c, Guid bond, Guid venue, DateTimeOffset at) =>
-        c.PostAsJsonAsync($"/bonds/{bond}/meeting", new MinglDingl.Engine.Features.Encounters.MeetingProposal(venue, at));
+        c.PostAsJsonAsync($"/bonds/{bond}/meeting", new MeetingProposal(venue, at));
 
-    public static async Task<MinglDingl.Engine.Features.Encounters.MeetingView> ProposeAsync(this HttpClient c, Guid bond, Guid venue, DateTimeOffset at) =>
-        (await (await c.ProposeRawAsync(bond, venue, at)).Read<MinglDingl.Engine.Features.Encounters.EncounterView>()).Meeting!.Current!;
+    public static async Task<MeetingView> ProposeAsync(this HttpClient c, Guid bond, Guid venue, DateTimeOffset at) =>
+        (await (await c.ProposeRawAsync(bond, venue, at)).Read<EncounterView>()).Meeting!.Current!;
 
     public static Task<HttpResponseMessage> MeetingActRawAsync(this HttpClient c, Guid bond, Guid meeting, string act) =>
         c.PostAsync($"/bonds/{bond}/meeting/{meeting}/{act}", null);
 
     public static Task<HttpResponseMessage> AttendRawAsync(this HttpClient c, Guid bond, Guid meeting, string answer) =>
-        c.PostAsJsonAsync($"/bonds/{bond}/meeting/{meeting}/attendance", new MinglDingl.Engine.Features.Encounters.AttendanceRequest(answer));
+        c.PostAsJsonAsync($"/bonds/{bond}/meeting/{meeting}/attendance", new AttendanceRequest(answer));
 
     public static Task<HttpResponseMessage> RateRawAsync(this HttpClient c, Guid bond, Guid meeting, int stars) =>
-        c.PostAsJsonAsync($"/bonds/{bond}/meeting/{meeting}/rating", new MinglDingl.Engine.Features.Encounters.RatingRequest(stars));
+        c.PostAsJsonAsync($"/bonds/{bond}/meeting/{meeting}/rating", new RatingRequest(stars));
 }

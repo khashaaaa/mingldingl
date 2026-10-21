@@ -3,6 +3,123 @@
 Newest first. One short entry per finished piece of work: what a person can now do, what was
 decided, what was fixed on a device. Open items live in the plan's Backlog, not here.
 
+## 2026-10-21 — First live run on the server; Play billing set up
+
+On the A51 against `api.mingldingl.com`: a real WeSend code signed in, a character was made through
+all six steps, and the Guild House signed in by its own code and wrote a real 10,900₮ QPay invoice
+(unpaid; the sweep cancelled it with QPay and checked once). Two fixes from it: WeSend's
+`auth.provider_unavailable` is now 503 — Cloudflare swaps an origin 502 for its own plain text,
+which the page read as "no connection" (WeSend had run out of credits); and Enter/Go sends the
+Guild House's number. Decided: the app sells floors only through the stores, QPay stays on the web
+(store rules). Play: payments profile made (public name MingldIngl, statement MINGLDINGL), the
+tester list made license testers; build 3 (1.0.0) on internal testing; subscriptions `hall` and
+`high_table` with auto-renewing `m1`/`m3`/`m6` base plans active in MNT; RevenueCat's Play service account
+(`revenuecat@mingldingl.iam.gserviceaccount.com`, Play Developer + Reporting APIs on) validates all
+three checks. First real store purchase: the Play build on the A51 bought the Hall as a license tester, the
+engine asked RevenueCat and the app opened "Welcome — the Hall" by itself; RevenueCat: Play products `hall:m1…m6` and `high_table:m1…m6`
+attached to their entitlements, webhook to the engine confirmed. check-all passes.
+The Guild House's hanging sign now hangs below the status bar (only the chains cross it; it
+covered the clock on the A51) and its "How long" label is flush with the chips — app and Figma
+(Hanging Sign 155:314).
+
+## 2026-10-21 — QPay by its own rules
+
+Read QPay's Merchant V2 docs (developer.qpay.mn) against our client and fixed four breaks: the
+token was fetched anew on every call (the typed client is per request — now one shared
+`QPayTokens`), `expires_in` was read as seconds (it is a unix timestamp; `auth/refresh` now renews
+it), and `payment/check` was polled every minute and on every 3-second page tick, which QPay
+forbids. Now QPay's POST callback prompts the check; the sweep only cancels a code gone cold and
+checks it once (a lost callback still costs nothing). Callbacks are limited per invoice, the
+invoice text has no special characters, and QPay's error codes are logged (`INVOICE_PAID` on
+cancel means "check now"). Five client tests against QPay's documented answers; 265 engine tests
+pass. The merchant id, secret and invoice code (`MINGLDINGL_INVOICE`) came in.
+
+## 2026-10-21 — Figma and code parity pass
+
+Reviewed all 193 S1–S9 frames and swept every page for rejected art and stray source layers.
+Figma caught the missed privacy/portrait copy, nameless Seek menus and card geometry, children-aware
+deep profiles, festival copy, Missions glyph and all 33 admin sidebars; the glyph board lost its
+obsolete ring/wick samples. Admin and web fields, disabled plates and sizes now follow the shared
+controls; the Guild House uses the exported sky, ember and hanging-sign art. Removed the remaining
+unused festival cup files and corrected the Gallery's Missions glyph. Tokens match the live file.
+App typecheck/lint and all 346 tests passed; admin lint/typecheck/build passed. Open design and
+uncoded-action gaps are in the plan; this was a frame/code review, not a new A51 device pass.
+
+## 2026-10-21 — Mongolian that reads as Mongolian
+
+Two passes over every Mongolian line a player reads (app, date questions, Wanderings, pushes,
+Codex, Guild House, legal pages), about 480 lines in all, fixing calques, wrong meanings ("Чамд нэг
+ч төгрөг төлөхгүй" said we would not pay you), wrong words (хөнгөлөлт for a grace period, хуулах
+for upload), passives and misspellings. The user's terms, now everywhere: the Square is
+**Чуулган**; a date is **болзоо / болзох**, set by товлох (санал болгох → болзохоор тогтох), and
+тангараг is only the onboarding oath; the world is the **хэрэм**, entered by the **Дааман хаалга**,
+with the **цайз** on the mountain, and retiring together is **хэрмээс гарах**; the floors are
+Хашаа / Танхим / **Дээд танхим** and the Hall of Names is Алдрын танхим; the Wanderings are
+**Хэсүүл**; "both" is **хоёул**. The rules are in CLAUDE.md. The privacy and deletion pages lost
+the old verify.mn sign-in and its 150₮ charge. The Wandering and Codex seeds only add what is
+missing, so the dev database was refreshed by hand; the server's needs the same after deploy.
+
+## 2026-10-21 — Unlit iron, ink-lined fields, a lozenge for a switch
+
+From the atmosphere pass. A disabled button was dimmed brass, a brown stain on the night; it is now
+unlit iron (hairline outline, faint words, no brass), and so is the letter's send boss with nothing
+to send. Fields were pure black boxes, holes in the night; they now sit on the panel's tone with a
+hairline frame and an ink underline that turns gold on focus and ember on error (Input, TextArea,
+the letter field). The War Room's switches were a phone's pill and round knob; the Toggle is now
+the name rule's lozenge riding a cut slot, gold and glowing at the right when on, unlit iron at the
+left when off. The Hearth's window no longer ends in a hard rectangle: its stone dissolves into the
+night (`FadedArt`). Venues carry their address, hours and description in Mongolian beside the name
+(engine, admin form, app; existing databases gain the columns at boot), so a Mongolian reader no
+longer meets English lines on a venue page; the 15 seed venues have theirs. Figma matches: Button
+and Send Button disabled, Input, Text Area, Toggle, the Hearth window (S3 and page 07), and the
+admin venue form.
+
+## 2026-10-21 — The profile's language travels
+
+A phone signed in to a Mongolian profile but left in English showed English screens with Mongolian
+road names, pushes and questions: the app never took on the profile's language, and the dev Tools
+switch changed only the phone. Signed in, the app now speaks the profile's language (`useGate`), and
+the Tools switch writes the profile as the War Room does. Checked on the A51: all 13 Wanderings and
+all 15 venues show, each in one language.
+
+An atmosphere pass over ~30 screens on the A51 (in Mongolian) fixed two more: the Hall of Names
+said "Ulaanbaatar" in Latin letters (the cohort now goes through `tPlace`), and the Frozen Gate's
+frost was drawn over the room, hiding the back arrow and frosting the title; it now lies beneath,
+as in Figma 35:617.
+
+## 2026-10-21 — The doors belong to the night; cards inside a gold line; ink dawns
+
+The tab bar read as a stock Android bar under a handmade world. It lost its slab and hairline:
+the night now deepens under the doors so the stars run on beneath, with the room title's
+dry-brush rule along the top. The open door has a gold lozenge (the name rule's) in place of
+the ember tick and a still hearth glow behind its glyph. Picked from three mocks in Figma and
+checked on the A51; the Figma Tab Bar / Tab Item components match.
+
+The arch-topped card (rounded top, square foot) is gone. Every card that had it now sits inside
+a fine gold line with the name rule's lozenge at its crown, drawn in code (`Candlelit`). The
+Tavern's companion is candlelit: the night art warmed from below by the candle row, its edge
+fading into the World Floor instead of ending. The Square's bell, the festival bells and the
+Satchel's character keepsake are a flat panel inside the same line, with no canvas, so a shared
+keepsake is captured whole. The bell card is one fixed size for every gathering, and the Tsagaan Sar cup under it is gone.
+Painted frames (basalt, steel, oak and filigree) were tried and dropped by the user as AI-made.
+
+The Missions dawn streak lost its yellow dots for the Chronicle's ink: a rising sun (`dawn`) per
+day, gold once risen, and the star for the seventh (painted braziers were too much).
+
+Figma caught up: the Row's leading glyph, the hearth on every tab room's header, the nameless
+Tavern card, the fixed bell cards, Choice Card's glyph property (the app's marks in place of the
+knot), the Guild page's floor picker without the Yard; page 07 is five current screens, and the
+art and components pages are clean. Checked on the A51.
+
+## 2026-10-21 — Tidier tests
+
+The test suites lost about 370 lines of copied setup and three duplicate tests (engine 260, app 346,
+admin 10). Engine helpers moved into `Infrastructure/` (`MeetingWorld`, `PaymentDriver`, one
+config write, one daily sweep); the app's world-screen tests share `src/lib/testing/world.tsx`,
+and its run prints no React warnings; the admin spec shares its login and dialog steps. Fixed on
+the way: `two-devices.sh` and `live-latency.py` still signed in through the pre-WeSend
+`/auth/phone/status` step.
+
 ## 2026-10-21 — The device pass runs again
 
 The pass had broken in three places since the face check and the WeSend code:
@@ -58,7 +175,11 @@ without a native animation. A new room waits for its first reads (at most 700 ms
 (Room travel, 360 ms). A room left by Back goes dark at once, unless it refuses to go (unsaved
 edits). Bundled art no longer fades in (Android fades every `Image` over 300 ms), and `FillArt`
 plates no longer arrive a frame late. One frame of missing Seek card art is left on its first visit:
-Android decodes a hidden tab's images only when it is shown.
+Android decodes a hidden tab's images only when it is shown. A later A51 recording still caught one
+or two frames of bare floor on some tab switches and on Back between tabs: the navigator detached
+tabs that were not open, and a reattached tab took a frame or two to draw. Tabs now stay attached
+and the ones not open are hidden (`tabLayout`: unseen, untouchable, out of TalkBack's reach). In 14
+recorded switches, Backs included, no blank frame was left.
 
 ## 2026-10-21 — The seeded world has its occasions
 

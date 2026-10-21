@@ -17,4 +17,10 @@ export interface VenueWriteRequest {
   /** @nullable */
   description: string | null;
   verified: boolean;
+  /** @nullable */
+  addressMn?: string | null;
+  /** @nullable */
+  hoursMn?: string | null;
+  /** @nullable */
+  descriptionMn?: string | null;
 }

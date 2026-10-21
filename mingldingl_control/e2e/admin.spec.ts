@@ -1,9 +1,11 @@
-import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { type APIRequestContext, expect, test } from '@playwright/test';
-import { E2E_ADMIN, E2E_ENGINE } from '../playwright.config';
+import { type APIRequestContext, expect, type Page, test } from '@playwright/test';
+import { E2E_ADMIN, E2E_ENGINE, e2eSql } from '../playwright.config';
 
-/** Signs up a brand-new number the way the app does: start → status → complete → POST /me. */
+/** A name no earlier run has used. */
+const stamp = (name: string) => `${name} ${Date.now() % 100000}`;
+const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
+
+/** Signs up a brand-new number the way the app does: start → check → complete. */
 async function signUp(api: APIRequestContext, name: string, deviceKey?: string) {
   const phone = `99${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
   const start = await (await api.post(`${E2E_ENGINE}/auth/phone/start`, { data: { phone } })).json();
@@ -24,20 +26,53 @@ async function signUp(api: APIRequestContext, name: string, deviceKey?: string) 
 
 async function createProfile(api: APIRequestContext, u: { token: string; name: string }) {
   const res = await api.post(`${E2E_ENGINE}/me`, {
-    headers: { Authorization: `Bearer ${u.token}` },
+    headers: bearer(u.token),
     data: { name: u.name, birthDate: '1998-04-12', locale: 'en' },
   });
   expect(res.ok()).toBe(true);
+}
+
+/** Signs up and names a character (POST /me), as the app's first onboarding step does. */
+async function newcomer(api: APIRequestContext, name: string, deviceKey?: string) {
+  const u = await signUp(api, name, deviceKey);
+  await createProfile(api, u);
+  return u;
+}
+
+/**
+ * Marks a character finished in the throwaway database: the web serves finished characters only,
+ * and the dev seeder would upload portraits.
+ */
+const finish = (accountId: string) =>
+  e2eSql(`UPDATE profiles SET "WelcomedAt" = now() WHERE "AccountId" = '${accountId}'`);
+
+/** Opens the panel at `path` and signs the keeper in. */
+async function enter(page: Page, path = '/') {
+  await page.goto(path);
+  await page.getByLabel('Name').fill(E2E_ADMIN.username);
+  await page.getByLabel('Word').fill(E2E_ADMIN.password);
+  await page.getByRole('button', { name: 'Enter' }).click();
+}
+
+/** Fills a keeper's dialog that asks for a reason, and confirms it. */
+async function withReason(page: Page, dialog: string, reason: string, confirm = dialog) {
+  const d = page.getByRole('dialog', { name: dialog });
+  await d.getByLabel('Reason (written in the audit log)').fill(reason);
+  await d.getByRole('button', { name: confirm }).click();
+}
+
+/** Signs a character in on the Guild House web page by the fake WeSend code. */
+async function guildSignIn(page: Page, phone: string) {
+  await page.getByLabel('Phone number').fill(phone);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('The code').fill('000000');
 }
 
 test('keeper sees a sign-up live, opens it, and an out-of-bounds config write is refused', async ({
   page,
   request,
 }) => {
-  await page.goto('/');
-  await page.getByLabel('Name').fill(E2E_ADMIN.username);
-  await page.getByLabel('Word').fill(E2E_ADMIN.password);
-  await page.getByRole('button', { name: 'Enter' }).click();
+  await enter(page);
 
   await page.getByRole('link', { name: 'Users' }).click();
   await expect(page.getByRole('heading', { name: 'Travellers' })).toBeVisible();
@@ -45,7 +80,7 @@ test('keeper sees a sign-up live, opens it, and an out-of-bounds config write is
   // the live connection is up before the sign-up happens
   await expect(page.getByTestId('live-state')).toHaveAttribute('data-state', 'live');
 
-  const name = `Тэмүүжин ${Date.now() % 100000}`;
+  const name = stamp('Тэмүүжин');
   const u = await signUp(request, name);
   // the list masks numbers (S8 frame), so the row is found by its account id
   const row = page.locator(`tr[data-account-id="${u.accountId}"]`);
@@ -69,20 +104,15 @@ test('keeper sees a sign-up live, opens it, and an out-of-bounds config write is
 });
 
 test('a report arrives live, and the keeper penalises it', async ({ page, request }) => {
-  const from = await signUp(request, `Saruul ${Date.now() % 100000}`);
-  const against = await signUp(request, `Bold ${Date.now() % 100000}`);
-  await createProfile(request, from);
-  await createProfile(request, against);
+  const from = await newcomer(request, stamp('Saruul'));
+  const against = await newcomer(request, stamp('Bold'));
 
-  await page.goto('/reports');
-  await page.getByLabel('Name').fill(E2E_ADMIN.username);
-  await page.getByLabel('Word').fill(E2E_ADMIN.password);
-  await page.getByRole('button', { name: 'Enter' }).click();
+  await enter(page, '/reports');
   await expect(page.getByRole('heading', { name: 'Reports' })).toBeVisible();
   await expect(page.getByTestId('live-state')).toHaveAttribute('data-state', 'live');
 
   const res = await request.post(`${E2E_ENGINE}/reports`, {
-    headers: { Authorization: `Bearer ${from.token}` },
+    headers: bearer(from.token),
     data: { accountId: against.accountId, bondId: null, reason: 'money', note: '50,000₮ for a taxi' },
   });
   expect(res.status()).toBe(204);
@@ -105,10 +135,7 @@ test('a venue added elsewhere appears live; the keeper edits it and takes it off
   page,
   request,
 }) => {
-  await page.goto('/venues');
-  await page.getByLabel('Name').fill(E2E_ADMIN.username);
-  await page.getByLabel('Word').fill(E2E_ADMIN.password);
-  await page.getByRole('button', { name: 'Enter' }).click();
+  await enter(page, '/venues');
   await expect(page.getByRole('heading', { name: 'Partner venues' })).toBeVisible();
   await expect(page.getByTestId('live-state')).toHaveAttribute('data-state', 'live');
 
@@ -118,9 +145,9 @@ test('a venue added elsewhere appears live; the keeper edits it and takes it off
       data: { username: E2E_ADMIN.username, password: E2E_ADMIN.password },
     })
   ).json();
-  const name = `Nomad Café ${Date.now() % 100000}`;
+  const name = stamp('Nomad Café');
   const created = await request.post(`${E2E_ENGINE}/admin/venues`, {
-    headers: { Authorization: `Bearer ${login.token ?? login.accessToken}` },
+    headers: bearer(login.token),
     data: {
       name,
       nameMn: null,
@@ -138,9 +165,9 @@ test('a venue added elsewhere appears live; the keeper edits it and takes it off
 
   await row.click();
   await expect(page.getByRole('heading', { name })).toBeVisible();
-  await page.getByLabel('Address').fill('Seoul Street 7');
+  await page.getByLabel('Address', { exact: true }).fill('Seoul Street 7');
   await page.getByRole('button', { name: 'Save' }).click();
-  await expect(page.getByLabel('Address')).toHaveValue('Seoul Street 7');
+  await expect(page.getByLabel('Address', { exact: true })).toHaveValue('Seoul Street 7');
 
   await page.getByRole('button', { name: 'Take it off the list' }).click();
   await expect(page.getByRole('heading', { name: 'Partner venues' })).toBeVisible();
@@ -150,13 +177,10 @@ test('a venue added elsewhere appears live; the keeper edits it and takes it off
 test('the keeper rings a bell, writes a Codex page in Mongolian, and both stand in the audit log', async ({
   page,
 }) => {
-  await page.goto('/square');
-  await page.getByLabel('Name').fill(E2E_ADMIN.username);
-  await page.getByLabel('Word').fill(E2E_ADMIN.password);
-  await page.getByRole('button', { name: 'Enter' }).click();
+  await enter(page, '/square');
   await expect(page.getByRole('heading', { name: 'Gatherings' })).toBeVisible();
 
-  const bell = `The Bell ${Date.now() % 100000}`;
+  const bell = stamp('The Bell');
   await page.getByRole('button', { name: 'Ring a new bell' }).click();
   await page.getByLabel('Name of the bell').fill(bell);
   const at = new Date(Date.now() + 3 * 86_400_000);
@@ -187,16 +211,11 @@ test('a character pays on the web page, a second payment waits on the keepers, a
   page,
   request,
 }) => {
-  const u = await signUp(request, `Guild ${Date.now() % 100000}`);
-  await createProfile(request, u);
-  // The web serves finished characters only; the dev seeder would upload portraits, so the
-  // character is marked finished directly in the throwaway database.
-  finishInDb(u.accountId);
+  const u = await newcomer(request, stamp('Guild'));
+  finish(u.accountId);
 
   await page.goto('/guild/?lang=en');
-  await page.getByLabel('Phone number').fill(u.phone);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByLabel('The code').fill('000000');
+  await guildSignIn(page, u.phone);
   await expect(page.getByRole('heading', { name: 'Climb the Guild House' })).toBeVisible({ timeout: 10_000 });
 
   const made = page.waitForResponse(
@@ -211,10 +230,7 @@ test('a character pays on the web page, a second payment waits on the keepers, a
   expect((await request.post(`${E2E_ENGINE}/dev/qpay/pay/${invoice.id}`)).ok()).toBe(true);
   await expect(page.getByRole('heading', { name: 'Welcome to the Hall' })).toBeVisible({ timeout: 10_000 });
 
-  await page.goto('/');
-  await page.getByLabel('Name').fill(E2E_ADMIN.username);
-  await page.getByLabel('Word').fill(E2E_ADMIN.password);
-  await page.getByRole('button', { name: 'Enter' }).click();
+  await enter(page);
   await page.getByRole('link', { name: 'Payments' }).click();
   await expect(page.getByRole('heading', { name: 'The coffers' })).toBeVisible();
   const row = page.getByRole('row').filter({ hasText: 'Paid twice' });
@@ -242,59 +258,27 @@ test("the web page opens in Mongolian and keeps the reader's language", async ({
 });
 
 test("the stores' web deletion link signs a character in and abandons it", async ({ page, request }) => {
-  const u = await signUp(request, `Leave ${Date.now() % 100000}`);
-  await createProfile(request, u);
-  finishInDb(u.accountId);
+  const u = await newcomer(request, stamp('Leave'));
+  finish(u.accountId);
 
   await page.goto('/guild/?leave&lang=en');
   await expect(page.getByRole('heading', { name: 'Abandon your character' })).toBeVisible();
-  await page.getByLabel('Phone number').fill(u.phone);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByLabel('The code').fill('000000');
+  await guildSignIn(page, u.phone);
   await expect(page.getByRole('heading', { name: `Abandon ${u.name}?` })).toBeVisible({ timeout: 10_000 });
   await page.getByRole('button', { name: 'Abandon', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'The character is abandoned' })).toBeVisible();
 
-  const me = await (
-    await request.get(`${E2E_ENGINE}/me`, { headers: { Authorization: `Bearer ${u.token}` } })
-  ).json();
+  const me = await (await request.get(`${E2E_ENGINE}/me`, { headers: bearer(u.token) })).json();
   expect(me.deleteAt).toBeTruthy();
 });
-
-function finishInDb(accountId: string) {
-  const dev: string = JSON.parse(
-    readFileSync('../mingldingl_engine/src/MinglDingl.Engine/appsettings.Development.json', 'utf8'),
-  ).ConnectionStrings.Default;
-  const part = (k: string) => new RegExp(`(?:^|;)\\s*${k}=([^;]*)`, 'i').exec(dev)?.[1] ?? '';
-  execFileSync(
-    'psql',
-    [
-      '-h',
-      part('Host') || '127.0.0.1',
-      '-p',
-      part('Port') || '5432',
-      '-U',
-      part('Username'),
-      '-d',
-      'mingldingl_e2e',
-      '-qc',
-      `UPDATE profiles SET "WelcomedAt" = now() WHERE "AccountId" = '${accountId}'`,
-    ],
-    { env: { ...process.env, PGPASSWORD: part('Password') } },
-  );
-}
 
 test('the keeper reads the dashboard, every statistics group with its CSV, deletions and the engine room', async ({
   page,
   request,
 }) => {
-  const u = await signUp(request, `Ledger ${Date.now() % 100000}`);
-  await createProfile(request, u);
+  await newcomer(request, stamp('Ledger'));
 
-  await page.goto('/');
-  await page.getByLabel('Name').fill(E2E_ADMIN.username);
-  await page.getByLabel('Word').fill(E2E_ADMIN.password);
-  await page.getByRole('button', { name: 'Enter' }).click();
+  await enter(page);
   await expect(page.getByRole('heading', { name: 'The hold tonight' })).toBeVisible();
   await page.screenshot({ path: 'test-results/shots/dashboard.png' });
 
@@ -330,35 +314,25 @@ test('the keeper gives a floor, suspends with a reason, lifts it, and the audit 
   page,
   request,
 }) => {
-  await page.goto('/');
-  await page.getByLabel('Name').fill(E2E_ADMIN.username);
-  await page.getByLabel('Word').fill(E2E_ADMIN.password);
-  await page.getByRole('button', { name: 'Enter' }).click();
-  const name = `Ариунаа ${Date.now() % 100000}`;
-  const u = await signUp(request, name);
-  await createProfile(request, u);
+  await enter(page);
+  const name = stamp('Ариунаа');
+  const u = await newcomer(request, name);
   // The sign-in lives in memory, so the record is opened from the list, not by its address.
   await page.getByRole('link', { name: 'Users' }).click();
   await page.locator(`tr[data-account-id="${u.accountId}"]`).click();
   await expect(page.getByRole('heading', { name })).toBeVisible();
 
   await page.getByRole('button', { name: 'Give a floor' }).click();
-  const floor = page.getByRole('dialog', { name: 'Give a floor' });
-  await floor.getByLabel('Days').fill('14');
-  await floor.getByLabel('Reason (written in the audit log)').fill('Play closed-test tester');
-  await floor.getByRole('button', { name: 'Give a floor' }).click();
+  await page.getByRole('dialog', { name: 'Give a floor' }).getByLabel('Days').fill('14');
+  await withReason(page, 'Give a floor', 'Play closed-test tester');
   await expect(page.getByText(/a gift from the keepers/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Suspend' }).click();
-  const suspend = page.getByRole('dialog', { name: `Suspend ${name}?` });
-  await suspend.getByLabel('Reason (written in the audit log)').fill('Asked for money');
-  await suspend.getByRole('button', { name: 'Suspend' }).click();
+  await withReason(page, `Suspend ${name}?`, 'Asked for money', 'Suspend');
   await expect(page.getByText(/Suspended on .* · Asked for money/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Lift suspension' }).click();
-  const lift = page.getByRole('dialog', { name: 'Lift the suspension' });
-  await lift.getByLabel('Reason (written in the audit log)').fill('Appeal heard');
-  await lift.getByRole('button', { name: 'Lift the suspension' }).click();
+  await withReason(page, 'Lift the suspension', 'Appeal heard');
   await expect(page.getByRole('button', { name: 'Suspend' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Audit log' }).click();
@@ -370,26 +344,18 @@ test("a removed troll's number is barred, their phone flags the next character, 
   page,
   request,
 }) => {
-  await page.goto('/');
-  await page.getByLabel('Name').fill(E2E_ADMIN.username);
-  await page.getByLabel('Word').fill(E2E_ADMIN.password);
-  await page.getByRole('button', { name: 'Enter' }).click();
+  await enter(page);
   const device = `pw-${Date.now()}`;
-  const name = `Тролль ${Date.now() % 100000}`;
-  const troll = await signUp(request, name, device);
-  await createProfile(request, troll);
+  const name = stamp('Тролль');
+  const troll = await newcomer(request, name, device);
 
   await page.getByRole('link', { name: 'Users' }).click();
   await page.locator(`tr[data-account-id="${troll.accountId}"]`).click();
   await page.getByRole('button', { name: 'Suspend' }).click();
-  const suspend = page.getByRole('dialog', { name: `Suspend ${name}?` });
-  await suspend.getByLabel('Reason (written in the audit log)').fill('Trolled three women');
-  await suspend.getByRole('button', { name: 'Suspend' }).click();
+  await withReason(page, `Suspend ${name}?`, 'Trolled three women', 'Suspend');
   await expect(page.getByText(/Suspended on .* · Trolled three women/)).toBeVisible();
   await page.getByRole('button', { name: 'Delete now' }).click();
-  const del = page.getByRole('dialog', { name: `Delete ${name} now?` });
-  await del.getByLabel('Reason (written in the audit log)').fill('Removed');
-  await del.getByRole('button', { name: 'Delete now' }).click();
+  await withReason(page, `Delete ${name} now?`, 'Removed', 'Delete now');
   await expect(page).toHaveURL(/\/users$/);
 
   // The same number gets no code; the same phone on a new number is flagged, not refused.
@@ -404,11 +370,7 @@ test("a removed troll's number is barred, their phone flags the next character, 
   const row = page.locator(`tr[data-barred="${troll.phone}"]`);
   await expect(row).toContainText('Trolled three women');
   await row.getByRole('button', { name: 'Lift' }).click();
-  const lift = page.getByRole('dialog', { name: 'Lift the bar' });
-  await lift.getByLabel('Reason (written in the audit log)').fill('Appeal heard');
-  await lift.getByRole('button', { name: 'Lift' }).click();
+  await withReason(page, 'Lift the bar', 'Appeal heard', 'Lift');
   await expect(row).toHaveCount(0);
-  expect((await request.post(`${E2E_ENGINE}/auth/phone/start`, { data: { phone: troll.phone } })).ok()).toBe(
-    true,
-  );
+  expect((await start()).ok()).toBe(true);
 });

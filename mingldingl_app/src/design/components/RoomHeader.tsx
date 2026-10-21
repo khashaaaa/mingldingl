@@ -74,8 +74,8 @@ export function RoomHeader({
 
 const SIGN_W = 300;
 const PLANK_H = 64;
-/** The plank's top sits this far above the status bar's foot: the chains overlap it (Figma 155:314). */
-const PLANK_RISE = 8;
+/** The plank hangs this far below the status bar; only the chains cross it, so the clock stays clear. */
+const PLANK_DROP = 4;
 const SWAY = [2.2, -1.5, 0.9, -0.4, 0];
 
 /**
@@ -96,10 +96,18 @@ function HangingSign({ title, top }: { title: string; top: number }) {
     transform: [{ rotate: `${angle.value}deg` }],
   }));
   return (
-    <Animated.View pointerEvents="none" style={[styles.sign, { height: top - PLANK_RISE + PLANK_H }, sway]}>
-      <Art name="sign_chain" style={[styles.chain, styles.chainL, { height: top }]} fit="stretch" />
-      <Art name="sign_chain" style={[styles.chain, styles.chainR, { height: top }]} fit="stretch" />
-      <View style={[styles.plank, { top: top - PLANK_RISE }]}>
+    <Animated.View pointerEvents="none" style={[styles.sign, { height: top + PLANK_DROP + PLANK_H }, sway]}>
+      <Art
+        name="sign_chain"
+        style={[styles.chain, styles.chainL, { height: top + PLANK_DROP }]}
+        fit="stretch"
+      />
+      <Art
+        name="sign_chain"
+        style={[styles.chain, styles.chainR, { height: top + PLANK_DROP }]}
+        fit="stretch"
+      />
+      <View style={[styles.plank, { top: top + PLANK_DROP }]}>
         <FillArt name="sign_plank" />
         <Art name="screw_a" style={[styles.bolt, styles.boltL]} />
         <Art name="screw_c" style={[styles.bolt, styles.boltR]} />
@@ -162,6 +170,6 @@ const styles = StyleSheet.create({
   boltR: { right: 16 },
   mark: { position: 'absolute', top: 44, right: 40, width: 14, height: 14 },
   signName: { fontSize: 30, lineHeight: 39 },
-  // the row keeps the height a room name gives it (Figma 44), so the rule stays under the plank
-  signSlot: { height: 44 },
+  // the row is as tall as the hanging plank (less the header's top padding), so the rule stays under it
+  signSlot: { height: PLANK_DROP + PLANK_H + 6 - dimension.space3 },
 });

@@ -114,7 +114,7 @@ describe('the road', () => {
     );
     // in Mongolian the day is the bare number and the moon its Mongolian ordinal
     setLocale('mn');
-    expect(moonLine('honours.earnedOn', '2026-10-04T12:00:00')).toBe('Олсон өдөр: аравдугаар сарын 4');
+    expect(moonLine('honours.earnedOn', '2026-10-04T12:00:00')).toBe('Хүртсэн өдөр: аравдугаар сарын 4');
     setLocale('en');
   });
 });

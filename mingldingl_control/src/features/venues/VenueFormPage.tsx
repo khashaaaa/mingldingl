@@ -27,6 +27,9 @@ const EMPTY: VenueWriteRequest = {
   address: '',
   hours: null,
   description: null,
+  addressMn: null,
+  hoursMn: null,
+  descriptionMn: null,
   verified: true,
 };
 
@@ -154,6 +157,31 @@ function VenueForm({ venue }: { venue?: AdminVenueView }) {
             onChange={(e) => set('nameMn', e.target.value || null)}
           />
         </Field>
+        <Field label="Address (Mongolian)">
+          <input
+            className="input"
+            value={form.addressMn ?? ''}
+            maxLength={160}
+            onChange={(e) => set('addressMn', e.target.value || null)}
+          />
+        </Field>
+        <Field label="Hours (Mongolian)">
+          <input
+            className="input"
+            value={form.hoursMn ?? ''}
+            maxLength={60}
+            placeholder="Өдөржин · 08:00–22:00"
+            onChange={(e) => set('hoursMn', e.target.value || null)}
+          />
+        </Field>
+        <Field label="Description (Mongolian)">
+          <textarea
+            className="input venue-description"
+            value={form.descriptionMn ?? ''}
+            maxLength={400}
+            onChange={(e) => set('descriptionMn', e.target.value || null)}
+          />
+        </Field>
         <label className="venue-check label">
           <input
             type="checkbox"
@@ -230,5 +258,8 @@ const toRequest = (v: AdminVenueView): VenueWriteRequest => ({
   address: v.address,
   hours: v.hours ?? null,
   description: v.description ?? null,
+  addressMn: v.addressMn ?? null,
+  hoursMn: v.hoursMn ?? null,
+  descriptionMn: v.descriptionMn ?? null,
   verified: v.verified,
 });

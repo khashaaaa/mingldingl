@@ -82,8 +82,9 @@ public sealed class PaymentService(
 
         try
         {
+            // QPay takes no special characters in the description.
             var q = await qpay.CreateInvoiceAsync(inv.Id, inv.Amount,
-                $"MingldIngl · {(floor == Floor.HighTable ? "High Table" : "Hall")} · {req.Months}", ct);
+                $"MingldIngl {(floor == Floor.HighTable ? "High Table" : "Hall")} {req.Months} {(req.Months == 1 ? "month" : "months")}", ct);
             inv.QPayInvoiceId = q.InvoiceId;
             inv.QrText = q.QrText;
             inv.QrImage = q.QrImage;
@@ -104,14 +105,21 @@ public sealed class PaymentService(
         return await ViewAsync(inv, ct);
     }
 
-    /// The page asks while its QR is on screen; an open invoice is checked with QPay first, so a lost
-    /// callback costs nothing.
+    /// The page asks while its QR is on screen. It reads only what the callback has settled — QPay
+    /// forbids asking `payment/check` on a timer.
     public async Task<InvoiceView> GuildInvoiceAsync(Guid me, Guid id, CancellationToken ct = default)
     {
         var inv = await db.Set<Invoice>().AsNoTracking().SingleOrDefaultAsync(i => i.Id == id && i.AccountId == me, ct)
             ?? throw new DomainException(404, "payments.not_found", "That invoice is not yours");
-        if (inv.State == InvoiceState.Open) await CheckAsync(id, "the page", ct);
-        return await ViewAsync(await db.Set<Invoice>().AsNoTracking().SingleAsync(i => i.Id == id, ct), ct);
+        return await ViewAsync(inv, ct);
+    }
+
+    /// QPay's callback: honoured while the invoice is watched (open, or a day after it went cold).
+    public async Task CallbackAsync(Guid invoiceId, CancellationToken ct = default)
+    {
+        var now = clock.UtcNow;
+        if (await db.Set<Invoice>().AnyAsync(i => i.Id == invoiceId && (i.State == InvoiceState.Open || i.WatchUntil > now), ct))
+            await CheckAsync(invoiceId, "QPay callback", ct);
     }
 
     // —— finding money ——
@@ -126,7 +134,7 @@ public sealed class PaymentService(
         try { paid = await qpay.PaidAsync(qpayId, ct); }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
         {
-            log.LogWarning(e, "QPay check failed for invoice {Invoice}; the sweep will ask again", invoiceId);
+            log.LogWarning(e, "QPay check failed for invoice {Invoice}", invoiceId);
             return;
         }
         if (paid.Count == 0) return;
@@ -178,31 +186,35 @@ public sealed class PaymentService(
         await tx.CommitAsync(ct);
     }
 
-    /// The sweep: every invoice still watched is checked; an open one past its time goes cold (QPay's
-    /// invoice cancelled so its QR cannot be paid), and is still watched a day for late money.
+    /// The sweep: an open code past its time is cancelled with QPay so its QR cannot be paid, then
+    /// checked once — the one check without a callback, which finds money whose callback was lost.
+    /// Nothing is polled. Where QPay will not cancel yet, it is asked again next minute.
     public async Task<(int Checked, int Cold)> SweepAsync(CancellationToken ct = default)
     {
         var now = clock.UtcNow;
-        var ids = await db.Set<Invoice>().Where(i => i.QPayInvoiceId != "" && (i.State == InvoiceState.Open || i.WatchUntil > now))
+        var ids = await db.Set<Invoice>().Where(i => i.QPayInvoiceId != "" && i.State == InvoiceState.Open && i.ExpiresAt <= now)
             .OrderBy(i => i.CreatedAt).Select(i => i.Id).Take(500).ToListAsync(ct);
         var cold = 0;
         foreach (var id in ids)
         {
-            await CheckAsync(id, "the sweep", ct);
             var inv = await db.Set<Invoice>().SingleAsync(i => i.Id == id, ct);
-            if (inv.State != InvoiceState.Open || inv.ExpiresAt > now) continue;
-            if (await qpay.CancelAsync(inv.QPayInvoiceId, ct))
+            try
             {
-                // A payment may have landed between the check and the cancel.
-                await CheckAsync(id, "the sweep", ct);
-                await db.Entry(inv).ReloadAsync(ct);
-                if (inv.State != InvoiceState.Open) continue;
-                inv.State = InvoiceState.Closed;
-                Event(inv.Id, "The code went cold; nothing was paid", "the sweep");
-                Changed(inv);
-                await db.SaveChangesAsync(ct);
-                cold++;
+                if (!await qpay.CancelAsync(inv.QPayInvoiceId, ct)) continue;
             }
+            catch (Exception e) when (e is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+            {
+                log.LogWarning(e, "QPay did not answer the cancel of invoice {Invoice}; next minute", id);
+                continue;
+            }
+            await CheckAsync(id, "the sweep", ct);
+            await db.Entry(inv).ReloadAsync(ct);
+            if (inv.State != InvoiceState.Open) continue;
+            inv.State = InvoiceState.Closed;
+            Event(inv.Id, "The code went cold; nothing was paid", "the sweep");
+            Changed(inv);
+            await db.SaveChangesAsync(ct);
+            cold++;
         }
         return (ids.Count, cold);
     }

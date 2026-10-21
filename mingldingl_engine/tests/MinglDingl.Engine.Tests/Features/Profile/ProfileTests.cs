@@ -10,6 +10,7 @@ using MinglDingl.Engine.Kernel.Errors;
 using MinglDingl.Engine.Kernel.Live;
 using MinglDingl.Engine.Kernel.Persistence;
 using MinglDingl.Engine.Tests.Infrastructure;
+using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 using static MinglDingl.Engine.Tests.Infrastructure.ProfileDriver;
 
 namespace MinglDingl.Engine.Tests.Features.Profile;
@@ -23,8 +24,6 @@ public sealed class FixedPhotoCount(int n) : IPhotoCount
 
 public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 {
-    private static async Task<string?> Code(HttpResponseMessage r) => (await r.Content.ReadFromJsonAsync<ErrorBody>())?.Code;
-
     private static (EngineFactory F, ScriptedWeSend Vm, FixedPhotoCount Photos) Engine(PostgresFixture db, int photos = 0)
     {
         var f = new EngineFactory(db);
@@ -72,7 +71,7 @@ public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await c.CreateAsync();
         var r = await c.CreateAsync();
         r.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await Code(r)).Should().Be("profile.exists");
+        (await CodeOf(r)).Should().Be("profile.exists");
     }
 
     [Fact]
@@ -108,7 +107,7 @@ public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var c = f.As(await f.SignInAsync(vm));
         var r = await c.CreateAsync(birth: new DateOnly(y, m, d));
         r.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await Code(r)).Should().Be(code);
+        (await CodeOf(r)).Should().Be(code);
     }
 
     [Fact]
@@ -127,7 +126,7 @@ public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var c = f.As(await f.SignInAsync(vm));
         await c.CreateAsync();
         var r = await c.UpdateAsync(Upd(city: "Atlantis"));
-        (await Code(r)).Should().Be("profile.city");
+        (await CodeOf(r)).Should().Be("profile.city");
     }
 
     [Fact]
@@ -138,7 +137,7 @@ public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await c.CreateAsync();
         await c.UpdateAsync(Upd(gender: "Male"));
         var r = await c.UpdateAsync(Upd(gender: "Female"));
-        (await Code(r)).Should().Be("profile.gender_locked");
+        (await CodeOf(r)).Should().Be("profile.gender_locked");
         (await c.UpdateAsync(Upd(gender: "Male"))).StatusCode.Should().Be(HttpStatusCode.OK); // same value is fine
     }
 
@@ -148,8 +147,8 @@ public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var (f, vm, _) = Engine(db); await using var _f = f;
         var c = f.As(await f.SignInAsync(vm));
         await c.CreateAsync();
-        (await Code(await c.UpdateAsync(Upd(gender: "Other")))).Should().Be("profile.gender");
-        (await Code(await c.UpdateAsync(Upd(oath: "Forever")))).Should().Be("profile.oath");
+        (await CodeOf(await c.UpdateAsync(Upd(gender: "Other")))).Should().Be("profile.gender");
+        (await CodeOf(await c.UpdateAsync(Upd(oath: "Forever")))).Should().Be("profile.oath");
     }
 
     [Fact]
@@ -159,7 +158,7 @@ public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var c = f.As(await f.SignInAsync(vm));
         await c.CreateAsync();
         await c.UpdateAsync(Upd(oath: "Kinship"));
-        (await Code(await c.UpdateAsync(Upd(oath: "Bond")))).Should().Be("profile.oath_locked");
+        (await CodeOf(await c.UpdateAsync(Upd(oath: "Bond")))).Should().Be("profile.oath_locked");
         (await c.MeAsync()).Profile!.OathSwornAt.Should().NotBeNull();
     }
 
@@ -187,7 +186,7 @@ public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     {
         var (f, vm, _) = Engine(db); await using var _f = f;
         var c = f.As(await f.SignInAsync(vm));
-        (await Code(await c.UpdateAsync(Upd(bio: "hi")))).Should().Be("profile.missing");
+        (await CodeOf(await c.UpdateAsync(Upd(bio: "hi")))).Should().Be("profile.missing");
     }
 
     [Fact]
@@ -216,7 +215,7 @@ public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
                 .ExecuteUpdateAsync(u => u.SetProperty(a => a.Status, AccountStatus.Suspended));
         var r = await c.UpdateAsync(Upd(bio: "x"));
         r.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await Code(r)).Should().Be("account.suspended");
+        (await CodeOf(r)).Should().Be("account.suspended");
         (await c.MeAsync()).Status.Should().Be("Suspended");
     }
 

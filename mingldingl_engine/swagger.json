@@ -5832,6 +5832,9 @@
           "address",
           "hours",
           "description",
+          "addressMn",
+          "hoursMn",
+          "descriptionMn",
           "verified",
           "removed",
           "rating",
@@ -5870,6 +5873,24 @@
             ]
           },
           "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "addressMn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hoursMn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "descriptionMn": {
             "type": [
               "null",
               "string"
@@ -9890,6 +9911,9 @@
           "address",
           "hours",
           "description",
+          "addressMn",
+          "hoursMn",
+          "descriptionMn",
           "rating",
           "ratings",
           "photos",
@@ -9926,6 +9950,24 @@
             ]
           },
           "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "addressMn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hoursMn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "descriptionMn": {
             "type": [
               "null",
               "string"
@@ -9998,6 +10040,24 @@
           },
           "verified": {
             "type": "boolean"
+          },
+          "addressMn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hoursMn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "descriptionMn": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

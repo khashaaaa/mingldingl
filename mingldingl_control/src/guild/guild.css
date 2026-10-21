@@ -1,10 +1,22 @@
 /* The Guild House web page: the app's night floor and type, a phone-width column (Figma S9). */
 body:has(.guild) {
-  background: linear-gradient(180deg, var(--night-sky-950), var(--night-sky-900) 55%, var(--ember-700));
+  background: var(--color-bg-sunken) url("../design/art/guild-sky.svg") center / 100% 100%;
   background-attachment: fixed;
 }
 
+body:has(.guild)::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    url("../design/art/ember_sparks.webp") bottom / 100% auto no-repeat,
+    url("../design/art/ember_glow_lit.webp") bottom / 100% auto no-repeat;
+  opacity: 0.9;
+}
+
 .guild {
+  position: relative;
   max-width: 430px;
   min-height: 100vh;
   margin: 0 auto;
@@ -13,20 +25,64 @@ body:has(.guild) {
   flex-direction: column;
 }
 
-.guild-sign {
-  align-self: center;
-  margin-bottom: var(--space-6);
-  padding: var(--space-3) var(--space-6);
+.guild-heading {
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-5);
   font: var(--font-title-room);
+  color: var(--color-text-accent);
+  text-align: center;
+  background: url("../design/art/dry_brush_rule.webp") bottom / 100% var(--space-1) no-repeat;
+}
+
+.guild-mn .guild-heading {
+  font: var(--font-title-room-mn);
+}
+
+.guild-sign {
+  position: relative;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 300px;
+  max-width: 100%;
+  height: var(--space-8);
+  flex: none;
+  margin-bottom: var(--space-6);
+  padding: 0 calc(var(--space-6) + var(--space-3));
+  font: var(--font-title-room);
+  font-size: 30px;
+  line-height: 39px;
   color: var(--color-text-inverse);
-  background: url("../design/art/brass_plate.webp") center / 100% 100%;
-  border: var(--stroke-rule) solid var(--color-metal-brass-dark);
-  border-top: none;
+  background:
+    url("../design/art/screw_a.webp") left var(--space-4) center / 14px 14px no-repeat,
+    url("../design/art/screw_c.webp") right var(--space-4) center / 14px 14px no-repeat,
+    url("../design/art/makers_mark.webp") right 40px top 44px / 14px 14px no-repeat,
+    url("../design/art/sign_plank.webp") center / 100% 100%;
+}
+
+.guild-sign::before,
+.guild-sign::after {
+  content: "";
+  position: absolute;
+  bottom: calc(100% - var(--space-2));
+  width: 10px;
+  height: var(--space-7);
+  background: url("../design/art/sign_chain.webp") center / 100% 100%;
+}
+
+.guild-sign::before {
+  left: 55px;
+}
+
+.guild-sign::after {
+  right: 55px;
 }
 
 /* Pirata One has no Cyrillic: the Mongolian sign is set in Yeseva One, as the app's room titles are. */
 .guild-mn .guild-sign {
   font: var(--font-title-room-mn);
+  /* The app's sign shrinks its title to the 212px between the bolts. */
+  font-size: 23px;
   white-space: nowrap;
 }
 
@@ -71,10 +127,17 @@ body:has(.guild) {
 .guild-phone {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: var(--stroke-hairline) solid var(--color-border-gold);
-  background: var(--color-bg-sunken);
+  gap: var(--space-2);
+  min-height: calc(var(--size-touch) + var(--space-1));
+  padding: 0 var(--space-4);
+  border: var(--stroke-hairline) solid var(--color-border-hairline);
+  border-bottom: var(--stroke-rule) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-panel);
+}
+
+.guild-phone:focus-within {
+  border-bottom-color: var(--color-border-gold);
 }
 
 .guild-phone input {
@@ -82,8 +145,7 @@ body:has(.guild) {
   min-width: 0;
   border: none;
   background: none;
-  font: var(--font-body-l);
-  letter-spacing: 0.1em;
+  font: var(--font-body-m);
   outline: none;
 }
 
@@ -126,10 +188,11 @@ body:has(.guild) {
 }
 
 .guild-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-4);
+  padding: calc(var(--space-4) + var(--stroke-rule));
   text-align: left;
   background: var(--color-bg-panel);
   border: var(--stroke-hairline) solid var(--color-border-strong);
@@ -159,8 +222,22 @@ body:has(.guild) {
 }
 
 .guild-card.is-on {
+  border-width: var(--stroke-rule);
   border-color: var(--color-border-gold);
-  box-shadow: 0 0 var(--space-4) var(--color-accent-gold);
+  box-shadow: 0 0 calc(var(--space-4) + var(--stroke-rule))
+    color-mix(in srgb, var(--color-accent-gold) 55%, transparent);
+}
+
+.guild-card.is-on::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--stroke-rule) * -1);
+  pointer-events: none;
+  background:
+    url("../design/art/corner_tl.webp") top left / var(--space-5) var(--space-5) no-repeat,
+    url("../design/art/corner_tr.webp") top right / var(--space-5) var(--space-5) no-repeat,
+    url("../design/art/corner_bl.webp") bottom left / var(--space-5) var(--space-5) no-repeat,
+    url("../design/art/corner_br.webp") bottom right / var(--space-5) var(--space-5) no-repeat;
 }
 
 .guild-card.is-on .glyph {

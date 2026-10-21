@@ -221,6 +221,9 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     Address = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: false),
                     Hours = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: true),
                     Description = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: true),
+                    AddressMn = table.Column<string>(type: "character varying(160)", maxLength: 160, nullable: true),
+                    HoursMn = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: true),
+                    DescriptionMn = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: true),
                     Verified = table.Column<bool>(type: "boolean", nullable: false),
                     RemovedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)

@@ -1,18 +1,15 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
-import type { ReactNode } from 'react';
+import { act, fireEvent, screen } from 'expo-router/testing-library';
 import WorldLayout from '@/app/(world)/_layout';
 import {
   getAppStatus,
   getDeepProfile,
   getGetAppStatusQueryKey,
   getGetDeepProfileQueryKey,
-  getGetMeQueryKey,
-  getMe,
 } from '@/lib/api/generated/engine';
 import type { CityView, MeView, PhotoView, ProfileView } from '@/lib/api/generated/model';
 import { setLocale } from '@/lib/i18n';
 import { applyLiveEvent } from '@/lib/live/events';
+import { settle, showWorld } from '@/lib/testing/world';
 import QuestLog from '../../bonds/QuestLog';
 import Missions from '../../road/Missions';
 import SeekScreen from '../../seek/SeekScreen';
@@ -39,9 +36,6 @@ jest.mock('expo-image-picker', () => ({
   requestMediaLibraryPermissionsAsync: jest.fn(),
   launchImageLibraryAsync: jest.fn(),
 }));
-
-// expo-router's test mocks swap in Reanimated's bare mock, which lacks the hook jest.setup.js adds.
-Object.assign(require('react-native-reanimated'), { useReducedMotion: () => false });
 
 const { apiFetch } = jest.requireMock('@/lib/api/client') as { apiFetch: jest.Mock };
 
@@ -207,33 +201,12 @@ const ROUTES = {
   '(world)/deep/[field]': DeepPicker,
 };
 
-async function show(url = '/character') {
-  const client = new QueryClient({
-    defaultOptions: {
-      queries: { staleTime: Number.POSITIVE_INFINITY, retry: false },
-      mutations: { retry: false },
-    },
-  });
-  // The gate only opens the world once /me and /app/status are in the cache.
-  await client.prefetchQuery({ queryKey: getGetMeQueryKey(), queryFn: () => getMe() });
-  await client.prefetchQuery({ queryKey: getGetAppStatusQueryKey(), queryFn: () => getAppStatus() });
-  // Data that arrives after the first render waits on renderRouter's fake timers: have it first.
-  if (url.startsWith('/deep'))
-    await client.prefetchQuery({ queryKey: getGetDeepProfileQueryKey(), queryFn: () => getDeepProfile() });
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
-  );
-  const view = renderRouter(ROUTES, { initialUrl: url, wrapper });
-  // renderRouter predates RNTL 14's async render: it hands back the pending render with its getters
-  // attached, and turns on fake timers that nothing here needs.
-  await view;
-  jest.useRealTimers();
-  await settle();
-  return { client, view };
-}
+// The gate only opens the world once /app/status is in the cache too.
+const STATUS = { queryKey: getGetAppStatusQueryKey(), queryFn: () => getAppStatus() };
+const DEEP = { queryKey: getGetDeepProfileQueryKey(), queryFn: () => getDeepProfile() };
+const show = (url = '/character') =>
+  showWorld(ROUTES, url, { prefetch: url.startsWith('/deep') ? [STATUS, DEEP] : [STATUS] });
 
-// One macrotask: TanStack Query tells observers about new data on a setTimeout(0).
-const settle = () => act(() => new Promise((r) => setTimeout(r, 0)));
 const press = async (name: string | RegExp) => {
   await fireEvent.press(screen.getByRole('button', { name }));
   await settle();

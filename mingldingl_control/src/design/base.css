@@ -21,7 +21,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
   color: inherit;
 }
@@ -69,10 +70,10 @@ a {
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  min-height: var(--size-touch);
+  min-height: calc(var(--size-touch) + var(--space-1));
   padding: 0 var(--space-5);
   border: var(--stroke-hairline) solid var(--color-text-primary);
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-sm);
   background: transparent;
   font: var(--font-label-m);
   letter-spacing: var(--tracking-label-m);
@@ -139,6 +140,19 @@ a {
   color: var(--color-text-primary);
 }
 
+/* Disabled plates are unlit iron, as the shared Figma Button's disabled state. */
+.btn:not(.btn-quiet):disabled {
+  opacity: 1;
+  color: var(--color-text-muted);
+  border-color: var(--color-border-hairline);
+  background: transparent;
+  box-shadow: none;
+}
+.btn:not(.btn-quiet):disabled::before,
+.btn:not(.btn-quiet):disabled::after {
+  content: none;
+}
+
 /* ---- fields ---- */
 .field {
   display: grid;
@@ -146,12 +160,20 @@ a {
 }
 .input {
   width: 100%;
-  min-height: var(--size-touch);
+  min-height: calc(var(--size-touch) + var(--space-1));
   padding: 0 var(--space-4);
   border: var(--stroke-hairline) solid var(--color-border-hairline);
-  border-radius: var(--radius-none);
-  background: var(--color-bg-sunken);
+  border-bottom: var(--stroke-rule) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-panel);
   color: var(--color-text-primary);
+}
+.input:focus {
+  outline: none;
+  border-bottom-color: var(--color-border-gold);
+}
+.input[aria-invalid="true"] {
+  border-bottom-color: var(--color-status-danger);
 }
 .input::placeholder {
   color: var(--color-text-muted);

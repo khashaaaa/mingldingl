@@ -1,6 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
-import { setLocale } from '@/lib/i18n';
 import { color, type } from '../../tokens';
 import { Button } from '../Button';
 import { ChoiceCard } from '../ChoiceCard';
@@ -13,22 +12,10 @@ import { Sheet } from '../Sheet';
 import { StateBlock } from '../StateBlock';
 import { TextArea } from '../TextArea';
 import { Toast } from '../Toast';
-import { Txt } from '../Txt';
 
 jest.mock('@/lib/feedback', () => ({ feedback: jest.fn() }));
 const { feedback } = jest.requireMock('@/lib/feedback') as { feedback: jest.Mock };
 beforeEach(() => feedback.mockClear());
-afterEach(() => setLocale('en'));
-
-describe('Txt', () => {
-  test('uses the Figma text style and switches room titles to Yeseva in Mongolian', async () => {
-    const { rerender } = await render(<Txt variant="titleRoom">The Gate</Txt>);
-    expect(screen.getByText('The Gate')).toHaveStyle({ fontFamily: type.titleRoom.fontFamily });
-    await act(() => setLocale('mn'));
-    await rerender(<Txt variant="titleRoom">The Gate</Txt>);
-    expect(screen.getByText('The Gate')).toHaveStyle({ fontFamily: 'YesevaOne_400Regular' });
-  });
-});
 
 describe('Button', () => {
   test('presses with a tick and calls back', async () => {

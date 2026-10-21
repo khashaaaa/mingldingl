@@ -8,7 +8,6 @@ using MinglDingl.Engine.Features.Quests;
 using MinglDingl.Engine.Features.Score;
 using MinglDingl.Engine.Kernel.Clock;
 using MinglDingl.Engine.Kernel.Persistence;
-using MinglDingl.Engine.Tests.Features.Encounters;
 using MinglDingl.Engine.Tests.Infrastructure;
 using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 
@@ -83,19 +82,19 @@ public class RoadTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await using var w = await World.CreateAsync(db);
         var bat = await w.PersonAsync("Bat", "Male");
         var saruul = await w.PersonAsync("Saruul", "Female");
-        (await Honours(bat.C)).Should().OnlyContain(h => !h.Earned);
+        (await bat.C.HonoursAsync()).Should().OnlyContain(h => !h.Earned);
 
         var bond = (await bat.C.SummonAsync(saruul.Id)).Id;
         await ExchangeAsync(bond, bat.C, saruul.C, 5);
 
-        var hs = await Honours(bat.C);
+        var hs = await bat.C.HonoursAsync();
         hs.Should().HaveCount(22);
         hs.Where(h => h.Earned).Select(h => h.Key).Should().BeEquivalentTo(HonourKeys.FirstBond, HonourKeys.SealBreaker);
         hs.Where(h => h.Earned).Should().OnlyContain(h => h.Unseen);
 
         (await bat.C.PostAsync($"/me/honours/{HonourKeys.SealBreaker}/seen", null)).EnsureSuccessStatusCode();
-        (await Honours(bat.C)).Single(h => h.Key == HonourKeys.SealBreaker).Unseen.Should().BeFalse();
-        (await Honours(bat.C)).Single(h => h.Key == HonourKeys.FirstBond).Unseen.Should().BeTrue();
+        (await bat.C.HonoursAsync()).Single(h => h.Key == HonourKeys.SealBreaker).Unseen.Should().BeFalse();
+        (await bat.C.HonoursAsync()).Single(h => h.Key == HonourKeys.FirstBond).Unseen.Should().BeTrue();
     }
 
     [Fact]
@@ -118,7 +117,7 @@ public class RoadTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         log.Encounters.Should().ContainSingle().Which.Should().Match<EncounterLogRow>(r =>
             r.Name == "Saruul" && r.Venue == "Nomad Café" && r.Outcome == "kept" && r.Charted == "Bayangol");
 
-        var hs = await Honours(m.Saruul.C);
+        var hs = await m.Saruul.C.HonoursAsync();
         hs.Single(h => h.Key == HonourKeys.Naadam).Should().Match<HonourView>(h => h.Earned && h.Times == 1);
         hs.Single(h => h.Key == HonourKeys.FirstPledge).Earned.Should().BeTrue();
         hs.Single(h => h.Key == HonourKeys.TsagaanSar).Earned.Should().BeFalse();
@@ -143,5 +142,4 @@ public class RoadTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     private static async Task<QuestBoard> Board(HttpClient c) => (await c.GetFromJsonAsync<QuestBoard>("/me/quests"))!;
-    private static async Task<List<HonourView>> Honours(HttpClient c) => (await c.GetFromJsonAsync<List<HonourView>>("/me/honours"))!;
 }

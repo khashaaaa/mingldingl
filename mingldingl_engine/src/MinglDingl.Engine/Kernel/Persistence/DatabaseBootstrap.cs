@@ -6,6 +6,7 @@ using MinglDingl.Engine.Features.Festivals;
 using MinglDingl.Engine.Features.Honours;
 using MinglDingl.Engine.Kernel.Clock;
 using MinglDingl.Engine.Kernel.Config;
+using MinglDingl.Engine.Kernel.Validation;
 
 namespace MinglDingl.Engine.Kernel.Persistence;
 
@@ -21,6 +22,7 @@ public static class DatabaseBootstrap
             var db = scope.ServiceProvider.GetRequiredService<AppDb>();
             await db.Database.MigrateAsync(ct);
             await LooseVerifyMnColumnsAsync(db, ct);
+            await AddVenueMnColumnsAsync(db, ct);
             await Questions.SeedAsync(db, ct);
             await CodexService.SeedAsync(db, DateTimeOffset.UtcNow, ct);
             await Features.Wanderings.WanderingSeed.SeedAsync(db, DateTimeOffset.UtcNow, ct);
@@ -30,6 +32,15 @@ public static class DatabaseBootstrap
         await HonourService.BackfillAsync(services, ct);
         await CampaignService.BackfillAsync(services, ct);
     }
+
+    /// A database made before venues carried Mongolian address, hours and description (the server's
+    /// and the dev one) gains the three columns; a no-op on a fresh one, which the migration made whole.
+    private static Task AddVenueMnColumnsAsync(AppDb db, CancellationToken ct) =>
+        db.Database.ExecuteSqlRawAsync($$"""
+            ALTER TABLE venues ADD COLUMN IF NOT EXISTS "AddressMn" character varying({{FieldLimits.VenueAddress}});
+            ALTER TABLE venues ADD COLUMN IF NOT EXISTS "HoursMn" character varying({{FieldLimits.VenueHours}});
+            ALTER TABLE venues ADD COLUMN IF NOT EXISTS "DescriptionMn" character varying({{FieldLimits.VenueDescription}});
+            """, ct);
 
     /// A database made before WeSend still has verify.mn's code columns, NOT NULL, which the model no
     /// longer writes; they are loosened (never dropped) so new rows insert. A no-op on a fresh one.

@@ -2,7 +2,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Art } from '@/design/components/Art';
 import { Banner } from '@/design/components/Banner';
 import { Button } from '@/design/components/Button';
 import { InkLink } from '@/design/components/InkLink';
@@ -139,7 +138,6 @@ export default function SquareTab() {
             {t(dress.honour).toUpperCase()}
           </Txt>
         ) : null}
-        {dress?.under ? <Art name={dress.under} style={styles.under} fit="contain" /> : null}
       </Scene>
     </View>
   );
@@ -148,5 +146,4 @@ export default function SquareTab() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   held: { alignItems: 'center', gap: dimension.space4, paddingTop: dimension.space7 },
-  under: { width: 110, height: 110, alignSelf: 'center' },
 });

@@ -168,6 +168,9 @@ public sealed class VenueService(
         v.Address = req.Address.Trim();
         v.Hours = string.IsNullOrWhiteSpace(req.Hours) ? null : req.Hours.Trim();
         v.Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim();
+        v.AddressMn = string.IsNullOrWhiteSpace(req.AddressMn) ? null : req.AddressMn.Trim();
+        v.HoursMn = string.IsNullOrWhiteSpace(req.HoursMn) ? null : req.HoursMn.Trim();
+        v.DescriptionMn = string.IsNullOrWhiteSpace(req.DescriptionMn) ? null : req.DescriptionMn.Trim();
         v.Verified = req.Verified;
     }
 
@@ -203,10 +206,12 @@ public sealed class VenueService(
     }
 
     private static VenueView View(Venue v, (double? Mean, int Count) r, IReadOnlyList<VenuePhotoView> photos) =>
-        new(v.Id, v.Name, v.NameMn, v.Kind, v.District, v.Address, v.Hours, v.Description, r.Mean, r.Count, photos,
+        new(v.Id, v.Name, v.NameMn, v.Kind, v.District, v.Address, v.Hours, v.Description, v.AddressMn, v.HoursMn, v.DescriptionMn,
+            r.Mean, r.Count, photos,
             v.RemovedAt is not null || !v.Verified);
 
     private static AdminVenueView AdminView(Venue v, (double? Mean, int Count) r, IReadOnlyList<VenuePhotoView> photos) =>
-        new(v.Id, v.Name, v.NameMn, v.Kind, v.District, v.Address, v.Hours, v.Description, v.Verified, v.RemovedAt is not null,
+        new(v.Id, v.Name, v.NameMn, v.Kind, v.District, v.Address, v.Hours, v.Description, v.AddressMn, v.HoursMn, v.DescriptionMn,
+            v.Verified, v.RemovedAt is not null,
             r.Mean, r.Count, photos, v.CreatedAt);
 }

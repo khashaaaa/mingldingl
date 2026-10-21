@@ -7,7 +7,7 @@ import { RoomHeader } from '@/design/components/RoomHeader';
 import { Txt } from '@/design/components/Txt';
 import { color, dimension } from '@/design/tokens';
 import { useGetVenue } from '@/lib/api/generated/engine';
-import { t, tCount, tVenue } from '@/lib/i18n';
+import { t, tCount, tVenue, tVenueText } from '@/lib/i18n';
 import { Scene } from '../common/Scene';
 import { eyebrow } from './MeetingScreen';
 
@@ -45,7 +45,9 @@ export default function VenueScreen() {
     v.rating == null
       ? t('venue.noRatings')
       : `★ ${v.rating.toFixed(1)}  ·  ${tCount('venue.ratings', v.ratings)}`;
-  const where = [v.address, v.hours ? t('venue.hours', { hours: v.hours }) : null]
+  const hours = tVenueText(v, 'hours');
+  const description = tVenueText(v, 'description');
+  const where = [tVenueText(v, 'address'), hours ? t('venue.hours', { hours }) : null]
     .filter(Boolean)
     .join(' · ');
   return (
@@ -84,7 +86,7 @@ export default function VenueScreen() {
           {rating}
         </Txt>
       </View>
-      {v.description ? <Txt variant="bodyM">{v.description}</Txt> : null}
+      {description ? <Txt variant="bodyM">{description}</Txt> : null}
       <Txt variant="bodyS" color="textSecondary">
         {where}
       </Txt>

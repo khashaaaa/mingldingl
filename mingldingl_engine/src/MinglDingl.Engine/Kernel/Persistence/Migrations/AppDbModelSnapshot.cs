@@ -1668,10 +1668,18 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<string>("AddressMn")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<string>("DescriptionMn")
                         .HasMaxLength(400)
                         .HasColumnType("character varying(400)");
 
@@ -1681,6 +1689,10 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                         .HasColumnType("character varying(40)");
 
                     b.Property<string>("Hours")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("HoursMn")
                         .HasMaxLength(60)
                         .HasColumnType("character varying(60)");
 

@@ -1,15 +1,16 @@
 import { StyleSheet, View } from 'react-native';
 import { t, tLine, tPlace } from '@/lib/i18n';
 import { color, dimension } from '../tokens';
-import { Art, FillArt, Glyph } from './Art';
+import { Art, Glyph } from './Art';
 import { AvatarFrame } from './AvatarFrame';
+import { CANDLELIT_PAD, Candlelit } from './Candlelit';
 import { GEM, type Tier } from './GemBadge';
 import { NameTitle } from './NameTitle';
 import type { SealablePhoto } from './PhotoTile';
 import { Txt } from './Txt';
 
 /**
- * A companion in the Tavern (Figma 26:3): a night card warmed from below, their portrait sealed
+ * A companion in the Tavern (Figma 26:3): a night card lit by the candles below it, their portrait sealed
  * under wax (only its ThumbHash), name (a stranger in the Tavern has none: "A traveller") and age, gem and place, the oath they swore, their tale.
  * "Has children" sits under the place when they chose to show it (Figma 254:13347).
  */
@@ -44,7 +45,7 @@ export function SeekCard({
   const nameAge = t('seek.nameAge', { name: shown, age });
   return (
     <View style={styles.card}>
-      <FillArt name="card_night" />
+      <Candlelit art="card_night" />
       <AvatarFrame
         state={sealed ? 'sealed' : 'revealed'}
         photo={portrait ? { ...portrait, url: sealed ? null : portrait.url } : null}
@@ -81,17 +82,9 @@ export function SeekCard({
           {t('quests.quote', { text: tale })}
         </Txt>
       ) : null}
-      <View style={styles.rim} pointerEvents="none" />
     </View>
   );
 }
-
-const ARCH = {
-  borderTopLeftRadius: 120,
-  borderTopRightRadius: 120,
-  borderBottomLeftRadius: dimension.radiusMd,
-  borderBottomRightRadius: dimension.radiusMd,
-} as const;
 
 const styles = StyleSheet.create({
   // Figma 26:3: the stele spans the gutter (350 of 390), whatever its contents.
@@ -99,17 +92,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     alignItems: 'center',
     gap: dimension.space3,
-    paddingVertical: dimension.space6,
-    paddingHorizontal: dimension.space5,
-    ...ARCH,
-    overflow: 'hidden',
-  },
-  // The brass edge is drawn over the art: on iOS the art would otherwise hide the arch's curve.
-  rim: {
-    ...StyleSheet.absoluteFill,
-    ...ARCH,
-    borderWidth: dimension.strokeHairline,
-    borderColor: color.borderBrass,
+    padding: CANDLELIT_PAD,
   },
   line: { flexDirection: 'row', alignItems: 'center', gap: dimension.space2 },
   gem: { width: 33, height: 33 }, // Figma 26:3 "Gem art"

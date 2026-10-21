@@ -6,11 +6,11 @@ import { captureRef } from 'react-native-view-shot';
 import { AvatarFrame } from '@/design/components/AvatarFrame';
 import { SectionLabel } from '@/design/components/Banner';
 import { Button } from '@/design/components/Button';
+import { CANDLELIT_PAD, Candlelit } from '@/design/components/Candlelit';
 import { asTier, GemBadge } from '@/design/components/GemBadge';
 import { RoomHeader } from '@/design/components/RoomHeader';
 import { Row } from '@/design/components/Row';
 import { Txt } from '@/design/components/Txt';
-import { boxShadow } from '@/design/effects';
 import { color, dimension } from '@/design/tokens';
 import { useGetChests, useGetMe, useGetQuests, useListMyPhotos } from '@/lib/api/generated/engine';
 import { t, tCount, tValue } from '@/lib/i18n';
@@ -74,7 +74,7 @@ export function Satchel() {
   );
 }
 
-/** Share character (Figma 28:1019): the card as a picture, sent through the phone's share sheet. */
+/** Share character (Figma 28:1019): the card inside its gold line as a picture, sent through the phone's share sheet. */
 export function Keepsake() {
   const profile = useGetMe().data?.profile;
   const photo = useListMyPhotos().data?.[0] ?? null;
@@ -101,6 +101,7 @@ export function Keepsake() {
   return (
     <Scene header={<RoomHeader title={t('room.satchel')} onBack={() => router.back()} />}>
       <View ref={card} collapsable={false} style={styles.card}>
+        <Candlelit fill={color.bgPanel} />
         <AvatarFrame state="mine" photo={photo} label={profile.name} size={115} />
         <Txt variant="displayL" align="center">
           {profile.name}
@@ -126,18 +127,7 @@ export function Keepsake() {
 const styles = StyleSheet.create({
   // Rows run edge to edge, past the Scene's gutter.
   list: { marginHorizontal: -dimension.sizeGutter },
-  card: {
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: dimension.space5,
-    paddingTop: 30,
-    paddingBottom: dimension.space5,
-    backgroundColor: color.bgPanel,
-    borderWidth: dimension.strokeHairline,
-    borderColor: color.borderGold,
-    borderTopLeftRadius: 130,
-    borderTopRightRadius: 130,
-    boxShadow: boxShadow('shadowDeep'),
-  },
+  // the character card inside the gold line, as the Square's bell
+  card: { alignItems: 'center', gap: 10, padding: CANDLELIT_PAD },
   foot: { alignItems: 'center', gap: dimension.space4 },
 });

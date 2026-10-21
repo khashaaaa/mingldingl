@@ -7,7 +7,6 @@ using MinglDingl.Engine.Features.Auth;
 using MinglDingl.Engine.Features.Dev;
 using MinglDingl.Engine.Features.Profile;
 using MinglDingl.Engine.Kernel.Live;
-using MinglDingl.Engine.Kernel.Maintenance;
 using MinglDingl.Engine.Kernel.Persistence;
 using MinglDingl.Engine.Tests.Infrastructure;
 
@@ -115,8 +114,8 @@ public class DevTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var s = await f.SignInAsync(vm);
         await f.As(s).PostAsync("/auth/sign-out", null);
         f.Clock.Advance(TimeSpan.FromDays(31));
+        await f.DailySweepAsync();
         await using var scope = f.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<DailySweep>().RunAsync();
         var store = scope.ServiceProvider.GetRequiredService<AppDb>();
         (await store.Set<DeviceSession>().CountAsync(d => d.AccountId == s.AccountId)).Should().Be(0);
     }

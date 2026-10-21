@@ -4,7 +4,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using MinglDingl.Engine.Features.Encounters;
 using MinglDingl.Engine.Features.Venues;
-using MinglDingl.Engine.Kernel.Config;
+using MinglDingl.Engine.Kernel.Persistence;
 using MinglDingl.Engine.Tests.Infrastructure;
 using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 
@@ -126,14 +126,14 @@ public class AttendanceTests(PostgresFixture db) : IClassFixture<PostgresFixture
     private static async Task<Meeting> Read(MeetingWorld m, Guid id)
     {
         await using var scope = m.W.F.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<MinglDingl.Engine.Kernel.Persistence.AppDb>();
+        var db = scope.ServiceProvider.GetRequiredService<AppDb>();
         return await db.Set<Meeting>().AsNoTracking().SingleAsync(x => x.Id == id);
     }
 
     private static async Task<int> Reputation(MeetingWorld m, Guid id)
     {
         await using var scope = m.W.F.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<MinglDingl.Engine.Kernel.Persistence.AppDb>();
+        var db = scope.ServiceProvider.GetRequiredService<AppDb>();
         return await db.Set<MinglDingl.Engine.Features.Profile.Profile>().Where(p => p.AccountId == id).Select(p => p.Reputation).SingleAsync();
     }
 }

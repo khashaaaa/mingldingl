@@ -72,7 +72,7 @@ describe('TabBar', () => {
     expect(screen.getByRole('tab', { name: 'Seek' }).props.accessibilityState).toMatchObject({
       selected: false,
     });
-    expect(screen.getAllByTestId('ember-tick')).toHaveLength(1);
+    expect(screen.getAllByTestId('open-door')).toHaveLength(1);
     const seek = screen.getByRole('tab', { name: 'Seek' });
     await fireEvent(seek, 'pressIn');
     await fireEvent.press(seek);

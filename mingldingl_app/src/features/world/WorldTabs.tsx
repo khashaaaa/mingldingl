@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
-import { type ComponentProps, useEffect, useRef } from 'react';
+import { type ComponentProps, type ReactElement, useEffect, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { type Tab, TabBar } from '@/design/components/TabBar';
 import { t, useLocale } from '@/lib/i18n';
 import { localeScreenLayout } from '@/lib/i18n/LocaleScreens';
@@ -20,9 +21,10 @@ export default function WorldTabs() {
   useLocale();
   return (
     <Tabs
-      screenLayout={localeScreenLayout}
+      screenLayout={tabLayout}
       backBehavior="initialRoute"
       initialRouteName="character"
+      detachInactiveScreens={false}
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: 'transparent' } }}
       tabBar={({ state, navigation }) => (
         <>
@@ -47,6 +49,32 @@ export default function WorldTabs() {
     </Tabs>
   );
 }
+
+/**
+ * A detached tab took one or two frames to draw again on its visit, showing a bare floor between
+ * the two rooms. Every tab stays attached instead, and the ones not open are hidden here: unseen
+ * (they are transparent, so they would show through the open one; Android skips drawing an
+ * invisible view), untouchable and out of TalkBack's reach.
+ */
+const tabLayout = (props: {
+  route: { name: string };
+  navigation: { isFocused: () => boolean };
+  children: ReactElement;
+}) => {
+  const open = props.navigation.isFocused();
+  return (
+    <View
+      style={[styles.tab, !open && styles.hidden]}
+      pointerEvents={open ? 'auto' : 'none'}
+      importantForAccessibility={open ? 'auto' : 'no-hide-descendants'}
+      accessibilityElementsHidden={!open}
+    >
+      {localeScreenLayout(props)}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({ tab: { flex: 1 }, hidden: { opacity: 0 } });
 
 /** How long the world settles before the next tab is drawn out of sight, one at a time. */
 const PRELOAD_GAP_MS = 400;

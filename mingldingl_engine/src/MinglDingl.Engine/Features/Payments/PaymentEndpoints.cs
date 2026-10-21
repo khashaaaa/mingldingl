@@ -38,11 +38,13 @@ public sealed class PaymentEndpoints : IEndpointModule
 
         // Providers. QPay's callback only prompts a check; RevenueCat's webhook only prompts a sync.
         var hooks = app.MapGroup("/payments").WithTags("Payments").ExcludeFromDescription();
+        // QPay calls back by POST once a payment lands; GET is accepted too. Limited per invoice, so a
+        // flood of callbacks cannot become the polling QPay forbids.
         hooks.MapMethods("/qpay/callback", ["GET", "POST"], async (Guid invoice, PaymentService p, CancellationToken ct) =>
         {
-            await p.CheckAsync(invoice, "QPay callback", ct);
+            await p.CallbackAsync(invoice, ct);
             return Results.Text("SUCCESS");
-        });
+        }).RequireRateLimiting(Kernel.RateLimits.RateLimitPolicies.QPayCallback);
         hooks.MapPost("/revenuecat", async (HttpRequest req, RevenueCatSettings settings, PaymentService p, CancellationToken ct) =>
         {
             var auth = req.Headers.Authorization.ToString();
@@ -70,7 +72,7 @@ public sealed class PaymentEndpoints : IEndpointModule
     }
 }
 
-/// Every minute: open invoices are checked with QPay, cold ones cancelled, late money found;
+/// Every minute: codes past their time are cancelled with QPay and checked once (never polled);
 /// and once an hour the "your floor ends soon" notices go out.
 public sealed class PaymentSweep(IServiceScopeFactory scopes, ILogger<PaymentSweep> log, Stats.OpsClock ops) : BackgroundService
 {
@@ -89,7 +91,7 @@ public sealed class PaymentSweep(IServiceScopeFactory scopes, ILogger<PaymentSwe
         }
         ops.PaymentSweepAt = DateTimeOffset.UtcNow;
         if (checkedCount + notices > 0)
-            log.LogInformation("Payments: {Checked} invoices checked, {Cold} went cold, {Notices} ending notices", checkedCount, cold, notices);
+            log.LogInformation("Payments: {Checked} codes past their time, {Cold} went cold, {Notices} ending notices", checkedCount, cold, notices);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stop)

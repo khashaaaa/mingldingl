@@ -55,7 +55,7 @@ public sealed class PhoneVerificationService(AppDb db, IWeSend wesend, IClock cl
             case CodeSent.BadNumber:
                 throw new DomainException(400, "auth.bad_phone", "Enter an 8-digit Mongolian number");
             case CodeSent.Unavailable:
-                throw new DomainException(502, "auth.provider_unavailable", "Verification is unavailable, try again shortly");
+                throw new DomainException(503, "auth.provider_unavailable", "Verification is unavailable, try again shortly");
         }
 
         // WeSend cancels a number's last code when it sends a new one.
@@ -102,7 +102,7 @@ public sealed class PhoneVerificationService(AppDb db, IWeSend wesend, IClock cl
             CodeChecked.Wrong => throw new DomainException(422, "auth.wrong_code", "That is not the code we sent"),
             CodeChecked.TooManyAttempts => throw new DomainException(429, "auth.too_many_attempts", "Too many wrong codes — ask for a new one"),
             CodeChecked.Expired => throw new DomainException(410, "auth.verification_expired", "This code is too old — send a new one"),
-            _ => throw new DomainException(502, "auth.provider_unavailable", "Verification is unavailable, try again shortly"),
+            _ => throw new DomainException(503, "auth.provider_unavailable", "Verification is unavailable, try again shortly"),
         };
     }
 

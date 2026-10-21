@@ -8,7 +8,7 @@ import { StateBlock } from '@/design/components/StateBlock';
 import { Txt } from '@/design/components/Txt';
 import { dimension } from '@/design/tokens';
 import { useGetHall } from '@/lib/api/generated/engine';
-import { getLocale, t, tCount } from '@/lib/i18n';
+import { getLocale, t, tCount, tPlace } from '@/lib/i18n';
 import { Scene } from '../common/Scene';
 
 const n = (v: number) => v.toLocaleString(getLocale() === 'mn' ? 'mn-MN' : 'en-US');
@@ -29,7 +29,7 @@ export default function Hall() {
   return (
     <Scene header={header}>
       <Txt variant="voiceM" color="textSecondary">
-        {t('hall.intro', { cohort: hall.cohort })}
+        {t('hall.intro', { cohort: tPlace(hall.cohort) })}
       </Txt>
       <View style={styles.rows}>
         <Cascade>

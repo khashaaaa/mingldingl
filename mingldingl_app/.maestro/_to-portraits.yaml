@@ -1,23 +1,8 @@
-# Subflow: a fresh install signs up a new number (the fake WeSend's code 000000) and walks
-# onboarding steps 1–2, stopping on step 3 (portraits). Leaves the number in ${output.phone}.
+# Subflow: a fresh install signs up a new number (_to-name.yaml) and walks onboarding steps 1–2,
+# stopping on step 3 (portraits). Leaves the number in ${output.phone}.
 appId: com.mingldingl.app
 ---
-- launchApp:
-    clearState: true
-    stopApp: true
-- runFlow: _launch.yaml
-- tapOn: Enter the Gate
-- extendedWaitUntil:
-    visible: Prove your number
-    timeout: 10000
-- runScript: scripts/phone.js
-- tapOn: Phone number
-- inputText: ${output.phone}
-- tapOn: Continue
-- runFlow: _code.yaml
-- extendedWaitUntil:
-    visible: What does the hold call you\?
-    timeout: 15000
+- runFlow: _to-name.yaml
 - tapOn: First name
 - inputText: Maestro
 - pressKey: Enter        # the keyboard's Next: on a short screen Born is under the keyboard until focused

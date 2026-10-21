@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using MinglDingl.Engine.Features.Admin;
 using MinglDingl.Engine.Features.Venues;
 using MinglDingl.Engine.Kernel.Live;
 using MinglDingl.Engine.Tests.Infrastructure;
@@ -34,8 +35,26 @@ public class VenueTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await bat.C.GetFromJsonAsync<VenueView>($"/venues/{v.Id}"))!.Gone.Should().BeTrue();
         (await admin.GetFromJsonAsync<List<AdminVenueView>>("/admin/venues"))!.Single().Removed.Should().BeTrue();
 
-        var log = (await admin.GetFromJsonAsync<List<MinglDingl.Engine.Features.Admin.AuditRow>>("/admin/audit"))!;
+        var log = (await admin.GetFromJsonAsync<List<AuditRow>>("/admin/audit"))!;
         log.Should().Contain(r => r.Action == "Venue removed" && r.Target == "Nomad Tea House", "the keeper reads a name, not an id");
+    }
+
+    [Fact]
+    public async Task A_place_carries_its_Mongolian_address_hours_and_description_and_blank_ones_stay_unwritten()
+    {
+        await using var w = await World.CreateAsync(db);
+        var bat = await w.PersonAsync("Bat", "Male");
+        var admin = await w.F.AdminAsync();
+
+        var v = await admin.AddVenueAsync(Place() with
+        {
+            AddressMn = " Энхтайвны өргөн чөлөө 14 ", HoursMn = "  ", DescriptionMn = "Намхан ширээ, эсгий хана.",
+        });
+        var seen = (await bat.C.VenuesAsync()).Single();
+        seen.AddressMn.Should().Be("Энхтайвны өргөн чөлөө 14");
+        seen.HoursMn.Should().BeNull("a blank line is not a translation");
+        seen.DescriptionMn.Should().Be("Намхан ширээ, эсгий хана.");
+        v.AddressMn.Should().Be("Энхтайвны өргөн чөлөө 14", "the keepers read back what they wrote");
     }
 
     [Fact]

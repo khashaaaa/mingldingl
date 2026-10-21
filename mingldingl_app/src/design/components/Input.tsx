@@ -1,6 +1,5 @@
 import { type Ref, useState } from 'react';
 import { StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
-import { boxShadow } from '../effects';
 import { color, dimension, type } from '../tokens';
 import { useReveal } from './reveal';
 import { Txt } from './Txt';
@@ -20,11 +19,15 @@ type InputProps = FieldProps & {
   ref?: Ref<TextInput>;
 };
 
+/** The field's underline: ember on error, gold while focused, otherwise a strong ink line. */
 export function fieldBorder(focused: boolean, error?: string | null) {
-  return error ? color.statusDanger : focused ? color.borderGold : color.borderHairline;
+  return error ? color.statusDanger : focused ? color.borderGold : color.borderStrong;
 }
 
-/** A carved field: sunken, hairline frame that turns gold on focus and ember on error. */
+/**
+ * A field on the panel's tone (a sunken black box read as a hole in the night): hairline frame,
+ * and an underline that turns gold on focus and ember on error.
+ */
 export function Input({ label, value, onChangeText, error, disabled, prefix, ref, ...rest }: InputProps) {
   const [focused, setFocused] = useState(false);
   const reveal = useReveal();
@@ -33,7 +36,7 @@ export function Input({ label, value, onChangeText, error, disabled, prefix, ref
       <Txt variant="labelS" color="textSecondary">
         {label}
       </Txt>
-      <View style={[styles.field, { borderColor: fieldBorder(focused, error) }]}>
+      <View style={[styles.field, { borderBottomColor: fieldBorder(focused, error) }]}>
         {prefix ? (
           <Txt variant="bodyM" color="textSecondary">
             {prefix}
@@ -78,10 +81,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: dimension.space2,
     paddingHorizontal: dimension.space4,
-    backgroundColor: color.bgSunken,
+    backgroundColor: color.bgPanel,
     borderWidth: dimension.strokeHairline,
+    borderColor: color.borderHairline,
+    borderBottomWidth: dimension.strokeRule,
     borderRadius: dimension.radiusSm,
-    boxShadow: boxShadow('insetCarved'),
   },
   text: { flex: 1, color: color.textPrimary, paddingVertical: 0 },
 });

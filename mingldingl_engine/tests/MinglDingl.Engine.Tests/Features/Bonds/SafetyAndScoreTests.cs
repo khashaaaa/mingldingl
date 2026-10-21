@@ -137,11 +137,11 @@ public class SafetyAndScoreTests(PostgresFixture db) : IClassFixture<PostgresFix
     {
         await using var w = await World.CreateAsync(db);
         var admin = await w.F.AdminAsync();
-        var bad = await admin.PutAsJsonAsync($"/admin/config/{ConfigKeys.TierAmethyst}", new MinglDingl.Engine.Features.Admin.ConfigWriteRequest("100"));
+        var bad = await admin.PutAsJsonAsync($"/admin/config/{ConfigKeys.TierAmethyst}", new ConfigWriteRequest("100"));
         (await bad.Content.ReadFromJsonAsync<ErrorBody>())!.Code.Should().Be("config.out_of_bounds");
-        var bad2 = await admin.PutAsJsonAsync($"/admin/config/{ConfigKeys.Seal2}", new MinglDingl.Engine.Features.Admin.ConfigWriteRequest("40"));
+        var bad2 = await admin.PutAsJsonAsync($"/admin/config/{ConfigKeys.Seal2}", new ConfigWriteRequest("40"));
         (await bad2.Content.ReadFromJsonAsync<ErrorBody>())!.Code.Should().Be("config.out_of_bounds");
-        var ok = await admin.PutAsJsonAsync($"/admin/config/{ConfigKeys.Seal2}", new MinglDingl.Engine.Features.Admin.ConfigWriteRequest("12"));
+        var ok = await admin.PutAsJsonAsync($"/admin/config/{ConfigKeys.Seal2}", new ConfigWriteRequest("12"));
         ok.EnsureSuccessStatusCode();
     }
 }

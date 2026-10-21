@@ -17,7 +17,7 @@ public class MongolianTests
             .Concat(WeeklyTrialService.Exchanges);
         english.Where(e => !QuestionsMn.Lines.ContainsKey(e)).Should().BeEmpty();
         QuestionsMn.In("What is a sound that means home to you?", "en").Should().Be("What is a sound that means home to you?");
-        QuestionsMn.In("What is a sound that means home to you?", "mn").Should().Be("Чамд гэрийг санагдуулдаг дуу чимээ юу вэ?");
+        QuestionsMn.In("What is a sound that means home to you?", "mn").Should().Be("Ямар чимээ чамд гэрээ санагдуулдаг вэ?");
     }
 
     [Fact]
@@ -36,9 +36,9 @@ public class MongolianTests
     public void A_Mongolian_push_reads_its_floor_and_date_in_Mongolian()
     {
         var item = new PushItem(Guid.Empty, PushKinds.FloorEnding, null, "The High Table", "16 October");
-        PushCopy.Render(item, "mn").Body.Should().StartWith("Дээд ширээ 10-р сарын 16 дуусна.");
+        PushCopy.Render(item, "mn").Body.Should().StartWith("Дээд танхим: дуусах өдөр 10-р сарын 16.");
         PushCopy.Render(item, "en").Body.Should().StartWith("The High Table ends on 16 October.");
         var meeting = new PushItem(Guid.Empty, PushKinds.MeetingSworn, null, "Saruul", "Nomad Café, Fri 17 Oct, 19:00");
-        PushCopy.Render(meeting, "mn").Body.Should().Be("Чи ба Saruul: Nomad Café, Ба, 10-р сарын 17, 19:00.");
+        PushCopy.Render(meeting, "mn").Body.Should().Be("Чи, Saruul хоёр: Nomad Café, Ба, 10-р сарын 17, 19:00.");
     }
 }

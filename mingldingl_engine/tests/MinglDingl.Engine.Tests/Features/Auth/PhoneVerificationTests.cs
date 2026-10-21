@@ -4,20 +4,14 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MinglDingl.Engine.Features.Auth;
-using MinglDingl.Engine.Kernel.Errors;
 using MinglDingl.Engine.Kernel.Persistence;
 using MinglDingl.Engine.Tests.Infrastructure;
+using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 
 namespace MinglDingl.Engine.Tests.Features.Auth;
 
 public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 {
-    private static int _phone = 88000000;
-    private static string NewPhone() => Interlocked.Increment(ref _phone).ToString();
-
-    private static async Task<string?> ErrorCode(HttpResponseMessage r) =>
-        (await r.Content.ReadFromJsonAsync<ErrorBody>())?.Code;
-
     private static async Task<VerificationState> StateOf(EngineFactory f, Guid id)
     {
         await using var scope = f.Services.CreateAsyncScope();
@@ -29,7 +23,7 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     public async Task Start_texts_a_code_and_never_returns_it()
     {
         await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
-        var r = await f.Client().PostAsJsonAsync("/auth/phone/start", new StartRequest(NewPhone(), null));
+        var r = await f.Client().PostAsJsonAsync("/auth/phone/start", new StartRequest(SessionDriver.NewPhone(), null));
         r.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await r.Content.ReadAsStringAsync();
         body.Should().NotContain(ws.LastCode);
@@ -51,7 +45,7 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     {
         await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
         var c = f.Client();
-        var s = await c.StartAsync(NewPhone());
+        var s = await c.StartAsync(SessionDriver.NewPhone());
         await c.CheckAsync(ws, s.VerificationId);
         (await StateOf(f, s.VerificationId)).Should().Be(VerificationState.Verified);
         // A retry after a lost answer is still verified.
@@ -63,17 +57,17 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     {
         await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
         var c = f.Client();
-        var s = await c.StartAsync(NewPhone());
+        var s = await c.StartAsync(SessionDriver.NewPhone());
         var wrong = await c.CheckRawAsync(s.VerificationId, "999999");
         wrong.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
-        (await ErrorCode(wrong)).Should().Be("auth.wrong_code");
+        (await CodeOf(wrong)).Should().Be("auth.wrong_code");
         await c.CheckAsync(ws, s.VerificationId);
 
-        var t = await c.StartAsync(NewPhone());
+        var t = await c.StartAsync(SessionDriver.NewPhone());
         for (var i = 0; i < 4; i++) await c.CheckRawAsync(t.VerificationId, "999999");
         var fifth = await c.CheckRawAsync(t.VerificationId, "999999");
-        (await ErrorCode(fifth)).Should().Be("auth.too_many_attempts");
-        (await ErrorCode(await c.CheckRawAsync(t.VerificationId, ws.LastCode))).Should().Be("auth.verification_expired");
+        (await CodeOf(fifth)).Should().Be("auth.too_many_attempts");
+        (await CodeOf(await c.CheckRawAsync(t.VerificationId, ws.LastCode))).Should().Be("auth.verification_expired");
     }
 
     [Fact]
@@ -81,11 +75,11 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     {
         await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
         var c = f.Client();
-        var s = await c.StartAsync(NewPhone());
+        var s = await c.StartAsync(SessionDriver.NewPhone());
         ws.ExpireLast();
         var r = await c.CheckRawAsync(s.VerificationId, ws.LastCode);
         r.StatusCode.Should().Be(HttpStatusCode.Gone);
-        (await ErrorCode(r)).Should().Be("auth.verification_expired");
+        (await CodeOf(r)).Should().Be("auth.verification_expired");
     }
 
     [Fact]
@@ -93,9 +87,9 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     {
         await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
         var c = f.Client();
-        var s = await c.StartAsync(NewPhone());
+        var s = await c.StartAsync(SessionDriver.NewPhone());
         f.Clock.Advance(TimeSpan.FromSeconds(WeSendClient.CodeTtl + 1));
-        (await ErrorCode(await c.CheckRawAsync(s.VerificationId, ws.LastCode))).Should().Be("auth.verification_expired");
+        (await CodeOf(await c.CheckRawAsync(s.VerificationId, ws.LastCode))).Should().Be("auth.verification_expired");
     }
 
     [Fact]
@@ -103,11 +97,11 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     {
         await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
         var c = f.Client();
-        var phone = NewPhone();
+        var phone = SessionDriver.NewPhone();
         var first = await c.StartAsync(phone);
         var soon = await c.PostAsJsonAsync("/auth/phone/start", new StartRequest(phone, null));
         soon.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
-        (await ErrorCode(soon)).Should().Be("auth.code_cooldown");
+        (await CodeOf(soon)).Should().Be("auth.code_cooldown");
         ws.SendCalls.Should().Be(1);
 
         f.Clock.Advance(PhoneVerificationService.ResendAfter);
@@ -115,7 +109,7 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
         var second = await c.StartAsync(phone);
         second.VerificationId.Should().NotBe(first.VerificationId);
         (await StateOf(f, first.VerificationId)).Should().Be(VerificationState.Superseded);
-        (await ErrorCode(await c.CheckRawAsync(first.VerificationId, firstCode))).Should().Be("auth.verification_expired");
+        (await CodeOf(await c.CheckRawAsync(first.VerificationId, firstCode))).Should().Be("auth.verification_expired");
         await c.CheckAsync(ws, second.VerificationId);
     }
 
@@ -123,7 +117,7 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     public async Task Start_never_returns_an_existing_pending_session_to_a_caller_who_cannot_name_it()
     {
         await using var f = new EngineFactory(db); f.UseScriptedWeSend();
-        var phone = NewPhone();
+        var phone = SessionDriver.NewPhone();
         var owner = await f.Client().StartAsync(phone);
         f.Clock.Advance(PhoneVerificationService.ResendAfter);
         var stranger = await f.Client().StartAsync(phone);
@@ -134,7 +128,7 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     public async Task Start_with_resume_id_returns_that_session_without_a_second_text()
     {
         await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
-        var phone = NewPhone();
+        var phone = SessionDriver.NewPhone();
         var first = await f.Client().StartAsync(phone);
         var again = await f.Client().StartAsync(phone, first.VerificationId);
         again.VerificationId.Should().Be(first.VerificationId);
@@ -145,8 +139,8 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     public async Task Resume_id_for_another_number_is_ignored()
     {
         await using var f = new EngineFactory(db); f.UseScriptedWeSend();
-        var mine = await f.Client().StartAsync(NewPhone());
-        var other = await f.Client().StartAsync(NewPhone(), mine.VerificationId);
+        var mine = await f.Client().StartAsync(SessionDriver.NewPhone());
+        var other = await f.Client().StartAsync(SessionDriver.NewPhone(), mine.VerificationId);
         other.VerificationId.Should().NotBe(mine.VerificationId);
     }
 
@@ -154,7 +148,7 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     public async Task Concurrent_starts_for_one_number_send_one_text()
     {
         await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
-        var phone = NewPhone();
+        var phone = SessionDriver.NewPhone();
         await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => f.Client().PostAsJsonAsync("/auth/phone/start", new StartRequest(phone, null))));
         ws.SendCalls.Should().Be(1);
         await using var scope = f.Services.CreateAsyncScope();
@@ -171,20 +165,20 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
     }
 
     [Theory]
-    [InlineData(CodeSent.Unavailable, HttpStatusCode.BadGateway, "auth.provider_unavailable")]
+    [InlineData(CodeSent.Unavailable, HttpStatusCode.ServiceUnavailable, "auth.provider_unavailable")]
     [InlineData(CodeSent.TooMany, HttpStatusCode.TooManyRequests, "auth.too_many_codes")]
     [InlineData(CodeSent.BadNumber, HttpStatusCode.BadRequest, "auth.bad_phone")]
     public async Task A_refused_send_supersedes_nothing(CodeSent refusal, HttpStatusCode status, string code)
     {
         await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
         var c = f.Client();
-        var phone = NewPhone();
+        var phone = SessionDriver.NewPhone();
         var first = await c.StartAsync(phone);
         f.Clock.Advance(PhoneVerificationService.ResendAfter);
         ws.FailSend = refusal;
         var r = await c.PostAsJsonAsync("/auth/phone/start", new StartRequest(phone, null));
         r.StatusCode.Should().Be(status);
-        (await ErrorCode(r)).Should().Be(code);
+        (await CodeOf(r)).Should().Be(code);
         (await StateOf(f, first.VerificationId)).Should().Be(VerificationState.Pending);
     }
 

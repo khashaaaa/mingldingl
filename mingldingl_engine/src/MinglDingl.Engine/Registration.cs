@@ -157,6 +157,7 @@ public static class Registration
             else
             {
                 s.AddSingleton(qpay);
+                s.AddSingleton<Features.Payments.QPayTokens>();
                 s.AddHttpClient<Features.Payments.IQPay, Features.Payments.QPayClient>(c =>
                 {
                     c.BaseAddress = new Uri((config["QPay:BaseUrl"] ?? "https://merchant.qpay.mn/v2").TrimEnd('/') + "/");

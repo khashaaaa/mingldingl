@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using MinglDingl.Engine.Features.Bonds;
 using MinglDingl.Engine.Features.Codex;
-using MinglDingl.Engine.Kernel.Config;
+using MinglDingl.Engine.Features.Profile;
 using MinglDingl.Engine.Tests.Infrastructure;
 using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 
@@ -20,7 +20,7 @@ public class AwayTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await bat.C.WriteAsync(bond.Id, "hello");
         var start = await saruul.C.PointsAsync();
 
-        var me = await (await saruul.C.PostAsJsonAsync("/me/away", new AwayRequest(3))).Read<MinglDingl.Engine.Features.Profile.MeView>();
+        var me = await (await saruul.C.PostAsJsonAsync("/me/away", new AwayRequest(3))).Read<MeView>();
         me.Profile!.AwayUntil.Should().BeCloseTo(w.F.Clock.Now.AddDays(3), TimeSpan.FromSeconds(5));
         me.Profile.AwayNextAt.Should().NotBeNull("once in thirty days");
         var seen = await bat.C.BondAsync(bond.Id);

@@ -7,6 +7,7 @@ public static class RateLimitPolicies
 {
     public const string Auth = "auth";
     public const string Writes = "writes";
+    public const string QPayCallback = "qpay-callback";
 
     public static IServiceCollection AddRateLimits(this IServiceCollection s, IConfiguration config)
     {
@@ -19,6 +20,10 @@ public static class RateLimitPolicies
             o.AddPolicy(Auth, ctx => RateLimitPartition.GetFixedWindowLimiter(
                 ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = authPerMinute, Window = TimeSpan.FromMinutes(1) }));
+            // QPay sends one callback per payment; a handful a minute per invoice is plenty.
+            o.AddPolicy(QPayCallback, ctx => RateLimitPartition.GetFixedWindowLimiter(
+                ctx.Request.Query["invoice"].ToString(),
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1) }));
             o.AddPolicy(Writes, ctx =>
             {
                 var who = ctx.User.FindFirst("sub")?.Value ?? ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";

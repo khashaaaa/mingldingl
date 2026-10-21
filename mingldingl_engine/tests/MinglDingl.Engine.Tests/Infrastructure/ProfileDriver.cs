@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using MinglDingl.Engine.Features.Auth;
 using MinglDingl.Engine.Features.Profile;
 
 namespace MinglDingl.Engine.Tests.Infrastructure;

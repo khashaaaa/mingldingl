@@ -92,6 +92,7 @@ public class StatsTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         t.Rows.Should().ContainSingle();
         t.Rows[0][0].Should().Be("Bat");
         t.Rows[0][3].Should().Be("3");
+        t.People.Should().Equal(bat.Id);
         var men = (await admin.GetFromJsonAsync<StatsView>($"/admin/stats?metrics=severed&from={today:yyyy-MM-dd}&to={today:yyyy-MM-dd}&gender=Male"))!;
         men.Series.Single().Count.Should().Be(3, "a sever counts against the one let go");
     }

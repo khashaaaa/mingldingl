@@ -27,6 +27,8 @@ export default function FrozenGate() {
 
   return (
     <>
+      {/* under the room, as in Figma 35:617: the title and the way back stay clear of the ice */}
+      <Frost opacity={FROST} />
       <Scene header={<RoomHeader title={t('room.frozenGate')} onBack={() => router.back()} />}>
         {blocked && blocked.length === 0 ? (
           <View style={styles.empty}>
@@ -85,7 +87,6 @@ export default function FrozenGate() {
           </>
         ) : null}
       </Scene>
-      <Frost opacity={FROST} />
       <Art name="gate_chain" style={styles.chain} />
     </>
   );

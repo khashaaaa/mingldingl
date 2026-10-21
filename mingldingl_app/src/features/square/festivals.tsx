@@ -13,14 +13,12 @@ export const FESTIVAL: Record<
      * optional centred width, and its opacity (Figma 0.5, the fireworks 0.6).
      */
     ornament?: { art: ArtName; at: 'top' | 'foot'; y?: number; h: number; w?: number; o: number };
-    under?: ArtName;
     line: StringKey;
     honour?: StringKey;
   }
 > = {
   tsagaanSar: {
     ornament: { art: 'fest_khadag', at: 'top', y: 60, h: 40, o: 0.5 },
-    under: 'fest_cup',
     line: 'festival.line.tsagaanSar',
     honour: 'festival.honour.tsagaanSar',
   },

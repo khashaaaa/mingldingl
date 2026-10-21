@@ -2,10 +2,11 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using MinglDingl.Engine.Features.Campaign;
+using MinglDingl.Engine.Features.Festivals;
 using MinglDingl.Engine.Features.Hall;
 using MinglDingl.Engine.Features.Honours;
 using MinglDingl.Engine.Features.Score;
-using MinglDingl.Engine.Tests.Features.Encounters;
+using MinglDingl.Engine.Kernel.Persistence;
 using MinglDingl.Engine.Tests.Infrastructure;
 using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 
@@ -48,7 +49,7 @@ public class BondRoadTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var c = await Campaign(m.Bat.C, m.Bond);
         c.Chambers.Single(x => x.Key == Chambers.Boss).Cleared.Should().BeTrue();
         c.Retire.Should().Be("available");
-        (await Honours(m.Bat.C)).Single(h => h.Key == HonourKeys.OathKeeper).Earned.Should().BeFalse("the boss is broken but the rite chamber is not cleared");
+        (await m.Bat.C.HonoursAsync()).Single(h => h.Key == HonourKeys.OathKeeper).Earned.Should().BeFalse("the boss is broken but the rite chamber is not cleared");
 
         (await m.Bat.C.PostAsync($"/bonds/{m.Bond}/retire", null)).EnsureSuccessStatusCode();
         (await Campaign(m.Saruul.C, m.Bond)).Retire.Should().Be("askedByThem");
@@ -58,7 +59,7 @@ public class BondRoadTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await m.Bat.C.BondAsync(m.Bond)).State.Should().Be("Retired");
         var cut = await other.C.BondAsync(side);
         (cut.State, cut.ClosedWhy).Should().Be(("Severed", "retired"));
-        (await Honours(m.Saruul.C)).Single(h => h.Key == HonourKeys.Hearthbound).Earned.Should().BeTrue();
+        (await m.Saruul.C.HonoursAsync()).Single(h => h.Key == HonourKeys.Hearthbound).Earned.Should().BeTrue();
         var hall = (await other.C.GetFromJsonAsync<HallView>("/hall"))!;
         hall.RetiredPairs.Should().Be(1);
         hall.Top.Should().HaveCount(1, "the retired pair left the hall");
@@ -95,9 +96,9 @@ public class BondRoadTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await using var w = await World.CreateAsync(db);
         await using (var scope = w.F.Services.CreateAsyncScope())
         {
-            var dbx = scope.ServiceProvider.GetRequiredService<MinglDingl.Engine.Kernel.Persistence.AppDb>();
+            var dbx = scope.ServiceProvider.GetRequiredService<AppDb>();
             var today = w.F.Clock.TodayUb;
-            dbx.Add(new MinglDingl.Engine.Features.Festivals.Festival
+            dbx.Add(new Festival
                 { Id = Guid.CreateVersion7(), Key = "naadam", Starts = today, Ends = today.AddDays(2) });
             await dbx.SaveChangesAsync();
         }
@@ -132,5 +133,4 @@ public class BondRoadTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 
     private static async Task<CampaignView> Campaign(HttpClient c, Guid bond) =>
         (await c.GetFromJsonAsync<CampaignView>($"/bonds/{bond}/campaign"))!;
-    private static async Task<List<HonourView>> Honours(HttpClient c) => (await c.GetFromJsonAsync<List<HonourView>>("/me/honours"))!;
 }

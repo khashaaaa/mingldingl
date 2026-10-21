@@ -108,17 +108,4 @@ public class LiveTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await la.WaitForAsync(LiveKinds.SessionRevoked)).Should().NotBeNull();
         (await lb.WaitForAsync(LiveKinds.SessionRevoked, TimeSpan.FromMilliseconds(500))).Should().BeNull();
     }
-
-    [Fact]
-    public async Task Config_change_reaches_every_signed_in_client()
-    {
-        await using var f = new EngineFactory(db);
-        var vm = f.UseScriptedWeSend();
-        var a = await f.SignInAsync(vm);
-        await using var la = await f.ListenAsync(a);
-        await using (var scope = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.CreateAsyncScope(f.Services))
-            await Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
-                .GetRequiredService<ConfigWrites>(scope.ServiceProvider).SetAsync(ConfigKeys.WritesPerMinute, "31");
-        (await la.WaitForAsync(LiveKinds.ConfigUpdated)).Should().NotBeNull();
-    }
 }

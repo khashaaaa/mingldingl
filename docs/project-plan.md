@@ -16,7 +16,7 @@ home server. What is left is the launch, and that waits on the user's accounts a
 | Stage | What | State |
 |---|---|---|
 | 0. Visual system | Figma library: art study, motion, tokens, art, glyphs, components | approved 2026-10-05 |
-| 1. Screen designs | Every screen in Figma (129 frames, pages S1–S8; S9 the web page) | approved 2026-10-05 |
+| 1. Screen designs | 193 reference frames across S1–S9 (app, admin and Guild House web page) | approved 2026-10-05; parity reviewed 2026-10-21 |
 | 2. Foundation | Engine + app + admin, design system in code, phone sign-in, profile | built 2026-10-07 |
 | 3. Core loop | Seek, bonds, letters, seals, score & tiers, going cold, safety | shipped 2026-10-10 |
 | 4. Encounters | Icebreaker, Trial, Flame Rite video, meetings & venues, attendance, the Oath | shipped 2026-10-10 |
@@ -61,11 +61,13 @@ verified number. Then: a live key (dashboard → API keys) into the server's `en
    (deploy refuses without it: the legal pages print it). The panel host then serves the pages the
    stores ask for: `/privacy/`, `/terms/`, `/delete/` (EN + MN), and `/guild/?leave` deletes an
    account on the web.
-3. **Accounts** (user) — QPay merchant (client id/secret, invoice code); Google Play Console app
-   `com.mingldingl.app` with subscriptions `hall` and `high_table` (base plans `m1`, `m3`, `m6`,
-   priced as config); RevenueCat project (Play service account, entitlements `hall` /
-   `high_table`, webhook `POST {API}/payments/revenuecat` with the `engine.env` Authorization
-   value); Firebase `google-services.json` + FCM V1 key on EAS; Sentry DSNs; the Agora NCS webhook
+3. **Accounts** (user) — QPay merchant: client id and secret received 2026-10-21 (they go only in
+   `engine.env`); invoice code `MINGLDINGL_INVOICE` (QPay confirmed, 2026-10-21); Google Play Console app
+   `com.mingldingl.app` (payments profile done 2026-10-21; payout bank not yet added) with
+   subscriptions `hall` and `high_table` (base plans `m1`, `m3`, `m6`, auto-renewing, priced in MNT —
+   all six active 2026-10-21; Play rounds 52,320 to 52,300; build 4 on internal testing); RevenueCat project (products, entitlements,
+   webhook and Play service account done 2026-10-21; a tester purchase opened the Hall; Google developer
+   notifications on topic `Play-Store-Notifications`, Play's publisher granted, test received); Firebase `google-services.json` + FCM V1 key on EAS; Sentry DSNs; the Agora NCS webhook
    URL `{API}/video/ncs`. For iOS: Apple Developer Program, App Store Connect app
    `com.mingldingl.app` with one subscription group of `hall_m1/m3/m6` and `high_table_m1/m3/m6`
    added to the same RevenueCat entitlements, and push (APNs) credentials through EAS.
@@ -99,13 +101,13 @@ verified number. Then: a live key (dashboard → API keys) into the server's `en
 
 **Play listing, MN draft**
 - *Нэр:* MingldIngl — танилц, үгэндээ хүр
-- *Богино:* Захидлаар лац эвдэж, жинхэнэ уулзалт хийдэг, чимээгүй алга болох нь үнэтэй танилцах тоглоом.
+- *Богино:* Захидлаар лац эвдэж, жинхэнэ болзоонд очдог, дуугүй өнгөрөх нь алдагдалтай танилцах тоглоом.
 - *Бүтэн:* MingldIngl бол удаан, хуурмаг бус танилцах тоглоом. Шөнө бүр Учралын тойрог чамд нэг нэгээр
   аянчин авчирна. Хэн нэгнийг урьвал холбоо үүснэ — дараа нь захидал дөрвөн лацыг эвдэж, хөрөг
-  нэг нэгээр нээгдэнэ. Мөс хагалж, Сорилд орж, Галын ёслол асааж, шалгасан газарт уулз. Үгэндээ
-  хүрвэл эрдэнэ чинь Анараас Маргад хүртэл өгсөнө; галаа хөргөвөл харагдана. Даалгавар, гавьяа,
-  найзуудын зангидсан Заяаны холбоос, Хотын талбайн шууд үеүд ертөнцийг бүтээнэ. Давхар бүр ижил тоглоом
-  тоглоно: Танхим ба Дээд ширээ хүрээг тэлнэ, харин оноо хэзээ ч нэмдэггүй.
+  нэг нэгээр нээгдэнэ. Мөс хагалж, Сорилд орж, Галын ёслол асааж, шалгасан газарт болзоо товло.
+  Үгэндээ хүрвэл эрдэнэ чинь Анараас Маргад хүртэл өгсөнө; галаа унтраавал харагдана. Даалгавар,
+  гавьяа, найзуудын зангидсан Заяаны холбоос, Хотын чуулганы шууд үеүд хэрмийг амьд байлгана.
+  Давхар бүр ижил тоглоом тоглоно: Танхим ба Дээд танхим хүрээг тэлнэ, харин оноо хэзээ ч нэмдэггүй.
 
 **Data safety (Play form)** — collected: phone number (account, verified by SMS), name, birth
 date, gender, city, photos, messages (letters), in-app interactions; deep-profile answers
@@ -122,6 +124,11 @@ Encrypted in transit; deletion on request in the app (Abandon, 30 days) and by t
 - The reviewer sign-in video (launch checklist 4½): needs an installable production build and one real text.
 - The Codex guide texts other than "The fire and the cold" were written from the rules, not Figma
   — the user may want to reword them (the admin's Codex pages edit them).
+- Figma parity follow-up (2026-10-21): decide the unspecified header menus/back controls shown
+  without coded actions, including Web 6 **Done** and Web 8 **Back**.
+  Full Mongolian screen examples, the Guild House web deletion flow, and admin Wandering editing,
+  report detail and barred-number screens have no reference frames yet. Existing deferred wax and
+  e-barimt examples remain hidden; they are not new implementation work.
 
 **Owed checks**
 - The Mongolian half of the device pass (`LOCALES=mn .maestro/device-pass.sh <device>`) and a
@@ -359,7 +366,7 @@ encounters; a bond that ends cancels its open steps.
 - **The Campaign** (per Live bond): seven chambers opened by deeds done together — letters, the
   first seal, the icebreaker, the Trial, the Rite, the third seal, and the boss: a kept encounter.
   Clearing all earns Oath-Keeper; the bond goes on.
-- **The Wanderings** (Тэнүүл): 13 side roads for two off the Campaign — 6 first roads after the
+- **The Wanderings** (Хэсүүл): 13 side roads for two off the Campaign — 6 first roads after the
   pair's first kept meeting, 7 trusted roads after the second. Offrail: no points, never required,
   nothing lost. One asks, the other answers; each writes one sealed line, opened together. Three
   kept → Fellow Traveller. Each suggests its real places and the verified venue kinds that suit it;
@@ -444,8 +451,9 @@ when the person returns.
   character in by a WeSend code and sells floors by QPay QR (or a bank link on a phone). QPay time never
   renews. The app never links to or names the page (store rule).
 - **No one's money is ever locked:** the invoice is written before the QR shows; QPay's callback
-  only hints — the one-minute sweep asks `payment/check` for every open invoice and credits late
-  money; anything paid that cannot be credited waits on the admin's Payments page for a refund.
+  only hints and prompts the one `payment/check` (QPay forbids polling it); when a code goes cold
+  the sweep cancels it with QPay and checks once, so money whose callback was lost is still found;
+  anything paid that cannot be credited waits on the admin's Payments page for a refund.
   `membership.enabled` off hides the Guild House and the page.
 
 Rejected: Reputation Repair (sells forgiveness), score boosters (pay-to-win), "see who liked you"

@@ -36,8 +36,8 @@ for LOC in ${LOCALES:-en mn}; do
   seed Suspended "$PHONE"; shot "$LOC-23-1075" 'Cast Out|Хөөгдсөн' yes
   seed Deleted "$PHONE"; shot "$LOC-23-1138" 'This character is gone|Энэ баатар байхгүй болжээ' yes
   seed Finished "$PHONE"; shot "$LOC-26-3-reseeded" 'The Tavern|Учралын тойрог|Character|Баатар' yes  # back in the world, on whichever tab it left
-  config app.minVersion 99.0.0; shot "$LOC-23-1191" 'The hold has changed|Цайз өөрчлөгджээ' no; config app.minVersion 1.0.0
-  config app.maintenance true; shot "$LOC-maintenance" 'The gate is shut for repairs|Хаалга засварт хаалттай' no; config app.maintenance false
+  config app.minVersion 99.0.0; shot "$LOC-23-1191" 'The hold has changed|Хэрэм өөрчлөгджээ' no; config app.minVersion 1.0.0
+  config app.maintenance true; shot "$LOC-maintenance" 'The gate is shut for repairs|Дааман хаалга засвартай байна' no; config app.maintenance false
 done
 
 echo "== diff against Figma"

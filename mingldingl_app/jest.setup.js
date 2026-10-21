@@ -8,7 +8,6 @@ jest.mock('expo-secure-store', () => {
     getItemAsync: jest.fn(async (k) => (store.has(k) ? store.get(k) : null)),
     setItemAsync: jest.fn(async (k, v) => void store.set(k, v)),
     deleteItemAsync: jest.fn(async (k) => void store.delete(k)),
-    __store: store,
   };
 });
 
@@ -54,3 +53,5 @@ jest.mock('@/design/components/CountUp', () => {
 // …and so is the glow behind flames and seals.
 jest.mock('@/design/components/Glow', () => ({ Glow: () => null }));
 jest.mock('@/design/components/Frost', () => ({ Frost: () => null }));
+jest.mock('@/design/components/Candlelit', () => ({ Candlelit: () => null, CANDLELIT_PAD: 32 }));
+jest.mock('@/design/components/FadedArt', () => ({ FadedArt: () => null }));

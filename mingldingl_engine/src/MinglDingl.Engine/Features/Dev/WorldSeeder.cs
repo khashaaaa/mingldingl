@@ -19,7 +19,7 @@ using MinglDingl.Engine.Kernel.Persistence;
 namespace MinglDingl.Engine.Features.Dev;
 
 public sealed record SeedVenue(string Id, string Name, string NameMn, string Kind, string District, string Address,
-    string Hours, string Description);
+    string Hours, string Description, string AddressMn, string HoursMn, string DescriptionMn);
 
 /// Development only. What the crowd does together: venues with photos, bonds at every stage (letters,
 /// seals, icebreaker, Trial, Flame Rite, meetings sworn, waiting to be answered, kept, missed), the
@@ -135,6 +135,7 @@ public sealed partial class WorldSeeder(AppDb db, IClock clock, IConfig config, 
                 db.Add(v);
             }
             (v.NameMn, v.Kind, v.District, v.Address, v.Hours, v.Description) = (s.NameMn, s.Kind, s.District, s.Address, s.Hours, s.Description);
+            (v.AddressMn, v.HoursMn, v.DescriptionMn) = (s.AddressMn, s.HoursMn, s.DescriptionMn);
             v.Verified = true;
             v.RemovedAt = null;
             await db.SaveChangesAsync(ct);

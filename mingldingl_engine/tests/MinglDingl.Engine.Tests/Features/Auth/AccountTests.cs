@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using MinglDingl.Engine.Features.Auth;
 using MinglDingl.Engine.Features.Codex;
 using MinglDingl.Engine.Features.Profile;
-using MinglDingl.Engine.Kernel.Maintenance;
 using MinglDingl.Engine.Kernel.Persistence;
 using MinglDingl.Engine.Kernel.Storage;
 using MinglDingl.Engine.Tests.Infrastructure;
@@ -77,11 +76,11 @@ public class AccountTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 
         (await saruul.C.PostAsync("/me/abandon", null)).EnsureSuccessStatusCode();
         await w.AdvanceAsync(TimeSpan.FromDays(29));
-        await Sweep(w);
+        await w.F.DailySweepAsync();
         (await saruul.C.MeAsync()).DeleteAt.Should().NotBeNull();
 
         w.F.Clock.Advance(TimeSpan.FromDays(2));
-        await Sweep(w);
+        await w.F.DailySweepAsync();
         await using (var scope = w.F.Services.CreateAsyncScope())
             (await scope.ServiceProvider.GetRequiredService<AppDb>().Set<Account>().AnyAsync(a => a.Id == saruul.Id))
                 .Should().BeFalse();
@@ -140,11 +139,5 @@ public class AccountTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         pages[^1].Kind.Should().Be("legal");
         (await c.GetFromJsonAsync<CodexPageView>("/codex/fire"))!.Body.Should().StartWith("When someone writes to you");
         (await c.GetAsync("/codex/nowhere")).StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    private static async Task Sweep(World w)
-    {
-        await using var scope = w.F.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<DailySweep>().RunAsync();
     }
 }

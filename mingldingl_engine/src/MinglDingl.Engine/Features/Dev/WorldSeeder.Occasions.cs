@@ -92,7 +92,7 @@ public sealed partial class WorldSeeder
         // Last Naadam: three rounds, three tables; the third round's last table both said yes.
         if (naadam is { } n)
         {
-            var g = Gathering(0, "Наадмын талбай", FestivalKeys.Naadam, masked: false, At(n.Starts.AddDays(1), 20), rounds: 3, seats: 12);
+            var g = Gathering(0, "Наадмын чуулган", FestivalKeys.Naadam, masked: false, At(n.Starts.AddDays(1), 20), rounds: 3, seats: 12);
             Closed(g, [p("p08"), p("p12"), p("p20")], [p("p03"), p("p07"), p("p15")], Q, matchLast: true);
         }
 
@@ -121,7 +121,7 @@ public sealed partial class WorldSeeder
         var lastBell = Gathering(5, "Оны сүүлчийн хонх", FestivalKeys.LastBell, masked: true,
             At(NextOr(FestivalKeys.LastBell, new DateOnly(today.Year, 12, 30)), 20), rounds: 5, seats: 20);
         foreach (var who in new[] { "p02", "p10", "p13", "p21" }) Sit(lastBell, p(who), profiles, D(1));
-        Gathering(6, "Холбооны өдрийн талбай", FestivalKeys.DayOfBond, masked: false,
+        Gathering(6, "Холбооны өдрийн чуулган", FestivalKeys.DayOfBond, masked: false,
             At(NextOr(FestivalKeys.DayOfBond, new DateOnly(today.Year + 1, 2, 14)), 20), rounds: 4, seats: 16);
     }
 

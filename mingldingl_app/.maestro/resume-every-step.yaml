@@ -4,16 +4,7 @@ appId: com.mingldingl.app
 env:
   METRO_URL: http%3A%2F%2F192.168.1.32%3A8081
 ---
-- launchApp: { clearState: true, stopApp: true }
-- runFlow: _launch.yaml
-- tapOn: Enter the Gate
-- extendedWaitUntil: { visible: 'Prove your number', timeout: 10000 }
-- runScript: scripts/phone.js
-- tapOn: Phone number
-- inputText: ${output.phone}
-- tapOn: Continue
-- runFlow: _code.yaml
-- extendedWaitUntil: { visible: 'What does the hold call you\?', timeout: 15000 }
+- runFlow: _to-name.yaml
 - runFlow: { file: _relaunch.yaml, env: { EXPECT: 'What does the hold call you\?' } }
 - tapOn: First name
 - inputText: Maestro

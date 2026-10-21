@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { boxShadow } from '../effects';
 import { color, dimension, type } from '../tokens';
 import { type FieldProps, fieldBorder } from './Input';
 import { useReveal } from './reveal';
@@ -15,7 +14,7 @@ export function TextArea({ label, value, onChangeText, error, disabled, maxLengt
       <Txt variant="labelS" color="textSecondary">
         {label}
       </Txt>
-      <View style={[styles.field, { borderColor: fieldBorder(focused, error) }]}>
+      <View style={[styles.field, { borderBottomColor: fieldBorder(focused, error) }]}>
         <TextInput
           {...rest}
           multiline
@@ -60,10 +59,11 @@ const styles = StyleSheet.create({
     minHeight: 78,
     paddingVertical: 14,
     paddingHorizontal: dimension.space4,
-    backgroundColor: color.bgSunken,
+    backgroundColor: color.bgPanel,
     borderWidth: dimension.strokeHairline,
+    borderColor: color.borderHairline,
+    borderBottomWidth: dimension.strokeRule,
     borderRadius: dimension.radiusSm,
-    boxShadow: boxShadow('insetCarved'),
   },
   text: { color: color.textPrimary, padding: 0, minHeight: 48 },
 });

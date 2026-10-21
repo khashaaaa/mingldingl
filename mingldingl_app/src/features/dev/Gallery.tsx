@@ -221,7 +221,7 @@ export default function Gallery() {
 const GALLERY_TABS = [
   { key: 'seek', label: 'Seek', glyph: 'fire' },
   { key: 'quests', label: 'Quest Log', glyph: 'letters' },
-  { key: 'missions', label: 'Missions', glyph: 'scroll' },
+  { key: 'missions', label: 'Missions', glyph: 'forge' },
   { key: 'square', label: 'Square', glyph: 'stage' },
   { key: 'character', label: 'Character', glyph: 'person' },
 ] as const;

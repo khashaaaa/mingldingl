@@ -26,6 +26,7 @@ import { chooseLocale } from '@/lib/i18n/device';
 import { LIVE_KINDS } from '@/lib/live/events';
 import { signOutLocally } from '@/lib/session';
 import { Scene } from '../common/Scene';
+import { patchMe } from '../onboarding/Onboarding';
 
 /** The engine's DevSeeder.SeedState, in order: the wire value is the index. */
 export const SEED_STATES = [
@@ -61,6 +62,13 @@ const motionOf = (e: WorldEvent): MotionName => (e === 'roomDeeper' || e === 'ro
  */
 export default function DevMenu() {
   const client = useQueryClient();
+  // As the War Room does: the profile's language too, or what the engine writes stays in the old one.
+  const speak = (l: 'en' | 'mn') => {
+    chooseLocale(l);
+    patchMe({ locale: l })
+      .then(() => client.invalidateQueries())
+      .catch(() => {}); // signed out: the device's choice is all there is
+  };
   const locale = useLocale();
   const reduceOverride = useReduceMotionOverride();
   const reduced = useReduceMotion();
@@ -166,8 +174,8 @@ export default function DevMenu() {
       </Section>
 
       <Section title="Language">
-        <PickRow label="English" selected={locale === 'en'} onPress={() => chooseLocale('en')} />
-        <PickRow label="Монгол" selected={locale === 'mn'} onPress={() => chooseLocale('mn')} />
+        <PickRow label="English" selected={locale === 'en'} onPress={() => speak('en')} />
+        <PickRow label="Монгол" selected={locale === 'mn'} onPress={() => speak('mn')} />
         <PickRow
           label="Pseudo-Mongolian"
           selected={locale === 'pseudo'}

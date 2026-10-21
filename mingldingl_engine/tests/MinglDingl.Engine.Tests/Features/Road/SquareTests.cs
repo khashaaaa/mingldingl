@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using MinglDingl.Engine.Features.Admin;
 using MinglDingl.Engine.Features.Honours;
 using MinglDingl.Engine.Features.Score;
 using MinglDingl.Engine.Features.Square;
@@ -121,7 +122,7 @@ public class SquareTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var edited = await (await admin.PutAsJsonAsync($"/admin/gatherings/{g.Id}",
             new GatheringWriteRequest("The Fifth Bell", later, 3, 5, 8, null, true))).Read<AdminGatheringRow>();
         edited.Name.Should().Be("The Fifth Bell");
-        (await admin.GetFromJsonAsync<List<MinglDingl.Engine.Features.Admin.AuditRow>>("/admin/audit"))!.First().Action
+        (await admin.GetFromJsonAsync<List<AuditRow>>("/admin/audit"))!.First().Action
             .Should().Be("A gathering was edited");
         await w.AdvanceAsync(TimeSpan.FromHours(3));
         (await CodeOf(await admin.PutAsJsonAsync($"/admin/gatherings/{g.Id}",

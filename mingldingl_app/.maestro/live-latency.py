@@ -37,7 +37,7 @@ def shot():
     return Image.open(io.BytesIO(adb('exec-out', 'screencap', '-p'))).convert('RGB').crop(box)
 
 s = call('/auth/phone/start', {'phone': phone})
-call('/auth/phone/status/' + s['verificationId'])
+call('/auth/phone/check', {'verificationId': s['verificationId'], 'code': '000000'})  # the fake WeSend's code
 token = call('/auth/phone/complete', {'verificationId': s['verificationId'], 'deviceName': 'live-latency'})['accessToken']
 seen, caps = [], []
 for _ in range(runs):

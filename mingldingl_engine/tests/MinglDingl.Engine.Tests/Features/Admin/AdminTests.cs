@@ -3,16 +3,14 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using MinglDingl.Engine.Features.Admin;
 using MinglDingl.Engine.Kernel.Config;
-using MinglDingl.Engine.Kernel.Errors;
 using MinglDingl.Engine.Kernel.Live;
 using MinglDingl.Engine.Tests.Infrastructure;
+using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 
 namespace MinglDingl.Engine.Tests.Features.Admin;
 
 public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 {
-    private static async Task<string?> Code(HttpResponseMessage r) => (await r.Content.ReadFromJsonAsync<ErrorBody>())?.Code;
-
     [Fact]
     public async Task Login_with_wrong_password_is_401()
     {
@@ -55,7 +53,7 @@ public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var r = await f.Client().LoginRawAsync(); // even the right password waits
         r.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
         // Its own code: "rate_limited" is the one-minute limit the app tells people about.
-        (await Code(r)).Should().Be("admin.login_throttled");
+        (await CodeOf(r)).Should().Be("admin.login_throttled");
         f.Clock.Advance(TimeSpan.FromMinutes(16));
         (await f.Client().LoginRawAsync()).StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -159,7 +157,7 @@ public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var admin = await f.AdminAsync();
         var bad = await admin.PutAsJsonAsync($"/admin/config/{ConfigKeys.PhotosMax}", new ConfigWriteRequest("99"));
         bad.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await Code(bad)).Should().Be("config.out_of_bounds");
+        (await CodeOf(bad)).Should().Be("config.out_of_bounds");
         var ok = await admin.PutAsJsonAsync($"/admin/config/{ConfigKeys.WritesPerMinute}", new ConfigWriteRequest("40"));
         ok.StatusCode.Should().Be(HttpStatusCode.OK);
         var all = (await admin.GetFromJsonAsync<List<ConfigView>>("/admin/config"))!;

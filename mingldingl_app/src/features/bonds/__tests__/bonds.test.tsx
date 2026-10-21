@@ -1,11 +1,9 @@
-import { notifyManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
-import type { ReactNode } from 'react';
+import { act, fireEvent, screen } from 'expo-router/testing-library';
 import WorldLayout from '@/app/(world)/_layout';
-import { getGetMeQueryKey, getMe } from '@/lib/api/generated/engine';
-import type { BondRow, BondView, LetterView, MeView, SeekView } from '@/lib/api/generated/model';
+import type { BondRow, BondView, LetterView, SeekView } from '@/lib/api/generated/model';
 import { applyLiveEvent } from '@/lib/live/events';
 import { shouldAskToRing } from '@/lib/push';
+import { ME, settle, showWorld } from '@/lib/testing/world';
 import { toast } from '@/lib/toast';
 import BondMade from '../../ceremonies/BondMade';
 import SealBroken from '../../ceremonies/SealBroken';
@@ -19,9 +17,6 @@ import QuestLog, { lineOf } from '../QuestLog';
 jest.mock('@/lib/feedback', () => ({ feedback: jest.fn() }));
 jest.mock('@/lib/api/client', () => ({ ...jest.requireActual('@/lib/api/client'), apiFetch: jest.fn() }));
 jest.mock('@/lib/toast', () => ({ ...jest.requireActual('@/lib/toast'), toast: jest.fn() }));
-Object.assign(require('react-native-reanimated'), { useReducedMotion: () => false });
-// renderRouter starts fake timers; query results here arrive mid-render, so deliver them at once.
-notifyManager.setScheduler((cb) => cb());
 
 const { apiFetch } = jest.requireMock('@/lib/api/client') as { apiFetch: jest.Mock };
 const { ApiError } = jest.requireActual('@/lib/api/client');
@@ -35,33 +30,6 @@ const portrait = (id: string, url: string | null = null) => ({
   url,
   expiresAt: url ? '2026-10-07T12:00:00Z' : null,
 });
-
-const ME: MeView = {
-  accountId: 'me',
-  status: 'Active',
-  phoneHint: '9911',
-  deleteAt: null,
-  onboardingStep: 7,
-  profile: {
-    name: 'Bat',
-    birthDate: '1995-03-14',
-    age: 31,
-    gender: 'Male',
-    bio: 'falcon',
-    city: 'Bayangol',
-    oath: 'Bond',
-    oathSwornAt: null,
-    oathProvenAt: null,
-    locale: 'en',
-    points: 100,
-    tier: 'Opal',
-    tierUpPending: null,
-    paused: false,
-    awayUntil: null,
-    awayNextAt: null,
-    createdAt: '2026-10-06T00:00:00Z',
-  },
-};
 
 const companion: SeekView = {
   state: 'companion',
@@ -172,6 +140,8 @@ const ROUTES = {
   '(world)/(tabs)/_layout': WorldTabs,
   '(world)/(tabs)/seek': SeekScreen,
   '(world)/(tabs)/quests': QuestLog,
+  '(world)/(tabs)/missions': () => null,
+  '(world)/(tabs)/square': () => null,
   '(world)/(tabs)/character': () => null,
   '(world)/bond/[id]': BondScreen,
   '(world)/companion/[id]': Companion,
@@ -181,27 +151,10 @@ const ROUTES = {
   '(world)/codex/[slug]': () => null,
 };
 
-async function show(url: string) {
-  const client = new QueryClient({
-    defaultOptions: {
-      queries: { staleTime: Number.POSITIVE_INFINITY, retry: false },
-      mutations: { retry: false },
-    },
-  });
-  await client.prefetchQuery({ queryKey: getGetMeQueryKey(), queryFn: () => getMe() });
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
-  );
-  const view = renderRouter(ROUTES, { initialUrl: url, wrapper });
-  await view;
-  jest.useRealTimers();
-  // Screens here chain fetches (the bond, then its letters, then a read receipt).
-  for (let i = 0; i < 4; i++) await settle();
-  return { client, view };
-}
+// Screens here chain fetches (the bond, then its letters, then a read receipt).
+const show = (url: string) => showWorld(ROUTES, url, { settles: 4 });
 
 const WRITE = 'Write the first letter';
-const settle = () => act(() => new Promise((r) => setTimeout(r, 0)));
 let w: World;
 beforeEach(() => {
   jest.clearAllMocks();

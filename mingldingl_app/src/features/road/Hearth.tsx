@@ -1,8 +1,8 @@
 import { type Href, router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { FillArt } from '@/design/components/Art';
 import { CandleRow } from '@/design/components/CandleRow';
 import { DestinationTile } from '@/design/components/DestinationTile';
+import { FadedArt } from '@/design/components/FadedArt';
 import { RoomHeader } from '@/design/components/RoomHeader';
 import { Txt } from '@/design/components/Txt';
 import type { GlyphName } from '@/design/glyphs';
@@ -49,7 +49,7 @@ export default function Hearth() {
         accessibilityLabel={t('hearth.window')}
         style={styles.window}
       >
-        <FillArt name="hearth_window" />
+        <FadedArt name="hearth_window" />
       </View>
       <Txt variant="voiceL" color="textSecondary" align="center">
         {t(`hearth.sky.${phase}`)}
@@ -81,8 +81,8 @@ export default function Hearth() {
 }
 
 const styles = StyleSheet.create({
-  // the painted window fills the gutter; FillArt measures it, as an Image alone keeps its source width
-  window: { alignSelf: 'stretch', height: 220, overflow: 'hidden' },
+  // the painted window spans the gutter and its stone dissolves into the night, no hard frame
+  window: { alignSelf: 'stretch', height: 220 },
   doors: { gap: 13 },
   row: { flexDirection: 'row', gap: 13 },
 });

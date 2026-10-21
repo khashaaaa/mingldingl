@@ -12,11 +12,6 @@ env:
 - extendedWaitUntil:
     visible: (?i)1 of 3 needed.*
     timeout: 60000
-- stopApp
-- launchApp
-- runFlow: _launch.yaml
-- extendedWaitUntil:
-    visible: Your portraits
-    timeout: 20000
+- runFlow: { file: _relaunch.yaml, env: { EXPECT: 'Your portraits' } }
 - assertVisible: (?i)1 of 3 needed.*
 - assertVisible: 3 OF 6

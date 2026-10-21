@@ -20,7 +20,6 @@ export const ART = {
   ember_glow_lit: require('./ember_glow_lit.webp'),
   ember_glow_roaring: require('./ember_glow_roaring.webp'),
   fest_blossoms: require('./fest_blossoms.webp'),
-  fest_cup: require('./fest_cup.webp'),
   fest_fireworks: require('./fest_fireworks.webp'),
   fest_khadag: require('./fest_khadag.webp'),
   fest_knot: require('./fest_knot.webp'),

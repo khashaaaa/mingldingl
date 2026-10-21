@@ -8,15 +8,26 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feedback } from '@/lib/feedback';
+import { withAlpha } from '../effects';
 import type { GlyphName } from '../glyphs';
 import { curve, MOTION, useReduceMotion } from '../motion';
 import { color, dimension } from '../tokens';
-import { Glyph } from './Art';
+import { Art, Glyph } from './Art';
+import { Glow } from './Glow';
 import { Txt } from './Txt';
 
 export type Tab = { key: string; label: string; glyph: GlyphName };
 
-/** The five doors along the foot of the world. The open one is gold with an ember tick above it. */
+/** How far the night fade reaches up over the room above the doors. */
+const FADE_ABOVE = dimension.space5;
+
+const NIGHT_FADE = `linear-gradient(to bottom, ${withAlpha(color.bgSunken, 0)}, ${withAlpha(color.bgSunken, 0.8)} 28%, ${withAlpha(color.bgSunken, 0.97)})`;
+
+/**
+ * The five doors along the foot of the world. No slab: the night deepens under them so the stars
+ * run on beneath, with the room title's dry-brush rule along the top. The open door is gold, lit
+ * by the hearth from behind, with a gold lozenge above it.
+ */
 export function TabBar({
   tabs,
   active,
@@ -32,6 +43,8 @@ export function TabBar({
       accessibilityRole="tablist"
       style={[styles.bar, { paddingBottom: Math.max(insets.bottom, dimension.space5) }]}
     >
+      <View pointerEvents="none" style={[styles.fade, { experimental_backgroundImage: NIGHT_FADE }]} />
+      <Art name="dry_brush_rule" style={styles.edge} fit="stretch" />
       {tabs.map((tab) => {
         const on = tab.key === active;
         return (
@@ -67,8 +80,9 @@ export function TabBar({
 }
 
 /**
- * The ember tick and the glyph under it: opening a door draws the tick out from its middle and
- * lifts the glyph a point with a small settle; leaving lets the tick fade (a shift, M3's 75%).
+ * The lozenge and the glyph under it: opening a door grows the lozenge from its middle, kindles the
+ * hearth glow behind the glyph and lifts it a point with a small settle; leaving lets the lozenge
+ * fade (a shift, M3's 75%).
  */
 function Door({ on, children }: { on: boolean; children: React.ReactNode }) {
   const reduce = useReduceMotion();
@@ -84,32 +98,45 @@ function Door({ on, children }: { on: boolean; children: React.ReactNode }) {
         withTiming(0, { duration: 240, easing: curve('breathe') }),
       );
   }, [on, reduce, lit, lift]);
-  const tick = useAnimatedStyle(() => ({
+  const mark = useAnimatedStyle(() => ({
     opacity: lit.value,
-    transform: [{ scaleX: 0.2 + 0.8 * lit.value }],
+    transform: [{ rotate: '45deg' }, { scale: 0.2 + 0.8 * lit.value }],
   }));
   const glyph = useAnimatedStyle(() => ({
     transform: [{ translateY: -2 * lift.value }, { scale: 1 + 0.08 * lift.value }],
   }));
   return (
     <>
-      <View style={styles.tick}>
-        <Animated.View testID={on ? 'ember-tick' : undefined} style={[styles.ember, tick]} />
+      <View style={styles.mark}>
+        <Animated.View testID={on ? 'open-door' : undefined} style={[styles.lozenge, mark]} />
       </View>
-      <Animated.View style={glyph}>{children}</Animated.View>
+      <View>
+        {on ? (
+          <View style={styles.hearth}>
+            <Glow tint={color.accentGold} strength={0.32} breathe={false} />
+          </View>
+        ) : null}
+        <Animated.View style={glyph}>{children}</Animated.View>
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    backgroundColor: color.bgSunken,
-    borderTopWidth: dimension.strokeHairline,
-    borderTopColor: color.borderHairline,
+  bar: { flexDirection: 'row' },
+  fade: { position: 'absolute', top: -FADE_ABOVE, left: 0, right: 0, bottom: 0 },
+  edge: {
+    position: 'absolute',
+    top: 0,
+    left: dimension.space6,
+    right: dimension.space6,
+    height: 4,
+    opacity: 0.85,
   },
-  item: { flex: 1, alignItems: 'center', gap: 6, paddingTop: 10, paddingBottom: dimension.space2 },
-  tick: { width: 18, height: 2 },
-  ember: { flex: 1, backgroundColor: color.accentEmber },
+  item: { flex: 1, alignItems: 'center', gap: 4, paddingTop: 10, paddingBottom: dimension.space2 },
+  mark: { width: 8, height: 8, alignItems: 'center', justifyContent: 'center' },
+  lozenge: { width: 6, height: 6, backgroundColor: color.accentGold },
+  // the hearth's light spills well past the glyph it sits behind
+  hearth: { position: 'absolute', top: -20, left: -20, right: -20, bottom: -20 },
   label: { alignSelf: 'stretch', paddingHorizontal: 2 },
 });

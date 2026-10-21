@@ -4,7 +4,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using MinglDingl.Engine.Features.Membership;
 using MinglDingl.Engine.Features.Payments;
-using MinglDingl.Engine.Kernel.Maintenance;
+using MinglDingl.Engine.Features.Push;
 using MinglDingl.Engine.Tests.Infrastructure;
 using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 
@@ -31,6 +31,9 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await web.InvoiceAsync("hall", 3, "key-one-0001")).Id.Should().Be(inv.Id, "the same key never makes a second invoice");
 
         w.QPay().Pay(await w.QPayIdAsync(inv.Id)).Should().BeTrue();
+        (await web.GetFromJsonAsync<InvoiceView>($"/guild/invoices/{inv.Id}"))!.State
+            .Should().Be("open", "the page never asks QPay itself; it waits for the callback");
+        await w.CallbackAsync(inv.Id);
         var paid = (await web.GetFromJsonAsync<InvoiceView>($"/guild/invoices/{inv.Id}"))!;
         paid.State.Should().Be("paid");
         paid.PaidUntil.Should().BeCloseTo(w.F.Clock.UtcNow.AddMonths(3), TimeSpan.FromSeconds(5));
@@ -77,7 +80,7 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
-    public async Task A_lost_callback_costs_nothing_the_sweep_finds_the_money_and_a_repeated_callback_credits_once()
+    public async Task A_lost_callback_costs_nothing_the_code_going_cold_finds_the_money_and_a_repeated_callback_credits_once()
     {
         await using var w = await World.CreateAsync(db);
         var phone = SessionDriver.NewPhone();
@@ -86,6 +89,10 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var inv = await web.InvoiceAsync("highTable", 1, "key-lost-0001");
         w.QPay().Pay(await w.QPayIdAsync(inv.Id));
 
+        await w.PaymentSweepAsync();
+        (await bat.C.GetFromJsonAsync<GuildMe>("/me/membership"))!.Membership.Floor
+            .Should().Be("yard", "QPay forbids polling: nothing is asked before the callback or the code's time");
+        await w.AdvanceAsync(TimeSpan.FromMinutes(16));
         await w.PaymentSweepAsync();
         (await bat.C.GetFromJsonAsync<GuildMe>("/me/membership"))!.Membership.Floor.Should().Be("highTable");
 
@@ -106,12 +113,12 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var phone = SessionDriver.NewPhone();
         var bat = await w.PersonAsync("Bat", "Male", phone: phone);
         var web = await w.GuildAsync(phone);
-        await bat.C.PutAsJsonAsync("/me/push-token", new MinglDingl.Engine.Features.Push.PushTokenRequest("ExponentPushToken[bat]"));
+        await bat.C.PutAsJsonAsync("/me/push-token", new PushTokenRequest("ExponentPushToken[bat]"));
         var inv = await web.InvoiceAsync("hall", 1, "key-twice-001");
         var qid = await w.QPayIdAsync(inv.Id);
         w.QPay().Pay(qid);
         w.QPay().Pay(qid);
-        await w.PaymentSweepAsync();
+        await w.CallbackAsync(inv.Id);
 
         var admin = await w.F.AdminAsync();
         var list = (await admin.GetFromJsonAsync<AdminPaymentsView>("/admin/payments"))!;
@@ -143,9 +150,9 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 
         (await bat.C.PostAsync("/me/abandon", null)).EnsureSuccessStatusCode();
         await w.AdvanceAsync(TimeSpan.FromDays(31));
-        await w.F.Services.GetRequiredService<DailySweep>().RunAsync();
+        await w.F.DailySweepAsync();
         w.QPay().Pay(qid);
-        await w.PaymentSweepAsync();
+        await w.CallbackAsync(inv.Id);
 
         var admin = await w.F.AdminAsync();
         var gone = (await admin.GetFromJsonAsync<AdminPaymentsView>("/admin/payments"))!.Attention.Should().ContainSingle().Subject;
@@ -164,7 +171,7 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await w.PersonAsync("Bat", "Male", phone: phone);
         var web = await w.GuildAsync(phone);
         var inv = await web.InvoiceAsync("hall", 1, "key-cold-0001");
-        w.F.Clock.Advance(TimeSpan.FromMinutes(16));
+        await w.AdvanceAsync(TimeSpan.FromMinutes(16));
         await w.PaymentSweepAsync();
         w.QPay().Pay(await w.QPayIdAsync(inv.Id)).Should().BeFalse("QPay's invoice was cancelled");
         var web2 = await w.GuildAsync(phone);
@@ -186,13 +193,13 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var web = await w.GuildAsync(phone);
         var hall = await web.InvoiceAsync("hall", 1, "key-stack-001");
         w.QPay().Pay(await w.QPayIdAsync(hall.Id));
-        await w.PaymentSweepAsync();
+        await w.CallbackAsync(hall.Id);
         (await bat.C.GetFromJsonAsync<GuildMe>("/me/membership"))!.Membership.Until
             .Should().BeCloseTo(storeEnds.AddMonths(1), TimeSpan.FromSeconds(5), "web Hall time waits behind the store's");
 
         var high = await web.InvoiceAsync("highTable", 1, "key-stack-002");
         w.QPay().Pay(await w.QPayIdAsync(high.Id));
-        await w.PaymentSweepAsync();
+        await w.CallbackAsync(high.Id);
         (await bat.C.GetFromJsonAsync<GuildMe>("/me/membership"))!.Membership.Floor.Should().Be("highTable", "a higher floor starts now");
 
         // The store refunds its Hall: RevenueCat reports it ended at the refund, and the webhook says so.
@@ -213,11 +220,11 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await using var w = await World.CreateAsync(db);
         var phone = SessionDriver.NewPhone();
         var bat = await w.PersonAsync("Bat", "Male", phone: phone);
-        await bat.C.PutAsJsonAsync("/me/push-token", new MinglDingl.Engine.Features.Push.PushTokenRequest("ExponentPushToken[bat]"));
+        await bat.C.PutAsJsonAsync("/me/push-token", new PushTokenRequest("ExponentPushToken[bat]"));
         var web = await w.GuildAsync(phone);
         var inv = await web.InvoiceAsync("hall", 1, "key-ends-0001");
         w.QPay().Pay(await w.QPayIdAsync(inv.Id));
-        await w.PaymentSweepAsync();
+        await w.CallbackAsync(inv.Id);
 
         await w.AdvanceAsync(TimeSpan.FromDays(26));
         await using (var s = w.F.Services.CreateAsyncScope())
@@ -229,40 +236,4 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
             (await s.ServiceProvider.GetRequiredService<MembershipService>().SendEndingNoticesAsync()).Should().Be(0, "once");
         (await w.Push.WaitForAsync(m => m.Data["kind"] == "floorEnding")).Should().NotBeNull();
     }
-}
-
-public static class PaymentDriver
-{
-    public static FakeQPay QPay(this World w) => w.F.Services.GetRequiredService<FakeQPay>();
-    public static FakeRevenueCat Store(this World w) => w.F.Services.GetRequiredService<FakeRevenueCat>();
-
-    public static async Task<HttpResponseMessage> GuildRawAsync(this World w, string phone)
-    {
-        var c = w.F.Client();
-        var s = await c.StartAsync(phone);
-        await c.CheckAsync(w.Vm, s.VerificationId);
-        return await c.PostAsJsonAsync("/guild/session", new GuildSessionRequest(s.VerificationId));
-    }
-
-    public static async Task<HttpClient> GuildAsync(this World w, string phone)
-    {
-        var r = await w.GuildRawAsync(phone);
-        r.EnsureSuccessStatusCode();
-        var s = (await r.Content.ReadFromJsonAsync<GuildSession>())!;
-        var c = w.F.Client();
-        c.DefaultRequestHeaders.Authorization = new("Bearer", s.Token);
-        return c;
-    }
-
-    public static async Task<InvoiceView> InvoiceAsync(this HttpClient web, string floor, int months, string key) =>
-        await (await web.PostAsJsonAsync("/guild/invoices", new InvoiceRequest(floor, months, key))).Read<InvoiceView>();
-
-    public static async Task<string> QPayIdAsync(this World w, Guid invoiceId)
-    {
-        await using var s = w.F.Services.CreateAsyncScope();
-        var db = s.ServiceProvider.GetRequiredService<MinglDingl.Engine.Kernel.Persistence.AppDb>();
-        return db.Set<Invoice>().Where(i => i.Id == invoiceId).Select(i => i.QPayInvoiceId).Single();
-    }
-
-    public static Task PaymentSweepAsync(this World w) => w.F.Services.GetRequiredService<PaymentSweep>().RunAsync();
 }

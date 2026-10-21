@@ -2,7 +2,6 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using MinglDingl.Engine.Features.Honours;
 using MinglDingl.Engine.Features.Wanderings;
-using MinglDingl.Engine.Tests.Features.Encounters;
 using MinglDingl.Engine.Tests.Infrastructure;
 using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 
@@ -87,7 +86,7 @@ public class WanderingTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var admin = await w.F.AdminAsync();
         (await admin.GetFromJsonAsync<List<AdminWanderingRow>>("/admin/wanderings"))!.Should().HaveCount(13);
         var page = (await admin.GetFromJsonAsync<AdminWandering>("/admin/wanderings/dawn-hill"))!;
-        page.TitleMn.Should().Be("Толгой дээрх үүр");
+        page.TitleMn.Should().Be("Толгой дээр үүр цайх нь");
         WanderingWriteRequest Req(params string[] kinds) => new("Dawn on Zaisan", page.LineEn, page.BodyEn, page.WhereEn,
             page.TitleMn, page.LineMn, page.BodyMn, page.WhereMn, kinds);
         (await CodeOf(await admin.PutAsJsonAsync("/admin/wanderings/dawn-hill", Req("Moon")))).Should().Be("venue.kind");

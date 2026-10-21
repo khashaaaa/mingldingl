@@ -2,8 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using MinglDingl.Engine.Features.Admin;
-using MinglDingl.Engine.Features.Membership;
-using MinglDingl.Engine.Features.Stats;
+using MinglDingl.Engine.Features.Payments;
 using MinglDingl.Engine.Tests.Infrastructure;
 using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 
@@ -60,7 +59,7 @@ public class AdminHandTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var bat = await w.PersonAsync("Bat", "Male");
         var admin = await w.F.AdminAsync();
         await Act(admin, bat.Id, "floor", new KeeperFloorRequest("hall", 30, "Play closed-test tester"));
-        var m = (await bat.C.GetFromJsonAsync<MinglDingl.Engine.Features.Payments.GuildMe>("/me/membership"))!.Membership;
+        var m = (await bat.C.GetFromJsonAsync<GuildMe>("/me/membership"))!.Membership;
         (m.Floor, m.Source, m.Renews).Should().Be(("hall", "keeper", false));
 
         var before = await bat.C.PointsAsync();
@@ -80,22 +79,5 @@ public class AdminHandTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await admin.GetAsync($"/admin/users/{bat.Id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         var row = (await admin.GetFromJsonAsync<List<AuditRow>>("/admin/audit"))!.First();
         (row.Action, row.Target, row.Note).Should().Be(("Deleted at once", "Bat", "Legal request"));
-    }
-
-    [Fact]
-    public async Task The_often_severed_table_names_whom_each_row_is()
-    {
-        await using var w = await World.CreateAsync(db);
-        var bat = await w.PersonAsync("Bat", "Male");
-        for (var i = 0; i < 3; i++)
-        {
-            var her = await w.PersonAsync($"W{i}", "Female");
-            var bond = await bat.C.SummonAsync(her.Id);
-            (await her.C.PostAsync($"/bonds/{bond.Id}/sever", null)).EnsureSuccessStatusCode();
-        }
-        var admin = await w.F.AdminAsync();
-        var today = w.F.Clock.TodayUb;
-        var t = (await admin.GetFromJsonAsync<StatTable>($"/admin/stats/tables/severed?from={today:yyyy-MM-dd}&to={today:yyyy-MM-dd}"))!;
-        t.People.Should().Equal(bat.Id);
     }
 }

@@ -2,19 +2,17 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using MinglDingl.Engine.Features.Photos;
-using MinglDingl.Engine.Kernel.Errors;
+using MinglDingl.Engine.Kernel.Config;
 using MinglDingl.Engine.Kernel.Live;
 using MinglDingl.Engine.Tests.Infrastructure;
+using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
 using SkiaSharp;
 
 namespace MinglDingl.Engine.Tests.Features.Photos;
 
 public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 {
-    private static async Task<string?> Code(HttpResponseMessage r) => (await r.Content.ReadFromJsonAsync<ErrorBody>())?.Code;
-
     private static async Task<(EngineFactory F, MemoryPhotoStore Store, HttpClient C, ScriptedWeSend Vm)> Ready(PostgresFixture db)
     {
         var f = new EngineFactory(db);
@@ -26,18 +24,12 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         return (f, store, c, vm);
     }
 
-    private static async Task SetAsync(EngineFactory f, string key, string value)
-    {
-        await using var scope = f.Services.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<MinglDingl.Engine.Kernel.Config.ConfigWrites>().SetAsync(key, value);
-    }
-
     [Fact]
     public async Task Upload_strips_metadata_and_caps_size()
     {
         var (f, store, c, _) = await Ready(db); await using var _f = f;
         // These two fixtures are ink figures, not faces.
-        await SetAsync(f, MinglDingl.Engine.Kernel.Config.ConfigKeys.PhotosRequireFace, "false");
+        await f.SetConfigAsync(ConfigKeys.PhotosRequireFace, "false");
         var big = await c.UploadAsync("photo-1.jpg");
         Math.Max(big.Width, big.Height).Should().Be(1600);
         var withGps = await c.UploadAsync("photo-2.jpg");
@@ -54,11 +46,11 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var (f, store, c, _) = await Ready(db); await using var _f = f;
         var r = await c.UploadRawAsync(await File.ReadAllBytesAsync(PhotoDriver.Fixture("photo-2.jpg")));
         r.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await Code(r)).Should().Be("photos.no_face");
+        (await CodeOf(r)).Should().Be("photos.no_face");
         store.Files.Should().BeEmpty();
         (await c.PhotosAsync()).Should().BeEmpty();
 
-        await SetAsync(f, MinglDingl.Engine.Kernel.Config.ConfigKeys.PhotosRequireFace, "false");
+        await f.SetConfigAsync(ConfigKeys.PhotosRequireFace, "false");
         (await c.UploadRawAsync(await File.ReadAllBytesAsync(PhotoDriver.Fixture("photo-2.jpg")))).EnsureSuccessStatusCode();
     }
 
@@ -137,7 +129,7 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         for (var i = 0; i < 6; i++) await c.UploadAsync();
         var r = await c.UploadRawAsync(await File.ReadAllBytesAsync(PhotoDriver.Fixture("photo-3.jpg")));
         r.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await Code(r)).Should().Be("photos.full");
+        (await CodeOf(r)).Should().Be("photos.full");
     }
 
     [Fact]
@@ -146,7 +138,7 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var (f, _, c, _) = await Ready(db); await using var _f = f;
         var r = await c.UploadRawAsync(Encoding.UTF8.GetBytes("not an image at all"));
         r.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await Code(r)).Should().Be("photos.not_image");
+        (await CodeOf(r)).Should().Be("photos.not_image");
     }
 
     [Fact]
@@ -165,9 +157,9 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await c.PutAsJsonAsync("/me/photos/order", new ReorderRequest([d.Id, a.Id, b.Id]))).StatusCode.Should().Be(HttpStatusCode.OK);
         (await c.PhotosAsync()).Select(p => p.Id).Should().Equal(d.Id, a.Id, b.Id);
         var bad = await c.PutAsJsonAsync("/me/photos/order", new ReorderRequest([d.Id, a.Id]));
-        (await Code(bad)).Should().Be("photos.order_mismatch");
+        (await CodeOf(bad)).Should().Be("photos.order_mismatch");
         var dup = await c.PutAsJsonAsync("/me/photos/order", new ReorderRequest([d.Id, d.Id, a.Id]));
-        (await Code(dup)).Should().Be("photos.order_mismatch");
+        (await CodeOf(dup)).Should().Be("photos.order_mismatch");
     }
 
     [Fact]
@@ -194,7 +186,7 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 
         var r = await c.DeleteAsync($"/me/photos/{photos[0].Id}");
         r.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await Code(r)).Should().Be("photos.min");
+        (await CodeOf(r)).Should().Be("photos.min");
         (await c.PhotosAsync()).Should().HaveCount(3);
         (await c.MeAsync()).OnboardingStep.Should().Be(7);
 

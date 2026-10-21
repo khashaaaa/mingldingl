@@ -18,7 +18,7 @@ public class FloorTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     public async Task A_paid_floor_widens_the_fire_and_losing_it_breaks_no_bond()
     {
         await using var w = await World.CreateAsync(db);
-        await w.SetAsync(MinglDingl.Engine.Kernel.Config.ConfigKeys.SafetyNewDays, "0"); // Bat is no newcomer here
+        await w.SetAsync(ConfigKeys.SafetyNewDays, "0"); // Bat is no newcomer here
         var bat = await w.PersonAsync("Bat", "Male");
         var yard = await bat.C.SeekAsync();
         yard.Floor.Should().Be("yard");
@@ -149,18 +149,5 @@ public class FloorTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await bat.C.PostAsync($"/square/{g.Id}/seat", null)).EnsureSuccessStatusCode();
         await w.AdvanceAsync(TimeSpan.FromMinutes(11));
         (await dorj.C.PostAsync($"/square/{g.Id}/seat", null)).EnsureSuccessStatusCode();
-    }
-}
-
-public static class FloorDriver
-{
-    /// Puts a person on a floor through the store (the fake RevenueCat), or back in the Yard with null.
-    public static async Task FloorAsync(this World w, World.Person p, Floor? floor, int days = 30)
-    {
-        var now = w.F.Clock.UtcNow;
-        w.Store().Accounts[p.Id] = floor is { } f
-            ? [new StoreEntitlement(f, $"{Floors.Key(f)}:m1", now.AddMinutes(-1), now.AddDays(days), true, false)]
-            : [];
-        (await p.C.PostAsync("/me/membership/sync", null)).EnsureSuccessStatusCode();
     }
 }

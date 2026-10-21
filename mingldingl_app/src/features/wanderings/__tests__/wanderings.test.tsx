@@ -1,46 +1,15 @@
-import { notifyManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
-import type { ReactNode } from 'react';
+import { act, fireEvent, screen } from 'expo-router/testing-library';
 import WorldLayout from '@/app/(world)/_layout';
-import { getGetMeQueryKey, getMe } from '@/lib/api/generated/engine';
-import type { MeView, WanderingsView, WanderingView } from '@/lib/api/generated/model';
+import type { WanderingsView, WanderingView } from '@/lib/api/generated/model';
 import { applyLiveEvent } from '@/lib/live/events';
+import { ME, settle, showWorld } from '@/lib/testing/world';
 import WanderingScreen from '../WanderingScreen';
 import WanderingsScreen from '../WanderingsScreen';
 
 jest.mock('@/lib/feedback', () => ({ feedback: jest.fn() }));
 jest.mock('@/lib/api/client', () => ({ ...jest.requireActual('@/lib/api/client'), apiFetch: jest.fn() }));
-Object.assign(require('react-native-reanimated'), { useReducedMotion: () => false });
-notifyManager.setScheduler((cb) => cb());
 
 const { apiFetch } = jest.requireMock('@/lib/api/client') as { apiFetch: jest.Mock };
-
-const ME: MeView = {
-  accountId: 'me',
-  status: 'Active',
-  phoneHint: '9911',
-  deleteAt: null,
-  onboardingStep: 7,
-  profile: {
-    name: 'Bat',
-    birthDate: '1995-03-14',
-    age: 31,
-    gender: 'Male',
-    bio: 'falcon',
-    city: 'Bayangol',
-    oath: 'Bond',
-    oathSwornAt: null,
-    oathProvenAt: null,
-    locale: 'en',
-    points: 100,
-    tier: 'Opal',
-    tierUpPending: null,
-    paused: false,
-    awayUntil: null,
-    awayNextAt: null,
-    createdAt: '2026-10-06T00:00:00Z',
-  },
-};
 
 const row = (key: string, road: string, state: string, season = 'any') => ({
   key,
@@ -124,22 +93,7 @@ const ROUTES = {
   '(world)/(tabs)/seek': () => null,
 };
 
-const settle = () => act(() => new Promise((r) => setTimeout(r, 0)));
-
-async function show(url: string) {
-  const client = new QueryClient({
-    defaultOptions: { queries: { staleTime: Number.POSITIVE_INFINITY, retry: false } },
-  });
-  await client.prefetchQuery({ queryKey: getGetMeQueryKey(), queryFn: () => getMe() });
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
-  );
-  const view = renderRouter(ROUTES, { initialUrl: url, wrapper });
-  await view;
-  jest.useRealTimers();
-  for (let i = 0; i < 3; i++) await settle();
-  return { client, view };
-}
+const show = (url: string) => showWorld(ROUTES, url, { settles: 3 });
 
 let w: World;
 beforeEach(() => {

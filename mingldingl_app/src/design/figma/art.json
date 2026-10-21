@@ -479,12 +479,6 @@
     "h": 40,
     "fit": "cover"
   },
-  "fest_cup": {
-    "hash": "987608a05f",
-    "w": 110,
-    "h": 110,
-    "fit": "contain"
-  },
   "fest_fireworks": {
     "hash": "fd08f8ded0",
     "w": 390,
