@@ -328,6 +328,7 @@ export default function BondScreen() {
             }}
           />
           <Row
+            glyph="seal"
             title={t('bond.optSeals')}
             subtitle={t('bond.optSealsHint')}
             onPress={() => {
@@ -337,6 +338,7 @@ export default function BondScreen() {
           />
           <SafetyRow bondId={id} name={other.name} done={() => setOptions(false)} />
           <Row
+            glyph="scales"
             title={t('bond.optReport')}
             subtitle={t('bond.optReportHint')}
             onPress={() => {
@@ -345,6 +347,7 @@ export default function BondScreen() {
             }}
           />
           <Row
+            glyph="gate"
             title={t('bond.optCastOut')}
             subtitle={t('bond.optCastOutHint')}
             onPress={() => {
@@ -353,6 +356,7 @@ export default function BondScreen() {
             }}
           />
           <Row
+            glyph="mended"
             title={t('bond.optLetGo')}
             subtitle={t('bond.optLetGoHint')}
             onPress={() => {
@@ -361,6 +365,7 @@ export default function BondScreen() {
             }}
           />
           <Row
+            glyph="thread-cut"
             title={t('bond.optSever')}
             subtitle={t('bond.optSeverHint')}
             onPress={() => {

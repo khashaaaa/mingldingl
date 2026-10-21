@@ -47,7 +47,7 @@ export default function SeekScreen() {
         header={
           <RoomHeader
             title={t('room.tavern')}
-            onBack={toHearth}
+            onHome={toHearth}
             action={{ glyph: 'more', label: t('seek.menu'), onPress: () => setMenu(true) }}
           />
         }
@@ -84,11 +84,13 @@ function TavernMenu({ seek, open, onClose }: { seek: SeekView; open: boolean; on
     <Sheet kind="menu" open={open} title={t('seek.menuTitle')} onClose={onClose}>
       <View style={styles.menu}>
         <Row
+          glyph="eye"
           title={t('seek.filters')}
           subtitle={member ? t(seek.filtered ? 'seek.filtersOn' : 'seek.filtersOff') : t('seek.hallOnly')}
           onPress={() => go(member ? '/seek-filters' : '/guild-house')}
         />
         <Row
+          glyph="turn"
           title={t('seek.secondLook')}
           subtitle={
             !member

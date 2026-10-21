@@ -136,7 +136,9 @@ export function UserDetailPage() {
           <>
             <Button onClick={() => setHand({ kind: 'floor' })}>Give a floor</Button>
             <Button onClick={() => setHand({ kind: 'adjust' })}>Adjust score</Button>
-            <Button onClick={() => setHand({ kind: 'signOut' })}>Sign out everywhere</Button>
+            <Button onClick={() => setHand({ kind: 'signOut' })}>
+              <Glyph name="door" /> Sign out everywhere
+            </Button>
             <Button kind="danger" onClick={() => setHand({ kind: 'suspend' })}>
               Suspend
             </Button>

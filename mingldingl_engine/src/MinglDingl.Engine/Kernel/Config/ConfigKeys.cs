@@ -26,6 +26,7 @@ public static class ConfigKeys
     public const string ScoreFirstLetter = "score.firstLetter";
     public const string ScoreReply = "score.reply";
     public const string ScoreReplyDailyCap = "score.reply.dailyCapPerBond";
+    public const string ScoreReplyMinLength = "score.reply.minLength";
     public const string ScoreDawn = "score.dawn";
     public const string ScoreDawnStreakCap = "score.dawn.streakCap";
     public const string ScoreSeventhDawn = "score.dawn.seventh";
@@ -138,6 +139,7 @@ public static class ConfigKeys
         new(ScoreFirstLetter, "Points", "The first letter of a bond", ConfigType.Int, "10", 0, 1000),
         new(ScoreReply, "Points", "A reply in a bond", ConfigType.Int, "10", 0, 1000),
         new(ScoreReplyDailyCap, "Points", "Replies that pay, per bond per day", ConfigType.Int, "10", 0, 100),
+        new(ScoreReplyMinLength, "Points", "Characters a reply needs before it pays", ConfigType.Int, "20", 0, 1000),
         new(ScoreDawn, "Points", "Returning each day, times the streak", ConfigType.Int, "5", 0, 1000),
         new(ScoreDawnStreakCap, "Points", "Longest streak the daily return multiplies by", ConfigType.Int, "7", 1, 30),
         new(ScoreSeventhDawn, "Points", "Bonus on the seventh dawn in a row", ConfigType.Int, "50", 0, 1000),

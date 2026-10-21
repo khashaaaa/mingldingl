@@ -12,6 +12,7 @@ import {
 import type { AdminGatheringRow, GatheringWriteRequest } from '../../lib/api/generated/model';
 import { FestivalCalendar } from './Festivals';
 import './square.css';
+import { Glyph } from '../../design/Glyph';
 
 const FESTIVALS: [string, string][] = [
   ['', 'None'],
@@ -64,7 +65,7 @@ export function GatheringsPage() {
       ) : (
         <p className="square-ring">
           <Button kind="brass" onClick={() => setRinging(true)}>
-            Ring a new bell
+            <Glyph name="bell" /> Ring a new bell
           </Button>
         </p>
       )}

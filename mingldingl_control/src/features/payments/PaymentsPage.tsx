@@ -98,7 +98,9 @@ export function PaymentsPage() {
                     <td>{tugrik(r.amount)}</td>
                     <td>{r.note}</td>
                     <td>
-                      <Link to={`/payments/${r.invoiceId}`}>Settle →</Link>
+                      <Link to={`/payments/${r.invoiceId}`} className="go">
+                        Settle <Glyph name="chevron" />
+                      </Link>
                     </td>
                   </tr>
                 ))}

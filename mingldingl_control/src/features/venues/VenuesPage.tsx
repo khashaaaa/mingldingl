@@ -3,6 +3,7 @@ import { Button } from '../../design/Button';
 import { errorText } from '../../lib/api/client';
 import { useAdminListVenues } from '../../lib/api/generated/engine';
 import './venues.css';
+import { Glyph } from '../../design/Glyph';
 
 /** Partner venues (Figma S8 39:582): the places a meeting may be set. */
 export function VenuesPage() {
@@ -17,7 +18,7 @@ export function VenuesPage() {
       </div>
       <p className="venues-add">
         <Button kind="brass" onClick={() => navigate('/venues/new')}>
-          Add a venue
+          <Glyph name="plus" /> Add a venue
         </Button>
       </p>
       <table className="table">

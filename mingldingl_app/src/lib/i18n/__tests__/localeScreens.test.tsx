@@ -48,7 +48,8 @@ test('every navigator in the app takes the locale layout', () => {
   for (const p of navigators)
     expect({
       p: path.relative(src, p),
-      ok: fs.readFileSync(p, 'utf8').includes('screenLayout={localeScreenLayout}'),
+      // roomLayout (the world stack's) wraps localeScreenLayout.
+      ok: /screenLayout=\{(localeScreenLayout|roomLayout)\}/.test(fs.readFileSync(p, 'utf8')),
     }).toEqual({
       p: path.relative(src, p),
       ok: true,

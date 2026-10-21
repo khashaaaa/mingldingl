@@ -12,6 +12,7 @@ import {
 } from '../../lib/api/generated/engine';
 import type { AdminWandering } from '../../lib/api/generated/model';
 import '../codex/codex.css';
+import { Glyph } from '../../design/Glyph';
 
 const TEXT_MAX = 1000;
 const KINDS = ['Cafe', 'Restaurant', 'Bar', 'Entertainment', 'Outdoor', 'Culture'];
@@ -120,6 +121,9 @@ function WanderingForm({ w }: { w: AdminWandering }) {
   };
   return (
     <section>
+      <Link to="/wanderings" className="back label">
+        <Glyph name="back" /> Wanderings
+      </Link>
       <div className="page-head">
         <h1 className="page-title">{w.titleEn}</h1>
         <p className="voice page-sub">

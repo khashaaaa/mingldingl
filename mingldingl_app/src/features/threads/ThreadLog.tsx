@@ -12,6 +12,8 @@ import type { WovenRow } from '@/lib/api/generated/model';
 import { t } from '@/lib/i18n';
 import { Scene } from '../common/Scene';
 
+const GLYPH = { sparked: 'spark', oneSaidYes: 'thread', waiting: 'thread', cut: 'thread-cut' } as const;
+
 const LINE = {
   sparked: 'threads.sparked',
   oneSaidYes: 'threads.oneSaidYes',
@@ -51,13 +53,14 @@ function Thread({ r }: { r: WovenRow }) {
   return (
     <View style={state === 'cut' ? styles.cut : undefined}>
       <Row
+        glyph={GLYPH[state] ?? 'thread'}
         title={t('threads.row', { name: r.first })}
         subtitle={t(LINE[state] ?? 'threads.waiting')}
         meta={
           state === 'sparked'
             ? `+${r.points}`
             : state === 'cut'
-              ? '—'
+              ? undefined
               : t('threads.metaWaiting').toUpperCase()
         }
       />

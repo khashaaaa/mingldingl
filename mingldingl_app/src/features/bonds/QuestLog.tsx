@@ -38,7 +38,7 @@ export default function QuestLog() {
   const now = useMinute();
   if (!bonds)
     return (
-      <Scene header={<RoomHeader title={t('room.questLog')} onBack={toHearth} />} tabbed>
+      <Scene header={<RoomHeader title={t('room.questLog')} onHome={toHearth} />} tabbed>
         {null}
       </Scene>
     );
@@ -53,7 +53,7 @@ export default function QuestLog() {
 
   if (bonds.length === 0 && threads.length === 0)
     return (
-      <Scene header={<RoomHeader title={t('room.questLog')} onBack={toHearth} />} centered tabbed>
+      <Scene header={<RoomHeader title={t('room.questLog')} onHome={toHearth} />} centered tabbed>
         <StateBlock
           kind="empty"
           title={t('quests.emptyTitle')}
@@ -90,7 +90,7 @@ export default function QuestLog() {
     );
 
   return (
-    <Scene header={<RoomHeader title={t('room.questLog')} onBack={toHearth} />} tabbed>
+    <Scene header={<RoomHeader title={t('room.questLog')} onHome={toHearth} />} tabbed>
       <RoadNotice />
       {urgent?.coldAt ? (
         <Banner

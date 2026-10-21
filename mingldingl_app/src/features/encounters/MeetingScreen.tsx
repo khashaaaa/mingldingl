@@ -289,7 +289,7 @@ function Pledge({
         onPress={() => router.push(`/venue/${v.id}`)}
       />
       <Banner
-        glyph="bell"
+        glyph="pledge"
         tint="textAccent"
         text={meeting.myPledge ? t('meeting.youPledged', { name }) : t('meeting.theyPledged', { name })}
       />

@@ -21,7 +21,7 @@ description: How to run + drive MingldIngl end-to-end (scripts/dev.sh with fake 
   **99000001**, whose code expires ("That code expired"). Any other code is "not the code we sent".
 - `cd mingldingl_engine && ASPNETCORE_ENVIRONMENT=Development ~/.dotnet/dotnet run --project src/MinglDingl.Engine --no-launch-profile -- seed <Step1..Step6|Finished|Suspended|Deleted> --phone 99xxxxxx`
   puts that number's account in that exact state; signing in with it lands there. A signed-in app
-  picks the change up on relaunch. `seed crowd` restores the 48-person crowd (99100000–99100047).
+  picks the change up on relaunch. `seed crowd` restores the 48-person crowd (99100000–99100047) and their world (venues, bonds at every stage, meetings, threads, reports); `seed crowd --phone 99xxxxxx` also gives that finished account one bond at each stage.
 - `PUT /dev/config/{key}` `{ "value": "…" }` writes config like the admin does (bounds + a live
   `config.updated`): `app.minVersion 99.0.0` → Update required, `app.maintenance true` → repairs.
   Put them back afterwards.

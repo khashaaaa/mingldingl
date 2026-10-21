@@ -131,15 +131,15 @@ public class BondTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await bat.C.WriteAsync(bond.Id, "Are you there?");
         (await bat.C.PointsAsync()).Should().Be(batStart + 10, "a second letter in a row is not a reply");
 
-        await saruul.C.WriteAsync(bond.Id, "Then bring the map");
+        await saruul.C.WriteAsync(bond.Id, "Then bring the map, falcon");
         (await saruul.C.PointsAsync()).Should().Be(herStart + 10, "a reply");
         var row = (await bat.C.BondsAsync()).Single();
-        row.LastLetter.Should().Be("Then bring the map");
+        row.LastLetter.Should().Be("Then bring the map, falcon");
         row.MyTurn.Should().BeTrue();
 
         (await CodeOf(await bat.C.WriteRawAsync(bond.Id, "   "))).Should().Be("letter.empty");
         var page = await bat.C.GetFromJsonAsync<LetterPage>($"/bonds/{bond.Id}/letters");
-        page!.Items.Select(l => l.Text).Should().Equal("Then bring the map", "Are you there?", "The falcon came back at dusk");
+        page!.Items.Select(l => l.Text).Should().Equal("Then bring the map, falcon", "Are you there?", "The falcon came back at dusk");
         page.Items[0].Mine.Should().BeFalse();
     }
 
@@ -158,6 +158,20 @@ public class BondTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await w.AdvanceAsync(TimeSpan.FromDays(1));
         await saruul.C.WriteAsync(bond.Id);
         (await saruul.C.PointsAsync()).Should().Be(start + 30, "a new Ulaanbaatar day pays again");
+    }
+
+    [Fact]
+    public async Task A_reply_shorter_than_the_minimum_pays_nothing_but_still_counts()
+    {
+        await using var w = await World.CreateAsync(db);
+        var bat = await w.PersonAsync("Bat", "Male");
+        var saruul = await w.PersonAsync("Saruul", "Female");
+        var bond = await bat.C.SummonAsync(saruul.Id);
+        await bat.C.WriteAsync(bond.Id);
+        var start = await saruul.C.PointsAsync();
+        await saruul.C.WriteAsync(bond.Id, "ok");
+        (await saruul.C.PointsAsync()).Should().Be(start, "two letters cannot farm the cap");
+        (await bat.C.BondAsync(bond.Id)).MyTurn.Should().BeTrue("a short reply is still a reply");
     }
 
     [Fact]

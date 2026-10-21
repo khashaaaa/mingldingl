@@ -12,6 +12,7 @@ import {
 } from '../../lib/api/generated/engine';
 import type { AdminCodexPage } from '../../lib/api/generated/model';
 import './codex.css';
+import { Glyph } from '../../design/Glyph';
 
 const BODY_MAX = 8000;
 const day = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
@@ -100,6 +101,9 @@ function CodexForm({ page }: { page: AdminCodexPage }) {
   };
   return (
     <section>
+      <Link to="/codex" className="back label">
+        <Glyph name="back" /> Codex pages
+      </Link>
       <div className="page-head">
         <h1 className="page-title">{page.en.title}</h1>
         <p className="voice page-sub">Edit a Codex page</p>

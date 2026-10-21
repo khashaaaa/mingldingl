@@ -219,7 +219,7 @@ test('a character pays on the web page, a second payment waits on the keepers, a
   await expect(page.getByRole('heading', { name: 'The coffers' })).toBeVisible();
   const row = page.getByRole('row').filter({ hasText: 'Paid twice' });
   await expect(row).toBeVisible({ timeout: 5_000 });
-  await row.getByRole('link', { name: 'Settle →' }).click();
+  await row.getByRole('link', { name: 'Settle' }).click();
   await page.getByRole('button', { name: /Refund 29,430₮/ }).click();
   await expect(page.getByRole('cell', { name: 'Refunded through QPay' })).toBeVisible({ timeout: 5_000 });
   await page.getByRole('link', { name: 'The coffers' }).click();

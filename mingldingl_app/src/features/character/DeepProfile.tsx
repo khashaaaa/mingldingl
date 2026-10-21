@@ -22,10 +22,10 @@ import { Scene } from '../common/Scene';
  * answer it (whether they have children); the rest are the Hall's.
  */
 export const DEEP: { field: keyof DeepView; glyph: GlyphName; choices: string[]; open?: boolean }[] = [
-  { field: 'hasChildren', glyph: 'person', choices: ['yes', 'no', 'ratherNot'], open: true },
-  { field: 'wantsChildren', glyph: 'spark', choices: ['yes', 'no', 'notSure', 'ratherNot'] },
-  { field: 'partnerChildren', glyph: 'hearth', choices: ['welcome', 'open', 'preferNot', 'ratherNot'] },
-  { field: 'smoking', glyph: 'fire', choices: ['never', 'sometimes', 'daily', 'ratherNot'] },
+  { field: 'hasChildren', glyph: 'kin', choices: ['yes', 'no', 'ratherNot'], open: true },
+  { field: 'wantsChildren', glyph: 'cradle', choices: ['yes', 'no', 'notSure', 'ratherNot'] },
+  { field: 'partnerChildren', glyph: 'clasp', choices: ['welcome', 'open', 'preferNot', 'ratherNot'] },
+  { field: 'smoking', glyph: 'pipe', choices: ['never', 'sometimes', 'daily', 'ratherNot'] },
   { field: 'drinking', glyph: 'goblet', choices: ['never', 'withFriends', 'often', 'ratherNot'] },
   {
     field: 'faith',

@@ -1,15 +1,22 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { feedback } from '@/lib/feedback';
+import type { GlyphName } from '../glyphs';
 import { color, dimension } from '../tokens';
+import { Glyph } from './Art';
 import { Txt } from './Txt';
 
-/** A hairline row: a title in Yeseva, a line under it, and a short word or count at its end. */
+/**
+ * A hairline row: a title in Yeseva, a line under it, and a short word or count at its end; an
+ * ink glyph leads it where its peers each name a place or an act (as on Setting Rows).
+ */
 export function Row({
+  glyph,
   title,
   subtitle,
   meta,
   onPress,
 }: {
+  glyph?: GlyphName;
   title: string;
   subtitle?: string;
   meta?: string;
@@ -17,6 +24,7 @@ export function Row({
 }) {
   const body = (
     <>
+      {glyph ? <Glyph name={glyph} size={20} tint="textSecondary" /> : null}
       <View style={styles.text}>
         <Txt variant="displayS">{title}</Txt>
         {subtitle ? (

@@ -14,8 +14,8 @@ export default function Oath() {
       write={(oath) => patchMe({ oath })}
       choices={[
         { value: 'Bond', glyph: 'knot', title: t('oath.Bond'), body: t('oath.BondHint') },
-        { value: 'Fate', glyph: 'knot', title: t('oath.Fate'), body: t('oath.FateHint') },
-        { value: 'Kinship', glyph: 'knot', title: t('oath.Kinship'), body: t('oath.KinshipHint') },
+        { value: 'Fate', glyph: 'thread', title: t('oath.Fate'), body: t('oath.FateHint') },
+        { value: 'Kinship', glyph: 'cup', title: t('oath.Kinship'), body: t('oath.KinshipHint') },
       ]}
     />
   );

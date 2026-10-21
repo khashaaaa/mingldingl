@@ -39,7 +39,7 @@ export default function Missions() {
     }
   };
   return (
-    <Scene tabbed header={<RoomHeader title={t('room.missions')} onBack={toHearth} />}>
+    <Scene tabbed header={<RoomHeader title={t('room.missions')} onHome={toHearth} />}>
       {board ? (
         <>
           <DawnStreak

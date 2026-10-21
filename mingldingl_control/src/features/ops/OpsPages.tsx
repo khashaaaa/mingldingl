@@ -11,6 +11,7 @@ import {
 } from '../../lib/api/generated/engine';
 import { formatAge, formatDate, formatDateTime, tugrik } from '../../lib/format';
 import '../users/users.css';
+import { Glyph } from '../../design/Glyph';
 
 const KIND: Record<string, string> = { report: 'Report', payment: 'Payment', deletion: 'Deletion' };
 
@@ -201,7 +202,7 @@ export function OpsPage() {
             />
           </div>
           <Button onClick={() => sweep.mutate()} disabled={sweep.isPending}>
-            Run maintenance sweep
+            <Glyph name="turn" /> Run maintenance sweep
           </Button>
         </>
       )}

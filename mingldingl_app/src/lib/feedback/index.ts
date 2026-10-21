@@ -68,8 +68,9 @@ function player(e: WorldEvent): AudioPlayer | null {
   if (src === null) return null;
   if (!players) {
     players = {};
-    // Never over the silent switch (iOS); on Android these follow the media volume.
-    setAudioModeAsync({ playsInSilentMode: false }).catch(() => {});
+    // Never over the silent switch (iOS); on Android these follow the media volume. They mix
+    // under the person's own music: without it every tick took audio focus and paused it.
+    setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' }).catch(() => {});
   }
   players[e] ??= createAudioPlayer(src);
   return players[e] ?? null;
@@ -109,6 +110,15 @@ export async function feedback(e: WorldEvent) {
   for (let i = 0; i < (r.repeat ?? 1); i++) {
     if (i > 0) await new Promise((res) => setTimeout(res, REPEAT_GAP_MS));
     await haptic(r.haptic).catch(() => {});
+  }
+}
+
+/** Development (Tools → Hear every sound): an event's sound alone, whatever Settings → Sound says. */
+export function hearSound(e: WorldEvent) {
+  const p = player(e);
+  if (p) {
+    p.seekTo(0);
+    p.play();
   }
 }
 

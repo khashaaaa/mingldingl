@@ -8,6 +8,7 @@ export function CampaignRow({ bondId, go }: { bondId: string; go: (to: string) =
   const c = useGetCampaign(bondId).data;
   return (
     <Row
+      glyph="road"
       title={t('bond.optCampaign')}
       subtitle={t('bond.optCampaignHint', { n: c?.cleared ?? 0 })}
       onPress={() => go(`/campaign/${bondId}`)}
@@ -23,6 +24,7 @@ export function RoadRows({ bondId, name }: { bondId: string; name: string }) {
     <>
       {weekly ? (
         <Row
+          glyph="pennant"
           title={t('bond.optWeekly')}
           subtitle={t('bond.optWeeklyHint')}
           onPress={() => router.push(`/weekly/${bondId}`)}
@@ -30,6 +32,7 @@ export function RoadRows({ bondId, name }: { bondId: string; name: string }) {
       ) : null}
       {c && c.retire !== 'none' ? (
         <Row
+          glyph="chair"
           title={t('bond.optRetire')}
           subtitle={
             c.retire === 'askedByThem'

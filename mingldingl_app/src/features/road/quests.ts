@@ -8,7 +8,7 @@ export const QUEST: Record<string, { glyph: GlyphName; title: StringKey }> = {
   firstLetter: { glyph: 'quill', title: 'quest.firstLetter' },
   summon: { glyph: 'bell', title: 'quest.summon' },
   breakIce: { glyph: 'ice', title: 'quest.breakIce' },
-  takeTrial: { glyph: 'scroll', title: 'quest.takeTrial' },
+  takeTrial: { glyph: 'target', title: 'quest.takeTrial' },
   keepEncounter: { glyph: 'pledge', title: 'quest.keepEncounter' },
   lightRite: { glyph: 'flame', title: 'quest.lightRite' },
   breakSeal: { glyph: 'seal', title: 'quest.breakSeal' },

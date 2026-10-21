@@ -10,7 +10,7 @@ import './shell.css';
 /** The S8 sidebar, in Figma's order. */
 const NAV: { to: string; label: string; glyph: GlyphName }[] = [
   { to: '/dashboard', label: 'Dashboard', glyph: 'hearth' },
-  { to: '/stats', label: 'Analytics', glyph: 'map' },
+  { to: '/stats', label: 'Analytics', glyph: 'tally' },
   { to: '/users', label: 'Users', glyph: 'person' },
   { to: '/reports', label: 'Reports', glyph: 'shield' },
   { to: '/deletions', label: 'Deletions', glyph: 'frost' },

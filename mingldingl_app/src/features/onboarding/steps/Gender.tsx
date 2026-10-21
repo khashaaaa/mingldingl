@@ -15,13 +15,13 @@ export default function Gender() {
       choices={[
         {
           value: 'Male',
-          glyph: 'knot',
+          glyph: 'male',
           title: t('onboarding.genderMale'),
           body: t('onboarding.genderMaleHint'),
         },
         {
           value: 'Female',
-          glyph: 'knot',
+          glyph: 'female',
           title: t('onboarding.genderFemale'),
           body: t('onboarding.genderFemaleHint'),
         },

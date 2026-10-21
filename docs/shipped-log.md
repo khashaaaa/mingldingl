@@ -3,41 +3,86 @@
 Newest first. One short entry per finished piece of work: what a person can now do, what was
 decided, what was fixed on a device. Open items live in the plan's Backlog, not here.
 
+## 2026-10-21 — The device pass runs again
+
+The pass had broken in three places since the face check and the WeSend code:
+- The seed album was ink figures, which the face check now refuses. `push-seed-photos.sh` now
+  pushes one crowd traveller's six photos.
+- "The gate opens" holds for only 1.2 s, and Maestro often types the code too slowly to see it.
+  Its frame is now taken when it can be and no longer fails the pass.
+- A reseeded character reopens on the tab it left, not always the Tavern.
+
+Watching that screen frame by frame turned up a real bug: the number keyboard stayed up over the
+seal. It is now dismissed while the code field still has the focus.
+
+## 2026-10-21 — Short replies earn nothing
+
+Two colluding accounts could farm the reply score with one-word volleys, up to the daily cap on
+every bond. A reply now pays only at 20 characters or more (`score.reply.minLength`, in the
+panel's config). A shorter letter is still a reply: it passes the turn and counts toward the seals.
+
+## 2026-10-21 — One glyph, one meaning
+
+The ← on the five tab rooms went to the Hearth, not back; it is now the hearth glyph (`RoomHeader
+onHome`, "To the Hearth" / "Гал голомт руу"). An audit found `knot` on almost every choice card,
+glyphs with three or four meanings, and tabs and Hearth doors that disagreed. Now: Missions is the
+Forge and Character the person on both; choice cards carry their own marks (oath, gender, floors,
+yes/no, attendance; a riddle's answers none); the deep profile, War Room rows, error toasts, the
+camera, pledges and the trial have theirs; all 22 Chronicle deeds have one; `Row` takes a glyph
+(Character, bond options, Satchel, Seek menu, thread states). Figma page 05 gained eleven
+hand-inked glyphs (warning, kin, cradle, pipe, road, speech, plus, tally, ♂, ♀, post), and twelve
+drawn but never exported now are. Panel: Analytics is the tally, the Guild House floors are feast
+and crown, detail pages gained their back link, and the main actions carry glyphs.
+
+## 2026-10-21 — The world's sounds, remade
+
+The ten event sounds were bare sines and noise with no room around them, and they sounded like drum
+samples. `scripts/gen-sounds.js` now models each thing itself. Struck objects are banks of decaying
+modes, and metal comes in beating pairs. A plucked yatga plays D major pentatonic runs for honour,
+rise and the anvil's sweep. A shaman's drum is the penalty. The bell has a real bell's partials.
+Every sound sits in a Freeverb room, at 32 kHz. Loudness on the phone speaker matches the old set,
+so the balance is unchanged. The whole set is 0.77 MB, up from 0.26. Tools has a new "Hear every
+sound" section, which plays them even with Sound off. Testing on the A51 found that every sound
+took audio focus and paused the person's own music. They now mix under it (`interruptionMode:
+'mixWithOthers'`).
+
+## 2026-10-21 — Rooms change without the glitch
+
+A screen-recording on the A51 (release build) showed what went wrong. A tab's first visit showed
+an empty room that filled in over 4–6 frames. The Town Square flashed "the square is quiet" before
+its bell appeared. Opening or leaving a room showed both rooms through each other for about 170 ms,
+because every screen is transparent over the World Floor. After a few visits it looked fine,
+because visited tabs stay mounted with their data. Now the tabs are drawn out of sight soon after
+the world opens (`WorldTabs` preload), so a first visit arrives whole. The world stack swaps rooms
+without a native animation. A new room waits for its first reads (at most 700 ms) and then fades in
+(Room travel, 360 ms). A room left by Back goes dark at once, unless it refuses to go (unsaved
+edits). Bundled art no longer fades in (Android fades every `Image` over 300 ms), and `FillArt`
+plates no longer arrive a frame late. One frame of missing Seek card art is left on its first visit:
+Android decodes a hidden tab's images only when it is shown.
+
 ## 2026-10-21 — The seeded world has its occasions
 
-`seed crowd` now also seeds the world's occasions. The Town Square has seven gatherings: last
-Naadam's (three rounds, a match that became a bond), a masked night, a cancelled one, tonight's
-open bell (the tester seated), one rung minutes ago that only the High Table may sit at yet, and the
-coming Last Bell and Day of the Bond. A meeting kept on Naadam earns its honour, followed by three
-Wanderings (kept, half-written, just asked). The Guild House has five floors: two on the store
-(one renewing, one ending in two days), one lapsed, one bought by QPay with its payment, and a
-keeper's gift. One late QPay payment waits on the Payments page to be refunded. Someone is away by
-the fire, someone is leaving in 12 days, and someone has paused. Seven people have deep profiles.
-The troll cases: Мөнхбат hidden after three reports, a barred number (99108801), Temuujin on a
-removed troll's phone, and Цогтбаяр on a suspended character's phone. Номин is a newcomer (3
-candles), and the tester's own account never is. Fixed on the way: the world seeder shares the
-crowd seeder's database context, so an unchanged value set after a bulk reset was never written.
-It now starts with a clean context.
+`seed crowd` now seeds the world's occasions: seven Town Square gatherings (last Naadam's with a
+match, a masked night, a cancelled one, tonight's open bell with the tester seated, one still in the
+High Table's lead, and two coming), a meeting kept on Naadam and three Wanderings, five Guild House
+floors (store renewing and ending, lapsed, QPay, a keeper's gift) and one late QPay payment to
+refund, someone away, leaving and paused, seven deep profiles, and the troll cases (Мөнхбат hidden
+by reports, barred 99108801, Temuujin and Цогтбаяр on flagged phones, newcomer Номин). Fixed: the
+world seeder now starts with a clean database context, so values set after a bulk reset are written.
 
 ## 2026-10-21 — Fresh accounts can't troll for free
 
-A portrait with no human face in it is refused at upload ("We could not find a face in this
-portrait"). The engine runs a 1.2 MB face detector on the CPU and keeps nothing about the face.
-It found a face in all 183 crowd portraits and in none of the ink figures. Half-body and
-full-body photos pass: when the whole photo shows no face, it looks again in zoomed pieces, which
-finds a face down to about 2% of the photo's height. Each check runs on one core, and at most
-two run at once, so uploads never take more than 2 of the home server's 8 threads. That also lets through a café photo with
-diners in the background. Open
-reports from three different people hide someone from Seek, threads and the square until a keeper
-decides. A character in its first two days has three summons a night, unless it is on a paid floor.
-A suspended character's number, or that of one that left with reports still open, is barred once
-it burns: no code goes to it until a keeper lifts the bar (Reports → Barred numbers). The app now
-sends its install id (hashed on the engine), and a new character on a removed or suspended
-character's phone is flagged "shared device" on its record for a keeper to clear. Privacy page
-updated in both languages. The app needs a new development build for `expo-application`. The selfie
-check is still to be decided. Found on the A51: a refused portrait first showed as a lost upload
-("did not arrive, tap to try again"). Now any photo the engine refuses (no face, not a photo, too
-large) leaves the grid with its reason, and only a lost upload offers a retry.
+A portrait with no human face is refused at upload ("We could not find a face in this portrait"):
+a 1.2 MB CPU face detector, nothing about the face kept. It found a face in all 183 crowd portraits
+and none of the ink figures; a second pass over zoomed pieces lets half- and full-body photos pass
+(a face down to ~2% of the height), and at most two checks run at once (2 of the server's 8
+threads). Open reports from three people hide someone until a keeper decides; a character in its
+first two days has three summons a night unless on a paid floor; a suspended account's number, or
+one that left with reports open, is barred once it burns (Reports → Barred numbers). The app sends
+its install id (hashed), and a new character on a removed or suspended character's phone is flagged
+"shared device". Privacy page updated in both languages; needs a new development build
+(`expo-application`). Found on the A51: a refused portrait showed as a lost upload; now it leaves
+the grid with its reason, and only a lost upload offers a retry.
 
 ## 2026-10-21 — Portraits come up out of the dark
 

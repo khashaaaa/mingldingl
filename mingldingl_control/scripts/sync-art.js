@@ -25,13 +25,19 @@ const files = [
   ['art/guild_seal@2x.webp', 'guild_seal.webp'],
   ['art/honour_locked@2x.webp', 'honour_locked.webp'],
   ['art/state_waiting@2x.webp', 'state_waiting.webp'],
-  ['glyphs/knot@2x.png', 'glyph-knot.png'],
   // Dashboard, statistics, deletions, payments, the engine room
   ['glyphs/hearth@2x.png', 'glyph-hearth.png'],
   ['glyphs/map@2x.png', 'glyph-map.png'],
   ['glyphs/frost@2x.png', 'glyph-frost.png'],
   ['glyphs/chest@2x.png', 'glyph-chest.png'],
   ['glyphs/forge@2x.png', 'glyph-forge.png'],
+  ['glyphs/tally@2x.png', 'glyph-tally.png'],
+  ['glyphs/feast@2x.png', 'glyph-feast.png'],
+  ['glyphs/crown@2x.png', 'glyph-crown.png'],
+  ['glyphs/plus@2x.png', 'glyph-plus.png'],
+  ['glyphs/bell@2x.png', 'glyph-bell.png'],
+  ['glyphs/turn@2x.png', 'glyph-turn.png'],
+  ['glyphs/chevron@2x.png', 'glyph-chevron.png'],
 ];
 fs.mkdirSync(out, { recursive: true });
 for (const [from, to] of files) fs.copyFileSync(path.join(app, from), path.join(out, to));

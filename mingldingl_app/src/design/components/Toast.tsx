@@ -7,7 +7,7 @@ import { Txt } from './Txt';
 const KIND = {
   info: { glyph: 'bell', edge: color.borderStrong },
   reward: { glyph: 'spark', edge: color.borderGold },
-  error: { glyph: 'ember', edge: color.statusDanger },
+  error: { glyph: 'warning', edge: color.statusDanger },
 } as const;
 
 export type ToastKind = keyof typeof KIND;

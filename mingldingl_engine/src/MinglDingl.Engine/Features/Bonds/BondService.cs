@@ -160,7 +160,9 @@ public sealed class BondService(
         await campaign.SyncAsync(b, ct);
 
         if (first) await score.AwardAsync(me, DeedKinds.FirstLetter, config.Int(ConfigKeys.ScoreFirstLetter), b.Id, ct);
-        else if (reply)
+        // A short reply still counts as a reply (seals, turns); it only earns nothing, so two
+        // colluding accounts cannot farm the cap with one-word volleys.
+        else if (reply && text.Length >= config.Int(ConfigKeys.ScoreReplyMinLength))
         {
             var today = clock.TodayUb;
             var paid = await db.Set<ScoreEvent>().CountAsync(e =>

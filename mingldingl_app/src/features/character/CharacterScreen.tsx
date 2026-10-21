@@ -47,7 +47,7 @@ export default function CharacterScreen() {
       header={
         <RoomHeader
           title={t('room.character')}
-          onBack={toHearth}
+          onHome={toHearth}
           action={{
             glyph: 'more',
             label: t('room.warRoom'),
@@ -59,7 +59,7 @@ export default function CharacterScreen() {
       {me.deleteAt ? (
         // Figma 35:1187: the character is fading; keeping it is one tap away.
         <View style={styles.fading}>
-          <Banner text={t('departing.banner', { days: daysLeft(me.deleteAt) })} />
+          <Banner glyph="candle" text={t('departing.banner', { days: daysLeft(me.deleteAt) })} />
           <InkLink align="start" label={t('abandon.keep')} onPress={keep} />
         </View>
       ) : null}
@@ -72,6 +72,7 @@ export default function CharacterScreen() {
       <View style={styles.rows}>
         {profile.oath ? (
           <Row
+            glyph="pledge"
             title={t('character.oath')}
             subtitle={t(profile.oathProvenAt ? 'character.oathProven' : 'character.oathSworn', {
               oath: tValue('oath', profile.oath),
@@ -80,39 +81,46 @@ export default function CharacterScreen() {
           />
         ) : null}
         <Row
+          glyph="medal"
           title={t('character.honours')}
           subtitle={t('character.honoursHint', { n: earned, total: honours?.length ?? 21 })}
           meta={String(earned)}
           onPress={() => router.push('/honours')}
         />
         <Row
+          glyph="satchel"
           title={t('character.satchel')}
           subtitle={t('character.satchelHint')}
           meta={String((profile.oath ? 1 : 0) + chests + 1)}
           onPress={() => router.push('/satchel')}
         />
         <Row
+          glyph="waypoint"
           title={t('character.encounterLog')}
           subtitle={charted > 0 ? tCount('character.logHint', charted) : t('character.logHintNone')}
           meta={charted > 0 ? String(charted) : undefined}
           onPress={() => router.push('/encounter-log')}
         />
         <Row
+          glyph="thread"
           title={t('character.threads')}
           subtitle={t('character.threadsHint')}
           onPress={() => router.push('/thread-log')}
         />
         <Row
+          glyph="horn"
           title={t('character.allies')}
           subtitle={t('character.alliesHint')}
           onPress={() => router.push('/allies')}
         />
         <Row
+          glyph="rise"
           title={t('character.ascent')}
           subtitle={t('character.ascentHint')}
           onPress={() => router.push('/ascent')}
         />
         <Row
+          glyph="scroll"
           title={t('character.chronicle')}
           subtitle={t('character.chronicleHint')}
           onPress={() => router.push('/deeds')}

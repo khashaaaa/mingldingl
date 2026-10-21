@@ -241,14 +241,14 @@ function Bell({
         </Txt>
       </View>
       <ChoiceCard
-        glyph="knot"
+        glyph="check"
         title={t('night.yes')}
         body={t('night.yesBody')}
         selected={chosen === true}
         onPress={() => chosen == null && onDecide(true)}
       />
       <ChoiceCard
-        glyph="knot"
+        glyph="close"
         title={t('night.no')}
         body={t('night.noBody')}
         selected={chosen === false}

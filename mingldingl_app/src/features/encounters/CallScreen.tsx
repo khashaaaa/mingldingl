@@ -200,7 +200,7 @@ export default function CallScreen() {
       </View>
       <View style={[styles.controls, { paddingBottom: insets.bottom + dimension.space5 }]}>
         <Control
-          glyph="eye"
+          glyph={camera ? 'eye' : 'eye-shut'}
           label={camera ? t('call.cameraOff') : t('call.cameraOn')}
           onPress={() => {
             call.current?.handle.camera(!camera);

@@ -133,7 +133,7 @@ function EditForm({ profile }: { profile: ProfileView }) {
       ) : null}
       <View style={styles.deep}>
         <SettingRow
-          glyph="scroll"
+          glyph="mask"
           title={t('deep.title')}
           subtitle={t('deep.rowHint')}
           onPress={() => router.push('/deep')}

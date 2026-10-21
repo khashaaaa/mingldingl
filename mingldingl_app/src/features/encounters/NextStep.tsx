@@ -41,6 +41,7 @@ export function SafetyRow({ bondId, name, done }: { bondId: string; name: string
   if (m?.state !== 'Sworn') return null;
   return (
     <Row
+      glyph="shield"
       title={t('meeting.share')}
       subtitle={t('bond.optShareHint')}
       onPress={() => {

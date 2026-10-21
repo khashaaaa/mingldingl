@@ -36,14 +36,15 @@ import { FESTIVAL, Ornament } from './festivals';
  */
 export default function SquareTab() {
   const client = useQueryClient();
-  const g = useGetSquare().data?.next ?? null;
+  const square = useGetSquare();
+  const g = square.data?.next ?? null;
   const floor = useGetMembership().data?.membership.floor;
   const [busy, setBusy] = useState(false);
   // A festival's bell dresses the sky in its season while the tab is in view (Figma 47:479–47:1015),
   // even before the festival's day; leaving the tab gives the sky back to the calendar.
   const sky = (g?.masked ? null : (g?.festival as Sky | undefined)) ?? null;
   useFocusEffect(useCallback(() => (sky ? setSkyOverride(sky) : undefined), [sky]));
-  const header = <RoomHeader title={t('room.square')} onBack={toHearth} />;
+  const header = <RoomHeader title={t('room.square')} onHome={toHearth} />;
   const act = async (call: () => Promise<GatheringView>, stamp = false) => {
     setBusy(true);
     try {
@@ -59,6 +60,14 @@ export default function SquareTab() {
       setBusy(false);
     }
   };
+
+  // Until the square answers, only the header: "the square is quiet" would be a false word.
+  if (!square.data)
+    return (
+      <Scene header={header} tabbed>
+        {null}
+      </Scene>
+    );
 
   if (!g)
     return (

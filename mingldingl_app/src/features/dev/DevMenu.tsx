@@ -20,7 +20,7 @@ import { API_URL } from '@/lib/api/config';
 import { devSendLive, devSetMyState, signOut } from '@/lib/api/generated/engine';
 import { useBelongs } from '@/lib/belongs';
 import { leaveTools } from '@/lib/devTools';
-import { feedback, WORLD_EVENTS, type WorldEvent } from '@/lib/feedback';
+import { FEEDBACK, feedback, hearSound, WORLD_EVENTS, type WorldEvent } from '@/lib/feedback';
 import { setLocale, useLocale } from '@/lib/i18n';
 import { chooseLocale } from '@/lib/i18n/device';
 import { LIVE_KINDS } from '@/lib/live/events';
@@ -39,6 +39,17 @@ export const SEED_STATES = [
   'Suspended',
   'Deleted',
 ] as const;
+
+/** Each sound file once, with the world events that play it. */
+const SOUNDS = Object.entries(
+  WORLD_EVENTS.reduce<Record<string, WorldEvent[]>>((acc, e) => {
+    const file = FEEDBACK[e].soundFile;
+    if (file) acc[file] = [...(acc[file] ?? []), e];
+    return acc;
+  }, {}),
+).map(([file, events]) => ({ file, events, play: events[0] as WorldEvent }));
+
+const SOUND_GAP_MS = 1600;
 
 /** A world event's own motion; the two room moves share Room Travel. */
 const motionOf = (e: WorldEvent): MotionName => (e === 'roomDeeper' || e === 'roomHome' ? 'roomTravel' : e);
@@ -128,6 +139,29 @@ export default function DevMenu() {
       <Section title="Fire a world event">
         {WORLD_EVENTS.map((e) => (
           <PickRow key={e} label={e} onPress={() => fire(e)} />
+        ))}
+      </Section>
+
+      <Section title="Hear every sound">
+        <PickRow
+          label="Play all in turn"
+          onPress={async () => {
+            for (const [i, s] of SOUNDS.entries()) {
+              if (i > 0) await new Promise((res) => setTimeout(res, SOUND_GAP_MS));
+              hearSound(s.play);
+              setNote(`${i + 1}/${SOUNDS.length} · ${s.file} · ${s.events.join(', ')}`);
+            }
+          }}
+        />
+        {SOUNDS.map((s) => (
+          <PickRow
+            key={s.file}
+            label={`${s.file} — ${s.events.join(', ')}`}
+            onPress={() => {
+              hearSound(s.play);
+              setNote(s.file);
+            }}
+          />
         ))}
       </Section>
 

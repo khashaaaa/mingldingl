@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 import { useIsFocused } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState, Keyboard, Platform } from 'react-native';
 import { duration } from '@/design/tokens';
 import { ApiError } from '@/lib/api/client';
 import { checkPhone, completePhone, completeSigil, startPhone, startSigil } from '@/lib/api/generated/engine';
@@ -96,6 +96,8 @@ export function useVerification(phone: string, purpose: VerificationPurpose = SI
 
   const complete = useCallback(
     async (verificationId: string) => {
+      // While the code field still has the focus: once it unmounts, the keyboard stays up over the seal.
+      Keyboard.dismiss();
       set({ kind: 'opening' });
       try {
         if (purpose.kind === 'sigil') {

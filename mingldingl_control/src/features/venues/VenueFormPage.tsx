@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { Button } from '../../design/Button';
 import { errorText } from '../../lib/api/client';
 import { API_URL } from '../../lib/api/config';
@@ -16,6 +16,7 @@ import {
 } from '../../lib/api/generated/engine';
 import type { AdminVenueView, VenueWriteRequest } from '../../lib/api/generated/model';
 import './venues.css';
+import { Glyph } from '../../design/Glyph';
 
 const KINDS = ['Cafe', 'Restaurant', 'Bar', 'Entertainment', 'Outdoor', 'Culture'];
 const EMPTY: VenueWriteRequest = {
@@ -94,6 +95,9 @@ function VenueForm({ venue }: { venue?: AdminVenueView }) {
 
   return (
     <section>
+      <Link to="/venues" className="back label">
+        <Glyph name="back" /> Venues
+      </Link>
       <div className="page-head">
         <h1 className="page-title">{venue ? venue.name : 'A new venue'}</h1>
         <p className="voice page-sub">{venue ? 'Edit a partner venue' : 'Add a partner venue'}</p>

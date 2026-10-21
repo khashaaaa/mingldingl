@@ -16,7 +16,7 @@ const DOORS: { glyph: GlyphName; label: StringKey; to: Href }[] = [
   { glyph: 'letters', label: 'hearth.letters', to: '/quests' },
   { glyph: 'stage', label: 'hearth.square', to: '/square' },
   { glyph: 'forge', label: 'hearth.forge', to: '/missions' },
-  { glyph: 'frame', label: 'hearth.mirror', to: '/character' },
+  { glyph: 'person', label: 'hearth.mirror', to: '/character' },
   { glyph: 'satchel', label: 'hearth.satchel', to: '/satchel' },
 ];
 

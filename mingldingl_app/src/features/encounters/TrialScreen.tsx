@@ -137,7 +137,6 @@ export default function TrialScreen() {
           // biome-ignore lint/suspicious/noArrayIndexKey: a question's four choices never move
           <Reveal key={`${index}-${i}`} order={i + 1}>
             <ChoiceCard
-              glyph="knot"
               title={c}
               body={q.hints[i] ?? ''}
               selected={busy === i}

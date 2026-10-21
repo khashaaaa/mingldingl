@@ -201,7 +201,7 @@ export default function GuildHouse() {
         </Txt>
         <View accessibilityRole="radiogroup" style={styles.cards}>
           <ChoiceCard
-            glyph="knot"
+            glyph="post"
             title={t('guild.yardCard')}
             body={t('guild.yardGives')}
             selected={false}
@@ -210,7 +210,7 @@ export default function GuildHouse() {
           {(['hall', 'highTable'] as const).map((f) => (
             <ChoiceCard
               key={f}
-              glyph="knot"
+              glyph={f === 'hall' ? 'feast' : 'crown'}
               title={`${t(FLOOR_TITLE[f])} · ${price(f, 1)}`}
               body={t(f === 'hall' ? 'guild.hallGives' : 'guild.highTableGives')}
               selected={floor === f}

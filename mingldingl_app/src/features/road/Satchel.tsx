@@ -33,6 +33,7 @@ export function Satchel() {
           <>
             <SectionLabel text={t('satchel.oath')} />
             <Row
+              glyph="pledge"
               title={tValue('oath', profile.oath)}
               subtitle={
                 sworn
@@ -51,6 +52,7 @@ export function Satchel() {
             {chests.map((c) => (
               <Row
                 key={c.id}
+                glyph="chest"
                 title={t('satchel.chest')}
                 subtitle={t('satchel.chestFrom', { quest: t(questTitle(c.fromQuest)) })}
                 meta={t('satchel.open').toUpperCase()}
@@ -61,6 +63,7 @@ export function Satchel() {
         ) : null}
         <SectionLabel text={t('satchel.keepsakes')} />
         <Row
+          glyph="gem"
           title={t('satchel.card')}
           subtitle={tCount('satchel.dawns', Math.max(1, dawns))}
           meta={t('satchel.share').toUpperCase()}

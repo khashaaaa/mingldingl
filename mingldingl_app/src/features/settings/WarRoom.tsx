@@ -110,7 +110,7 @@ export default function WarRoom() {
             onPress={() => router.push('/away' as never)}
           />
           <SettingRow
-            glyph="seal"
+            glyph="wax"
             title={t('war.sigil')}
             subtitle={t('war.sigilHint')}
             value={t('war.sigilValue', { digits: me.phoneHint })}
@@ -148,7 +148,7 @@ export default function WarRoom() {
             }
           />
           <SettingRow
-            glyph="letters"
+            glyph="speech"
             title={t('war.language')}
             value={LANGUAGES.find((l) => l.code === locale)?.name ?? LANGUAGES[0].name}
             onPress={() => setLanguages(true)}
@@ -187,7 +187,7 @@ export default function WarRoom() {
             onPress={() => router.push('/codex')}
           />
           <SettingRow
-            glyph="frost"
+            glyph="gate"
             title={t('war.frozenGate')}
             subtitle={t('war.frozenGateHint')}
             onPress={() => router.push('/frozen-gate')}
@@ -200,7 +200,7 @@ export default function WarRoom() {
             onPress={() => setLeaving(true)}
           />
           <SettingRow
-            glyph="swords"
+            glyph="candle"
             title={t('war.abandon')}
             subtitle={t('war.abandonHint')}
             onPress={() => (me.deleteAt ? router.push('/departing') : setAbandon(true))}

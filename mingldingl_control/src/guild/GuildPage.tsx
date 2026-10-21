@@ -2,6 +2,7 @@ import QRCode from 'qrcode';
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { art } from '../design/art';
 import { Button } from '../design/Button';
+import { Glyph } from '../design/Glyph';
 import { GuildError, guildSession } from './api/client';
 import {
   checkPhone,
@@ -319,10 +320,7 @@ function Choose({
               key.current = newKey();
             }}
           >
-            <span
-              className="glyph"
-              style={{ maskImage: `url(${art.glyphs.knot})`, WebkitMaskImage: `url(${art.glyphs.knot})` }}
-            />
+            <Glyph name={f === 'hall' ? 'feast' : 'crown'} />
             <span>
               <strong>
                 {w.say(f === 'hall' ? 'Hall' : 'HighTable')} · {tugrik(offer(f, 1)?.amount ?? 0)}

@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { RestWatch } from '@/features/system/Rest';
+import { roomLayout } from '@/features/world/RoomLayout';
 import { WorldWatch } from '@/features/world/WorldWatch';
-import { localeScreenLayout } from '@/lib/i18n/LocaleScreens';
 
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
@@ -12,8 +12,12 @@ export default function WorldLayout() {
   return (
     <>
       <Stack
-        screenLayout={localeScreenLayout}
-        screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}
+        screenLayout={roomLayout}
+        screenOptions={{
+          headerShown: false,
+          animation: 'none',
+          contentStyle: { backgroundColor: 'transparent' },
+        }}
       />
       <WorldWatch />
       <RestWatch />

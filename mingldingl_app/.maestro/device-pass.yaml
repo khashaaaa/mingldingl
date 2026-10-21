@@ -49,8 +49,13 @@ env:
 - inputText: ${PHONE}
 - tapOn: Continue
 - runFlow: _code.yaml
-- extendedWaitUntil: { visible: 'The gate opens|Хаалга нээгдэж байна', timeout: 15000 }
-- takeScreenshot: ${LOCALE}-23-216
+# "The gate opens" holds for ceremonyMin (1.2 s); Maestro's inputText often returns after it is
+# gone, so its frame is caught when it can be and never fails the pass.
+- runFlow:
+    when:
+      visible: 'The gate opens|Хаалга нээгдэж байна'
+    commands:
+      - takeScreenshot: ${LOCALE}-23-216
 
 - extendedWaitUntil: { visible: 'What does the hold call you\?', timeout: 15000 }
 - tapOn: First name|Нэр

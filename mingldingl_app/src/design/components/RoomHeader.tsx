@@ -18,18 +18,21 @@ import { Txt } from './Txt';
 type Action = { glyph: GlyphName; label: string; onPress: () => void };
 
 /**
- * A room's name over a dry-brush rule; blackletter in English, Yeseva One in Mongolian (via Txt).
+ * A room's name over a dry-brush rule; `onBack` is a ← back, `onHome` (the tab rooms) the hearth
+ * glyph that goes up to the Hearth; blackletter in English, Yeseva One in Mongolian (via Txt).
  * `sign` hangs the name on a brass plank chained from the top of the screen (Figma "Hanging
  * Sign", the Guild House).
  */
 export function RoomHeader({
   title,
   onBack,
+  onHome,
   action,
   sign,
 }: {
   title: string;
   onBack?: () => void;
+  onHome?: () => void;
   action?: Action;
   sign?: boolean;
 }) {
@@ -38,7 +41,9 @@ export function RoomHeader({
     <View style={[styles.header, { paddingTop: insets.top + dimension.space3 }]}>
       {sign && <HangingSign title={title} top={insets.top} />}
       <View style={styles.row}>
-        {onBack ? (
+        {onHome ? (
+          <IconButton glyph="hearth" label={t('common.toHearth')} onPress={onHome} />
+        ) : onBack ? (
           <IconButton glyph="back" label={t('common.back')} onPress={onBack} />
         ) : (
           <View style={styles.slot} />

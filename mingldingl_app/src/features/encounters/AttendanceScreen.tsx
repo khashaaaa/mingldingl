@@ -22,9 +22,9 @@ import { Scene } from '../common/Scene';
 import { when } from './NextStep';
 
 const ANSWERS = [
-  { value: 'Met', title: 'attendance.met', hint: 'attendance.metHint' },
-  { value: 'NoShow', title: 'attendance.noShow', hint: 'attendance.noShowHint' },
-  { value: 'CouldNotGo', title: 'attendance.couldNotGo', hint: 'attendance.couldNotGoHint' },
+  { value: 'Met', glyph: 'pledge', title: 'attendance.met', hint: 'attendance.metHint' },
+  { value: 'NoShow', glyph: 'close', title: 'attendance.noShow', hint: 'attendance.noShowHint' },
+  { value: 'CouldNotGo', glyph: 'turn', title: 'attendance.couldNotGo', hint: 'attendance.couldNotGoHint' },
 ] as const;
 
 /**
@@ -78,7 +78,7 @@ export default function AttendanceScreen() {
         {ANSWERS.map((a, i) => (
           <Reveal key={a.value} order={i + 1}>
             <ChoiceCard
-              glyph="knot"
+              glyph={a.glyph}
               title={t(a.title)}
               body={t(a.hint)}
               selected={answer === a.value}

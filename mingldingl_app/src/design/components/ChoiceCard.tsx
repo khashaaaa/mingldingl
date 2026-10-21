@@ -7,7 +7,7 @@ import { Glyph } from './Art';
 import { CornerCaps } from './Hardware';
 import { Txt } from './Txt';
 
-/** One of a few exclusive choices (gender, oath). Selected: gold frame, glow, brass corners. */
+/** One of a few exclusive choices (gender, oath); the glyph is left out where the choices are only words (a riddle's answers). Selected: gold frame, glow, brass corners. */
 export function ChoiceCard({
   glyph,
   title,
@@ -15,7 +15,7 @@ export function ChoiceCard({
   selected,
   onPress,
 }: {
-  glyph: GlyphName;
+  glyph?: GlyphName;
   title: string;
   body: string;
   selected: boolean;
@@ -31,7 +31,7 @@ export function ChoiceCard({
       onPress={onPress}
       style={[styles.card, selected ? styles.selected : styles.idle]}
     >
-      <Glyph name={glyph} size={32} tint={selected ? 'accentGoldBright' : 'textSecondary'} />
+      {glyph ? <Glyph name={glyph} size={32} tint={selected ? 'accentGoldBright' : 'textSecondary'} /> : null}
       <View style={styles.text}>
         <Txt variant="displayS">{title}</Txt>
         <Txt variant="bodyS" color="textSecondary">

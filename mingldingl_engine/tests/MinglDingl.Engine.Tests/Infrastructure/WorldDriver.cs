@@ -150,7 +150,7 @@ public static class WorldDriver
     public static Task<HttpResponseMessage> WriteRawAsync(this HttpClient c, Guid bond, string text) =>
         c.PostAsJsonAsync($"/bonds/{bond}/letters", new WriteLetterRequest(text));
 
-    public static async Task<LetterView> WriteAsync(this HttpClient c, Guid bond, string text = "Hello")
+    public static async Task<LetterView> WriteAsync(this HttpClient c, Guid bond, string text = "Hello from across the steppe")
     {
         var r = await c.WriteRawAsync(bond, text);
         r.EnsureSuccessStatusCode();
@@ -162,8 +162,8 @@ public static class WorldDriver
     {
         for (var i = 0; i < n; i++)
         {
-            await first.WriteAsync(bond, $"a{i}");
-            await second.WriteAsync(bond, $"b{i}");
+            await first.WriteAsync(bond, $"a{i}: the fire is still warm here");
+            await second.WriteAsync(bond, $"b{i}: and the stars are out tonight");
         }
     }
 

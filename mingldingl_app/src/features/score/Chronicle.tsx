@@ -16,13 +16,28 @@ import { deedsKey } from '@/lib/live/events';
 import { Scene } from '../common/Scene';
 
 const GLYPH: Record<string, GlyphName> = {
-  finished: 'forge',
+  finished: 'person',
   firstLetter: 'quill',
   reply: 'letters',
   dawn: 'dawn',
   seventhDawn: 'star',
   goneCold: 'frost',
   penalised: 'scales',
+  keeperAdjusted: 'scales',
+  icebreaker: 'ice',
+  trial: 'target',
+  rite: 'flame',
+  meeting: 'pledge',
+  oathProven: 'pledge',
+  quest: 'scroll',
+  chest: 'chest',
+  campaignRoom: 'road',
+  campaignBoss: 'seal',
+  weeklyTrial: 'pennant',
+  threadSparked: 'thread',
+  ally: 'horn',
+  allyCalled: 'horn',
+  square: 'stage',
 };
 
 type Item = { kind: 'day'; key: string; text: string } | { kind: 'deed'; key: string; deed: DeedView };

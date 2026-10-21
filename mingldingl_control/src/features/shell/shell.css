@@ -54,10 +54,6 @@
   gap: var(--space-5);
   margin-bottom: calc(-1 * var(--space-5));
 }
-.page-bar .btn .glyph {
-  width: var(--space-4);
-  height: var(--space-4);
-}
 .live {
   display: inline-flex;
   align-items: center;

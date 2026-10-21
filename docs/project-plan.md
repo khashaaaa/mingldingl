@@ -8,10 +8,10 @@ config, key in brackets where it helps).
 
 ---
 
-# Where it stands (2026-10-17)
+# Where it stands (2026-10-21)
 
-The whole game is built and checked on devices in English and Mongolian. What is left is the
-launch, and that waits on the user's accounts and keys.
+The whole game is built and checked on devices in English and Mongolian, and `49a16ef` runs on the
+home server. What is left is the launch, and that waits on the user's accounts and keys.
 
 | Stage | What | State |
 |---|---|---|
@@ -29,20 +29,20 @@ launch, and that waits on the user's accounts and keys.
 
 The server side is scripted; the accounts are the user's.
 
-**Done 2026-10-20:** myserver set up and deployed; domain `mingldingl.com` on Cloudflare with the
-tunnel (`api.` → 8080, `keepers.` → 8081) and Email Routing (`keepers@mingldingl.com` → the
-user's Gmail, the `SUPPORT_EMAIL`); Sentry projects `mingldingl-app`/`-engine` (org `rtl-uz`);
-RevenueCat project MingldIngl (Play app, entitlements `hall`/`high_table`, webhook, V1 secret key —
-products and the Play service account wait on the Play account); Firebase project `mingldingl`
-(`google-services.json` in the app; FCM V1 key on EAS); Agora NCS on events 103–106; EAS
-production and preview env set (API, web, RevenueCat Android, Sentry, support email). The first
-production build failed at Sentry's source-map upload: the plugin now names org `rtl-uz` /
-project `mingldingl-app`, and both preview and production skip the upload
-(`SENTRY_DISABLE_AUTO_UPLOAD` in `eas.json`), so crash traces are minified. To get readable traces
-the user puts a Sentry org token in the EAS secret `SENTRY_AUTH_TOKEN` (it holds a placeholder now)
-and drops the flag from the production profile. Launch values the user keeps: `~/mingldingl-launch.env` on the desktop (chmod 600).
-Agora shows a new NCS secret on every page load until saved — set the engine's to the shown one,
-restart, then Apply. Left: Play account + 14-day test, QPay, WeSend live, EAS env + build, reviewer access.
+**Done 2026-10-20:** myserver set up and deployed; `mingldingl.com` on Cloudflare with the tunnel
+(`api.` → 8080, `keepers.` → 8081) and Email Routing (`keepers@mingldingl.com` → the user's Gmail,
+the `SUPPORT_EMAIL`); Sentry projects `mingldingl-app`/`-engine` (org `rtl-uz`); RevenueCat project
+(Play app, entitlements `hall`/`high_table`, webhook — products wait on the Play account); Firebase
+`mingldingl` (`google-services.json`, FCM V1 key on EAS); Agora NCS on events 103–106; EAS
+production and preview env. Launch values: `~/mingldingl-launch.env` on the desktop (chmod 600).
+- *Sentry source maps:* both EAS profiles skip the upload (`SENTRY_DISABLE_AUTO_UPLOAD`), so traces
+  are minified until the user puts an org token in the EAS secret `SENTRY_AUTH_TOKEN` (a
+  placeholder now) and drops the flag from production.
+- *Agora* shows a new NCS secret on every page load until saved — set the engine's to the shown
+  one, restart, then Apply.
+
+**Left:** Play account + 14-day test, QPay, WeSend live, the production build, reviewer access.
+
 **WeSend (sign-in codes, user):** project «mingldingl» exists (200 trial credits, expire 2026-11-19).
 Until it is Active (the owner verified by DAN, any monthly fee paid) it texts only the owner's own
 verified number. Then: a live key (dashboard → API keys) into the server's `engine.env` as
@@ -100,11 +100,11 @@ verified number. Then: a live key (dashboard → API keys) into the server's `en
 **Play listing, MN draft**
 - *Нэр:* MingldIngl — танилц, үгэндээ хүр
 - *Богино:* Захидлаар лац эвдэж, жинхэнэ уулзалт хийдэг, чимээгүй алга болох нь үнэтэй танилцах тоглоом.
-- *Бүтэн:* MingldIngl бол удаан, хуурмаг бус танилцах тоглоом. Шөнө бүр Учралын тойрог танд нэг нэгээр
+- *Бүтэн:* MingldIngl бол удаан, хуурмаг бус танилцах тоглоом. Шөнө бүр Учралын тойрог чамд нэг нэгээр
   аянчин авчирна. Хэн нэгнийг урьвал холбоо үүснэ — дараа нь захидал дөрвөн лацыг эвдэж, хөрөг
   нэг нэгээр нээгдэнэ. Мөс хагалж, Сорилд орж, Галын ёслол асааж, шалгасан газарт уулз. Үгэндээ
   хүрвэл эрдэнэ чинь Анараас Маргад хүртэл өгсөнө; галаа хөргөвөл харагдана. Даалгавар, гавьяа,
-  найзуудын нэхсэн Заяаны утас, Хотын талбайн шууд үеүд ертөнцийг бүтээнэ. Давхар бүр ижил тоглоом
+  найзуудын зангидсан Заяаны холбоос, Хотын талбайн шууд үеүд ертөнцийг бүтээнэ. Давхар бүр ижил тоглоом
   тоглоно: Танхим ба Дээд ширээ хүрээг тэлнэ, харин оноо хэзээ ч нэмдэггүй.
 
 **Data safety (Play form)** — collected: phone number (account, verified by SMS), name, birth
@@ -116,9 +116,9 @@ Encrypted in transit; deletion on request in the app (Abandon, 30 days) and by t
 ## Backlog
 
 **Needs the user**
-- Everything in the launch checklist's accounts (QPay, Play, RevenueCat, Firebase, Sentry, domain).
-- `EXPO_PUBLIC_SUPPORT_EMAIL` — until it is set, "Write to the keepers" is hidden and the Cast Out
-  screen has no way to write. `EXPO_PUBLIC_WEB_URL` likewise hides the links to the legal pages.
+- What the launch checklist leaves: Play, QPay, WeSend live, the Sentry token.
+- Decisions: a third gender's matching (Seek and the square pair opposite genders); the selfie
+  check against the portraits; a 30 fps ambient clock (measured 2026-10-17: the floor alone 168 % → 130 % CPU on the A51).
 - The reviewer sign-in video (launch checklist 4½): needs an installable production build and one real text.
 - The Codex guide texts other than "The fire and the cold" were written from the rules, not Figma
   — the user may want to reword them (the admin's Codex pages edit them).
@@ -143,9 +143,6 @@ Encrypted in transit; deletion on request in the app (Abandon, 30 days) and by t
 - A fast burst into the tale logs React's dev-only "Maximum update depth" warning (RN 0.86
   multiline TextInput) — harmless.
 - A config-write live test failed once in a full engine run and passed alone (timing).
-- The capped reply score is still farmable by two colluding accounts (~500 a day) — add a minimum
-  length or decay.
-- A third gender's matching semantics are not decided (Seek and the square pair opposite genders).
 
 **Not built, by decision** — Travel mode, Fun tags, cosmetics (they need new art); wax (letters
 are never gated); venue featured placement and partner dashboards; e-barimt receipts on the web
@@ -298,7 +295,7 @@ Every change is one row in the ledger (the Chronicle of Deeds), never below 0.
 |---|---|---|---|
 | Finished character | +50 | Meeting sworn | +50 |
 | First letter of a bond | +10 | Oath proven | +40 |
-| Reply (max 10 per bond a day) | +10 | Quest | per quest |
+| Reply (max 10 per bond a day, 20+ characters) | +10 | Quest | per quest |
 | Return each day | +5 × streak (cap 7), +50 on the seventh dawn | Bounty chest | +30 |
 | Icebreaker | +20 | Campaign chamber / boss | +5 / +25 |
 | Trial | +15 | Weekly trial | +25 |

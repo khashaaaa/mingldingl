@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+This file provides guidance to Codex when working with code in this repository.
 
 ## What this is
 
@@ -127,7 +127,7 @@ backlog and becomes a log entry.
   `npm run generate:api` in both. check-all and CI fail if either is stale.
 - **Design comes from Figma, never typed in.** `scripts/gen-tokens.js` writes `design/tokens.ts`
   (and the admin's `tokens.css`) from the Figma JSON in `design/figma/`; `scripts/export-art.py`
-  exports art and glyph PNGs (token in `~/.figma-token`). A colour literal outside the tokens
+  exports art (WebP) and glyph PNGs (token in `~/.figma-token`). A colour literal outside the tokens
   fails `scripts/check-literals.js`. Glyphs are tinted images, never live SVG.
 - **The World Floor** is one Skia canvas behind every screen (gradient, stars, breathing glow,
   sparks on `useFrameCallback`), paused in background and under Reduce Motion. Screens are
@@ -141,9 +141,11 @@ backlog and becomes a log entry.
   the footer, and while the keyboard is up the footer drops its bottom inset. Onboarding fields
   that must survive stepping back use `useDraft`.
 - **Mongolian:** every string is a key in `lib/i18n/en.json`, and every key has its line in
-  `mn.json` — Codex writes the Mongolian (the user's call, 2026-10-16), in the same primal, epic
-  game voice as the English, reusing the established words (Гал голомт, цайз, манаачид, хөрөг,
-  домог, лац, Наймааны өргөө…). A new English key gets its Mongolian in the same change (a jest
+  `mn.json` — Claude writes the Mongolian (the user's call, 2026-10-16), in the same primal, epic
+  game voice as the English, reusing the established words (Гал голомт, цайз, манаач, хөрөг,
+  домог, лац, Наймааны өргөө…). "The keepers" is манаач, never манаачид (readers don't take it
+  as plural); Fated Threads are Заяаны холбоос, tied (зангидах), never утас (it reads as
+  a phone); sealed is лацадсан / лацтай, never лацлагдсан; the player is always чи/чиний, never та/таны. A new English key gets its Mongolian in the same change (a jest
   test fails on a missing or orphaned key). Never glue a case suffix onto `{{var}}` (Mongolian
   suffixes change with the word) — rephrase ("Хүлээж буй нь: {{name}}", "{{time}} цагт").
   Interpolation is `{{var}}`. The engine's Mongolian (question banks, pushes, Codex) is in
@@ -154,18 +156,23 @@ backlog and becomes a log entry.
   from the Expo dev menu) puts your account into any state, fires live/world events, switches
   language and Reduce Motion; `/dev/gallery` shows every component. A release bundle has none of it.
 - **Expo Go cannot run this app** (Skia, Sentry, dev-client). Use the development build
-  (`npx expo run:android`, or `eas build --profile development`). `mingldingl_app/AGENTS.md` →
+  (`npx expo run:android`, or `eas build --profile development`). `mingldingl_app/CLAUDE.md` →
   `AGENTS.md` names the SDK and its docs; bump it with `package.json`.
 - **`patches/` (patch-package, `postinstall`)** backports react-native-screens 4.28's
   screen-removal-listener fix onto the 4.26.2 Expo SDK 57 pins: without it a launch could SIGSEGV
   in `MountingCoordinator::pullTransaction` (≈1 in 5 relaunches on the emulator). It is native
   code, so it needs a rebuild of the development build. Drop it when Expo pins ≥ 4.28.0.
+- **`plugins/withLeanAndroid.js`** keeps Agora's optional extensions (≈30 MB a CPU type) out of
+  the APK and builds preview/production for ARM only. A call that needs a new Agora feature must
+  take its extension off that list.
 - **`EXPO_PUBLIC_API_URL`** is pinned to the LAN IP only for the `development` EAS profile;
   preview/production must set it on EAS before their first build (it falls back to localhost).
 
 ### Admin
 - The build has two pages: the panel (`index.html`) and the Guild House web page (`guild/index.html`,
   `src/guild/`, its own Orval client from the Guild + Auth tags) — the page bundles none of the panel.
+  It opens in Mongolian (`?lang=en` or its switch for English); its words, and the Mongolian of the
+  engine rules it can meet, are in `src/guild/words.ts`.
   Plus three script-free legal pages the stores link to (`privacy/`, `terms/`, `delete/`, EN + MN,
   styled by `src/legal/legal.css`); they print `VITE_SUPPORT_EMAIL`, which deploy reads from
   `engine.env`'s `SUPPORT_EMAIL`.
@@ -195,7 +202,7 @@ dotnet test --filter FullyQualifiedName~ProfileTests
 ./scripts/export-swagger.sh [--check]              # rewrite swagger.json (no server, no DB)
 ./scripts/new-migration.sh                         # regenerate the single Initial migration
 dotnet run --project src/MinglDingl.Engine -- seed <Step1..Step6|Finished|Suspended|Deleted> --phone 99xxxxxx
-dotnet run --project src/MinglDingl.Engine -- seed crowd       # the 48-person seed crowd (99100000–99100047)
+dotnet run --project src/MinglDingl.Engine -- seed crowd [--phone 99xxxxxx]  # the 48-person crowd (99100000–99100047) and their world; --phone: that account gets a bond at every stage
 dotnet run --project src/MinglDingl.Engine -- hash-password <pw>
 ```
 Local config: `src/MinglDingl.Engine/appsettings.Development.json` (copy the `.example`).
@@ -234,6 +241,6 @@ npm run dev | build | lint | typecheck | generate:api | e2e    # e2e = Playwrigh
 
 ## Verification
 
-`.Codex/skills/verify/SKILL.md` describes driving the stack end to end. Android device setup
-(A51 + emulator over adb, screenshot scale) is in Codex's project memory
-(`~/.Codex/projects/-home-khashaa-Desktop-mingldingl/memory/`), not here.
+`.claude/skills/verify/SKILL.md` describes driving the stack end to end. Android device setup
+(A51 + emulator over adb, screenshot scale) is in Claude's project memory
+(`~/.claude/projects/-home-khashaa-Desktop-mingldingl/memory/`), not here.
