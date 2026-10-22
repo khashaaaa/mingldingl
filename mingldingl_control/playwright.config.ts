@@ -72,6 +72,7 @@ export default defineConfig({
         WeSend__Fake: 'true',
         // Every test signs people up from one address; the per-IP auth limit is not what is tested here.
         RateLimits__AuthPerMinute: '1000',
+        RateLimits__AdminLoginPerMinute: '1000',
         ConnectionStrings__Default: e2eConnection,
         PGPASSWORD: part('Password'),
       },
