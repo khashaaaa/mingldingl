@@ -1,4 +1,6 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -17,6 +19,10 @@ public interface IWeSend
 {
     Task<SentCode> SendCodeAsync(string phone, string locale, CancellationToken ct = default);
     Task<CodeChecked> CheckAsync(string providerId, string code, CancellationToken ct = default);
+
+    /// Whether a code to this number goes out as a paid text. One that does not (the review number)
+    /// is never counted against the text caps, but its fixed code is guarded by the day instead.
+    bool Texts(string phone) => true;
 }
 
 public sealed class WeSendClient(HttpClient http, ILogger<WeSendClient> log) : IWeSend
@@ -103,8 +109,32 @@ public sealed class FakeWeSend : IWeSend
     public Task<SentCode> SendCodeAsync(string phone, string locale, CancellationToken ct = default) =>
         Task.FromResult(new SentCode(CodeSent.Sent, $"fake-{phone}-{Guid.NewGuid():N}", DateTimeOffset.UtcNow.AddSeconds(WeSendClient.CodeTtl)));
 
+    /// No text ever goes, so the text caps never stop a day of dev sign-ins.
+    public bool Texts(string phone) => false;
+
     public Task<CodeChecked> CheckAsync(string providerId, string code, CancellationToken ct = default) =>
         Task.FromResult(providerId.StartsWith($"fake-{Expires}-") ? CodeChecked.Expired
             : code == Code ? CodeChecked.Approved
             : CodeChecked.Wrong);
+}
+
+/// Store review: the stores' reviewers have no Mongolian SIM, so one number (`Review:Phone`, a
+/// landline that can never receive a text) gets no text and passes only with `Review:Code`. Every
+/// other number goes to WeSend. Unset = off.
+public sealed class ReviewWeSend(IWeSend inner, string phone, string code) : IWeSend
+{
+    private const string Prefix = "review-";
+
+    public Task<SentCode> SendCodeAsync(string to, string locale, CancellationToken ct = default) =>
+        to == phone
+            ? Task.FromResult(new SentCode(CodeSent.Sent, $"{Prefix}{Guid.NewGuid():N}", DateTimeOffset.UtcNow.AddSeconds(WeSendClient.CodeTtl)))
+            : inner.SendCodeAsync(to, locale, ct);
+
+    public bool Texts(string to) => to != phone && inner.Texts(to);
+
+    public Task<CodeChecked> CheckAsync(string providerId, string typed, CancellationToken ct = default) =>
+        providerId.StartsWith(Prefix)
+            ? Task.FromResult(CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(typed), Encoding.UTF8.GetBytes(code))
+                ? CodeChecked.Approved : CodeChecked.Wrong)
+            : inner.CheckAsync(providerId, typed, ct);
 }

@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MinglDingl.Engine.Features.Auth;
 using MinglDingl.Engine.Features.Dev;
+using MinglDingl.Engine.Features.Membership;
+using MinglDingl.Engine.Features.Payments;
 using MinglDingl.Engine.Features.Profile;
 using MinglDingl.Engine.Kernel.Live;
 using MinglDingl.Engine.Kernel.Persistence;
@@ -118,5 +120,21 @@ public class DevTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         await using var scope = f.Services.CreateAsyncScope();
         var store = scope.ServiceProvider.GetRequiredService<AppDb>();
         (await store.Set<DeviceSession>().CountAsync(d => d.AccountId == s.AccountId)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Dev_store_and_dev_qpay_walk_a_floor_without_the_stores_or_a_bank()
+    {
+        await using var w = await World.CreateAsync(db);
+        var phone = SessionDriver.NewPhone();
+        var bat = await w.PersonAsync("Bat", "Male", phone: phone);
+        var store = await (await bat.C.PostAsJsonAsync("/dev/me/store", new DevStoreRequest("hall", 1))).Read<MembershipView>();
+        store.Should().Match<MembershipView>(m => m.Floor == "hall" && m.Source == "store");
+
+        var web = await w.GuildAsync(phone);
+        var inv = await web.InvoiceAsync("highTable", 1, "key-dev-00001");
+        (await w.F.Client().PostAsync($"/dev/qpay/pay/{inv.Id}", null)).EnsureSuccessStatusCode();
+        (await bat.C.GetFromJsonAsync<GuildMe>("/me/membership"))!.Membership.Floor.Should().Be("highTable");
+        (await w.F.Client().PostAsync($"/dev/qpay/pay/{Guid.NewGuid()}", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }

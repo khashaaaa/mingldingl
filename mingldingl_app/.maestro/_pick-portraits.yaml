@@ -4,8 +4,9 @@
 appId: com.mingldingl.app
 ---
 - tapOn:
-    text: Add a portrait
+    text: Add a portrait|Хөрөг нэмэх
     index: 0
+- tapOn: Choose from your photos|Зургийн сангаасаа сонгох
 - extendedWaitUntil:
     visible: Photo taken on.*
     timeout: 10000

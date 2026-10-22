@@ -15,6 +15,8 @@ public sealed class PhoneVerification
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
     public DateTimeOffset? VerifiedAt { get; set; }
+    /// Wrong codes typed (a check in flight counts until it is answered); five end it.
+    public int WrongTries { get; set; }
     public DateTimeOffset? ClaimedAt { get; set; }
     public Guid? ClaimedByAccountId { get; set; }
 }
@@ -28,5 +30,6 @@ internal sealed class PhoneVerificationMap : IEntityTypeConfiguration<PhoneVerif
         e.Property(x => x.ProviderId).HasMaxLength(100);
         e.Property(x => x.State).HasConversion<string>().HasMaxLength(12);
         e.HasIndex(x => new { x.Phone, x.State });
+        e.HasIndex(x => x.CreatedAt);
     }
 }

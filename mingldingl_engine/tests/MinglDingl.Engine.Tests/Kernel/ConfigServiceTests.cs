@@ -35,15 +35,6 @@ public class ConfigServiceTests(PostgresFixture db) : IClassFixture<PostgresFixt
     }
 
     [Fact]
-    public async Task Set_outside_bounds_is_refused()
-    {
-        await using var f = await Start(db);
-        await using var scope = f.Services.CreateAsyncScope();
-        var act = () => scope.ServiceProvider.GetRequiredService<ConfigWrites>().SetAsync("photos.max", "7");
-        (await act.Should().ThrowAsync<DomainException>()).Which.Code.Should().Be("config.out_of_bounds");
-    }
-
-    [Fact]
     public async Task Unknown_key_is_404()
     {
         await using var f = await Start(db);

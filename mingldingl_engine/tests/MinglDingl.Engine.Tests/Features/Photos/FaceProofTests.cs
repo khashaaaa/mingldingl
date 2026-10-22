@@ -41,19 +41,6 @@ public class FaceProofTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
-    public async Task A_new_portrait_takes_the_mark_off()
-    {
-        await using var w = await World.CreateAsync(db);
-        var her = await w.PersonAsync("Anujin", "Female", portraits: Hers);
-        var (straight, turned) = HerSelfies();
-        (await her.C.ProveFaceAsync(straight, turned)).Outcome.Should().Be("proven");
-
-        (await her.C.UploadRawAsync(Photo("p02_1.jpg"))).EnsureSuccessStatusCode();
-        (await her.C.MeAsync()).Profile!.FaceProvenAt.Should().BeNull();
-        (await her.C.FaceAsync()).Proven.Should().BeFalse();
-    }
-
-    [Fact]
     public async Task Someone_elses_face_does_not_prove_his_portraits()
     {
         await using var w = await World.CreateAsync(db);
@@ -82,6 +69,28 @@ public class FaceProofTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
+    public async Task A_little_turn_of_a_tenth_of_an_eye_span_is_enough()
+    {
+        await using var w = await World.CreateAsync(db);
+        var her = await w.PersonAsync("Anujin", "Female", portraits: Hers);
+        // p02_3 → p02_1 moves the nose 0.12 eye spans (refused while the bar was 0.15); p02_2 → p02_3,
+        // above, moves it 0.09 and is not a turn.
+        (await her.C.ProveFaceAsync(Photo("p02_3.jpg"), Photo("p02_1.jpg"))).Outcome.Should().Be("proven");
+    }
+
+    [Fact]
+    public async Task A_turned_selfie_of_someone_else_is_notYou_and_spends_a_try()
+    {
+        await using var w = await World.CreateAsync(db);
+        var her = await w.PersonAsync("Anujin", "Female", portraits: Hers);
+        var (straight, _) = HerSelfies();
+        // p05_2: another traveller, turned well past the bar, who scores under one face with her selfie.
+        var r = await her.C.ProveFaceAsync(straight, Photo("p05_2.jpg"));
+        r.Outcome.Should().Be("notYou");
+        r.Status.TriesLeft.Should().Be(2);
+    }
+
+    [Fact]
     public async Task Of_the_shots_taken_through_the_turn_the_most_turned_one_counts()
     {
         await using var w = await World.CreateAsync(db);
@@ -95,14 +104,20 @@ public class FaceProofTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
-    public async Task A_selfie_with_no_face_is_noFace()
+    public async Task A_selfie_with_no_face_is_noFace_and_costs_no_try()
     {
         await using var w = await World.CreateAsync(db);
         var her = await w.PersonAsync("Anujin", "Female", portraits: Hers);
         using var bmp = new SKBitmap(600, 800);
         using (var canvas = new SKCanvas(bmp)) canvas.Clear(new SKColor(90, 140, 210));
         var field = SKImage.FromBitmap(bmp).Encode(SKEncodedImageFormat.Jpeg, 90).ToArray();
-        (await her.C.ProveFaceAsync(field, field)).Outcome.Should().Be("noFace");
+        var (straight, _) = HerSelfies();
+        foreach (var (first, then) in new[] { (field, field), (straight, field), (field, straight) })
+        {
+            var r = await her.C.ProveFaceAsync(first, then);
+            r.Outcome.Should().Be("noFace");
+            r.Status.TriesLeft.Should().Be(3);
+        }
     }
 
     [Fact]
@@ -138,7 +153,7 @@ public class FaceProofTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
-    public async Task A_proven_face_earns_points_once_and_skips_the_newcomers_limit()
+    public async Task A_proven_face_earns_points_once_skips_the_newcomers_limit_and_a_new_portrait_takes_it_off()
     {
         await using var w = await World.CreateAsync(db);
         var her = await w.PersonAsync("Anujin", "Female", portraits: Hers);
@@ -153,6 +168,8 @@ public class FaceProofTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 
         // A new portrait takes the mark off; proving it again pays nothing more.
         (await her.C.UploadRawAsync(Photo("p02_1.jpg"))).EnsureSuccessStatusCode();
+        (await her.C.MeAsync()).Profile!.FaceProvenAt.Should().BeNull();
+        (await her.C.FaceAsync()).Proven.Should().BeFalse();
         (await her.C.SeekAsync()).CandlesPerDay.Should().Be(3);
         (await her.C.ProveFaceAsync(straight, turned)).Outcome.Should().Be("proven");
         (await her.C.PointsAsync()).Should().Be(before + 20);

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Nightly (mingldingl-devdb-backup.timer, 02:00; units in scripts/systemd/): pg_dump the local database, gzip it, upload it to Supabase Storage bucket "backups"; keep 7 days locally.
+# Nightly (mingldingl-devdb-backup.timer, 02:00; units in scripts/systemd/): pg_dump the local database, gzip it, upload it to Supabase Storage bucket "backups"; keep 7 days on the HDD.
 set -euo pipefail
 ENGINE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CFG="$ENGINE_ROOT/src/MinglDingl.Engine/appsettings.Development.json"
-BACKUP_DIR="$ENGINE_ROOT/backups"
+BACKUP_DIR="${BACKUP_DIR:-/mnt/storage/backups/mingldingl-dev}"  # the 2TB HDD
 DUMP="$BACKUP_DIR/mingldingl-$(date +%Y%m%d-%H%M%S).sql.gz"
 mkdir -p "$BACKUP_DIR"
 exec >> "$BACKUP_DIR/backup.log" 2>&1

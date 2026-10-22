@@ -48,10 +48,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: dimension.strokeHairline,
     borderBottomColor: color.borderHairline,
   },
+  // Figma: the torch row is carved between two gold hairlines, open at the sides.
   you: {
     backgroundColor: color.bgPanel,
-    borderWidth: dimension.strokeHairline,
+    borderTopWidth: dimension.strokeHairline,
+    borderBottomWidth: dimension.strokeHairline,
     borderColor: color.borderGold,
+    borderBottomColor: color.borderGold,
   },
   gem: { width: 33, height: 33 },
   name: { flex: 1 },

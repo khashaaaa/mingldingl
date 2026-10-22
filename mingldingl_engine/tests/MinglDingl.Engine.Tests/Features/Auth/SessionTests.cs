@@ -208,7 +208,10 @@ public class SessionTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     {
         await using var f = new EngineFactory(db); var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
-        f.Clock.Advance(TimeSpan.FromMinutes(16)); // access tokens live 15 minutes
+        s.AccessExpiresAt.Should().Be(f.Clock.UtcNow.AddMinutes(15)); // access tokens live 15 minutes
+        f.Clock.Advance(TimeSpan.FromMinutes(14));
+        (await f.As(s).GetAsync("/me")).StatusCode.Should().Be(HttpStatusCode.OK);
+        f.Clock.Advance(TimeSpan.FromMinutes(1));
         (await f.As(s).PostAsync("/auth/sign-out", null)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 

@@ -46,7 +46,7 @@ description: How to run + drive MingldIngl end-to-end (scripts/dev.sh with fake 
 - `signup.yaml`, `resume.yaml`, `resume-every-step.yaml`, `keyboard-clear.yaml`;
   `two-devices.sh <A> <B>` = live-edit (with on-screen latency, limit 2 s) + revoke.
 - `device-pass.sh <device>` = the foundation screens (sign-in, onboarding, Character, Edit) in EN and MN, each diffed against its Figma
-  frame (`scripts/visual-diff.mjs`, token `~/.figma-token`). The frames show other names and
+  frame (`scripts/visual-diff.mjs`, token `.secrets/figma-token`). The frames show other names and
   photos, so read the three-panel images, not just the percentage.
 - Once per device: `push-seed-photos.sh <device>` — `_pick-portraits.yaml` picks from that album
   (Samsung picker: Collections → From this device → MingldinglSeed).

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using MinglDingl.Engine.Features.Admin;
 using MinglDingl.Engine.Features.Membership;
 using MinglDingl.Engine.Features.Payments;
 using MinglDingl.Engine.Features.Push;
@@ -77,6 +78,29 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         var stranger = SessionDriver.NewPhone();
         var r = await w.GuildRawAsync(stranger);
         (await CodeOf(r)).Should().Be("guild.no_character");
+    }
+
+    [Fact]
+    public async Task A_guild_token_reaches_neither_the_keepers_nor_either_hub_and_lasts_half_an_hour()
+    {
+        await using var w = await World.CreateAsync(db);
+        var phone = SessionDriver.NewPhone();
+        await w.PersonAsync("Bat", "Male", phone: phone);
+        var web = await w.GuildAsync(phone);
+        var token = web.DefaultRequestHeaders.Authorization!.Parameter;
+
+        (await web.GetAsync("/admin/users")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var app = () => w.F.ListenAsync(token);
+        await app.Should().ThrowAsync<Exception>();
+        var keepers = () => w.F.ListenAsync(token, "/admin/live");
+        await keepers.Should().ThrowAsync<Exception>();
+        var admin = await w.F.AdminAsync();
+        (await admin.GetAsync("/guild/me")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        await w.AdvanceAsync(TimeSpan.FromMinutes(29));
+        (await web.GetAsync("/guild/me")).StatusCode.Should().Be(HttpStatusCode.OK);
+        await w.AdvanceAsync(TimeSpan.FromMinutes(2));
+        (await web.GetAsync("/guild/me")).StatusCode.Should().Be(HttpStatusCode.Unauthorized, "no refresh: the page signs in again");
     }
 
     [Fact]
@@ -161,6 +185,58 @@ public class PaymentTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await admin.PostAsync($"/admin/payments/{gone.Id}/refund", null)).EnsureSuccessStatusCode();
         w.QPay().Refunded.Should().ContainSingle();
         (await admin.GetFromJsonAsync<AdminInvoiceView>($"/admin/invoices/{inv.Id}"))!.State.Should().Be("refunded");
+    }
+
+    [Fact]
+    public async Task Refunding_a_credited_payment_takes_its_floor_back()
+    {
+        await using var w = await World.CreateAsync(db);
+        var phone = SessionDriver.NewPhone();
+        var bat = await w.PersonAsync("Bat", "Male", phone: phone);
+        var web = await w.GuildAsync(phone);
+        var inv = await web.InvoiceAsync("hall", 1, "key-back-0001");
+        w.QPay().Pay(await w.QPayIdAsync(inv.Id));
+        await w.CallbackAsync(inv.Id);
+        (await bat.C.GetFromJsonAsync<GuildMe>("/me/membership"))!.Membership.Floor.Should().Be("hall");
+
+        var admin = await w.F.AdminAsync();
+        var paid = (await admin.GetFromJsonAsync<AdminPaymentsView>("/admin/payments"))!.Latest.Single(r => r.InvoiceId == inv.Id);
+        paid.State.Should().Be("credited");
+        (await CodeOf(await admin.PostAsync($"/admin/payments/{paid.Id}/handled", null)))
+            .Should().Be("payments.settled", "only a payment on the keepers' list can be marked handled");
+        (await admin.PostAsync($"/admin/payments/{paid.Id}/refund", null)).EnsureSuccessStatusCode();
+        w.QPay().Refunded.Should().ContainSingle();
+        (await bat.C.GetFromJsonAsync<GuildMe>("/me/membership"))!.Membership.Floor.Should().Be("yard");
+        (await admin.GetFromJsonAsync<AdminInvoiceView>($"/admin/invoices/{inv.Id}"))!.State.Should().Be("refunded");
+        (await CodeOf(await admin.PostAsync($"/admin/payments/{paid.Id}/refund", null))).Should().Be("payments.settled", "never twice");
+        w.QPay().Refunded.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task A_payment_short_of_the_price_is_never_credited_and_a_keeper_may_settle_it_as_handled()
+    {
+        await using var w = await World.CreateAsync(db);
+        var phone = SessionDriver.NewPhone();
+        var bat = await w.PersonAsync("Bat", "Male", phone: phone);
+        var web = await w.GuildAsync(phone);
+        var inv = await web.InvoiceAsync("hall", 1, "key-short-001");
+        w.QPay().Pay(await w.QPayIdAsync(inv.Id), inv.Amount - 1_000);
+        await w.CallbackAsync(inv.Id);
+        (await bat.C.GetFromJsonAsync<GuildMe>("/me/membership"))!.Membership.Floor.Should().Be("yard");
+
+        var admin = await w.F.AdminAsync();
+        var shortPaid = (await admin.GetFromJsonAsync<AdminPaymentsView>("/admin/payments"))!.Attention.Should().ContainSingle().Subject;
+        shortPaid.Note.Should().Be("Paid less than asked");
+        var handled = await (await admin.PostAsync($"/admin/payments/{shortPaid.Id}/handled", null)).Read<AdminPaymentRow>();
+        handled.State.Should().Be("handled");
+        (await admin.GetFromJsonAsync<AdminPaymentsView>("/admin/payments"))!.Attention.Should().BeEmpty();
+        (await CodeOf(await admin.PostAsync($"/admin/payments/{shortPaid.Id}/handled", null))).Should().Be("payments.settled");
+        (await CodeOf(await admin.PostAsync($"/admin/payments/{shortPaid.Id}/refund", null))).Should().Be("payments.settled");
+        w.QPay().Refunded.Should().BeEmpty();
+        (await bat.C.GetFromJsonAsync<GuildMe>("/me/membership"))!.Membership.Floor.Should().Be("yard", "handling credits nothing");
+        (await admin.GetFromJsonAsync<List<AuditRow>>("/admin/audit"))!
+            .Should().Contain(a => a.Action == "Payment marked as handled");
+        (await CodeOf(await admin.PostAsync($"/admin/payments/{Guid.NewGuid()}/handled", null))).Should().Be("payments.not_found");
     }
 
     [Fact]

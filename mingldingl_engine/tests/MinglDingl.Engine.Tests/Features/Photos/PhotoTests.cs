@@ -88,6 +88,28 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
+    public void A_big_phone_original_decodes_scaled_and_a_picture_too_big_to_scale_is_refused()
+    {
+        // 24 MP is over MaxPixels, but a JPEG decodes at a fraction straight from the codec.
+        using (var big = new SKBitmap(6000, 4000))
+        {
+            big.Erase(new SKColor(120, 130, 140));
+            using var jpeg = SKImage.FromBitmap(big).Encode(SKEncodedImageFormat.Jpeg, 80);
+            using var decoded = ImagePipeline.DecodeUpright(jpeg.ToArray());
+            decoded.Width.Should().BeInRange(ImagePipeline.MaxSide, 3000);
+            ImagePipeline.Process(jpeg.ToArray()).Width.Should().Be(ImagePipeline.MaxSide);
+        }
+        // A PNG has no scaled decode: past MaxPixels it is never decoded at all.
+        using (var wide = new SKBitmap(5000, 4000))
+        {
+            wide.Erase(new SKColor(120, 130, 140));
+            using var png = SKImage.FromBitmap(wide).Encode(SKEncodedImageFormat.Png, 100);
+            var act = () => ImagePipeline.Process(png.ToArray());
+            act.Should().Throw<MinglDingl.Engine.Kernel.Errors.DomainException>().Where(e => e.Code == "photos.too_large");
+        }
+    }
+
+    [Fact]
     public void A_plain_field_has_no_face()
     {
         using var bmp = new SKBitmap(900, 1200);
@@ -97,6 +119,72 @@ public class PhotoTests(PostgresFixture db) : IClassFixture<PostgresFixture>
             canvas.DrawRect(0, 0, 900, 1200, paint);
         using var jpeg = SKImage.FromBitmap(bmp).Encode(SKEncodedImageFormat.Jpeg, 90);
         ImagePipeline.Process(jpeg.ToArray(), findFace: true).Face.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task The_same_photo_again_is_refused_whether_it_is_yours_or_someone_elses()
+    {
+        var (f, store, c, vm) = await Ready(db); await using var _f = f;
+        await f.SetConfigAsync(ConfigKeys.PhotosRefuseSame, "true");
+        // Pictures made here, not fixtures: other tests on this database already stored those.
+        await f.SetConfigAsync(ConfigKeys.PhotosRequireFace, "false");
+        var bytes = Patchwork();
+        (await c.UploadRawAsync(bytes)).EnsureSuccessStatusCode();
+
+        // Re-encoded smaller, as a screenshot or a resend through a chat app would be.
+        using var original = SKBitmap.Decode(bytes);
+        using var smaller = original.Resize(new SKImageInfo(original.Width * 2 / 3, original.Height * 2 / 3), new SKSamplingOptions(SKCubicResampler.Mitchell));
+        using var resent = SKImage.FromBitmap(smaller).Encode(SKEncodedImageFormat.Jpeg, 60);
+        var mine = await c.UploadRawAsync(resent.ToArray());
+        mine.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await CodeOf(mine)).Should().Be("photos.same");
+
+        var other = f.As(await f.SignInAsync(vm, phone: "99112244"));
+        await other.CreateAsync();
+        var theirs = await other.UploadRawAsync(bytes);
+        theirs.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await CodeOf(theirs)).Should().Be("photos.taken");
+
+        store.Files.Should().HaveCount(1);
+        (await other.PhotosAsync()).Should().BeEmpty();
+
+        // A different photo still goes up.
+        (await other.UploadRawAsync(Patchwork())).EnsureSuccessStatusCode();
+    }
+
+    /// A photo no one has: a 6×8 patchwork of random greys.
+    private static byte[] Patchwork()
+    {
+        var rng = new Random();
+        using var bmp = new SKBitmap(900, 1200);
+        using (var canvas = new SKCanvas(bmp))
+            for (var y = 0; y < 8; y++)
+                for (var x = 0; x < 6; x++)
+                {
+                    var v = (byte)rng.Next(256);
+                    using var paint = new SKPaint { Color = new SKColor(v, v, v) };
+                    canvas.DrawRect(x * 150, y * 150, 150, 150, paint);
+                }
+        using var jpeg = SKImage.FromBitmap(bmp).Encode(SKEncodedImageFormat.Jpeg, 90);
+        return jpeg.ToArray();
+    }
+
+    [Fact]
+    public void The_same_photo_hash_holds_through_re_encoding_and_tells_different_photos_apart()
+    {
+        long HashOf(string fixture, double scale = 1, int quality = 90)
+        {
+            using var src = SKBitmap.Decode(File.ReadAllBytes(PhotoDriver.Fixture(fixture)));
+            using var sized = src.Resize(new SKImageInfo((int)(src.Width * scale), (int)(src.Height * scale)), new SKSamplingOptions(SKCubicResampler.Mitchell));
+            using var jpeg = SKImage.FromBitmap(sized).Encode(SKEncodedImageFormat.Jpeg, quality);
+            return ImagePipeline.Process(jpeg.ToArray()).SameHash;
+        }
+        int Bits(long a, long b) => System.Numerics.BitOperations.PopCount((ulong)(a ^ b));
+
+        var three = HashOf("photo-3.jpg");
+        Bits(three, HashOf("photo-3.jpg", 0.4, 55)).Should().BeLessThanOrEqualTo(3);
+        Bits(three, HashOf("photo-1.jpg")).Should().BeGreaterThan(16);
+        Bits(three, HashOf("photo-2.jpg")).Should().BeGreaterThan(16);
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using MinglDingl.Engine.Features.Auth;
 using MinglDingl.Engine.Kernel.Persistence;
 using MinglDingl.Engine.Tests.Infrastructure;
@@ -38,6 +39,16 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
         await using var f = new EngineFactory(db); f.UseScriptedWeSend();
         var r = await f.Client().PostAsJsonAsync("/auth/phone/start", new StartRequest("12ab", null));
         r.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task A_number_outside_the_mobile_ranges_gets_no_text()
+    {
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
+        var r = await f.Client().PostAsJsonAsync("/auth/phone/start", new StartRequest("11223344", null));
+        r.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await CodeOf(r)).Should().Be("auth.not_mobile");
+        ws.SendCalls.Should().Be(0);
     }
 
     [Fact]
@@ -154,6 +165,70 @@ public class PhoneVerificationTests(PostgresFixture db) : IClassFixture<Postgres
         await using var scope = f.Services.CreateAsyncScope();
         (await scope.ServiceProvider.GetRequiredService<AppDb>().Set<PhoneVerification>()
             .CountAsync(v => v.Phone == phone && v.State == VerificationState.Pending)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Parallel_wrong_codes_cannot_type_more_than_five()
+    {
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
+        var c = f.Client();
+        var s = await c.StartAsync(SessionDriver.NewPhone());
+        var answers = await Task.WhenAll(Enumerable.Range(0, 20).Select(_ => f.Client().CheckRawAsync(s.VerificationId, "999999")));
+        var codes = await Task.WhenAll(answers.Select(CodeOf));
+        codes.Count(x => x == "auth.wrong_code").Should().BeLessThan(PhoneVerificationService.MaxWrongTries);
+        (await CodeOf(await c.CheckRawAsync(s.VerificationId, ws.LastCode))).Should().Be("auth.verification_expired");
+    }
+
+    [Fact]
+    public async Task One_number_gets_five_texts_a_day()
+    {
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
+        var c = f.Client();
+        var phone = SessionDriver.NewPhone();
+        for (var i = 0; i < 5; i++)
+        {
+            await c.StartAsync(phone);
+            f.Clock.Advance(PhoneVerificationService.ResendAfter);
+        }
+        var sixth = await c.PostAsJsonAsync("/auth/phone/start", new StartRequest(phone, null));
+        sixth.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await CodeOf(sixth)).Should().Be("auth.too_many_codes");
+        ws.SendCalls.Should().Be(5, "the refused one cost nothing");
+
+        f.Clock.Advance(TimeSpan.FromDays(1));
+        await c.StartAsync(phone);
+    }
+
+    [Fact]
+    public async Task The_review_number_takes_five_wrong_codes_a_verification_and_twenty_a_day()
+    {
+        await using var f = new EngineFactory(db); var ws = f.UseScriptedWeSend();
+        const string review = "70110000", code = "246813";
+        f.WithServices(s => { s.RemoveAll<IWeSend>(); s.AddSingleton<IWeSend>(new ReviewWeSend(ws, review, code)); });
+        var c = f.Client();
+
+        var first = await c.StartAsync(review);
+        for (var i = 0; i < 4; i++) (await CodeOf(await c.CheckRawAsync(first.VerificationId, "000000"))).Should().Be("auth.wrong_code");
+        (await CodeOf(await c.CheckRawAsync(first.VerificationId, "000000"))).Should().Be("auth.too_many_attempts");
+        (await CodeOf(await c.CheckRawAsync(first.VerificationId, code))).Should().Be("auth.verification_expired");
+
+        // Three more spent the same way make twenty; the right code then waits for tomorrow.
+        for (var n = 0; n < 3; n++)
+        {
+            f.Clock.Advance(PhoneVerificationService.ResendAfter);
+            var v = await c.StartAsync(review);
+            for (var i = 0; i < 5; i++) await c.CheckRawAsync(v.VerificationId, "000000");
+        }
+        f.Clock.Advance(PhoneVerificationService.ResendAfter);
+        var late = await c.StartAsync(review);
+        var refused = await c.CheckRawAsync(late.VerificationId, code);
+        refused.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await CodeOf(refused)).Should().Be("auth.too_many_attempts");
+        ws.SendCalls.Should().Be(0, "the review number is never texted, nor held to the text cap");
+
+        f.Clock.Advance(TimeSpan.FromDays(1));
+        var tomorrow = await c.StartAsync(review);
+        (await c.CheckRawAsync(tomorrow.VerificationId, code)).EnsureSuccessStatusCode();
     }
 
     [Fact]

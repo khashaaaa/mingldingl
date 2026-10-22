@@ -3,6 +3,37 @@
 Newest first. One short entry per finished piece of work: what a person can now do, what was
 decided, what was fixed on a device. Open items live in the plan's Backlog, not here.
 
+## 2026-10-22 — Sign-in texts guarded against pumping; the loading dot gone
+
+A security pass (no SQL injection found: raw SQL splices only our own text; the server shows only
+Cloudflare). Sign-in texts, 80₮ each and open to anyone, are now harder to farm: only numbers in
+Mongolia's mobile ranges get one (`auth.mobilePrefixes`, editable in the admin; the review
+landline still passes), and a new database's day budget is 300 texts, not 2000. `/auth/refresh`
+has its own per-address limit (60 a minute; loose, for carrier NAT). The button's loading dot is
+gone; a loading button is still inert and busy to a screen reader.
+
+## 2026-10-22 — Paintings dissolve into the night; Hall torch row; Thread Log title
+
+A device pass over every room against its Figma frame (A51, Mongolian). Paintings set into a
+screen no longer end in a hard rectangle: `FadedArt` now ramps the painting's alpha to nothing over
+the last 56 px of every edge (a Skia `dstIn` gradient; the old 14 px blur only softened the cut),
+and the Hold atlas and the Ascent cliff use it beside the Hearth window — the floor's stars show
+through the last of the stone. The Hall of Names' own row is carved between two gold hairlines,
+open at the sides, as Figma draws it (it had a full box). The Thread Log's Mongolian title
+("Холбоосын тэмдэглэл") fits the header at full size. The three Figma art slots carry the same
+edge dissolve (alpha masks).
+
+## 2026-10-22 — Same photo refused; portrait grid steady while uploading
+
+An upload that matches a portrait already stored is refused: one's own (`photos.same`) or anyone
+else's (`photos.taken`, logged with both accounts — a borrowed or stolen face). The match is a
+64-bit brightness hash (`ImagePipeline.SameHash`, column `photos.SameHash`) within
+`photos.sameBits` (6) bits; re-encoded and resized copies stay within 3, different photos sit
+past 9 (dev's 213 photos: nothing between 1 and 9). `photos.refuseSame` switches it off; seeders
+skip it. Boot backfills old portraits from their files, 8 at a time. In the app the uploading
+tile now stays until its photo is in the list, so the grid no longer flickers or seems to
+reorder, and a moved portrait moves at once (back if refused).
+
 ## 2026-10-22 — Fewer round trips: live batches, honours on write, bulk signing
 
 Live events now go out as one deduplicated message per group per write (the old dedupe compared id

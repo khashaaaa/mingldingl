@@ -43,6 +43,14 @@ public sealed class AdminAuth(IConfiguration config, IClock clock, IMemoryCache 
     public const string Issuer = "mingl-admin";
     public static readonly TimeSpan Lifetime = TimeSpan.FromHours(12);
     private static readonly TimeSpan FailureWindow = TimeSpan.FromMinutes(15);
+    private readonly Lock _gate = new();
+
+    /// Tries from one address since the first, changed only under the gate.
+    private sealed class Tries(DateTimeOffset since)
+    {
+        public DateTimeOffset Since { get; } = since;
+        public int Count { get; set; }
+    }
 
     public static SymmetricSecurityKey Key(IConfiguration config)
     {
@@ -54,29 +62,29 @@ public sealed class AdminAuth(IConfiguration config, IClock clock, IMemoryCache 
         return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(raw));
     }
 
+    /// A try is reserved before the password is checked, under one lock: parallel requests each take
+    /// their own, so no burst slips past the limit while PBKDF2 runs. Success clears them.
     public AdminLoginResponse Login(string username, string password, string ip)
     {
         var maxFailures = config.GetValue("RateLimits:AdminLoginPer15Min", 5);
         var key = "admin-fail:" + ip;
         var now = clock.UtcNow;
-        if (cache.TryGetValue(key, out (int Count, DateTimeOffset Since) fails) && now - fails.Since > FailureWindow)
+        lock (_gate)
         {
-            cache.Remove(key);
-            fails = default;
+            if (!cache.TryGetValue(key, out Tries? tries) || now - tries!.Since > FailureWindow)
+                cache.Set(key, tries = new Tries(now), FailureWindow);
+            if (tries.Count >= maxFailures)
+                throw new DomainException(429, "admin.login_throttled", "Too many tries — wait 15 minutes");
+            tries.Count++;
         }
-        if (fails.Count >= maxFailures)
-            throw new DomainException(429, "admin.login_throttled", "Too many tries — wait 15 minutes");
 
         var expectedUser = config["Admin:Username"] ?? "";
         var hash = config["Admin:PasswordHash"] ?? "";
         var userOk = CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(username), Encoding.UTF8.GetBytes(expectedUser));
         var passOk = hash.Length > 0 && AdminPasswordHasher.Verify(password, hash);
         if (expectedUser.Length == 0 || !userOk || !passOk)
-        {
-            cache.Set(key, (fails.Count + 1, fails.Count == 0 ? now : fails.Since), FailureWindow);
             throw new DomainException(401, "admin.bad_login", "Wrong username or password");
-        }
-        cache.Remove(key);
+        lock (_gate) cache.Remove(key);
 
         var expires = now.Add(Lifetime);
         var token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor

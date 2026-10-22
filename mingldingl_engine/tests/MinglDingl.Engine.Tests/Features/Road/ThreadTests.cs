@@ -36,8 +36,10 @@ public class ThreadTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await anu.C.BondAsync(bond.Id)).SummonedByMe.Should().BeFalse("the weaver made it");
         (await dorj.C.BondAsync(bond.Id)).SummonedByMe.Should().BeFalse();
         (await weaver.C.PointsAsync()).Should().Be(before + 40);
+        var masked = pa[..4] + "····";
         (await weaver.C.GetFromJsonAsync<List<WovenRow>>("/threads/woven"))!.Single()
-            .Should().Match<WovenRow>(r => r.First == "Anu" && r.State == "sparked" && r.Points == 40);
+            .Should().Match<WovenRow>(r => r.First == masked && r.State == "sparked" && r.Points == 40,
+                "the weaver never learns whose number it is");
         (await weaver.C.GetFromJsonAsync<List<HonourView>>("/me/honours"))!.Single(h => h.Key == HonourKeys.ThreadWeaver).Earned.Should().BeTrue();
         (await anu.C.SeekAsync()).CandlesLeft.Should().Be((await anu.C.SeekAsync()).CandlesPerDay, "a thread spends no candle");
     }
@@ -57,7 +59,9 @@ public class ThreadTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 
         var t2 = await (await weaver.C.PostAsJsonAsync("/threads", new WeaveRequest(pa, pc))).Read<WovenView>();
         (await anu.C.PostAsJsonAsync($"/threads/{t2.Id}/answer", new ThreadAnswerRequest(false))).EnsureSuccessStatusCode();
-        (await weaver.C.GetFromJsonAsync<List<WovenRow>>("/threads/woven"))!.Select(r => r.State).Should().Equal("cut", "cut");
+        var log = (await weaver.C.GetFromJsonAsync<List<WovenRow>>("/threads/woven"))!;
+        log.Select(r => r.State).Should().Equal("cut", "cut");
+        log.Select(r => r.First).Should().Equal(pa[..4] + "····", pa[..4] + "····");
         (await anu.C.GetFromJsonAsync<List<InvitationView>>("/threads/for-me"))!.Should().BeEmpty();
         (await CodeOf(await weaver.C.PostAsJsonAsync("/threads", new WeaveRequest(pb, pc)))).Should().Be("threads.limit");
     }

@@ -14,6 +14,8 @@ export const E2E_ENGINE = 'http://localhost:5151';
 // Not Vite's next-free 5174: another project's dev server on this desktop usually holds it.
 const E2E_PANEL_PORT = process.env.E2E_PANEL_PORT ?? '5183';
 const E2E_PANEL = `http://localhost:${E2E_PANEL_PORT}`;
+/** The legal pages print it (deploy reads it from engine.env). */
+export const E2E_SUPPORT_EMAIL = 'keepers@e2e.test';
 export const E2E_ADMIN = { username: 'keeper-e2e', password: 'e2e-word-not-secret' };
 
 const salt = randomBytes(16);
@@ -78,7 +80,7 @@ export default defineConfig({
       command: `npx vite --port ${E2E_PANEL_PORT} --strictPort`,
       url: E2E_PANEL,
       reuseExistingServer: false,
-      env: { VITE_API_URL: E2E_ENGINE },
+      env: { VITE_API_URL: E2E_ENGINE, VITE_SUPPORT_EMAIL: E2E_SUPPORT_EMAIL },
     },
   ],
 });

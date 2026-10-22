@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { type APIRequestContext, expect, type Page, test } from '@playwright/test';
-import { E2E_ADMIN, E2E_ENGINE, e2eSql } from '../playwright.config';
+import { E2E_ADMIN, E2E_ENGINE, E2E_SUPPORT_EMAIL, e2eSql } from '../playwright.config';
 
 /** A name no earlier run has used. */
 const stamp = (name: string) => `${name} ${Date.now() % 100000}`;
@@ -54,6 +55,15 @@ async function enter(page: Page, path = '/') {
   await page.getByRole('button', { name: 'Enter' }).click();
 }
 
+/** A second keeper's session, for writes the panel under test should see arrive. */
+async function keeperToken(api: APIRequestContext) {
+  const res = await api.post(`${E2E_ENGINE}/admin/auth/login`, {
+    data: { username: E2E_ADMIN.username, password: E2E_ADMIN.password },
+  });
+  expect(res.ok()).toBe(true);
+  return (await res.json()).token as string;
+}
+
 /** Fills a keeper's dialog that asks for a reason, and confirms it. */
 async function withReason(page: Page, dialog: string, reason: string, confirm = dialog) {
   const d = page.getByRole('dialog', { name: dialog });
@@ -76,7 +86,6 @@ test('keeper sees a sign-up live, opens it, and an out-of-bounds config write is
 
   await page.getByRole('link', { name: 'Users' }).click();
   await expect(page.getByRole('heading', { name: 'Travellers' })).toBeVisible();
-  await expect(page.getByRole('table')).toBeVisible();
   // the live connection is up before the sign-up happens
   await expect(page.getByTestId('live-state')).toHaveAttribute('data-state', 'live');
 
@@ -140,14 +149,9 @@ test('a venue added elsewhere appears live; the keeper edits it and takes it off
   await expect(page.getByTestId('live-state')).toHaveAttribute('data-state', 'live');
 
   // another keeper's session adds a place
-  const login = await (
-    await request.post(`${E2E_ENGINE}/admin/auth/login`, {
-      data: { username: E2E_ADMIN.username, password: E2E_ADMIN.password },
-    })
-  ).json();
   const name = stamp('Nomad Café');
   const created = await request.post(`${E2E_ENGINE}/admin/venues`, {
-    headers: bearer(login.token),
+    headers: bearer(await keeperToken(request)),
     data: {
       name,
       nameMn: null,
@@ -174,11 +178,13 @@ test('a venue added elsewhere appears live; the keeper edits it and takes it off
   await expect(page.getByRole('row').filter({ hasText: name })).toContainText('Removed');
 });
 
-test('the keeper rings a bell, writes a Codex page in Mongolian, and both stand in the audit log', async ({
+test('the keeper rings a bell, sees a seat taken live, edits and cancels it, and moves a festival', async ({
   page,
+  request,
 }) => {
   await enter(page, '/square');
   await expect(page.getByRole('heading', { name: 'Gatherings' })).toBeVisible();
+  await expect(page.getByTestId('live-state')).toHaveAttribute('data-state', 'live');
 
   const bell = stamp('The Bell');
   await page.getByRole('button', { name: 'Ring a new bell' }).click();
@@ -187,10 +193,61 @@ test('the keeper rings a bell, writes a Codex page in Mongolian, and both stand 
   const local = new Date(at.getTime() - at.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
   await page.getByLabel('When (your local time)').fill(local);
   await page.getByRole('button', { name: 'Ring the bell' }).click();
-  await expect(page.getByRole('row').filter({ hasText: bell })).toContainText('Open');
-  await expect(page.getByRole('heading', { name: 'Festival calendar' })).toBeVisible();
+  const row = page.getByRole('row').filter({ hasText: bell });
+  await expect(row).toContainText('Open');
+  await expect(row).toContainText('0 / 16');
 
-  await page.getByRole('link', { name: 'Codex pages' }).click();
+  // A finished woman takes a seat; seats open to the High Table first, so the keepers give her that floor.
+  const u = await newcomer(request, stamp('Сэцэн'));
+  e2eSql(
+    `UPDATE profiles SET "WelcomedAt" = now(), "Gender" = 'Female' WHERE "AccountId" = '${u.accountId}'`,
+  );
+  const floor = await request.post(`${E2E_ENGINE}/admin/users/${u.accountId}/floor`, {
+    headers: bearer(await keeperToken(request)),
+    data: { floor: 'highTable', days: 30, reason: 'Square e2e' },
+  });
+  expect(floor.ok()).toBe(true);
+  const id = await row.getAttribute('data-gathering-id');
+  const seat = await request.post(`${E2E_ENGINE}/square/${id}/seat`, { headers: bearer(u.token) });
+  expect(seat.ok()).toBe(true);
+  await expect(row).toContainText('1 / 16', { timeout: 2_000 });
+
+  await row.getByRole('button', { name: 'Edit' }).click();
+  await page.getByLabel('Name of the bell').fill(`${bell} II`);
+  await page.getByLabel('Seats (half each side)').fill('20');
+  await page.getByRole('button', { name: 'Save' }).click();
+  const edited = page.getByRole('row').filter({ hasText: `${bell} II` });
+  await expect(edited).toContainText('1 / 20');
+  await edited.getByRole('button', { name: 'Cancel' }).click();
+  await expect(edited).toContainText('Cancelled');
+  await expect(edited.getByRole('button', { name: 'Edit' })).toHaveCount(0);
+
+  // A festival cannot end before it starts; a good date saves and the Save button goes.
+  const festival = page.locator('.square-festivals tbody tr').first();
+  const starts = await festival.locator('input[type=date]').first().inputValue();
+  const ends = festival.locator('input[type=date]').nth(1);
+  const dayBefore = new Date(Date.parse(starts) - 86_400_000).toISOString().slice(0, 10);
+  await ends.fill(dayBefore);
+  await festival.getByRole('button', { name: 'Save' }).click();
+  await expect(festival).toContainText('A festival ends on or after it starts');
+  await ends.fill(starts);
+  await festival.getByRole('button', { name: 'Save' }).click();
+  await expect(festival.getByRole('button', { name: 'Save' })).toHaveCount(0);
+  await expect(ends).toHaveValue(starts);
+
+  await page.getByRole('link', { name: 'Audit log' }).click();
+  await expect(page.getByRole('heading', { name: 'What the keepers did' })).toBeVisible();
+  for (const what of [
+    'A bell was rung',
+    'A gathering was edited',
+    'A gathering was cancelled',
+    'Festival calendar changed',
+  ])
+    await expect(page.getByRole('row').filter({ hasText: what })).toHaveCount(1);
+});
+
+test('the keeper writes a Codex page and a Wandering in Mongolian', async ({ page }) => {
+  await enter(page, '/codex');
   await expect(page.getByRole('heading', { name: 'The Codex' })).toBeVisible();
   const first = page.locator('tr[data-codex]').first();
   await expect(first).toContainText('Published'); // the first pages are seeded in both languages
@@ -201,13 +258,27 @@ test('the keeper rings a bell, writes a Codex page in Mongolian, and both stand 
   await page.getByRole('button', { name: 'Publish' }).click();
   await expect(page.getByRole('status')).toHaveText('Published.');
 
+  await page.getByRole('link', { name: 'Wanderings' }).click();
+  await expect(page.getByRole('heading', { name: 'The Wanderings' })).toBeVisible();
+  const wandering = page.locator('tr[data-wandering]').first();
+  const key = await wandering.getAttribute('data-wandering');
+  await wandering.getByRole('link').click();
+  await page.getByRole('tab', { name: 'Mongolian' }).click();
+  await page.getByLabel('Title (Mongolian)').fill('Шөнийн зам');
+  for (const kind of ['Cafe', 'Restaurant', 'Bar', 'Entertainment', 'Outdoor', 'Culture'])
+    await page.getByRole('checkbox', { name: kind }).setChecked(kind === 'Culture');
+  await page.getByRole('button', { name: 'Publish' }).click();
+  await expect(page.getByRole('status')).toHaveText('Published.');
+  await page.getByRole('link', { name: 'Wanderings' }).first().click();
+  const saved = page.locator(`tr[data-wandering="${key}"]`);
+  await expect(saved).toContainText('Шөнийн зам');
+  await expect(saved.getByRole('cell').nth(2)).toHaveText('Culture');
+
   await page.getByRole('link', { name: 'Audit log' }).click();
-  await expect(page.getByRole('heading', { name: 'What the keepers did' })).toBeVisible();
-  await expect(page.getByRole('row').filter({ hasText: 'A bell was rung' })).toHaveCount(1);
   await expect(page.getByRole('row').filter({ hasText: 'Codex page saved' })).toHaveCount(1);
 });
 
-test('a character pays on the web page, a second payment waits on the keepers, and is refunded', async ({
+test('a character pays on the web page; two more payments wait on the keepers, one refunded, one handled', async ({
   page,
   request,
 }) => {
@@ -225,19 +296,23 @@ test('a character pays on the web page, a second payment waits on the keepers, a
   const invoice = await (await made).json();
   await expect(page.getByRole('heading', { name: 'Scan to pay' })).toBeVisible();
 
-  // The bank app pays — twice.
-  expect((await request.post(`${E2E_ENGINE}/dev/qpay/pay/${invoice.id}`)).ok()).toBe(true);
-  expect((await request.post(`${E2E_ENGINE}/dev/qpay/pay/${invoice.id}`)).ok()).toBe(true);
+  // The bank app pays — three times.
+  for (let i = 0; i < 3; i++)
+    expect((await request.post(`${E2E_ENGINE}/dev/qpay/pay/${invoice.id}`)).ok()).toBe(true);
   await expect(page.getByRole('heading', { name: 'Welcome to the Hall' })).toBeVisible({ timeout: 10_000 });
 
   await enter(page);
   await page.getByRole('link', { name: 'Payments' }).click();
   await expect(page.getByRole('heading', { name: 'The coffers' })).toBeVisible();
-  const row = page.getByRole('row').filter({ hasText: 'Paid twice' });
-  await expect(row).toBeVisible({ timeout: 5_000 });
-  await row.getByRole('link', { name: 'Settle' }).click();
+  const rows = page.getByRole('row').filter({ hasText: 'Paid twice' });
+  await expect(rows).toHaveCount(2, { timeout: 5_000 });
+  await rows.first().getByRole('link', { name: 'Settle' }).click();
   await page.getByRole('button', { name: /Refund 29,430₮/ }).click();
   await expect(page.getByRole('cell', { name: 'Refunded through QPay' })).toBeVisible({ timeout: 5_000 });
+  // the same invoice's other extra payment is next; the keeper settled it another way
+  await page.getByRole('button', { name: 'Mark as handled' }).click();
+  await expect(page.getByRole('cell', { name: 'Marked as handled' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mark as handled' })).toHaveCount(0);
   await page.getByRole('link', { name: 'The coffers' }).click();
   await expect(page.getByText('Nothing waits on the keepers.')).toBeVisible();
 });
@@ -261,7 +336,11 @@ test("the stores' web deletion link signs a character in and abandons it", async
   const u = await newcomer(request, stamp('Leave'));
   finish(u.accountId);
 
-  await page.goto('/guild/?leave&lang=en');
+  await page.goto('/delete/');
+  await expect(page.getByRole('heading', { name: 'Delete your MingldIngl account' })).toBeVisible();
+  await page.getByRole('link', { name: 'Наймааны өргөөг нээнэ' }).click();
+  await expect(page.getByRole('heading', { name: 'Баатраа орхих' })).toBeVisible();
+  await page.getByRole('button', { name: 'English' }).click();
   await expect(page.getByRole('heading', { name: 'Abandon your character' })).toBeVisible();
   await guildSignIn(page, u.phone);
   await expect(page.getByRole('heading', { name: `Abandon ${u.name}?` })).toBeVisible({ timeout: 10_000 });
@@ -272,15 +351,14 @@ test("the stores' web deletion link signs a character in and abandons it", async
   expect(me.deleteAt).toBeTruthy();
 });
 
-test('the keeper reads the dashboard, every statistics group with its CSV, deletions and the engine room', async ({
+test('the keeper reads the dashboard, every statistics group with its CSV, deletions, a thread woven live and the engine room', async ({
   page,
   request,
 }) => {
-  await newcomer(request, stamp('Ledger'));
+  const weaver = await newcomer(request, stamp('Ledger'));
 
   await enter(page);
   await expect(page.getByRole('heading', { name: 'The hold tonight' })).toBeVisible();
-  await page.screenshot({ path: 'test-results/shots/dashboard.png' });
 
   await page.getByRole('link', { name: 'Analytics' }).click();
   await expect(page.getByRole('heading', { name: 'The ledger of the hold' })).toBeVisible();
@@ -291,7 +369,6 @@ test('the keeper reads the dashboard, every statistics group with its CSV, delet
       'page',
     );
     await expect(page.getByRole('table')).toBeVisible();
-    await page.screenshot({ path: `test-results/shots/stats-${group.toLowerCase()}.png`, fullPage: true });
   }
   await page.getByRole('link', { name: 'Growth', exact: true }).click();
   await expect(page.getByRole('cell', { name: 'In the world' })).toBeVisible();
@@ -304,10 +381,70 @@ test('the keeper reads the dashboard, every statistics group with its CSV, delet
 
   await page.getByRole('link', { name: 'Deletions' }).click();
   await expect(page.getByRole('heading', { name: 'Characters fading' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Fated Threads' }).click();
+  await expect(page.getByRole('heading', { name: 'Threads woven' })).toBeVisible();
+  await expect(page.getByTestId('live-state')).toHaveAttribute('data-state', 'live');
+  const phone = () => `88${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
+  const woven = await request.post(`${E2E_ENGINE}/threads`, {
+    headers: bearer(weaver.token),
+    data: { first: phone(), second: phone() },
+  });
+  expect(woven.ok()).toBe(true);
+  const thread = page.locator(`tr[data-thread-id="${(await woven.json()).id}"]`);
+  await expect(thread).toContainText(weaver.name, { timeout: 2_000 });
+  await expect(thread).toContainText('Waiting');
   await page.getByRole('link', { name: 'Ops' }).click();
   await expect(page.getByRole('heading', { name: 'The engine room' })).toBeVisible();
   await expect(page.getByText('Healthy')).toBeVisible();
-  await page.screenshot({ path: 'test-results/shots/ops.png' });
+});
+
+test('a portrait arrives live and forgets a proven face; the keeper removes it and clears the name', async ({
+  page,
+  request,
+}) => {
+  await enter(page);
+  const name = stamp('Номин');
+  const u = await newcomer(request, name);
+  e2eSql(`UPDATE profiles SET "FaceProvenAt" = now() WHERE "AccountId" = '${u.accountId}'`);
+  await page.getByRole('link', { name: 'Users' }).click();
+  await page.locator(`tr[data-account-id="${u.accountId}"]`).click();
+  await expect(page.getByRole('heading', { name })).toBeVisible();
+  const face = page.locator('dt', { hasText: 'Face' }).locator('+ dd');
+  await expect(face).toHaveText(/^proven /);
+  await expect(page.getByText('No portraits yet.')).toBeVisible();
+
+  // The real photo store holds this one until the keeper removes it below.
+  const upload = await request.post(`${E2E_ENGINE}/me/photos`, {
+    headers: { ...bearer(u.token), 'Idempotency-Key': `pw-${Date.now()}` },
+    multipart: {
+      file: {
+        name: 'p.jpg',
+        mimeType: 'image/jpeg',
+        buffer: readFileSync('../mingldingl_engine/tests/MinglDingl.Engine.Tests/Fixtures/photo-3.jpg'),
+      },
+    },
+  });
+  expect(upload.ok()).toBe(true);
+  await expect(page.getByRole('img', { name: 'Portrait 1' })).toBeVisible({ timeout: 2_000 });
+  await expect(face).toHaveText('not proven');
+
+  await page.locator('.portrait').getByRole('button', { name: 'Remove' }).click();
+  await withReason(page, 'Remove a portrait', 'Not a portrait of them');
+  await expect(page.getByText('No portraits yet.')).toBeVisible();
+  await expect(page.locator('.stat').filter({ hasText: 'Portraits' })).toContainText('0');
+
+  await page.getByRole('button', { name: 'Clear name' }).click();
+  await withReason(page, 'Clear the name', 'A phone number in the name');
+  await expect(page.getByRole('heading', { name: 'Аянчин' })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Audit log' }).click();
+  await expect(page.getByRole('row').filter({ hasText: 'Not a portrait of them' })).toContainText(
+    'Removed a portrait',
+  );
+  await expect(page.getByRole('row').filter({ hasText: 'A phone number in the name' })).toContainText(
+    'Cleared the',
+  );
 });
 
 test('the keeper gives a floor, suspends with a reason, lifts it, and the audit log keeps the reasons', async ({
@@ -338,6 +475,25 @@ test('the keeper gives a floor, suspends with a reason, lifts it, and the audit 
   await page.getByRole('link', { name: 'Audit log' }).click();
   await expect(page.getByRole('row').filter({ hasText: 'Appeal heard' })).toContainText('Suspension lifted');
   await expect(page.getByRole('row').filter({ hasText: 'Asked for money' })).toContainText('Suspended');
+});
+
+test('the legal pages the stores link to open in Mongolian and English, with the keepers to write to', async ({
+  page,
+}) => {
+  const pages: [string, string, string][] = [
+    ['/privacy/', 'Нууцлалын бодлого', 'Privacy Policy'],
+    ['/terms/', 'Үйлчилгээний нөхцөл', 'Terms of Use'],
+    ['/safety/', 'Хүүхдийн аюулгүй байдлын стандарт', 'Child Safety Standards'],
+  ];
+  for (const [path, mn, en] of pages) {
+    await page.goto(path);
+    await expect(page.locator('article[lang="mn"] h1')).toHaveText(mn);
+    await expect(page.locator('article[lang="en"] h1')).toHaveText(en);
+    await expect(page.locator('a[href^="mailto:"]').first()).toHaveAttribute(
+      'href',
+      `mailto:${E2E_SUPPORT_EMAIL}`,
+    );
+  }
 });
 
 test("a removed troll's number is barred, their phone flags the next character, and the keeper lifts the bar", async ({

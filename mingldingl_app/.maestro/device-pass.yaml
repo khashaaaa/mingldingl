@@ -20,7 +20,7 @@ env:
 - waitForAnimationToEnd
 - takeScreenshot: ${LOCALE}-23-6
 
-- tapOn: Enter the Gate
+- tapOn: Enter the Gate|Дааман хаалгаар орох
 - extendedWaitUntil: { visible: 'Prove your number|Дугаараа баталгаажуулах', timeout: 10000 }
 - tapOn: Phone number|Утасны дугаар
 - inputText: '8858'
@@ -28,16 +28,17 @@ env:
 
 - eraseText: 8
 - inputText: '99000000'
-- tapOn: Continue
+- tapOn: Continue|Үргэлжлүүлэх
 - extendedWaitUntil: { visible: 'Speak the code|Кодоо хэл', timeout: 15000 }
 - waitForAnimationToEnd
 - takeScreenshot: ${LOCALE}-23-141
 
-- tapOn: Use another number
+- runFlow: { file: _keys-away.yaml, env: { AT: 'Speak the code|Кодоо хэл' } }
+- tapOn: Use another number|Өөр дугаар ашиглах
 - tapOn: Phone number|Утасны дугаар
 - eraseText: 8
 - inputText: '99000001'
-- tapOn: Continue
+- tapOn: Continue|Үргэлжлүүлэх
 - runFlow: _code.yaml
 - extendedWaitUntil: { visible: 'That code expired|Кодын хугацаа дууслаа', timeout: 20000 }
 - waitForAnimationToEnd
@@ -47,7 +48,7 @@ env:
 - tapOn: Phone number|Утасны дугаар
 - eraseText: 8
 - inputText: ${PHONE}
-- tapOn: Continue
+- tapOn: Continue|Үргэлжлүүлэх
 - runFlow: _code.yaml
 # "The gate opens" holds for ceremonyMin (1.2 s); Maestro's inputText often returns after it is
 # gone, so its frame is caught when it can be and never fails the pass.
@@ -57,58 +58,58 @@ env:
     commands:
       - takeScreenshot: ${LOCALE}-23-216
 
-- extendedWaitUntil: { visible: 'What does the hold call you\?', timeout: 15000 }
+- extendedWaitUntil: { visible: 'What does the hold call you\?|Цайзад чамайг хэн гэж дуудах вэ\?', timeout: 15000 }
 - tapOn: First name|Нэр
 - inputText: Munkhbold
 - pressKey: Enter
 - inputText: '14031995'
-- runFlow: { file: _keys-away.yaml, env: { AT: 'What does the hold call you\?' } }
+- runFlow: { file: _keys-away.yaml, env: { AT: 'What does the hold call you\?|Цайзад чамайг хэн гэж дуудах вэ\?' } }
 - takeScreenshot: ${LOCALE}-23-359
 
-- tapOn: Continue
-- extendedWaitUntil: { visible: You are…, timeout: 10000 }
-- tapOn: A man
+- tapOn: Continue|Үргэлжлүүлэх
+- extendedWaitUntil: { visible: 'You are…|Чи бол…', timeout: 10000 }
+- tapOn: A man|Эрэгтэй
 - takeScreenshot: ${LOCALE}-23-442
-- tapOn: { text: Continue, optional: true }
+- tapOn: { text: Continue|Үргэлжлүүлэх, optional: true }
 
-- extendedWaitUntil: { visible: Your portraits, timeout: 10000 }
+- extendedWaitUntil: { visible: 'Your portraits|Чиний хөргүүд', timeout: 10000 }
 - runFlow: { file: _pick-portraits.yaml, env: { COUNT: 2 } }
-- extendedWaitUntil: { visible: '(?i)2 of 3 needed.*', timeout: 60000 }
+- extendedWaitUntil: { visible: '(?i)(2 of 3 needed|2 / 3 хэрэгтэй).*', timeout: 60000 }
 - waitForAnimationToEnd
 - takeScreenshot: ${LOCALE}-23-530
 - runFlow: { file: _pick-portraits.yaml, env: { COUNT: 1 } }
-- extendedWaitUntil: { visible: '(?i)3 of 3 needed.*', timeout: 60000 }
-- tapOn: Continue
+- extendedWaitUntil: { visible: '(?i)(3 of 3 needed|3 / 3 хэрэгтэй).*', timeout: 60000 }
+- tapOn: Continue|Үргэлжлүүлэх
 
-- extendedWaitUntil: { visible: Your tale, timeout: 10000 }
+- extendedWaitUntil: { visible: 'Your tale|Чиний домог', timeout: 10000 }
 - runFlow: { file: _type-tale.yaml, env: { TEXT: 'I keep a falcon and read old maps by candlelight. Looking for someone who knows the valleys.' } }
-- runFlow: { file: _keys-away.yaml, env: { AT: 'Your tale' } }
-- tapOn: Where do you live\?
-- tapOn: Ulaanbaatar
-- tapOn: Bayangol
+- runFlow: { file: _keys-away.yaml, env: { AT: 'Your tale|Чиний домог' } }
+- tapOn: Where do you live\?|Хаана амьдардаг вэ\?
+- tapOn: Ulaanbaatar|Улаанбаатар
+- tapOn: Bayangol|Баянгол
 - takeScreenshot: ${LOCALE}-23-624
 
-- tapOn: Where do you live\?
+- tapOn: Where do you live\?|Хаана амьдардаг вэ\?
 - waitForAnimationToEnd
 - takeScreenshot: ${LOCALE}-23-707
-- tapOn: Use my location
+- tapOn: Use my location|Байршлаа ашиглах
 - tapOn: { text: "Don.t allow|Deny", optional: true }   # 'deny' still lets the app ask once
-- tapOn: Search a city or soum
+- tapOn: Search a city or soum|Хот эсвэл сум хайх
 - inputText: Erd
 - scroll     # dragging the list puts the keys away, as in the frame
 - takeScreenshot: ${LOCALE}-23-810
 - tapOn: Back|Буцах
 
-- tapOn: Continue
-- extendedWaitUntil: { visible: Swear your oath, timeout: 10000 }
-- tapOn: Bond
+- tapOn: Continue|Үргэлжлүүлэх
+- extendedWaitUntil: { visible: 'Swear your oath|Тангаргаа өргө', timeout: 10000 }
+- tapOn: Bond|Холбоо
 - takeScreenshot: ${LOCALE}-23-881
-- tapOn: Swear the oath
-- extendedWaitUntil: { visible: Your tale is written in full\., timeout: 10000 }
+- tapOn: Swear the oath|Тангараг өргөх
+- extendedWaitUntil: { visible: 'Your tale is written in full\.|Чиний домог бүрэн бичигдлээ\.', timeout: 10000 }
 - waitForAnimationToEnd
 - takeScreenshot: ${LOCALE}-23-973
 
-- tapOn: Enter the Hearth
+- tapOn: Enter the Hearth|Гал голомтод орох
 # Finishing lands in Seek; Character is its own tab, and Edit sits in its War Room (⋮).
 - extendedWaitUntil: { visible: Character|Баатар, timeout: 15000 }
 - tapOn: Character|Баатар

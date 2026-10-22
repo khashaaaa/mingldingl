@@ -4,12 +4,15 @@ using MinglDingl.Engine.Kernel.Storage;
 
 namespace MinglDingl.Engine.Features.Photos;
 
-/// One signed URL per photo, reused until it has under 10 minutes left, so a device reading the
-/// same photo twice gets the same URL (and its image cache is not filled with duplicates).
+/// One signed URL per photo, reused until it has under 5 minutes left, so a device reading the
+/// same photo twice gets the same URL (and its image cache is not filled with duplicates). One URL
+/// is shared by every viewer, so it is handed out for 10 minutes at most: a link copied off a
+/// device stops working soon after.
 public sealed class SignedUrlCache(IPhotoStore store, IMemoryCache cache, IClock clock)
 {
-    public static readonly TimeSpan Ttl = TimeSpan.FromMinutes(60);
-    public static readonly TimeSpan RenewBefore = TimeSpan.FromMinutes(10);
+    public static readonly TimeSpan Ttl = TimeSpan.FromMinutes(15);
+    public static readonly TimeSpan RenewBefore = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan Kept = Ttl - RenewBefore;
 
     public Task<(string Url, DateTimeOffset ExpiresAt)> GetAsync(Photo p, CancellationToken ct = default) =>
         GetAsync(p.Id, p.Path, ct);
@@ -22,7 +25,7 @@ public sealed class SignedUrlCache(IPhotoStore store, IMemoryCache cache, IClock
             return hit;
         var url = await store.SignAsync(path, Ttl, ct);
         var fresh = (url, clock.UtcNow.Add(Ttl));
-        cache.Set(key, fresh, Ttl);
+        cache.Set(key, fresh, Kept);
         return fresh;
     }
 
@@ -45,7 +48,7 @@ public sealed class SignedUrlCache(IPhotoStore store, IMemoryCache cache, IClock
         foreach (var (id, path) in missing)
         {
             var fresh = (signed[path], expires);
-            cache.Set("signed:" + id, fresh, Ttl);
+            cache.Set("signed:" + id, fresh, Kept);
             result[id] = fresh;
         }
         return result;

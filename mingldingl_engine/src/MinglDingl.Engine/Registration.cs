@@ -46,12 +46,19 @@ public static class Registration
         }
         else
         {
-            s.AddHttpClient<IWeSend, WeSendClient>(c =>
+            s.AddHttpClient<WeSendClient>(c =>
             {
                 c.BaseAddress = new Uri((config["WeSend:BaseUrl"] ?? "https://api.wesend.mn").TrimEnd('/') + "/");
                 c.DefaultRequestHeaders.Authorization = new("Bearer", config["WeSend:ApiKey"]);
                 c.Timeout = TimeSpan.FromSeconds(10);
             });
+            if (config["Review:Phone"] is { Length: > 0 } reviewPhone)
+            {
+                if (config["Review:Code"] is not { Length: 6 } reviewCode || !reviewCode.All(char.IsAsciiDigit))
+                    throw new InvalidOperationException("Review:Phone needs a six-digit Review:Code");
+                s.AddTransient<IWeSend>(sp => new ReviewWeSend(sp.GetRequiredService<WeSendClient>(), reviewPhone, reviewCode));
+            }
+            else s.AddTransient<IWeSend>(sp => sp.GetRequiredService<WeSendClient>());
         }
         s.AddScoped<PhoneVerificationService>();
         s.AddScoped<SessionService>();

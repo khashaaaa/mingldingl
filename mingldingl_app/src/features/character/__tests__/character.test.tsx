@@ -1,5 +1,7 @@
+import { router } from 'expo-router';
 import { act, fireEvent, screen } from 'expo-router/testing-library';
 import WorldLayout from '@/app/(world)/_layout';
+import { ApiError } from '@/lib/api/client';
 import {
   getAppStatus,
   getDeepProfile,
@@ -40,13 +42,21 @@ jest.mock('expo-image-picker', () => ({
 }));
 /** The live front camera: ready at once, every picture the same tiny JPEG. */
 const mockTakePicture = jest.fn(async (_options?: unknown) => ({ base64: 'AAAA', uri: 'file://s.jpg' }));
+/** How many live previews are on screen: 0 means the camera light is off. */
+const mockLens = { on: 0 };
 jest.mock('expo-camera', () => {
   const { forwardRef, useEffect, useImperativeHandle } = jest.requireActual('react');
   return {
     useCameraPermissions: () => [{ granted: true, canAskAgain: true }, jest.fn()],
     CameraView: forwardRef((props: { onCameraReady?: () => void }, ref: unknown) => {
       useImperativeHandle(ref, () => ({ takePictureAsync: (o: unknown) => mockTakePicture(o) }));
-      useEffect(() => props.onCameraReady?.(), []);
+      useEffect(() => {
+        mockLens.on++;
+        props.onCameraReady?.();
+        return () => {
+          mockLens.on--;
+        };
+      }, []);
       return null;
     }),
   };
@@ -117,6 +127,8 @@ function fakeEngine() {
     /** What the engine answers the next face check. */
     faceOutcome: 'proven',
     faceChecks: 0,
+    /** A rule the engine answers the next face check with instead. */
+    faceRefusal: null as ApiError | null,
   };
   // Copies, like JSON off the wire: a shared object mutated in place would look unchanged to the cache.
   const me = (): MeView => ({
@@ -151,6 +163,7 @@ function fakeEngine() {
       case 'GET /me/face':
         return { ...e.face };
       case 'POST /me/face':
+        if (e.faceRefusal) throw e.faceRefusal;
         e.faceChecks++;
         e.face = { ...e.face, triesLeft: e.face.triesLeft - 1, proven: e.faceOutcome === 'proven' };
         if (e.face.proven) e.profile.faceProvenAt = '2026-10-22T00:00:00Z';
@@ -359,6 +372,33 @@ describe('Prove your face', () => {
     await press('Begin');
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
     expect(engine.faceChecks).toBe(0);
+  });
+
+  test('a rule the engine answers with is said in its own words', async () => {
+    engine.faceRefusal = new ApiError('rule', 409, 'face.tries', 'none left');
+    await show('/face-proof');
+    await press('Begin');
+    expect(screen.getByText('No face checks left today — try again tomorrow.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+  });
+
+  test('with no tries left the camera stays off and there is nothing to press', async () => {
+    engine.face.triesLeft = 0;
+    await show('/face-proof');
+    expect(screen.getByText('No tries left today. Come back tomorrow.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Begin' })).toBeNull();
+    expect(mockLens.on).toBe(0);
+  });
+
+  test('a room opened over the check lets the camera go, and coming back brings it again', async () => {
+    await show('/face-proof');
+    expect(mockLens.on).toBe(1);
+    await act(async () => router.push('/war-room'));
+    await settle();
+    expect(mockLens.on).toBe(0);
+    await act(async () => router.back());
+    await settle();
+    expect(mockLens.on).toBe(1);
   });
 });
 

@@ -61,6 +61,8 @@ function fakeEngine() {
     failUploads: 0,
     /** An engine rule code every upload is refused with (e.g. photos.no_face). */
     refuseUploads: null as string | null,
+    /** The photo list as it was before any upload: a refetch that has not caught up yet. */
+    staleList: null as PhotoView[] | null,
     min: 3,
   };
   const step = () => {
@@ -117,7 +119,7 @@ function fakeEngine() {
         return me();
       }
       case 'GET /me/photos':
-        return e.photos;
+        return e.staleList ?? e.photos;
       case 'POST /me/photos': {
         const idem = new Headers(init.headers).get('Idempotency-Key') as string;
         e.uploads.push(idem);
@@ -319,6 +321,29 @@ describe('Onboarding', () => {
     await press('Lost — tap');
     expect(engine.e.uploads.filter((k) => k === first)).toHaveLength(2);
     expect(engine.e.photos.map((p) => p.id)).toContain(`p-${first}`);
+  });
+
+  test('portraits picked together stay in the order picked, in their slots, even before the list refetches', async () => {
+    engine.e.profile = { ...base(), gender: 'Female' };
+    engine.e.staleList = [];
+    picker.requestMediaLibraryPermissionsAsync.mockResolvedValue({ granted: true } as never);
+    picker.launchImageLibraryAsync.mockResolvedValue({
+      canceled: false,
+      assets: [
+        { uri: 'file:///a.jpg', base64: '/9j/a' },
+        { uri: 'file:///b.jpg', base64: '/9j/b' },
+      ],
+    } as never);
+    await show();
+
+    await addPortrait();
+    expect(engine.e.uploads).toHaveLength(2);
+    expect(screen.queryByLabelText('Uploading the portrait')).toBeNull();
+    const [a, b] = engine.e.uploads;
+    expect(screen.getByLabelText('Portrait 1 of 2')).toBeTruthy();
+    expect(screen.getByLabelText('Portrait 2 of 2')).toBeTruthy();
+    expect(engine.e.photos.map((x) => x.id)).toEqual([`p-${a}`, `p-${b}`]);
+    expect(screen.getAllByRole('button', { name: 'Add a portrait' })).toHaveLength(4);
   });
 
   test('a photo the engine refuses leaves the grid with its reason, not a retry', async () => {

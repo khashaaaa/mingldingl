@@ -69,15 +69,6 @@ export function Button({ label, onPress, kind = 'forged', disabled, loading, blo
           {pressed && <View style={[StyleSheet.absoluteFill, { backgroundColor: component.pressDarken }]} />}
           <View style={styles.row}>
             {!plain && <Fastener kind="rivet" size={10} />}
-            {loading && (
-              <View
-                style={[
-                  styles.candle,
-                  plain && { backgroundColor: color.accentEmber },
-                  { boxShadow: boxShadow('glowEmber') },
-                ]}
-              />
-            )}
             <Txt
               variant="labelM"
               color={unlit ? 'textMuted' : plain ? 'textPrimary' : 'bgBase'}
@@ -109,5 +100,4 @@ const styles = StyleSheet.create({
     gap: dimension.space3,
     paddingHorizontal: dimension.space5,
   },
-  candle: { width: 8, height: 8, borderRadius: 4, backgroundColor: color.bgBase },
 });

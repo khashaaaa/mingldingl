@@ -1,7 +1,7 @@
 import { type Href, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { FillArt } from '@/design/components/Art';
+import { FadedArt } from '@/design/components/FadedArt';
 import { RoomHeader } from '@/design/components/RoomHeader';
 import { Txt } from '@/design/components/Txt';
 import { withAlpha } from '@/design/effects';
@@ -38,7 +38,7 @@ export default function Hold() {
         accessibilityLabel={t('hold.atlas')}
         onLayout={(e) => setScale(e.nativeEvent.layout.width / W)}
       >
-        <FillArt name="hold_atlas" />
+        <FadedArt name="hold_atlas" />
         {scale > 0 &&
           ROOMS.map((r) => {
             const on = r.key === here;

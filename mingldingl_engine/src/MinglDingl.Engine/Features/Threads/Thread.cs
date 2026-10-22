@@ -49,8 +49,8 @@ public sealed record WeaveRequest(
 /// What the weaver gets back: the two invitations to share.
 public sealed record WovenView(Guid Id, string FirstCode, string SecondCode);
 
-/// A thread in the weaver's Thread Log. first: the first person's name, or their masked number when
-/// they have no character yet. state: waiting / oneSaidYes / sparked / cut.
+/// A thread in the weaver's Thread Log. first: the first person's masked number (9911····), whether
+/// or not it has a character. state: waiting / oneSaidYes / sparked / cut.
 public sealed record WovenRow(Guid Id, string First, string State, DateTimeOffset WovenAt, int Points);
 
 /// A thread woven for me (the Quest Log row and its page): who wove it, whether I answered.

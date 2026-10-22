@@ -38,6 +38,8 @@ public class TrollTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await Start(w, phone)).EnsureSuccessStatusCode();
         (await admin.GetFromJsonAsync<List<AuditRow>>("/admin/audit"))!.First()
             .Should().Match<AuditRow>(a => a.Action == "Lifted the bar on a number" && a.Target == phone && a.Note == "Appealed");
+        (await admin.GetFromJsonAsync<List<AdminBarredRow>>("/admin/barred"))!.Should().NotContain(b => b.Phone == phone);
+        (await CodeOf(await admin.PostAsJsonAsync($"/admin/barred/{phone}/lift", new KeeperReason("Again")))).Should().Be("admin.not_barred");
     }
 
     [Fact]

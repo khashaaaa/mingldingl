@@ -128,4 +128,29 @@ public class SquareTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await CodeOf(await admin.PutAsJsonAsync($"/admin/gatherings/{g.Id}",
             new GatheringWriteRequest("Late", w.F.Clock.UtcNow.AddHours(1), 3, 5, 8, null, true)))).Should().Be("square.started");
     }
+
+    [Fact]
+    public async Task A_cancelled_gathering_leaves_the_tab_takes_no_seats_and_its_night_never_begins()
+    {
+        await using var w = await World.CreateAsync(db);
+        var admin = await w.F.AdminAsync();
+        var g = await Ring(w, admin, inMinutes: 15);
+        var bat = await w.PersonAsync("Bat", "Male");
+        var anu = await w.PersonAsync("Anu", "Female");
+        (await bat.C.PostAsync($"/square/{g.Id}/seat", null)).EnsureSuccessStatusCode();
+
+        (await admin.PostAsync($"/admin/gatherings/{g.Id}/cancel", null)).StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+        (await bat.C.GetFromJsonAsync<SquareView>("/square"))!.Next.Should().BeNull();
+        (await CodeOf(await anu.C.PostAsync($"/square/{g.Id}/seat", null))).Should().Be("square.closed");
+        (await Night(bat.C, g.Id)).Phase.Should().Be("closed");
+        (await admin.GetFromJsonAsync<List<AdminGatheringRow>>("/admin/gatherings"))!.Single().State.Should().Be("cancelled");
+        (await admin.GetFromJsonAsync<List<AuditRow>>("/admin/audit"))!.First().Action.Should().Be("A gathering was cancelled");
+        (await CodeOf(await admin.PutAsJsonAsync($"/admin/gatherings/{g.Id}",
+            new GatheringWriteRequest("Back on", w.F.Clock.UtcNow.AddHours(1), 2, 1, 4, null, false)))).Should().Be("square.started");
+
+        await w.AdvanceAsync(TimeSpan.FromMinutes(15));
+        await Tick(w);
+        (await Night(bat.C, g.Id)).Phase.Should().Be("closed", "the bell never rings");
+        (await CodeOf(await admin.PostAsync($"/admin/gatherings/{Guid.NewGuid()}/cancel", null))).Should().Be("square.not_found");
+    }
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The Stage 2 device pass: every screen in English and Mongolian, each beside its Figma frame.
 #   .maestro/device-pass.sh <device> [out-dir]           e.g. R58N33NA73Y   (LOCALES="mn" for one language)
-# Needs scripts/dev.sh (fake WeSend), the seed album (push-seed-photos.sh) and ~/.figma-token.
+# Needs scripts/dev.sh (fake WeSend), the seed album (push-seed-photos.sh) and .secrets/figma-token (repo root).
 # Writes <out>/<lang>-<frame>.png (device) and <lang>-<frame>-diff.png (Figma | device | diff), and
 # prints each mismatch. The frames hold other names and photos, so the number is a guide and the
 # three-panel image is what gets looked at.

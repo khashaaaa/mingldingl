@@ -31,7 +31,7 @@ public sealed class AuthEndpoints : IEndpointModule
         {
             var p = await svc.RefreshAsync(req.RefreshToken, ct);
             return new RefreshResponse(p.AccessToken, p.AccessExpiresAt, p.RefreshToken, p.AccountId, await profiles.MeAsync(p.AccountId, ct));
-        }).WithName("Refresh");
+        }).RequireRateLimiting(RateLimitPolicies.Refresh).WithName("Refresh");
 
         g.MapPost("/sign-out", async (System.Security.Claims.ClaimsPrincipal user, SessionService svc, CancellationToken ct) =>
         {

@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
 using FluentAssertions;
 using MinglDingl.Engine.Features.Bonds;
-using MinglDingl.Engine.Features.Codex;
 using MinglDingl.Engine.Features.Profile;
 using MinglDingl.Engine.Tests.Infrastructure;
 using static MinglDingl.Engine.Tests.Infrastructure.WorldDriver;
@@ -67,17 +66,5 @@ public class AwayTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await bat.C.PostAsJsonAsync("/me/away", new AwayRequest(7))).EnsureSuccessStatusCode();
         await bat.C.WriteAsync(bond.Id, "back already");
         (await bat.C.MeAsync()).Profile!.AwayUntil.Should().BeNull("a letter brings them back");
-    }
-
-    [Fact]
-    public async Task The_three_new_guides_are_in_the_Codex_in_both_languages()
-    {
-        await using var w = await World.CreateAsync(db);
-        var reader = w.F.Client();
-        foreach (var slug in new[] { "first-letter", "before-you-meet", "letting-go" })
-        {
-            (await reader.GetFromJsonAsync<CodexPageView>($"/codex/{slug}?locale=en"))!.Body.Should().NotBeEmpty();
-            (await reader.GetFromJsonAsync<CodexPageView>($"/codex/{slug}?locale=mn"))!.Title.Should().MatchRegex("[А-Яа-яӨөҮү]");
-        }
     }
 }

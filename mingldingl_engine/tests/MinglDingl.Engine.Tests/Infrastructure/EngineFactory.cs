@@ -55,6 +55,16 @@ public sealed class EngineFactory(PostgresFixture db) : WebApplicationFactory<Pr
 
     public HttpClient Client() => CreateClient();
 
+    /// Tests upload the one fixture with a face again and again, across people and across tests on a
+    /// shared database, so the same-photo check starts off; PhotoTests turns it on where it is tested.
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+        using var scope = host.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ConfigWrites>().SetAsync(ConfigKeys.PhotosRefuseSame, "false").GetAwaiter().GetResult();
+        return host;
+    }
+
     public async Task SetConfigAsync(string key, string value)
     {
         await using var scope = Services.CreateAsyncScope();
@@ -85,7 +95,9 @@ public static class TestSettings
         ["Admin:PasswordHash"] = AdminPasswordHasher.Hash(AdminDriver.Password),
         ["WeSend:Fake"] = "false",
         ["RateLimits:AuthPerMinute"] = "1000",
+        ["RateLimits:RefreshPerMinute"] = "1000",
         ["RateLimits:AdminLoginPer15Min"] = "5",
+        ["RateLimits:AdminLoginPerMinute"] = "1000",
         // Outside Development the engine will not start with video on and Agora unset.
         ["Agora:AppId"] = "test-agora-app-id",
         ["Agora:AppCertificate"] = "test-agora-certificate",

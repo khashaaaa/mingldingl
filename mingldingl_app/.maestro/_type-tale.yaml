@@ -4,12 +4,12 @@
 # a development build reloads on two quick R presses.
 appId: com.mingldingl.app
 ---
-- tapOn: { text: Your tale, below: YOUR TALE }
+- tapOn: { text: 'Your tale|Чиний домог', below: 'YOUR TALE|ЧИНИЙ ДОМОГ' }
 - runFlow:
     when:
-      notVisible: { text: Your tale, below: YOUR TALE, focused: true }
+      notVisible: { text: 'Your tale|Чиний домог', below: 'YOUR TALE|ЧИНИЙ ДОМОГ', focused: true }
     commands:
       - waitForAnimationToEnd: { timeout: 1500 }
-      - tapOn: { text: Your tale, below: YOUR TALE }
-- assertVisible: { text: Your tale, below: YOUR TALE, focused: true }
+      - tapOn: { text: 'Your tale|Чиний домог', below: 'YOUR TALE|ЧИНИЙ ДОМОГ' }
+- assertVisible: { text: 'Your tale|Чиний домог', below: 'YOUR TALE|ЧИНИЙ ДОМОГ', focused: true }
 - inputText: ${TEXT}

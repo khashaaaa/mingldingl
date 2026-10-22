@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from '@/lib/api/client';
 import {
   deletePhoto,
@@ -12,8 +12,20 @@ import {
 } from '@/lib/api/generated/engine';
 import type { PhotoView } from '@/lib/api/generated/model';
 
-/** A portrait on its way up. Its key is the upload's Idempotency-Key and lives until the upload settles. */
-export type Pending = { key: string; base64: string; uri: string; status: 'uploading' | 'failed' };
+/**
+ * A portrait on its way up. Its key is the upload's Idempotency-Key and lives until the upload settles.
+ * `photoId` is set once the engine stored it: the tile stays until that photo is in the list, so the
+ * slot is never empty in between (which shifted the grid and looked like the portraits reordering).
+ */
+export type Pending = {
+  key: string;
+  base64: string;
+  uri: string;
+  status: 'uploading' | 'failed';
+  photoId?: string;
+};
+
+const byPosition = (list: PhotoView[]) => [...list].sort((a, b) => a.position - b.position);
 
 /**
  * SDK 57's global fetch is expo/fetch, which sends a form part only if it is a Blob or has `bytes()`
@@ -40,7 +52,13 @@ const newUploadKey = () =>
 export function usePortraits(max: number) {
   const client = useQueryClient();
   const photos = useListMyPhotos();
-  const [pending, setPending] = useState<Pending[]>([]);
+  const [all, setPending] = useState<Pending[]>([]);
+  const stored = useMemo(() => new Set((photos.data ?? []).map((x) => x.id)), [photos.data]);
+  const pending = useMemo(() => all.filter((x) => !x.photoId || !stored.has(x.photoId)), [all, stored]);
+  useEffect(() => {
+    if (pending.length !== all.length)
+      setPending((xs) => xs.filter((x) => !x.photoId || !stored.has(x.photoId)));
+  }, [pending.length, all.length, stored]);
   /** Photo id → the device's own file, for portraits uploaded on this screen (see PhotoTile `local`). */
   const [local, setLocal] = useState<Record<string, string>>({});
   const [denied, setDenied] = useState(false);
@@ -66,9 +84,20 @@ export function usePortraits(max: number) {
           { file: jpegPart(p.base64) },
           { headers: { 'Idempotency-Key': p.key } },
         );
-        if (photo?.id) setLocal((all) => ({ ...all, [photo.id]: p.uri }));
-        setPending((all) => all.filter((x) => x.key !== p.key));
-        settle(undefined);
+        const key = getListMyPhotosQueryKey();
+        if (photo?.id && client.getQueryData(key)) {
+          setLocal((all) => ({ ...all, [photo.id]: p.uri }));
+          // A list fetched before this upload committed must not land after it and drop the photo.
+          await client.cancelQueries({ queryKey: key, exact: true });
+          client.setQueryData<PhotoView[]>(key, (list = []) =>
+            list.some((x) => x.id === photo.id) ? list : byPosition([...list, photo]),
+          );
+          setPending((all) => all.map((x) => (x.key === p.key ? { ...x, photoId: photo.id } : x)));
+          client.invalidateQueries({ queryKey: getGetMeQueryKey(), exact: true });
+        } else {
+          setPending((all) => all.filter((x) => x.key !== p.key));
+          settle(undefined);
+        }
       } catch (e) {
         // The engine refused this photo (no face, not a photo, too large): a retry cannot help, so it
         // leaves the grid and the reason is shown. Only a lost upload stays to be tried again.
@@ -78,7 +107,7 @@ export function usePortraits(max: number) {
         } else setPending((all) => all.map((x) => (x.key === p.key ? { ...x, status: 'failed' } : x)));
       }
     },
-    [settle],
+    [client, settle],
   );
 
   const add = useCallback(async () => {
@@ -147,14 +176,30 @@ export function usePortraits(max: number) {
     [run],
   );
 
-  /** Moves one portrait to `to`; the rest keep their order. */
+  /** Moves one portrait to `to`; the rest keep their order. The grid moves at once, and back if refused. */
   const move = useCallback(
-    (id: string, to: number) => {
-      const ids = (photos.data ?? []).map((p) => p.id).filter((x) => x !== id);
-      ids.splice(to, 0, id);
-      return run(() => reorderPhotos({ ids }));
+    async (id: string, to: number) => {
+      const key = getListMyPhotosQueryKey();
+      const before = client.getQueryData<PhotoView[]>(key) ?? [];
+      const moved = before.filter((x) => x.id !== id);
+      const lifted = before.find((x) => x.id === id);
+      if (!lifted) return;
+      moved.splice(to, 0, lifted);
+      await client.cancelQueries({ queryKey: key, exact: true });
+      client.setQueryData<PhotoView[]>(
+        key,
+        moved.map((x, i) => ({ ...x, position: i })),
+      );
+      setError(null);
+      try {
+        settle(await reorderPhotos({ ids: moved.map((x) => x.id) }));
+      } catch (e) {
+        client.setQueryData(key, before);
+        settle(undefined);
+        setError(e instanceof ApiError ? e : new ApiError('network', 0, 'network', String(e)));
+      }
     },
-    [photos.data, run],
+    [client, settle],
   );
 
   return {

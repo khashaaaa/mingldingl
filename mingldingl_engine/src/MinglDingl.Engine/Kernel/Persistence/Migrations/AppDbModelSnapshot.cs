@@ -227,7 +227,12 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     b.Property<DateTimeOffset?>("VerifiedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("WrongTries")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
 
                     b.HasIndex("Phone", "State");
 
@@ -981,6 +986,9 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
 
                     b.Property<int>("Position")
                         .HasColumnType("integer");
+
+                    b.Property<long?>("SameHash")
+                        .HasColumnType("bigint");
 
                     b.Property<byte[]>("ThumbHash")
                         .IsRequired()

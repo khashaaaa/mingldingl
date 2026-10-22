@@ -11,7 +11,7 @@ public sealed class AdminEndpoints : IEndpointModule
     {
         app.MapPost("/admin/auth/login", (AdminLoginRequest req, AdminAuth auth, HttpContext http) =>
             auth.Login(req.Username, req.Password, http.Connection.RemoteIpAddress?.ToString() ?? "unknown"))
-            .WithTags("Admin").WithName("AdminLogin");
+            .RequireRateLimiting(Kernel.RateLimits.RateLimitPolicies.AdminLogin).WithTags("Admin").WithName("AdminLogin");
 
         var g = app.MapGroup("/admin").WithTags("Admin").RequireAuthorization(Policy);
 

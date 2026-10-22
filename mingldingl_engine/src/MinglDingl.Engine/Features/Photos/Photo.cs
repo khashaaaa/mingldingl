@@ -13,6 +13,9 @@ public sealed class Photo
     public int Width { get; set; }
     public int Height { get; set; }
     public byte[] ThumbHash { get; set; } = [];
+    /// ImagePipeline.SameHash: an upload within a few bits of a stored portrait is the same photo.
+    /// Null only on a portrait stored before it, until the boot backfill reads its file.
+    public long? SameHash { get; set; }
     /// The app's Idempotency-Key: a retried upload returns the photo it already made.
     public string ClientKey { get; set; } = "";
     public DateTimeOffset CreatedAt { get; set; }

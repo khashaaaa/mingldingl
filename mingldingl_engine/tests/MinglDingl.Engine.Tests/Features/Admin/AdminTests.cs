@@ -59,6 +59,28 @@ public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
+    public async Task Parallel_logins_cannot_slip_past_the_five_tries()
+    {
+        await using var f = new EngineFactory(db);
+        var answers = await Task.WhenAll(Enumerable.Range(0, 20).Select(_ => f.Client().LoginRawAsync("wrong")));
+        answers.Count(r => r.StatusCode == HttpStatusCode.Unauthorized).Should().Be(5);
+        answers.Count(r => r.StatusCode == HttpStatusCode.TooManyRequests).Should().Be(15);
+        (await f.Client().LoginRawAsync()).StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+    }
+
+    [Fact]
+    public async Task Login_is_rate_limited_per_address_before_the_lockout()
+    {
+        await using var f = new EngineFactory(db);
+        f.WithSetting("RateLimits:AdminLoginPerMinute", "2");
+        (await f.Client().LoginRawAsync()).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await f.Client().LoginRawAsync()).StatusCode.Should().Be(HttpStatusCode.OK, "a right password clears the tries");
+        var third = await f.Client().LoginRawAsync();
+        third.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await CodeOf(third)).Should().Be("rate_limited");
+    }
+
+    [Fact]
     public async Task Admin_token_expires_after_12_hours()
     {
         await using var f = new EngineFactory(db);
@@ -141,13 +163,16 @@ public class AdminTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
-    public async Task App_token_cannot_join_admin_hub()
+    public async Task Neither_hub_takes_the_other_schemes_token()
     {
         await using var f = new EngineFactory(db);
         var vm = f.UseScriptedWeSend();
         var s = await f.SignInAsync(vm);
-        var act = () => f.ListenAsync(s.AccessToken, "/admin/live");
-        await act.Should().ThrowAsync<Exception>();
+        var app = () => f.ListenAsync(s.AccessToken, "/admin/live");
+        await app.Should().ThrowAsync<Exception>();
+        var admin = await f.AdminAsync();
+        var keeper = () => f.ListenAsync(admin.AdminToken());
+        await keeper.Should().ThrowAsync<Exception>();
     }
 
     [Fact]

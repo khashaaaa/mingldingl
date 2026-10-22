@@ -53,14 +53,14 @@ public sealed class ThreadService(
         return new WovenView(t.Id, t.CodeA, t.CodeB);
     }
 
-    /// The weaver's Thread Log, newest first.
+    /// The weaver's Thread Log, newest first. Only the masked number, never a name: a name would tell
+    /// anyone who types a number whose character it is.
     public async Task<IReadOnlyList<WovenRow>> WovenAsync(Guid me, CancellationToken ct = default)
     {
         var rows = await db.Set<FatedThread>().AsNoTracking().Where(t => t.WeaverId == me)
             .OrderByDescending(t => t.WovenAt).Take(100).ToListAsync(ct);
-        var names = await NamesByPhoneAsync(rows.Select(r => r.PhoneA), ct);
         var points = config.Int(ConfigKeys.ScoreThreadSparked);
-        return rows.Select(r => new WovenRow(r.Id, names.GetValueOrDefault(r.PhoneA) ?? Mask(r.PhoneA), StateOf(r), r.WovenAt,
+        return rows.Select(r => new WovenRow(r.Id, Mask(r.PhoneA), StateOf(r), r.WovenAt,
             r.State == ThreadState.Sparked ? points : 0)).ToList();
     }
 
@@ -180,15 +180,6 @@ public sealed class ThreadService(
 
     private Task<string> NameAsync(Guid id, CancellationToken ct) =>
         db.Set<Profile.Profile>().Where(p => p.AccountId == id).Select(p => p.Name).SingleOrDefaultAsync(ct)!;
-
-    private async Task<Dictionary<string, string>> NamesByPhoneAsync(IEnumerable<string> phones, CancellationToken ct)
-    {
-        var list = phones.Distinct().ToList();
-        return await (from a in db.Set<Account>().AsNoTracking()
-                      join p in db.Set<Profile.Profile>() on a.Id equals p.AccountId
-                      where list.Contains(a.Phone)
-                      select new { a.Phone, p.Name }).ToDictionaryAsync(x => x.Phone, x => x.Name, ct);
-    }
 
     /// "9911····": enough for the weaver to recognise their own entry, never the whole number.
     private static string Mask(string phone) => phone.Length >= 4 ? phone[..4] + "····" : "····";

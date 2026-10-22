@@ -2,7 +2,7 @@
 """Downloads every art image named in src/design/figma/art.json from the Figma file at full source
 resolution (by image hash), trims nothing, and writes name.webp / @2x / @3x sized to its display
 size in points (lossy WebP, a quarter of the PNG; a scale the source is too small for is left out,
-so the device uses the one below). Then writes src/design/art/manifest.ts. Token: $FIGMA_TOKEN or ~/.figma-token."""
+so the device uses the one below). Then writes src/design/art/manifest.ts. Token: $FIGMA_TOKEN or .secrets/figma-token (repo root)."""
 import io, json, os, pathlib, urllib.request
 from PIL import Image
 
@@ -11,7 +11,7 @@ root = pathlib.Path(__file__).resolve().parent.parent
 spec = json.loads((root / "src/design/figma/art.json").read_text())
 out = root / "src/design/art"
 out.mkdir(parents=True, exist_ok=True)
-token = os.environ.get("FIGMA_TOKEN") or (pathlib.Path.home() / ".figma-token").read_text().strip()
+token = os.environ.get("FIGMA_TOKEN") or (root.parent / ".secrets" / "figma-token").read_text().strip()
 
 def get(url, auth=True):
     req = urllib.request.Request(url, headers={"X-Figma-Token": token} if auth else {})

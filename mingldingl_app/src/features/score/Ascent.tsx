@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Art } from '@/design/components/Art';
+import { FadedArt } from '@/design/components/FadedArt';
 import { asTier, GEM } from '@/design/components/GemBadge';
 import { LiveGem } from '@/design/components/LiveGem';
 import { RoomHeader } from '@/design/components/RoomHeader';
@@ -21,7 +22,9 @@ export default function Ascent() {
   return (
     <Scene header={<RoomHeader title={t('room.ascent')} onBack={() => router.back()} />}>
       <XpBar points={profile.points} progress={progress} next={next} />
-      <Art name="cliff_gems" style={styles.cliff} />
+      <View style={styles.cliff}>
+        <FadedArt name="cliff_gems" fade={36} />
+      </View>
       <View style={styles.ladder}>
         {[...ladder].reverse().map((tier) => {
           const name = asTier(tier.name);

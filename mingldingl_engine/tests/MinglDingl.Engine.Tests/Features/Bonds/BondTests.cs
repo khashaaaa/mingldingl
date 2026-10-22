@@ -36,6 +36,22 @@ public class BondTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
+    public async Task A_pass_lasts_until_ulaanbaatar_midnight()
+    {
+        await using var w = await World.CreateAsync(db);
+        var bat = await w.PersonAsync("Bat", "Male");
+        var saruul = await w.PersonAsync("Saruul", "Female");
+        (await bat.C.PostAsync($"/seek/{saruul.Id}/pass", null)).EnsureSuccessStatusCode();
+        (await bat.C.SeekAsync()).Candidate.Should().BeNull();
+
+        // 12:00 in Ulaanbaatar: 23:59 is still tonight, 00:01 is a new day.
+        await w.AdvanceAsync(TimeSpan.FromHours(11) + TimeSpan.FromMinutes(59));
+        (await bat.C.SeekAsync()).Candidate.Should().BeNull();
+        await w.AdvanceAsync(TimeSpan.FromMinutes(2));
+        (await bat.C.SeekAsync()).Candidate!.AccountId.Should().Be(saruul.Id);
+    }
+
+    [Fact]
     public async Task Summon_makes_the_bond_for_both_live_and_spends_a_candle()
     {
         await using var w = await World.CreateAsync(db);

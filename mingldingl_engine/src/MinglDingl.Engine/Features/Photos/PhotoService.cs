@@ -24,7 +24,8 @@ public sealed class PhotoService(
         return photos.Select(p => View(p, signed[p.Id])).ToList();
     }
 
-    /// checkFace: false only for the dev seeders, whose stand-in portraits are drawings.
+    /// checkFace: false only for the dev seeders, whose stand-in portraits are drawings shared between
+    /// seeded people (so they skip the same-photo check too).
     public async Task<PhotoView> UploadAsync(Guid accountId, byte[] bytes, string? clientKey, CancellationToken ct = default,
         bool checkFace = true)
     {
@@ -37,6 +38,8 @@ public sealed class PhotoService(
         var image = ImagePipeline.Process(bytes, findFace: checkFace && config.Bool(ConfigKeys.PhotosRequireFace));
         if (image.Face == false)
             throw new DomainException(400, "photos.no_face", "We could not find a face in this portrait");
+        if (checkFace && config.Bool(ConfigKeys.PhotosRefuseSame))
+            await RefuseSameAsync(accountId, image.SameHash, ct);
         var photo = new Photo
         {
             Id = Guid.CreateVersion7(),
@@ -44,6 +47,7 @@ public sealed class PhotoService(
             Width = image.Width,
             Height = image.Height,
             ThumbHash = image.ThumbHash,
+            SameHash = image.SameHash,
             ClientKey = clientKey,
             CreatedAt = clock.UtcNow,
         };
@@ -77,6 +81,52 @@ public sealed class PhotoService(
             throw;
         }
         return await ViewAsync(photo, ct);
+    }
+
+    /// A photo already stored is refused: one's own twice fills a slot with nothing new, and someone
+    /// else's is a borrowed face (a stolen or shared picture, or a barred person coming back).
+    private async Task RefuseSameAsync(Guid accountId, long hash, CancellationToken ct)
+    {
+        var bits = config.Int(ConfigKeys.PhotosSameBits);
+        var owners = await db.Database.SqlQuery<Guid>($"""
+            SELECT "AccountId" AS "Value" FROM photos
+            WHERE "SameHash" IS NOT NULL AND bit_count(int8send("SameHash" # {hash})) <= {bits}
+            """).ToListAsync(ct);
+        if (owners.Contains(accountId))
+            throw new DomainException(409, "photos.same", "You already have this portrait");
+        if (owners.Count > 0)
+        {
+            log.LogWarning("Upload by {Account} matches a portrait of {Owners}", accountId, string.Join(", ", owners.Distinct()));
+            throw new DomainException(409, "photos.taken", "This photo is already on another character");
+        }
+    }
+
+    /// Portraits stored before the same-photo check gain their hash from their file; one that cannot
+    /// be read stays without and is skipped (it then matches nothing). A no-op once all have one.
+    public static async Task BackfillSameHashAsync(IServiceProvider sp, CancellationToken ct = default)
+    {
+        await using var scope = sp.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDb>();
+        var store = scope.ServiceProvider.GetRequiredService<IPhotoStore>();
+        var log = scope.ServiceProvider.GetRequiredService<ILogger<PhotoService>>();
+        var missing = await db.Set<Photo>().Where(p => p.SameHash == null).ToListAsync(ct);
+        // Eight files at a time, saved a batch at a time: an interrupted boot keeps what it hashed.
+        foreach (var batch in missing.Chunk(32))
+        {
+            await Parallel.ForEachAsync(batch, new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = ct }, async (p, token) =>
+            {
+                try
+                {
+                    using var bitmap = ImagePipeline.DecodeUpright(await store.GetAsync(p.Path, token));
+                    p.SameHash = ImagePipeline.SameHash(bitmap);
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    log.LogWarning(e, "Could not hash portrait {Photo}", p.Id);
+                }
+            });
+            await db.SaveChangesAsync(ct);
+        }
     }
 
     public async Task<IReadOnlyList<PhotoView>> ReorderAsync(Guid accountId, IReadOnlyList<Guid> ids, CancellationToken ct = default)

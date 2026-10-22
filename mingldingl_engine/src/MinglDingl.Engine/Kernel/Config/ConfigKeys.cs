@@ -16,6 +16,10 @@ public static class ConfigKeys
     public const string AppRestMinutes = "app.restMinutes";
     public const string AccountDeleteDays = "account.deleteDays";
     public const string WritesPerMinute = "ratelimit.writes.perMinute";
+    public const string CodesPerNumberPerDay = "auth.codesPerNumberPerDay";
+    public const string CodesPerDay = "auth.codesPerDay";
+    public const string MobilePrefixes = "auth.mobilePrefixes";
+    public const string ReviewWrongPerDay = "auth.reviewWrongPerDay";
 
     public const string TierOpal = "tier.opal";
     public const string TierAmethyst = "tier.amethyst";
@@ -111,6 +115,8 @@ public static class ConfigKeys
     public const string GerRestsHighTable = "streak.gerRests.highTable";
     public const string SquareHighTableLeadMinutes = "square.highTableLeadMinutes";
     public const string PhotosRequireFace = "photos.requireFace";
+    public const string PhotosRefuseSame = "photos.refuseSame";
+    public const string PhotosSameBits = "photos.sameBits";
     public const string FaceCheck = "safety.faceCheck";
     public const string FaceTriesPerDay = "safety.faceTriesPerDay";
     public const string FaceMatch = "safety.faceMatch";
@@ -134,6 +140,11 @@ public static class ConfigKeys
         new(AppRestMinutes, "App", "Minutes of continuous use before \"the fire burns low\" (0: never)", ConfigType.Int, "40", 0, 600),
         new(AccountDeleteDays, "Profile", "Days an abandoned character waits before it is burned", ConfigType.Int, "30", 1, 90),
         new(WritesPerMinute, "Limits", "Writes one person may make per minute", ConfigType.Int, "30", 5, 600),
+        new(CodesPerNumberPerDay, "Limits", "Sign-in texts one number may get a day (each costs 80₮)", ConfigType.Int, "5", 1, 50),
+        new(CodesPerDay, "Limits", "Sign-in texts sent a day in all; past it nobody gets one until tomorrow", ConfigType.Int, "300", 10, 1000000),
+        new(MobilePrefixes, "Limits", "The two first digits a number may start with to get a text (Mongolia's mobile ranges, comma-separated)", ConfigType.Text,
+            "60,66,69,80,83,85,86,88,89,90,91,92,93,94,95,96,97,98,99"),
+        new(ReviewWrongPerDay, "Limits", "Wrong codes the store-review number may take a day before it waits for tomorrow", ConfigType.Int, "20", 5, 1000),
 
         new(TierOpal, "Tiers", "Points to reach Opal", ConfigType.Int, "100", 1, 100000),
         new(TierAmethyst, "Tiers", "Points to reach Amethyst (above Opal)", ConfigType.Int, "300", 2, 100000),
@@ -232,6 +243,8 @@ public static class ConfigKeys
         new(GerRestsHighTable, "Membership", "The High Table: missed dawns a ger rest keeps, per moon", ConfigType.Int, "2", 0, 31),
         new(SquareHighTableLeadMinutes, "Town Square", "Minutes after a bell is rung that only the High Table may sit", ConfigType.Int, "10", 0, 1440),
         new(PhotosRequireFace, "Safety", "A portrait must show a human face (checked on the engine at upload)", ConfigType.Bool, "true"),
+        new(PhotosRefuseSame, "Safety", "A photo already stored (yours or anyone's) cannot be uploaded again", ConfigType.Bool, "true"),
+        new(PhotosSameBits, "Safety", "How many of 64 picture-hash bits two photos may differ by and still count as the same", ConfigType.Int, "6", 0, 16),
         new(FaceCheck, "Safety", "A character may prove their face with a selfie (the mark on their card)", ConfigType.Bool, "true"),
         new(FaceTriesPerDay, "Safety", "Face checks one person may try a day", ConfigType.Int, "3", 1, 20),
         new(ScoreFaceProven, "Points", "The face was proven (once)", ConfigType.Int, "20", 0, 1000),

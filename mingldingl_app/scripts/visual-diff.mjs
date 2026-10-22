@@ -2,15 +2,13 @@
 // Measures how far a device screenshot is from its Figma frame, so "matches Figma" is a number.
 //
 //   node scripts/visual-diff.mjs <figma.png> <device.png> [--out diff.png] [--max 3] [--status-bar 44]
-//   node scripts/visual-diff.mjs --figma 26:3 <device.png> ...    (fetches the frame; token ~/.figma-token)
+//   node scripts/visual-diff.mjs --figma 26:3 <device.png> ...    (fetches the frame; token .secrets/figma-token)
 //
 // The device shot is scaled to the frame's width (area-averaged), the top --status-bar frame pixels
 // are cropped from both (the frames draw no status bar), pixelmatch runs at threshold 0.1, and a
 // three-panel PNG (Figma | device | diff) is written. Rows one image lacks count as different.
 // Exit 1 when the mismatch is above --max percent.
 import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
@@ -72,7 +70,8 @@ export function compare(figma, device, { statusBar = 44, threshold = 0.1 } = {})
 
 async function fetchFrame(nodeId, scale) {
   const token =
-    process.env.FIGMA_TOKEN ?? fs.readFileSync(path.join(os.homedir(), '.figma-token'), 'utf8').trim();
+    process.env.FIGMA_TOKEN ??
+    fs.readFileSync(fileURLToPath(new URL('../../.secrets/figma-token', import.meta.url)), 'utf8').trim();
   const api = `https://api.figma.com/v1/images/${FIGMA_FILE}?ids=${encodeURIComponent(nodeId)}&scale=${scale}&format=png`;
   const res = await fetch(api, { headers: { 'X-Figma-Token': token } });
   if (!res.ok) throw new Error(`Figma ${res.status}: ${await res.text()}`);

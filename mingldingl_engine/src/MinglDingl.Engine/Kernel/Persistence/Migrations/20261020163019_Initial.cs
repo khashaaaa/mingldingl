@@ -167,6 +167,7 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     ExpiresAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     VerifiedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    WrongTries = table.Column<int>(type: "integer", nullable: false),
                     ClaimedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     ClaimedByAccountId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
@@ -481,6 +482,7 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                     Width = table.Column<int>(type: "integer", nullable: false),
                     Height = table.Column<int>(type: "integer", nullable: false),
                     ThumbHash = table.Column<byte[]>(type: "bytea", nullable: false),
+                    SameHash = table.Column<long>(type: "bigint", nullable: true),
                     ClientKey = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
@@ -1347,6 +1349,11 @@ namespace MinglDingl.Engine.Kernel.Persistence.Migrations
                 name: "IX_payments_State_PaidAt",
                 table: "payments",
                 columns: new[] { "State", "PaidAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_phone_verifications_CreatedAt",
+                table: "phone_verifications",
+                column: "CreatedAt");
 
             migrationBuilder.CreateIndex(
                 name: "IX_phone_verifications_Phone_State",

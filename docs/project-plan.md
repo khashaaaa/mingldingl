@@ -2,8 +2,8 @@
 
 The one living document: where the project stands, what is left, how the game works as built, and
 the rules every change is checked against. Finished work is recorded in
-[`shipped-log.md`](shipped-log.md); how the code fits together and every command are in
-[`CLAUDE.md`](../CLAUDE.md). Every number below is a default the admin can tune (DB-backed
+[`shipped-log.md`](shipped-log.md); every command is in [`CLAUDE.md`](../CLAUDE.md), and how the
+code fits together is in "How the code fits together" at the end of this file. Every number below is a default the admin can tune (DB-backed
 config, key in brackets where it helps).
 
 ---
@@ -12,9 +12,10 @@ config, key in brackets where it helps).
 
 The whole game is built and checked on devices in English and Mongolian. The home server runs the
 latest engine (`api.mingldingl.com`), sign-in texts real WeSend codes, QPay's live keys are in, and
-store builds go to Play internal testing (1.0.1, Play version 13, uploaded 2026-10-22; words and
-screens reach installed builds of the same version over the air). What is left is the launch, and that
-waits on the user: the Play payout bank, 12 testers for the 14-day closed test, and the reviewer video.
+store builds go to Play (1.0.2 = Play version 15, in closed testing "Alpha" and sent for review
+2026-10-22; words and screens reach installed builds of the same version over the air). What is
+left is the launch: Google's review, then the user's part — the Play payout bank and 12 testers for
+the 14-day closed test.
 
 | Stage | What | State |
 |---|---|---|
@@ -37,7 +38,7 @@ The server side is scripted; the accounts are the user's.
 the `SUPPORT_EMAIL`); Sentry projects `mingldingl-app`/`-engine` (org `rtl-uz`); RevenueCat project
 (Play app, entitlements `hall`/`high_table`, webhook — products wait on the Play account); Firebase
 `mingldingl` (`google-services.json`, FCM V1 key on EAS); Agora NCS on events 103–106; EAS
-production and preview env. Launch values: `~/mingldingl-launch.env` on the desktop (chmod 600).
+production and preview env. Launch values: `.secrets/launch.env` in this repo (git-ignored, chmod 600).
 - *Sentry source maps:* production uploads them (org token `eas` in the EAS secret
   `SENTRY_AUTH_TOKEN`, 2026-10-22); preview still skips the upload (`SENTRY_DISABLE_AUTO_UPLOAD`).
 - *Agora* shows a new NCS secret on every page load until saved — set the engine's to the shown
@@ -49,7 +50,13 @@ min and 20 / day). The owner's own number texts even before Active, so a second 
 sign-in is the real proof. Store builds are made locally and uploaded to Play internal testing by
 `mingldingl_app/scripts/play-upload.py` (EAS's free queue and `eas submit` stalled).
 
-**Left:** the Play 14-day closed test (12 testers) and payout bank, reviewer access (the video).
+**Play Console, 2026-10-22:** default store listing (EN draft text, icon, feature graphic, six phone screenshots from the seed crowd in `mingldingl_app/assets/store/phone/`, labelled AI-made), privacy policy, ads (none), advertising ID (none), government/financial/health (none), category Dating, contact keepers@mingldingl.com are saved. Data safety is drafted (as below; no sharing) and submits once Target audience is done, which Play gates behind Sign in details. 1.0.2 blocks the unused foreground-service permissions (media playback, media projection) so no FGS declaration is needed.
+
+**Review number (user's call, 2026-10-22, replaces the video):** `Review__Phone`/`Review__Code` in the server's `engine.env` (`ReviewWeSend`): 70110000, a landline, is never texted and passes only with that code (a copy in `~/.config/mingldingl/review-code` on the desktop). Its character "Reviewer" is finished and paused so no one meets it.
+
+**Sent for review 2026-10-22:** all app-content forms (sign in details with the review number, target audience 18+ with minors blocked, content rating, data safety, child safety standards → `/safety/`), and closed testing "Alpha" (Mongolia, the 8-person tester list, 1.0.2 = version 15).
+
+**Left:** Google's review; then 12 testers opted in for 14 days before production, and the payout bank.
 
 1. **Server** — myserver (192.168.1.102) on, with its LAN address reserved. No Docker:
    `./scripts/deploy.sh --setup` installs `scripts/server/` (systemd units, nginx, the `mingldingl`
@@ -81,10 +88,9 @@ sign-in is the real proof. Store builds are made locally and uploaded to Play in
    `CLAUDE.md`) and a closed-testing track. A new personal Play account must keep **12+ testers opted in for 14 days**
    before production opens — start this first. iOS: `--platform ios`, TestFlight on an iPhone
    (the app has never run on iOS), then review.
-4½. **Reviewer access — a sign-in video (user's call, 2026-10-20).** Store reviewers have no
-   Mongolian number to receive the code, so Play's "App access" (and Apple's review notes) link an unlisted video of
-   the A51 signing in on the production server — the text sent for real — and walking the world. No
-   review number is built.
+4½. **Reviewer access** — store reviewers have no Mongolian number to receive the code; they use
+   the review number above (70110000 + its code, `ReviewWeSend`), which replaced the sign-in video
+   planned 2026-10-20.
 5. **Listing** — the EN and MN drafts below, screenshots from the device pass, the content
    rating questionnaire (dating, 18+), data safety as below; privacy policy URL `{panel}/privacy/`,
    account deletion URL `{panel}/delete/`. The legal pages are drafts, not legal advice — the user
@@ -122,8 +128,7 @@ Encrypted in transit; deletion on request in the app (Abandon, 30 days) and by t
 ## Backlog
 
 **Needs the user**
-- What the launch checklist leaves: Play (payout bank, 12 testers) and the reviewer sign-in video
-  (4½) — the production build and real texts it needs are now there.
+- What the launch checklist leaves: Play (payout bank, 12 testers) after Google's review.
 - Decided 2026-10-22: two genders only, each sees the other (as built); the art stays as it is for
   launch; the face check is optional (built, Safety rules; proven on the A51 2026-10-22, the bar
   stays 40).
@@ -577,3 +582,177 @@ library, S1–S8 the app and admin screens, S9 the web page. Code reads it throu
 - **Copy traps:** one word meaning three things; account deletion as the loudest button; a buy
   button that doesn't name what it buys; "3/3 minimum"; an empty state with no way forward; a map
   with no "you are here".
+
+# How the code fits together
+
+The full architecture notes (moved here from `CLAUDE.md`, which keeps the short version). Read
+the matching part before changing that area.
+
+## Engine
+- **Feature folders over a small kernel.** `Features/<Auth|Profile|Seek|Bonds|…>/` each
+  hold endpoints (an `IEndpointModule`), service, DTOs and validation; `Kernel/` holds errors,
+  clock, config, storage, rate limits, persistence, live outbox. A feature talks to another only
+  through its service. **Every service is registered in `Registration.cs` (`AddEngine`)** — nowhere else.
+- **One initial migration.** After a model change run `scripts/new-migration.sh`, which
+  regenerates the single `Initial` migration (the spec allows no migration history yet).
+  The engine applies migrations itself at boot, and every boot-time step (migrate, reference
+  seeds, config load, backfills) lives in `Kernel/Persistence/DatabaseBootstrap.cs` — boot and the
+  `seed` CLI both call it, so a new seed or backfill goes there. Ids are UUIDv7; times are UTC; "today" comes from
+  `IClock` in Asia/Ulaanbaatar.
+- **A WeSend code is the only sign-in, and the engine issues its own sessions** (no Supabase Auth).
+  `POST /auth/phone/start` has WeSend (`api.wesend.mn/v1/verify`, `WeSend:ApiKey`) text a
+  six-digit code to the number (ten minutes, in the app's language); WeSend makes and holds the
+  code, the engine never sees it. The person types it, `POST /auth/phone/check` asks WeSend
+  (`/v1/verify/{id}/check`; five tries a code), then `POST /auth/phone/complete` returns a session
+  pair (sigil and Guild House complete the same checked verification). Hardening: a pending
+  session is never handed to a caller who cannot name it (`ResumeVerificationId`, no second text);
+  one number gets a new code at most once a minute (`auth.code_cooldown`, serialised by
+  `pg_advisory_xact_lock`), and a new code supersedes the last one, as WeSend cancels it. Each
+  text costs us 80 credits (80₮); the person pays nothing. WeSend's own per-number limits (5 per
+  10 min, 20 a day) answer `auth.too_many_codes`.
+- **Sessions:** 15-minute signed access token + one refresh token per device, stored hashed and
+  rotated on every use under a row lock. A duplicate refresh within 30 s gets the same new pair
+  (a race never signs anyone out); a replay after that revokes the device. `sign-out` revokes the
+  device, `sign-out-all` every device.
+- **Three auth schemes, never interchangeable.** The Guild House web page (`/guild/*`) has its own
+  half-hour token (`GuildAuth`, key derived from the app's, no refresh, reaches only `/guild`); it
+  signs in an existing finished character by the same WeSend code and never creates accounts
+  (`/guild/?leave` abandons one — the stores' web deletion).
+  App users: the engine's own tokens (`Auth:SigningKey`).
+  Admin: a separate scheme and key (`Admin:JwtSigningKey`, 12 h, one admin from
+  `Admin:Username`/`Admin:PasswordHash`, a PBKDF2 hash made with `dotnet run -- hash-password <pw>`).
+  Neither is accepted where the other is expected, hubs included. Admin login is throttled
+  (5 failures / 15 min → `429 admin.login_throttled`).
+- **Everything is live; nothing polls.** SignalR hubs `/live` (one group per account, one per
+  session) and `/admin/live`. Services write events to `ILiveOutbox` (`{ kind, ids }`, never the
+  data), and they go out only **after the transaction commits** — a rolled-back write sends
+  nothing. Each group gets one `events` message per write (`LiveBatch`: distinct events, the app
+  write's `X-Live-Origin`, `all` for a broadcast); the app invalidates in 50 ms batches, lets its own
+  write's echo skip what the answer already wrote, and spreads broadcasts over 0–2 s. Honours are
+  checked by `HonourWatch` after any commit that touches what they are made of; reading them only reads. The app's `lib/live/events.ts` lists every kind; `session.revoked` goes to that
+  device's own group only.
+- **Business rules travel as `DomainException(status, code, message)`.** `ErrorMiddleware` turns
+  it into `{ code, message }`; anything else is a logged 500. The app shows the localised
+  `error.<code>` line (`tError`), so a new rule code needs an `en.json` entry.
+- **Photos live in a private Supabase Storage bucket** (`Supabase:PhotoBucket`, made by
+  `scripts/create-bucket.sh`); the engine hands out short-lived signed URLs. Upload re-encodes with
+  SkiaSharp (metadata stripped) and computes a ThumbHash, which is what a viewer gets for a photo
+  they may not see yet. 3–6 portraits (`photos.min`/`photos.max`); removing below the minimum is
+  `409 photos.min`. Deleting a photo or a person deletes the files. The bucket `photos` is public
+  and not this app's — leave it alone. Supabase's only other job is the desktop's 02:00 `mingldingl-devdb-backup.timer`
+  (`scripts/backup-to-supabase.sh`, units in `scripts/systemd/`), which pushes the dev DB dump to its `backups` bucket;
+  production backs up on the server.
+- **Membership & payments (stage 6):** `Membership/` holds the floor (Yard / Hall / High Table) as
+  grants; every feature asks `MembershipService` (`FloorAsync`, `Perks`), none reads payments.
+  Store floors mirror RevenueCat — the webhook and the app's `/me/membership/sync` only prompt the
+  engine to ask RevenueCat. QPay (web page only) is believed only from `payment/check`, which
+  QPay forbids polling: it is asked after QPay's POST callback, and once when the one-minute
+  `PaymentSweep` cancels a code gone cold (finding money whose callback was lost). One shared
+  token (`QPayTokens`; `expires_in` is a timestamp, renewed by `auth/refresh`); anything
+  paid that cannot be credited waits on the admin's Payments page to be refunded. In Development
+  `QPay:Fake`/`RevenueCat:Fake` and `/dev/me/store`, `/dev/qpay/pay/{invoice}` walk it locally.
+- **Statistics (stage 6c):** `Stats/` rolls each finished day into `stats_daily` (hourly
+  `StatsSweep`); reads add today live. A new metric is one SQL source in `StatsService.Sources`.
+- **Config is DB-backed and cached** (`Kernel/Config`): `ConfigKeys.All` defines each key with type
+  and bounds; boot seeds missing keys and warms the cache; `ConfigWrites.SetAsync` validates,
+  saves and fires `config.updated`. Reads go through the singleton `IConfig`. App-visible keys
+  reach the app via `GET /app/status` (`app.minVersion`, `app.maintenance`, photo limits).
+- **Rate limits on every write** (`writes` policy, per account per minute, a config key) and on
+  auth (per IP) — both answer `429 rate_limited` ("wait a minute").
+- **Validation** via `AddValidation` with limits from one place (field limits per DTO);
+  attributes on record DTOs go on the constructor parameter.
+- **Development-only surface**, 404 elsewhere: `/dev/*` (`me/state`, `me/live`, `config/{key}`,
+  `run-sweep`), `WeSend:Fake` (no text; every code is **000000**, and **99000001**'s code expires —
+  refused outside Development), and the `seed` CLI.
+- **CORS:** `Cors:AllowedOrigins` is required outside Development (startup throws without it).
+- **Sentry** runs only when `Sentry:Dsn` is set, with personal data scrubbed (`SentryScrub`).
+
+## App
+- **Layout:** `src/app/` holds thin route files only; screens live in `src/features/<feature>/`;
+  `src/design/` holds generated tokens, art, glyphs, motion and the component library
+  (`design/components`, one file per component); `src/lib/` holds session, live, i18n, feedback,
+  the query client and the generated API.
+- **One gate, no redirects.** `lib/gate.ts` `whereBelongs(session, me, app status)` → loading /
+  out / closed (suspended, deleted, update, maintenance) / onboarding step N / world. The root
+  layout renders exactly that group with `Stack.Protected`; no screen ever navigates between
+  groups. Onboarding's step comes from the server profile, so a relaunch resumes in place.
+  Links out of the app (store page, support mail, legal pages) are in `lib/links.ts`; "Write to
+  the keepers" is hidden until `EXPO_PUBLIC_SUPPORT_EMAIL` is set, the legal links until
+  `EXPO_PUBLIC_WEB_URL`. `onApple` there picks App Store wording, product ids and pages on iPhone.
+- **Session (`lib/session`):** access token in memory, refresh token in SecureStore. One
+  single-flight refresh is shared by every request; a 401 waits for it and retries once. Only a
+  revoked or reused token signs out, and `session.revoked` signs that device out at once.
+- **Live (`lib/live`):** one SignalR connection while signed in, reconnecting forever. `events.ts`
+  is the one table from event kind to the query keys it invalidates. After a reconnect or ≥30 s in
+  the background the active queries refetch once; the connection stops after 5 min in background.
+- **Query cache (`lib/query.ts`):** `staleTime` infinite (only a live event makes data stale), no
+  refetch on focus/reconnect, 5-minute `gcTime`, nothing persisted. `refetchOnMount` stays **on**
+  — an event that lands while no screen watches its query is otherwise lost.
+- **API hooks are generated** by Orval from the checked-in `mingldingl_engine/swagger.json` in both
+  frontends. After any endpoint/DTO change: `./mingldingl_engine/scripts/export-swagger.sh`, then
+  `npm run generate:api` in both. check-all and CI fail if either is stale.
+- **Design comes from Figma, never typed in.** `scripts/gen-tokens.js` writes `design/tokens.ts`
+  (and the admin's `tokens.css`) from the Figma JSON in `design/figma/`; `scripts/export-art.py`
+  exports art (WebP) and glyph PNGs (token in `.secrets/figma-token`). A colour literal outside the tokens
+  fails `scripts/check-literals.js`. Glyphs are tinted images, never live SVG.
+- **The World Floor** is one Skia canvas behind every screen (gradient, stars, breathing glow,
+  sparks on `useFrameCallback`), paused in background and under Reduce Motion. Screens are
+  transparent over it.
+- **Motion and feedback are tables:** `design/motion.ts` (the 17 Figma motions) and
+  `lib/feedback` (each world event → haptic + sound; haptics always, sound opt-in and
+  device-local). The WAVs come from `scripts/gen-sounds.js` — rerun it, don't edit `assets/sounds`.
+- **Overlays:** Sheet and Dialog render into the in-window `OverlayHost`, not RN `Modal` (Modal's
+  window stops above the Android nav bar); Back closes the top overlay.
+- **Forms (`features/common/Scene.tsx`):** a focused field is scrolled whole into the space above
+  the footer, and while the keyboard is up the footer drops its bottom inset. Onboarding fields
+  that must survive stepping back use `useDraft`.
+- **Mongolian:** every string is a key in `lib/i18n/en.json`, and every key has its line in
+  `mn.json` — Claude writes the Mongolian (the user's call, 2026-10-16), in the same primal, epic
+  game voice as the English, reusing the established words (Гал голомт, хэрэм, цайз, Дааман хаалга, манаач, хөрөг,
+  домог, лац, Наймааны өргөө…). "The keepers" is манаач, never манаачид (readers don't take it
+  as plural); the Square is Чуулган, never Талбай (it is a gathering); the world is a хэрэм (walled town: Хотын чуулган, Наймааны өргөө inside), entered by the Дааман хаалга (the Gate as a place; a generic door stays хаалга), with the цайз (the keep: seven rooms, the keepers' voice) on the mountain; the whole world is хэрэм ("Хэрэм нойрсож байна"), and retiring together is хэрмээс гарах, never замаас буух; the floors are Хашаа / Танхим / Дээд танхим (never Дээд өргөө or Дээд ширээ), so the Hall of Names room is always Алдрын танхим, never bare Танхим; the Wanderings are Хэсүүл (хэсүүл явах), never тэнүүл (a homeless wanderer, a person); "both/the two" is хоёул (firm), never хоёулаа (casual, loose); a meeting between two players is болзоо / болзох, never уулзалт; a date is товлох (proposed: санал болгох; both agreed: болзохоор тогтох), never амлах or тангараглах — тангараг is only the onboarding oath; what the player did is -сан ("Чи санал болгосон"), not narrative -в ("Чи санал болгов"); Fated Threads are Заяаны холбоос, tied (зангидах), never утас (it reads as
+  a phone); sealed is лацадсан / лацтай, never лацлагдсан; the player is always чи/чиний, never та/таны. A new English key gets its Mongolian in the same change (a jest
+  test fails on a missing or orphaned key). Never glue a case suffix onto `{{var}}` (Mongolian
+  suffixes change with the word) — rephrase ("Хүлээж буй нь: {{name}}", "{{time}} цагт").
+  Interpolation is `{{var}}`. The engine's Mongolian (question banks, pushes, Codex) is in
+  `QuestionsMn`, `PushCopy` and `CodexSeed`. Pirata One has no Cyrillic, so in Mongolian room
+  titles use Yeseva One. The language switch remounts leaf
+  screens (`LocaleScreens.tsx`). WeSend writes the text's own words (`locale` mn | en).
+- **Developer tools** exist only behind `__DEV__` (`lib/devTools.ts`): the Tools screen (`/dev`,
+  from the Expo dev menu) puts your account into any state, fires live/world events, switches
+  language and Reduce Motion; `/dev/gallery` shows every component. A release bundle has none of it.
+- **Expo Go cannot run this app** (Skia, Sentry, dev-client). Use the development build
+  (`npx expo run:android`, or `eas build --profile development`). The root `CLAUDE.md` names the
+  SDK and its docs; bump it with `package.json`.
+- **`patches/` (patch-package, `postinstall`)** backports react-native-screens 4.28's
+  screen-removal-listener fix onto the 4.26.2 Expo SDK 57 pins: without it a launch could SIGSEGV
+  in `MountingCoordinator::pullTransaction` (≈1 in 5 relaunches on the emulator). It is native
+  code, so it needs a rebuild of the development build. Drop it when Expo pins ≥ 4.28.0.
+- **`plugins/withLeanAndroid.js`** keeps Agora's optional extensions (≈30 MB a CPU type) out of
+  the APK and builds preview/production for ARM only. A call that needs a new Agora feature must
+  take its extension off that list.
+- **`EXPO_PUBLIC_API_URL`** is pinned to the LAN IP only for the `development` EAS profile;
+  preview/production must set it on EAS before their first build (it falls back to localhost).
+
+## Admin
+- The build has two pages: the panel (`index.html`) and the Guild House web page (`guild/index.html`,
+  `src/guild/`, its own Orval client from the Guild + Auth tags) — the page bundles none of the panel.
+  It opens in Mongolian (`?lang=en` or its switch for English); its words, and the Mongolian of the
+  engine rules it can meet, are in `src/guild/words.ts`.
+  Plus three script-free legal pages the stores link to (`privacy/`, `terms/`, `delete/`, EN + MN,
+  styled by `src/legal/legal.css`); they print `VITE_SUPPORT_EMAIL`, which deploy reads from
+  `engine.env`'s `SUPPORT_EMAIL`.
+- Same shape: `src/features/<users|payments|stats|…>/`, generated Orval hooks, tokens from the
+  app's generator (`src/design/tokens.css`), live via `/admin/live` (a sign-up appears in Users
+  without a reload). Art is synced from the app with `npm run sync:art`.
+
+## Production deploy
+
+Production deploy (the home server, `ssh server`) uses **no Docker**: `./scripts/deploy.sh` publishes
+the engine self-contained (linux-x64, ReadyToRun) and builds the web pages here, rsyncs them to
+`/opt/mingldingl/{engine,web}` and restarts the `mingldingl-engine` systemd unit (127.0.0.1:8080).
+nginx serves the web pages on 127.0.0.1:8081; the database is the server's own Postgres 18
+(`mingldingl` role over the socket, peer auth); backups are `mingldingl-backup.timer` (03:00, 14 kept,
+`/var/lib/mingldingl/backups`). Everything server-side is in `scripts/server/` and installed by
+`./scripts/deploy.sh --setup` (`--tunnel` adds cloudflared); secrets live only in the server's
+`/etc/mingldingl/engine.env`. `./scripts/restore-check.sh` proves the newest backup restores.
