@@ -29,6 +29,10 @@ public sealed record RefreshRequest([Required, StringLength(FieldLimits.Code)] s
 
 public sealed record SessionPair(string AccessToken, DateTimeOffset AccessExpiresAt, string RefreshToken, Guid AccountId);
 
+/// A refreshed pair and the account as it stands now, so a returning app needs no second call for /me.
+public sealed record RefreshResponse(string AccessToken, DateTimeOffset AccessExpiresAt, string RefreshToken, Guid AccountId,
+    Profile.MeView Me);
+
 public sealed record SigilStartRequest(
     [Required, StringLength(FieldLimits.Phone)] string Phone,
     Guid? ResumeVerificationId,

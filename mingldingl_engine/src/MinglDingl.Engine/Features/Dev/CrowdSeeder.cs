@@ -20,7 +20,7 @@ public sealed record CrowdDevice(string Name, int CreatedDaysAgo, int SeenDaysAg
 /// every account state, with devices, sign-up dates spread over five months, and the edge cases
 /// (18 today, longest name, 300-character bio, most photos). Absolute: rerunning puts every crowd
 /// account back exactly; photos are keyed per person, so a rerun uploads nothing it already has.
-public sealed class CrowdSeeder(AppDb db, PhotoService photos, IClock clock)
+public sealed class CrowdSeeder(AppDb db, PhotoService photos, IClock clock, Honours.HonourTouches touches)
 {
     private static readonly string Dir = Path.Combine(AppContext.BaseDirectory, "Seed", "crowd");
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -30,6 +30,7 @@ public sealed class CrowdSeeder(AppDb db, PhotoService photos, IClock clock)
 
     public async Task<IReadOnlyList<CrowdPerson>> ApplyAsync(CancellationToken ct = default)
     {
+        touches.Off = true; // seeded history earns no ceremonies (WorldSeeder checks honours quietly)
         var crowd = Load();
         foreach (var person in crowd) await ApplyAsync(person, ct);
         await SeedVerificationsAsync(ct);

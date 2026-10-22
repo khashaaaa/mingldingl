@@ -35,9 +35,11 @@ public sealed class BondService(
 
     /// Makes the bond. The caller (Seek) holds the transaction and both people's locks, and has
     /// checked candles and eligibility; the seats are checked here, under those locks.
-    public async Task<Bond> CreateAsync(Guid summoner, Guid target, string summonerTier, string targetTier, CancellationToken ct = default)
+    /// summonerPerks: the caller's floor perks when it has already read them.
+    public async Task<Bond> CreateAsync(Guid summoner, Guid target, string summonerTier, string targetTier, CancellationToken ct = default,
+        Membership.FloorPerks? summonerPerks = null)
     {
-        if (await LiveCountAsync(summoner, ct) >= SeatsFor(summonerTier, await membership.PerksAsync(summoner, ct)))
+        if (await LiveCountAsync(summoner, ct) >= SeatsFor(summonerTier, summonerPerks ?? await membership.PerksAsync(summoner, ct)))
             throw new DomainException(409, "seek.fire_full", "Your fire is full");
         if (await LiveCountAsync(target, ct) >= SeatsFor(targetTier, await membership.PerksAsync(target, ct)))
             throw new DomainException(409, "seek.their_fire_full", "Their fire is full tonight");
@@ -73,9 +75,13 @@ public sealed class BondService(
             .OrderByDescending(b => b.LastLetterAt ?? b.CreatedAt).Take(200).ToListAsync(ct);
         if (bonds.Count == 0) return [];
         var others = bonds.Select(b => b.Other(me)).ToList();
-        var names = await db.Set<Profile.Profile>().AsNoTracking().Where(p => others.Contains(p.AccountId))
-            .ToDictionaryAsync(p => p.AccountId, p => p.Name, ct);
-        var aways = await AwaysAsync([.. others, me], ct);
+        // Names and aways in one read: the others' names, and whoever's away still matters.
+        var people = await db.Set<Profile.Profile>().AsNoTracking()
+            .Where(p => (others.Contains(p.AccountId) || p.AccountId == me))
+            .Select(p => new { p.AccountId, p.Name, p.AwayUntil }).ToListAsync(ct);
+        var names = people.ToDictionary(p => p.AccountId, p => p.Name);
+        IReadOnlyDictionary<Guid, DateTimeOffset> aways = people.Where(p => p.AwayUntil != null)
+            .ToDictionary(p => p.AccountId, p => p.AwayUntil!.Value);
         var portraits = await photos.FirstPortraitsAsync(
             bonds.GroupBy(b => b.Other(me)).ToDictionary(g => g.Key, g => g.Max(b => b.Seals) >= 1), ct);
 
@@ -187,8 +193,11 @@ public sealed class BondService(
     public async Task ReadAsync(Guid me, Guid bondId, CancellationToken ct = default)
     {
         var b = await Find(me, bondId, tracked: true, ct);
+        var read = b.AId == me ? b.ReadA : b.ReadB;
+        // Already read up to the newest letter: nothing changes, nothing is written or sent.
+        if (b.LastLetterAt is not { } last || read >= last) return;
         if (b.AId == me) b.ReadA = clock.UtcNow; else b.ReadB = clock.UtcNow;
-        live.ToAccount(me, LiveKinds.BondUpdated, b.Id);
+        live.ToAccount(me, LiveKinds.BondRead, b.Id);
         await db.SaveChangesAsync(ct);
     }
 
@@ -229,9 +238,22 @@ public sealed class BondService(
     public async Task<int> CandlesSpentTodayAsync(Guid me, CancellationToken ct = default)
     {
         var today = clock.TodayUb;
-        var summoned = await db.Set<Bond>().CountAsync(b => b.SummonerId == me && b.SummonDay == today && b.Origin == BondOrigins.Seek, ct);
-        var back = await db.Set<Bond>().CountAsync(b => b.CandleBackTo == me && b.CandleBackDay == today, ct);
-        return Math.Max(0, summoned - back);
+        return (await SeatsAndCandlesAsync(me, ct)).CandlesSpent;
+    }
+
+    /// One read for Seek: live bonds (seats taken) and candles spent today.
+    public async Task<(int Live, int CandlesSpent)> SeatsAndCandlesAsync(Guid me, CancellationToken ct = default)
+    {
+        var today = clock.TodayUb;
+        var c = await db.Set<Bond>().Where(b => b.AId == me || b.BId == me || b.CandleBackTo == me)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Live = g.Count(b => (b.AId == me || b.BId == me) && b.State == BondState.Live),
+                Summoned = g.Count(b => b.SummonerId == me && b.SummonDay == today && b.Origin == BondOrigins.Seek),
+                Back = g.Count(b => b.CandleBackTo == me && b.CandleBackDay == today),
+            }).SingleOrDefaultAsync(ct);
+        return c is null ? (0, 0) : (c.Live, Math.Max(0, c.Summoned - c.Back));
     }
 
     /// Marks the bond closed and tells both sides; their seats free up.
@@ -264,9 +286,15 @@ public sealed class BondService(
     }
 
     /// Whose away by the fire still matters to a fire (it ended after the last letter, or goes on).
-    private async Task<IReadOnlyDictionary<Guid, DateTimeOffset>> AwaysAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
-        await db.Set<Profile.Profile>().AsNoTracking().Where(p => ids.Contains(p.AccountId) && p.AwayUntil != null)
-            .ToDictionaryAsync(p => p.AccountId, p => p.AwayUntil!.Value, ct);
+    /// The other's away is already read with their profile; only mine is asked for.
+    private async Task<IReadOnlyDictionary<Guid, DateTimeOffset>> AwaysAsync(Guid me, Guid other, DateTimeOffset? otherAway, CancellationToken ct)
+    {
+        var result = new Dictionary<Guid, DateTimeOffset>();
+        if (otherAway is { } o) result[other] = o;
+        if (await db.Set<Profile.Profile>().AsNoTracking().Where(p => p.AccountId == me).Select(p => p.AwayUntil).SingleOrDefaultAsync(ct) is { } m)
+            result[me] = m;
+        return result;
+    }
 
     private static bool MyTurn(Bond b, Guid me) => b.State == BondState.Live && b.LastLetterBy is { } by && by != me;
 
@@ -282,8 +310,7 @@ public sealed class BondService(
     {
         var otherId = b.Other(me);
         var p = await db.Set<Profile.Profile>().AsNoTracking().SingleAsync(x => x.AccountId == otherId, ct);
-        var total = await db.Set<Photo>().CountAsync(x => x.AccountId == otherId, ct);
-        var portraits = await photos.PortraitsAsync(otherId, Revealed(b.Seals, total), ct);
+        var portraits = await photos.PortraitsAsync(otherId, total => Revealed(b.Seals, total), ct);
         var person = new BondPersonView(otherId, p.Name, ProfileService.AgeOn(p.BirthDate, clock.TodayUb), p.Tier, p.Oath, p.Bio,
             Place(p.City, b.Seals >= 3), portraits, Profile.DeepProfile.ShowsChildren(p), p.AwayUntil > clock.UtcNow ? p.AwayUntil : null,
             b.Seals >= 4 && (await membership.PerksAsync(me, ct)).Paid ? Profile.DeepProfile.Of(p) : null, p.FaceProvenAt is not null);
@@ -292,7 +319,7 @@ public sealed class BondService(
         int? next = b.Seals < 4 ? config.Int(ConfigKeys.SealLadder[b.Seals]) : null;
         return new BondView(b.Id, b.State.ToString(), person, b.Seals, b.Mutual, next,
             ConfigKeys.SealLadder.Select(config.Int).ToList(), mine, theirs, MyTurn(b, me),
-            b.State == BondState.Live && b.EmbersAt is not null, ColdAt(b, await AwaysAsync([me, otherId], ct)), b.CreatedAt, b.ClosedAt,
+            b.State == BondState.Live && b.EmbersAt is not null, ColdAt(b, await AwaysAsync(me, otherId, p.AwayUntil, ct)), b.CreatedAt, b.ClosedAt,
             b.ClosedBy == me,
             b.SummonerId == me, b.ClosedWhy, b.CandleBackTo == me && b.CandleBackDay == clock.TodayUb);
     }

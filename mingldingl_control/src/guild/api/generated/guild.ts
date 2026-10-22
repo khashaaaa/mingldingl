@@ -15,6 +15,7 @@ import type {
   InvoiceRequest,
   InvoiceView,
   RefreshRequest,
+  RefreshResponse,
   SessionPair,
   StartRequest,
   StartResponse
@@ -268,7 +269,7 @@ export const getRefreshUrl = () => {
   return `/auth/refresh`
 }
 
-export const refresh = async (refreshRequest: RefreshRequest, options?: Parameters<typeof guildFetch>[1]): Promise<SessionPair> => {
+export const refresh = async (refreshRequest: RefreshRequest, options?: Parameters<typeof guildFetch>[1]): Promise<RefreshResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -284,7 +285,7 @@ export const refresh = async (refreshRequest: RefreshRequest, options?: Paramete
     }
     return headers;
   };
-return guildFetch<SessionPair>(getRefreshUrl(),
+return guildFetch<RefreshResponse>(getRefreshUrl(),
   {
     ...options,
     method: 'POST',

@@ -28,7 +28,7 @@ backlog and becomes a log entry.
 Both agents work here with full permission (Codex: `.codex/config.toml`, never asks). `AGENTS.md`
 is this file for Codex — keep the two identical apart from the title line (edit one, copy it over).
 Either may find the other's uncommitted work in the tree: build on it, never revert or reformat
-it unasked. The `.remember/` notes are shared, so read `now.md` before starting. Neither commits.
+it unasked. The `.remember/` notes are shared, so read `now.md` before starting. Neither commits until the user says "push", then commits and pushes at once.
 
 ---
 
@@ -72,7 +72,10 @@ it unasked. The `.remember/` notes are shared, so read `now.md` before starting.
 - **Everything is live; nothing polls.** SignalR hubs `/live` (one group per account, one per
   session) and `/admin/live`. Services write events to `ILiveOutbox` (`{ kind, ids }`, never the
   data), and they go out only **after the transaction commits** — a rolled-back write sends
-  nothing. The app's `lib/live/events.ts` lists every kind; `session.revoked` goes to that
+  nothing. Each group gets one `events` message per write (`LiveBatch`: distinct events, the app
+  write's `X-Live-Origin`, `all` for a broadcast); the app invalidates in 50 ms batches, lets its own
+  write's echo skip what the answer already wrote, and spreads broadcasts over 0–2 s. Honours are
+  checked by `HonourWatch` after any commit that touches what they are made of; reading them only reads. The app's `lib/live/events.ts` lists every kind; `session.revoked` goes to that
   device's own group only.
 - **Business rules travel as `DomainException(status, code, message)`.** `ErrorMiddleware` turns
   it into `{ code, message }`; anything else is a logged 500. The app shows the localised

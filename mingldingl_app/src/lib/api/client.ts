@@ -1,3 +1,4 @@
+import { beginWrite, ORIGIN_HEADER } from '../live/writes';
 import { refreshOnce, session } from '../session';
 import { API_URL } from './config';
 
@@ -40,8 +41,23 @@ async function send(url: string, init: RequestInit, token: string | null): Promi
   }
 }
 
-/** The Orval mutator: every generated call goes through here. */
+/**
+ * The Orval mutator: every generated call goes through here. A write carries its own name
+ * (X-Live-Origin), so the live echo it causes can wait for its answer (lib/live/writes).
+ */
 export const apiFetch = async <T>(url: string, init: RequestInit): Promise<T> => {
+  if (!init.method || init.method.toUpperCase() === 'GET') return call<T>(url, init);
+  const write = beginWrite();
+  const headers = new Headers(init.headers);
+  headers.set(ORIGIN_HEADER, write.id);
+  try {
+    return await call<T>(url, { ...init, headers });
+  } finally {
+    write.end();
+  }
+};
+
+async function call<T>(url: string, init: RequestInit): Promise<T> {
   let token = await ensureToken();
   let res = await send(url, init, token);
   if (res.status === 401 && token) {
@@ -61,4 +77,4 @@ export const apiFetch = async <T>(url: string, init: RequestInit): Promise<T> =>
   const message = (body as { message?: string } | null)?.message ?? `Request failed (${res.status})`;
   const kind: ApiErrorKind = res.status === 401 ? 'auth' : res.status >= 500 ? 'server' : 'rule';
   throw new ApiError(kind, res.status, code, message);
-};
+}

@@ -1,6 +1,15 @@
 import * as SecureStore from 'expo-secure-store';
 import { apiFetch } from '../../api/client';
-import { boot, onSignedOut, REFRESH_KEY, refreshOnce, session, signIn, signOutLocally } from '../index';
+import {
+  boot,
+  onRefreshedMe,
+  onSignedOut,
+  REFRESH_KEY,
+  refreshOnce,
+  session,
+  signIn,
+  signOutLocally,
+} from '../index';
 
 type Call = { url: string; init: RequestInit };
 const calls: Call[] = [];
@@ -107,4 +116,33 @@ test('boot offline keeps the stored session', async () => {
 
 test('refreshOnce returns signed-out without a stored token', async () => {
   expect(await refreshOnce()).toBe('signed-out');
+});
+
+test('a refresh hands who you are to the cache before the session turns present, and a write names itself', async () => {
+  await SecureStore.setItemAsync(REFRESH_KEY, 'refresh-1');
+  const me = {
+    accountId: 'acc-1',
+    status: 'Active',
+    profile: null,
+    onboardingStep: 1,
+    phoneHint: '9911',
+    deleteAt: null,
+  };
+  let statusWhenSeeded: string | null = null;
+  const off = onRefreshedMe((m) => {
+    statusWhenSeeded = session.status();
+    expect(m).toEqual(me);
+  });
+  handler = (url) =>
+    url.endsWith('/auth/refresh') ? json(200, { ...pair(2), me }) : json(200, { ok: true });
+  await refreshOnce();
+  expect(statusWhenSeeded).not.toBe('present');
+  expect(session.get()).toMatchObject({ accessToken: 'access-2' });
+  off();
+
+  await apiFetch('/me/bio', { method: 'POST', body: '{}' });
+  await apiFetch('/me', {});
+  const [write, read] = calls.slice(-2);
+  expect(new Headers(write?.init.headers).get('X-Live-Origin')).toMatch(/^[a-z0-9-]+$/);
+  expect(new Headers(read?.init.headers).get('X-Live-Origin')).toBeNull();
 });

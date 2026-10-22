@@ -11,13 +11,15 @@ import { type StringKey, t } from '@/lib/i18n';
 import { Scene } from '../common/Scene';
 import { candleLine } from '../seek/SeekScreen';
 
-const DOORS: { glyph: GlyphName; label: StringKey; to: Href }[] = [
+// A tab door goes back down to the tabs under the Hearth (navigating would stack a second set of
+// tabs, and Back would reopen the Hearth); the Satchel is a room of its own, opened over it.
+const DOORS: { glyph: GlyphName; label: StringKey; to: Href; room?: true }[] = [
   { glyph: 'fire', label: 'hearth.fire', to: '/seek' },
   { glyph: 'letters', label: 'hearth.letters', to: '/quests' },
   { glyph: 'stage', label: 'hearth.square', to: '/square' },
   { glyph: 'forge', label: 'hearth.forge', to: '/missions' },
   { glyph: 'person', label: 'hearth.mirror', to: '/character' },
-  { glyph: 'satchel', label: 'hearth.satchel', to: '/satchel' },
+  { glyph: 'satchel', label: 'hearth.satchel', to: '/satchel', room: true },
 ];
 
 /** The sky's phase by the Ulaanbaatar hour (UTC+8): night, dawn, day, dusk. */
@@ -70,7 +72,7 @@ export default function Hearth() {
                 key={d.label}
                 glyph={d.glyph}
                 label={t(d.label)}
-                onPress={() => router.navigate(d.to)}
+                onPress={() => (d.room ? router.push(d.to) : router.dismissTo(d.to))}
               />
             ))}
           </View>

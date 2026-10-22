@@ -195,6 +195,8 @@ function fakeEngine() {
           gerRests: { left: 0, perMoon: 0, keptOn: null },
           day: '2026-10-10',
           weekEnds: '2026-10-11',
+          chests: 0,
+          districtsCharted: 0,
         };
       case 'GET /seek':
         return {

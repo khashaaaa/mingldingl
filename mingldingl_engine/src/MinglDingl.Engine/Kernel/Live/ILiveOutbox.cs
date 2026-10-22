@@ -12,7 +12,25 @@ public interface ILiveOutbox
 }
 
 /// What a client receives: which kind of thing changed and the ids it concerns — never the data.
-public sealed record LiveEvent(string Kind, IReadOnlyList<Guid> Ids);
+/// Equal by value (the ids too), so one request's repeats go out once.
+public sealed record LiveEvent(string Kind, IReadOnlyList<Guid> Ids)
+{
+    public bool Equals(LiveEvent? other) =>
+        other is not null && Kind == other.Kind && Ids.SequenceEqual(other.Ids);
+
+    public override int GetHashCode()
+    {
+        var h = new HashCode();
+        h.Add(Kind);
+        foreach (var id in Ids) h.Add(id);
+        return h.ToHashCode();
+    }
+}
+
+/// One group's events from one write, sent as one message ("events"). origin: the app's
+/// X-Live-Origin of the request that caused them (its own echo), null from sweeps and the keepers.
+/// all: sent to everyone (the app spreads its refetch so a broadcast is not a thundering herd).
+public sealed record LiveBatch(IReadOnlyList<LiveEvent> Events, string? Origin, bool All);
 
 public static class LiveGroups
 {
@@ -33,6 +51,8 @@ public static class LiveKinds
     public const string ScoreChanged = "score.changed";
     public const string BondCreated = "bond.created";
     public const string BondUpdated = "bond.updated";
+    /// Only the reader's own list changes (the unread dot); nothing else about the bond did.
+    public const string BondRead = "bond.read";
     public const string LetterCreated = "letter.created";
     public const string SeekChanged = "seek.changed";
     public const string BlockChanged = "block.changed";

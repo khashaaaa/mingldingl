@@ -83,7 +83,6 @@ public static class Registration
         });
         s.AddSingleton<SignedUrlCache>();
         s.AddScoped<PhotoService>();
-        s.AddScoped<IPhotoCount, PhotoCount>();
         s.AddScoped<FaceProofService>();
         s.AddSingleton<IEndpointModule, PhotoEndpoints>();
 
@@ -257,12 +256,16 @@ public static class Registration
         s.AddSingleton<IConfig, ConfigService>();
         s.AddScoped<ConfigWrites>();
         s.AddSignalR();
+        s.AddHttpContextAccessor();
         s.AddScoped<LiveOutbox>();
         s.AddScoped<ILiveOutbox>(sp => sp.GetRequiredService<LiveOutbox>());
         s.AddScoped<LiveFlushInterceptor>();
+        s.AddScoped<Features.Honours.HonourTouches>();
+        s.AddScoped<Features.Honours.HonourWatch>();
+        // Live events go out first; then honours are checked for whoever the write touched.
         s.AddDbContext<AppDb>((sp, o) => o
             .UseNpgsql(config.GetConnectionString("Default"))
-            .AddInterceptors(sp.GetRequiredService<LiveFlushInterceptor>()));
+            .AddInterceptors(sp.GetRequiredService<LiveFlushInterceptor>(), sp.GetRequiredService<Features.Honours.HonourWatch>()));
         // Numbers are numbers: the web default also accepts "7", which types every int as int|string for clients.
         s.ConfigureHttpJsonOptions(o => o.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict);
         s.AddOpenApi(o => o.AddDocumentTransformer((doc, _, _) =>

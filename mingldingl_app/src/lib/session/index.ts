@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { useSyncExternalStore } from 'react';
 import { API_URL } from '../api/config';
+import type { MeView } from '../api/generated/model';
 
 /** The engine's SessionPair. The access token lives only in memory; the refresh token in SecureStore. */
 export type SessionPair = {
@@ -40,6 +41,17 @@ export function useSessionStatus(): SessionStatus {
     session.status,
     session.status,
   );
+}
+
+const meListeners = new Set<(me: MeView) => void>();
+
+/**
+ * /auth/refresh also answers who you are now: the query cache takes it (lib/query) before the
+ * session turns present, so a launch needs no second call for /me.
+ */
+export function onRefreshedMe(fn: (me: MeView) => void): () => void {
+  meListeners.add(fn);
+  return () => meListeners.delete(fn);
 }
 
 /** Registers a cleanup to run once whenever the device is signed out (cache, live connection). */
@@ -109,7 +121,8 @@ export function refreshOnce(): Promise<SessionPair | 'signed-out'> {
       return 'signed-out' as const;
     }
     if (!res.ok) throw new NetworkError(`refresh ${res.status}`);
-    const pair = (await res.json()) as SessionPair;
+    const { me, ...pair } = (await res.json()) as SessionPair & { me?: MeView };
+    if (me) for (const fn of meListeners) fn(me);
     await signIn(pair);
     return pair;
   })().finally(() => {

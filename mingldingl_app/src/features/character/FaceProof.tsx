@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 import { Banner } from '@/design/components/Banner';
@@ -50,6 +50,11 @@ export default function FaceProof() {
   const status = useGetFaceProof().data;
   const [perm, askPerm] = useCameraPermissions();
   const lens = useRef<CameraView>(null);
+  // Under another room (a ceremony, a link from a push) the lens is let go: the light goes off.
+  const focused = useIsFocused();
+  useEffect(() => {
+    if (!focused) setReady(false);
+  }, [focused]);
   const [ready, setReady] = useState(false);
   const [step, setStep] = useState<Step>({ kind: 'ready' });
   const [missed, setMissed] = useState<string | null>(null);
@@ -159,13 +164,15 @@ export default function FaceProof() {
       </Txt>
       {seeing && !out ? (
         <View style={styles.lens}>
-          <CameraView
-            ref={lens}
-            style={StyleSheet.absoluteFill}
-            facing="front"
-            animateShutter={false}
-            onCameraReady={() => setReady(true)}
-          />
+          {focused ? (
+            <CameraView
+              ref={lens}
+              style={StyleSheet.absoluteFill}
+              facing="front"
+              animateShutter={false}
+              onCameraReady={() => setReady(true)}
+            />
+          ) : null}
           {turning ? (
             <View style={styles.count} pointerEvents="none">
               <View style={styles.dim} />

@@ -8,7 +8,11 @@ import {
   getCampaign,
   getDeeds,
   getEncounter,
+  getGetBondQueryKey,
+  getGetCampaignQueryKey,
+  getGetDeedsQueryKey,
   getGetEncounterQueryKey,
+  getGetThreadInvitationsQueryKey,
   getThreadInvitations,
   useGetHonours,
 } from '@/lib/api/generated/engine';
@@ -97,6 +101,42 @@ function usePush() {
   }, [tapped]);
 }
 
+/**
+ * The nudges read through the query cache: a fresh read here is the one the live table would make
+ * for the same event (it sees the fetch already started and does not repeat it), and what is read
+ * lands where the screens look. `cached` takes what the cache already holds (a name).
+ */
+const fresh = {
+  bond: (id: string) =>
+    queryClient.fetchQuery({ queryKey: getGetBondQueryKey(id), queryFn: () => getBond(id), staleTime: 0 }),
+  encounter: (id: string) =>
+    queryClient.fetchQuery({
+      queryKey: getGetEncounterQueryKey(id),
+      queryFn: () => getEncounter(id),
+      staleTime: 0,
+    }),
+  campaign: (id: string) =>
+    queryClient.fetchQuery({
+      queryKey: getGetCampaignQueryKey(id),
+      queryFn: () => getCampaign(id),
+      staleTime: 0,
+    }),
+  threads: () =>
+    queryClient.fetchQuery({
+      queryKey: getGetThreadInvitationsQueryKey(),
+      queryFn: () => getThreadInvitations(),
+      staleTime: 0,
+    }),
+  lastDeed: () =>
+    queryClient.fetchQuery({
+      queryKey: getGetDeedsQueryKey({ limit: 1 }),
+      queryFn: () => getDeeds({ limit: 1 }),
+      staleTime: 0,
+    }),
+};
+const cachedBond = (id: string) =>
+  queryClient.ensureQueryData({ queryKey: getGetBondQueryKey(id), queryFn: () => getBond(id) });
+
 function useNudges() {
   const path = usePathname();
   const here = useRef(path);
@@ -107,7 +147,7 @@ function useNudges() {
         const [id] = e.ids;
         try {
           if (e.kind === 'bond.created' && id) {
-            const b = await getBond(id);
+            const b = await cachedBond(id);
             // The summoner is already on the ceremony; the one summoned gets it too, live (stage 3 spec).
             // ("Fate has woven you a new match" is the Fated Threads nudge, stage 5.)
             // At the square the night shows its own "two yeses"; the ceremony waits for the letters.
@@ -115,36 +155,34 @@ function useNudges() {
             router.push(`/ceremony/bond/${id}`);
           } else if (e.kind === 'letter.created' && id) {
             if (here.current === `/bond/${id}`) return;
-            const b = await getBond(id);
+            const b = await fresh.bond(id);
             if (!b.myTurn) return;
             feedback('bell');
             toast('info', t('nudge.letter', { name: b.other.name }));
           } else if (e.kind === 'encounter.updated' && id) {
-            const key = getGetEncounterQueryKey(id);
-            const before = queryClient.getQueryData<EncounterView>(key);
-            const now = await getEncounter(id);
-            queryClient.setQueryData(key, now);
+            const before = queryClient.getQueryData<EncounterView>(getGetEncounterQueryKey(id));
+            const now = await fresh.encounter(id);
             const nudge = encounterNudge(before, now);
             if (!nudge || here.current.includes(id)) return;
-            const b = await getBond(id);
+            const b = await cachedBond(id);
             feedback('bell');
             toast('info', t(nudge, { name: b.other.name }));
           } else if (e.kind === 'thread.updated' && id) {
             // A thread newly woven for me (the weaver's own events are theirs to see in the Thread Log).
-            const mine = (await getThreadInvitations()).find((th) => th.id === id);
+            const mine = (await fresh.threads()).find((th) => th.id === id);
             if (!mine || mine.myAnswer !== null || Date.now() - Date.parse(mine.wovenAt) > 60_000) return;
             feedback('bell');
             toast('info', t('nudge.thread', { name: mine.weaver }));
           } else if (e.kind === 'campaign.updated' && id) {
             // Asked to retire together: the one nudge the Campaign makes.
             if (here.current.includes(id)) return;
-            const c = await getCampaign(id);
+            const c = await fresh.campaign(id);
             if (c.retire !== 'askedByThem') return;
-            const b = await getBond(id);
+            const b = await cachedBond(id);
             feedback('bell');
             toast('info', t('nudge.retire', { name: b.other.name }));
           } else if (e.kind === 'score.changed') {
-            const last = (await getDeeds({ limit: 1 })).items[0];
+            const last = (await fresh.lastDeed()).items[0];
             // The daily return shows its own toast; anything older than a minute is not news.
             if (!last || last.kind === 'dawn' || last.kind === 'seventhDawn') return;
             if (Date.now() - Date.parse(last.createdAt) > 60_000) return;

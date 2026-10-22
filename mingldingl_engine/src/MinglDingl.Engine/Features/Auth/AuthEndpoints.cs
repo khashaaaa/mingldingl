@@ -27,8 +27,11 @@ public sealed class AuthEndpoints : IEndpointModule
             svc.CompleteAsync(req.VerificationId, req.DeviceName, ct, req.AllyCode, req.DeviceKey))
             .RequireRateLimiting(RateLimitPolicies.Auth).WithName("CompletePhone");
 
-        g.MapPost("/refresh", (RefreshRequest req, SessionService svc, CancellationToken ct) =>
-            svc.RefreshAsync(req.RefreshToken, ct)).WithName("Refresh");
+        g.MapPost("/refresh", async (RefreshRequest req, SessionService svc, Profile.ProfileService profiles, CancellationToken ct) =>
+        {
+            var p = await svc.RefreshAsync(req.RefreshToken, ct);
+            return new RefreshResponse(p.AccessToken, p.AccessExpiresAt, p.RefreshToken, p.AccountId, await profiles.MeAsync(p.AccountId, ct));
+        }).WithName("Refresh");
 
         g.MapPost("/sign-out", async (System.Security.Claims.ClaimsPrincipal user, SessionService svc, CancellationToken ct) =>
         {

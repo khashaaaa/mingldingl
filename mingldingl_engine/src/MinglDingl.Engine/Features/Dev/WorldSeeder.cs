@@ -28,7 +28,8 @@ public sealed record SeedVenue(string Id, string Name, string NameMn, string Kin
 /// account gets one bond at each stage with the opposite sex of the crowd, so a tester's own screens
 /// are full. The occasions (the Square, festivals, floors, trolls) are in WorldSeeder.Occasions.cs.
 /// Absolute like the crowd: rerunning wipes everything these accounts did and writes it again.
-public sealed partial class WorldSeeder(AppDb db, IClock clock, IConfig config, VenueService venues, HonourService honours)
+public sealed partial class WorldSeeder(AppDb db, IClock clock, IConfig config, VenueService venues, HonourService honours,
+    HonourTouches touches)
 {
     private static readonly string Dir = Path.Combine(AppContext.BaseDirectory, "Seed", "crowd");
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -45,6 +46,7 @@ public sealed partial class WorldSeeder(AppDb db, IClock clock, IConfig config, 
 
     public async Task<string> ApplyAsync(IReadOnlyList<CrowdPerson> crowd, Guid? hero, CancellationToken ct = default)
     {
+        touches.Off = true; // history, not news: the honours are checked quietly at the end
         // The crowd seeder shares this context and has saved everything; what it still tracks would
         // hide the resets below (a bulk update bypasses the tracker, so an unchanged value is never written).
         db.ChangeTracker.Clear();

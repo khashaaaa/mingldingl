@@ -77,7 +77,8 @@ function Gate() {
   const skyOverride = useSyncExternalStore(subscribeSky, getSkyOverride);
   const snowOverride = useSyncExternalStore(subscribeSnow, getSnowOverride);
   // The festival running today tints the night (Figma World Floor, Season); in winter it snows.
-  const season = useGetSeason({ query: { enabled: ready } }).data;
+  // Anonymous, so it loads alongside the session and fonts rather than after them.
+  const season = useGetSeason().data;
   const festival = season?.now?.key as Sky | undefined;
   if (!ready) return null;
   const g = belongs.group;

@@ -115,6 +115,28 @@ public class BondTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
+    public async Task Reading_clears_unread_once_and_tells_only_the_reader_with_bond_read()
+    {
+        await using var w = await World.CreateAsync(db);
+        var bat = await w.PersonAsync("Bat", "Male");
+        var saruul = await w.PersonAsync("Saruul", "Female");
+        var bond = await bat.C.SummonAsync(saruul.Id);
+        await bat.C.WriteAsync(bond.Id, "The falcon came back at dusk");
+        await using var hers = await w.F.ListenAsync(saruul.S);
+        await using var his = await w.F.ListenAsync(bat.S);
+
+        (await saruul.C.PostAsync($"/bonds/{bond.Id}/read", null)).EnsureSuccessStatusCode();
+        (await saruul.C.BondsAsync()).Single().Unread.Should().BeFalse();
+        (await hers.WaitForAsync(LiveKinds.BondRead)).Should().NotBeNull();
+        (await hers.WaitForAsync(LiveKinds.BondUpdated, TimeSpan.FromMilliseconds(300))).Should().BeNull();
+        (await his.WaitForAsync(LiveKinds.BondRead, TimeSpan.FromMilliseconds(300))).Should().BeNull();
+
+        hers.Received.Clear();
+        (await saruul.C.PostAsync($"/bonds/{bond.Id}/read", null)).EnsureSuccessStatusCode();
+        (await hers.WaitForAsync(LiveKinds.BondRead, TimeSpan.FromMilliseconds(500))).Should().BeNull("already read: nothing to tell");
+    }
+
+    [Fact]
     public async Task Letters_pay_points_and_turns_alternate()
     {
         await using var w = await World.CreateAsync(db);

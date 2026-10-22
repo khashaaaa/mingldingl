@@ -58,4 +58,27 @@ public class PhotoStoreTests
         await act.Should().ThrowAsync<HttpRequestException>();
         handler.Bodies.Should().HaveCount(3);
     }
+
+    [Fact]
+    public async Task Many_paths_are_signed_in_one_call_and_a_refused_one_alone()
+    {
+        var handler = new Flaky(
+            () => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""
+                    [{"path":"a/1.jpg","signedURL":"/object/sign/portraits/a/1.jpg?token=x","error":null},
+                     {"path":"a/2.jpg","signedURL":null,"error":"Either the object does not exist or you do not have access to it"}]
+                    """, System.Text.Encoding.UTF8, "application/json"),
+            },
+            () => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"signedURL":"/object/sign/portraits/a/2.jpg?token=y"}""", System.Text.Encoding.UTF8, "application/json"),
+            });
+        var signed = await Store(handler).SignManyAsync(["a/1.jpg", "a/2.jpg", "a/1.jpg"], TimeSpan.FromHours(1));
+        handler.Bodies.Should().HaveCount(2, "one bulk call, then the refused path alone");
+        System.Text.Encoding.UTF8.GetString(handler.Bodies[0]).Should().Contain("\"paths\":[\"a/1.jpg\",\"a/2.jpg\"]");
+        signed.Should().HaveCount(2);
+        signed["a/1.jpg"].Should().Be("http://storage.test/storage/v1/object/sign/portraits/a/1.jpg?token=x");
+        signed["a/2.jpg"].Should().Be("http://storage.test/storage/v1/object/sign/portraits/a/2.jpg?token=y");
+    }
 }

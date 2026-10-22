@@ -153,7 +153,7 @@ export default function NightScreen() {
             <Button
               kind="plain"
               label={t('night.openQuestLog')}
-              onPress={() => router.replace('/quests')}
+              onPress={() => router.dismissTo('/quests')}
               block
             />
           }

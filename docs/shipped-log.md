@@ -3,6 +3,20 @@
 Newest first. One short entry per finished piece of work: what a person can now do, what was
 decided, what was fixed on a device. Open items live in the plan's Backlog, not here.
 
+## 2026-10-22 — Fewer round trips: live batches, honours on write, bulk signing
+
+Live events now go out as one deduplicated message per group per write (the old dedupe compared id
+arrays by reference); the app invalidates them in 50 ms batches, skips keys its own write already
+wrote (each write carries `X-Live-Origin`) or a nudge already fetched, spreads broadcasts over
+0–2 s, and connects straight to a WebSocket. Honours are written by the write that earns them
+(`HonourWatch`: deeds, bonds, meetings, chambers, Wanderings, oath, festival dates), so
+`GET /me/honours` is a plain read and bond/score/encounter events no longer refetch it. Reading a
+bond already read writes and sends nothing (else `bond.read`, the reader's list only). Signed URLs
+use Supabase's bulk sign; `/auth/refresh` returns the account (`me`); the quest board carries the
+character sheet's chest and district counts; several engine reads merged (me, bond view and list,
+Seek's seats and candles, the quest board's deeds). The admin gathers `user.updated` for 0.75 s and
+refetches only lists showing those people. Removed: `POST /admin/festivals` (unused), `IPhotoCount`.
+
 ## 2026-10-22 — The face check; launch accounts; local store builds
 
 Optional face check: Character → Your face. One tap opens the front camera inside the app and
@@ -21,8 +35,19 @@ accepted on the server; WeSend Active (a real code went to the A51 through the s
 org token on EAS. Production went down for minutes when a regenerated migration id made the engine
 recreate every table; the id is restored and `new-migration.sh` and `deploy.sh` now guard it (plan,
 Hard-won rules). Store builds now run locally (EAS's queue held build 5 for 25 minutes) and
-`scripts/play-upload.py` puts them straight on Play internal testing; builds 6–8 went up, and the
-A51 runs build 8.
+`scripts/play-upload.py` puts them straight on Play internal testing; builds 6–10 went up, and the
+A51 runs build 10. Since build 10, `expo-updates` brings words, screens and art to installed store
+builds over the air (`eas update`, next launch). Over the air after it: an empty portrait slot offers
+the in-app front camera (`PortraitCamera`) or the gallery; the face check asks for the turn at once
+and shoots through the 3-2-1; Back no longer leaves a blank tab. On the A51 the selfie portraits
+uploaded upright and the face check passed (turn 0.30–0.36 against the 0.10 bar).
+A phone pass on the A51 then fixed, over the air: the Hearth's doors (and a parted bond's and the
+night's "back" links) return to the tabs instead of stacking a second set, which made Back reopen
+the Hearth; the face check lets the camera go while another room covers it. In store build 1.0.1
+(Play version 13, internal testing): no grey-white scrim under the navigation bar on phones in light
+mode (`withNightBars`), and a launch no longer waits up to 5 s for an update
+(`fallbackToCacheTimeout` 0; one lands on the launch after it downloads). Updates for 1.0.0 builds
+stop there.
 
 ## 2026-10-21 — First live run on the server; Play billing set up
 

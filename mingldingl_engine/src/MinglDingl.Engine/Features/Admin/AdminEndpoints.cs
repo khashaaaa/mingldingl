@@ -90,8 +90,6 @@ public sealed class AdminEndpoints : IEndpointModule
         g.MapPut("/codex/{slug}", (string slug, CodexWriteRequest req, AdminWorld w, CancellationToken ct) =>
             w.SaveCodexAsync(slug, req, ct)).WithName("AdminSaveCodex");
         g.MapGet("/festivals", (AdminWorld w, CancellationToken ct) => w.FestivalsAsync(ct)).WithName("AdminListFestivals");
-        g.MapPost("/festivals", (FestivalWriteRequest req, AdminWorld w, CancellationToken ct) => w.SaveFestivalAsync(null, req, ct))
-            .WithName("AdminAddFestival");
         g.MapPut("/festivals/{id:guid}", (Guid id, FestivalWriteRequest req, AdminWorld w, CancellationToken ct) =>
             w.SaveFestivalAsync(id, req, ct)).WithName("AdminSaveFestival");
         g.MapGet("/audit", (DateTimeOffset? before, AdminWorld w, CancellationToken ct) => w.AuditAsync(before, ct)).WithName("AdminAudit");

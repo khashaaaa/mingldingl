@@ -20,9 +20,8 @@ public sealed class PhotoService(
     {
         var photos = await db.Set<Photo>().AsNoTracking().Where(p => p.AccountId == accountId)
             .OrderBy(p => p.Position).ToListAsync(ct);
-        var views = new List<PhotoView>(photos.Count);
-        foreach (var p in photos) views.Add(await ViewAsync(p, ct));
-        return views;
+        var signed = await urls.GetManyAsync(photos.Select(p => (p.Id, p.Path)), ct);
+        return photos.Select(p => View(p, signed[p.Id])).ToList();
     }
 
     /// checkFace: false only for the dev seeders, whose stand-in portraits are drawings.
@@ -114,22 +113,23 @@ public sealed class PhotoService(
 
     /// Someone else's portraits: the first `revealed` carry a signed URL; the rest only their
     /// ThumbHash — the image itself never leaves the engine until a seal breaks.
-    public async Task<IReadOnlyList<PortraitView>> PortraitsAsync(Guid accountId, int revealed, CancellationToken ct = default)
+    public Task<IReadOnlyList<PortraitView>> PortraitsAsync(Guid accountId, int revealed, CancellationToken ct = default) =>
+        PortraitsAsync(accountId, _ => revealed, ct);
+
+    /// revealedOf: how many to reveal, given how many portraits there are (read once, with the rows).
+    public async Task<IReadOnlyList<PortraitView>> PortraitsAsync(Guid accountId, Func<int, int> revealedOf, CancellationToken ct = default)
     {
         var photos = await db.Set<Photo>().AsNoTracking().Where(p => p.AccountId == accountId)
             .OrderBy(p => p.Position).ToListAsync(ct);
-        var views = new List<PortraitView>(photos.Count);
-        foreach (var p in photos)
+        var revealed = revealedOf(photos.Count);
+        var signed = await urls.GetManyAsync(photos.Where(p => p.Position < revealed).Select(p => (p.Id, p.Path)), ct);
+        return photos.Select(p =>
         {
             var hash = Convert.ToBase64String(p.ThumbHash);
-            if (p.Position < revealed)
-            {
-                var (url, expires) = await urls.GetAsync(p, ct);
-                views.Add(new PortraitView(p.Id, p.Position, hash, p.Width, p.Height, url, expires));
-            }
-            else views.Add(new PortraitView(p.Id, p.Position, hash, p.Width, p.Height, null, null));
-        }
-        return views;
+            return signed.TryGetValue(p.Id, out var s)
+                ? new PortraitView(p.Id, p.Position, hash, p.Width, p.Height, s.Url, s.ExpiresAt)
+                : new PortraitView(p.Id, p.Position, hash, p.Width, p.Height, null, null);
+        }).ToList();
     }
 
     /// The first portrait of each account, for list rows; signed only where `revealed` says so.
@@ -138,16 +138,14 @@ public sealed class PhotoService(
     {
         var ids = revealed.Keys.ToList();
         var firsts = await db.Set<Photo>().AsNoTracking().Where(p => ids.Contains(p.AccountId) && p.Position == 0).ToListAsync(ct);
+        var signed = await urls.GetManyAsync(firsts.Where(p => revealed[p.AccountId]).Select(p => (p.Id, p.Path)), ct);
         var result = new Dictionary<Guid, PortraitView>();
         foreach (var p in firsts)
         {
             var hash = Convert.ToBase64String(p.ThumbHash);
-            if (revealed[p.AccountId])
-            {
-                var (url, expires) = await urls.GetAsync(p, ct);
-                result[p.AccountId] = new PortraitView(p.Id, 0, hash, p.Width, p.Height, url, expires);
-            }
-            else result[p.AccountId] = new PortraitView(p.Id, 0, hash, p.Width, p.Height, null, null);
+            result[p.AccountId] = signed.TryGetValue(p.Id, out var s)
+                ? new PortraitView(p.Id, 0, hash, p.Width, p.Height, s.Url, s.ExpiresAt)
+                : new PortraitView(p.Id, 0, hash, p.Width, p.Height, null, null);
         }
         return result;
     }
@@ -177,11 +175,10 @@ public sealed class PhotoService(
     private Task<Photo?> Existing(Guid accountId, string key, CancellationToken ct) =>
         db.Set<Photo>().AsNoTracking().SingleOrDefaultAsync(p => p.AccountId == accountId && p.ClientKey == key, ct);
 
-    private async Task<PhotoView> ViewAsync(Photo p, CancellationToken ct)
-    {
-        var (url, expires) = await urls.GetAsync(p, ct);
-        return new PhotoView(p.Id, url, expires, Convert.ToBase64String(p.ThumbHash), p.Width, p.Height, p.Position);
-    }
+    private async Task<PhotoView> ViewAsync(Photo p, CancellationToken ct) => View(p, await urls.GetAsync(p, ct));
+
+    private static PhotoView View(Photo p, (string Url, DateTimeOffset ExpiresAt) s) =>
+        new(p.Id, s.Url, s.ExpiresAt, Convert.ToBase64String(p.ThumbHash), p.Width, p.Height, p.Position);
 
     private async Task DeleteFileQuietly(string path)
     {
@@ -191,10 +188,4 @@ public sealed class PhotoService(
 
     private static long LockKey(Guid accountId) =>
         BitConverter.ToInt64(SHA256.HashData(Encoding.UTF8.GetBytes("photos:" + accountId)), 0);
-}
-
-public sealed class PhotoCount(AppDb db) : IPhotoCount
-{
-    public Task<int> CountAsync(Guid accountId, CancellationToken ct = default) =>
-        db.Set<Photo>().CountAsync(p => p.AccountId == accountId, ct);
 }

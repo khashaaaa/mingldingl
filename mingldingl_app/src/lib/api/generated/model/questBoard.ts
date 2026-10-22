@@ -16,4 +16,6 @@ export interface QuestBoard {
   day: string;
   weekEnds: string;
   gerRests: GerRestView;
+  chests: number;
+  districtsCharted: number;
 }

@@ -1,9 +1,9 @@
-import { type HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { HttpTransportType, type HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { AppState, type AppStateStatus } from 'react-native';
 import { API_URL } from '../api/config';
 import { queryClient } from '../query';
 import { onSignedOut, refreshOnce, session, signOutLocally } from '../session';
-import { applyLiveEvent, type LiveEvent, refetchActiveOnce } from './events';
+import { applyLiveBatch, type LiveBatch, refetchActiveOnce } from './events';
 import { roadDown, roadUp } from './road';
 
 const STOP_AFTER_BACKGROUND_MS = 5 * 60_000;
@@ -23,7 +23,12 @@ async function token(): Promise<string> {
 export async function startLive() {
   if (connection || session.status() !== 'present') return;
   const c = new HubConnectionBuilder()
-    .withUrl(`${API_URL}/live`, { accessTokenFactory: token })
+    // Straight to a WebSocket (Kestrel and the Cloudflare tunnel both carry it): no negotiate round trip.
+    .withUrl(`${API_URL}/live`, {
+      accessTokenFactory: token,
+      skipNegotiation: true,
+      transport: HttpTransportType.WebSockets,
+    })
     .withAutomaticReconnect({
       nextRetryDelayInMilliseconds: (ctx) => BACKOFF[ctx.previousRetryCount] ?? 30_000,
     })
@@ -31,7 +36,8 @@ export async function startLive() {
     // at Warning each one reached console.error (a LogBox in development).
     .configureLogging(LogLevel.Critical)
     .build();
-  c.on('event', (e: LiveEvent) => applyLiveEvent(queryClient, e, signOutLocally));
+  c.on('events', (b: LiveBatch) => applyLiveBatch(queryClient, b, signOutLocally));
+  c.on('event', () => {}); // per-event copy kept for older builds; the batch above covers it
   c.onreconnecting(roadDown);
   c.onreconnected(() => {
     roadUp();

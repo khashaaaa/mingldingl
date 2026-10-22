@@ -4072,34 +4072,6 @@
             }
           }
         }
-      },
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "operationId": "AdminAddFestival",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FestivalWriteRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FestivalRow"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/admin/festivals/{id}": {
@@ -4805,7 +4777,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionPair"
+                  "$ref": "#/components/schemas/RefreshResponse"
                 }
               }
             }
@@ -9074,7 +9046,9 @@
           "streakCap",
           "day",
           "weekEnds",
-          "gerRests"
+          "gerRests",
+          "chests",
+          "districtsCharted"
         ],
         "type": "object",
         "properties": {
@@ -9112,6 +9086,14 @@
           },
           "gerRests": {
             "$ref": "#/components/schemas/GerRestView"
+          },
+          "chests": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "districtsCharted": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -9173,6 +9155,35 @@
         "properties": {
           "refreshToken": {
             "type": "string"
+          }
+        }
+      },
+      "RefreshResponse": {
+        "required": [
+          "accessToken",
+          "accessExpiresAt",
+          "refreshToken",
+          "accountId",
+          "me"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "accessExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "me": {
+            "$ref": "#/components/schemas/MeView"
           }
         }
       },

@@ -10,11 +10,16 @@ public sealed class LiveListener : IAsyncDisposable
 {
     public HubConnection Connection { get; }
     public ConcurrentQueue<(LiveEvent Event, DateTimeOffset At)> Received { get; } = new();
+    public ConcurrentQueue<LiveBatch> Batches { get; } = new();
 
     public LiveListener(HubConnection c)
     {
         Connection = c;
-        c.On<LiveEvent>("event", e => Received.Enqueue((e, DateTimeOffset.UtcNow)));
+        c.On<LiveBatch>("events", b =>
+        {
+            Batches.Enqueue(b);
+            foreach (var e in b.Events) Received.Enqueue((e, DateTimeOffset.UtcNow));
+        });
     }
 
     public async Task<LiveEvent?> WaitForAsync(string kind, TimeSpan? timeout = null)

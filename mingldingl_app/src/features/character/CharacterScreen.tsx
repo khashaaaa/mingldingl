@@ -10,11 +10,10 @@ import { Row } from '@/design/components/Row';
 import { XpBar } from '@/design/components/XpBar';
 import { dimension } from '@/design/tokens';
 import {
-  useGetChests,
-  useGetEncounterLog,
   useGetFaceProof,
   useGetHonours,
   useGetMe,
+  useGetQuests,
   useGetTiers,
   useListMyPhotos,
 } from '@/lib/api/generated/engine';
@@ -34,9 +33,11 @@ export default function CharacterScreen() {
   const photos = useListMyPhotos().data;
   const ladder = useGetTiers().data;
   const honours = useGetHonours().data;
-  const chests = useGetChests().data?.length ?? 0;
+  // The two counts ride on the quest board (no full chest list or Encounter Log for a number).
+  const board = useGetQuests().data;
+  const chests = board?.chests ?? 0;
   const face = useGetFaceProof().data;
-  const charted = useGetEncounterLog().data?.standing.districts.length ?? 0;
+  const charted = board?.districtsCharted ?? 0;
   const earned = honours?.filter((h) => h.earned).length ?? 0;
   const profile = me?.profile;
   if (!profile) return null;

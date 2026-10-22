@@ -5,7 +5,7 @@ using MinglDingl.Engine.Kernel.Live;
 
 namespace MinglDingl.Engine.Features.Live;
 
-/// The app's one live connection. Server → client only: method "event" carries a LiveEvent.
+/// The app's one live connection. Server → client only: method "events" carries a LiveBatch.
 [Authorize(AuthenticationSchemes = AppClaims.Scheme)]
 public sealed class LiveHub : Hub
 {

@@ -3,8 +3,8 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using MinglDingl.Engine.Features.Auth;
+using MinglDingl.Engine.Features.Photos;
 using MinglDingl.Engine.Features.Profile;
 using MinglDingl.Engine.Kernel.Errors;
 using MinglDingl.Engine.Kernel.Live;
@@ -15,22 +15,24 @@ using static MinglDingl.Engine.Tests.Infrastructure.ProfileDriver;
 
 namespace MinglDingl.Engine.Tests.Features.Profile;
 
-/// Pretends every account holds N photos, until the Photos feature exists to count real ones.
-public sealed class FixedPhotoCount(int n) : IPhotoCount
-{
-    public int N { get; set; } = n;
-    public Task<int> CountAsync(Guid accountId, CancellationToken ct = default) => Task.FromResult(N);
-}
-
 public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
 {
-    private static (EngineFactory F, ScriptedWeSend Vm, FixedPhotoCount Photos) Engine(PostgresFixture db, int photos = 0)
+    private static (EngineFactory F, ScriptedWeSend Vm, object? Unused) Engine(PostgresFixture db)
     {
         var f = new EngineFactory(db);
         var vm = f.UseScriptedWeSend();
-        var count = new FixedPhotoCount(photos);
-        f.WithServices(s => { s.RemoveAll<IPhotoCount>(); s.AddSingleton<IPhotoCount>(count); });
-        return (f, vm, count);
+        return (f, vm, null);
+    }
+
+    /// Gives the account exactly n portrait rows (no files: only the count matters to the step).
+    private static async Task SetPhotosAsync(EngineFactory f, Guid accountId, int n)
+    {
+        using var scope = f.Services.CreateScope();
+        var store = scope.ServiceProvider.GetRequiredService<AppDb>();
+        await store.Set<Photo>().Where(p => p.AccountId == accountId).ExecuteDeleteAsync();
+        for (var i = 0; i < n; i++)
+            store.Add(new Photo { Id = Guid.CreateVersion7(), AccountId = accountId, Position = i, Path = $"{accountId}/{i}.jpg", ClientKey = $"k{i}", CreatedAt = DateTimeOffset.UtcNow });
+        await store.SaveChangesAsync();
     }
 
     [Fact]
@@ -77,15 +79,16 @@ public class ProfileTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     [Fact]
     public async Task Step_is_derived_from_profile()
     {
-        var (f, vm, photos) = Engine(db); await using var _f = f;
-        var c = f.As(await f.SignInAsync(vm));
+        var (f, vm, _) = Engine(db); await using var _f = f;
+        var s = await f.SignInAsync(vm);
+        var c = f.As(s);
         await c.CreateAsync();
         (await c.MeAsync()).OnboardingStep.Should().Be(2);
         await c.UpdateAsync(Upd(gender: "Female"));
         (await c.MeAsync()).OnboardingStep.Should().Be(3);
-        photos.N = 2;
+        await SetPhotosAsync(f, s.AccountId, 2);
         (await c.MeAsync()).OnboardingStep.Should().Be(3);
-        photos.N = 3;
+        await SetPhotosAsync(f, s.AccountId, 3);
         (await c.MeAsync()).OnboardingStep.Should().Be(4);
         await c.UpdateAsync(Upd(bio: "Rides at dawn"));
         (await c.MeAsync()).OnboardingStep.Should().Be(4);

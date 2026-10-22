@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { ApiError } from './api/client';
-import { onSignedOut } from './session';
+import { getGetMeQueryKey } from './api/generated/engine';
+import { onRefreshedMe, onSignedOut } from './session';
 
 /**
  * Data changes only when a live event says so (lib/live): no stale timer, no refetch on focus or
@@ -24,3 +25,9 @@ export const queryClient = new QueryClient({
 });
 
 onSignedOut(() => queryClient.clear());
+// Seeds /me only when nothing holds it yet (the launch): a later refresh must not overwrite a
+// newer answer a screen wrote, and live events keep it current from there.
+onRefreshedMe((me) => {
+  if (queryClient.getQueryData(getGetMeQueryKey()) === undefined)
+    queryClient.setQueryData(getGetMeQueryKey(), me);
+});

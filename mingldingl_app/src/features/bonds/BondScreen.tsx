@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
@@ -16,8 +17,15 @@ import { Txt } from '@/design/components/Txt';
 import { dimension } from '@/design/tokens';
 import { setFireOverride } from '@/design/world/rooms';
 import { ApiError } from '@/lib/api/client';
-import { castOut, readBond, severBond, useGetBond, useGetMe } from '@/lib/api/generated/engine';
-import type { BondView, LetterView } from '@/lib/api/generated/model';
+import {
+  castOut,
+  getGetBondsQueryKey,
+  readBond,
+  severBond,
+  useGetBond,
+  useGetMe,
+} from '@/lib/api/generated/engine';
+import type { BondRow, BondView, LetterView } from '@/lib/api/generated/model';
 import { feedback } from '@/lib/feedback';
 import { getLocale, t, tError } from '@/lib/i18n';
 import { useRoadCut } from '@/lib/live/road';
@@ -109,11 +117,17 @@ export default function BondScreen() {
     wasCold.current = cold;
   }, [bond, cold]);
 
-  // Reading their newest letter clears the unread dot (on every device).
+  // Reading their newest letter clears the unread dot (on every device). Only when the list says
+  // it is still unread (or does not know this letter yet): an open bond is not a write each time.
   const newest = letters[0];
+  const queryClient = useQueryClient();
   useEffect(() => {
-    if (newest && !newest.mine) readBond(id).catch(() => {});
-  }, [id, newest]);
+    if (!newest || newest.mine) return;
+    const row = queryClient.getQueryData<BondRow[]>(getGetBondsQueryKey())?.find((r) => r.id === id);
+    const known = row?.lastLetterAt != null && Date.parse(row.lastLetterAt) >= Date.parse(newest.createdAt);
+    if (known && row?.unread === false) return;
+    readBond(id).catch(() => {});
+  }, [id, newest, queryClient]);
 
   // A seal breaking while the bond is open plays its ceremony.
   const seals = useRef<number | null>(null);
@@ -178,7 +192,7 @@ export default function BondScreen() {
     return (
       <Scene
         header={header}
-        footer={<Button label={t('bond.partedBack')} onPress={() => router.navigate('/seek')} block />}
+        footer={<Button label={t('bond.partedBack')} onPress={() => router.dismissTo('/seek')} block />}
       >
         {/* Figma 254:13475: the paths parted — no blame, and the candle spent tonight is lit again */}
         <View style={styles.closedTop} />

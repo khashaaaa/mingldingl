@@ -110,13 +110,12 @@ public sealed class AdminWorld(AppDb db, IClock clock, ILiveOutbox live)
         await db.Set<Festival>().AsNoTracking().OrderBy(f => f.Starts)
             .Select(f => new FestivalRow(f.Id, f.Key, f.Starts, f.Ends)).ToListAsync(ct);
 
-    public async Task<FestivalRow> SaveFestivalAsync(Guid? id, FestivalWriteRequest req, CancellationToken ct = default)
+    /// The keepers move a festival's dates; the engine seeds the festivals themselves.
+    public async Task<FestivalRow> SaveFestivalAsync(Guid id, FestivalWriteRequest req, CancellationToken ct = default)
     {
         if (req.Ends < req.Starts) throw new DomainException(400, "festival.dates", "A festival ends on or after it starts");
-        var f = id is { } x
-            ? await db.Set<Festival>().SingleOrDefaultAsync(r => r.Id == x, ct) ?? throw new DomainException(404, "festival.not_found", "No such festival")
-            : new Festival { Id = Guid.CreateVersion7(), Key = req.Key };
-        if (id is null) db.Add(f);
+        var f = await db.Set<Festival>().SingleOrDefaultAsync(r => r.Id == id, ct)
+            ?? throw new DomainException(404, "festival.not_found", "No such festival");
         f.Starts = req.Starts;
         f.Ends = req.Ends;
         live.ToAll(LiveKinds.FestivalUpdated);

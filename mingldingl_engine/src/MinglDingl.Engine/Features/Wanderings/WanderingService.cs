@@ -45,7 +45,7 @@ public sealed record WanderingWriteRequest(
     [Required] IReadOnlyList<string> VenueKinds);
 
 public sealed class WanderingService(AppDb db, IClock clock, ILiveOutbox live, IPushOutbox push, VenueService venues,
-    Encounters.MeetingService meetings, Campaign.CampaignService campaign, Honours.HonourService honours)
+    Encounters.MeetingService meetings, Campaign.CampaignService campaign)
 {
     public async Task<WanderingsView> ListAsync(Guid me, Guid bondId, CancellationToken ct = default)
     {
@@ -123,9 +123,7 @@ public sealed class WanderingService(AppDb db, IClock clock, ILiveOutbox live, I
         Tell(b);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
-        // Fellow Traveller comes with the third kept Wandering (the honour check holds its own transaction).
-        if (t.KeptAt is not null)
-            foreach (var who in new[] { b.AId, b.BId }) await honours.CheckAsync(who, quietly: false, ct);
+        // Fellow Traveller comes with the third kept Wandering: HonourWatch checks it after the commit.
         return await GetAsync(me, bondId, key, ct);
     }
 

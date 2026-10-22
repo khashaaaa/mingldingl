@@ -11,14 +11,22 @@ using MinglDingl.Engine.Kernel.Persistence;
 namespace MinglDingl.Engine.Features.Honours;
 
 /// Honours are read from what someone has already done (deeds, bonds, meetings), never counted
-/// separately, so nothing can drift. Checking writes the newly earned ones; the ceremony plays for
+/// separately, so nothing can drift. HonourWatch checks after every write that touches what they
+/// are made of, writing the newly earned ones; reading them only reads. The ceremony plays for
 /// each until it is marked seen.
 public sealed class HonourService(AppDb db, IClock clock, ILiveOutbox live, FestivalService festivals)
 {
     private const int TrueToWordKept = 5;
     private const int FlamekeeperRites = 3;
     private const int CartographerDistricts = 3;
-    private const int TenWords = 10;
+    public const int TenWords = 10;
+
+    /// The deeds an honour counts (EarnedAsync): a new one of these is worth a check.
+    public static readonly IReadOnlySet<string> Deeds = new HashSet<string>
+    {
+        DeedKinds.Rite, DeedKinds.CampaignBoss, DeedKinds.SeventhDawn, DeedKinds.AllyCalled, DeedKinds.ThreadSparked,
+        DeedKinds.Icebreaker, DeedKinds.Trial,
+    };
     private const int ScarClosedBy = 2;
 
     private sealed record Kept(Guid MeetingId, Guid BondId, Guid Other, DateTimeOffset At, DateTimeOffset ClosedAt,
@@ -26,9 +34,7 @@ public sealed class HonourService(AppDb db, IClock clock, ILiveOutbox live, Fest
 
     public async Task<IReadOnlyList<HonourView>> ListAsync(Guid me, CancellationToken ct = default)
     {
-        var (added, held) = await CheckCoreAsync(me, quietly: false, ct);
-        // Only a new honour makes the rows read by the check stale.
-        if (added > 0) held = await db.Set<HonourEarned>().AsNoTracking().Where(h => h.AccountId == me).ToListAsync(ct);
+        var held = await db.Set<HonourEarned>().AsNoTracking().Where(h => h.AccountId == me).ToListAsync(ct);
         return HonourKeys.All.Select(d =>
         {
             var mine = held.Where(h => h.Key == d.Key).OrderBy(h => h.EarnedAt).ToList();
@@ -49,15 +55,12 @@ public sealed class HonourService(AppDb db, IClock clock, ILiveOutbox live, Fest
 
     /// Writes any honour now earned and not yet held. quietly: marked seen (the first backfill —
     /// no ceremony for history). Returns how many were new.
-    public async Task<int> CheckAsync(Guid me, bool quietly, CancellationToken ct = default) =>
-        (await CheckCoreAsync(me, quietly, ct)).Added;
-
-    private async Task<(int Added, List<HonourEarned> Held)> CheckCoreAsync(Guid me, bool quietly, CancellationToken ct)
+    public async Task<int> CheckAsync(Guid me, bool quietly, CancellationToken ct = default)
     {
-        var rows = await db.Set<HonourEarned>().AsNoTracking().Where(h => h.AccountId == me).ToListAsync(ct);
-        var held = rows.Select(h => (h.Key, h.Year)).ToHashSet();
+        var held = (await db.Set<HonourEarned>().AsNoTracking().Where(h => h.AccountId == me)
+            .Select(h => new { h.Key, h.Year }).ToListAsync(ct)).Select(h => (h.Key, h.Year)).ToHashSet();
         var earned = await EarnedAsync(me, ct);
-        if (earned.All(held.Contains)) return (0, rows);
+        if (earned.All(held.Contains)) return 0;
         var now = clock.UtcNow;
         var added = 0;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
@@ -72,7 +75,7 @@ public sealed class HonourService(AppDb db, IClock clock, ILiveOutbox live, Fest
         }
         if (added > 0 && !quietly) live.ToAccount(me, LiveKinds.HonourEarned, me);
         await tx.CommitAsync(ct);
-        return (added, rows);
+        return added;
     }
 
     /// The first time honours exist, everyone's history is written without ceremony.

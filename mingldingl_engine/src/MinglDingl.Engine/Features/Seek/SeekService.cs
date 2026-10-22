@@ -37,17 +37,25 @@ public sealed class SeekService(
         var floor = await membership.FloorAsync(me, ct);
         var perks = membership.Perks(floor);
         var perDay = CandlesPerDay(p, perks, config, clock.UtcNow);
-        var left = Math.Max(0, perDay - await UsedTodayAsync(me, ct));
+        var (used, spent) = await bonds.SeatsAndCandlesAsync(me, ct); // one read: seats taken and candles spent
+        var left = Math.Max(0, perDay - spent);
         var seats = bonds.SeatsFor(p.Tier, perks);
-        var used = await bonds.LiveCountAsync(me, ct);
         var dawn = NextDawn();
-        var filter = perks.Paid ? await db.Set<SeekFilter>().AsNoTracking().SingleOrDefaultAsync(f => f.AccountId == me, ct) : null;
         var today = clock.TodayUb;
-        var look = perks.Paid ? await db.Set<SecondLook>().AsNoTracking().SingleOrDefaultAsync(l => l.AccountId == me && l.Day == today, ct) : null;
-        var canLook = perks.Paid && look is null && await LastPassAsync(me, ct) is not null;
+        // A member's filter, tonight's second look and whether one is still possible: only the Hall's.
+        SeekFilter? filter = null;
+        SecondLook? look = null;
+        var canLook = false;
+        if (perks.Paid)
+        {
+            filter = await db.Set<SeekFilter>().AsNoTracking().SingleOrDefaultAsync(f => f.AccountId == me, ct);
+            look = await db.Set<SecondLook>().AsNoTracking().SingleOrDefaultAsync(l => l.AccountId == me && l.Day == today, ct);
+            canLook = look is null && await LastPassAsync(me, ct) is not null;
+        }
         SeekView View(string state, CandidateView? c, int l) =>
             new(state, c, l, perDay, dawn, used, seats, Membership.Floors.Key(floor), canLook, filter is not null && Active(filter));
 
+        // The cheap answers come before any search for a companion.
         if (!config.Bool(ConfigKeys.SeekEnabled)) return View("closed", null, left);
         if (used >= seats) return View("full", null, left);
         if (left == 0) return View("rests", null, 0);
@@ -131,12 +139,13 @@ public sealed class SeekService(
         await bonds.LockPeopleAsync(ct, me, target);
         await away.EndAsync(me, ct); // a summons brings them back by the fire
         var p = await Me(me, ct);
-        if (await UsedTodayAsync(me, ct) >= CandlesPerDay(p, await membership.PerksAsync(me, ct), config, clock.UtcNow))
+        var perks = await membership.PerksAsync(me, ct);
+        if (await UsedTodayAsync(me, ct) >= CandlesPerDay(p, perks, config, clock.UtcNow))
             throw new DomainException(409, "seek.no_candles", "Your candles are spent for tonight");
         if ((await CandidatesAsync(p, target, null, ct)).Count == 0)
             throw new DomainException(409, "seek.gone", "They have walked on");
         var theirTier = await db.Set<Profile.Profile>().Where(x => x.AccountId == target).Select(x => x.Tier).SingleAsync(ct);
-        var bond = await bonds.CreateAsync(me, target, p.Tier, theirTier, ct);
+        var bond = await bonds.CreateAsync(me, target, p.Tier, theirTier, ct, perks);
         push.Send(target, PushKinds.BondMade, bond.Id, p.Name);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);

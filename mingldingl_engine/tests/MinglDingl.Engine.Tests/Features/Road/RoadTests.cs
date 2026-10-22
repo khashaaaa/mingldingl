@@ -98,6 +98,57 @@ public class RoadTests(PostgresFixture db) : IClassFixture<PostgresFixture>
     }
 
     [Fact]
+    public async Task An_honour_is_written_and_announced_by_the_write_that_earns_it_and_reading_only_reads()
+    {
+        await using var w = await World.CreateAsync(db);
+        var bat = await w.PersonAsync("Bat", "Male");
+        var saruul = await w.PersonAsync("Saruul", "Female");
+        await using var his = await w.F.ListenAsync(bat.S);
+
+        await bat.C.SummonAsync(saruul.Id);
+        (await his.WaitForAsync(MinglDingl.Engine.Kernel.Live.LiveKinds.HonourEarned)).Should().NotBeNull("the summons earned First Bond");
+        await using (var scope = w.F.Services.CreateAsyncScope())
+        {
+            var dbx = scope.ServiceProvider.GetRequiredService<AppDb>();
+            dbx.Set<HonourEarned>().Where(h => h.AccountId == bat.Id).Select(h => h.Key).ToList()
+                .Should().Equal(HonourKeys.FirstBond);
+            // History written with the watch off earns nothing until a write touches it: reading never checks.
+            scope.ServiceProvider.GetRequiredService<HonourTouches>().Off = true;
+            dbx.Add(new ScoreEvent { AccountId = bat.Id, Kind = DeedKinds.Rite, Amount = 0, Day = UbDays.DayOf(w.F.Clock.UtcNow), CreatedAt = w.F.Clock.UtcNow });
+            await dbx.SaveChangesAsync();
+        }
+        (await bat.C.HonoursAsync()).Single(h => h.Key == HonourKeys.FaceToFlame).Earned.Should().BeFalse();
+        await using (var scope = w.F.Services.CreateAsyncScope())
+        {
+            var dbx = scope.ServiceProvider.GetRequiredService<AppDb>();
+            dbx.Add(new ScoreEvent { AccountId = bat.Id, Kind = DeedKinds.Rite, Amount = 0, Day = UbDays.DayOf(w.F.Clock.UtcNow), CreatedAt = w.F.Clock.UtcNow });
+            await dbx.SaveChangesAsync();
+        }
+        (await bat.C.HonoursAsync()).Single(h => h.Key == HonourKeys.FaceToFlame).Earned.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task A_festival_dated_after_the_encounter_still_earns_its_honour_and_the_board_counts_districts()
+    {
+        await using var m = await MeetingWorld.CreateAsync(db);
+        var id = await m.AskedAsync();
+        (await m.Bat.C.AttendRawAsync(m.Bond, id, "Met")).EnsureSuccessStatusCode();
+        (await m.Saruul.C.AttendRawAsync(m.Bond, id, "Met")).EnsureSuccessStatusCode();
+        (await m.Saruul.C.HonoursAsync()).Single(h => h.Key == HonourKeys.Naadam).Earned.Should().BeFalse();
+        (await m.Saruul.C.GetFromJsonAsync<QuestBoard>("/me/quests"))!.DistrictsCharted.Should().Be(1);
+
+        await using (var scope = m.W.F.Services.CreateAsyncScope())
+        {
+            var dbx = scope.ServiceProvider.GetRequiredService<AppDb>();
+            var day = UbDays.DayOf(m.W.F.Clock.UtcNow.AddDays(-1));
+            dbx.Add(new Festival { Id = Guid.CreateVersion7(), Key = FestivalKeys.Naadam, Starts = day.AddDays(-1), Ends = day.AddDays(1) });
+            await dbx.SaveChangesAsync();
+        }
+        (await m.Saruul.C.HonoursAsync()).Single(h => h.Key == HonourKeys.Naadam).Earned.Should().BeTrue();
+        (await m.Bat.C.HonoursAsync()).Single(h => h.Key == HonourKeys.Naadam).Earned.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task A_kept_encounter_charts_its_district_and_during_naadam_earns_that_years_honour()
     {
         await using var m = await MeetingWorld.CreateAsync(db);

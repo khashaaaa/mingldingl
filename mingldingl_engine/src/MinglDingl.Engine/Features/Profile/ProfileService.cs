@@ -9,13 +9,7 @@ using MinglDingl.Engine.Kernel.Persistence;
 
 namespace MinglDingl.Engine.Features.Profile;
 
-/// How many portraits an account holds — owned by the Photos feature.
-public interface IPhotoCount
-{
-    Task<int> CountAsync(Guid accountId, CancellationToken ct = default);
-}
-
-public sealed class ProfileService(AppDb db, IClock clock, IConfig config, ILiveOutbox live, IPhotoCount photos, ScoreService score)
+public sealed class ProfileService(AppDb db, IClock clock, IConfig config, ILiveOutbox live, ScoreService score)
 {
     public static readonly IReadOnlySet<string> Genders = new HashSet<string>(StringComparer.Ordinal) { "Male", "Female" };
     public static readonly IReadOnlySet<string> Oaths = new HashSet<string>(StringComparer.Ordinal) { "Bond", "Fate", "Kinship" };
@@ -34,9 +28,15 @@ public sealed class ProfileService(AppDb db, IClock clock, IConfig config, ILive
 
     public async Task<MeView> MeAsync(Guid accountId, CancellationToken ct = default)
     {
-        var account = await db.Set<Account>().AsNoTracking().SingleAsync(a => a.Id == accountId, ct);
-        var profile = await db.Set<Profile>().AsNoTracking().SingleOrDefaultAsync(p => p.AccountId == accountId, ct);
-        var count = profile is null ? 0 : await photos.CountAsync(accountId, ct);
+        // One read: the account, its profile and how many portraits it holds (the onboarding step).
+        var row = await db.Set<Account>().AsNoTracking().Where(a => a.Id == accountId)
+            .Select(a => new
+            {
+                Account = a,
+                Profile = db.Set<Profile>().FirstOrDefault(p => p.AccountId == a.Id),
+                Photos = db.Set<Photos.Photo>().Count(p => p.AccountId == a.Id),
+            }).SingleAsync(ct);
+        var (account, profile, count) = (row.Account, row.Profile, row.Photos);
         return new MeView(account.Id, account.Status.ToString(), profile is null ? null : View(profile),
             OnboardingStep(profile, count, config.Int(ConfigKeys.PhotosMin)), account.Phone[..4], account.DeleteAt);
     }

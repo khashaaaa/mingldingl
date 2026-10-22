@@ -3,9 +3,17 @@ import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 import { Linking, Platform } from 'react-native';
 import { clearPushToken, setPushToken } from './api/generated/engine';
+import { onSignedOut, session } from './session';
 
 const ASKED_KEY = 'mingl.pushAsked';
 const OFF_KEY = 'mingl.pushOff';
+/** The account and token last handed to the engine for this sign-in: the same pair is not sent again. */
+const SENT_KEY = 'mingl.pushSent';
+
+// A new sign-in is a new device session at the engine, which holds no token yet.
+onSignedOut(() => {
+  SecureStore.deleteItemAsync(SENT_KEY).catch(() => {});
+});
 
 // With the app open, a live event already shows its nudge: the system banner would be a second bell.
 Notifications.setNotificationHandler({
@@ -47,7 +55,10 @@ export async function registerPushToken() {
       });
     const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
     const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+    const sent = `${session.get()?.accountId ?? ''}|${data}`;
+    if ((await SecureStore.getItemAsync(SENT_KEY)) === sent) return;
     await setPushToken({ token: data });
+    await SecureStore.setItemAsync(SENT_KEY, sent);
   } catch (e) {
     if (__DEV__) console.warn('push token not registered', e);
   }
@@ -66,6 +77,7 @@ export async function pushIsOn() {
 export async function setPushOn(on: boolean): Promise<boolean> {
   if (!on) {
     await SecureStore.setItemAsync(OFF_KEY, 'yes');
+    await SecureStore.deleteItemAsync(SENT_KEY);
     await clearPushToken().catch(() => {});
     return false;
   }

@@ -12,7 +12,8 @@ config, key in brackets where it helps).
 
 The whole game is built and checked on devices in English and Mongolian. The home server runs the
 latest engine (`api.mingldingl.com`), sign-in texts real WeSend codes, QPay's live keys are in, and
-store builds go to Play internal testing (build 8 on the A51). What is left is the launch, and that
+store builds go to Play internal testing (1.0.1, Play version 13, uploaded 2026-10-22; words and
+screens reach installed builds of the same version over the air). What is left is the launch, and that
 waits on the user: the Play payout bank, 12 testers for the 14-day closed test, and the reviewer video.
 
 | Stage | What | State |

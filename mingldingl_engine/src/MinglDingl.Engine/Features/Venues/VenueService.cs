@@ -195,10 +195,11 @@ public sealed class VenueService(
     private async Task<Dictionary<Guid, List<VenuePhotoView>>> PhotosAsync(List<Guid> ids, CancellationToken ct)
     {
         var rows = await db.Set<VenuePhoto>().AsNoTracking().Where(p => ids.Contains(p.VenueId)).OrderBy(p => p.Position).ToListAsync(ct);
+        var signed = await urls.GetManyAsync(rows.Select(p => (p.Id, p.Path)), ct);
         var result = new Dictionary<Guid, List<VenuePhotoView>>();
         foreach (var p in rows)
         {
-            var (url, expires) = await urls.GetAsync(p.Id, p.Path, ct);
+            var (url, expires) = signed[p.Id];
             if (!result.TryGetValue(p.VenueId, out var list)) result[p.VenueId] = list = [];
             list.Add(new VenuePhotoView(p.Id, url, expires, Convert.ToBase64String(p.ThumbHash), p.Width, p.Height));
         }

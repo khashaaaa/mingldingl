@@ -20,10 +20,15 @@ public sealed class QuestService(AppDb db, IClock clock, IConfig config, ScoreSe
         var week = UbDays.WeekStart(today);
         var claims = await db.Set<QuestClaim>().AsNoTracking()
             .Where(c => c.AccountId == me && (c.Period == today || c.Period == week)).ToListAsync(ct);
+        // This week's deeds by kind and day, in one read: every deed quest on the board counts from it.
+        var deeds = await db.Set<ScoreEvent>().AsNoTracking()
+            .Where(e => e.AccountId == me && e.Day >= week && e.Day < week.AddDays(7))
+            .GroupBy(e => new { e.Kind, e.Day }).Select(g => new DeedCount(g.Key.Kind, g.Key.Day, g.Count()))
+            .ToListAsync(ct);
         var daily = new List<QuestView>();
         foreach (var q in DailyFor(me, today))
-            daily.Add(await ViewAsync(me, q, today, claims, ct));
-        var weekly = new List<QuestView> { await ViewAsync(me, WeeklyFor(me, week), week, claims, ct) };
+            daily.Add(await ViewAsync(me, q, today, claims, deeds, ct));
+        var weekly = new List<QuestView> { await ViewAsync(me, WeeklyFor(me, week), week, claims, deeds, ct) };
         var streak = await db.Set<Profile.Profile>().AsNoTracking().Where(p => p.AccountId == me)
             .Select(p => new { p.Streak, p.LastDawn }).SingleOrDefaultAsync(ct);
         // A streak whose last return was before yesterday is broken — unless ger rests will keep the gap.
@@ -31,7 +36,15 @@ public sealed class QuestService(AppDb db, IClock clock, IConfig config, ScoreSe
         var alive = streak is { LastDawn: { } d } && ScoreService.Keepable(d, today, rests.Left) is not null
             ? streak.Streak : 0;
         var cap = config.Int(ConfigKeys.ScoreDawnStreakCap);
-        return new QuestBoard(daily, weekly, alive, alive == 0 ? 0 : (alive - 1) % cap + 1, cap, today, week.AddDays(6), rests);
+        // The character sheet's two counts ride on the board, whose events already move them.
+        var chests = await db.Set<Chest>().CountAsync(c => c.AccountId == me && c.OpenedAt == null, ct);
+        var districts = await (from m in db.Set<Meeting>()
+                               join b in db.Set<Bond>() on m.BondId equals b.Id
+                               join v in db.Set<Venues.Venue>() on m.VenueId equals v.Id
+                               where (b.AId == me || b.BId == me) && m.State == MeetingState.Closed && m.Outcome == MeetingOutcome.Kept
+                               select v.District).Distinct().CountAsync(ct);
+        return new QuestBoard(daily, weekly, alive, alive == 0 ? 0 : (alive - 1) % cap + 1, cap, today, week.AddDays(6), rests,
+            chests, districts);
     }
 
     public async Task<ClaimResult> ClaimAsync(Guid me, string kind, CancellationToken ct = default)
@@ -93,9 +106,12 @@ public sealed class QuestService(AppDb db, IClock clock, IConfig config, ScoreSe
 
     private ChestView View(Chest c) => new(c.Id, c.FromQuest, config.Int(ConfigKeys.ChestPoints), c.CreatedAt);
 
-    private async Task<QuestView> ViewAsync(Guid me, QuestDefinition q, DateOnly period, List<QuestClaim> claims, CancellationToken ct)
+    private sealed record DeedCount(string Kind, DateOnly Day, int N);
+
+    private async Task<QuestView> ViewAsync(Guid me, QuestDefinition q, DateOnly period, List<QuestClaim> claims,
+        List<DeedCount> deeds, CancellationToken ct)
     {
-        var progress = Math.Min(q.Target, await ProgressAsync(me, q.Kind, period, ct));
+        var progress = Math.Min(q.Target, await ProgressAsync(me, q.Kind, period, ct, deeds));
         var claimed = claims.Any(c => c.Kind == q.Kind && c.Period == period);
         return new QuestView(q.Kind, q.Period, progress, q.Target, config.Int(q.PointsKey), progress >= q.Target, claimed);
     }
@@ -112,11 +128,14 @@ public sealed class QuestService(AppDb db, IClock clock, IConfig config, ScoreSe
 
     private static int Seed(Guid me, DateOnly day) => BitConverter.ToInt32(me.ToByteArray(), 12) ^ day.DayNumber * 7919;
 
-    private async Task<int> ProgressAsync(Guid me, string kind, DateOnly period, CancellationToken ct)
+    /// known: this week's deed counts when the caller has read them (the board); otherwise asked.
+    private async Task<int> ProgressAsync(Guid me, string kind, DateOnly period, CancellationToken ct, List<DeedCount>? known = null)
     {
         var weekEnd = period.AddDays(7);
-        Task<int> Deeds(string deed, bool weekly) => db.Set<ScoreEvent>().AsNoTracking().CountAsync(e => e.AccountId == me
-            && e.Kind == deed && (weekly ? e.Day >= period && e.Day < weekEnd : e.Day == period), ct);
+        Task<int> Deeds(string deed, bool weekly) => known is not null
+            ? Task.FromResult(known.Where(d => d.Kind == deed && (weekly ? d.Day >= period && d.Day < weekEnd : d.Day == period)).Sum(d => d.N))
+            : db.Set<ScoreEvent>().AsNoTracking().CountAsync(e => e.AccountId == me
+                && e.Kind == deed && (weekly ? e.Day >= period && e.Day < weekEnd : e.Day == period), ct);
         var from = UbDays.Start(period);
         var to = UbDays.Start(weekEnd);
         return kind switch

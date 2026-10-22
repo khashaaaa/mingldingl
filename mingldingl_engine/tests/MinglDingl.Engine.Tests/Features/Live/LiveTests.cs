@@ -108,4 +108,45 @@ public class LiveTests(PostgresFixture db) : IClassFixture<PostgresFixture>
         (await la.WaitForAsync(LiveKinds.SessionRevoked)).Should().NotBeNull();
         (await lb.WaitForAsync(LiveKinds.SessionRevoked, TimeSpan.FromMilliseconds(500))).Should().BeNull();
     }
+
+    [Fact]
+    public async Task One_write_sends_each_group_one_batch_with_repeats_folded()
+    {
+        await using var f = new EngineFactory(db);
+        var vm = f.UseScriptedWeSend();
+        Guid target = Guid.Empty;
+        var bond = Guid.NewGuid();
+        f.WithEndpoint("/__many", async (AppDb store, ILiveOutbox live) =>
+        {
+            live.ToAccount(target, LiveKinds.BondUpdated, bond);
+            live.ToAccount(target, LiveKinds.BondUpdated, bond); // same kind, same ids: a new array each time
+            live.ToAccount(target, LiveKinds.SeekChanged, target);
+            live.ToAccount(target, LiveKinds.BondUpdated, Guid.NewGuid());
+            await Touch(store);
+            await store.SaveChangesAsync();
+        });
+        var a = await f.SignInAsync(vm);
+        target = a.AccountId;
+        await using var la = await f.ListenAsync(a);
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/__many");
+        req.Headers.Add(LiveOutbox.OriginHeader, "w-123");
+        await f.Client().SendAsync(req);
+        (await la.WaitForAsync(LiveKinds.SeekChanged)).Should().NotBeNull();
+        await Task.Delay(200);
+        la.Batches.Should().ContainSingle();
+        var batch = la.Batches.Single();
+        batch.Origin.Should().Be("w-123");
+        batch.All.Should().BeFalse();
+        batch.Events.Should().HaveCount(3);
+        batch.Events.Count(e => e.Kind == LiveKinds.BondUpdated && e.Ids.SequenceEqual(new[] { bond })).Should().Be(1);
+    }
+
+    [Fact]
+    public void Live_events_are_equal_by_their_ids()
+    {
+        var id = Guid.NewGuid();
+        new LiveEvent("k", [id]).Should().Be(new LiveEvent("k", new[] { id }.ToList()));
+        new LiveEvent("k", [id]).Should().NotBe(new LiveEvent("k", [Guid.NewGuid()]));
+        new[] { new LiveEvent("k", [id]), new LiveEvent("k", [id]) }.Distinct().Should().ContainSingle();
+    }
 }

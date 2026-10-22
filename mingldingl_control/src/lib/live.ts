@@ -17,6 +17,8 @@ import { session } from './session';
 
 /** What the engine pushes: which kind of thing changed and the ids it concerns — never the data. */
 export type LiveEvent = { kind: string; ids: string[] };
+/** One write's events, as one message. */
+export type LiveBatch = { events: LiveEvent[] };
 
 export type UsersListKey = readonly ['/admin/users', 'pages', { search: string }];
 export const usersListKey = (search: string): UsersListKey => ['/admin/users', 'pages', { search }];
@@ -50,19 +52,41 @@ const touchesToday = (q: { queryKey: readonly unknown[] }) =>
   typeof q.queryKey[0] === 'string' &&
   (q.queryKey[0].startsWith('/admin/dashboard') || q.queryKey[0].startsWith('/admin/deletions'));
 
-function applyLiveEvent(client: QueryClient, e: LiveEvent) {
+/** user.updated comes with every score, letter and bond: gathered for this long, then read once. */
+export const USER_UPDATES_MS = 750; // under the panel's 2 s liveness promise (e2e: a new name shows within 2 s)
+const updatedUsers = new Set<string>();
+let usersTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** The people who changed: their open pages, the lists that show them, and today's numbers. */
+function flushUpdatedUsers(client: QueryClient) {
+  usersTimer = null;
+  const ids = new Set(updatedUsers);
+  updatedUsers.clear();
+  client.invalidateQueries({ predicate: touchesToday });
+  for (const id of ids) {
+    client.invalidateQueries({ queryKey: getAdminGetUserQueryKey(id) });
+    client.invalidateQueries({ queryKey: getAdminUserPaymentsQueryKey(id) });
+  }
+  return client.invalidateQueries({
+    queryKey: ['/admin/users', 'pages'],
+    predicate: (q) =>
+      (q.state.data as InfiniteData<AdminUserPage, string | null> | undefined)?.pages.some((p) =>
+        p.items.some((r) => ids.has(r.accountId)),
+      ) ?? false,
+  });
+}
+
+export function applyLiveEvent(client: QueryClient, e: LiveEvent) {
   // The dashboard's today and the fading list move with sign-ups, reports, payments and bonds.
-  if (['user.created', 'user.updated', 'report.created', 'payment.updated'].includes(e.kind))
+  if (['user.created', 'report.created', 'payment.updated'].includes(e.kind))
     client.invalidateQueries({ predicate: touchesToday });
   switch (e.kind) {
     case 'user.created':
       return prependNewRows(client);
     case 'user.updated':
-      for (const id of e.ids) {
-        client.invalidateQueries({ queryKey: getAdminGetUserQueryKey(id) });
-        client.invalidateQueries({ queryKey: getAdminUserPaymentsQueryKey(id) });
-      }
-      return client.invalidateQueries({ queryKey: ['/admin/users', 'pages'] });
+      for (const id of e.ids) updatedUsers.add(id);
+      if (!usersTimer) usersTimer = setTimeout(() => flushUpdatedUsers(client), USER_UPDATES_MS);
+      return;
     case 'report.created':
       // also sent when a report is decided
       return client.invalidateQueries({
@@ -125,7 +149,9 @@ export async function startLive() {
     })
     .configureLogging(LogLevel.Warning)
     .build();
-  c.on('event', (e: LiveEvent) => applyLiveEvent(queryClient, e));
+  c.on('events', (b: LiveBatch) => {
+    for (const e of b.events) applyLiveEvent(queryClient, e);
+  });
   // Events missed while disconnected are gone: show the current truth once.
   c.onreconnecting(() => setState('reconnecting'));
   c.onreconnected(() => {

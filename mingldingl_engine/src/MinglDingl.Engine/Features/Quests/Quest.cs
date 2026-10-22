@@ -94,8 +94,9 @@ public sealed record QuestView(string Kind, string Period, int Progress, int Tar
 
 /// dawns: days returned in a row; lit: dots lit on the seven-dawn row (dawns wrap at the cap).
 /// gerRests: a member's missed dawns kept this moon and how many are left.
+/// chests: unopened chests in the satchel; districtsCharted: districts with a kept encounter (the character sheet).
 public sealed record QuestBoard(IReadOnlyList<QuestView> Daily, IReadOnlyList<QuestView> Weekly, int Dawns, int Lit, int StreakCap,
-    DateOnly Day, DateOnly WeekEnds, Score.GerRestView GerRests);
+    DateOnly Day, DateOnly WeekEnds, Score.GerRestView GerRests, int Chests, int DistrictsCharted);
 
 public sealed record ChestView(Guid Id, string FromQuest, int Points, DateTimeOffset CreatedAt);
 

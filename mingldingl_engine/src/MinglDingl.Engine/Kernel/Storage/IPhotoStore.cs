@@ -10,6 +10,14 @@ public interface IPhotoStore
     Task DeleteAsync(string path, CancellationToken ct = default);
     Task<byte[]> GetAsync(string path, CancellationToken ct = default);
     Task<string> SignAsync(string path, TimeSpan ttl, CancellationToken ct = default);
+
+    /// Many paths at once: path → signed URL. A store without a bulk call signs them one by one.
+    async Task<IReadOnlyDictionary<string, string>> SignManyAsync(IReadOnlyList<string> paths, TimeSpan ttl, CancellationToken ct = default)
+    {
+        var result = new Dictionary<string, string>();
+        foreach (var path in paths.Distinct()) result[path] = await SignAsync(path, ttl, ct);
+        return result;
+    }
 }
 
 /// Supabase Storage, private bucket, authenticated with the project's secret key (engine only).
@@ -70,5 +78,32 @@ public sealed class SupabasePhotoStore(HttpClient http, IConfiguration config) :
         return $"{Origin}/storage/v1{body!.SignedUrl}";
     }
 
+    /// Supabase's bulk sign (`POST object/sign/{bucket}` with `paths`): one round trip for a page of
+    /// portraits. A path it could not sign is signed alone (and fails loudly there).
+    public async Task<IReadOnlyDictionary<string, string>> SignManyAsync(IReadOnlyList<string> paths, TimeSpan ttl, CancellationToken ct = default)
+    {
+        var result = new Dictionary<string, string>();
+        var distinct = paths.Distinct().ToList();
+        if (distinct.Count == 0) return result;
+        if (distinct.Count == 1)
+        {
+            result[distinct[0]] = await SignAsync(distinct[0], ttl, ct);
+            return result;
+        }
+        using var res = await http.PostAsJsonAsync($"object/sign/{Bucket}", new { expiresIn = (int)ttl.TotalSeconds, paths = distinct }, ct);
+        res.EnsureSuccessStatusCode();
+        var rows = await res.Content.ReadFromJsonAsync<List<BulkSignRow>>(ct) ?? [];
+        foreach (var r in rows)
+            if (r is { Path: { } path, SignedUrl: { Length: > 0 } url, Error: null }) result[path] = $"{Origin}/storage/v1{url}";
+        foreach (var missing in distinct.Where(p => !result.ContainsKey(p)))
+            result[missing] = await SignAsync(missing, ttl, ct);
+        return result;
+    }
+
     private sealed record SignResponse([property: JsonPropertyName("signedURL")] string SignedUrl);
+
+    private sealed record BulkSignRow(
+        [property: JsonPropertyName("path")] string? Path,
+        [property: JsonPropertyName("signedURL")] string? SignedUrl,
+        [property: JsonPropertyName("error")] string? Error);
 }

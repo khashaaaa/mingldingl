@@ -3,7 +3,7 @@
     "name": "MingldIngl",
     "slug": "mingldingl",
     "scheme": "mingldingl",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -87,6 +87,7 @@
       ],
       "./plugins/withNoDevMenuButton",
       "./plugins/withLeanAndroid",
+      "./plugins/withNightBars",
       "expo-sharing"
     ],
     "experiments": {
@@ -104,7 +105,7 @@
     },
     "updates": {
       "url": "https://u.expo.dev/7bff372e-81ab-4e35-b114-503bb9f26e29",
-      "fallbackToCacheTimeout": 5000
+      "fallbackToCacheTimeout": 0
     }
   }
 }

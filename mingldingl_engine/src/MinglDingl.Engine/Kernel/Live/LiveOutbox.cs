@@ -5,9 +5,14 @@ using MinglDingl.Engine.Features.Live;
 
 namespace MinglDingl.Engine.Kernel.Live;
 
-/// Scoped: one per request. Holds events until the request's database work commits.
-public sealed class LiveOutbox(IHubContext<LiveHub> app, IHubContext<AdminLiveHub> admin, ILogger<LiveOutbox> log) : ILiveOutbox
+/// Scoped: one per request. Holds events until the request's database work commits, then sends
+/// each group one message with its distinct events.
+public sealed class LiveOutbox(
+    IHubContext<LiveHub> app, IHubContext<AdminLiveHub> admin, IHttpContextAccessor http, ILogger<LiveOutbox> log) : ILiveOutbox
 {
+    /// The app names each write (a random id); its echo comes back with that name.
+    public const string OriginHeader = "X-Live-Origin";
+
     private readonly List<(bool Admin, string Group, LiveEvent Event)> _held = [];
 
     public void ToAccount(Guid accountId, string kind, params Guid[] ids) => _held.Add((false, LiveGroups.Account(accountId), new(kind, ids)));
@@ -20,20 +25,30 @@ public sealed class LiveOutbox(IHubContext<LiveHub> app, IHubContext<AdminLiveHu
     internal async Task FlushAsync()
     {
         if (_held.Count == 0) return;
-        var batch = _held.Distinct().ToList();
+        var groups = _held.GroupBy(h => (h.Admin, h.Group))
+            .Select(g => (g.Key.Admin, g.Key.Group, Events: g.Select(h => h.Event).Distinct().ToList())).ToList();
         _held.Clear();
-        foreach (var (isAdmin, group, e) in batch)
+        var origin = Origin();
+        foreach (var (isAdmin, group, events) in groups)
         {
             try
             {
                 var clients = isAdmin ? admin.Clients.Group(group) : app.Clients.Group(group);
-                await clients.SendAsync("event", e);
+                await clients.SendAsync("events", new LiveBatch(events, isAdmin ? null : origin, group == LiveGroups.All));
+                // App builds from before the batch listen for one "event" each; drop once they have all updated.
+                if (!isAdmin) foreach (var e in events) await clients.SendAsync("event", e);
             }
             catch (Exception ex) // a dropped push must never fail the write that caused it
             {
-                log.LogWarning(ex, "Live send failed for {Kind}", e.Kind);
+                log.LogWarning(ex, "Live send failed for {Kinds}", string.Join(",", events.Select(e => e.Kind)));
             }
         }
+    }
+
+    private string? Origin()
+    {
+        var v = http.HttpContext?.Request.Headers[OriginHeader].ToString();
+        return v is { Length: > 0 and <= 64 } && v.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_') ? v : null;
     }
 }
 
