@@ -4,7 +4,7 @@ name: CI
 # The admin's Playwright test is local-only: it needs a database and the engine's development config.
 on:
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
 
 jobs:
